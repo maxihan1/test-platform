@@ -213,8 +213,19 @@ async function writeSessionFile(sessionId: string): Promise<void> {
   }
 }
 
+// 닫기 전에 돌릴 일 — 폰상태에서 가 구간 동안 걸어 둔다. 본문이 제한 시간에 걸려 버려지면 구간의 되돌리기가 안 돌고,
+// 연결을 닫고 나면 러너도 보낼 곳이 없다. 닫는 길은 여럿(케이스 정리 단계 · E2E 시나리오의 폰 닫기)이라 닫기 한 곳에서 돌린다
+const 닫기전 = new WeakMap<AppDriver, () => Promise<void>>();
+
+/** 연결을 닫기 전에 돌릴 일을 건다 — 일은 던지지 않아야 한다(닫기를 막는다). undefined 면 거둔다 */
+export function 닫기전에(driver: AppDriver, 일: (() => Promise<void>) | undefined): void {
+  if (일 === undefined) 닫기전.delete(driver);
+  else 닫기전.set(driver, 일);
+}
+
 // 닫기가 실패하면 파일을 남겨 러너가 다시 닫을 수 있게 한다
 export async function closeApp(driver: AppDriver): Promise<void> {
+  await 닫기전.get(driver)?.();
   await driver.deleteSession();
   await rm(sessionFile(), { force: true });
 }

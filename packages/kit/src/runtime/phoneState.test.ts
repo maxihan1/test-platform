@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { phoneStateFile, type AppDriver } from './app.js';
+import { closeApp, phoneStateFile, type AppDriver } from './app.js';
 import { 폰상태에서, 폰시각 } from './phoneState.js';
 import { 웹뷰에서 } from './webview.js';
 
@@ -54,6 +54,7 @@ function 가짜폰(처음: Partial<상태> = {}, 막을?: (명령: string, 인�
       받는다('setOrientation', { 방향 });
       폰.방향 = 방향;
     },
+    deleteSession: async () => void 받는다('deleteSession'),
     getContexts: async () => ['NATIVE_APP', 'WEBVIEW_com.shop'],
     switchContext: async () => undefined,
     waitUntil: async (조건: () => Promise<boolean>) => {
@@ -172,6 +173,109 @@ describe('폰상태에서', () => {
     await expect(폰상태에서(driver, { 어두운화면: true }, () => 폰상태에서(driver, { 글자크기: 1.3 }, async () => undefined))).rejects.toThrow('또 부를 수 없다');
     await expect(웹뷰에서(driver, () => 폰상태에서(driver, { 어두운화면: true }, async () => undefined))).rejects.toThrow('폰상태에서 은 웹 맥락에서는 못 쓴다');
     expect(보낸.filter(([명령]) => 명령.startsWith('mobile: set'))).toEqual([['mobile: setUiMode', { mode: 'night', value: 'yes' }], ['mobile: setUiMode', { mode: 'night', value: 'no' }]]);
+  });
+});
+
+describe('closeApp — 구간 도중에 버려진 연결', () => {
+  // Playwright 는 제한 시간에 걸린 본문을 멈춘 자리에서 버린다 — 구간의 되돌리기까지 못 간다
+  const 구간에서멈춘다 = async (driver: AppDriver, 바꿀: Parameters<typeof 폰상태에서>[1], 감싸기 = (일: () => Promise<never>) => 일()): Promise<void> => {
+    await new Promise<void>((들어옴) => {
+      void 폰상태에서(driver, 바꿀, () =>
+        감싸기(() => {
+          들어옴();
+          return new Promise<never>(() => undefined);
+        }),
+      );
+    });
+  };
+
+  type 실행 = (명령: string, 인자?: Record<string, unknown>) => Promise<unknown>;
+  const 닫힘 = ['deleteSession', {}];
+
+  it('구간 도중에 버려진 연결을 닫으면 닫기 전에 되돌릴 요청을 망부터 보내고 파일을 지운다', async () => {
+    const { driver, 폰, 보낸 } = 가짜폰();
+    await 구간에서멈춘다(driver, { 네트워크: '끊김', 어두운화면: true });
+    expect(폰).toMatchObject({ 망: { wifi: false, data: false }, 밤: 'yes' });
+    보낸.length = 0;
+    await closeApp(driver);
+    expect(보낸).toEqual([['mobile: setConnectivity', { wifi: true }], ['mobile: setUiMode', { mode: 'night', value: 'no' }], 닫힘]);
+    expect(폰).toMatchObject({ 망: { wifi: true, data: false }, 밤: 'no' });
+    expect(existsSync(phoneStateFile())).toBe(false);
+  });
+
+  it('구간이 스스로 되돌린 연결은 닫기만 한다', async () => {
+    const { driver, 보낸 } = 가짜폰();
+    await 폰상태에서(driver, { 네트워크: '끊김' }, async () => undefined);
+    보낸.length = 0;
+    await closeApp(driver);
+    expect(보낸).toEqual([닫힘]);
+  });
+
+  it('못 되돌려도 던지지 않고 알린 뒤 닫는다 — 하나가 막혀도 나머지는 보내고, 러너가 다시 보낼 파일은 남긴다', async () => {
+    const 알림 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let 막기 = false;
+    const { driver, 폰, 보낸 } = 가짜폰({}, (명령) => 막기 && 명령 === 'mobile: setConnectivity');
+    await 구간에서멈춘다(driver, { 네트워크: '끊김', 어두운화면: true });
+    막기 = true;
+    await closeApp(driver);
+    expect(알림).toHaveBeenCalledWith(expect.stringContaining('네트워크: 팜이 막았다'));
+    expect(폰.밤).toBe('no');
+    expect(보낸.at(-1)).toEqual(닫힘);
+    expect(existsSync(phoneStateFile())).toBe(true);
+    알림.mockRestore();
+  });
+
+  it('웹뷰 구간 안에서 버려졌으면 네이티브로 가서 보낸다 — 닫는 길이라 웹으로 돌아가지 않는다', async () => {
+    const { driver, 폰 } = 가짜폰();
+    const 맥락 = vi.fn(async (_이름: string) => undefined);
+    (driver as unknown as { switchContext: typeof 맥락 }).switchContext = 맥락;
+    await 구간에서멈춘다(driver, { 네트워크: '끊김' }, (일) => 웹뷰에서(driver, 일));
+    await closeApp(driver);
+    expect(폰.망.wifi).toBe(true);
+    expect(맥락.mock.calls.map(([이름]) => 이름)).toEqual(['WEBVIEW_com.shop', 'NATIVE_APP']);
+  });
+
+  it('바꾸는 도중에 버려졌으면 닫은 뒤 남은 바꾸기를 마저 보내지 않는다', async () => {
+    const { driver, 보낸 } = 가짜폰();
+    const 손 = driver as unknown as { execute: 실행 };
+    const 원래 = 손.execute;
+    let 풀기 = (): void => undefined;
+    const 문 = new Promise<void>((풀림) => (풀기 = 풀림));
+    let 끝: Promise<unknown> = Promise.resolve();
+    // 와이파이 끄기 요청이 답을 기다리는 사이에 제한 시간이 온 꼴
+    await new Promise<void>((걸림) => {
+      손.execute = async (명령, 인자) => {
+        if (명령 === 'mobile: setConnectivity' && 인자?.wifi === false) {
+          걸림();
+          await 문;
+        }
+        return 원래(명령, 인자);
+      };
+      끝 = 폰상태에서(driver, { 네트워크: '끊김', 어두운화면: true }, async () => undefined).catch((err: unknown) => err);
+    });
+    await closeApp(driver);
+    풀기();
+    expect(await 끝).toBeInstanceOf(Error);
+    // 어두운 화면 켜기는 안 나가고, 닫는 쪽의 되돌리기 하나뿐이다
+    expect(보낸.filter(([명령]) => 명령 === 'mobile: setUiMode')).toEqual([['mobile: setUiMode', { mode: 'night', value: 'no' }]]);
+  });
+
+  it('폰이 되돌리기에 답하지 않으면 15초 뒤 알리고 닫는다', async () => {
+    const 알림 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { driver, 보낸 } = 가짜폰();
+    await 구간에서멈춘다(driver, { 네트워크: '끊김' });
+    (driver as unknown as { execute: 실행 }).execute = () => new Promise<never>(() => undefined);
+    vi.useFakeTimers();
+    try {
+      const 닫기 = closeApp(driver);
+      await vi.advanceTimersByTimeAsync(15_000);
+      await 닫기;
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(알림).toHaveBeenCalledWith(expect.stringContaining('15초 안에 답이 없다'));
+    expect(보낸.at(-1)).toEqual(닫힘);
+    알림.mockRestore();
   });
 });
 
