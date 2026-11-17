@@ -55,6 +55,8 @@ export const 앱테스트 = () =>
         if (!통과 || 안정화 !== undefined) {
           await 게임증적을남긴다(side.game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0', 0, 안정화);
         }
+        // 케이스가 눌러 둔 손가락(touchDown)을 떼지 않고 끝났으면 거둔다 — 실패 순간의 오브젝트 목록(누른 동안 뜬 말풍선)이 남게 증적 뒤에
+        await side.game.손가락을뗀다();
       }
       // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
       try {

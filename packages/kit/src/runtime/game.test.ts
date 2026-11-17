@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { Game, type Link } from 'control-cli';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { 게임증적을남긴다, gameLink, openGame, 팜원점 } from './game.js';
+import { 게임증적을남긴다, type GameDriver, gameLink, openGame, 팜원점 } from './game.js';
 
 describe('팜원점', () => {
   it('/wd/hub 를 떼고 주소 안 계정을 Basic 머리로 옮긴다', () => {
@@ -50,6 +50,70 @@ describe('openGame', () => {
     };
     await openGame({}, link, 안쉼);
     expect(번).toBe(3);
+  });
+
+  // 답을 바꿔 끼울 수 있는 가짜 게임 — 보낸 명령을 모은다
+  const 손가락게임 = async (답: (cmd: Record<string, unknown>) => unknown = () => undefined): Promise<{ game: Awaited<ReturnType<typeof openGame>>; 보낸: unknown[] }> => {
+    const 보낸: unknown[] = [];
+    const link: Link = async (cmd) => {
+      if (cmd.cmd === 'ping') return { ok: true, app: 'Ashveil', version: '0.1.27' };
+      보낸.push(cmd);
+      const 바꾼 = 답(cmd);
+      if (바꾼 !== undefined) return 바꾼 as Awaited<ReturnType<Link>>;
+      return cmd.cmd === 'touch-down' ? { ok: true, finger: 10, x: 1, y: 2 } : { ok: true };
+    };
+    return { game: await openGame({}, link, 안쉼), 보낸 };
+  };
+
+  it('touchDown 은 주소로 손가락을 눌러 두고 번호를 돌려준다 — touchUp 으로 뗐으면 정리 단계가 더 보내지 않는다', async () => {
+    const { game, 보낸 } = await 손가락게임();
+    const 케이스: GameDriver = game;
+    const 번호 = await 케이스.touchDown('/HudCanvas/ActionBar/Skill1');
+    expect(번호).toBe(10);
+    await 케이스.touchUp(번호);
+    await game.손가락을뗀다();
+    expect(보낸).toEqual([
+      { cmd: 'touch-down', target: '/HudCanvas/ActionBar/Skill1' },
+      { cmd: 'touch-up', finger: 10 },
+    ]);
+  });
+
+  it('touchDown 에 좌표를 넘기면 보내기 전에 던진다 — 케이스는 좌표를 쓰지 않는다', async () => {
+    const { game, 보낸 } = await 손가락게임();
+    await expect(game.touchDown({ x: 1, y: 2 } as unknown as string)).rejects.toThrow('오브젝트 주소만 받는다');
+    expect(보낸).toEqual([]);
+  });
+
+  it('손가락을 눌러 둔 채 끝나면 정리 단계가 그 손가락을 한 번 뗀다', async () => {
+    const { game, 보낸 } = await 손가락게임();
+    await game.touchDown('Skill1');
+    await game.손가락을뗀다();
+    await game.손가락을뗀다();
+    expect(보낸).toEqual([{ cmd: 'touch-down', target: 'Skill1' }, { cmd: 'touch-up', finger: 10 }]);
+  });
+
+  it('누르기 답을 못 받았으면 번호를 몰라도 입력을 거둔다', async () => {
+    const { game, 보낸 } = await 손가락게임((cmd) => {
+      if (cmd.cmd === 'touch-down') throw new Error('팜이 답하지 않았습니다');
+      return undefined;
+    });
+    await expect(game.touchDown('Skill1')).rejects.toThrow('팜이 답하지 않았습니다');
+    await game.손가락을뗀다();
+    expect(보낸).toEqual([{ cmd: 'touch-down', target: 'Skill1' }, { cmd: 'input-reset' }]);
+  });
+
+  it('거두기가 실패하면 다음 정리 때 다시 해 본다', async () => {
+    let 막힘 = true;
+    const { game, 보낸 } = await 손가락게임((cmd) => {
+      if (막힘 && (cmd.cmd === 'touch-up' || cmd.cmd === 'input-reset')) throw new Error('잠깐 막힘');
+      return undefined;
+    });
+    await game.touchDown('Skill1');
+    await game.손가락을뗀다();
+    막힘 = false;
+    await game.손가락을뗀다();
+    await game.손가락을뗀다();
+    expect(보낸.map((c) => (c as { cmd: string }).cmd)).toEqual(['touch-down', 'touch-up', 'input-reset', 'touch-up']);
   });
 
   it('waitForValue 는 오브젝트가 뜨고 값이 될 때까지 get 을 되풀이하고, 한도가 지나면 마지막 값을 달아 던진다', async () => {

@@ -168,6 +168,8 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
     if (failed && game !== undefined) {
       await 게임증적을남긴다(game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0', 오류시작);
     }
+    // 단계 사이에 앱을 다시 켜지 않는다 — 이 단계가 눌러 둔 손가락(touchDown)이 다음 단계까지 남지 않게 거둔다. 실패 순간이 남게 증적 뒤에
+    await game?.손가락을뗀다();
     return { seq: run.seq, steps, failed, ...(error === undefined ? {} : { error }) };
   };
 }
