@@ -437,3 +437,28 @@ export function 낱말모든값(조각: string, 낱말: string): number[][] {
 export function 첫값(값들: number[][], 번째 = 0): number {
   return 값들[번째]?.[0] ?? Number.NaN;
 }
+
+export async function 임프에게맞은피해읽기(game: GameDriver): Promise<number> {
+  await 머리위숫자글(game, 던전화면.내피해숫자, 20_000);
+  return 수치(await 상태읽기(game, true), '받은피해');
+}
+
+export async function 봇과같이던전으로(
+  game: GameDriver,
+  admin: APIRequestContext,
+  나: { 아이디: string; 비밀번호: string },
+  둘째: { 아이디: string; 비밀번호: string },
+  카드 = 0,
+): Promise<둘이서> {
+  const 봇 = await 봇켜기(admin, { user: 둘째.아이디, pass: 둘째.비밀번호 });
+  const 로비다 = await 봇시키기(admin, 봇, 'seat:2').then(
+    () => true,
+    (오류: unknown) => {
+      if (오류 instanceof Error && 오류.message.includes('로비(영웅 고르기)가 아닙니다')) return false;
+      throw 오류;
+    },
+  );
+  if (로비다) await 봇시키기(admin, 봇, 'ready');
+  const 던전 = await 던전으로(game, 나.아이디, 나.비밀번호, 카드);
+  return { 던전, 봇 };
+}

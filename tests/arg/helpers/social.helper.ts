@@ -215,3 +215,26 @@ export function 점색(원문: string): '초록' | '회색' | '모름' {
   if (Math.abs(r - g) < 30 && Math.abs(g - b) < 30) return '회색';
   return '모름';
 }
+
+export async function 초대창모두거절(game: GameDriver): Promise<void> {
+  for (let 번 = 0; 번 < 6; 번 += 1) {
+    const 둘째 = await game.find('/Showcase HUD/Invite[1]');
+    const 창 = 둘째 !== null ? '/Showcase HUD/Invite[1]' : (await game.find('/Showcase HUD/Invite')) !== null ? '/Showcase HUD/Invite' : null;
+    if (창 === null) return;
+    await game.click(`${창}//*[contains(@name,Button 거절)]`);
+    await game.waitFor(창, { gone: true, timeoutMs: 5_000 }).catch(() => undefined);
+  }
+}
+
+export async function 봇을파티에넣기(game: GameDriver, admin: APIRequestContext, 봇: string, 인원: number, 시간 = 20_000): Promise<void> {
+  const 창 = await 친구파티창.열기(game);
+  await 창.파티초대하기(봇);
+  if (!(await 토스트떴나(game, `${봇} 님을 파티에 초대했습니다`))) throw new Error(`${봇} 님을 파티에 초대했다는 알림이 뜨지 않았다`);
+  await 봇이초대에답하기(admin, 봇, 'party', 'accept');
+  const 끝 = Date.now() + 시간;
+  do {
+    const 머리줄 = await (await 친구파티창.다시열기(game)).파티머리줄();
+    if (머리줄.startsWith(`파티 ${String(인원)}/4`)) return;
+  } while (Date.now() < 끝);
+  throw new Error(`${봇} 가 들어온 뒤 파티 머리줄이 「파티 ${String(인원)}/4」가 되지 않았다`);
+}

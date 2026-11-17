@@ -106,4 +106,24 @@ export class 공지띠 {
   static async 배경색(game: GameDriver): Promise<number[]> {
     return (await game.get(공지띠.로그인화면띠, 'Image.color')) as number[];
   }
+
+  static readonly 로그인화면띠바탕 = '/Showcase Login/NoticeBar/Bg';
+  static readonly 로그인화면띠글 = '/Showcase Login/NoticeBar/Bg/Text';
+
+  static async 띠글(game: GameDriver): Promise<string> {
+    const 찾은것 = await game.find(공지띠.로그인화면띠글);
+    return 찾은것 === null ? '' : 글만(찾은것.text ?? '');
+  }
+
+  static async 띠글이될때까지(game: GameDriver, 글: string, 시간 = 90_000): Promise<boolean> {
+    const 끝 = Date.now() + 시간;
+    do {
+      if ((await 공지띠.띠글(game)) === 글) return true;
+    } while (Date.now() < 끝);
+    return false;
+  }
+
+  static async 띠바탕색(game: GameDriver): Promise<number[]> {
+    return (await game.get(공지띠.로그인화면띠바탕, 'Image.color')) as number[];
+  }
 }
