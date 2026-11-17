@@ -68,6 +68,15 @@ export class 초대창 {
     );
   }
 
+  static readonly 두번째창 = '/Showcase HUD/Invite[1]';
+
+  static async 두장뜰때까지(game: GameDriver, 시간 = 15_000): Promise<boolean> {
+    return game.waitFor(초대창.두번째창, { timeoutMs: 시간 }).then(
+      () => true,
+      () => false,
+    );
+  }
+
   async 뒷배경있나(): Promise<boolean> {
     return (await this.game.find(`${초대창.뒷배경}[0]`)) !== null;
   }
