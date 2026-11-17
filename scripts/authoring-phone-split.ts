@@ -178,9 +178,11 @@ export function 표본고르기(
 
 /**
  * 이번 작성이 닿은 폰 케이스(android 선언)와 그 케이스 · 부품 가운데 가장 늦은 수정 시각 — 웹 돌려 보기 · 끝 검사와 같은 함수로 고른다.
- * 이번에 쓰거나 고친 케이스는 다 돌고, 바뀐 도우미로만 닿은 기존 케이스는 표본만 돈다(`표본고르기` — 뺀 것은 `뺀기존`)
+ * 이번에 쓰거나 고친 케이스는 다 돌고, 바뀐 도우미로만 닿은 기존 케이스는 표본만 돈다(`표본고르기` — 뺀 것은 `뺀기존`).
+ * **한 번 초록이던 케이스는 도우미 · 화면 파일을 고쳐도 다시 안 돈다**(2026-11-17 사용자 「우선 한번 다 돌고 빨간것만 수정」) — 그 케이스의 수정 시각을 케이스 파일 것으로 돌려준다(`초록유지`).
+ * 11-17 ARG #15649 는 공용 도우미를 고칠 때마다 초록이던 케이스까지 다시 돌아 75분 동안 114번을 돌려 서로 다른 케이스는 54건이었다. 빨갛던 케이스 · 아직 안 돈 케이스 · 케이스 파일을 고친 것은 지금처럼 다시 돈다
  */
-export function 폰고르기(트리: string, 폴더: string, 바뀐: readonly string[], 판들?: Map<string, 돌린판[]>): { 대상: Record<string, number>; 뺀기존: string[] } {
+export function 폰고르기(트리: string, 폴더: string, 바뀐: readonly string[], 판들?: Map<string, 돌린판[]>): { 대상: Record<string, number>; 뺀기존: string[]; 초록유지: string[] } {
   const 케이스들 = 케이스파일읽기(트리, 폴더);
   const 바뀐테스트 = new Set(바뀐.filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length)));
   const 볼것 = 살필케이스(케이스들, 바뀐테스트);
@@ -190,8 +192,27 @@ export function 폰고르기(트리: string, 폴더: string, 바뀐: readonly st
     꼭: (f) => 늦은(f)?.상태들.includes('unexpected') === true,
     돈것: (f) => (늦은(f)?.시작 ?? -Infinity) >= (볼것[f] ?? Infinity),
   });
-  return { 대상: Object.fromEntries(표본.map((f) => [f, 볼것[f]!])), 뺀기존: 뺀 };
+  const 자기때 = new Map(케이스들.map((f) => [f.경로, f.때]));
+  const 초록유지: string[] = [];
+  const 대상 = Object.fromEntries(
+    표본.map((f) => {
+      const 늦은수정 = 볼것[f]!;
+      const 자기 = 자기때.get(f) ?? 늦은수정;
+      const 돈 = 판들?.get(f);
+      // 부품을 고친 뒤 돈 기록이 없고, 케이스 파일을 마지막으로 고친 뒤의 기록이 다 초록이면 그 초록을 그대로 둔다
+      if (자기 < 늦은수정 && 한판들(돈, 늦은수정).length === 0 && 판정하기(한판들(돈, 자기), [], [1]).상태 === '초록') {
+        초록유지.push(f);
+        return [f, 자기];
+      }
+      return [f, 늦은수정];
+    }),
+  );
+  return { 대상, 뺀기존: 뺀, 초록유지 };
 }
+
+/** 도우미 · 화면 파일을 고친 뒤 다시 안 돈 초록 케이스 줄 — 끝 검사(⚠️ 머리)와 돌려 보기 출력이 같이 쓴다 */
+export const 초록유지말 = (수: number, 갈래: string): string =>
+  `⚠️ 도우미 · 화면 파일을 고친 뒤 폰에서 다시 안 돈 초록 ${갈래} 케이스 ${수}개 — 한 번 초록이면 다시 돌리지 않는다. 정식 실행에서 다시 돈다`;
 
 /** 표본으로 뺀 기존 케이스 줄 — 끝 검사(⚠️ 머리)와 돌려 보기 출력이 같이 쓴다. 안 돈 것을 초록으로 세지 않게 수를 남긴다 */
 export const 표본말 = (뺀수: number, 돌수: number, 갈래: string): string =>

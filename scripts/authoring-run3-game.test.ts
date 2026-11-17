@@ -1,5 +1,5 @@
 // 돌려 보기 폰 갈래 검사 — 잡은 폰 읽기 · 돌릴 게임 · 앱 케이스 고르기 · 끝 검사 줄 · 폰 없이 끝나는 길 (도메인/게임 §3.10 「작성 — 한 바퀴」 6 · 도메인/작성 §3.6 「앱 화면」)
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -135,6 +135,33 @@ describe('폰끝검사 · 끝검사줄들 — 게임 · 앱 케이스는 웹 경
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/helpers/login.ts'], '앱')).toEqual([
       '⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 — g/G-FN-001.spec.ts',
       '⚠️ 도우미가 바뀌었는데 폰에서 안 돈 기존 앱 케이스 1개 — 「바뀐 파일 · 케이스가 바로 쓰는 화면」 짝마다 표본 1개만 돈다(돌릴 것 1개). 정식 실행에서 처음 돈다',
+    ]);
+  });
+
+  it('한 번 초록이던 케이스는 도우미를 고쳐도 다시 안 본다 — 빨갛던 케이스와 케이스 파일을 고친 것만 다시 본다', () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    const 자리 = (이름: string) => join(트리, 'tests', 'g', 이름);
+    mkdirSync(자리('helpers'));
+    const 도우미케이스 = (id: string) => `import { 로그인 } from './helpers/login.js';\n${게임케이스.replace('G-FN-001', id)}`;
+    for (const id of ['G-FN-001', 'G-FN-003', 'G-FN-004']) writeFileSync(자리(`${id}.spec.ts`), 도우미케이스(id));
+    writeFileSync(자리('helpers/login.ts'), 'export const 로그인 = 1;');
+    const 쓴때 = new Date('2030-01-01T00:00:00.000Z');
+    const 고친때 = new Date('2030-01-03T00:00:00.000Z');
+    for (const 이름 of ['G-FN-001.spec.ts', 'G-FN-003.spec.ts', 'G-FN-004.spec.ts', 'helpers/login.ts']) utimesSync(자리(이름), 쓴때, 쓴때);
+    const 바뀐 = ['tests/g/G-FN-001.spec.ts', 'tests/g/G-FN-003.spec.ts', 'tests/g/G-FN-004.spec.ts', 'tests/g/helpers/login.ts'];
+    writeFileSync(join(결과폴더, 'gate3-game-1.json'), 결과({ 'g/G-FN-001.spec.ts': 'expected', 'g/G-FN-003.spec.ts': 'unexpected', 'g/G-FN-004.spec.ts': 'expected' }, '2030-01-02T00:00:00.000Z'));
+    expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual(['⚠️ 폰에서 빨간 게임 케이스 1개 — g/G-FN-003.spec.ts']);
+    // 도우미를 고친다 — 초록이던 001 · 004 는 그대로, 빨갛던 003 만 다시 돌 것이 된다
+    utimesSync(자리('helpers/login.ts'), 고친때, 고친때);
+    expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual([
+      '⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 — g/G-FN-003.spec.ts',
+      '⚠️ 도우미 · 화면 파일을 고친 뒤 폰에서 다시 안 돈 초록 게임 케이스 2개 — 한 번 초록이면 다시 돌리지 않는다. 정식 실행에서 다시 돈다',
+    ]);
+    // 케이스 파일 자체를 고치면 초록이었어도 다시 돈다
+    utimesSync(자리('G-FN-004.spec.ts'), 고친때, 고친때);
+    expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual([
+      '⚠️ 폰에서 돌려 보지 않은 게임 케이스 2개 — g/G-FN-003.spec.ts · g/G-FN-004.spec.ts',
+      '⚠️ 도우미 · 화면 파일을 고친 뒤 폰에서 다시 안 돈 초록 게임 케이스 1개 — 한 번 초록이면 다시 돌리지 않는다. 정식 실행에서 다시 돈다',
     ]);
   });
 
