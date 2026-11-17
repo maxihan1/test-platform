@@ -12,6 +12,7 @@ import { 프로젝트리포트만들기, 프로젝트리포트목록, 프로젝�
 import { renderProjectReportDocx, renderProjectReportHtml } from './qaProjectReportDoc.js';
 import { 기간까닭 } from './qaProjectReportShape.js';
 import { 리스크일닫기 } from './qaReportAi.js';
+import { 리포트문서CSP } from './qaReportHtml.js';
 
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
 const 없음 = (reply: FastifyReply) => reply.code(404).send({ error: 'NOT_FOUND' });
@@ -110,6 +111,7 @@ export default async function qaProjectReportRoutes(app: FastifyInstance): Promi
     const 읽음 = await 프로젝트리포트읽기(id);
     if (읽음 === null) return 없음(reply);
     const f = 형식들[형식];
+    if (형식 === 'HTML') reply.header('content-security-policy', 리포트문서CSP);
     const 보낸다 = (파일: Buffer | string) => reply.type(f.mime).header('content-disposition', `${f.펼침}; filename="qa-project-report-${id}.${f.ext}"`).send(파일);
     if (형식 === 'DOCX') return 보낸다(await renderProjectReportDocx(읽음.응답));
     const html = renderProjectReportHtml(읽음.응답, 형식);

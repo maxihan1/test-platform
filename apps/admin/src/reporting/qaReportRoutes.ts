@@ -11,7 +11,7 @@ import { 리스크고치기, 리스크일닫기 } from './qaReportAi.js';
 import { QA리포트를승인한다 } from './qaReportApprove.js';
 import { 문서재료읽기, 리포트읽기, 사진심은 } from './qaReportDoc.js';
 import { renderQaReportDocx } from './qaReportDocx.js';
-import { renderQaReportHtml } from './qaReportHtml.js';
+import { renderQaReportHtml, 리포트문서CSP } from './qaReportHtml.js';
 
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
 const 없음 = (reply: FastifyReply) => reply.code(404).send({ error: 'NOT_FOUND' });
@@ -126,6 +126,7 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
     if (읽음 === null) return 없음(reply);
     const f = 형식들[형식];
     // 이름에는 번호 · 버전 · 형식만 넣는다 — ASCII 뿐이라 헤더가 깨지지 않는다(증적 이름과 같은 까닭 — routes.ts)
+    if (형식 === 'HTML') reply.header('content-security-policy', 리포트문서CSP);
     const 보낸다 = (파일: Buffer | string) =>
       reply.type(f.mime).header('content-disposition', `${f.펼침}; filename="qa-report-${id}-v${읽음.응답.version}.${f.ext}"`).send(파일);
 

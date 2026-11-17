@@ -106,6 +106,8 @@ describe.skipIf(연결 === undefined)('QA 리포트 파일', { timeout: 60_000 }
     expect(res.statusCode, res.body).toBe(200);
     expect(res.headers['content-type']).toContain('text/html');
     expect(res.headers['content-disposition']).toBe(`inline; filename="qa-report-${리포트}-v1.html"`);
+    // 운영 Caddy 는 앱이 CSP 를 안 보내면 frame-ancestors 'none' 을 붙여 리포트 보기 화면의 iframe 을 막는다
+    expect(res.headers['content-security-policy']).toBe("script-src 'self'; base-uri 'self'; frame-ancestors 'self'");
     expect(res.body).toContain('통과 2 · 실패 0 · 미실행 0');
     const 칩 = (tc: string, 판정: string, 꼴: string) => `<span>${tc}</span><span class="chip ${꼴}">${판정}</span>`;
     expect(res.body).toContain(칩('XQE-FN-001', '통과', 'c-pass'));
@@ -132,6 +134,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 파일', { timeout: 60_000 }
     const res = await 부르기('xqe-reader', `/api/qa-reports/${리포트}/file?format=PDF`);
     expect(res.statusCode, res.body).toBe(200);
     expect(res.headers['content-type']).toBe('application/pdf');
+    expect(res.headers['content-security-policy']).toBeUndefined();
     expect(res.body).toBe('%PDF-굳힌');
   });
 
