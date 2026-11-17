@@ -165,6 +165,29 @@ describe('폰끝검사 · 끝검사줄들 — 게임 · 앱 케이스는 웹 경
     ]);
   });
 
+  it('폰마다 결과가 다르던 케이스와 기존 케이스 표본은 초록이었어도 도우미를 고치면 다시 본다', () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    const 자리 = (이름: string) => join(트리, 'tests', 'g', 이름);
+    mkdirSync(자리('helpers'));
+    writeFileSync(자리('G-FN-001.spec.ts'), `import { 로그인 } from './helpers/login.js';\n${게임케이스}`);
+    writeFileSync(자리('helpers/login.ts'), 'export const 로그인 = 1;');
+    const 쓴때 = new Date('2030-01-01T00:00:00.000Z');
+    const 고친때 = new Date('2030-01-03T00:00:00.000Z');
+    for (const 이름 of ['G-FN-001.spec.ts', 'helpers/login.ts']) utimesSync(자리(이름), 쓴때, 쓴때);
+    // 기존 케이스(도우미만 바뀜)가 표본으로 초록이었다 — 도우미를 또 고치면 표본은 다시 돈다
+    writeFileSync(join(결과폴더, 'gate3-game-1~PHONEA~1.json'), 결과({ 'g/G-FN-001.spec.ts': 'expected' }, '2030-01-02T00:00:00.000Z'));
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/helpers/login.ts'])).toEqual([]);
+    utimesSync(자리('helpers/login.ts'), 고친때, 고친때);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/helpers/login.ts'])).toEqual(['⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 — g/G-FN-001.spec.ts']);
+    // 이번 케이스여도 다른 폰에서 빨갰으면(폰 차이) 초록으로 지키지 않는다
+    utimesSync(자리('helpers/login.ts'), 쓴때, 쓴때);
+    writeFileSync(join(결과폴더, 'gate3-game-2~PHONEB~1.json'), 결과({ 'g/G-FN-001.spec.ts': 'unexpected' }, '2030-01-02T01:00:00.000Z'));
+    const 바뀐 = ['tests/g/G-FN-001.spec.ts', 'tests/g/helpers/login.ts'];
+    expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual(['⚠️ 폰마다 결과가 다른 게임 케이스 1개 — g/G-FN-001.spec.ts(PHONEB 에서만 빨강)']);
+    utimesSync(자리('helpers/login.ts'), 고친때, 고친때);
+    expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual(['⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 — g/G-FN-001.spec.ts']);
+  });
+
   it('이번에 안 닿은 게임 케이스는 안 본다', () => {
     const { 트리, 결과폴더 } = 트리만들기();
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-002.spec.ts'])).toEqual([]);

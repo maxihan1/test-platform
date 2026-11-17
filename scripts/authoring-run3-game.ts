@@ -109,6 +109,7 @@ export function 폰판정들(대상: Record<string, number>, 판들: Map<string,
 
 /**
  * 에이전트 끝 검사의 폰 줄 — 이번 작성이 닿은 게임 · 앱 케이스 가운데 고친 뒤 폰에서 안 돈 것 · 빨간 것 · 폰마다 결과가 다른 것 · 폰마다 계정으로만 빨간 것. 막지 않는다(작성 요약 머리에 싣는다).
+ * 「고친 뒤」는 한 번 초록이던 이번 케이스면 케이스 파일을 고친 뒤다 — 부품만 고친 것은 안 돈 것으로 세지 않고 수만 따로 알린다(`폰고르기` `초록유지`)
  * 자식이 끝난 뒤 root 가 읽는다. 남은 다시 보기는 빨강으로 센다. 예외는 줄 하나로 — 이 검사로 올리기가 죽으면 안 된다
  */
 export function 폰끝검사(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[], 갈래: 폰갈래 = '게임'): string[] {
@@ -120,7 +121,7 @@ export function 폰끝검사(결과폴더: string, 트리: string, 폴더: strin
     const 줄 = (말: string, 것들: [string, 판정][], 꼬리 = (_: 판정) => '') => (것들.length === 0 ? [] : [`⚠️ ${말} ${갈래} 케이스 ${것들.length}개 — ${것들.map(([f, p]) => f + 꼬리(p)).join(' · ')}`]);
     return [
       ...줄('폰에서 돌려 보지 않은', 모음('안돎')),
-      ...(뺀기존.length === 0 ? [] : [표본말(뺀기존.length, Object.keys(대상).length, 갈래)]),
+      ...(뺀기존.length === 0 ? [] : [표본말(뺀기존.length, Object.keys(대상).length - 초록유지.length, 갈래)]),
       ...(초록유지.length === 0 ? [] : [초록유지말(초록유지.length, 갈래)]),
       ...줄('폰에서 빨간', 모음('빨강', '다시')),
       ...줄('폰마다 결과가 다른', 모음('폰차이'), (p) => (p.상태 === '폰차이' ? `(${p.빨간폰들.join(' · ')} 에서만 빨강)` : '')),
@@ -181,7 +182,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     return 2;
   }
   const { 대상, 뺀기존, 초록유지 } = 폰고르기(트리, 폴더, 목록, 폰판들(결과폴더, 갈래));
-  if (뺀기존.length > 0) console.log(`${머리} ${표본말(뺀기존.length, Object.keys(대상).length, 갈래).slice(3)}`);
+  if (뺀기존.length > 0) console.log(`${머리} ${표본말(뺀기존.length, Object.keys(대상).length - 초록유지.length, 갈래).slice(3)}`);
   if (초록유지.length > 0) console.log(`${머리} ${초록유지말(초록유지.length, 갈래).slice(3)}`);
   if (Object.keys(대상).length === 0) {
     console.log(`${머리} 돌릴 ${갈래} 케이스가 없다`);
