@@ -256,7 +256,7 @@ export async function 상태읽기(game: GameDriver, 던전 = false): Promise<�
   return Object.assign({}, ...줄들.map(줄풀기)) as 상태값;
 }
 
-export async function 데이터읽기(game: GameDriver, 종류: 'monster' | 'skill' | 'bag'): Promise<string[]> {
+export async function 데이터읽기(game: GameDriver, 종류: 'monster' | 'skill' | 'bag' | 'item'): Promise<string[]> {
   const 창 = await 채팅창.열기(game);
   const 머리 = `[GM] data ${종류}`;
   const 앞수 = (await 창.줄들()).length;
@@ -266,7 +266,12 @@ export async function 데이터읽기(game: GameDriver, 종류: 'monster' | 'ski
   let 지난수 = -1;
   do {
     const 새줄 = (await 창.줄들()).slice(앞수).filter((줄) => 줄.includes(머리));
-    const 다옴 = 종류 === 'bag' ? /끝/.test(새줄.at(-1) ?? '') : 새줄.length > 0 && 새줄.length === 지난수;
+    const 다옴 =
+      종류 === 'bag'
+        ? /끝/.test(새줄.at(-1) ?? '')
+        : 종류 === 'item'
+          ? 새줄.some((줄) => /끝 \d+종/.test(줄))
+          : 새줄.length > 0 && 새줄.length === 지난수;
     if (다옴) {
       줄들 = 새줄;
       break;
@@ -276,6 +281,21 @@ export async function 데이터읽기(game: GameDriver, 종류: 'monster' | 'ski
   await 창.닫기누르기();
   if (줄들.length === 0) throw new Error(`/gm data ${종류} 결과 줄이 20초 안에 오지 않았다`);
   return 줄들.map((줄) => 줄.replace(/<[^>]+>/g, ''));
+}
+
+export function 아이템표글(줄들: string[], 이름: string): string {
+  const 줄 = 줄들.find((글) => 글.includes(`data item ${이름} 분류=`));
+  if (줄 === undefined) return '줄 없음';
+  const 값 = (칸: string): string => new RegExp(`(?:^|\\s)${칸}=(\\S+)`).exec(줄)?.[1] ?? '';
+  const 퍼센트 = (칸: string): number => Math.round(Number(값(칸)) * 100);
+  const 효과들: [string, string][] = [
+    ['공격', '공격 +'],
+    ['방어', '받는 피해 −'],
+    ['골드획득', '골드 획득 +'],
+    ['경험치획득', '경험치 획득 +'],
+  ];
+  const 효과 = 효과들.filter(([칸]) => 퍼센트(칸) > 0).map(([칸, 머리]) => ` · ${머리}${String(퍼센트(칸))}%`);
+  return `${값('등급')} · ${값('상점가')} · ${값('판매가')}${효과.join('')}`;
 }
 
 export async function 상단바골드(game: GameDriver): Promise<number> {

@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 던전으로 } from './helpers/game-enter.helper.js';
-import { 임프에게맞은피해읽기, 임프하나만두기 } from './helpers/battle.helper.js';
+import { 임프에게맞은피해읽기, 임프하나만두고레벨맞추기 } from './helpers/battle.helper.js';
 import { 계정되돌리기 } from './helpers/game-state.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
@@ -23,10 +23,10 @@ test(spec, async ({ game, admin, params }) => {
   const 아이디 = params.loginId ?? '';
   const 비밀번호 = params.loginPassword ?? '';
   try {
-    await test.step('일반 회원 계정을 처음 상태로 되돌리고 탱커로 혼자 던전에 들어가 임프 하나를 불러낸다', async () => {
+    await test.step('일반 회원 계정을 처음 상태로 되돌리고 탱커로 혼자 던전에 들어가 임프 하나를 불러낸 뒤 레벨을 1 로 맞춘다', async () => {
       await 계정되돌리기(admin, 아이디, 비밀번호, 'base');
       await 던전으로(game, 아이디, 비밀번호, 0);
-      await 임프하나만두기(game);
+      await 임프하나만두고레벨맞추기(game, 1);
     });
     await test.step('던전과 임프를 확인한다', async () => {
       await verify('던전에 임프가 보인다', await 던전화면.지금(game).보이나(던전화면.임프), true, { blocker: true });

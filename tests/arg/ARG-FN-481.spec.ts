@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 봇과같이던전으로, 임프에게맞은피해읽기, 임프하나만두기 } from './helpers/battle.helper.js';
+import { 봇과같이던전으로, 임프에게맞은피해읽기, 임프하나만두고레벨맞추기 } from './helpers/battle.helper.js';
 import { 계정되돌리기, 봇끄기, 봇켜기, 접속자 } from './helpers/game-state.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
@@ -34,13 +34,13 @@ test(spec, async ({ game, admin, params }) => {
   const 셋째아이디 = params.thirdId ?? '';
   const 셋째비밀번호 = params.thirdPassword ?? '';
   try {
-    await test.step('세 계정을 처음 상태로 되돌리고 두 번째 플레이어 봇과 둘이 던전에 들어가 임프 하나를 불러낸다', async () => {
+    await test.step('세 계정을 처음 상태로 되돌리고 두 번째 플레이어 봇과 둘이 던전에 들어가 임프 하나를 불러낸 뒤 레벨을 1 로 맞춘다', async () => {
       await 봇끄기(admin);
       await 계정되돌리기(admin, 아이디, 비밀번호, 'base');
       await 계정되돌리기(admin, 둘째아이디, 둘째비밀번호, 'base');
       await 계정되돌리기(admin, 셋째아이디, 셋째비밀번호, 'base');
       await 봇과같이던전으로(game, admin, { 아이디, 비밀번호 }, { 아이디: 둘째아이디, 비밀번호: 둘째비밀번호 });
-      await 임프하나만두기(game);
+      await 임프하나만두고레벨맞추기(game, 1);
     });
     await test.step('던전에 둘이 있는지 확인한다', async () => {
       const 접속 = (await 접속자(admin)).players.map((사람) => 사람.user);
@@ -52,9 +52,9 @@ test(spec, async ({ game, admin, params }) => {
       await verify('던전에 2명일 때 레벨 1 탱커가 장비 없이 임프에게 맞으면 받은 피해가 11 이다', await 임프에게맞은피해읽기(game), 11);
     });
 
-    await test.step('세 번째 플레이어 봇을 켜 던전에 셋이 되게 하고 새 임프를 불러낸다', async () => {
+    await test.step('세 번째 플레이어 봇을 켜 던전에 셋이 되게 하고 새 임프를 불러낸 뒤 레벨을 1 로 맞춘다', async () => {
       await 봇켜기(admin, { user: 셋째아이디, pass: 셋째비밀번호 });
-      await 임프하나만두기(game);
+      await 임프하나만두고레벨맞추기(game, 1);
     });
     await test.step('던전에 셋이 있는지 확인한다', async () => {
       const 접속 = (await 접속자(admin)).players.map((사람) => 사람.user);
