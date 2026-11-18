@@ -89,8 +89,8 @@ export interface 자동수정상세 extends 자동수정줄 {
   devices: { platform: Platform; status: ItemStatus }[];
 }
 
-/** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 넷. 값 목록은 주소에서 읽은 조건을 거를 때 쓴다 */
-export const 케이스축들 = ['정상', '경계', '예외', 'UI'] as const;
+/** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 다섯(「미션」은 게임 시나리오 줄). 값 목록은 주소에서 읽은 조건을 거를 때 쓴다 */
+export const 케이스축들 = ['정상', '경계', '예외', 'UI', '미션'] as const;
 export type 케이스축 = (typeof 케이스축들)[number];
 
 export interface CaseReq {

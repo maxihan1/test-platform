@@ -4,7 +4,7 @@
 import type { PrdItem } from '@platform/kit';
 import type { Pool } from 'pg';
 
-import { 맥락짓기 } from '../catalog/context.js';
+import { 맥락짓기, type 종류 } from '../catalog/context.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 화면목록식 } from '../prd/screenRight.js';
 import { 지금판 } from '../prd/store.js';
@@ -29,12 +29,12 @@ async function 요구읽기(pool: Pool, runId: number, tcIds: string[]) {
   );
   const 서비스번호 = 서비스.rows[0]?.service_id;
   const 판: PrdItem[] = [];
-  const 행들: { reqId: string; tcId: string; axis: '정상' | '경계' | '예외' | 'UI' }[] = [];
+  const 행들: { reqId: string; tcId: string; axis: 종류 }[] = [];
   if (서비스번호 !== undefined && tcIds.length > 0) {
     // 지금 판은 「PRD 관리」와 같은 함수로 읽는다 — 정의가 두 벌이면 칸 · 고리가 메뉴와 어긋난다
     const [판행, 요구행] = await Promise.all([
       지금판(Number(서비스번호)),
-      pool.query<{ req_id: string; tc_id: string; axis: '정상' | '경계' | '예외' | 'UI' }>(
+      pool.query<{ req_id: string; tc_id: string; axis: 종류 }>(
         'SELECT req_id, tc_id, axis FROM req_case WHERE service_id = $1 AND tc_id = ANY($2)',
         [서비스번호, tcIds],
       ),

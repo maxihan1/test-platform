@@ -147,6 +147,15 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     expect(구획.nextElementSibling?.querySelector('h3')?.textContent).toBe('출처');
   });
 
+  it('게임 시나리오가 덮는 요구는 서랍 종류 숫자에 미션을 더한다 — 0 이면 안 그린다', async () => {
+    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-031': [덮음('MKT-FN-001', '정상'), 덮음('MKT-GS-001', '미션')] } }));
+    render(<Prd service="MKT" 할수={보는사람} />);
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    열기('MKT-REQ-031');
+    const 구획 = screen.getByRole('heading', { name: '테스트' }).closest('section') as HTMLElement;
+    expect([...구획.querySelectorAll('.prd-kv span')].map((x) => x.textContent).slice(0, 5)).toEqual(['정상 1', '경계 0', '예외 0', 'UI 0', '미션 1']);
+  });
+
   it('실행 read 가 없으면 결과를 부르지 않고, 케이스 read 가 없으면 건수가 글자뿐이다', async () => {
     const 부름 = vi.spyOn(api, 'lastByCase');
     render(<Prd service="MKT" 할수={보는사람} />);

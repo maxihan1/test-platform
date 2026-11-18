@@ -46,7 +46,18 @@ describe('지도줄들', () => {
     ]);
   });
 
-  it('지운 케이스 · 판정 불가 · 남의 접두사 · 넷 밖 축 · 다른 절의 표는 건너뛴다', () => {
+  it('게임 시나리오 줄(축 「미션」)은 출처 칸의 규칙 번호를 잇고 미션 번호는 번호로 안 읽는다', () => {
+    const 글 = 표([
+      '| 1 | 미션 | XMP-REQ-041 · 미션 M01 | XMP-GS-001 |',
+      '| 2 | 미션 | XMP-REQ-052 · 미션 M01 | XMP-GS-001 |',
+    ]);
+    expect(지도줄들(글, 'XMP')).toEqual([
+      { reqId: 'XMP-REQ-041', tcId: 'XMP-GS-001', axis: '미션' },
+      { reqId: 'XMP-REQ-052', tcId: 'XMP-GS-001', axis: '미션' },
+    ]);
+  });
+
+  it('지운 케이스 · 판정 불가 · 남의 접두사 · 다섯 밖 축 · 다른 절의 표는 건너뛴다', () => {
     const 글 = 표([
       '| 1 | 경계 | XMP-REQ-001 | 제거함(XMP-FN-554) |',
       '| 2 | 정상 | XMP-REQ-001 | — |',
@@ -101,6 +112,12 @@ describe.skipIf(연결 === undefined)('지도채우기', () => {
     await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 예외 | XMP-REQ-002 | XMP-FN-003 |']));
     await 채우기();
     expect(await 지도()).toEqual(['XMP-REQ-002 XMP-FN-003 예외']);
+  });
+
+  it('게임 시나리오 줄(축 「미션」)도 지도에 든다 — 축 제약이 다섯을 받는다', async () => {
+    await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 미션 | XMP-REQ-041 · 미션 M01 | XMP-GS-001 |']));
+    expect(await 채우기()).toBe(1);
+    expect(await 지도()).toEqual(['XMP-REQ-041 XMP-GS-001 미션']);
   });
 
   it('표 파일이 없으면 지도를 비운다', async () => {

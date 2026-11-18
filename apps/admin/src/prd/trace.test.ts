@@ -36,7 +36,7 @@ describe('추적하기', () => {
     );
     expect(추적.기능).toEqual(['MKT-FN-001', 'MKT-FN-002']);
     expect(추적.UI).toEqual(['MKT-UI-001']);
-    expect(추적.종류).toEqual({ 정상: 1, 경계: 2, 예외: 0, UI: 1 });
+    expect(추적.종류).toEqual({ 정상: 1, 경계: 2, 예외: 0, UI: 1, 미션: 0 });
     expect(추적.기법).toEqual([
       ['경계값 분석', 1],
       ['동등 분할', 2],
