@@ -7,7 +7,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 이 애플리케이션은 종류 「웹」이다. **이 스킬은 무엇을 읽을지만 정한다** — 할 일과 순서는 공통 절차가 정한다(정본 `docs/spec/도메인/작성.md` §3.6 「종류별 작성 AI」).
 
-1. 공통 절차 `.claude/skills/tpx-author/SKILL.md` 를 Read 로 열고 그대로 따른다. 거기 적힌 `references/…` 는 `.claude/skills/tpx-author/references/` 다
+1. 공통 절차 `.claude/skills/tpx-author/SKILL.md` 를 Read 로 열고 그대로 따른다. 경로는 공통 절차가 적은 대로다 — 「이 스킬의 `references/…`」는 `.claude/skills/tpx-author/references/`, 단계마다 여는 파일은 `.claude/skills/tpx-cases/references/` 다
 2. 지침 파일이 「`<이름>-<종류>.md` 를 이어서 연다」고 가리키면 아래 「여는 파일」 표에 있는 것만 연다. 앱 화면 절이 붙어 기획서가 앱 케이스를 요구하면 「앱 화면 절이 붙으면 더 여는 파일」 표도 연다
 3. 프롬프트에 붙은 절(역방향 · 앱 화면 · API 문서 …)이 여는 파일은 공통 절차대로다 — 이 표가 막지 않는다
 
