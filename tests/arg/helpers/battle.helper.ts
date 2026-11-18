@@ -95,9 +95,9 @@ export async function 머리위숫자색(game: GameDriver, 숫자주소: string)
   return Array.isArray(값) ? (값 as number[]) : [];
 }
 
-export async function 버튼글기다려읽기(game: GameDriver, 버튼: string, 글: string, 시간 = 10_000): Promise<string> {
-  await game.waitFor(`${버튼}/Text`, { text: 글, timeoutMs: 시간 }).catch(() => undefined);
-  return 글만(await game.text(`${버튼}/Text`));
+export async function 공격버튼역할기다려읽기(game: GameDriver, 역할: keyof typeof 던전화면.역할그림, 시간 = 10_000): Promise<string> {
+  await game.waitForValue(던전화면.공격, 던전화면.공격버튼그림, 던전화면.역할그림[역할], { timeoutMs: 시간 }).catch(() => undefined);
+  return 던전화면.지금(game).공격버튼역할();
 }
 
 export async function 주소사라졌나(game: GameDriver, 주소: string, 시간 = 10_000): Promise<boolean> {
@@ -134,7 +134,7 @@ export async function 승리결과화면으로(game: GameDriver, 아이디: stri
 
 export async function 쓰러진아군을골라부활누르기(game: GameDriver): Promise<void> {
   await game.click(던전화면.아군초상화);
-  await game.waitFor(`${던전화면.공격}/Text`, { text: '부활', timeoutMs: 10_000 });
+  await game.waitForValue(던전화면.공격, 던전화면.공격버튼그림, 던전화면.역할그림.부활, { timeoutMs: 10_000 });
   await game.click(던전화면.공격);
 }
 

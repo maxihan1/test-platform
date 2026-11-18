@@ -37,6 +37,7 @@ test(spec, async ({ game, admin, params }) => {
 
     await test.step('「마력탄」으로 임프를 친다', async () => {
       await 던전화면.지금(game).누르기(던전화면.임프);
+      await 던전화면.지금(game).누르기(던전화면.공격);
       await 머리위숫자글(game, 던전화면.적피해숫자);
       const 상태 = await 상태읽기(game, true);
       await verify('레벨 11 마법사가 「마력탄」으로 치면 5 × 1.30 = 6.5 를 짝수 쪽으로 반올림해 준 피해가 6 이다', 수치(상태, '준피해'), 6);

@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 던전으로 } from './helpers/game-enter.helper.js';
-import { 버튼글기다려읽기, 항아리하나두기 } from './helpers/battle.helper.js';
+import { 공격버튼역할기다려읽기, 항아리하나두기 } from './helpers/battle.helper.js';
 import { 계정되돌리기 } from './helpers/game-state.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
@@ -34,9 +34,9 @@ test(spec, async ({ game, admin, params }) => {
     await test.step('항아리를 고르고 「들기」를 누른다', async () => {
       const 화면 = 던전화면.지금(game);
       await 화면.누르기(던전화면.항아리);
-      await 버튼글기다려읽기(game, 던전화면.공격, '들기', 5_000);
+      await 공격버튼역할기다려읽기(game, '들기', 5_000);
       await 화면.누르기(던전화면.공격);
-      await verify('항아리를 들고 있으면 「공격」 버튼이 「내려놓기」로 바뀐다', await 버튼글기다려읽기(game, 던전화면.공격, '내려놓기'), '내려놓기');
+      await verify('항아리를 들고 있으면 「공격」 버튼이 「내려놓기」로 바뀐다', await 공격버튼역할기다려읽기(game, '내려놓기'), '내려놓기');
     });
   } finally {
     await 계정되돌리기(admin, 아이디, 비밀번호, 'base');

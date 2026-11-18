@@ -35,6 +35,8 @@ export class 던전화면 {
   static readonly 보스처치큰글 = '//*[@text=보스 처치!]';
   static readonly 이름표 = '//*[contains(@name,UIName)]';
   static readonly 내영웅 = '//*[contains(@name,PlayerAvatar)]';
+  static readonly 공격버튼그림 = 'Image.sprite.name';
+  static readonly 역할그림 = { 들기: 'ui_action_pickup', 내려놓기: 'ui_action_putdown', 부활: 'ui_revive' } as const;
 
   readonly hud: 공통HUD;
 
@@ -67,6 +69,11 @@ export class 던전화면 {
 
   async 버튼글(버튼: string): Promise<string> {
     return 글만(await this.game.text(`${버튼}/Text`));
+  }
+
+  async 공격버튼역할(): Promise<string> {
+    const 그림 = String(await this.game.get(던전화면.공격, 던전화면.공격버튼그림));
+    return Object.entries(던전화면.역할그림).find(([, 이름]) => 이름 === 그림)?.[0] ?? `다른 그림 ${그림}`;
   }
 
   async 버튼눌림(버튼: string): Promise<boolean> {

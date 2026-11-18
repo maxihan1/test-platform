@@ -40,6 +40,7 @@ test(spec, async ({ game, admin, params }) => {
 
     await test.step('「전투 망치」로 임프를 친다', async () => {
       await 던전화면.지금(game).누르기(던전화면.임프);
+      await 던전화면.지금(game).누르기(던전화면.공격);
       await 머리위숫자글(game, 던전화면.적피해숫자);
       const 상태 = await 상태읽기(game, true);
       await verify('레벨 5 탱커가 「강철 롱소드」를 끼고 「전투 망치」로 치면 준 피해가 12 다', 수치(상태, '준피해'), 12);
