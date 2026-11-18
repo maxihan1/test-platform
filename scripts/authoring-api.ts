@@ -187,7 +187,7 @@ const 메서드들 = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options'
 const 만들수있는4xx = ['400', '401', '403', '404', '409', '422'];
 
 /**
- * 판의 API 마다 성공 한 줄(400 아래 가장 작은 숫자 코드) + 케이스로 만들 수 있는 4xx 줄 — 번호 꼴 `API POST /v1/pushes 201` (도메인/API §3.8 「작성」 「원장」).
+ * 판의 API 마다 성공 한 줄(2xx 가운데 가장 작은 것, 2xx 가 없으면 400 아래 가장 작은 것 — 101 · 302 가 같이 적혀도 2xx 가 성공이다) + 케이스로 만들 수 있는 4xx 줄 — 번호 꼴 `API POST /v1/pushes 201` (도메인/API §3.8 「작성」 「원장」).
  * 429 · 5xx · 그 밖 4xx 는 줄이 없다 — 만들 수 없는 코드는 「제외」만 늘리고, 5xx 는 kit 이 모든 호출에서 본다(AUT-F4-11).
  * `4XX` · `default` 도 안 든다 — 어느 코드를 받아야 덮었는지 정해지지 않는다. 경로는 문서 차례, 코드는 작은 것부터.
  * 「바뀐 API 만 다시 작성」이면 고른 API 의 줄만 — 안 고른 새 API 의 줄이 main 표에 없어 관문 0 이 「빠짐」으로 막지 않게. 그 밖 줄을 단 표 줄은 「원장에 없는 번호」 경고로만 남는다
@@ -205,9 +205,9 @@ export function API원장항목(문서: unknown, 고른?: readonly { method: str
           const 숫자들 = Object.keys(작업.responses)
             .filter((c) => /^[1-5]\d\d$/.test(c))
             .sort();
-          const 성공 = 숫자들.find((c) => c < '400');
+          const 성공 = 숫자들.find((c) => c.startsWith('2')) ?? 숫자들.find((c) => c < '400');
+          const 요약 = typeof 작업.summary === 'string' ? ` — ${작업.summary.slice(0, 60)}` : '';
           return [...(성공 === undefined ? [] : [성공]), ...숫자들.filter((c) => 만들수있는4xx.includes(c))].map((c) => {
-            const 요약 = typeof 작업.summary === 'string' ? ` — ${작업.summary.slice(0, 60)}` : '';
             return { 번호: `API ${m.toUpperCase()} ${경로} ${c}`, 자료: 'API 문서', 문장: `${m.toUpperCase()} ${경로} 가 ${c} 로 응답한다${요약}` };
           });
         }),
