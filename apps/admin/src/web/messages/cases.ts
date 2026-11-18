@@ -82,6 +82,7 @@ export const 케이스말: Record<string, string> = {
   '정상': 'Normal',
   '경계': 'Boundary',
   '예외': 'Exception',
+  '미션': 'Mission',
   '기능 묶음 없음': 'No feature',
   '화면': 'Screen',
   '화면 조각': 'Component',

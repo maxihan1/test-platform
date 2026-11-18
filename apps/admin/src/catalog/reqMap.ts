@@ -7,15 +7,16 @@ import type { Pool } from 'pg';
 
 import { 덮는번호들, 요구줄들 } from '../../../../scripts/authoring-ledger-check.js';
 import { 계정보류읽기 } from '../../../../scripts/authoring-ledger-hold.js';
+import { type 종류, 종류들 } from './context.js';
 import { TCID } from './rules.js';
 
 export interface 지도줄 {
   reqId: string;
   tcId: string;
-  axis: '정상' | '경계' | '예외' | 'UI';
+  axis: 종류;
 }
 
-const 축들: ReadonlySet<string> = new Set(['정상', '경계', '예외', 'UI']);
+const 축들: ReadonlySet<string> = new Set(종류들);
 
 // 작성 에이전트가 표를 쓰는 자리(docs/cases/<접두사>.md)와 같은 뿌리다 (도메인/작성 §3.6 · 공통/6-인프라 §9)
 export function casesRoot(): string {
@@ -29,7 +30,7 @@ export function casesRoot(): string {
 export function 지도줄들(표글: string, prefix: string): 지도줄[] {
   const 모음 = new Map<string, 지도줄>();
   for (const 줄 of 요구줄들(표글)) {
-    // 「제거함(…)」 · 「—」 · 남의 접두사 · 넷 밖 축은 건너뛴다. 넣으면 축 제약 한 줄에 그 서비스 지도 전체가 안 바뀐다
+    // 「제거함(…)」 · 「—」 · 남의 접두사 · 다섯 밖 축은 건너뛴다. 넣으면 축 제약 한 줄에 그 서비스 지도 전체가 안 바뀐다
     if (!TCID.test(줄.tcId) || !줄.tcId.startsWith(`${prefix}-`) || !축들.has(줄.축)) continue;
     for (const reqId of 덮는번호들(줄.출처)) {
       const 한줄: 지도줄 = { reqId, tcId: 줄.tcId, axis: 줄.축 as 지도줄['axis'] };

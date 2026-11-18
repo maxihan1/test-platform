@@ -26,7 +26,7 @@ export interface 추적 {
   기능: string[];
   UI: string[];
   /** 지도 ① 의 축마다 케이스 수. 한 케이스가 축 둘을 덮으면 양쪽에 센다 */
-  종류: Record<'정상' | '경계' | '예외' | 'UI', number>;
+  종류: Record<'정상' | '경계' | '예외' | 'UI' | '미션', number>;
   /** 기능 케이스의 기법마다 케이스 수 — TECHNIQUES 차례, 0 은 뺀다 */
   기법: [Technique, number][];
   /** 실행 보기 권한이 없으면 null */
@@ -49,7 +49,7 @@ export function 케이스판정(기기별: (ItemStatus | undefined)[]): ItemStat
 const UI번호 = /-UI-\d{3}$/;
 
 export function 추적하기(덮는: 덮는케이스[], 결과: 결과읽기 | null): 추적 {
-  const 종류: 추적['종류'] = { 정상: 0, 경계: 0, 예외: 0, UI: 0 };
+  const 종류: 추적['종류'] = { 정상: 0, 경계: 0, 예외: 0, UI: 0, 미션: 0 };
   for (const c of 덮는) if (c.axis in 종류) 종류[c.axis as keyof typeof 종류] += 1;
 
   // 지도 ① 은 (번호, 케이스, 축) 이 한 줄이라 같은 케이스가 축마다 다시 온다

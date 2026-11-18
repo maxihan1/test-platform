@@ -3,8 +3,8 @@
 
 import type { PrdItem } from '@platform/kit';
 
-/** 지도 ① 의 축 칸 그대로 — req_case 의 CHECK 와 같은 넷이다 (공통/4-데이터모델) */
-export const 종류들 = ['정상', '경계', '예외', 'UI'] as const;
+/** 지도 ① 의 축 칸 그대로 — req_case 의 CHECK 와 같은 다섯이다. 「미션」은 게임 시나리오 줄이다 (공통/4-데이터모델 · 도메인/게임 §3.10) */
+export const 종류들 = ['정상', '경계', '예외', 'UI', '미션'] as const;
 export type 종류 = (typeof 종류들)[number];
 
 export interface CaseReq {
