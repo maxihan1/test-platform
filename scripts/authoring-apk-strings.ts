@@ -83,20 +83,29 @@ const 꺼내기 = [
  */
 export async function 앱문구받기(링크: string | undefined, 자료: string, 바꾸기: 바꾸기, 알림: (글: string) => void): Promise<string | undefined> {
   const 낼곳 = 앱문구파일(자료);
-  rmSync(낼곳, { force: true }); // 이어받은 폴더의 앞 실행 것 — 이번에 못 꺼냈는데 옛 문구로 맞대면 안 된다
-  if (링크 === undefined || !/^https?:\/\//.test(링크)) return undefined;
   const 받을곳 = join(자료, 'app.apk');
+  const 못함 = (까닭: string) => void 알림(`앱 문구를 못 꺼냈다(${까닭}) — 맞대기 없이 간다`);
   try {
+    // 이어받은 폴더의 앞 실행 것 — 이번에 못 꺼냈는데 옛 문구로 맞대면 안 된다. 앞 자식이 폴더 · 링크를 심어 뒀을 수 있어 통째로 지운다(리뷰 H6)
+    rmSync(낼곳, { force: true, recursive: true });
+    if (링크 === undefined || !/^https?:\/\//.test(링크)) return undefined;
+    rmSync(받을곳, { force: true, recursive: true });
     const 답 = await fetch(링크, { signal: AbortSignal.timeout(300_000) });
-    if (!답.ok || 답.body === null) return void 알림(`앱 문구를 못 꺼냈다(APK 받기 ${답.status}) — 맞대기 없이 간다`);
-    await pipeline(Readable.fromWeb(답.body as ReadableStream<Uint8Array>), createWriteStream(받을곳, { mode: 0o644 }));
+    if (!답.ok || 답.body === null) {
+      await 답.body?.cancel();
+      return 못함(`APK 받기 ${답.status}`);
+    }
+    // 'wx' — 지운 뒤 그 사이에 심은 링크를 따라 쓰지 않는다
+    await pipeline(Readable.fromWeb(답.body as ReadableStream<Uint8Array>), createWriteStream(받을곳, { mode: 0o644, flags: 'wx' }));
     const 꺼냄 = 바꾸기({ 명령: process.execPath, 인자: [...꺼내기, 받을곳, 낼곳] }, 자료);
-    if (!꺼냄.ok) return void 알림(`앱 문구를 못 꺼냈다(${꺼냄.까닭}) — 맞대기 없이 간다`);
+    // 자식 node 의 stderr 는 스택 전체다 — 오류 줄 하나만 남긴다
+    if (!꺼냄.ok) return 못함(꺼냄.까닭.split('\n').find((줄) => /^\w*Error\b/.test(줄)) ?? (꺼냄.까닭.trim().split('\n')[0] || '까닭 없음'));
     return 낼곳;
   } catch (err) {
-    return void 알림(`앱 문구를 못 꺼냈다(${err instanceof Error ? err.name : '알 수 없는 오류'}) — 맞대기 없이 간다`);
+    const 원인 = err instanceof Error && err.cause instanceof Error ? ` · ${(err.cause as NodeJS.ErrnoException).code ?? err.cause.message}` : '';
+    return 못함(err instanceof Error ? `${err.name}: ${err.message}${원인}` : String(err));
   } finally {
-    rmSync(받을곳, { force: true });
+    rmSync(받을곳, { force: true, recursive: true });
   }
 }
 

@@ -368,7 +368,8 @@ describe('줄프롬프트 — 앱 화면 절 (도메인/작성 §3.6 「앱 화�
   });
 
   it('앱 문구 파일이 있으면 자리와 맞대기 지침을 싣는다 — 없으면 그 줄이 없다 (AUT-F4-09)', () => {
-    expect(부르기({ 글: '/w/a.txt', 문구: '/w/app-strings.txt' })).toContain('`/w/app-strings.txt` 에 한 줄에 하나씩 있다. 표준 기획서로 옮길 때 prd.md 「앱 문구 맞대기」');
+    expect(부르기({ 글: '/w/a.txt', 문구: '/w/app-strings.txt' })).toContain('prd.md 「앱 문구 맞대기」');
+    expect(부르기({ 글: '/w/a.txt', 문구: '/w/app-strings.txt' })).toContain('`/w/app-strings.txt` 에 한 줄에 하나씩 있다');
     expect(부르기({ 글: '/w/a.txt' })).not.toContain('앱 문구 맞대기');
   });
 

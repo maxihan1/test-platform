@@ -1,6 +1,6 @@
 // APK 문자열 표 읽기 · 받아서 꺼내기 검사 (도메인/작성 §3.6 「종류별 기준」 화면 문구 · AUT-F4-09)
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -112,17 +112,24 @@ describe('앱문구받기', () => {
   }, 30_000);
 
   it('스토어 앱 패키지 이름이면 받지 않고 앞 실행의 문구 파일도 지운다', async () => {
-    expect(existsSync(앱문구파일(폴더))).toBe(true);
+    writeFileSync(앱문구파일(폴더), '옛 문구\n');
     expect(await 앱문구받기('org.joinmastodon.android', 폴더, 바꾸기, () => undefined)).toBeUndefined();
     expect(existsSync(앱문구파일(폴더))).toBe(false);
   });
+
+  it('앞 자식이 같은 이름으로 폴더를 심어 둬도 지우고 받는다 — 던지지 않는다', async () => {
+    mkdirSync(앱문구파일(폴더));
+    mkdirSync(join(폴더, 'app.apk'));
+    expect(await 앱문구받기(`${주소}/app.apk`, 폴더, 바꾸기, () => undefined)).toBe(앱문구파일(폴더));
+    expect(readFileSync(앱문구파일(폴더), 'utf8')).toBe('%d분 전\n마스토돈에 기여\n');
+  }, 30_000);
 
   it('받기 · 꺼내기에 실패하면 알리고 파일 없이 간다', async () => {
     const 알림: string[] = [];
     expect(await 앱문구받기(`${주소}/none.apk`, 폴더, 바꾸기, (글) => 알림.push(글))).toBeUndefined();
     expect(await 앱문구받기(`${주소}/empty.apk`, 폴더, 바꾸기, (글) => 알림.push(글))).toBeUndefined();
     expect(알림[0]).toContain('APK 받기 404');
-    expect(알림[1]).toContain('resources.arsc 가 없다');
+    expect(알림[1]).toMatch(/^앱 문구를 못 꺼냈다\(Error: APK 안에 resources\.arsc 가 없다\)/);
     expect(existsSync(앱문구파일(폴더))).toBe(false);
   }, 30_000);
 });
