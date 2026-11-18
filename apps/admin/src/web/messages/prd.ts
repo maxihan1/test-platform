@@ -134,6 +134,7 @@ export const 기획서말: Record<string, string> = {
   '문구 선택': 'Wording picked',
   '확인 필요로 지정': 'Marked as needs checking',
   '{키들} 에서 옴': 'from {키들}',
+  '설명 안 되는 줄({번호})': 'Unexplained lines ({번호})',
   '화면이 맞음({번호})': 'Screen is right ({번호})',
   '출처 {자료}': 'from {자료}',
   '변경 사항 보기': 'Show changes',

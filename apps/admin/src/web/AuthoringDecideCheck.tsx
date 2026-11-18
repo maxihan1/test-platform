@@ -15,7 +15,7 @@ export type 편집표 = ReadonlyMap<string, string>;
 export type 편집하기 = (key: string, 글: string | null) => void;
 
 /** 요구 문장 칸 — 이름 · (있으면) 기존 문장 · 글자 수 · [취소] [저장] */
-function 문장칸({
+export function 문장칸({
   이름,
   기존,
   글,
@@ -63,7 +63,7 @@ function 문장칸({
 }
 
 /** 저장한 문장 한 줄과 [다시 수정] · (있으면) [선택 취소] — 고른 것을 다시 「안 고름」으로 돌리는 길이다 */
-function 저장한문장({ 글, on다시, on풀기 }: { 글: string; on다시: () => void; on풀기?: () => void }) {
+export function 저장한문장({ 글, on다시, on풀기 }: { 글: string; on다시: () => void; on풀기?: () => void }) {
   const t = use말();
   return (
     <div className="decide-saved">

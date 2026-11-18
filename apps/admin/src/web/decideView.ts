@@ -36,7 +36,7 @@ export function 탭읽기(글: string | null): 탭 | null {
 export function 탭of(x: 결정항목): 탭 {
   if (x.kind === 'APPLY' || x.kind === 'FIX') return 'approve';
   if (x.kind === 'MISSIONS') return 'mission';
-  if (x.kind === 'FAIL') return 'fail';
+  if (x.kind === 'FAIL' || x.kind === 'NOTE') return 'fail';
   if (x.kind === 'CHECK' || x.kind === 'PRD_DRAFT') return 'check';
   return 'update';
 }
@@ -77,6 +77,12 @@ export function 보낼것(items: readonly 결정항목[], 고른: 고른표): �
       if (새문장 === null) return [];
       return [값.pick === 'PICK' ? { key: x.key, pick: 'PICK', option: 값.option! } : { key: x.key, pick: 값.pick, text: 새문장 }];
     }
+    if (x.kind === 'NOTE' && 값.pick === 'EDIT') {
+      // 고칠 요구의 문장과 같으면 고친 것이 없다 — 서버도 BAD_PICK 으로 거절한다
+      const 요구 = x.reqs[값.option ?? 0];
+      const 글 = 값.text ?? '';
+      return 요구 === undefined || 글.trim() === '' || 넘치나(글) || 글 === 요구.text ? [] : [{ key: x.key, pick: 'EDIT', text: 글, option: 값.option ?? 0 }];
+    }
     if (x.kind === 'API_CHANGED') return (값.env ?? '') === '' ? [] : [{ key: x.key, pick: 값.pick, env: 값.env! }];
     if (x.kind === 'SCREENS') {
       // 체크한 화면이 없으면 안 보낸다. 물려받을 대조가 없으면 대상 서버도 골라야 한다
@@ -102,7 +108,7 @@ export interface 초안셈 {
 }
 
 export type 차례줄 =
-  | { 곳: 'BUG'; 종류: 'bug'; keys: string[]; tcId: string }
+  | { 곳: 'BUG'; 종류: 'bug'; keys: string[]; tcId: string; 설명: boolean }
   | { 곳: 'PRD'; 종류: 'prd'; keys: string[]; version: number; 바뀜: { kind: 'EDIT' | 'PICK' | 'CONFIRM'; reqId: string }[]; 초안: 초안셈 | null }
   | { 곳: 'PRD'; 종류: 'draftDrop' | 'draftRetry'; keys: string[]; 이슈: string[] }
   | { 곳: 'TEST'; 종류: 'apply' | 'reject'; keys: string[]; rootId: number }
@@ -142,7 +148,11 @@ export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVer
   const 보냄 = new Map(보낼것(items, 고른).map((p) => [p.key, p]));
   const 고른항목 = items.filter((x) => 보냄.has(x.key));
   const 줄: 차례줄[] = [];
-  for (const x of 고른항목) if (x.kind === 'FAIL' && 보냄.get(x.key)!.pick === 'BUG') 줄.push({ 곳: 'BUG', 종류: 'bug', keys: [x.key], tcId: x.tcId });
+  for (const x of 고른항목) {
+    if ((x.kind === 'FAIL' || x.kind === 'NOTE') && 보냄.get(x.key)!.pick === 'BUG') 줄.push({ 곳: 'BUG', 종류: 'bug', keys: [x.key], tcId: x.tcId, 설명: x.kind === 'NOTE' });
+  }
+  // 설명 안 되는 줄의 PRD 수정 — 덮는 요구 하나의 문장을 바꾼다. 확인 필요 결정과 한 버전에 든다
+  const 설명수정 = 고른항목.filter((x): x is 항목of<'NOTE'> => x.kind === 'NOTE' && 보냄.get(x.key)!.pick === 'EDIT');
 
   const 확인 = 고른항목.filter((x): x is 항목of<'CHECK'> => x.kind === 'CHECK');
   const 바뀜 = 확인.map((x) => {
@@ -152,8 +162,9 @@ export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVer
   });
   const 담음 = 고른항목.filter((x): x is 초안항목 => x.kind === 'PRD_DRAFT' && 보냄.get(x.key)!.pick === 'TAKE');
   const 초안 = 담음.length === 0 ? null : 초안셈of(담음, 보냄);
-  if (확인.length > 0 || 담음.length > 0) {
-    줄.push({ 곳: 'PRD', 종류: 'prd', keys: [...확인, ...담음].map((x) => x.key), version: prdVersion + 1, 바뀜, 초안 });
+  const 설명바뀜 = 설명수정.map((x) => ({ kind: 'EDIT' as const, reqId: x.reqs[보냄.get(x.key)!.option ?? 0]!.reqId }));
+  if (확인.length + 설명수정.length > 0 || 담음.length > 0) {
+    줄.push({ 곳: 'PRD', 종류: 'prd', keys: [...확인, ...설명수정, ...담음].map((x) => x.key), version: prdVersion + 1, 바뀜: [...바뀜, ...설명바뀜], 초안 });
   }
 
   for (const x of 고른항목) if (x.kind === 'APPLY') 줄.push({ 곳: 'TEST', 종류: 보냄.get(x.key)!.pick === 'REJECT' ? 'reject' : 'apply', keys: [x.key], rootId: x.rootId });
@@ -162,7 +173,7 @@ export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVer
   const 문장수 = 확인.filter((x) => {
     const p = 보냄.get(x.key)!;
     return p.pick === 'PICK' ? x.options[p.option!]?.quote !== x.text : p.text !== undefined && p.text !== x.text;
-  }).length;
+  }).length + 설명수정.length;
   const 요구항목 = items.find((x): x is 항목of<'PRD_CHANGED'> => x.kind === 'PRD_CHANGED');
   const 다시고름 = 요구항목 !== undefined && 보냄.has(요구항목.key);
   const 같이 = 화면들.length + 문장수 > 0;

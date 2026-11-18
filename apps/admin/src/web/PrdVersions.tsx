@@ -62,7 +62,7 @@ function 적힌바뀐것({ changes }: { changes: PrdVersionChange[] }) {
   return (
     <ul className="prd-diff">
       {changes.map((c) => {
-        const 까닭 = [c.tcId === null ? null : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('출처 {자료}', { 자료: c.asset }), c.issueKeys === undefined || c.issueKeys.length === 0 ? null : t('{키들} 에서 옴', { 키들: c.issueKeys.join(', ') })].filter((x) => x !== null);
+        const 까닭 = [c.tcId === null ? null : c.tcId.includes('-GS-') ? t('설명 안 되는 줄({번호})', { 번호: c.tcId }) : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('출처 {자료}', { 자료: c.asset }), c.issueKeys === undefined || c.issueKeys.length === 0 ? null : t('{키들} 에서 옴', { 키들: c.issueKeys.join(', ') })].filter((x) => x !== null);
         return (
           <li key={`${c.kind}\n${c.reqId}`}>
             <span className="prd-kind">{종류글[c.kind]}</span>

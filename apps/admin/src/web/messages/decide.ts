@@ -160,4 +160,8 @@ export const 결정말: Record<string, string> = {
   'AI 가 이 미션으로 테스트를 쓰지 않습니다': 'The AI will not write tests from this mission',
   '아래 「제외한 미션」에서 복원할 수 있습니다': 'You can restore it under "Excluded missions" below',
   '미션 {수}개로 게임 시나리오 테스트를 쓰는 작성을 세웁니다': 'Start an authoring run that writes game scenario tests from {수} missions',
+  '미션 테스트에 설명 안 되는 줄이 있습니다. 어떻게 처리할까요?': 'A mission test logged lines the spec does not explain. How should we handle them?',
+  '설명 안 되는 줄': 'Unexplained lines',
+  '실행 결과 보기': 'View run result',
+  '{번호} 설명 안 되는 줄을 이슈로 등록합니다': 'File the {번호} unexplained lines as an issue',
 };

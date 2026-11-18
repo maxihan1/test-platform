@@ -8,6 +8,7 @@ import { 의도확인, 문구고르기 } from './AuthoringDecideCheck.js';
 import { 초안카드 } from './AuthoringDecideDraft.js';
 import { 반영대기, 상세할일, 실패판정 } from './AuthoringDecideItems.js';
 import { 미션고르기 } from './AuthoringDecideMissions.js';
+import { 설명판정 } from './AuthoringDecideNote.js';
 import { 새로만들기 } from './AuthoringDecideNew.js';
 import { 화면고르기 } from './AuthoringDecideScreens.js';
 import { 진행중, 차례글 } from './AuthoringDecideRun.js';
@@ -75,6 +76,8 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   // 수정 칸을 열기만 하면 원래 글이 들어간다 — 원래 글과 같은 칸은 고친 것이 아니다
   const 고침 = [...편집].some(([key, 글]) => {
     const x = items.find((y) => y.key === key);
+    // 설명 안 되는 줄은 덮는 요구 가운데 하나의 문장으로 칸이 열린다
+    if (x?.kind === 'NOTE') return 글 !== 고른.get(key)?.text && !x.reqs.some((r) => r.text === 글);
     return 글 !== (고른.get(key)?.text ?? (x?.kind === 'CHECK' && x.basis !== 'DOCS' ? x.text : undefined));
   });
   const 안저장 = [...편집.keys()].filter((key) => 열쇠들.has(key)).length;
@@ -122,6 +125,8 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
         return <상세할일 key={x.key} x={x} />;
       case 'FAIL':
         return <실패판정 key={x.key} x={x} 고른={값} on고름={on고름} />;
+      case 'NOTE':
+        return <설명판정 key={x.key} x={x} 고른={값} on고름={on고름} 편집={편집} on편집={on편집} />;
       case 'PRD_DRAFT':
         return <초안카드 key={x.key} x={x} 고른={값} on고름={on고름} />;
       case 'SCREENS':
