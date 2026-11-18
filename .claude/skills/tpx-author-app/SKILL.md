@@ -27,7 +27,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 다른 종류의 뗀 파일이다.
 
 - `tpx-cases/references/5-stable-web.md` · `tpx-cases/references/5-writing-web.md` · `tpx-cases/references/two-kinds-web.md` · `tpx-author/references/fanout-web.md` · `tpx-author/references/reverse-web.md`
-- `tpx-cases/references/5-stable-game.md` · `tpx-cases/references/test-design-game.md` · `tpx-author/references/fanout-game.md`
+- `tpx-cases/references/5-stable-game.md` · `tpx-cases/references/test-design-game.md` · `tpx-author/references/fanout-game.md` · `tpx-author/references/prd-game.md`
 
 ## 보조 AI 에게 넘길 읽기 목록
 
