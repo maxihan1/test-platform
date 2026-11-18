@@ -13,7 +13,7 @@ type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K 
 export type 고름하기 = (key: string, 값: 고른값 | null) => void;
 
 /** 요청 번호 고리들 — 「#12 · #15」 */
-function 요청고리({ 번호들 }: { 번호들: readonly number[] }) {
+export function 요청고리({ 번호들 }: { 번호들: readonly number[] }) {
   return (
     <>
       {번호들.map((번호, i) => (

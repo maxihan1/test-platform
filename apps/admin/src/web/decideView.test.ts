@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { 상한 } from '../prd/rules.js';
 import type { 결정항목 } from './decideApi.js';
 import { 요약 } from './authoringSummary.fixture.js';
-import { 보낼것, 줄요청, 차례, 켜졌나, 탭of, type 고른값 } from './decideView.js';
+import { 보낼것, 줄요청, 차례, 켜졌나, 탭of, 탭읽기, type 고른값 } from './decideView.js';
 
 const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY', 'REJECT'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: null, requestedByName: '맥시', finishedAt: null };
 const 실패: 결정항목 = { key: 'fail:7:DMW-FN-271', group: 2, kind: 'FAIL', picks: ['SCREEN', 'BUG'], blockedBy: null, runId: 7, tcId: 'DMW-FN-271', reqs: [{ reqId: 'DMW-REQ-088', text: '주문 취소' }], verify: null, reason: null, finishedAt: null };
@@ -27,6 +27,14 @@ const 초안: 결정항목 = {
     { op: 'EDIT', reqId: 'DMW-REQ-090', text: '없어진 요구', basis: '이슈 DM-14', issueKeys: ['DM-14'], sure: true, oldText: null, gone: true },
   ],
   e2e: [{ title: '쿠폰 주문이 앱에도 보인다', services: ['DMW', 'DMA'], steps: ['주문'], issueKeys: ['DM-12'] }],
+};
+const 미션: 결정항목 = {
+  key: 'missions:15702', group: 3, kind: 'MISSIONS', picks: ['WRITE'], blockedBy: null, requestId: 15702,
+  missions: [
+    { id: 'M01', title: '탱커가 임프 3마리를 잡는다', start: '탱커 · 레벨 1', todo: '임프 3마리 처치', success: '처치 줄 3줄', logs: [{ text: '받은 피해 줄 전부 6', reqId: 'ARG-REQ-041' }] },
+    { id: 'M02', title: '궁수가 임프 3마리를 잡는다', start: '궁수 · 레벨 1', todo: '임프 3마리 처치', success: '처치 줄 3줄', logs: [{ text: '준 피해 줄 10 ~ 14', reqId: 'ARG-REQ-043' }] },
+  ],
+  skipped: [], uncovered: [], gaps: [],
 };
 const items = [반영, 실패, 화면확인, 문구, 바뀐요구, 바뀐API];
 const 표 = (줄: [string, 고른값][]) => new Map(줄);
@@ -56,6 +64,31 @@ describe('보낼것', () => {
       { key: 문구.key, pick: 'PICK', option: 1 },
       { key: 바뀐API.key, pick: 'REDO', env: 'stg' },
     ]);
+  });
+});
+
+describe('미션 승인', () => {
+  it('탭이 따로 서고 주소의 mission 을 읽는다', () => {
+    expect(탭of(미션)).toBe('mission');
+    expect(탭읽기('mission')).toBe('mission');
+    expect(탭읽기('missions')).toBeNull();
+  });
+
+  it('체크한 미션만 목록 차례로 보내고, 체크가 없거나 이미 제외돼 사라진 번호뿐이면 안 보낸다', () => {
+    expect(보낼것([미션], 표([[미션.key, { pick: 'WRITE', missions: ['M02', 'M01'] }]]))).toEqual([{ key: 미션.key, pick: 'WRITE', missions: ['M01', 'M02'] }]);
+    expect(보낼것([미션], 표([[미션.key, { pick: 'WRITE', missions: [] }]]))).toEqual([]);
+    expect(보낼것([미션], 표([[미션.key, { pick: 'WRITE', missions: ['M09'] }]]))).toEqual([]);
+  });
+
+  it('고를 권한이 없는 항목(picks 가 빔)은 체크가 있어도 안 보낸다', () => {
+    const 읽기만 = { ...미션, picks: [], blockedBy: 'NO_WRITE' } as 결정항목;
+    expect(보낼것([읽기만], 표([[미션.key, { pick: 'WRITE', missions: ['M01'] }]]))).toEqual([]);
+  });
+
+  it('차례에 「미션 N개」 줄이 서고 단계 7 의 요청 번호가 붙는다', () => {
+    const 줄 = 차례([미션], 표([[미션.key, { pick: 'WRITE', missions: ['M01', 'M02'] }]]), 3);
+    expect(줄).toEqual([{ 곳: 'TEST', 종류: 'missions', keys: [미션.key], 수: 2 }]);
+    expect(줄.map((x) => 줄요청(x, [{ step: 7, key: 미션.key, requestId: 321 }]))).toEqual([321]);
   });
 });
 
