@@ -60,7 +60,7 @@ export async function 로그읽기(admin: APIRequestContext, 아이디: string, 
   const 몸 = (await res.json()) as { ok?: boolean; last: number; lines: 로그줄[] };
   if (몸.ok === false) throw new Error(`게임 로그 읽기 실패: ${JSON.stringify(몸)}`);
   if (since === null) return { last: 몸.last, lines: [] };
-  const 첫번호 = 몸.lines[0]?.seq;
+  const 첫번호 = 몸.lines[0]?.seq ?? (몸.last > since ? Number.NaN : undefined);
   if (첫번호 !== undefined && 첫번호 !== since + 1) throw new Error(`게임 로그 줄이 빠졌습니다 (since ${String(since)} · 첫 줄 ${String(첫번호)})`);
   return { last: 몸.last, lines: 몸.lines.filter((줄) => 사람들(줄).some((사람) => 사람.user === 아이디)) };
 }
@@ -117,7 +117,10 @@ export async function 임프에게맞기(game: GameDriver): Promise<void> {
 
 export async function 임프치기(game: GameDriver): Promise<void> {
   const 화면 = 던전화면.지금(game);
-  if ((await game.find(던전화면.임프)) === null) return;
+  if ((await game.find(던전화면.임프)) === null) {
+    await game.waitFor(던전화면.임프, { timeoutMs: 5_000 }).catch(() => undefined);
+    return;
+  }
   await 화면.누르기(던전화면.임프);
   await 화면.누르기(던전화면.공격);
   await game.waitFor(던전화면.적피해숫자, { timeoutMs: 5_000 }).catch(() => undefined);

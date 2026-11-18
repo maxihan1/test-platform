@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { 봇과같이던전으로, 임프하나만두고레벨맞추기 } from './helpers/battle.helper.js';
 import { 로그읽기, type 로그줄, 받은피해, 설명안되는줄, type 시작조건, 임프에게맞기 } from './helpers/game-log.helper.js';
-import { 계정되돌리기, 봇끄기 } from './helpers/game-state.helper.js';
+import { 계정되돌리기, 봇끄기, 접속자 } from './helpers/game-state.helper.js';
 
 export const spec = defineCase({
   tcId: 'ARG-GS-002',
@@ -34,6 +34,10 @@ test(spec, async ({ game, admin, params }) => {
   await test.step('두 번째 플레이어 봇과 둘이 던전에 들어가 임프 하나만 두고 레벨을 1 로 맞춘다', async () => {
     await 봇과같이던전으로(game, admin, { 아이디, 비밀번호 }, { 아이디: 둘째아이디, 비밀번호: 둘째비밀번호 });
     await 임프하나만두고레벨맞추기(game, 1);
+  });
+  await test.step('던전에 2명이 있는지 확인한다', async () => {
+    const 접속 = (await 접속자(admin)).players.map((사람) => 사람.user);
+    await verify('접속해 있는 플레이어가 2명이다', 접속.filter((이름) => [아이디, 둘째아이디].includes(이름)).length, 2, { blocker: true });
   });
   const 로그 = await gameLog((since) => 로그읽기(admin, 아이디, since));
   await test.step('임프에게 맞는 동안 쌓인 로그를 기획서 값과 견준다', async () => {

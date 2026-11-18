@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 봇과같이던전으로, 임프하나만두고레벨맞추기, 장비받아끼기 } from './helpers/battle.helper.js';
 import { 로그읽기, type 로그줄, 받은피해, 설명안되는줄, type 시작조건, 임프에게맞기 } from './helpers/game-log.helper.js';
-import { 계정되돌리기, 봇끄기, 봇켜기 } from './helpers/game-state.helper.js';
+import { 계정되돌리기, 봇끄기, 봇켜기, 접속자 } from './helpers/game-state.helper.js';
 
 export const spec = defineCase({
   tcId: 'ARG-GS-004',
@@ -43,6 +43,10 @@ test(spec, async ({ game, admin, params }) => {
     await 봇과같이던전으로(game, admin, { 아이디, 비밀번호 }, { 아이디: 둘째아이디, 비밀번호: 둘째비밀번호 });
     await 봇켜기(admin, { user: 셋째아이디, pass: 셋째비밀번호 });
     await 임프하나만두고레벨맞추기(game, 5);
+  });
+  await test.step('던전에 3명이 있는지 확인한다', async () => {
+    const 접속 = (await 접속자(admin)).players.map((사람) => 사람.user);
+    await verify('접속해 있는 플레이어가 3명이다', 접속.filter((이름) => [아이디, 둘째아이디, 셋째아이디].includes(이름)).length, 3, { blocker: true });
   });
   const 로그 = await gameLog((since) => 로그읽기(admin, 아이디, since));
   await test.step('임프에게 맞는 동안 쌓인 로그를 기획서 값과 견준다', async () => {

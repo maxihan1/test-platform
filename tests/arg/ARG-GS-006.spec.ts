@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { 던전으로, 로비로 } from './helpers/game-enter.helper.js';
 import { 임프하나만두고레벨맞추기 } from './helpers/battle.helper.js';
 import { 로그읽기, type 로그줄, 설명안되는줄, type 시작조건, 임프치기, 준피해 } from './helpers/game-log.helper.js';
-import { 계정되돌리기 } from './helpers/game-state.helper.js';
+import { GM, 계정되돌리기 } from './helpers/game-state.helper.js';
 import { 로비화면 } from './pages/lobby.page.js';
 
 export const spec = defineCase({
@@ -25,10 +25,11 @@ test(spec, async ({ game, admin, params }) => {
   const 비밀번호 = params.loginPassword ?? '';
   const 조건: 시작조건 = { level: 11, job: '마법사', players: 1 };
   await test.cleanup('일반 회원 계정 되돌리기', () => 계정되돌리기(admin, 아이디, 비밀번호, 'base'));
-  await test.step('마법사로 혼자 던전에 들어가 임프 하나만 두고 레벨을 11 로 맞춘다', async () => {
+  await test.step('마법사로 혼자 던전에 들어가 임프 하나만 두고 레벨을 11 로 맞춘 뒤 무적을 켠다', async () => {
     await 로비로(game, 아이디, 비밀번호);
     await 던전으로(game, 아이디, 비밀번호, 로비화면.카드차례.마법사);
     await 임프하나만두고레벨맞추기(game, 11);
+    await GM(game, '/gm god');
   });
   const 로그 = await gameLog((since) => 로그읽기(admin, 아이디, since));
   await test.step('「마력탄」으로 임프를 치는 동안 쌓인 로그를 기획서 값과 견준다', async () => {
