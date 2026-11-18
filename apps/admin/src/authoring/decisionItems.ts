@@ -8,9 +8,11 @@ import { 상한, 화면에서 } from '../prd/rules.js';
 import type { 초안카드 } from '../bts/draftDecide.js';
 import type { 판변경 } from '../prd/changes.js';
 import type { 목록요약 } from './listSummary.js';
+import type { 고를미션 } from './missions.js';
 
 // TAKE · DROP · RETRY 는 「PRD 초안」 카드 — 고른 줄로 기획서 고치기 · 초안 버리기 · 실패한 초안 다시 만들기 (도메인/BTS 「PRD 초안 → 결정 필요」)
-export type 고르기 = 'APPLY' | 'REJECT' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX' | 'TAKE' | 'DROP' | 'RETRY';
+// WRITE 는 「미션 승인」 — 체크한 미션으로 게임 시나리오 테스트를 쓰는 작성을 세운다 (도메인/게임 §3.10 결정 24)
+export type 고르기 = 'APPLY' | 'REJECT' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX' | 'TAKE' | 'DROP' | 'RETRY' | 'WRITE';
 export type 막힘 = 'ADMIN_ONLY' | 'NO_WRITE' | 'NO_RUN_WRITE' | 'AUTHORING_OPEN';
 
 interface 머리 {
@@ -39,6 +41,7 @@ export type 결정항목 = 머리 &
     | { kind: 'SCREENS'; screens: { state: string; url: string; name: string }[] | null; env: string | null; skipped: { url: string; name: string }[] }
     | { kind: 'APIS'; apis: { method: string; path: string; name: string | null }[] | null }
     | ({ kind: 'PRD_DRAFT' } & 초안카드)
+    | ({ kind: 'MISSIONS' } & 고를미션)
   );
 
 export interface 결정목록 {

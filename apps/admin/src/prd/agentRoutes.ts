@@ -8,6 +8,7 @@ import { 문서설정읽기 } from '../apidoc/store.js';
 import { 대상줄들읽기, 앱줄고르기, 폰앱인가 } from '../authoring/reverse.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
+import { 미션검사, 미션넣기 } from '../authoring/missions.js';
 import type { 앱요청 } from '../authoring/store.js';
 import { TCID } from '../catalog/rules.js';
 import { 누가, 판번호, 틀린판번호 } from './routes.js';
@@ -125,6 +126,17 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     const 읽음 = 요소검사(req.body);
     if ('error' in 읽음) return reply.code(400).send(읽음);
     await 요소넣기(행.serviceId, 읽음.elements, 읽음.remove);
+    return reply.code(204).send();
+  });
+
+  // 게임 시나리오 미션 목록 — 게임 애플리케이션만. 사람이 「결정 필요」에서 고른 미션만 게임 시나리오로 쓴다 (도메인/게임 §3.10 결정 24)
+  app.put<경로 & { Body: unknown }>('/authoring/requests/:id/missions', { bodyLimit: 본문상한 }, async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
+    const 읽음 = 미션검사(req.body);
+    if ('error' in 읽음) return reply.code(400).send(읽음);
+    await 미션넣기(행.id, 행.serviceId, 읽음);
     return reply.code(204).send();
   });
 

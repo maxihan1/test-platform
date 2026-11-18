@@ -14,15 +14,17 @@ import { 버그남기기 } from '../reporting/failReqs.js';
 import { 결정판, 요구문장, type 결정항목, type 확인결정 } from './decisionItems.js';
 import { 버그판정실패, 최근대조 } from './decisionReads.js';
 import { 결정재료읽기, type 부른이 } from './decisions.js';
+import { 본문읽기, type 받은것 } from './decisionBody.js';
 import { 머지세우기 } from './merge.js';
+import type { 미션 } from './missions.js';
 import { 열린작성 } from './openRoots.js';
 import { 버리기 } from './stop.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 줄세우기, 한건 } from './store.js';
 
 export interface 진행단계 {
-  /** 6 은 「PRD 초안」 카드의 버리기 · 다시 만들기 — 다시 만들기만 requestId 가 찬다 */
-  step: 1 | 2 | 3 | 4 | 5 | 6;
+  /** 6 은 「PRD 초안」 카드의 버리기 · 다시 만들기 — 다시 만들기만 requestId 가 찬다. 7 은 미션 승인이 세운 게임 시나리오 작성 */
+  step: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   key: string | null;
   requestId: number | null;
   version: number | null;
@@ -41,32 +43,6 @@ class 되돌림 extends Error {
   }
 }
 
-interface 받은것 {
-  key: string;
-  pick: string;
-  text?: unknown;
-  option?: unknown;
-  env?: unknown;
-  rows?: unknown;
-  /** SCREENS 에서 고른 화면 주소(틀) — 없으면 모두 */
-  screens?: unknown;
-}
-
-function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] } | null {
-  if (typeof body !== 'object' || body === null) return null;
-  const { prdVersion, picks } = body as Record<string, unknown>;
-  if (typeof prdVersion !== 'number' || !Number.isSafeInteger(prdVersion) || prdVersion < 0) return null;
-  if (!Array.isArray(picks) || picks.length === 0 || picks.length > 2000) return null;
-  const 읽음: 받은것[] = [];
-  for (const p of picks) {
-    if (typeof p !== 'object' || p === null) return null;
-    const x = p as Record<string, unknown>;
-    if (typeof x.key !== 'string' || typeof x.pick !== 'string') return null;
-    읽음.push({ key: x.key, pick: x.pick, text: x.text, option: x.option, env: x.env, rows: x.rows, screens: x.screens });
-  }
-  return { prdVersion, picks: 읽음 };
-}
-
 interface 준비 {
   버그: { key: string; runId: number; tcId: string }[];
   확인: { key: string; 결정: 확인결정 }[];
@@ -81,6 +57,8 @@ interface 준비 {
   초안: { key: string; card: 초안카드; rows: number[] }[];
   /** 버리기 · 다시 만들기 — 끝난 초안 버리기는 고른 줄 없이 진행으로 남기고, 실패 · 멈춘 초안 버리기는 폐기로 찍는다 */
   초안끝: { key: string; requestId: number; pick: 'DROP' | 'RETRY'; done: boolean }[];
+  /** 체크한 미션 — 그 몸통을 게임 시나리오 작성 요청(params.missions)에 싣는다 */
+  미션: { key: string; from: number; items: 미션[] } | null;
   /** 고를 때 본 열린 작성 — 잠금 안에서 다시 견준다 */
   열린: number[];
 }
@@ -90,7 +68,7 @@ async function 준비하기(서비스: number, 누구: 부른이, 본문: { prdV
   const 재료 = await 결정재료읽기(서비스, 누구, false);
   if (본문.prdVersion !== 재료.목록.prdVersion) return 낡음;
   const 항목들 = new Map(재료.목록.items.map((x) => [x.key, x]));
-  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 반려: [], 화면: [], 요구다시: null, API: null, 보완: null, 초안: [], 초안끝: [], 열린: 재료.목록.open };
+  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 반려: [], 화면: [], 요구다시: null, API: null, 보완: null, 초안: [], 초안끝: [], 미션: null, 열린: 재료.목록.open };
   const 본열쇠 = new Set<string>();
   for (const p of 본문.picks) {
     if (본열쇠.has(p.key)) return 틀림(p.key);
@@ -181,6 +159,14 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
       준.초안.push({ key: p.key, card: 항목, rows: rows as number[] });
       return null;
     }
+    case 'MISSIONS': {
+      const 고른 = p.missions;
+      if (!Array.isArray(고른) || 고른.length === 0 || new Set(고른).size !== 고른.length) return 틀림(p.key);
+      const items = 항목.missions.filter((m) => 고른.includes(m.id));
+      if (items.length !== 고른.length) return 틀림(p.key);
+      준.미션 = { key: p.key, from: 항목.requestId, items };
+      return null;
+    }
     default:
       return 틀림(p.key);
   }
@@ -231,7 +217,7 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
       }
       const 열린 = await 열린작성(서비스, 손);
       // 요청을 세우는 진행은 열린 작성이 고를 때와 같아야 한다 — 두 번 누르면 둘째가 첫째가 세운 요청을 못 본 채 같은 요청을 또 세운다
-      const 세우나 = 준.반영.length + 준.화면.length + (준.요구다시 === null ? 0 : 1) + (준.API === null ? 0 : 1) + (준.보완 === null ? 0 : 1) > 0 || 판?.문장바뀜 === true;
+      const 세우나 = 준.반영.length + 준.화면.length + (준.요구다시 === null ? 0 : 1) + (준.API === null ? 0 : 1) + (준.보완 === null ? 0 : 1) + (준.미션 === null ? 0 : 1) > 0 || 판?.문장바뀜 === true;
       if (세우나 && 열린.join() !== 준.열린.join()) throw new 되돌림(낡음);
       const steps: 진행단계[] = [];
       for (const b of 준.버그) {
@@ -275,6 +261,11 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
           손,
         );
         steps.push({ step: 5, key: 준.보완.key, requestId: id, version: null });
+      }
+      if (준.미션 !== null) {
+        const 값 = { missions: { from: 준.미션.from, items: 준.미션.items }, ...결정() };
+        const id = await 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: null, 값, 누가: 사람.username, 이름: 사람.displayName }, 손);
+        steps.push({ step: 7, key: 준.미션.key, requestId: id, version: null });
       }
       for (const x of 준.초안끝) {
         if (x.pick === 'RETRY') {

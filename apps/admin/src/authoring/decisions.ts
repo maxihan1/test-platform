@@ -26,6 +26,7 @@ import {
 } from './decisionItems.js';
 import { 기다리는요청들, 병합된API버전, 손남은뿌리들, 최근대조, 판정없는실패들 } from './decisionReads.js';
 import { 목록요약들 } from './listSummary.js';
+import { 고를미션읽기, 목록지문 } from './missions.js';
 import { 열린작성 } from './openRoots.js';
 
 /** 부른 사람이 그 애플리케이션에서 할 수 있는 것 — admin 은 배정된 애플리케이션에서 전부다(auth/gate.ts `권한이되나`) */
@@ -187,6 +188,17 @@ async function 셋째묶음(서비스: number, 지금: { version: number; items:
   return items;
 }
 
+/**
+ * 「미션 승인」 — 게임 작성이 올린 미션 가운데 아직 안 쓴 것. ③ 처럼 열린 작성이 없을 때만 고른다 — 게임 시나리오는 그 작성이 남긴
+ * 로그 읽기 도우미를 쓰고, 표가 반영된 뒤라야 번호가 겹치지 않는다. 제외한 미션만 남아도 되돌리기 자리로 싣는다 (도메인/게임 §3.10 결정 24)
+ */
+async function 미션묶음(서비스: number, 열린: number[], 대기뿌리: Set<number>, 누구: 부른이): Promise<결정항목[]> {
+  const 재료 = await 고를미션읽기(서비스);
+  if (재료 === null) return [];
+  const 고름값 = 재료.missions.length > 0 ? 셋째고름(누구, 열린, 대기뿌리, ['WRITE']) : { picks: [] as 고르기[], blockedBy: 누구.작성쓰기 ? null : ('NO_WRITE' as const) };
+  return [{ key: `missions:${String(재료.requestId)}:${목록지문(재료.missions)}`, group: 3, kind: 'MISSIONS', ...고름값, ...재료 }];
+}
+
 /** 덮는 케이스를 쓰는 E2E 시나리오 — GET /api/scenarios?uses= 와 같은 셈(최신 버전 부품) */
 async function 쓰는시나리오(서비스: number, reqIds: string[]): Promise<{ id: number; name: string }[]> {
   const 지도 = await 케이스지도(서비스);
@@ -210,11 +222,12 @@ export async function 결정재료읽기(서비스: number, 누구: 부른이, �
   const items = 판?.items ?? [];
   const 첫 = await 첫묶음(서비스, 누구);
   const 대기뿌리 = new Set(첫.flatMap((x) => (x.kind === 'APPLY' ? [x.rootId] : [])));
-  const [초안, 실패, 셋째] = await Promise.all([
+  const [초안, 실패, 셋째, 미션] = await Promise.all([
     초안묶음(서비스, items, 누구),
     실패묶음(서비스, items, 누구, 상세),
     셋째묶음(서비스, { version: 판?.version ?? 0, items }, 열린, 대기뿌리, 누구),
+    미션묶음(서비스, 열린, 대기뿌리, 누구),
   ]);
-  const 모두 = [...첫, ...초안, ...실패.items, ...확인묶음(items, 누구), ...셋째];
+  const 모두 = [...첫, ...초안, ...실패.items, ...확인묶음(items, 누구), ...셋째, ...미션];
   return { 목록: { prdVersion: 판?.version ?? 0, count: 결정수세기(모두, 실패.more), open: 열린, items: 모두, failMore: 실패.more }, 실패: 실패.전부 };
 }
