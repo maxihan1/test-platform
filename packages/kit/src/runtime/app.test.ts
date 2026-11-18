@@ -50,6 +50,10 @@ describe('appCapabilities', () => {
     expect('appium:newCommandTimeout' in appCapabilities({ ...env, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '' })).toBe(false);
   });
 
+  it('게임 시나리오 연결은 연결 유지 한도를 끈다', () => {
+    expect(appCapabilities({ PLATFORM_APP: '/tmp/g.apk', PLATFORM_ENGINE: 'GAME' }, { noCommandTimeout: true })['appium:newCommandTimeout']).toBe(0);
+  });
+
   it('패키지 이름이면 깔지 않고 appium:appPackage 로 폰에 깔린 앱을 켠다 — 데이터는 지우고 시작한다', () => {
     const caps = appCapabilities({ PLATFORM_APP: 'com.shop.app' });
     expect(caps['appium:appPackage']).toBe('com.shop.app');

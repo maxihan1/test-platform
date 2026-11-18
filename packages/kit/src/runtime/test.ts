@@ -11,6 +11,7 @@ import { saveShot } from './artifacts.js';
 import { runScope, type RunScope, type 짚을요소 } from './context.js';
 import { keepsAppData, 실어켤값, type CaseHandle } from './defineCase.js';
 import { 게임증적을남긴다, isGame, type GameDriver } from './game.js';
+import { cleanup, 게임시나리오인가, 끝정리 } from './gameScenario.js';
 import { 앱을지켜본다, 웹사진, 웹을지켜본다 } from './highlight.js';
 import { traced } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
@@ -168,6 +169,7 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
     if (failed && game !== undefined) {
       await 게임증적을남긴다(game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0', 오류시작);
     }
+    await 끝정리(run);
     // 단계 사이에 앱을 다시 켜지 않는다 — 이 단계가 눌러 둔 손가락(touchDown)이 다음 단계까지 남지 않게 거둔다. 실패 순간이 남게 증적 뒤에
     await game?.손가락을뗀다();
     return { seq: run.seq, steps, failed, ...(error === undefined ? {} : { error }) };
@@ -193,6 +195,8 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   const webTest = process.env.PLATFORM_CDP_URL ? 실제폰테스트() : base;
 
   const prepare = (testInfo: TestInfo) => {
+    // 게임 시나리오는 전체 한도가 없다 — 한 번의 기다림과 미션 멈춤만 잡는다 (도메인/게임 §3.10 결정 21)
+    if (게임시나리오인가(spec.tcId)) testInfo.setTimeout(0);
     // 보류 케이스는 사람이 채울 칸에 기본값이 없어 입력 검증부터 깨진다. 채워 held 를 지우면 그대로 돈다
     base.skip(spec.held !== undefined, spec.held);
 
@@ -211,6 +215,8 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     side: Side,
     captureStep: RunScope['capture'],
     inputs: { params: P; expected: E },
+    // 앱은 연결 정리 단계가 증적 뒤에 끝 정리를 돌린다 — 본문 안 finally 는 제한 시간에 걸리면 안 돈다
+    끝정리를건다?: (끝: () => Promise<void>) => void,
   ): Promise<void> => {
     const 게임 = isGame(process.env);
     const run: RunScope = {
@@ -221,6 +227,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
       emit: (result) => emit(testInfo, result),
       ...(게임 && { elementChecks: [], apiCalls: [] }),
     };
+    끝정리를건다?.(() => 끝정리(run));
 
     try {
       await runScope.run(run, async () => {
@@ -250,6 +257,8 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
           .attach(GAME_ATTACHMENT, { body: JSON.stringify({ elementChecks: run.elementChecks, apiCalls: run.apiCalls }), contentType: 'application/json' })
           .catch((err: unknown) => console.error(`[kit] 게임 기록을 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`));
       }
+      // ponytail: 웹은 정리 단계가 없어 본문 끝에서 돈다 — 제한 시간에 걸리면 안 돌고 다음 테스트의 시작 정리가 줍는다
+      if (끝정리를건다 === undefined) await 끝정리(run);
     }
 
     if (run.failed) throw new Error(`검증 실패: ${run.firstFailure ?? spec.tcId}`);
@@ -259,8 +268,9 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     appTest(spec.name, async ({ request, appSession }, testInfo) => {
       const inputs = prepare(testInfo);
       const intent = await 실어켤값(spec, inputs.params);
-      const side = await appSession.open({ keepData: keepsAppData(spec), ...(intent && { intent }) });
-      await execute(testInfo, request, side, (seq, 요소) => captureApp(side.driver, seq, 요소), inputs);
+      // 게임 시나리오는 싸우는 동안 게임 명령만 보내 Appium 명령이 오래 없다 — 연결 유지 한도를 끈다
+      const side = await appSession.open({ keepData: keepsAppData(spec), ...(intent && { intent }), ...(게임시나리오인가(spec.tcId) && { noCommandTimeout: true }) });
+      await execute(testInfo, request, side, (seq, 요소) => captureApp(side.driver, seq, 요소), inputs, appSession.끝정리를건다);
     });
     return;
   }
@@ -276,4 +286,4 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   });
 }
 
-export const test = Object.assign(defineTest, { step });
+export const test = Object.assign(defineTest, { step, cleanup });

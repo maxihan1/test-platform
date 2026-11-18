@@ -4,6 +4,7 @@ export { defineCase, type CaseHandle, type CaseSchema, type DefineCaseInput } fr
 export { test, type CaseBody, type CaseBodyArgs } from './test.js';
 export type { GameDriver } from './game.js';
 export { verify, type VerifyOptions } from './verify.js';
+export { gameLog, repeatUntil } from './gameScenario.js';
 export { type StepOptions, 모양문장 } from './step.js';
 export { RESULT_MARKER, PROGRESS_MARKER, APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, PHONE_STATE_FILE, type 폰요청, FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, 앱파일값인가, 패키지이름인가 } from './protocol.js';
 export { runDir } from './artifacts.js';

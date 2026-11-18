@@ -46,6 +46,8 @@ export interface RunScope {
   // 게임 항목에서만 있다 — 결과 줄의 elementChecks · apiCalls 로 간다 (공통/3-공유계약 「게임 테스트 타입」)
   elementChecks?: ElementCheck[];
   apiCalls?: ApiCallSeen[];
+  // test.cleanup 으로 건 정리 — 몸통이 끝나면 끝 정리로 한 번 더 돈다 (gameScenario.ts)
+  정리?: { title: string; fn: () => Promise<void> }[];
   // 스크린샷과 결과 전달은 Playwright에 닿는 일이라 문맥에는 함수로만 담는다. 이 파일이 Playwright를 몰라야 단위 테스트가 가능하다
   capture(seq: number, 요소?: 짚을요소): Promise<string | undefined>;
   emit(result: StepResult): Promise<void>;
