@@ -325,3 +325,22 @@ describe('「사람이 뺌」 — 기준 표에 이미 있던 것은 에이전�
     expect('대조' in r && r.대조.형식오류).toEqual([]);
   });
 });
+
+describe('미션 줄 — 게임 시나리오 (GAME-F3-04)', () => {
+  const 미션줄 = (출처: string, tcId: string) => `| 1 | 미션 | 시작 | 할 일 | 로그 | ${출처} | ${tcId} | 2026-11-18 |`;
+  const 재료 = { 접두사: 'X', 기준줄: [], 칸: {}, 쓰인: [] };
+
+  it('미션 줄의 규칙 번호는 덮음으로 세고, 칸 번호 어긋남도 형식 오류도 없다', () => {
+    const 글 = 표([줄('REQ-A-1', 'X-FN-001'), 미션줄('REQ-A-2 · 미션 M01', 'X-GS-001'), 미션줄('REQ-A-3 · 미션 M01', 'X-GS-001')]);
+    const r = 원장대조(원장, 글, { 있는케이스: new Set(['X-FN-001', 'X-GS-001']), 에이전트: true, 칸재료: 재료 });
+    expect(r.빠짐).toEqual([]);
+    expect([...r.덮음.keys()]).toEqual(['REQ-A-1', 'REQ-A-2', 'REQ-A-3']);
+    expect(r.형식오류).toEqual([]);
+    expect(r.칸어긋남).toEqual([]);
+  });
+
+  it('미션 줄 tcId 가 칸 번호와 다르면 어긋남이다', () => {
+    const r = 원장대조(원장, 표([미션줄('REQ-A-2 · 미션 M01', 'X-FN-001')]), { 에이전트: true, 칸재료: 재료 });
+    expect(r.칸어긋남).toEqual(['요구 줄 1 tcId X-FN-001 — 칸 번호 X-GS-001']);
+  });
+});
