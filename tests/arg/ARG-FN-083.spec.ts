@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 둘이서던전으로, 버튼글기다려읽기 } from './helpers/battle.helper.js';
+import { 둘이서던전으로, 공격버튼역할기다려읽기 } from './helpers/battle.helper.js';
 import { 계정되돌리기, 봇끄기 } from './helpers/game-state.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
@@ -39,7 +39,7 @@ test(spec, async ({ game, admin, params }) => {
     await test.step('살아 있는 두 번째 플레이어를 고르고 「부활」 버튼 상태를 읽는다', async () => {
       const 화면 = 던전화면.지금(game);
       await 화면.누르기(던전화면.아군초상화);
-      await 버튼글기다려읽기(game, 던전화면.공격, '부활');
+      await 공격버튼역할기다려읽기(game, '부활');
       await verify('살아 있는 플레이어를 고르면 「부활」 버튼이 눌리지 않는 상태다', await 화면.버튼눌림(던전화면.공격), false);
     });
   } finally {

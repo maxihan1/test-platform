@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 둘이서던전으로, 버튼글기다려읽기 } from './helpers/battle.helper.js';
+import { 둘이서던전으로, 공격버튼역할기다려읽기 } from './helpers/battle.helper.js';
 import { 계정되돌리기, 봇끄기 } from './helpers/game-state.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
@@ -36,7 +36,7 @@ test(spec, async ({ game, admin, params }) => {
 
     await test.step('두 번째 플레이어의 영웅을 누른다', async () => {
       await 던전화면.지금(game).누르기(던전화면.아군초상화);
-      await verify('다른 플레이어를 고르면 「공격」 버튼이 「부활」로 바뀐다', await 버튼글기다려읽기(game, 던전화면.공격, '부활'), '부활');
+      await verify('다른 플레이어를 고르면 「공격」 버튼이 「부활」로 바뀐다', await 공격버튼역할기다려읽기(game, '부활'), '부활');
     });
   } finally {
     await 봇끄기(admin);
