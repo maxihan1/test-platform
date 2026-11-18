@@ -254,4 +254,4 @@ export function 맥락조건읽기(q: 맥락글): 맥락조건 | null {
   };
 }
 
-export const 모르는종류 = (값: unknown) => ({ error: 'BAD_AXIS', detail: `종류는 정상 · 경계 · 예외 · UI 중 하나입니다 — ${String(값)}` });
+export const 모르는종류 = (값: unknown) => ({ error: 'BAD_AXIS', detail: `종류는 정상 · 경계 · 예외 · UI · 미션 중 하나입니다 — ${String(값)}` });
