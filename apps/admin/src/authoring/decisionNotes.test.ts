@@ -170,4 +170,21 @@ describe.skipIf(연결 === undefined)('결정 목록 · 설명 안 되는 줄', 
     expect((await q('SELECT verdict FROM run_case_note WHERE run_id = $1', [runId])).rows).toEqual([{ verdict: 'RULE' }]);
     expect(await 설명들()).toEqual([]);
   });
+
+  it('PRD 수정은 확인 필요 요구의 상태를 그대로 두고, 같은 진행에서 그 요구를 확인 필요 수정과 같이 고치면 BAD_PICK 이다', async () => {
+    const 판 = await app.inject({
+      method: 'PUT',
+      url: `/api/prd?service=${접두사}`,
+      payload: { baseVersion: 1, items: [{ reqId: 'XNE-REQ-001', feature: '전투', text: '준 피해는 무기 공격력이다', basis: [{ from: '화면', quote: '14' }], status: 'NEEDS_CHECK' }] },
+    });
+    expect(판.statusCode).toBe(200);
+    const runId = await 실행넣기(미션, [설명]);
+    const key = `note:${String(runId)}:${미션}`;
+    const 둘 = await 진행({ prdVersion: 2, picks: [{ key: 'check:XNE-REQ-001', pick: 'EDIT', text: '가' }, { key, pick: 'EDIT', text: '나' }] });
+    expect(둘.json()).toEqual({ error: 'BAD_PICK', detail: key });
+
+    expect((await 진행({ prdVersion: 2, picks: [{ key, pick: 'EDIT', text: '준 피해는 공격력에 인원 보정을 곱한다' }] })).statusCode).toBe(201);
+    const 새판 = (await q<{ items: { text: string; status: string }[] }>('SELECT items FROM prd_version WHERE service_id = $1 AND version = 3', [서비스])).rows[0]!;
+    expect(새판.items.map((x) => [x.text, x.status])).toEqual([['준 피해는 공격력에 인원 보정을 곱한다', 'NEEDS_CHECK']]);
+  });
 });

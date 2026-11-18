@@ -31,7 +31,7 @@ export function 탭읽기(글: string | null): 탭 | null {
 
 /**
  * 항목이 드는 탭 — 승인 대기 · 미션 승인 · 결함 판정 · 요구사항 확인 · 테스트 업데이트(2026-11-04 사용자 · §3.6 「★ 결정 목록」 「탭」).
- * 서버 묶음(group)은 셋이라 ② 를 실패와 그 밖으로 가른다
+ * 서버 묶음(group)은 셋이라 ② 를 실패 · 설명 안 되는 줄과 그 밖으로 가른다
  */
 export function 탭of(x: 결정항목): 탭 {
   if (x.kind === 'APPLY' || x.kind === 'FIX') return 'approve';

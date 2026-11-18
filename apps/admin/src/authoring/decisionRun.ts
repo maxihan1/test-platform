@@ -11,7 +11,7 @@ import { 결정판넣기, 서비스접두사, 잠그고, 지금판, type 저장�
 import { 버그남기기 } from '../reporting/failReqs.js';
 import { 결정판 } from './decisionItems.js';
 import type { 부른이 } from './decisions.js';
-import { 낡음, 준비하기, 틀림, type 진행결과 } from './decisionPrep.js';
+import { 낡음, 준비하기, 틀림, type 진행결과, type 진행단계 } from './decisionPrep.js';
 import { 설명판정남기기 } from './decisionNotes.js';
 import { 본문읽기 } from './decisionBody.js';
 import { 머지세우기 } from './merge.js';
@@ -19,8 +19,6 @@ import { 열린작성 } from './openRoots.js';
 import { 버리기 } from './stop.js';
 import { 줄세우기, 한건 } from './store.js';
 
-export type { 진행단계, 진행결과 } from './decisionPrep.js';
-import type { 진행단계 } from './decisionPrep.js';
 
 /** 트랜잭션 안에서 그만둘 때 던진다 — 잠그고 가 되돌리고, 바깥에서 결과로 바꾼다 */
 class 되돌림 extends Error {

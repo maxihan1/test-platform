@@ -145,12 +145,13 @@ export function 결정판(지금: PrdItem[], 결정들: 확인결정[]): { items
       changes.push({ kind: 'CONFIRM', reqId: x.reqId, text: null, asset: null, tcId: null });
       return { ...나머지, status: 'CONFIRMED', byPerson: true };
     }
-    // 문구 선택은 지금 문장과 같은 쪽을 골라도 어느 자료를 골랐는지 남긴다 — 버전 기록의 까닭 「<자료 이름> 쪽」
+    // 설명 안 되는 줄의 PRD 수정은 문장만 바꾼다 — 확인 필요였던 요구의 물음(어느 근거가 맞나)은 요구사항 확인 탭에 그대로 남긴다
     if (결정.pick === 'NOTE') {
       문장바뀜 = true;
       changes.push({ kind: 'EDIT', reqId: x.reqId, text: 결정.text, asset: null, tcId: 결정.tcId });
-      return { ...나머지, text: 결정.text, status: 'CONFIRMED', byPerson: true };
+      return { ...x, text: 결정.text, byPerson: true };
     }
+    // 문구 선택은 지금 문장과 같은 쪽을 골라도 어느 자료를 골랐는지 남긴다 — 버전 기록의 까닭 「<자료 이름> 쪽」
     if (결정.text === x.text && 결정.pick !== 'PICK') {
       changes.push({ kind: 'CONFIRM', reqId: x.reqId, text: null, asset: null, tcId: null });
       return { ...나머지, status: 'CONFIRMED', byPerson: true };

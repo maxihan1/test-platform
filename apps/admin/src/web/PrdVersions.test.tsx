@@ -94,7 +94,7 @@ describe('PRD 관리 — 버전 기록', () => {
         requestId: null,
         fromDecision: false,
         changes: [
-          { kind: 'EDIT', reqId: 'MKT-REQ-088', text: '주문 취소 버튼은 배송 전에만 보인다', asset: null, tcId: 'MKT-FN-271' },
+          { kind: 'EDIT', reqId: 'MKT-REQ-088', text: '주문 취소 버튼은 배송 전에만 보인다', asset: null, tcId: 'MKT-GS-001' },
           { kind: 'PICK', reqId: 'MKT-REQ-021', text: '쿠폰은 한 번만 쓴다', asset: '화면설명메모.md', tcId: null },
           { kind: 'CONFIRM', reqId: 'MKT-REQ-349', text: null, asset: null, tcId: null },
         ],
@@ -104,12 +104,25 @@ describe('PRD 관리 — 버전 기록', () => {
     fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
     const 줄 = (await screen.findAllByRole('row'))[1]!;
     expect(within(줄).getAllByRole('listitem').map((x) => x.textContent)).toEqual([
-      '문장 변경MKT-REQ-088주문 취소 버튼은 배송 전에만 보인다 · 화면이 맞음(MKT-FN-271)',
+      '문장 변경MKT-REQ-088주문 취소 버튼은 배송 전에만 보인다 · 설명 안 되는 줄(MKT-GS-001)',
       '문구 선택MKT-REQ-021쿠폰은 한 번만 쓴다 · 출처 화면설명메모.md',
       '확정MKT-REQ-349',
     ]);
     expect(within(줄).queryByRole('button', { name: '변경 사항 보기' })).toBeNull();
     expect(한판).not.toHaveBeenCalled();
+  });
+
+  it('화면이 맞음 요청이 올린 버전의 케이스 번호는 「화면이 맞음」으로 적는다 — 게임 시나리오 번호여도 출처로 가른다', async () => {
+    판들.mockResolvedValue([
+      {
+        version: 12, source: 'AGENT', savedByName: 'AI', savedAt: '2026-10-26T06:20:00.000Z', requestId: 9, fromDecision: true,
+        changes: [{ kind: 'EDIT', reqId: 'MKT-REQ-088', text: '주문 취소 버튼은 배송 전에만 보인다', asset: null, tcId: 'MKT-GS-004' }],
+      },
+    ]);
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
+    const 줄 = (await screen.findAllByRole('row'))[1]!;
+    expect(within(줄).getAllByRole('listitem').map((x) => x.textContent)).toEqual(['문장 변경MKT-REQ-088주문 취소 버튼은 배송 전에만 보인다 · 화면이 맞음(MKT-GS-004)']);
   });
 
   it('PRD 초안에서 온 추가 · 삭제 · 확인 필요 줄은 종류와 이슈 키를 적는다', async () => {

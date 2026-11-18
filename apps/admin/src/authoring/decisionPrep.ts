@@ -101,7 +101,8 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
       const 차례 = p.option === undefined ? 0 : p.option;
       const 요구 = typeof 차례 === 'number' && Number.isInteger(차례) ? 항목.reqs[차례] : undefined;
       const text = 요구문장(p.text);
-      if (요구 === undefined || text === null || text === 요구.text) return 틀림(p.key);
+      // 같은 요구를 다른 고르기가 이미 고쳤으면 한 버전에 둘을 못 담는다 — 낡음이 아니라 이 항목이 틀렸다고 알린다
+      if (요구 === undefined || text === null || text === 요구.text || 준.확인.some((x) => x.결정.reqId === 요구.reqId)) return 틀림(p.key);
       준.확인.push({ key: p.key, 결정: { reqId: 요구.reqId, pick: 'NOTE', text, tcId: 항목.tcId } });
       준.설명.push({ key: p.key, runId: 항목.runId, tcId: 항목.tcId, verdict: 'RULE' });
       return null;

@@ -43,7 +43,7 @@ describe('설명 안 되는 줄', () => {
     expect(screen.getByText('미션 테스트에 설명 안 되는 줄이 있습니다. 어떻게 처리할까요?')).toBeTruthy();
     expect(screen.getByText('준 피해 줄에 인원 보정 1.2 — {"값":14}')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '이슈 등록' }));
-    expect(screen.getByText('ARG-GS-001 설명 안 되는 줄을 이슈로 등록합니다')).toBeTruthy();
+    expect(screen.getByText('ARG-GS-001 설명 안 되는 줄을 결함으로 기록합니다')).toBeTruthy();
     fireEvent.click(적용());
     await waitFor(() => expect(보낸).toEqual([[{ key: 'note:21160:ARG-GS-001', pick: 'BUG' }]]));
   });

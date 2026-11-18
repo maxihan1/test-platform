@@ -226,7 +226,7 @@ export async function 결정재료읽기(서비스: number, 누구: 부른이, �
   const [초안, 실패, 설명, 셋째, 미션] = await Promise.all([
     초안묶음(서비스, items, 누구),
     실패묶음(서비스, items, 누구, 상세),
-    설명묶음(서비스, items, 누구),
+    설명묶음(서비스, items, 누구, 상세),
     셋째묶음(서비스, { version: 판?.version ?? 0, items }, 열린, 대기뿌리, 누구),
     미션묶음(서비스, 열린, 대기뿌리, 누구),
   ]);

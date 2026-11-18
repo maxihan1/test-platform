@@ -22,6 +22,7 @@ interface 설명줄 {
  * 게임 시나리오(-GS-) 케이스마다 그 케이스가 돈 가장 최근에 끝난 케이스 실행에 설명 안 되는 줄(판정 NA 문장)이 있고 판정(run_case_note)이 없는 것.
  * 고르는 실행은 실패 판정과 같다(decisionReads.ts 판정없는실패들) — 한 건 실행이 덮은 항목은 그 항목을 본다
  */
+// ponytail: 상한 없이 게임 시나리오 케이스마다 한 건이다(실패 판정의 20건 상한 · failMore 를 두지 않았다). 케이스가 수백 개가 되면 실패 판정처럼 상한을 둔다
 async function 판정없는설명들(서비스: number): Promise<설명줄[]> {
   const r = await (await db()).query<{ run_id: string; tc_id: string; name: string; history_id: string; item_run_id: string; finished_at: Date | null }>(
     `WITH 돈것 AS (
@@ -65,6 +66,7 @@ export async function 설명묶음(
   서비스: number,
   판: PrdItem[],
   누구: { 작성쓰기: boolean; 실행읽기: boolean; 실행쓰기: boolean },
+  상세 = true,
 ): Promise<결정항목[]> {
   if (!누구.실행읽기) return [];
   const [줄들, 지도] = await Promise.all([판정없는설명들(서비스), 케이스지도(서비스)]);
@@ -76,9 +78,10 @@ export async function 설명묶음(
       const 덮음 = new Set(Object.entries(지도).flatMap(([reqId, 케이스들]) => (케이스들.some((c) => c.tcId === f.tcId) ? [reqId] : [])));
       const reqs = 판.filter((x) => 덮음.has(x.reqId)).map((x) => ({ reqId: x.reqId, text: x.text }));
       if (reqs.length === 0) return null;
-      const 항목 = await findItem(f.itemRunId, f.historyId);
+      // 진행(상세 false)은 줄 문장을 안 쓴다 — 항목 상세를 케이스마다 또 읽지 않는다
+      const 항목 = 상세 ? await findItem(f.itemRunId, f.historyId) : null;
       const notes = (항목?.steps ?? []).flatMap((s) => s.assertions.filter((a) => a.status === 'NA').map((a) => ({ statement: a.statement, actual: a.actual ?? null })));
-      if (notes.length === 0) return null;
+      if (상세 && notes.length === 0) return null;
       return { key: `note:${String(f.runId)}:${f.tcId}`, group: 2, kind: 'NOTE', ...고를것, runId: f.runId, tcId: f.tcId, name: f.name, reqs, notes, finishedAt: f.finishedAt };
     }),
   );

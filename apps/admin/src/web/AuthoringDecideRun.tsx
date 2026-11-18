@@ -23,7 +23,7 @@ function 초안글(셈: 초안셈, t: 말): string {
 export function 차례글(줄: 차례줄, t: 말): string {
   switch (줄.종류) {
     case 'bug':
-      return 줄.설명 ? t('{번호} 설명 안 되는 줄을 이슈로 등록합니다', { 번호: 줄.tcId }) : t('{번호} 실패를 이슈로 등록합니다', { 번호: 줄.tcId });
+      return 줄.설명 ? t('{번호} 설명 안 되는 줄을 결함으로 기록합니다', { 번호: 줄.tcId }) : t('{번호} 실패를 이슈로 등록합니다', { 번호: 줄.tcId });
     case 'prd': {
       const 이름 = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정') };
       const 바뀜 = [...줄.바뀜.map((b) => `${b.reqId} ${이름[b.kind]}`), ...(줄.초안 === null ? [] : [초안글(줄.초안, t)])];
