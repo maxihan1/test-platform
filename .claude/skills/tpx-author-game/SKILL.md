@@ -20,6 +20,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 |---|---|
 | `tpx-author/references/game.md` | 게임 화면 절을 읽을 때 · 역방향이면 `reverse.md` §2~§3.5 대신 §7 |
 | `tpx-cases/references/game.md` | 게임 화면 절이 있을 때 표를 쓰기 전 |
+| `tpx-cases/references/game-scenario.md` | `game.md` 와 같이 — 플레이 값 규칙의 미션 목록 · 게임 시나리오 |
 | `tpx-cases/references/4-selector-common.md` | 공통 절차 4 에서 `4-selector.md` 대신 |
 | `tpx-cases/references/5-stable-game.md` | `5-stable.md` 를 열 때 이어서 — 기다림 |
 | `tpx-cases/references/test-design-game.md` | `test-design.md` 를 열 때 이어서 — 게임 관점 칸 |
@@ -39,4 +40,17 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 이 종류만의 규칙
 
-아직 없다 — 종류별 PRD · 테스트 작성 기준은 사용자와 정해 여기에 적는다(진행판 AUT-F4-06 · 게임은 GAME-F3).
+정본은 명세 `docs/spec/도메인/게임.md` §3.10 「케이스 꼴」(결정 18 ~ 25 — 2026-11-18 사용자)이다.
+
+- **게임 테스트는 기능 · 게임 시나리오 두 갈래다** — 버튼 한 번에 결과가 바로 나오면 기능(`tpx-cases/references/game.md`), 플레이를 해야 값이 생기면 게임 시나리오(`game-scenario.md`). 웹의 UI 케이스 몫(보이는 것 · 버튼 반응 · 화면 잘림)과 경계값은 기능에 넣는다
+- **게임 시나리오는 사람이 미션 목록을 승인한 뒤에 쓴다** — 승인 통로(진행판 GAME-F3-04) 전에는 미션 목록을 케이스 목록 파일에 쓰고 멈춘다. 플레이 값 규칙은 원장에 「빠짐」으로 남는다. 기능 테스트는 기다리지 않는다
+- **정리는 `test.cleanup`** · **서버 초기화를 쓰지 않는다** · **준비 명령이 시작 조건을 바꾸는지 본다** — `game.md` §1 · §3
+
+## 결과 요약에 더하는 줄
+
+공통 절차 「결과 요약」 꼴의 `케이스 목록 파일:` 줄 앞에 두 줄을 더한다. 40줄 안에 넣는다.
+
+```
+게임 시나리오 미션: <미션 N개 · 덮은 규칙 M개 — 승인 전이라 테스트는 안 씀 / 없음 — <까닭(플레이 값 규칙 없음 · 로그 주소 없음 · 전투형 아님)>>
+개발팀에 요청할 것: <없는 것 — 막히는 미션 · 규칙 번호, 한 줄에 하나 (`game-scenario.md` §6) / 없음>
+```
