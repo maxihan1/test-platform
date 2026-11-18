@@ -58,6 +58,9 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 
 **각 단계에 들어가기 전에 그 파일을 Read 로 연다 — 기억으로 하지 않는다.**
 
+**한 종류만 다루는 절은 `<이름>-<종류>.md` 로 뗐다** (2026-11-18 AUT-F4-04 · `5-stable-game.md` 꼴) — 원래 자리의 「이어서 연다」 줄을 따라 연다.
+사람 세션은 종류를 안 받으므로 다 연다. 작성 에이전트의 자식은 종류 입구(`tpx-author-<종류>`)의 「여는 파일」 표를 따른다.
+
 | 절 | 파일 | 언제 연다 |
 |---|---|---|
 | §1 입력 확인 · 입력은 자료 목록이다 | `references/1-input.md` | 기획서·자료 목록을 받았을 때 맨 먼저 |
@@ -67,7 +70,7 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 | §2 · §5 문장 규칙 — 한국어 AI 티 (im-not-ai 발췌) | `references/korean-ai-tells.md` | 표를 쓰기 전 · `.spec.ts` 를 쓰기 전 |
 | §2 · §5 문구 틀 — 자리마다 꼴 · 사유 머리 · 낱말 | `references/wording.md` | 표를 쓰기 전 · `.spec.ts` 를 쓰기 전 |
 | 🛑 §3 내부 게이트 | `references/3-gate.md` | 표를 다 쓴 직후 |
-| §4 selector 확정 · 용어 사전 — R9 · R10 | `references/4-selector.md` | 화면을 열기 전 |
+| §4 selector 확정 · 용어 사전 — R9 · R10 | `references/4-selector.md` · R9 · R10 은 `references/4-selector-common.md` | 화면을 열기 전 |
 | §5 케이스 작성 — R11~R14 · R16 | `references/5-writing.md` | `.spec.ts` 를 쓰기 전 |
 | §5 흔들리지 않게 쓰기 — 기다리기 · 데이터 고르기 · 날짜 값 | `references/5-stable.md` | `.spec.ts` 를 쓰기 전 |
 | §5 입력값 칸 — 실행 때 바꿀 수 있게 | `references/5-inputs.md` | `.spec.ts` 를 쓰기 전 |
