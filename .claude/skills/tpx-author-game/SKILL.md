@@ -35,7 +35,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 보조 AI 에게 넘길 읽기 목록
 
-- **케이스 작성 보조** — `fanout-game.md` 「§4 뼈대에서 바꾸는 줄」대로 고친 「먼저 Read 로 연다」 줄에 `5-stable-game.md` · `test-design-game.md` 를 더하고, 줄 끝에 「종류는 「게임」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다
+- **케이스 작성 보조** — `fanout-game.md` 「§4 뼈대에서 바꾸는 줄」대로 고친 「먼저 Read 로 연다」 줄에 `4-selector-common.md` · `5-stable-game.md` · `test-design-game.md` 를 더하고, 줄 끝에 「종류는 「게임」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다
 
 ## 이 종류만의 규칙
 

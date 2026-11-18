@@ -194,4 +194,4 @@ npx playwright cli -s=probe --raw snapshot | sed 's/\[ref=[^]]*\]//g' | shasum -
 **표 아래에 「이 화면에서 걸린 것」 절도 쌓는다** — 관문 3 에서 고친 대기 문제 같은 것.
 같은 화면은 같은 데서 걸리므로 다음 케이스가 그걸 처음부터 안다.
 
-**R9 · R10 은 `4-selector-common.md` 로 뗐다 — 종류와 상관없는 규칙이라 모든 종류가 이어서 연다.**
+**R9 · R10** — `4-selector-common.md` 를 이어서 연다 — 종류와 상관없는 규칙이라 모든 종류가 연다.

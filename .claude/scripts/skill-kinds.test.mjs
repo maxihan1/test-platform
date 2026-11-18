@@ -68,7 +68,9 @@ test('뗀 파일마다 자기 종류 입구가 열고 다른 종류 입구는 �
   for (const { 경로, 종류 } of 뗀파일들) {
     assert.ok(절경로(입구글(종류), '여는 파일').has(경로), `${경로} 가 tpx-author-${종류} 「여는 파일」에 없다`);
     for (const 다른 of 종류들.filter((k) => k !== 종류)) {
-      assert.ok(절경로(입구글(다른), '열지 않는 파일').has(경로), `${경로} 가 tpx-author-${다른} 「열지 않는 파일」에 없다`);
+      // 웹에 남은 앱 케이스 — 웹 입구는 앱 뗀 파일을 「앱 화면 절이 붙으면 더 여는 파일」에 둔다 (결정 8)
+      const 조건부 = 다른 === 'web' && 종류 === 'app' && 절경로(입구글(다른), '앱 화면 절이 붙으면 더 여는 파일').has(경로);
+      assert.ok(조건부 || 절경로(입구글(다른), '열지 않는 파일').has(경로), `${경로} 가 tpx-author-${다른} 「열지 않는 파일」에 없다`);
     }
   }
 });
@@ -81,9 +83,18 @@ test('뗀 파일의 원래 파일이 있고 그 자리에 이어 여는 줄을 �
   }
 });
 
+test('종류와 상관없는 R9 · R10 은 모든 입구가 열고 케이스 작성 보조에게도 넘긴다', () => {
+  const 공통 = 'tpx-cases/references/4-selector-common.md';
+  assert.ok(readFileSync(join(스킬, 'tpx-cases/references/4-selector.md'), 'utf8').includes('`4-selector-common.md` 를 이어서 연다'), '4-selector.md 에 이어 여는 줄이 없다');
+  for (const 종류 of 종류들) {
+    const 글 = 입구글(종류);
+    assert.ok(절경로(글, '여는 파일').has(공통), `tpx-author-${종류} 「여는 파일」에 ${공통} 이 없다`);
+    const 보조 = 글.slice(글.indexOf('\n## 보조 AI 에게 넘길 읽기 목록\n'), 글.indexOf('\n## 이 종류만의 규칙\n'));
+    assert.ok(보조.includes('`4-selector-common.md`'), `tpx-author-${종류} 보조 AI 읽기 목록에 4-selector-common.md 가 없다 — 보조가 R10 을 못 읽는다`);
+  }
+});
+
 test('게임 입구는 웹 요소 찾기 파일을 안 열고 거기서 뗀 공통 규칙만 연다', () => {
   const 글 = 입구글('game');
   assert.ok(절경로(글, '열지 않는 파일').has('tpx-cases/references/4-selector.md'));
-  assert.ok(절경로(글, '여는 파일').has('tpx-cases/references/4-selector-common.md'));
-  assert.ok(readFileSync(join(스킬, 'tpx-cases/references/4-selector.md'), 'utf8').includes('`4-selector-common.md`'), '4-selector.md 가 뗀 공통 규칙을 안 가리킨다');
 });

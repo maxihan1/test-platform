@@ -17,6 +17,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 | 파일 | 언제 |
 |---|---|
+| `tpx-cases/references/4-selector-common.md` | `4-selector.md` 를 열 때 이어서 — R9 · R10(종류와 상관없다) |
 | `tpx-author/references/app.md` | 앱 화면 절을 읽을 때 · 역방향이면 `reverse.md` §2~§3.5 대신 §6 |
 | `tpx-cases/references/5-stable-app.md` | `5-stable.md` 를 열 때 이어서 — 공용 부품 · 누르기 · 읽기 |
 | `tpx-cases/references/5-writing-app.md` | `5-writing.md` 를 열 때 이어서 — `keepAppData` · `launchIntent` |
@@ -30,7 +31,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 보조 AI 에게 넘길 읽기 목록
 
-- **케이스 작성 보조** — `fanout.md` §4 뼈대의 「먼저 Read 로 연다」 줄 그대로에 `5-stable-app.md` · `5-writing-app.md` 를 더하고, 줄 끝에 「종류는 「Android 앱」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다
+- **케이스 작성 보조** — `fanout.md` §4 뼈대의 「먼저 Read 로 연다」 줄 그대로에 `4-selector-common.md` · `5-stable-app.md` · `5-writing-app.md` 를 더하고, 줄 끝에 「종류는 「Android 앱」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다
 
 ## 이 종류만의 규칙
 

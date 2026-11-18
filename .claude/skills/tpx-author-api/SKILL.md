@@ -17,6 +17,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 | 파일 | 언제 |
 |---|---|
+| `tpx-cases/references/4-selector-common.md` | `4-selector.md` 를 열 때 이어서 — R9 · R10(종류와 상관없다) |
 | `tpx-cases/references/api.md` | API 문서 절이 있을 때 표를 쓰기 전. 표준 기획서 반영처럼 절 없이 온 요청은 안 연다(그 파일 머리) |
 
 ## 열지 않는 파일
@@ -29,7 +30,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 보조 AI 에게 넘길 읽기 목록
 
-- **케이스 작성 보조** — `fanout.md` §4 뼈대의 「먼저 Read 로 연다」 줄을 그대로 넘기고, 줄 끝에 「종류는 「API」다 — 이어 여는 뗀 파일은 열지 않는다」를 붙인다. API 에는 뗀 파일이 없다
+- **케이스 작성 보조** — `fanout.md` §4 뼈대의 「먼저 Read 로 연다」 줄 그대로에 `4-selector-common.md` 를 더하고, 줄 끝에 「종류는 「API」다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다. API 종류의 뗀 파일은 없다
 
 ## 이 종류만의 규칙
 

@@ -8,7 +8,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 이 애플리케이션은 종류 「웹」이다. **이 스킬은 무엇을 읽을지만 정한다** — 할 일과 순서는 공통 절차가 정한다(정본 `docs/spec/도메인/작성.md` §3.6 「종류별 작성 AI」).
 
 1. 공통 절차 `.claude/skills/tpx-author/SKILL.md` 를 Read 로 열고 그대로 따른다. 거기 적힌 `references/…` 는 `.claude/skills/tpx-author/references/` 다
-2. 지침 파일이 「`<이름>-<종류>.md` 를 이어서 연다」고 가리키면 아래 「여는 파일」 표에 있는 것만 연다
+2. 지침 파일이 「`<이름>-<종류>.md` 를 이어서 연다」고 가리키면 아래 「여는 파일」 표에 있는 것만 연다. 앱 화면 절이 붙어 기획서가 앱 케이스를 요구하면 「앱 화면 절이 붙으면 더 여는 파일」 표도 연다
 3. 프롬프트에 붙은 절(역방향 · 앱 화면 · API 문서 …)이 여는 파일은 공통 절차대로다 — 이 표가 막지 않는다
 
 ## 여는 파일
@@ -17,6 +17,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 | 파일 | 언제 |
 |---|---|
+| `tpx-cases/references/4-selector-common.md` | `4-selector.md` 를 열 때 이어서 — R9 · R10(종류와 상관없다) |
 | `tpx-cases/references/two-kinds-web.md` | `two-kinds.md` 를 열 때 이어서 — 화면 크기 판정 |
 | `tpx-cases/references/5-writing-web.md` | `5-writing.md` 를 열 때 이어서 — 로그인은 이어 쓴다 |
 | `tpx-cases/references/5-stable-web.md` | `5-stable.md` 를 열 때 이어서 — 뜨는 창 · 화면 밖 요소 |
@@ -36,14 +37,13 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 열지 않는 파일
 
-다른 종류의 뗀 파일이다. 앱 둘은 위 「앱 화면 절이 붙으면」일 때만 연다.
+다른 종류의 뗀 파일이다. 앱 뗀 파일은 위 「앱 화면 절이 붙으면 더 여는 파일」 표대로다.
 
 - `tpx-cases/references/5-stable-game.md` · `tpx-cases/references/test-design-game.md` · `tpx-author/references/fanout-game.md`
-- `tpx-cases/references/5-stable-app.md` · `tpx-cases/references/5-writing-app.md`
 
 ## 보조 AI 에게 넘길 읽기 목록
 
-- **케이스 작성 보조** — `fanout.md` §4 뼈대의 「먼저 Read 로 연다」 줄 그대로에 `5-stable-web.md` · `5-writing-web.md` · `two-kinds-web.md` 를 더하고, 줄 끝에 「종류는 「웹」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다. 앱 케이스를 맡기면 `5-stable-app.md` · `5-writing-app.md` 도 더한다
+- **케이스 작성 보조** — `fanout.md` §4 뼈대의 「먼저 Read 로 연다」 줄 그대로에 `4-selector-common.md` · `5-stable-web.md` · `5-writing-web.md` · `two-kinds-web.md` 를 더하고, 줄 끝에 「종류는 「웹」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다. 앱 케이스를 맡기면 `5-stable-app.md` · `5-writing-app.md` 도 더한다
 - **화면 훑기 보조** — `scan-fanout.md` §3 뼈대 그대로다
 
 ## 이 종류만의 규칙
