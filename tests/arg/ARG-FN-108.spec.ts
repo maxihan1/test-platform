@@ -34,6 +34,7 @@ test(spec, async ({ game, admin, params }) => {
 
     await test.step('임프를 공격한다', async () => {
       await 던전화면.지금(game).누르기(던전화면.임프);
+      await 던전화면.지금(game).누르기(던전화면.공격);
       await verify('던전에서 적의 체력이 바뀌면 그 적 머리 위로 피해 숫자가 떠오른다', (await 머리위숫자글(game, 던전화면.적피해숫자)) !== null, true);
     });
   } finally {

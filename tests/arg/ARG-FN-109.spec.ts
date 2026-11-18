@@ -34,6 +34,7 @@ test(spec, async ({ game, admin, params }) => {
 
     await test.step('임프를 공격한다', async () => {
       await 던전화면.지금(game).누르기(던전화면.임프);
+      await 던전화면.지금(game).누르기(던전화면.공격);
       const 숫자 = await 머리위숫자읽기(game, 던전화면.적피해숫자);
       await verify('적이 피해를 받으면 머리 위 피해 숫자가 흰색이다', 숫자?.색 ?? '', '흰색');
     });
