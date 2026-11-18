@@ -6,7 +6,7 @@ import ts from 'typescript';
 import type { CaseSpec, JsonSchema } from '@platform/kit';
 
 import { k7, K7_WHY, k15, K15_WHY, k16, K16_WHY } from './pageObject.js';
-import { caseSteps, isTestStep, isVerify as 판정호출 } from './steps.js';
+import { caseSteps, isTestCleanup, isTestStep, isVerify as 판정호출 } from './steps.js';
 import { badTechniques } from './techniques.js';
 import { badTag } from './tags.js';
 
@@ -86,6 +86,7 @@ export function checkSource(file: string, text: string): SourceResult {
   let declared = 0;
   let literal: ts.ObjectLiteralExpression | undefined;
   let verifies = 0;
+  const cleanupTitles = new Set<string>();
 
   const walk = (node: ts.Node): void => {
     if (isExportedSpec(node)) {
@@ -101,15 +102,20 @@ export function checkSource(file: string, text: string): SourceResult {
     if (ts.isCallExpression(node)) {
       const isStep = isTestStep(node);
       const isVerify = 판정호출(node);
+      const isCleanup = isTestCleanup(node);
 
-      if (isStep || isVerify) {
+      if (isStep || isVerify || isCleanup) {
         if (isVerify) verifies += 1;
-        const label = isStep ? '절차 제목' : '검증 문장';
+        const label = isStep ? '절차 제목' : isCleanup ? '정리 제목' : '검증 문장';
         const first = node.arguments[0];
         if (first === undefined || !TITLE_KINDS.has(first.kind)) {
           violations.push(v(file, lineOf(node), 'K6', `${label}이 문자열 리터럴이 아니다`));
         } else if ((first as ts.StringLiteral).text.trim() === '') {
           violations.push(v(file, lineOf(node), 'K6', `${label}이 비어 있다`));
+        } else if (isCleanup) {
+          const 제목 = (first as ts.StringLiteral).text;
+          if (cleanupTitles.has(제목)) violations.push(v(file, lineOf(node), 'K12', `정리 제목 「${제목}」이 이 케이스 안에서 겹친다`));
+          cleanupTitles.add(제목);
         }
       }
     }
@@ -154,10 +160,11 @@ export function checkSource(file: string, text: string): SourceResult {
 
 // 접두사는 자유 형식이다. 플랫폼은 뜻을 모르고 모양과 중복만 본다 (SPEC §2, 2026-09-17).
 // 소문자를 막는 이유 — Pay-001과 PAY-001이 서로 다른 케이스가 되면 중복 검출이 조용히 샌다
-export const TCID = /^[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN)-)?\d{3}$/;
+export const TCID = /^[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN|GS)-)?\d{3}$/;
 // 종류 글자가 없는 옛 꼴은 기능 테스트로 본다 (SPEC 도메인/작성 §3.6 「★ 테스트 두 갈래」)
 export const tcId종류 = (tcId: string): 'UI' | 'FN' => (/-UI-\d{3}$/.test(tcId) ? 'UI' : 'FN');
-// FN 과 옛 꼴은 한 번호열이다(MKT-044 = MKT-FN-044) — 글자로 견주면 같은 번호가 두 번 쓰여 실행 이력이 섞인다. UI 만 따로 센다
+export const 게임시나리오인가 = (tcId: string): boolean => /-GS-\d{3}$/.test(tcId);
+// FN 과 옛 꼴은 한 번호열이다(MKT-044 = MKT-FN-044) — 글자로 견주면 같은 번호가 두 번 쓰여 실행 이력이 섞인다. UI · GS 는 따로 센다
 export const 번호열쇠 = (tcId: string): string => tcId.replace(/-FN-(\d{3})$/, '-$1');
 const PLATFORMS = new Set(['desktop', 'mobile', 'android']);
 
@@ -259,7 +266,7 @@ export function checkSpec(
   const out: Violation[] = [];
 
   if (!TCID.test(spec.tcId)) {
-    out.push(v(file, at('tcId'), 'K2', `tcId가 ${spec.tcId}이다. <접두사>-<3자리> · <접두사>-UI-<3자리> · <접두사>-FN-<3자리> 중 하나여야 하고 접두사는 대문자로 시작해 대문자·숫자로 이어지는 1~12자다`));
+    out.push(v(file, at('tcId'), 'K2', `tcId가 ${spec.tcId}이다. <접두사>-<3자리> · <접두사>-UI-<3자리> · <접두사>-FN-<3자리> · <접두사>-GS-<3자리> 중 하나여야 하고 접두사는 대문자로 시작해 대문자·숫자로 이어지는 1~12자다`));
   }
   if (spec.name.trim() === '') {
     out.push(v(file, at('name'), 'K3', 'name이 비어 있다'));

@@ -6,17 +6,17 @@ import ts from 'typescript';
 import type { 결정, 겹침 } from '../apps/admin/src/authoring/conflicts.js';
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 
-export type 번호꼴 = 'UI' | 'FN' | '옛';
+export type 번호꼴 = 'UI' | 'FN' | 'GS' | '옛';
 
 /** tcId 를 번호열 머리 · 꼴 · 번호로 가른다. 번호 꼴이 아니면 null */
 export function 번호열머리(tcId: string): { 머리: string; 꼴: 번호꼴; 번호: number } | null {
-  const m = /^(.+?)-(?:(UI|FN)-)?(\d{3})$/.exec(tcId);
+  const m = /^(.+?)-(?:(UI|FN|GS)-)?(\d{3})$/.exec(tcId);
   if (m === null) return null;
-  return { 머리: m[1] ?? '', 꼴: m[2] === 'UI' || m[2] === 'FN' ? m[2] : '옛', 번호: Number(m[3]) };
+  return { 머리: m[1] ?? '', 꼴: m[2] === 'UI' || m[2] === 'FN' || m[2] === 'GS' ? m[2] : '옛', 번호: Number(m[3]) };
 }
 
-// FN 과 옛 꼴은 같은 번호열이다 — 같은 숫자를 두 번 쓰면 실행 이력이 섞인다. UI 만 따로 센다
-const 같은열 = (가: 번호꼴, 나: 번호꼴) => (가 === 'UI') === (나 === 'UI');
+// FN 과 옛 꼴은 같은 번호열이다 — 같은 숫자를 두 번 쓰면 실행 이력이 섞인다. UI · GS 는 각자 따로 센다
+const 같은열 = (가: 번호꼴, 나: 번호꼴) => (가 === 나) || (가 !== 'UI' && 가 !== 'GS' && 나 !== 'UI' && 나 !== 'GS');
 
 /**
  * 같은 머리 · 같은 번호열의 가장 큰 번호 + 1 부터 `개수` 개를 `꼴` 로. 999 를 넘으면 null — 파일 이름 규칙(cases-only 의 `케이스파일꼴`)이 세 자리다.

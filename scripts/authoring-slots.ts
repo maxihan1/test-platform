@@ -312,7 +312,8 @@ export function 칸번호(원장: readonly 원장자리[], 줄들: 표줄[], 재
   const 다음: Record<갈래, number> = { UI: 끝.UI, FN: 끝.FN };
   for (const 열쇠 of 잡힌) {
     const 열 = 번호열머리(열쇠);
-    if (열 === null || 열.머리 !== 접두사) continue;
+    // 게임 시나리오(GS)는 따로 센다 — 표 줄은 GS 를 만들지 않으니 기능 다음 번호를 밀면 안 된다
+    if (열 === null || 열.머리 !== 접두사 || 열.꼴 === 'GS') continue;
     const 갈래 = 열.꼴 === 'UI' ? 'UI' : 'FN';
     다음[갈래] = Math.max(다음[갈래], 열.번호);
   }

@@ -43,6 +43,18 @@ export function isTestStep(node: ts.Node): node is ts.CallExpression {
   );
 }
 
+// 정리 호출 — 케이스 끝에 도는 정리 절차다. 절차 목록에는 안 세지만 제목은 K6 · K12 가 본다
+export function isTestCleanup(node: ts.Node): node is ts.CallExpression {
+  if (!ts.isCallExpression(node)) return false;
+  const callee = node.expression;
+  return (
+    ts.isPropertyAccessExpression(callee) &&
+    callee.name.text === 'cleanup' &&
+    ts.isIdentifier(callee.expression) &&
+    callee.expression.text === 'test'
+  );
+}
+
 function isTestCall(node: ts.Node): node is ts.CallExpression {
   return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'test';
 }
@@ -51,16 +63,18 @@ function isInlineFunction(node: ts.Node | undefined): node is ts.ArrowFunction |
   return node !== undefined && (ts.isArrowFunction(node) || ts.isFunctionExpression(node));
 }
 
-// 판정 호출 — verify 와 그 밑 도우미 둘(공통/3-공유계약 「게임 테스트 타입」). 도우미만 쓴 게임 케이스도 판정이 있는 케이스다
+// 판정 호출 — verify 와 그 밑 도우미 셋(공통/3-공유계약 「게임 테스트 타입」). 도우미만 쓴 게임 케이스도 판정이 있는 케이스다.
+// verify.note 는 판정이 아니라 기록이라 세지 않는다
 export function isVerify(call: ts.CallExpression): boolean {
   const e = call.expression;
   if (ts.isIdentifier(e)) return e.text === 'verify';
-  return ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'verify' && ['element', 'rates'].includes(e.name.text);
+  return ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'verify' && ['element', 'rates', 'log'].includes(e.name.text);
 }
 
-// 옵션 자리(verify 넷째 · 도우미 다섯째)가 객체 리터럴이고 blocker: true 일 때만. 변수로 넘기면 모른다 — 모르면 blocker 가 아니다
+// 옵션 자리(verify · verify.log 넷째, 나머지 도우미 다섯째)가 객체 리터럴이고 blocker: true 일 때만. 변수로 넘기면 모른다 — 모르면 blocker 가 아니다
 function isBlocker(call: ts.CallExpression): boolean {
-  const options = call.arguments[ts.isIdentifier(call.expression) ? 3 : 4];
+  const e = call.expression;
+  const options = call.arguments[ts.isIdentifier(e) || (ts.isPropertyAccessExpression(e) && e.name.text === 'log') ? 3 : 4];
   if (options === undefined || !ts.isObjectLiteralExpression(options)) return false;
   return options.properties.some(
     (p) =>

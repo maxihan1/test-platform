@@ -3,7 +3,7 @@
 
 import { TECHNIQUES, type Technique } from '@platform/kit/types';
 
-import { TCID, tcId종류 } from '../apps/admin/src/catalog/rules.js';
+import { TCID, tcId종류, 게임시나리오인가 } from '../apps/admin/src/catalog/rules.js';
 import { 케이스기법 } from '../apps/admin/src/catalog/techniques.js';
 import type { 설계 } from './authoring-design.js';
 import { 번호찾기 } from './authoring-ledger.js';
@@ -28,10 +28,10 @@ export function 기법대조(
   // 기준 줄의 케이스는 이 기능 전 것이라 다 어긋남이 된다 — 같은 칸에 새 줄이 붙어 기준 tcId 를 물려받아도 통째로 뺀다
   const 기준tcId = new Set([...기준줄].map((열쇠) => 열쇠.split('|')[0]));
   // 한 tcId 의 줄이 여럿이면 첫 줄의 칸으로 본다(작성 §3.6) — 다른 칸의 줄은 칸 번호 어긋남이 따로 잡는다.
-  // UI 는 K14 가 · 케이스 글이 없으면 빠짐 · 형식 오류가 본다
+  // GS 는 미션이라 설계 기법을 안 단다. UI 는 K14 가 · 케이스 글이 없으면 빠짐 · 형식 오류가 본다
   const 첫줄 = new Map<string, 표줄>();
   for (const 줄 of [...줄들].sort((가, 나) => 가.차례 - 나.차례)) {
-    if (첫줄.has(줄.tcId) || 기준tcId.has(줄.tcId) || !TCID.test(줄.tcId) || tcId종류(줄.tcId) === 'UI') continue;
+    if (첫줄.has(줄.tcId) || 기준tcId.has(줄.tcId) || !TCID.test(줄.tcId) || tcId종류(줄.tcId) === 'UI' || 게임시나리오인가(줄.tcId)) continue;
     첫줄.set(줄.tcId, 줄);
   }
   const 글로 = (목록: readonly string[]) => (목록.length > 0 ? 목록.join(' · ') : '없음');
