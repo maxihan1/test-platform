@@ -134,6 +134,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (Object.hasOwn(값, 'apiApply')) return reply.code(400).send({ error: 'BAD_API_APPLY' });
       // decision 은 결정 진행(POST /api/authoring/decisions/run)만 싣는다 — 집기가 after 를 기다리고 버전 기록이 「테스트 작성에서 결정」으로 적는다 (§7 「결정 목록 통로」)
       if (Object.hasOwn(값, 'decision')) return reply.code(400).send({ error: 'BAD_DECISION' });
+      // missions 도 결정 진행의 「미션 승인」만 싣는다 — 여기로 실으면 승인 없이 게임 시나리오 작성이 서고 그 미션이 「쓴 미션」으로 목록에서 빠진다 (도메인/게임 §3.10 결정 24)
+      if (Object.hasOwn(값, 'missions')) return reply.code(400).send({ error: 'BAD_DECISION', detail: 'params.missions' });
       // 부른 사람은 요청에 안 싣는다. 로그인한 세션에서 채운다 — 실행이 triggeredBy 를 그렇게 한다
       const 누가 = req.user?.username ?? '';
       const 이름 = req.user?.displayName ?? '';

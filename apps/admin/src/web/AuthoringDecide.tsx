@@ -1,4 +1,4 @@
-// 테스트 작성 「결정 필요」 — 사람이 고를 일을 탭 넷(승인 대기 · 결함 판정 · 요구사항 확인 · 테스트 업데이트)으로 나눠 묻고 탭마다 [N건 적용] 하나로 차례대로 진행한다 (도메인/작성 §3.6 「★ 결정 목록」 · 2026-11-04 사용자)
+// 테스트 작성 「결정 필요」 — 사람이 고를 일을 탭 다섯(승인 대기 · 미션 승인 · 결함 판정 · 요구사항 확인 · 테스트 업데이트)으로 나눠 묻고 탭마다 [N건 적용] 하나로 차례대로 진행한다 (도메인/작성 §3.6 「★ 결정 목록」 · 2026-11-04 사용자)
 // 고르는 동안 목록을 저절로 다시 읽지 않는다 — 고르던 항목이 바뀌면 사람이 본 것과 다른 것을 보내게 된다(서버도 DECISIONS_STALE 로 막는다)
 
 import { useState, type KeyboardEvent } from 'react';
@@ -7,6 +7,7 @@ import { ApiError, type EnvRow } from './api.js';
 import { 의도확인, 문구고르기 } from './AuthoringDecideCheck.js';
 import { 초안카드 } from './AuthoringDecideDraft.js';
 import { 반영대기, 상세할일, 실패판정 } from './AuthoringDecideItems.js';
+import { 미션고르기 } from './AuthoringDecideMissions.js';
 import { 새로만들기 } from './AuthoringDecideNew.js';
 import { 화면고르기 } from './AuthoringDecideScreens.js';
 import { 진행중, 차례글 } from './AuthoringDecideRun.js';
@@ -19,13 +20,14 @@ import { message, 기다림글자 } from './ui.js';
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
 type 말 = ReturnType<typeof use말>;
 
-const 탭차례: 탭[] = ['approve', 'fail', 'check', 'update'];
+const 탭차례: 탭[] = ['approve', 'mission', 'fail', 'check', 'update'];
 const 탭아이디 = (x: 탭) => `decide-tab-${x}`;
 
 /** 탭 이름과 뜻 — 뜻은 마우스를 올리면 뜨고, 휴대폰에서는 탭 줄 아래 한 줄로 보인다(2026-11-04 사용자) */
 function 탭말(x: 탭, t: 말): { 이름: string; 뜻: string } {
   return {
     approve: { 이름: t('승인 대기'), 뜻: t('AI 가 만든 테스트입니다. 승인하면 케이스 목록에 정식 테스트로 들어갑니다') },
+    mission: { 이름: t('미션 승인'), 뜻: t('AI 가 기획서 규칙으로 만든 게임 미션입니다. 체크한 미션만 게임 시나리오 테스트로 씁니다') },
     fail: { 이름: t('결함 판정'), 뜻: t('실패한 테스트입니다. 화면이 틀렸으면 이슈로 등록하고 기획서가 틀렸으면 PRD 를 수정합니다') },
     check: { 이름: t('요구사항 확인'), 뜻: t('AI 가 확신하지 못한 요구사항입니다. 확정하거나 수정하면 PRD 새 버전으로 저장됩니다') },
     update: { 이름: t('테스트 업데이트'), 뜻: t('변경된 요구사항 · API 와 테스트가 없는 화면입니다. 테스트를 다시 만들거나 신규로 추가합니다') },
@@ -59,7 +61,9 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   if (items.length === 0) return <div className="empty">{t('결정이 필요한 일이 없습니다')}</div>;
 
   // 할 일이 없는 탭은 안 그린다. 고른 탭이 사라지면(적용해서 다 빠지면) 남은 첫 탭이다
-  const 수 = (x: 탭) => items.filter((y) => 탭of(y) === x).length + (x === 'fail' ? 목록.failMore : 0);
+  // 미션 승인은 미션 수를 센다 — 제외한 미션만 남은 항목도 되돌릴 자리로 한 칸은 센다
+  const 수 = (x: 탭) =>
+    items.filter((y) => 탭of(y) === x).length + (x === 'fail' ? 목록.failMore : 0);
   const 보이는 = 탭차례.filter((x) => 수(x) > 0);
   const 지금 = 고른탭 !== null && 보이는.includes(고른탭) ? 고른탭 : 보이는[0]!;
   const 탭항목 = items.filter((x) => 탭of(x) === 지금);
@@ -122,6 +126,8 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
         return <초안카드 key={x.key} x={x} 고른={값} on고름={on고름} />;
       case 'SCREENS':
         return <화면고르기 key={x.key} service={service} x={x} 고른={값} on고름={on고름} open={목록.open} envs={envs} on바뀜={다시읽기} />;
+      case 'MISSIONS':
+        return <미션고르기 key={x.key} service={service} x={x} 고른={값} on고름={on고름} open={목록.open} on바뀜={다시읽기} />;
       case 'CHECK':
         return x.basis === 'DOCS' ? <문구고르기 key={x.key} x={x} 고른표={고른} on고름={on고름} 편집={편집} on편집={on편집} /> : null;
       default:

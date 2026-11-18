@@ -2,7 +2,7 @@
 // AI 대신 코드가 정한다 — 같은 기획서를 여러 번 돌려도 같은 요구는 같은 칸 · 같은 번호가 되게 (도메인/작성 §3.6 「★ 원장」 「칸과 번호」).
 // 표 글은 모른다 — 읽기는 authoring-ledger-check.ts 가 하고 읽은 줄을 넘긴다(거꾸로 import 하면 순환이 생긴다)
 
-import { TCID, tcId종류, 번호열쇠 } from '../apps/admin/src/catalog/rules.js';
+import { TCID, tcId종류, 번호열쇠, 게임시나리오인가 } from '../apps/admin/src/catalog/rules.js';
 import { 번호열머리 } from './authoring-conflicts-apply.js';
 import { 번호찾기 } from './authoring-ledger.js';
 import { type 원장자리, 기능자리들 } from './authoring-slots-fn.js';
@@ -37,12 +37,14 @@ export interface 칸결과 {
   알림: string[];
 }
 
-type 갈래 = 'UI' | 'FN';
-const 축차례 = ['UI', '정상', '경계', '예외'] as const;
+type 갈래 = 'UI' | 'FN' | 'GS';
+// 미션 줄은 번호를 GS 끼리 따로 센다 — 출처 칸의 `미션 M01` 이 덩이 열쇠다 (도메인/게임 §3.10 결정 24)
+const 축차례 = ['UI', '정상', '경계', '예외', '미션'] as const;
 type 축 = (typeof 축차례)[number];
 const 상태차례 = ['정식', '미확정', '보류', '모킹', '오류추정', '버튼반응'] as const;
 type 상태 = (typeof 상태차례)[number];
 
+const 미션표시 = /(?<![A-Za-z0-9])미션\s+(M\d{2,3})(?!\d)/;
 const 오류추정표시 = /오류 추정\s*[—–]/;
 const 버튼반응표시 = /버튼 반응\s*[—–]/;
 
@@ -91,6 +93,8 @@ export function 줄상태(출처: string): 상태 {
 const 문단번호 = /^P\d*-\d+$/;
 
 const 세자리 = (수: number) => String(수).padStart(3, '0');
+/** tcId 의 갈래 — 규칙 쪽 `tcId종류` 는 GS 를 기능으로 센다. 번호열이 따로라 여기서는 가른다 */
+const tcId갈래 = (tcId: string): 갈래 => (게임시나리오인가(tcId) ? 'GS' : tcId종류(tcId));
 const 축인가 = (글: string): 글 is 축 => (축차례 as readonly string[]).includes(글);
 const 제거한줄 = (줄: 표줄) => 줄.tcId.startsWith('제거함(');
 
@@ -144,7 +148,20 @@ function 덩이로묶기(줄들: 표줄[], 원장번호들: string[], 어긋남:
   for (const 줄 of [...줄들].sort((가, 나) => 가.차례 - 나.차례)) {
     const 축 = 줄.축.trim();
     if (!축인가(축)) {
-      어긋남.push(`요구 줄 ${줄.차례 + 1} 축 「${축}」 — UI · 정상 · 경계 · 예외 중 하나가 아니다`);
+      어긋남.push(`요구 줄 ${줄.차례 + 1} 축 「${축}」 — UI · 정상 · 경계 · 예외 · 미션 중 하나가 아니다`);
+      continue;
+    }
+    // 미션 줄 — 요구 번호가 아니라 미션이 칸이다. 같은 미션의 줄 여럿이 한 케이스라 줄 수 상한 · 요구 하나 규칙을 안 건다(한 줄이 규칙 하나)
+    if (축 === '미션') {
+      const 미션 = 미션표시.exec(줄.출처)?.[1];
+      if (미션 === undefined) {
+        어긋남.push(`요구 줄 ${줄.차례 + 1} 미션 줄 출처에 「미션 M01」 꼴이 없다`);
+        continue;
+      }
+      const 열쇠 = `${미션}|GS|미션|정식`;
+      const 한칸 = 칸들.get(열쇠) ?? { 요구: 미션, 원장차례: undefined, 갈래: 'GS' as const, 축, 상태: '정식' as const, 항목: '', 줄들: [] };
+      한칸.줄들.push(줄);
+      칸들.set(열쇠, 한칸);
       continue;
     }
     // 버튼 반응은 누른 직후 반응만 보는 UI 케이스다 — 기능 축에 달면 기능 번호열을 먹는다. 보류가 같이 적혀도 그렇다
@@ -179,15 +196,16 @@ function 덩이로묶기(줄들: 표줄[], 원장번호들: string[], 어긋남:
   }
   const 덩이들: 덩이[] = [];
   for (const [칸열쇠, 칸] of 칸들) {
-    for (let 번째 = 0; 번째 * 칸줄상한 < 칸.줄들.length; 번째 += 1) {
-      const 줄들 = 칸.줄들.slice(번째 * 칸줄상한, (번째 + 1) * 칸줄상한);
+    const 크기 = 칸.갈래 === 'GS' ? 칸.줄들.length : 칸줄상한;
+    for (let 번째 = 0; 번째 * 크기 < 칸.줄들.length; 번째 += 1) {
+      const 줄들 = 칸.줄들.slice(번째 * 크기, (번째 + 1) * 크기);
       덩이들.push({ ...칸, 열쇠: `${칸열쇠}#${번째}`, 번째, 줄들 });
     }
   }
   return 덩이들.sort(칸차례);
 }
 
-const 물려받는가 = (d: 덩이) => d.원장차례 !== undefined && !문단번호.test(d.요구);
+const 물려받는가 = (d: 덩이) => d.갈래 === 'GS' || (d.원장차례 !== undefined && !문단번호.test(d.요구));
 
 /**
  * 기준 표 줄로 칸 재료를 만든다 — (칸, 덩이)마다 덩이 안에서 처음 쓸 만한 tcId. 한 번호를 두 덩이에 주지 않는다.
@@ -205,7 +223,7 @@ export function 칸재료만들기(
   const 칸: Record<string, string> = {};
   const 준번호 = new Set<string>();
   const 덩이들 = 덩이로묶기(기준줄들.filter((줄) => !제거한줄(줄)), 원장번호들, []);
-  const 줄것 = (d: 덩이) => d.줄들.map((줄) => 줄.tcId).find((t) => TCID.test(t) && tcId종류(t) === d.갈래 && !준번호.has(번호열쇠(t)));
+  const 줄것 = (d: 덩이) => d.줄들.map((줄) => 줄.tcId).find((t) => TCID.test(t) && tcId갈래(t) === d.갈래 && !준번호.has(번호열쇠(t)));
   for (const d of 덩이들) {
     if (!물려받는가(d)) continue;
     const t = 줄것(d);
@@ -217,7 +235,7 @@ export function 칸재료만들기(
   const 옛칸: Record<string, string[]> = {};
   const 걸린수 = new Map<string, number>();
   for (const d of 덩이들) {
-    if (d.원장차례 !== undefined) continue;
+    if (d.원장차례 !== undefined || d.갈래 === 'GS') continue;
     const 원본들 = new Set(d.줄들.flatMap((줄) => 번호찾기(줄.출처).번호들).filter((n) => !문단번호.test(n)));
     const 후보 = new Set([...원본들].flatMap((n) => 옛번호.get(n) ?? []));
     const t = 후보.size === 0 ? undefined : 줄것(d);
@@ -248,7 +266,7 @@ export function 칸번호(원장: readonly 원장자리[], 줄들: 표줄[], 재
   const n = 원장.length;
   const 기능 = 기능자리들(원장, 재료.기능셋씩);
   // 고정 범위 끝 — 이 번호까지는 원장 차례로 정해진 자리다. 세 자리를 넘으면 고정을 접고 칸 차례로 잇는다
-  const 끝: Record<갈래, number> = { UI: n, FN: 기능.끝 };
+  const 끝: Record<갈래, number> = { UI: n, FN: 기능.끝, GS: 0 };
   for (const 갈래 of ['UI', 'FN'] as const) {
     if (끝[갈래] <= 999) continue;
     끝[갈래] = 0;
@@ -284,7 +302,7 @@ export function 칸번호(원장: readonly 원장자리[], 줄들: 표줄[], 재
   }
   for (const d of 덩이들) {
     if (번호.has(d) || d.상태 !== '정식' || d.번째 !== 0 || d.원장차례 === undefined || 끝[d.갈래] === 0) continue;
-    const 자리 = d.갈래 === 'UI' ? d.원장차례 : d.축 === 'UI' ? undefined : 기능.자리.get(d.요구)?.[d.축];
+    const 자리 = d.갈래 === 'UI' ? d.원장차례 : d.축 === 'UI' || d.축 === '미션' ? undefined : 기능.자리.get(d.요구)?.[d.축];
     if (자리 === undefined) continue;
     const 고정 = `${접두사}-${d.갈래}-${세자리(자리)}`;
     if (!잡힌.has(번호열쇠(고정))) 정하기(d, 고정);
@@ -293,7 +311,7 @@ export function 칸번호(원장: readonly 원장자리[], 줄들: 표줄[], 재
   // 덩이 안에서 번호가 적힌 줄을 찾는다 — 첫 줄만 보면 같은 칸 앞자리에 새 줄을 끼울 때 번호가 밀린다(2026-10-04 spec-review)
   // 고정 범위 안이어도 요구 몫이 아닌 자리(확인 필요 항목 몫)면 둔다 — 작성 중 오류 추정 항목이 원장 끝에 붙어 범위가 늘자
   // 이미 쓴 보류 케이스 23건 번호가 밀렸다(GAME-F2-16 · #14672). 고정이 이번에 준 번호(잡힌)와 겹치면 그래도 고정이 먼저다
-  const 요구자리: Record<갈래, Set<number>> = { UI: new Set(), FN: new Set() };
+  const 요구자리: Record<갈래, Set<number>> = { UI: new Set(), FN: new Set(), GS: new Set() };
   const 본 = new Set<string>();
   원장.forEach((h, i) => {
     if (본.has(h.번호)) return;
@@ -305,7 +323,9 @@ export function 칸번호(원장: readonly 원장자리[], 줄들: 표줄[], 재
   const 둘만한가 = (d: 덩이, tcId: string) => {
     const 열 = 번호열머리(tcId);
     // 옛 꼴(종류 글자 없음)은 안 둔다 — 새 번호는 -UI- · -FN- 을 단다(R17)
-    if (!TCID.test(tcId) || 열?.머리 !== 접두사 || 열.꼴 === '옛' || tcId종류(tcId) !== d.갈래) return false;
+    if (!TCID.test(tcId) || 열?.머리 !== 접두사 || 열.꼴 === '옛' || tcId갈래(tcId) !== d.갈래) return false;
+    // 미션 번호는 고정 자리가 없다 — 쓴 번호가 안 겹치면 둔다
+    if (d.갈래 === 'GS') return !잡힌.has(번호열쇠(tcId));
     return (열.번호 > 끝[d.갈래] || !요구자리[d.갈래].has(열.번호)) && !잡힌.has(번호열쇠(tcId));
   };
   for (const d of 덩이들) {
@@ -313,12 +333,12 @@ export function 칸번호(원장: readonly 원장자리[], 줄들: 표줄[], 재
     const 둘것 = d.줄들.map((줄) => 줄.tcId).find((tcId) => 둘만한가(d, tcId));
     if (둘것 !== undefined) 정하기(d, 둘것);
   }
-  const 다음: Record<갈래, number> = { UI: 끝.UI, FN: 끝.FN };
+  const 다음: Record<갈래, number> = { UI: 끝.UI, FN: 끝.FN, GS: 0 };
   for (const 열쇠 of 잡힌) {
     const 열 = 번호열머리(열쇠);
-    // 게임 시나리오(GS)는 따로 센다 — 표 줄은 GS 를 만들지 않으니 기능 다음 번호를 밀면 안 된다
-    if (열 === null || 열.머리 !== 접두사 || 열.꼴 === 'GS') continue;
-    const 갈래 = 열.꼴 === 'UI' ? 'UI' : 'FN';
+    // GS 는 따로 센다 — 기능 다음 번호를 밀면 안 되고, 미션이 새 번호를 받을 때는 GS 끼리 센 최대 다음이다
+    if (열 === null || 열.머리 !== 접두사) continue;
+    const 갈래: 갈래 = 열.꼴 === 'UI' ? 'UI' : 열.꼴 === 'GS' ? 'GS' : 'FN';
     다음[갈래] = Math.max(다음[갈래], 열.번호);
   }
   for (const d of 덩이들) {

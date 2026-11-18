@@ -16,6 +16,7 @@ import { 게임역방향절, 앱역방향절 } from './authoring-reverse-app.js'
 import { API절 } from './authoring-api.js';
 import { 지도자리 } from './authoring-screens-keep-io.js';
 import { type 입구, 옛입구, 종류이름 } from './authoring-kind.js';
+import { type 미션입력, 미션절 } from './authoring-missions.js';
 
 /**
  * 줄에서 집은 작성 요청으로 자식 세션에게 시킬 일.
@@ -41,6 +42,8 @@ export function 줄프롬프트(
   앱화면?: 앱화면,
   /** 자료 폴더 — API 애플리케이션 행이면 판 파일 경로를 절에 싣는다 */
   자료폴더?: string,
+  /** 승인된 미션 요청이면 — 이 미션만 게임 시나리오로 쓴다 (도메인/게임 §3.10 결정 24) */
+  미션?: 미션입력,
 ): string {
   const 입구 = 대상?.입구 ?? { 스킬: 옛입구 };
   return [
@@ -89,6 +92,7 @@ export function 줄프롬프트(
     ...(반영 === undefined ? [] : 반영절(반영, 대상?.서버들)),
     ...(가이드 === undefined ? [] : 가이드절(가이드, 서비스)),
     ...(앱화면 === undefined ? [] : 앱화면.게임 === true ? 게임화면절(앱화면, 자료폴더) : 앱화면절(앱화면)),
+    ...(미션 === undefined ? [] : 미션절(미션, 서비스)),
     ...(것.api === undefined || 자료폴더 === undefined ? [] : API절(것.api, 자료폴더, 것.adminKey !== undefined)),
     // 에이전트가 자식 앞에 받아 둔다 — 받기 전에 앞 파일을 지우므로 비었거나 못 받았으면 파일이 없다 (§3.6 「서비스 지도」 · PRD-F14-05)
     ...(자료폴더 !== undefined && existsSync(지도자리(자료폴더)) ? 지도절(지도자리(자료폴더)) : []),

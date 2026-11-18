@@ -55,6 +55,8 @@ export function 설계대조(
 
   const 번호줄 = new Map<string, 표줄[]>();
   for (const 줄 of 줄들) {
+    // 미션 줄(게임 시나리오)은 설계 칸을 채우지 않는다 — 요구가 미션 줄만 있어도 경계 · 예외 칸을 따로 본다
+    if (줄.축.trim() === '미션') continue;
     for (const 번호 of new Set(번호찾기(줄.출처).번호들)) 번호줄.set(번호, [...(번호줄.get(번호) ?? []), 줄]);
   }
   const 빠짐: string[] = [];

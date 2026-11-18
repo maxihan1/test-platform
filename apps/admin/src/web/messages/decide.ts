@@ -142,4 +142,22 @@ export const 결정말: Record<string, string> = {
   '앞으로 테스트 업데이트에 나오지 않습니다': 'It will no longer appear in Test update',
   'AI 가 이 화면 테스트를 만들지 않습니다': 'The AI will not write tests for this screen',
   '아래 「제외한 화면」에서 복원할 수 있습니다': 'You can restore it under "Excluded screens" below',
+
+  // 미션 승인 — 게임 작성 AI 가 낸 미션을 체크해 게임 시나리오 테스트로 쓴다 (2026-11-18 GAME-F3-04)
+  '미션 승인': 'Mission approval',
+  'AI 가 기획서 규칙으로 만든 게임 미션입니다. 체크한 미션만 게임 시나리오 테스트로 씁니다': 'Game missions the AI built from the spec rules. Only the checked missions become game scenario tests',
+  '테스트로 쓸 미션이 없습니다': 'No missions to turn into tests',
+  '미션 {수}개 중 테스트로 쓸 미션을 체크해 주세요': 'Check the missions to turn into tests ({수} in total)',
+  '테스트도 미션도 없는 규칙 {수}개': '{수} rules with no test and no mission',
+  '공식에 빈칸이 있어 값을 못 정한 규칙 {수}개': '{수} rules whose formula has a blank, so no value was set',
+  '시작 조건': 'Starting state',
+  '할 일': 'Task',
+  '통과 조건': 'Pass condition',
+  '확인할 로그': 'Logs to check',
+  '제외한 미션 {수}개': '{수} excluded missions',
+  '미션 제외': 'Exclude mission',
+  '{미션} 미션을 제외합니다': 'Exclude the {미션} mission',
+  'AI 가 이 미션으로 테스트를 쓰지 않습니다': 'The AI will not write tests from this mission',
+  '아래 「제외한 미션」에서 복원할 수 있습니다': 'You can restore it under "Excluded missions" below',
+  '미션 {수}개로 게임 시나리오 테스트를 쓰는 작성을 세웁니다': 'Start an authoring run that writes game scenario tests from {수} missions',
 };

@@ -371,6 +371,11 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
       method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'AUTHOR', params: { decision: { after: [1], count: 1 } } },
     });
     expect([만들기.statusCode, 만들기.json()]).toEqual([400, { error: 'BAD_DECISION' }]);
+    // 승인된 미션 칸도 결정 진행만 싣는다 — 사람 통로로 실으면 「미션 승인」 없이 게임 시나리오 작성이 서고 그 미션이 「쓴 미션」으로 목록에서 빠진다
+    for (const kind of ['AUTHOR', 'RERUN']) {
+      const r = await app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind, sourceId: 1, params: { missions: { from: 1, items: [] } } } });
+      expect([r.statusCode, r.json()]).toEqual([400, { error: 'BAD_DECISION', detail: 'params.missions' }]);
+    }
     // BTS 가 세우는 칸도 사람 통로로는 못 싣는다 — 판정 없이 테스트 고침 요청이 서고 남의 이슈에 댓글이 간다
     for (const 칸 of ['testFix', 'issueKey', 'repo', 'draft']) {
       const r = await app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'AUTHOR', params: { [칸]: { issueKey: 'DM-1' } } } });
