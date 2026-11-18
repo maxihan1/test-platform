@@ -32,6 +32,16 @@ describe('항목실패를가른다', () => {
     ).toBe('상태가 SENT 다');
   });
 
+  it('예외로 깨진 항목은 모양 줄이 FAIL 이어도 예외로 가른다 — 모양 실패는 항목을 깨지 않는다 (AUT-F4-10)', () => {
+    const 모양 = { method: 'GET', path: '/v1/jobs/{id}', status: 200, result: 'FAIL' as const, problems: ['필수 필드 없음 — id'] };
+    expect(
+      항목실패를가른다(
+        재료({ error: { message: 'TimeoutError: apiRequestContext.get: Timeout 30000ms exceeded' }, steps: [{ assertions: [], shapeChecks: [모양] }] }),
+        그대로,
+      )?.type,
+    ).toBe('timeout');
+  });
+
   it('확인 문장이 실패했으면 기대 결과 불일치이고 한 줄은 실패한 첫 확인 문장이다 — 값은 안 붙인다', () => {
     const 결과 = 항목실패를가른다(
       재료({

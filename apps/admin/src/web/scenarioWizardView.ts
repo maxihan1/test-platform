@@ -108,13 +108,16 @@ const 러너글자 = /^[A-Z][A-Z_]*$/;
 export function 멈춘까닭(part: TrialResult['parts'][number]): 항목실패 | null {
   if (part.status === 'PASS' || part.error?.message === 'NOT_RUN') return null;
   const 확인 = part.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL');
-  const 모양틀림 = part.steps.some((s) => (s.shapeChecks ?? []).some((c) => c.result === 'FAIL'));
+  // 정리 절차(NA)의 오류는 판정 밖이다 (reporting/itemFailure.ts 와 같다)
+  const 절차오류 = part.steps.find((s) => s.status !== 'NA' && s.error !== undefined)?.error?.message ?? '';
+  // 모양만 틀려 깨진 실패는 옛 기록에만 있다 — 다른 까닭이 없을 때만 「기대와 다름」 (reporting/itemFailure.ts 와 같다)
+  const 모양만 =
+    확인 === undefined && !part.error?.message && 절차오류 === '' && part.steps.some((s) => (s.shapeChecks ?? []).some((c) => c.result === 'FAIL'));
   const 원인 = 원인을가른다({
     status: part.status,
-    assertFailed: 확인 !== undefined || 모양틀림,
+    assertFailed: 확인 !== undefined || 모양만,
     itemMessage: part.error?.message ?? '',
-    // 정리 절차(NA)의 오류는 판정 밖이다 (reporting/itemFailure.ts 와 같다)
-    stepMessage: part.steps.find((s) => s.status !== 'NA' && s.error !== undefined)?.error?.message ?? '',
+    stepMessage: 절차오류,
   });
   if (원인 === 'stopped') return null;
   const 한줄 = 한줄로자른다(확인?.statement || part.error?.message || '');
