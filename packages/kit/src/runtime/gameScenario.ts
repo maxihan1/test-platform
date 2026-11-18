@@ -3,16 +3,16 @@
 import type { StepResult } from '../types.js';
 import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
 import { 알린다 } from './progress.js';
+import { 정리제목 } from './protocol.js';
 
-/** 번호가 -GS- 인 케이스 — 전체 제한 시간을 안 건다 (도메인/게임 §3.10 결정 21) */
-export const 게임시나리오인가 = (tcId: string): boolean => /-GS-\d{3}$/.test(tcId);
+export { 게임시나리오인가 } from './protocol.js';
 
 // 정리가 실패해도 항목 판정을 바꾸지 않게 NA 로 남긴다. run.failed · stopped · 준비 구간 표시는 건드리지 않는다
 async function 정리절차(run: RunScope, title: string, fn: () => Promise<void>): Promise<void> {
   const seq = ++run.seq;
   알린다(seq, title);
-  // 정리 안의 admin 호출도 절차 기록에 남게 절차 문맥을 깔아 준다
-  const scope: StepScope = { assertions: [] };
+  // 정리 안의 admin 호출도 절차 기록에 남게 절차 문맥을 깔아 준다. 정리 표시가 있으면 verify · test.step 이 던진다 — 정리는 판정에 안 든다
+  const scope: StepScope = { assertions: [], 정리: true };
   const startedAt = Date.now();
   let error: StepResult['error'];
   try {
@@ -42,12 +42,12 @@ export async function cleanup(title: string, fn: () => Promise<void>): Promise<v
   const run = runScope.getStore();
   if (!run) throw new Error(`정리 '${title}'을 케이스 밖에서 선언했다. kit의 test(spec, ...) 안에서만 부를 수 있다`);
   (run.정리 ??= []).push({ title, fn });
-  await 정리절차(run, `시작 정리 — ${title}`, fn);
+  await 정리절차(run, 정리제목('시작', title), fn);
 }
 
 /** 몸통이 끝난 뒤 — 실패 증적을 남긴 뒤 · 앱 연결을 닫기 전에 부른다 */
 export async function 끝정리(run: RunScope): Promise<void> {
-  for (const c of run.정리 ?? []) await 정리절차(run, `끝 정리 — ${c.title}`, c.fn);
+  for (const c of run.정리 ?? []) await 정리절차(run, 정리제목('끝', c.title), c.fn);
 }
 
 /**

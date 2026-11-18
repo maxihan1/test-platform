@@ -103,6 +103,8 @@ export async function step(
   if (!run) {
     throw new Error(`절차 '${title}'을 케이스 밖에서 선언했다. kit의 test(spec, ...) 안에서만 부를 수 있다`);
   }
+  // 정리 안의 절차는 순번 · 판정을 바꾼다 — 정리는 판정에 안 든다 (공통/3-공유계약 「게임 시나리오 도구」)
+  if (stepScope.getStore()?.정리 === true) throw new Error(`절차 '${title}'을 정리 안에서 선언했다. 정리에는 절차를 두지 않는다`);
   if (run.stopped) throw new StopTest();
   // 건너뛰어도 첫 절차로 친다. 체크를 푼 「만들기」 뒤에 오는 삭제도 시나리오 끝으로 미뤄야 한다
   if (run.phase) run.phase.started = true;

@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { StepResult } from '../types.js';
 import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
 import { cleanup, gameLog, repeatUntil, 게임시나리오인가, 끝정리 } from './gameScenario.js';
+import { step } from './step.js';
 import { verify } from './verify.js';
 
 function 판(): { run: RunScope; 남은: StepResult[] } {
@@ -46,6 +47,22 @@ describe('test.cleanup', () => {
 
   it('케이스 밖에서 부르면 던진다', async () => {
     await expect(cleanup('치우기', async () => {})).rejects.toThrow('케이스 밖');
+  });
+
+  it('정리 안의 verify · test.step 은 판정 · 순번을 바꾸지 않고 정리를 NA 로 남긴다', async () => {
+    const { run, 남은 } = 판();
+    await runScope.run(run, async () => {
+      await cleanup('판정하는 정리', async () => { await verify('삭제 응답 200', 500, 200); });
+      await cleanup('절차를 여는 정리', async () => { await step('지운다', async () => {}); });
+    });
+    expect(남은.map((s) => [s.title, s.status])).toEqual([
+      ['시작 정리 — 판정하는 정리', 'NA'],
+      ['시작 정리 — 절차를 여는 정리', 'NA'],
+    ]);
+    expect(남은[0]?.error?.message).toContain('정리 안에서');
+    expect(남은[1]?.error?.message).toContain('정리 안에서');
+    expect(run.failed).toBe(false);
+    expect(run.seq).toBe(2);
   });
 });
 
@@ -105,9 +122,9 @@ describe('verify.log', () => {
     expect(await stepScope.run(칸, () => verify.log('처치 줄이 3줄이다', [1, 1], 1, { least: 3 }))).toBe(false);
   });
 
-  it('한 줄도 없으면 「확인 못 함」 머리를 단 실패다', async () => {
+  it('한 줄도 없으면 「확인 못 함」 머리를 단 실패다 — 최소 줄 수를 0 으로 줘도', async () => {
     const 칸 = s();
-    expect(await stepScope.run(칸, () => verify.log('준 피해는 12다', [], 12))).toBe(false);
+    expect(await stepScope.run(칸, () => verify.log('준 피해는 12다', [], 12, { least: 0 }))).toBe(false);
     expect(칸.assertions[0]).toMatchObject({ statement: '확인 못 함 — 준 피해는 12다', status: 'FAIL' });
   });
 });

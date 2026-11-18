@@ -238,6 +238,8 @@ export async function 보낸다(item: Pick<PendingItem, 'historyId' | 'timeoutMs
     // 연결 실패·응답 없음. 이 항목만 NA로 접고 디스패처는 다음 항목으로 넘어간다.
     // 사람이 보는 문장은 사유 한 줄이고 원문(주소·포트)은 상세의 접힌 자리로 간다 (SPEC §8.3)
     const reason = err instanceof Error ? err.message : String(err);
+    // 한도 없는 게임 시나리오는 러너가 스스로 안 끊는다 — 통신 상한(120분)에 닿았으면 폰을 쥔 자식이 남지 않게 멈춘다
+    if (item.timeoutMs === 0) await abortRunner(item.historyId);
     return { ...na(item, '러너에 닿지 못했습니다', reason), durationMs: Date.now() - startedAt };
   }
 }

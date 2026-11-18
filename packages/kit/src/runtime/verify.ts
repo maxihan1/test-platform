@@ -35,6 +35,7 @@ function 남긴다(
         'test.step() 안에서만 부를 수 있다 (SPEC §4)',
     );
   }
+  if (scope.정리 === true) throw new Error(`verify('${statement}')를 정리 안에서 불렀다. 정리는 판정에 안 든다 — 정리 확인은 하지 않는다`);
 
   // blocker 는 「준비가 됐나」를 본다. 통과 · 실패와 상관없이 시험 대상을 본 판정이 나오면 준비 구간이 끝난다
   const phase = runScope.getStore()?.phase;
@@ -117,7 +118,7 @@ async function log(
   const 맞나 = (v: unknown): boolean =>
     typeof expected === 'number' ? v === expected : typeof v === 'number' && v >= expected.min && v <= expected.max;
   const 벗어난값 = values.filter((v) => !맞나(v));
-  const passed = values.length >= least && 벗어난값.length === 0;
+  const passed = values.length > 0 && values.length >= least && 벗어난값.length === 0;
   const 문장 = values.length === 0 ? `확인 못 함 — ${statement}` : statement;
   const 기대 = typeof expected === 'number' ? { 값: expected, 최소줄수: least } : { 범위: expected, 최소줄수: least };
   return 남긴다(문장, passed, { 줄수: values.length, 벗어난값: 벗어난값.slice(0, 20) }, 기대, options, log);

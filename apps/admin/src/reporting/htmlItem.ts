@@ -1,5 +1,6 @@
 // 증적 항목 하나를 그리는 조각 — 판정 배지 · 항목 한 줄 · §8.4 블록의 몸(사전조건 · 입력 · 기대 결과 · 절차). 배치는 html.ts 가 한다
 
+import { 정리절차인가 } from '@platform/kit/protocol';
 import type { ShapeCheck } from '@platform/kit';
 
 import type { EvidenceTrace } from './apiTrace.js';
@@ -44,8 +45,6 @@ function 소요(durationMs: number | null): string {
 
 // 판정에 안 드는 표시 문장(verify.note)은 NA 다 — 「미실행」이 아니라 사람이 볼 참고로 적는다 (공통/3-공유계약 「게임 시나리오 도구」)
 export const 참고글자 = '참고';
-// test.cleanup 의 절차 — 실패해도 NA 로 남고 항목 판정은 그대로다
-export const 정리절차인가 = (title: string): boolean => /^(시작|끝) 정리 — /.test(title);
 export const 절차판정글자 = (s: Pick<EvidenceStep, 'status' | 'title' | 'skipped'>): string =>
   s.skipped === true ? '건너뜀' : s.status === 'NA' && 정리절차인가(s.title) ? '정리 실패' : 판정글자[s.status];
 

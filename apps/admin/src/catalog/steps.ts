@@ -2,6 +2,7 @@
 // 애매하면 「만들기」로 치지 않는다 — 틀리면 건너뛰기를 못 할 뿐이지만, 거꾸로 틀리면 판정이 말없이 사라진다
 // Page Object 는 믿는다 — 케이스가 아닌 파일은 K7(pageObject.ts)이 판정 · 절차를 들여오는 것까지 막는다
 
+import { 정리제목 } from '@platform/kit/protocol';
 import ts from 'typescript';
 
 export interface CaseStep {
@@ -32,28 +33,15 @@ interface Found {
   counted: boolean;
 }
 
-export function isTestStep(node: ts.Node): node is ts.CallExpression {
+function isTestMethod(node: ts.Node, name: 'step' | 'cleanup'): node is ts.CallExpression {
   if (!ts.isCallExpression(node)) return false;
   const callee = node.expression;
-  return (
-    ts.isPropertyAccessExpression(callee) &&
-    callee.name.text === 'step' &&
-    ts.isIdentifier(callee.expression) &&
-    callee.expression.text === 'test'
-  );
+  return ts.isPropertyAccessExpression(callee) && callee.name.text === name && ts.isIdentifier(callee.expression) && callee.expression.text === 'test';
 }
 
-// 정리 호출 — 케이스 끝에 도는 정리 절차다. 절차 목록에는 안 세지만 제목은 K6 · K12 가 본다
-export function isTestCleanup(node: ts.Node): node is ts.CallExpression {
-  if (!ts.isCallExpression(node)) return false;
-  const callee = node.expression;
-  return (
-    ts.isPropertyAccessExpression(callee) &&
-    callee.name.text === 'cleanup' &&
-    ts.isIdentifier(callee.expression) &&
-    callee.expression.text === 'test'
-  );
-}
+export const isTestStep = (node: ts.Node): node is ts.CallExpression => isTestMethod(node, 'step');
+// 정리 호출 — 시작 · 끝에 도는 정리 절차다. 건너뛸 절차 목록에는 안 세고 단계 제목에만 넣는다. 제목은 K6 · K12 가 본다
+export const isTestCleanup = (node: ts.Node): node is ts.CallExpression => isTestMethod(node, 'cleanup');
 
 function isTestCall(node: ts.Node): node is ts.CallExpression {
   return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'test';
@@ -258,6 +246,8 @@ function pageObjects(sf: ts.SourceFile): { trusted: Set<string>; functions: Set<
 export function caseSteps(text: string): CaseSteps {
   const sf = ts.createSourceFile('case.spec.ts', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const found: Found[] = [];
+  // test.cleanup 제목 — 글자로 못 읽으면 undefined. kit 이 시작 · 끝에 정리 절차를 하나씩 세운다
+  const 정리들: (string | undefined)[] = [];
   const stack: Found[] = [];
   const fixtures = new Set<string>();
   // 이름을 바꿔 받아도(`{ game: g }`) 밖에 알리는 것은 fixture 이름이다. 위 fixtures 는 몸통 안의 변수 이름이다
@@ -265,6 +255,10 @@ export function caseSteps(text: string): CaseSteps {
   const { trusted, functions } = pageObjects(sf);
 
   const walk = (node: ts.Node): void => {
+    if (isTestCleanup(node)) {
+      const first = node.arguments[0];
+      정리들.push(first !== undefined && ts.isStringLiteralLike(first) ? first.text : undefined);
+    }
     if (isTestCall(node)) {
       const fn = node.arguments[1];
       const param = isInlineFunction(fn) ? fn.parameters[0] : undefined;
@@ -341,6 +335,11 @@ export function caseSteps(text: string): CaseSteps {
   });
 
   // 하나라도 셀 수 없으면 통째로 NULL — 일부만 아는 목록은 남은 단계 수를 틀리게 보인다 (카탈로그 §3.1 「단계 제목」)
-  const stepTitles = found.every((s) => s.counted) ? found.map((s) => s.title!) : null;
+  // 정리는 몸통 맨 앞에서 부른다 — 시작 정리가 첫 절차보다 앞, 끝 정리가 마지막 절차 뒤다 (kit gameScenario.ts)
+  const 정리제목들 = 정리들.every((t) => t !== undefined) ? (정리들 as string[]) : null;
+  const stepTitles =
+    found.every((s) => s.counted) && 정리제목들 !== null
+      ? [...정리제목들.map((t) => 정리제목('시작', t)), ...found.map((s) => s.title!), ...정리제목들.map((t) => 정리제목('끝', t))]
+      : null;
   return { steps, r16: steps.some((s) => s.skippable), stepTitles, fixtures: [...fixtureNames] };
 }

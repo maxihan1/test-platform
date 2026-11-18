@@ -1,5 +1,6 @@
 // 절차 · 확인 · 스크린샷 · 코드 뷰 그림 — 항목 상세와 실행 결과의 증거 카드가 같이 쓴다 (SPEC §8.4)
 
+import { 정리절차인가 } from '@platform/kit/protocol';
 import { useState } from 'react';
 
 import { api, type StepResult } from './api.js';
@@ -53,7 +54,8 @@ export function Step({ step, tcId, runId, historyId, 코드 = true, 화면 = tru
         <span className="step-n">{step.seq}</span>
         <span className="step-t">{step.title}</span>
         <span className="dur">{seconds(step.durationMs, 언어)}</span>
-        <Verdict status={step.status} />
+        {/* 정리 절차(test.cleanup)의 NA 는 안 돈 것이 아니라 정리가 실패한 것이다 — 증적 문서와 같은 말 (reporting/htmlItem.ts) */}
+        {step.status === 'NA' && 정리절차인가(step.title) ? <span className="verdict v-na">{t말('정리 실패')}</span> : <Verdict status={step.status} />}
       </div>
 
       {step.assertions.map((assertion, index) => (

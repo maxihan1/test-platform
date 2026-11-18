@@ -9,7 +9,7 @@ import type { ExecuteRequest, ScenarioExecuteRequest } from '@platform/kit';
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
 import { 항목화면 } from './live.js';
-import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 시험진행, 진행 } from './runner.js';
+import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 보낸다, 시험진행, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
 
 // 화면 애플리케이션 케이스로 둔다 — API 케이스 검사가 저마다 바꿔 낀다
@@ -69,6 +69,19 @@ describe('callRunner', () => {
 
   it('한도 없는 게임 시나리오(0)는 통신 상한 120분이다', () => {
     expect(httpTimeoutMs(0)).toBe(7_200_000);
+  });
+
+  it('한도 없는 항목은 러너와 통신이 끊기면 러너에 그 항목을 멈춰 달라고 한다 — 한도 있는 항목은 러너가 스스로 끊는다', async () => {
+    const 멈춤: unknown[] = [];
+    const app = Fastify();
+    app.post('/execute', async (req) => { req.raw.socket.destroy(); });
+    app.post('/abort', async (req) => { 멈춤.push(req.body); return { aborted: true }; });
+    await 붙인다(app);
+    const 요청 = { ...항목, runId: 1 } as unknown as ExecuteRequest;
+
+    expect((await 보낸다({ historyId: 43, timeoutMs: 0 }, 요청)).status).toBe('NA');
+    expect((await 보낸다({ historyId: 44, timeoutMs: 5000 }, 요청)).status).toBe('NA');
+    expect(멈춤).toEqual([{ historyId: 43 }]);
   });
 
   it('ExecuteRequest 모양 그대로 보낸다', async () => {

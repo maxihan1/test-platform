@@ -7,7 +7,7 @@ import { resolve, sep } from 'node:path';
 import type { CaseSpec } from '@platform/kit';
 import ts from 'typescript';
 
-import { tcId종류 } from '../catalog/rules.js';
+import { tcId종류, 게임시나리오인가 } from '../catalog/rules.js';
 import { testsRoot } from '../catalog/scanner.js';
 import { caseSteps } from '../catalog/steps.js';
 import { findCase } from '../catalog/store.js';
@@ -46,7 +46,7 @@ export async function 케이스재료(
   for (const tcId of new Set(tcIds)) {
     if (허용 !== undefined && !허용.some((접두사) => tcId.startsWith(`${접두사}-`))) continue;
     // UI 테스트는 E2E 부품이 아니다 — case-parts 는 404, 저장된 부품은 CASE_INACTIVE 로 드러난다
-    if (tcId종류(tcId) === 'UI') continue;
+    if (tcId종류(tcId) === 'UI' || 게임시나리오인가(tcId)) continue;
     const 행 = await findCase(tcId);
     if (행 === null || !행.isActive) continue;
 

@@ -21,6 +21,8 @@ export interface StepScope {
   마지막요소?: 짚을요소 | undefined;
   // 처음 실패한 순간의 마지막요소. blocker 가 아닌 실패 뒤에도 절차는 돌아 다른 요소를 다루므로 그때 굳힌다
   실패요소?: 짚을요소 | undefined;
+  // test.cleanup 의 정리 절차 — 판정(verify) · 절차(test.step)를 부르면 던진다
+  정리?: true;
 }
 
 // E2E 시나리오에서 러너가 만들어 건넨 표시판. kit 은 적기만 하고 러너의 가로채기가 읽는다 (SPEC 공통/3-공유계약 §5.1 ④)
