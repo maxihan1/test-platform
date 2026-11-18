@@ -179,18 +179,20 @@ describe('runStep — 응답 모양 확인', () => {
     return { post: async () => 응답 } as unknown as APIRequestContext;
   };
 
-  it('모양이 틀리면 확인 문장이 없어도 절차를 FAIL 로 만들고 멈추지 않는다 — 사유는 첫 모양 문제', async () => {
+  it('모양이 틀려도 절차 결과는 확인 문장이 정한다 — 모양 줄만 FAIL 로 남는다', async () => {
     const { run, emitted } = makeRun(null);
     const outcome = await runStep(run, '푸시를 보낸다', async () => {
       await traced(가짜도구({ id: 'p1' }), new Set(), 문서).post('/v1/pushes');
+      await verify('푸시 번호가 p1 이다', 'p1', 'p1');
     });
 
     expect(outcome.stopped).toBe(false);
-    expect(emitted[0].status).toBe('FAIL');
+    expect(emitted[0].status).toBe('PASS');
+    expect(run.failed).toBe(false);
+    expect(run.firstFailure).toBeUndefined();
     expect(emitted[0].shapeChecks).toEqual([
       { method: 'POST', path: '/v1/pushes', status: 201, result: 'FAIL', problems: ['필수 필드 없음 — status'] },
     ]);
-    expect(run.firstFailure).toBe('응답 형식이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 필드 없음 — status');
   });
 
   it('실패한 확인 문장이 모양 문제보다 먼저 사유가 된다 · 맞는 모양은 PASS 줄만 남긴다', async () => {
@@ -223,6 +225,51 @@ describe('runStep — 응답 모양 확인', () => {
 
     expect(emitted[0].status).toBe('PASS');
     expect(emitted[0].shapeChecks).toBeUndefined();
+  });
+});
+
+describe('runStep — 서버 오류(5xx) 확인', () => {
+  const 도구 = (코드: number): APIRequestContext => {
+    const 응답 = { status: () => 코드, text: async () => '{}' } as unknown as APIResponse;
+    return { get: async () => 응답, post: async () => 응답 } as unknown as APIRequestContext;
+  };
+
+  it('판이 없어도 5xx 를 받으면 확인 문장 한 줄을 더해 절차를 FAIL 로 만들고 멈추지 않는다', async () => {
+    const { run, emitted } = makeRun(null);
+    const outcome = await runStep(run, '목록을 본다', async () => {
+      await traced(도구(500), new Set()).get('/v1/pushes?page=2');
+      await traced(도구(500), new Set()).get('/v1/pushes?page=3');
+    });
+
+    expect(outcome.stopped).toBe(false);
+    expect(emitted[0].status).toBe('FAIL');
+    expect(emitted[0].assertions).toEqual([
+      { statement: '서버 오류 없이 응답한다 — GET /v1/pushes 500', status: 'FAIL', actual: 500, expected: '500 미만' },
+    ]);
+    expect(run.firstFailure).toBe('서버 오류 없이 응답한다 — GET /v1/pushes 500');
+  });
+
+  it('같은 절차에서 그 코드를 기대한 확인 문장이 있으면 5xx 를 실패로 보지 않는다', async () => {
+    const { run, emitted } = makeRun(null);
+    await runStep(run, '점검 중 로그인한다', async () => {
+      const 응답 = await traced(도구(503), new Set()).post('https://game.test/api/login');
+      await verify('점검 중 로그인 응답 코드가 503 이다', 응답.status(), 503);
+    });
+
+    expect(emitted[0].status).toBe('PASS');
+    expect(emitted[0].assertions).toHaveLength(1);
+  });
+
+  it('케이스의 실패한 확인 문장이 서버 오류보다 먼저 사유가 된다 · 4xx 는 보지 않는다', async () => {
+    const { run, emitted } = makeRun(null);
+    await runStep(run, '푸시를 보낸다', async () => {
+      await traced(도구(404), new Set()).get('/v1/pushes/9');
+      await traced(도구(502), new Set()).post('/v1/pushes');
+      await verify('발송이 접수된다', 502, 201);
+    });
+
+    expect(emitted[0].assertions.map((a) => a.statement)).toEqual(['발송이 접수된다', '서버 오류 없이 응답한다 — POST /v1/pushes 502']);
+    expect(run.firstFailure).toBe('발송이 접수된다');
   });
 });
 

@@ -18,6 +18,18 @@ export class StopTest extends Error {
 export const 모양문장 = (c: ShapeCheck): string =>
   `응답 형식이 API 문서와 다릅니다 — ${c.method} ${c.path} ${c.status} · ${c.problems?.[0] ?? ''}`;
 
+/** 같은 절차에 그 코드를 기대값으로 둔 확인 문장(`verify(…, 503)`)이 없으면 케이스가 기대하지 않은 서버 오류다. 같은 (방식 · 경로 · 코드)는 한 줄 */
+function 서버오류를적는다(scope: StepScope): void {
+  const 기대한코드 = new Set(scope.assertions.map((a) => a.expected));
+  const 적은줄 = new Set<string>();
+  for (const { method, path, status } of scope.서버오류 ?? []) {
+    const statement = `서버 오류 없이 응답한다 — ${method} ${path} ${status}`;
+    if (기대한코드.has(status) || 적은줄.has(statement)) continue;
+    적은줄.add(statement);
+    scope.assertions.push({ statement, status: 'FAIL', actual: status, expected: '500 미만' });
+  }
+}
+
 export interface StepOptions {
   // 검수 문서에 "이 화면이 이렇게 나왔다"를 넣어야 할 때 쓴다. 기본값은 false (SPEC §4)
   capture?: boolean;
@@ -64,16 +76,15 @@ export async function runStep(
   }
 
   const durationMs = Date.now() - startedAt;
-  // 모양 실패도 그 절차를 실패로 만든다. 실행을 멈추지는 않는다 — blocker 가 아니다 (도메인/API §3.8)
-  const 모양실패 = scope.shapeChecks?.find((c) => c.result === 'FAIL');
-  const failed = error !== undefined || 모양실패 !== undefined || scope.assertions.some((a) => a.status === 'FAIL');
+  // 모양 실패는 shapeChecks 줄로만 남고 절차 결과는 확인 문장이 정한다. 대신 기대하지 않은 5xx 는 kit 이 확인 문장을 더해 실패로 만든다 (도메인/API §3.8)
+  서버오류를적는다(scope);
+  const failed = error !== undefined || scope.assertions.some((a) => a.status === 'FAIL');
   const status: ItemStatus = failed ? 'FAIL' : 'PASS';
   if (failed) run.failed = true;
   if (stopped) run.stopped = true;
   if (failed && run.firstFailure === undefined) {
-    // 실패한 확인 문장이 먼저, 다음은 절차를 멈춘 예외, 없으면 첫 모양 문제다 — 터진 까닭을 모양 문제가 덮지 않게
-    run.firstFailure =
-      scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? error?.message ?? (모양실패 === undefined ? undefined : 모양문장(모양실패));
+    // 케이스의 실패한 확인 문장이 먼저다 — 서버 오류 줄은 절차 끝에 더해 뒤에 선다. 확인 문장이 없으면 절차를 멈춘 예외다
+    run.firstFailure = scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? error?.message;
   }
 
   // 통과한 화면은 아무도 열어보지 않는다. 실패했거나 증적용으로 지정한 절차만 찍는다 (SPEC §4)

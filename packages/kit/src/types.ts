@@ -43,7 +43,7 @@ export interface StepResult {
   line?: number;                // 실패한 소스 줄 번호. 코드 뷰가 이 줄을 중심으로 연다
   screenshotPath?: string;      // 실패 시 자동, 또는 capture:true인 스텝
   httpTrace?: { request: unknown; response: unknown };  // API 테스트용
-  shapeChecks?: ShapeCheck[];   // 그 절차에서 보낸 요청의 응답 모양 확인. 하나라도 FAIL 이면 그 절차 status 는 FAIL (도메인/API §3.8)
+  shapeChecks?: ShapeCheck[];   // 그 절차에서 보낸 요청의 응답 모양 확인. FAIL 이어도 절차 status 는 확인 문장이 정한다 (도메인/API §3.8)
   error?: { message: string; stack?: string };
   skipped?: true;               // 사람이 체크를 풀어 건너뛴 「만들기」 절차. 판정 없이 PASS 로 적는다 (E2E 시나리오)
 }

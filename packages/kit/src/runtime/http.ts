@@ -109,6 +109,10 @@ async function traceResponse(
   부른API를적는다(메서드, url, response.status());
   // 모양은 자르기 전 본문으로 본다 — 절차 기록은 2000자에서 잘린다 (도메인/API §3.8 「응답 모양 확인」)
   const scope = stepScope.getStore();
+  const 코드 = response.status();
+  if (scope !== undefined && 코드 >= 500 && 코드 <= 599) {
+    (scope.서버오류 ??= []).push({ method: request.method, path: new URL(url, 'http://x').pathname, status: 코드 });
+  }
   // 본문을 못 읽었으면 견줄 것이 없다 — 읽지 못한 것을 모양 실패로 적지 않는다
   if (scope === undefined || 문서 === undefined || 원문 === undefined) return;
   const 확인 = 모양확인(문서, 메서드, url, response.status(), 원문);
