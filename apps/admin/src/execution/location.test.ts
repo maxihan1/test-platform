@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_TIMEOUT_MS, runBody, 선언밖디바이스, 앱케이스를뺀다, 팜을본다 } from './location.js';
+import { DEFAULT_TIMEOUT_MS, runBody, 선언밖디바이스, 앱케이스를뺀다, 팜을본다, 항목제한ms } from './location.js';
 
 const 안드로이드 = [{ platforms: ['android'] }];
 const 팜있음 = { DEVICE_FARM_URL: 'http://127.0.0.1:4723/wd/hub' };
@@ -113,5 +113,17 @@ describe('runBody', () => {
 
   it('기본 timeoutMs 가 곧 상한이다 — 300000 하나', () => {
     expect(DEFAULT_TIMEOUT_MS).toBe(300000);
+  });
+});
+
+describe('항목제한ms', () => {
+  it('게임 시나리오는 사람이 준 값과 상관없이 0(한도 없음)이다', () => {
+    expect(항목제한ms('ARG-GS-001', 5000)).toBe(0);
+    expect(항목제한ms('ARG-GS-001')).toBe(0);
+  });
+
+  it('그 밖은 준 값, 없으면 기본값이다', () => {
+    expect(항목제한ms('ARG-FN-001', 5000)).toBe(5000);
+    expect(항목제한ms('ARG-FN-001')).toBe(DEFAULT_TIMEOUT_MS);
   });
 });

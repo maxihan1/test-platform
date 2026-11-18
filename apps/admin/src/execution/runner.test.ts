@@ -67,6 +67,10 @@ describe('callRunner', () => {
     expect(httpTimeoutMs(300_000)).toBe(330_000);
   });
 
+  it('한도 없는 게임 시나리오(0)는 통신 상한 120분이다', () => {
+    expect(httpTimeoutMs(0)).toBe(7_200_000);
+  });
+
   it('ExecuteRequest 모양 그대로 보낸다', async () => {
     let 받은것: ExecuteRequest | null = null;
     await 띄운다((body) => {

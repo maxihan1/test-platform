@@ -23,8 +23,11 @@ import type { PendingItem } from './store.js';
 // 러너는 자기 제한 시간이 지나면 자식을 죽이고 200 + NA로 돌려준다. 이쪽이 먼저 끊으면 그 부분 결과가 사라진다
 const RUNNER_GRACE_MS = 30_000;
 
+// 한도 없는 게임 시나리오(0)는 폰 잡기와 같은 120분 — 맥이 잠들어 답이 안 올 때 항목 · 디바이스 줄이 영영 안 풀리지 않게 둔 통신 상한이다
+const 한도없음_HTTP_MS = 120 * 60_000;
+
 export function httpTimeoutMs(timeoutMs: number): number {
-  return timeoutMs + RUNNER_GRACE_MS;
+  return timeoutMs === 0 ? 한도없음_HTTP_MS : timeoutMs + RUNNER_GRACE_MS;
 }
 
 export function na(item: Pick<PendingItem, 'historyId'>, message: string, stack?: string): ExecuteResponse {

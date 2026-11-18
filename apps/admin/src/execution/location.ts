@@ -2,10 +2,14 @@
 
 import { z } from 'zod';
 
+import { 게임시나리오인가 } from '../catalog/rules.js';
 import { 팜주소 } from './farm.js';
 
 // 기본값이 곧 상한이다 — 더 길게 주면 디바이스 잠금을 그만큼 쥔다(2026-10-07 게이트 0). 줄이는 데만 쓴다
 export const DEFAULT_TIMEOUT_MS = 300_000;
+
+/** 항목에 실을 제한 시간. 게임 시나리오는 0(한도 없음)이고 사람이 준 값도 안 쓴다 (공통/3-공유계약 「게임 시나리오 도구」) */
+export const 항목제한ms = (tcId: string, 준값?: number): number => (게임시나리오인가(tcId) ? 0 : (준값 ?? DEFAULT_TIMEOUT_MS));
 
 // routes.ts 가 300줄을 넘지 않게 여기로 뺐다
 export const runBody = z.object({
