@@ -18,7 +18,7 @@ export interface StepScope {
   // API 케이스가 보낸 요청마다 응답 모양 확인 한 줄 (도메인/API §3.8). 확인 문장과 섞지 않는다
   shapeChecks?: ShapeCheck[];
   // 이 절차에서 5xx 를 받은 요청. 판 유무와 상관없이 모든 요청을 본다 — 절차 끝에 기대하지 않은 것만 실패로 만든다 (도메인/API §3.8)
-  서버오류?: { method: string; path: string; status: number }[];
+  서버오류?: { method: string; path: string; status: number; 요청: string }[];
   // 이 절차에서 마지막으로 다룬 요소 — 웹은 Locator, 앱은 Appium 요소 번호(웹뷰 구간 안이면 그 웹 맥락과 함께). 실패 사진에 표시할 자리다 (highlight.ts)
   마지막요소?: 짚을요소 | undefined;
   // 처음 실패한 순간의 마지막요소. blocker 가 아닌 실패 뒤에도 절차는 돌아 다른 요소를 다루므로 그때 굳힌다

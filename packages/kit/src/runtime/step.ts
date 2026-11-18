@@ -14,7 +14,7 @@ export class StopTest extends Error {
   }
 }
 
-/** 실패 사유 한 줄 꼴 — 「응답 형식이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 필드 없음 — status」. 화면 낱말은 도메인/API §8.13 */
+/** 모양만 틀려 깨진 옛 실행 기록의 실패 사유 한 줄 — 「응답 형식이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 필드 없음 — status」. kit 은 더 안 쓰고 admin 이 옛 기록에 쓴다(AUT-F4-10). 화면 낱말은 도메인/API §8.13 */
 export const 모양문장 = (c: ShapeCheck): string =>
   `응답 형식이 API 문서와 다릅니다 — ${c.method} ${c.path} ${c.status} · ${c.problems?.[0] ?? ''}`;
 
@@ -77,14 +77,15 @@ export async function runStep(
 
   const durationMs = Date.now() - startedAt;
   // 모양 실패는 shapeChecks 줄로만 남고 절차 결과는 확인 문장이 정한다. 대신 기대하지 않은 5xx 는 kit 이 확인 문장을 더해 실패로 만든다 (도메인/API §3.8)
+  // 실패 사유는 케이스의 실패한 확인 문장 → 절차를 멈춘 예외 → 서버 오류 줄 차례다 — 5xx 본문 때문에 터진 예외를 서버 오류 줄이 덮지 않게
+  const 케이스실패 = scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? error?.message;
   서버오류를적는다(scope);
   const failed = error !== undefined || scope.assertions.some((a) => a.status === 'FAIL');
   const status: ItemStatus = failed ? 'FAIL' : 'PASS';
   if (failed) run.failed = true;
   if (stopped) run.stopped = true;
   if (failed && run.firstFailure === undefined) {
-    // 케이스의 실패한 확인 문장이 먼저다 — 서버 오류 줄은 절차 끝에 더해 뒤에 선다. 확인 문장이 없으면 절차를 멈춘 예외다
-    run.firstFailure = scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? error?.message;
+    run.firstFailure = 케이스실패 ?? scope.assertions.find((a) => a.status === 'FAIL')?.statement;
   }
 
   // 통과한 화면은 아무도 열어보지 않는다. 실패했거나 증적용으로 지정한 절차만 찍는다 (SPEC §4)

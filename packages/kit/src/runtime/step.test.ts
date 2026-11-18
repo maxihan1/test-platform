@@ -271,6 +271,34 @@ describe('runStep — 서버 오류(5xx) 확인', () => {
     expect(emitted[0].assertions.map((a) => a.statement)).toEqual(['발송이 접수된다', '서버 오류 없이 응답한다 — POST /v1/pushes 502']);
     expect(run.firstFailure).toBe('발송이 접수된다');
   });
+
+  it('번호 마디는 접어 한 줄로 · 경로의 비밀값은 가린다 · 절차를 멈춘 예외가 서버 오류보다 먼저 사유가 된다', async () => {
+    const { run, emitted } = makeRun(null);
+    await runStep(run, '푸시를 지운다', async () => {
+      await traced(도구(500), new Set()).get('/v1/pushes/1');
+      await traced(도구(500), new Set()).get('/v1/pushes/2');
+      await traced(도구(502), new Set(['sk_live_abc'])).post('/v1/keys/sk_live_abc');
+      throw new Error('Unexpected token <');
+    });
+
+    expect(emitted[0].assertions.map((a) => a.statement)).toEqual([
+      '서버 오류 없이 응답한다 — GET /v1/pushes/:n 500',
+      '서버 오류 없이 응답한다 — POST /v1/keys/******** 502',
+    ]);
+    expect(run.firstFailure).toBe('Unexpected token <');
+  });
+
+  it('같은 요청이 뒤에 다시 성공하면 앞의 5xx 는 빼고 · 다른 번호의 성공은 빼지 않는다', async () => {
+    const { run, emitted } = makeRun(null);
+    await runStep(run, '작업이 끝날 때까지 기다린다', async () => {
+      await traced(도구(503), new Set()).get('/v1/jobs/1');
+      await traced(도구(200), new Set()).get('/v1/jobs/1');
+      await traced(도구(500), new Set()).get('/v1/jobs/2');
+      await traced(도구(200), new Set()).get('/v1/jobs/3');
+    });
+
+    expect(emitted[0].assertions.map((a) => a.statement)).toEqual(['서버 오류 없이 응답한다 — GET /v1/jobs/:n 500']);
+  });
 });
 
 describe('step — 제목으로 건너뛰기 (E2E 시나리오)', () => {

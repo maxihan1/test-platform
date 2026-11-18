@@ -110,8 +110,17 @@ async function traceResponse(
   // 모양은 자르기 전 본문으로 본다 — 절차 기록은 2000자에서 잘린다 (도메인/API §3.8 「응답 모양 확인」)
   const scope = stepScope.getStore();
   const 코드 = response.status();
-  if (scope !== undefined && 코드 >= 500 && 코드 <= 599) {
-    (scope.서버오류 ??= []).push({ method: request.method, path: new URL(url, 'http://x').pathname, status: 코드 });
+  if (scope !== undefined) {
+    const 원경로 = new URL(url, 'http://x').pathname;
+    const 요청 = `${request.method} ${원경로}`;
+    if (코드 >= 500 && 코드 <= 599) {
+      // 경로는 번호 마디를 접고(같은 API 를 여럿 불러도 한 줄) 가린다 — 확인 문장 · 실패 사유 · 리포트에 그대로 실린다
+      const 경로 = 글가린다(원경로.split('/').map(틀칸).join('/'), 비밀);
+      (scope.서버오류 ??= []).push({ method: request.method, path: 경로, status: 코드, 요청 });
+    } else if (scope.서버오류 !== undefined) {
+      // 같은 요청이 뒤에 다시 성공했으면 뺀다 — 기다리며 다시 부르는 케이스가 데우는 중 503 에 깨지지 않게 (도메인/작성 §3.6 「관문이 빨개지면」 서버 오류 줄과 같은 규칙)
+      scope.서버오류 = scope.서버오류.filter((x) => x.요청 !== 요청);
+    }
   }
   // 본문을 못 읽었으면 견줄 것이 없다 — 읽지 못한 것을 모양 실패로 적지 않는다
   if (scope === undefined || 문서 === undefined || 원문 === undefined) return;

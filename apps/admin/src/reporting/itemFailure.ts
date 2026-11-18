@@ -35,20 +35,22 @@ export interface 항목재료 {
 }
 
 /**
- * 한 줄의 재료는 실패한 첫 확인 문장, 없으면 항목 오류, 그것도 없으면 첫 응답 모양 문제다(도메인/API §3.8 — kit 의 차례와 같다) — 절차 오류로 넘어가지 않는다(리포팅 §8.4, 넘어가는 것은 증적만).
+ * 한 줄의 재료는 실패한 첫 확인 문장, 없으면 항목 오류, 그것도 없으면 첫 응답 모양 문제다(도메인/API §3.8 — 모양만 틀려 깨진 옛 실행 기록) — 절차 오류로 넘어가지 않는다(리포팅 §8.4, 넘어가는 것은 증적만).
  * 기대 · 실제 값은 붙이지 않는다. 가리기는 자르기 전에 한다 — 잘린 자리에 비밀 조각이 남는다
  */
 export function 항목실패를가른다(항목: 항목재료, 가리기: (글: string) => string): 항목실패 | null {
   if (항목.status === 'PASS' || !항목.finished) return null;
   const 실패확인 = 항목.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL');
-  // 모양만 틀린 실패는 리포터가 항목 오류를 비운다 — 확인 문장이 틀린 것과 같은 「기대와 다름」이다
+  // 정리 절차(NA)의 오류는 판정 밖이다 — 원인 고르기에 넣지 않는다 (공통/3-공유계약 「게임 시나리오 도구」 test.cleanup)
+  const 절차오류 = 항목.steps.find((s) => s.status !== 'NA' && s.error !== undefined)?.error?.message ?? '';
+  // 모양만 틀려 깨진 실패는 옛 실행 기록에만 있다(AUT-F4-10 부터 모양은 항목을 안 깬다) — 다른 까닭이 없을 때만 「기대와 다름」으로 센다
   const 모양실패 = 항목.steps.flatMap((s) => s.shapeChecks ?? []).find((c) => c.result === 'FAIL');
+  const 모양만 = 실패확인 === undefined && !항목.error?.message && 절차오류 === '' && 모양실패 !== undefined;
   const 원인 = 원인을가른다({
     status: 항목.status,
-    assertFailed: 실패확인 !== undefined || 모양실패 !== undefined,
+    assertFailed: 실패확인 !== undefined || 모양만,
     itemMessage: 항목.error?.message ?? '',
-    // 정리 절차(NA)의 오류는 판정 밖이다 — 원인 고르기에 넣지 않는다 (공통/3-공유계약 「게임 시나리오 도구」 test.cleanup)
-    stepMessage: 항목.steps.find((s) => s.status !== 'NA' && s.error !== undefined)?.error?.message ?? '',
+    stepMessage: 절차오류,
   });
   // 앞 부품이 실패해 안 돈 시나리오 부품(NOT_RUN)은 실패 원인이 아니다 (도메인/시나리오 §3.7 결정 9 — 케이스 항목에는 이 글이 없다)
   if (원인 === 'stopped' || 항목.error?.message === 'NOT_RUN') return null;
