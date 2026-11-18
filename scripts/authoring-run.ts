@@ -27,6 +27,7 @@ import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 게임화면받기, 받은팜토큰, 앱링크갈기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 앱문구받기 } from './authoring-apk-strings.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
 import { 미션올리기, 미션준비 } from './authoring-missions.js';
@@ -208,6 +209,8 @@ async function 사본에서(
   if ('까닭' in 기획서) return void (await 손.끝내기({ status: 'FAILED', error: 기획서.까닭 }));
   // 이어 작성 · 반영은 옮기지 않는다 — 뿌리가 같은 자료를 이미 옮겼거나 옮길 자료가 없다. 화면만도 옮긴다(항목이 전부 확인 필요)
   const 옮긴다 = 이어작성원본 === null && !반영요청인가(것) && 미션 === null && !(것.api !== undefined && 계획.length === 0); // API 판만 넣었으면 옮길 것이 없다. 승인된 미션 요청도 옮기지 않는다
+  // 옮길 때만 — 기획서 화면 문구를 앱 문구와 맞댄다. 스토어 앱 · 못 받음은 맞대기 없이 간다 (§3.6 「종류별 기준」 화면 문구 · AUT-F4-09)
+  const 앱문구 = 옮긴다 && 앱만 !== undefined ? await 앱문구받기(앱만.탐색?.app, 자리.자료, 바꾸기, (글) => console.error(`[작성] ${것.id}번 — ${글}`)) : undefined;
   // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서. 이어받은 폴더면 앞 결과 파일의 임시 번호를 잇는다
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
   const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것), 테스트고침: 테스트고침읽기(것) } : undefined, 등록역할: 등록역할들(것), api: 것.api === undefined ? [] : API원장항목(것.api.문서, 것.api.반영?.operations), 게임: 설정.게임 === true });
@@ -246,7 +249,7 @@ async function 사본에서(
   const 띄운다 = (키: string | undefined, 이어하기 = 방.이어하기, 되묻기?: { 인자: string[]; 글: string }) => 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? (되묻기?.인자 ?? 인자) : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...(되묻기?.인자 ?? 인자)], {
       cwd: 자리.트리,
-      input: 되묻기?.글 ?? 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들, 입구 }, 역방향, 이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영, { 판: 가이드판, 글: join(가이드폴더(자리.자료), 'guide.md') }, 앱화면, 자리.자료, 미션 ?? undefined),
+      input: 되묻기?.글 ?? 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들, 입구 }, 역방향, 이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영, { 판: 가이드판, 글: join(가이드폴더(자리.자료), 'guide.md') }, 앱화면 && { ...앱화면, ...(앱문구 !== undefined && { 문구: 앱문구 }) }, 자리.자료, 미션 ?? undefined),
       env: 결제환경(환경, 키),
       uid: 자식?.uid,
       gid: 자식?.gid,

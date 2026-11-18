@@ -14,7 +14,8 @@ import { 비밀번호꼴가리기 } from './authoring-prd.js';
  */
 export type 앱탐색 = { url: string; app: string; token?: string };
 /** 게임 — 게임 첫 화면 통로에서 왔다. 프롬프트 절 · 놓을 폰 기록 자리(control-cli)가 다르다 */
-export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true };
+/** 문구 — APK 에서 꺼낸 앱 문구 파일(authoring-apk-strings). 옮기는 작성에만 붙는다 */
+export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true; 문구?: string };
 
 /** 서버의 어느 통로에서 무엇을 받나. 기다림은 서버의 러너 기다림(앱 130 · 게임 285초)에 팜 잡기 · 놓기를 더한 것보다 길다 — 먼저 끊으면 폰을 읽는 중에 버린다 */
 type 받을곳 = { 길: string; 파일: string; 칸: 'appium' | 'game'; 기다림_ms: number; 이름: string };
