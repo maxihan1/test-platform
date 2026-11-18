@@ -25,6 +25,7 @@ import {
   type 막힘,
 } from './decisionItems.js';
 import { 기다리는요청들, 병합된API버전, 손남은뿌리들, 최근대조, 판정없는실패들 } from './decisionReads.js';
+import { 설명묶음 } from './decisionNotes.js';
 import { 목록요약들 } from './listSummary.js';
 import { 고를미션읽기 } from './missions.js';
 import { 열린작성 } from './openRoots.js';
@@ -222,12 +223,13 @@ export async function 결정재료읽기(서비스: number, 누구: 부른이, �
   const items = 판?.items ?? [];
   const 첫 = await 첫묶음(서비스, 누구);
   const 대기뿌리 = new Set(첫.flatMap((x) => (x.kind === 'APPLY' ? [x.rootId] : [])));
-  const [초안, 실패, 셋째, 미션] = await Promise.all([
+  const [초안, 실패, 설명, 셋째, 미션] = await Promise.all([
     초안묶음(서비스, items, 누구),
     실패묶음(서비스, items, 누구, 상세),
+    설명묶음(서비스, items, 누구),
     셋째묶음(서비스, { version: 판?.version ?? 0, items }, 열린, 대기뿌리, 누구),
     미션묶음(서비스, 열린, 대기뿌리, 누구),
   ]);
-  const 모두 = [...첫, ...초안, ...실패.items, ...확인묶음(items, 누구), ...셋째, ...미션];
+  const 모두 = [...첫, ...초안, ...실패.items, ...설명, ...확인묶음(items, 누구), ...셋째, ...미션];
   return { 목록: { prdVersion: 판?.version ?? 0, count: 결정수세기(모두, 실패.more), open: 열린, items: 모두, failMore: 실패.more }, 실패: 실패.전부 };
 }
