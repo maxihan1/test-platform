@@ -7,8 +7,9 @@ import { 업데이트화면 } from './pages/software-updates.page.js';
 
 export const spec = defineCase({
   tcId: 'MTO-UI-395',
-  name: '업데이트 화면에 「버전」 · 「유형」 칸이 보인다',
-  precondition: ['Owner(qa_admin) 계정으로 로그인해 있다'],
+  name: '업데이트 표에 「버전」 · 「유형」 칸과 「릴리스 노트」 링크가 보인다',
+  held: '보류 — 대기 중인 업데이트가 없어 업데이트 표가 나오지 않는다',
+  precondition: ['Owner(qa_admin) 계정으로 로그인해 있다', '대기 중인 업데이트가 있다'],
   params: z.object({
     loginId: z.string().describe('Owner 아이디').optional().meta({ secret: true }),
     loginPassword: z.string().describe('Owner 비밀번호').optional().meta({ secret: true }),
@@ -27,8 +28,10 @@ test(spec, async ({ page, params }) => {
   });
   await test.step('주소 /admin/software_updates 를 연다', async () => {
     await 업데이트.열기();
+    await verify('대기 중인 업데이트가 있다', await 업데이트.업데이트표.isVisible(), true, { blocker: true });
     const 버전 = await verify('「버전」 칸이 보인다', await 업데이트.버전칸.isVisible(), true);
     const 유형 = await verify('「유형」 칸이 보인다', await 업데이트.유형칸.isVisible(), true);
-    await verify('업데이트 화면에 「버전」 · 「유형」 칸이 보인다', 버전 && 유형, true);
+    const 노트 = await verify('「릴리스 노트」 링크가 보인다', await 업데이트.릴리스노트.isVisible(), true);
+    await verify('업데이트 표에 「버전」 · 「유형」 칸과 「릴리스 노트」 링크가 보인다', 버전 && 유형 && 노트, true);
   });
 });

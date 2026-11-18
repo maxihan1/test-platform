@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 import { IP규칙목록화면 } from '../pages/ip-blocks.page.js';
 import { IP규칙폼화면 } from '../pages/ip-block-new.page.js';
 import { 가입화면 } from '../pages/sign-up.page.js';
+import { 도메인차단확인화면 } from '../pages/domain-block-confirm.page.js';
 import { 도메인차단폼화면 } from '../pages/domain-block-new.page.js';
 import { 사용자명규칙목록화면 } from '../pages/username-blocks.page.js';
 import { 사용자명규칙폼화면 } from '../pages/username-block-form.page.js';
@@ -131,4 +132,14 @@ export async function 도메인감사기록열기(page: Page, 도메인: string)
   await page.goto(`/admin/instances/${도메인}`);
   await page.getByRole('link', { name: '감사 기록 전체 보기' }).click();
   await page.getByRole('heading', { name: '감사 로그', level: 1 }).waitFor();
+}
+
+export async function 정지도메인차단만들기(page: Page, 도메인: string): Promise<void> {
+  const 폼 = new 도메인차단폼화면(page);
+  const 확인 = new 도메인차단확인화면(page);
+  await 폼.열기();
+  await 폼.차단하기(도메인, '정지');
+  await 확인.제목(도메인).waitFor();
+  await 확인.정지하기();
+  await new 연합화면(page).제목.waitFor();
 }

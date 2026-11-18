@@ -25,7 +25,7 @@ test(spec, async ({ page, params }) => {
     await 대시보드.열기();
     await verify('Owner(qa_admin) 계정으로 로그인해 있다', await 관리.사이드바.메뉴('로그아웃').waitFor({ timeout: 10_000 }).then(() => true, () => false), true, { blocker: true });
   });
-  await test.step('사이드바 맨 아래 「Sidekiq」을 누른다', async () => {
+  await test.step('사이드바 「로그아웃」 바로 위 「Sidekiq」을 누른다', async () => {
     const 새탭받기 = page.context().waitForEvent('page', { timeout: 10_000 });
     await 관리.사이드바.메뉴('Sidekiq').click();
     const 새탭 = await 새탭받기.then((탭) => 탭, () => undefined);

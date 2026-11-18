@@ -43,6 +43,11 @@ export class 계정상세화면 {
   readonly 처벌카드들: Locator;
   readonly 가입이유말풍선: Locator;
   readonly 데이터삭제완료안내: Locator;
+  readonly 과거처벌제목: Locator;
+  readonly 미확인이메일칸: Locator;
+  readonly 가입이유내용: Locator;
+  readonly 가입이유라벨: Locator;
+  readonly 도메인차단추가하기: Locator;
 
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('heading', { level: 1 }).first();
@@ -84,6 +89,11 @@ export class 계정상세화면 {
     this.처벌카드들 = page.locator('.account-strikes').getByRole('link');
     this.가입이유말풍선 = page.locator('.speech-bubble').filter({ hasText: '가입하려는 이유' });
     this.데이터삭제완료안내 = page.getByText('이 계정의 데이터는 복구할 수 없도록 삭제되었습니다');
+    this.과거처벌제목 = page.getByRole('heading', { name: '과거 처벌', level: 3 });
+    this.미확인이메일칸 = this.정보표.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '확인되지 않은 이메일 주소', exact: true }) }).getByRole('cell').first();
+    this.가입이유내용 = page.locator('.speech-bubble__bubble');
+    this.가입이유라벨 = this.가입이유말풍선.getByText('가입하려는 이유');
+    this.도메인차단추가하기 = page.getByRole('link', { name: '도메인 차단 추가하기' });
   }
 
   async 열기(계정번호: string): Promise<void> {
