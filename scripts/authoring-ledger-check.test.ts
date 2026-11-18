@@ -84,10 +84,10 @@ describe('원장대조', () => {
   });
 
   it('API 줄은 출처 칸이나 「만들 수 없는 응답」 제외로 덮이고, 그 종류를 요구 번호에 쓰면 형식 오류다', () => {
-    const api원장 = ['API POST /v1/pushes 201', 'API POST /v1/pushes 500', 'REQ-A-1'].map((번호) => ({ 번호, 자료: 'API 문서' }));
+    const api원장 = ['API POST /v1/pushes 201', 'API POST /v1/pushes 409', 'REQ-A-1'].map((번호) => ({ 번호, 자료: 'API 문서' }));
     const r = 원장대조(
       api원장,
-      표([줄('REQ-A-1 · API POST /v1/pushes 201', 'X-FN-001')], ['| API POST /v1/pushes 500 | 만들 수 없는 응답 | 서버 고장을 일부러 못 낸다 |', '| REQ-A-1 | 만들 수 없는 응답 | 요구 번호 |']),
+      표([줄('REQ-A-1 · API POST /v1/pushes 201', 'X-FN-001')], ['| API POST /v1/pushes 409 | 만들 수 없는 응답 | 중복을 만드는 조건이 문서에 없다 |', '| REQ-A-1 | 만들 수 없는 응답 | 요구 번호 |']),
       { 있는케이스: new Set(['X-FN-001']), 에이전트: true },
     );
     expect(r.빠짐).toEqual([]);

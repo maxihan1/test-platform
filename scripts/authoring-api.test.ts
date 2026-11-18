@@ -109,6 +109,14 @@ describe('원장의 API 줄', () => {
     expect(API원장항목(문서)[0]).toMatchObject({ 자료: 'API 문서', 문장: 'POST /v1/pushes 가 201 로 응답한다 — 푸시 보내기' });
   });
 
+  it('성공은 2xx 가운데 가장 작은 코드 한 줄(2xx 가 없으면 400 아래) · 4xx 는 만들 수 있는 것만 · 429 · 5xx 는 줄이 없다', () => {
+    const 코드들 = ['200', '204', '302', '400', '401', '403', '404', '405', '409', '413', '415', '422', '429', '500', '503'];
+    const 줄 = API원장항목({ paths: { '/v1/a': { delete: { responses: Object.fromEntries(코드들.map((c) => [c, {}])) } } } });
+    expect(줄.map((h) => h.번호.split(' ')[3])).toEqual(['200', '400', '401', '403', '404', '409', '422']);
+    expect(API원장항목({ paths: { '/v1/b': { get: { responses: { '302': {}, '500': {} } } } } }).map((h) => h.번호)).toEqual(['API GET /v1/b 302']);
+    expect(API원장항목({ paths: { '/v1/c': { get: { responses: { '101': {}, '201': {}, '200': {} } } } } }).map((h) => h.번호)).toEqual(['API GET /v1/c 200']);
+  });
+
   it('빈칸 · 표 칸 · 백틱이 든 경로는 덮을 수 없어 줄을 만들지 않는다', () => {
     expect(API원장항목({ paths: { '/v1/a|b': { get: { responses: { '200': {} } } }, '/v1/`c`': { get: { responses: { '200': {} } } } } })).toEqual([]);
   });
