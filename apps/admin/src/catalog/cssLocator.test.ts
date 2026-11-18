@@ -1,7 +1,11 @@
 // 공용 부품 밖 CSS · XPath 를 K17 로 막는지, 기존 개수까지는 봐 주는지 검사한다
 
+import { sep } from 'node:path';
+
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
+import { k17 as k17검사, 공용부품인가 } from './cssLocator.js';
 import { checkNonCase } from './pageObject.js';
 import { checkSource } from './rules.js';
 
@@ -49,12 +53,17 @@ test('x', async ({ page }) => {
   });
 
   it('기존 개수까지는 봐 주고 늘면 그 파일의 것을 다 짚는다', () => {
-    const 한개 = 화면(`  a = () => this.page.locator('.a');`);
-    expect(k17(checkNonCase('mtw/pages/home.page.ts', 한개))).toEqual([]);
-    const 두개 = 화면(`  a = () => this.page.locator('.a');
-  b = () => this.page.locator('.b');`);
-    const 위반 = checkNonCase('mtw/pages/home.page.ts', 두개).filter((x) => x.rule === 'K17');
+    const 기존 = { 'old/pages/home.page.ts': 1 };
+    const 읽기 = (글: string): ts.SourceFile => ts.createSourceFile('x.ts', 글, ts.ScriptTarget.Latest, true);
+    expect(k17검사('old/pages/home.page.ts', 읽기(화면(`  a = () => this.page.locator('.a');`)), 기존)).toEqual([]);
+    const 두개 = 읽기(화면(`  a = () => this.page.locator('.a');
+  b = () => this.page.locator('.b');`));
+    const 위반 = k17검사('old/pages/home.page.ts', 두개, 기존);
     expect(위반.map((x) => x.line)).toEqual([5, 6]);
     expect(위반[0]?.what).toContain('기존 1개까지 봐 준다 — 지금 2개');
+  });
+
+  it('윈도 경로의 components 도 공용 부품으로 읽는다', () => {
+    expect(공용부품인가(['new', 'components', 'toast.component.ts'].join(sep))).toBe(true);
   });
 });

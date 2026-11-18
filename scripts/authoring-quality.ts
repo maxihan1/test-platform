@@ -1,6 +1,6 @@
 // 케이스 품질을 숫자로 센다 — 작성을 나눠 맡긴 뒤 품질이 떨어졌는지 사람 손 없이 견주려고 (SPEC 도메인/작성 §3.6)
 
-import { CSS찾기, 공용부품인가 } from '../apps/admin/src/catalog/cssLocator.js';
+import { CSS개수, 공용부품인가 } from '../apps/admin/src/catalog/cssLocator.js';
 
 export interface 파일글 {
   경로: string;
@@ -56,7 +56,7 @@ export function 품질숫자(파일들: 파일글[]): 품질 {
   const 전제 = 준비있음.filter((f) => /blocker:\s*true/.test(f.글)).length;
   const 밖CSS = 파일들
     .filter((f) => !공용부품인가(f.경로))
-    .reduce((n, f) => n + (f.글.match(CSS찾기)?.length ?? 0), 0);
+    .reduce((n, f) => n + CSS개수(f.글), 0);
 
   const 이름파일수 = new Map<string, number>();
   for (const f of 파일들.filter((f) => !임시도우미.test(f.경로))) for (const 이름 of new Set([...f.글.matchAll(도우미)].map((m) => m[1]!))) 이름파일수.set(이름, (이름파일수.get(이름) ?? 0) + 1);

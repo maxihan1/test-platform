@@ -1,5 +1,7 @@
 // 웹 케이스 · Page Object 가 공용 부품 밖에서 CSS · XPath 로 요소를 찾는지 세고 막는다(K17) — 작성 품질 숫자와 한 기준을 쓴다
 
+import { sep } from 'node:path';
+
 import type ts from 'typescript';
 
 import type { Violation } from './rules.js';
@@ -8,18 +10,25 @@ export const K17_WHY = '화면 구조가 조금만 바뀌어도 깨진다. 역�
 
 // testid(`[data-testid=…]`)는 locator 1순위라 뺀다
 // ponytail: `locator('div.x')` 처럼 태그 이름으로 시작하는 CSS 는 못 센다. 그 꼴이 쌓이면 시작 글자 목록을 넓힌다
-export const CSS찾기 = /locator\(\s*['"`](?:[.#]|\[(?!data-testid)|\/\/|xpath=|css=)/g;
+const CSS찾기 = /locator\(\s*['"`](?:[.#]|\[(?!data-testid)|\/\/|xpath=|css=)/g;
+
+/** 글에 든 CSS · XPath locator 수 — 품질 숫자가 쓴다. 정규식을 내보내지 않는 것은 `g` 의 lastIndex 가 부르는 쪽에 남지 않게 하려고 */
+export const CSS개수 = (글: string): number => 글.match(CSS찾기)?.length ?? 0;
+
+// 윈도에서는 `relative()` 가 역슬래시로 이어 준다 — 같은 열쇠로 읽으려고 슬래시로 바꾼다
+const 슬래시 = (경로: string): string => 경로.split(sep).join('/');
 
 /** components · helpers 폴더 안은 공용 부품이라 세지 않는다 */
-export const 공용부품인가 = (경로: string): boolean => 경로.split('/').some((m) => m === 'components' || m === 'helpers');
+export const 공용부품인가 = (경로: string): boolean => 슬래시(경로).split('/').some((m) => m === 'components' || m === 'helpers');
 
-export function k17(file: string, sf: ts.SourceFile): Violation[] {
+// ponytail: 파일마다 합계만 본다 — 같은 파일에서 하나를 고치고 하나를 새로 쓰면 못 잡는다. 줄마다 기억하면 줄이 밀릴 때마다 표를 고쳐야 해서 뒀다
+export function k17(file: string, sf: ts.SourceFile, 기존: Readonly<Record<string, number>> = 기존개수): Violation[] {
   if (공용부품인가(file)) return [];
   const 자리들 = [...sf.text.matchAll(CSS찾기)];
-  const 허용 = 기존개수[file] ?? 0;
+  const 허용 = 기존[슬래시(file)] ?? 0;
   if (자리들.length <= 허용) return [];
-  // 어느 것이 새로 생겼는지는 모르니 다 짚는다 — 기존 개수를 넘긴 파일은 그 가운데 하나만 고쳐도 된다
-  const 꼬리 = 허용 === 0 ? '' : ` (이 파일은 기존 ${허용}개까지 봐 준다 — 지금 ${자리들.length}개)`;
+  // 어느 것이 새로 생겼는지는 모르니 다 짚는다. 기존 것은 화면을 다시 안 읽고 고치면 멀쩡한 locator 를 깨뜨릴 수 있어 이번에 쓴 것을 바꾸라고 적는다
+  const 꼬리 = 허용 === 0 ? '' : ` (이 파일은 기존 ${허용}개까지 봐 준다 — 지금 ${자리들.length}개. 이번에 새로 쓴 것을 바꾼다)`;
   return 자리들.map((m) => ({
     file,
     line: sf.getLineAndCharacterOfPosition(m.index).line + 1,

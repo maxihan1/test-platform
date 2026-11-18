@@ -1,4 +1,4 @@
-// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 · K15 · K16 을 검사한다
+// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 · K15 · K16 을 검사한다(K17 은 `cssLocator.ts`)
 
 import { readdir } from 'node:fs/promises';
 import { join, posix, sep } from 'node:path';
