@@ -106,6 +106,7 @@ describe.skipIf(연결 === undefined)('결정 목록 · 설명 안 되는 줄', 
 
   it('게임 시나리오의 가장 최근 실행에 설명 안 되는 줄이 있으면 결함 판정 항목이 선다 — 판정 NA 문장만 싣고, 기능 케이스의 NA 는 안 든다', async () => {
     await 실행넣기(기능, [설명]);
+    const 앞 = (await 목록()).count;
     const runId = await 실행넣기(미션, [통과, 설명]);
     const 결과 = await 목록();
     expect(결과.items.filter((x) => x.kind === 'NOTE')).toEqual([
@@ -117,7 +118,7 @@ describe.skipIf(연결 === undefined)('결정 목록 · 설명 안 되는 줄', 
         finishedAt: expect.any(String),
       },
     ]);
-    expect(결과.count).toBe(1);
+    expect(결과.count).toBe(앞 + 1);
 
     사람 = { role: 'member', 권한: { cases: 'write', runs: 'read', authoring: 'write' } };
     expect((await 설명들()).map((x) => [x.picks, x.blockedBy])).toEqual([[['EDIT'], 'NO_RUN_WRITE']]);
