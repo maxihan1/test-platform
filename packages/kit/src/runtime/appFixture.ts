@@ -12,7 +12,7 @@ export type AppSide = { driver: AppDriver; game?: KitGame };
 
 // 케이스마다 만든다 — 앞 판처럼 defineTest 가 부를 때 extend 한다
 export const 앱테스트 = () =>
-  base.extend<{ appSession: { open(options?: AppOpenOptions): Promise<AppSide> } }>({
+  base.extend<{ appSession: { open(options?: AppOpenOptions): Promise<AppSide>; 끝정리를건다(끝: () => Promise<void>): void } }>({
     appSession: async ({}, use, testInfo) => {
       // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
       let opening: Promise<AppSide> | undefined;
@@ -32,7 +32,9 @@ export const 앱테스트 = () =>
         폰장면 = await 폰장면걸기(side.driver);
         return side;
       };
-      await use({ open: (options) => (opening ??= 열고남긴다(options)) });
+      // test.cleanup 의 끝 정리 — 실패 증적 뒤 · 연결을 닫기 전에 돈다 (공통/3-공유계약 「게임 시나리오 도구」)
+      let 끝: (() => Promise<void>) | undefined;
+      await use({ open: (options) => (opening ??= 열고남긴다(options)), 끝정리를건다: (f) => { 끝 = f; } });
       if (opening === undefined) return;
       let side: AppSide;
       try {
@@ -58,6 +60,8 @@ export const 앱테스트 = () =>
         // 케이스가 눌러 둔 손가락(touchDown)을 떼지 않고 끝났으면 거둔다 — 실패 순간의 오브젝트 목록(누른 동안 뜬 말풍선)이 남게 증적 뒤에
         await side.game.손가락을뗀다();
       }
+      // 정리 절차는 실패해도 NA 로 남고 던지지 않는다 — 남기기(attach)가 터진 것만 알린다
+      await 끝?.().catch((err: unknown) => console.error(`[kit] 끝 정리를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`));
       // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
       try {
         await closeApp(side.driver);

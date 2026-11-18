@@ -92,6 +92,7 @@ describe('원인을가른다', () => {
     expect(실패('/Canvas/Loading 이 10초 안에 사라지지 않았습니다')).toBe('timeout');
     expect(실패('/Canvas/Gold 이 5초 안에 「120」이 되지 않았습니다 (마지막: 100)')).toBe('timeout');
     expect(실패('게임이 10초 안에 답하지 않았습니다')).toBe('timeout');
+    expect(실패('미션이 90초 동안 나아가지 않았습니다 (진행 1 / 목표 3)')).toBe('timeout');
   });
 
   it('게임 연결이 끊기거나 팜이 명령을 거절한 것은 환경 오류다 (GAME-F1-09)', () => {

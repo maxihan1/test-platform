@@ -15,6 +15,7 @@ import { enqueue } from './dispatcher.js';
 import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
 import { 장면을건넨다 } from './live.js';
+import { 항목제한ms } from './location.js';
 import { caseSchemas } from './paramSets.js';
 import { Chrome차례, 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import { abortRunner, na, 보낸다, 시험진행 } from './runner.js';
@@ -185,7 +186,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       baseUrl: 줄.baseUrl,
       params,
       expected,
-      timeoutMs: 제한ms,
+      timeoutMs: 항목제한ms(tcId, 제한ms),
       // 정식 실행과 같은 규칙 — 게임 애플리케이션이면 엔진을 싣는다 (도메인/게임 §3.10 결정 6)
       ...엔진칸(종류, platform, 줄.adminKey),
       // 정식 실행과 같은 규칙 — 그 대상 서버 줄에 API 인증이 있으면 싣는다 (도메인/API §3.8)

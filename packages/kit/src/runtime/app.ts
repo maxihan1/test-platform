@@ -36,6 +36,8 @@ export interface AppLaunchIntent {
 export interface AppOpenOptions {
   keepData?: boolean;
   intent?: AppLaunchIntent;
+  // 게임 시나리오 — Appium 연결 유지 한도를 끈다(0). 남은 연결은 러너가 연결 번호 파일로 닫는다
+  noCommandTimeout?: boolean;
 }
 
 export function appCapabilities(env: Env, options: AppOpenOptions = {}): Record<string, string | boolean | number> {
@@ -68,6 +70,7 @@ export function appCapabilities(env: Env, options: AppOpenOptions = {}): Record<
   // E2E 시나리오는 앱 단계 사이에 웹 단계가 몇 개 끼어도 연결이 안 끊기게 시나리오 제한 시간으로 연다 (도메인/시나리오 §3.7 결정 16)
   const 한도 = Number(env.PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT);
   if (한도 > 0) caps['appium:newCommandTimeout'] = 한도;
+  if (options.noCommandTimeout === true) caps['appium:newCommandTimeout'] = 0;
   // 호환성 실행 항목만 — 디바이스 팜 비전이 명령마다 화면을 찍어 연결이 닫힌 뒤 AI 로 점검한다 (도메인/호환성 §7 「러너 · kit」)
   if (env.PLATFORM_UI_CHECK === '1') caps['farm:uiCheck'] = true;
   return caps;

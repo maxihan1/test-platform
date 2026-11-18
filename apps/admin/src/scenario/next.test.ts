@@ -35,6 +35,12 @@ describe('다음케이스들', () => {
     expect(고른).not.toContain('MKT-FN-021');
   });
 
+  it('게임 시나리오는 추천하지 않는다', () => {
+    const 고른 = 다음케이스들('MKT-FN-021', [...화면들, { tcId: 'MKT-GS-001', url: '/cart' }], 연결들).map((x) => x.tcId);
+    expect(고른).not.toContain('MKT-GS-001');
+    expect(고른).toContain('MKT-FN-022');
+  });
+
   it('앞 케이스가 여러 화면을 쓰면 그 화면끼리의 연결은 다음 화면이 아니다', () => {
     expect(다음케이스들('MKT-FN-030', 화면들, [...연결들, 줄('/cart', '/order'), 줄('/order', '/cart')])).toEqual([
       { tcId: 'MKT-FN-050', screen: '/mypage' },

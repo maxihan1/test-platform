@@ -57,7 +57,8 @@ export const executeRequest = z.object({
   baseUrl: z.string(),
   params: z.record(z.string(), z.unknown()),
   expected: z.record(z.string(), z.unknown()),
-  timeoutMs: z.number().int().positive().default(300_000),
+  // 0 은 한도 없음 — 게임 시나리오 항목이다 (공통/3-공유계약 「게임 시나리오 도구」)
+  timeoutMs: z.number().int().nonnegative().default(300_000),
   app: 앱파일경로.optional(),
   // 빌드 목록의 앞 빌드 — 안 적으면 z.object 가 버려 옛판에서올리기 가 「앞 빌드가 없다」로 던진다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
   previousApp: 앱파일경로.optional(),

@@ -31,7 +31,7 @@ export interface 항목재료 {
   /** 아직 안 끝난 항목은 이유가 없다 — 도는 중인 실행의 NA 를 실패로 읽지 않는다 */
   finished: boolean;
   error: { message: string } | null | undefined;
-  steps: Pick<StepResult, 'assertions' | 'error' | 'shapeChecks'>[];
+  steps: (Pick<StepResult, 'assertions' | 'error' | 'shapeChecks'> & { status?: StepResult['status'] })[];
 }
 
 /**
@@ -47,7 +47,8 @@ export function 항목실패를가른다(항목: 항목재료, 가리기: (글: 
     status: 항목.status,
     assertFailed: 실패확인 !== undefined || 모양실패 !== undefined,
     itemMessage: 항목.error?.message ?? '',
-    stepMessage: 항목.steps.find((s) => s.error !== undefined)?.error?.message ?? '',
+    // 정리 절차(NA)의 오류는 판정 밖이다 — 원인 고르기에 넣지 않는다 (공통/3-공유계약 「게임 시나리오 도구」 test.cleanup)
+    stepMessage: 항목.steps.find((s) => s.status !== 'NA' && s.error !== undefined)?.error?.message ?? '',
   });
   // 앞 부품이 실패해 안 돈 시나리오 부품(NOT_RUN)은 실패 원인이 아니다 (도메인/시나리오 §3.7 결정 9 — 케이스 항목에는 이 글이 없다)
   if (원인 === 'stopped' || 항목.error?.message === 'NOT_RUN') return null;

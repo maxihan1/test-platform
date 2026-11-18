@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { 겹침 } from '../apps/admin/src/authoring/conflicts.js';
-import { 결정계산, 다음번호, 번호바꾸기, 처리줄, 표번호바꾸기, 표줄빼기 } from './authoring-conflicts-apply.js';
+import { 결정계산, 다음번호, 번호열머리, 번호바꾸기, 처리줄, 표번호바꾸기, 표줄빼기 } from './authoring-conflicts-apply.js';
 
 const 케이스 = (tcId: string, 제목 = '쿠폰') =>
   `import { defineCase, step } from '@platform/kit';\n\nexport const spec = defineCase({\n  tcId: '${tcId}',\n  name: '${제목}',\n  platforms: ['desktop'],\n});\n\nawait step('${tcId} 화면 열기', async () => {});\n`;
@@ -36,6 +36,20 @@ describe('다음 번호', () => {
   it('UI 는 따로 001 부터 센다 — 옛 꼴 · FN 번호는 안 본다', () => {
     expect(다음번호(new Set(['MKT-041', 'MKT-FN-043']), 'MKT', 1, 'UI')).toEqual(['MKT-UI-001']);
     expect(다음번호(new Set(['MKT-UI-003', 'MKT-090']), 'MKT', 1, 'UI')).toEqual(['MKT-UI-004']);
+  });
+
+  it('GS 도 따로 001 부터 센다 — FN · UI · 옛 꼴 번호는 안 보고, GS 번호는 다른 열이 안 본다', () => {
+    const 쓴 = new Set(['ARG-041', 'ARG-FN-043', 'ARG-UI-007', 'ARG-GS-003']);
+    expect(다음번호(new Set(['ARG-041', 'ARG-FN-043', 'ARG-UI-007']), 'ARG', 1, 'GS')).toEqual(['ARG-GS-001']);
+    expect(다음번호(쓴, 'ARG', 2, 'GS')).toEqual(['ARG-GS-004', 'ARG-GS-005']);
+    expect(다음번호(쓴, 'ARG', 1, 'FN')).toEqual(['ARG-FN-044']);
+    expect(다음번호(쓴, 'ARG', 1, 'UI')).toEqual(['ARG-UI-008']);
+  });
+
+  it('번호열머리 — GS 꼴을 읽는다', () => {
+    expect(번호열머리('ARG-GS-012')).toEqual({ 머리: 'ARG', 꼴: 'GS', 번호: 12 });
+    expect(번호열머리('ARG-FN-012')?.꼴).toBe('FN');
+    expect(번호열머리('ARG-012')?.꼴).toBe('옛');
   });
 
   it('FN 과 옛 꼴은 한 번호열 — 둘을 통틀어 가장 큰 것 다음, 꼴은 원래대로', () => {

@@ -35,7 +35,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
   let 테스트실행 = 0;
   const 계정들 = ['xcp-reader', 'xcp-writer', 'xcp-none'];
   const 쿠키 = new Map<string, string>();
-  const 케이스들 = ['XCP-001', 'XCP-002', 'XCP-003', 'XCP-004', 'XCPB-001'];
+  const 케이스들 = ['XCP-001', 'XCP-002', 'XCP-003', 'XCP-004', 'XCP-GS-001', 'XCPB-001'];
 
   const 부르기 = (누구: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, payload?: object) =>
     app.inject({ method, url, headers: { cookie: 쿠키.get(누구) ?? '' }, ...(payload === undefined ? {} : { payload }) });
@@ -77,7 +77,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       쿠키.set(username, (res.headers['set-cookie'] as string).split(';')[0] ?? '');
     }
 
-    for (const [tc, platforms] of [['XCP-001', '["mobile"]'], ['XCP-002', '["mobile"]'], ['XCP-003', '["android"]'], ['XCP-004', '["desktop"]'], ['XCPB-001', '["mobile"]']]) {
+    for (const [tc, platforms] of [['XCP-001', '["mobile"]'], ['XCP-002', '["mobile"]'], ['XCP-003', '["android"]'], ['XCP-004', '["desktop"]'], ['XCP-GS-001', '["mobile"]'], ['XCPB-001', '["mobile"]']]) {
       await pool.query(`INSERT INTO test_case (tc_id, name, platforms, file_path, param_schema, expected_schema) VALUES ($1, $1 || ' 이름', $2, 'tests/xcp/a.spec.ts', '{}', '{}')`, [tc, platforms]);
     }
     await pool.query(
@@ -169,8 +169,8 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       coverage: { covered: 5, total: 6, fallback: false },
       uncovered: [{ key: '/orphan', name: '외딴 화면' }],
     });
-    expect((await 부르기('xcp-reader', 'POST', '/api/compat-sets/preview', { serviceId: 앱, addedCases: ['XCP-004', 'XCPB-001', 'XCP-999'] })).json())
-      .toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-004', 'XCPB-001', 'XCP-999'] });
+    expect((await 부르기('xcp-reader', 'POST', '/api/compat-sets/preview', { serviceId: 앱, addedCases: ['XCP-004', 'XCPB-001', 'XCP-999', 'XCP-GS-001'] })).json())
+      .toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-004', 'XCPB-001', 'XCP-999', 'XCP-GS-001'] });
   });
 
   it('크롤 화면 기록이 없으면 케이스가 아는 화면으로 세고 그렇게 알린다', async () => {
@@ -241,6 +241,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'NOPE1' }, { serial: 'R3CR1' }] })).json()).toEqual({ error: 'UNKNOWN_DEVICE', serials: ['NOPE1'] });
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'R3CR1' }, { serial: 'R3CR1' }] })).statusCode).toBe(400);
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, addedCases: ['XCP-004'] })).json()).toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-004'] });
+      expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, addedCases: ['XCP-GS-001'] })).json()).toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-GS-001'] });
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'R3CR1' }, { serial: 'R3CR2' }] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '모델별 1대를 켠 세트는 같은 모델을 한 대만 고릅니다' });
       expect((await 부르기('xcp-reader', 'POST', '/api/compat-sets', 몸)).statusCode).toBe(403);
     });

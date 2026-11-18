@@ -48,10 +48,11 @@ test('spec 이름은 케이스 번호 모양(<접두사>-NNN.spec.ts)만 참 —
   assert.equal(테스트만인가(['tests/newsvc/PAY-001.spec.ts', 'tests/newsvc/PAY2-013.spec.ts']), true);
 });
 
-test('번호 세 꼴(-NNN · -UI-NNN · -FN-NNN)과 pages/components/helpers 의 파일은 참', () => {
+test('번호 네 꼴(-NNN · -UI-NNN · -FN-NNN · -GS-NNN)과 pages/components/helpers 의 파일은 참', () => {
   for (const f of [
     'tests/mkt/MKT-UI-001.spec.ts',
     'tests/mkt/MKT-FN-049.spec.ts',
+    'tests/mkt/MKT-GS-003.spec.ts',
     'tests/mkt/pages/login.page.ts',
     'tests/mkt/components/site-header.component.ts',
     'tests/mkt/helpers/login.helper.ts',

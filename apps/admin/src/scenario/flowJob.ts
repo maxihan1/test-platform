@@ -6,7 +6,7 @@ import { resolve, sep } from 'node:path';
 
 import type { Platform } from '@platform/kit';
 
-import { tcId종류 } from '../catalog/rules.js';
+import { tcId종류, 게임시나리오인가 } from '../catalog/rules.js';
 import { 맥락읽기 } from '../catalog/contextRead.js';
 import { testsRoot } from '../catalog/scanner.js';
 import { caseSteps } from '../catalog/steps.js';
@@ -103,7 +103,7 @@ async function 재료읽기(서비스: number, prefix: string, platform: Platfor
   const 케이스들 = [];
   // 수천 건을 한꺼번에 열지 않게 하나씩 읽는다(stepTitles.ts 와 같다). 게임이 아니면 파일을 열지 않는다
   for (const r of 케이스.rows) {
-    if (tcId종류(r.tc_id) === 'UI') continue;
+    if (tcId종류(r.tc_id) === 'UI' || 게임시나리오인가(r.tc_id)) continue;
     const 칸들 = r.param_schema?.properties;
     케이스들.push({
       tcId: r.tc_id,

@@ -155,6 +155,27 @@ describe('test', () => {
     expect(app.openApp.mock.calls.at(-1)?.[1]).toEqual({ keepData: false });
   });
 
+  it('게임 시나리오는 한도 · 연결 유지 한도를 끄고 끝 정리를 연결을 닫기 전에 돌린다', async () => {
+    const 차례: string[] = [];
+    app.closeApp.mockImplementation(async () => { 차례.push('닫기'); });
+    const 정리 = vi.fn(async () => { 차례.push('정리'); });
+    const spec = defineCase({ tcId: 'DEMO-GS-001', name: '임프 3마리 처치', precondition: [], params: null, expected: null, platforms: ['android'] });
+    test(spec, async () => {
+      await test.cleanup('부른 임프 치우기', 정리);
+      차례.push('몸통');
+    });
+    const setTimeout = vi.fn();
+    const attach = vi.fn(async () => {});
+    await pw.fixtures.appSession({}, (session) =>
+      pw.appRegistered[0]({ request: {}, appSession: session }, { project: { name: 'android' }, setTimeout, attach }),
+    );
+    expect(setTimeout).toHaveBeenCalledWith(0);
+    expect(app.openApp.mock.calls.at(-1)?.[1]).toEqual({ keepData: false, noCommandTimeout: true });
+    expect(차례).toEqual(['정리', '몸통', '정리', '닫기']);
+    const 제목들 = attach.mock.calls.map((c) => (JSON.parse((c as unknown as [string, { body: string }])[1].body) as { title: string }).title);
+    expect(제목들).toEqual(['시작 정리 — 부른 임프 치우기', '끝 정리 — 부른 임프 치우기']);
+  });
+
   it('fixture 정리가 열린 연결을 닫고 안 열렸으면 건드리지 않는다', async () => {
     test(androidSpec(), vi.fn());
 

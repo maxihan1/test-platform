@@ -35,6 +35,7 @@ function 남긴다(
         'test.step() 안에서만 부를 수 있다 (SPEC §4)',
     );
   }
+  if (scope.정리 === true) throw new Error(`verify('${statement}')를 정리 안에서 불렀다. 정리는 판정에 안 든다 — 정리 확인은 하지 않는다`);
 
   // blocker 는 「준비가 됐나」를 본다. 통과 · 실패와 상관없이 시험 대상을 본 판정이 나오면 준비 구간이 끝난다
   const phase = runScope.getStore()?.phase;
@@ -103,5 +104,34 @@ async function rates(
   return 남긴다(statement, passed, { 시도, 비율 }, { 확률: expected, 허용오차: tolerance }, options, rates);
 }
 
+/**
+ * 로그 견주기 — 기획서 규칙 하나에 한 번. values 는 케이스가 고른 줄에서 꺼낸 값이다(줄 꼴은 케이스 몫).
+ * 한 줄도 없으면 통과가 아니라 「확인 못 함」이다 — 판정 값을 늘리지 않고 문장 머리로 가른다 (도메인/게임 §3.10 통과 규칙 2)
+ */
+async function log(
+  statement: string,
+  values: unknown[],
+  expected: number | { min: number; max: number },
+  options?: VerifyOptions & { least?: number },
+): Promise<boolean> {
+  const least = options?.least ?? 1;
+  const 맞나 = (v: unknown): boolean =>
+    typeof expected === 'number' ? v === expected : typeof v === 'number' && v >= expected.min && v <= expected.max;
+  const 벗어난값 = values.filter((v) => !맞나(v));
+  const passed = values.length > 0 && values.length >= least && 벗어난값.length === 0;
+  const 문장 = values.length === 0 ? `확인 못 함 — ${statement}` : statement;
+  const 기대 = typeof expected === 'number' ? { 값: expected, 최소줄수: least } : { 범위: expected, 최소줄수: least };
+  return 남긴다(문장, passed, { 줄수: values.length, 벗어난값: 벗어난값.slice(0, 20) }, 기대, options, log);
+}
+
+/** 판정에 안 드는 표시 — 「설명 안 되는 줄」을 사람이 보게 NA 문장으로 남긴다 (도메인/게임 §3.10 통과 규칙 4) */
+async function note(statement: string, actual: unknown): Promise<void> {
+  const scope = stepScope.getStore();
+  if (!scope) {
+    throw new Error(`verify.note('${statement}')를 절차 밖에서 불렀다. test.step() 안에서만 부를 수 있다 (SPEC §4)`);
+  }
+  scope.assertions.push({ statement, status: 'NA', actual, expected: null });
+}
+
 // 테스트 코드는 verify 하나만 import 한다 — 도우미는 그 밑에 단다(test.step 과 같은 꼴)
-export const verify = Object.assign(같다, { element, rates });
+export const verify = Object.assign(같다, { element, rates, log, note });

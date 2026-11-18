@@ -1,6 +1,7 @@
 // 성능 테스트 › 기기 성능 › 새 측정 — 조작 방식 · 케이스와 반복 · 빌드 · 측정 기기 · 성능 목표 · 측정 항목 · 「측정 시작」 (도메인/성능 §8.14 · 시안 Dev-Start)
 // 앞 측정이 있으면 그 조건을 채워 연다. 게임 애플리케이션은 Appium 케이스 자리에 게임 케이스가 선다 — 게임 화면은 Appium 이 버튼을 못 찾는다
 
+import { 게임시나리오인가 } from '@platform/kit/protocol';
 import { useEffect, useState } from 'react';
 
 import { api, type CaseRow, type ServiceRow } from './api.js';
@@ -73,7 +74,8 @@ export function PerfDeviceStart({
           모음.push(...쪽.items);
           if (쪽.items.length === 0 || 모음.length >= 쪽.total) break;
         }
-        if (살음) set케이스들(모음);
+        // 게임 시나리오(-GS-)는 기기 성능에 안 쓴다 — 서버도 거절한다 (공통/3-공유계약 「게임 시나리오 도구」)
+        if (살음) set케이스들(모음.filter((c) => !게임시나리오인가(c.tcId)));
       } catch (err) {
         if (!살음) return;
         set케이스들([]);

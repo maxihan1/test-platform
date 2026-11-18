@@ -11,7 +11,7 @@ import { API인증읽기, type 어드민키, 어드민키읽기 } from '../setti
 
 import { 실행빌드, 앞빌드, 앱칸 } from './buildFile.js';
 import { 엔진칸 } from './engineField.js';
-import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
+import { 선언밖디바이스, 항목제한ms } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
@@ -297,7 +297,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     const items: PendingItem[] = [];
     for (const item of 채운항목) {
       const spec = cases.get(item.tcId)!;
-      const timeoutMs = item.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+      const timeoutMs = 항목제한ms(item.tcId, item.timeoutMs);
       for (const platform of item.platforms) {
         // 회차는 1부터다. 러너에는 보이지 않는다 — historyId 만 다른 같은 요청을 N번 보낼 뿐이다 (SPEC §5.2)
         for (let attempt = 1; attempt <= repeat; attempt += 1) {

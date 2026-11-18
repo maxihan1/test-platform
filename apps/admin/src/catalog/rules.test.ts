@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { checkRegistration, checkSource, checkSpec, formatViolation, tcId종류, 번호열쇠 } from './rules.js';
+import { checkRegistration, checkSource, checkSpec, formatViolation, tcId종류, 번호열쇠, 게임시나리오인가 } from './rules.js';
 
 const 정상 = `import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
@@ -86,6 +86,32 @@ describe('checkSource', () => {
     );
     expect(rules(도우미)).toEqual([]);
     expect(rules(도우미.replace("'공격력이 기획서와 같다'", '문장'))).toContain('K6');
+  });
+
+  it('K6 — verify.log 는 판정이고 verify.note 는 판정이 아니다', () => {
+    const 로그 = 정상.replace("await verify('제목이 보인다', true, true);", "await verify.log('접속 시간이 기준 안이다', [1, 2], { max: 3 });");
+    expect(rules(로그)).toEqual([]);
+    expect(rules(로그.replace("'접속 시간이 기준 안이다'", '문장'))).toContain('K6');
+    const 기록 = 정상.replace("await verify('제목이 보인다', true, true);", "verify.note('접속 시간', 12);");
+    expect(rules(기록)).toContain('K6');
+  });
+
+  it('K6 — test.cleanup 제목은 비지 않은 문자열 리터럴이어야 한다', () => {
+    const 정리 = (제목: string) => 정상.replace('  });\n});', `  });\n  test.cleanup(${제목}, async () => {});\n});`);
+    expect(rules(정리("'계정을 지운다'"))).toEqual([]);
+    expect(rules(정리("''"))).toContain('K6');
+    expect(rules(정리('제목'))).toContain('K6');
+    expect(checkSource('x.spec.ts', 정리('제목')).violations.find((x) => x.rule === 'K6')?.what).toContain('정리 제목');
+  });
+
+  it('K12 — 정리 제목이 한 케이스 안에서 겹치면 둘째를 가리킨다. 절차 제목과는 따로 센다', () => {
+    const 정리 = (제목들: string[]) =>
+      정상.replace('  });\n});', `  });\n${제목들.map((t) => `  test.cleanup('${t}', async () => {});\n`).join('')}});`);
+    const 겹침 = checkSource('x.spec.ts', 정리(['계정을 지운다', '계정을 지운다'])).violations.filter((x) => x.rule === 'K12');
+    expect(겹침).toHaveLength(1);
+    expect(겹침[0]?.what).toContain('정리 제목');
+    expect(rules(정리(['계정을 지운다', '방을 닫는다']))).toEqual([]);
+    expect(rules(정리(['화면을 연다']))).toEqual([]);
   });
 
   it('K7 — 주석이 있으면 잡는다', () => {
@@ -212,6 +238,11 @@ describe('checkSpec', () => {
     }
   });
 
+  it('K2 — 종류 글자 GS 가 붙은 꼴도 통과하고, 위반 문구에 GS 꼴이 든다', () => {
+    expect(checkSpec('x.spec.ts', spec({ tcId: 'ARG-GS-001' }), lines)).toEqual([]);
+    expect(checkSpec('x.spec.ts', spec({ tcId: 'ARG-GS-1' }), lines)[0]?.what).toContain('<접두사>-GS-<3자리>');
+  });
+
   it('K2 — 모르는 종류 글자·두 자리 번호·소문자 종류 글자는 잡는다', () => {
     for (const tcId of ['PAY-XX-001', 'PAY-UI-1', 'PAY-ui-001']) {
       expect(checkSpec('x.spec.ts', spec({ tcId }), lines)[0]?.rule).toBe('K2');
@@ -227,6 +258,14 @@ describe('checkSpec', () => {
   it('번호열쇠 — FN 과 옛 꼴은 한 번호열이고 UI 는 따로다', () => {
     expect(번호열쇠('MKT-FN-044')).toBe(번호열쇠('MKT-044'));
     expect(번호열쇠('MKT-UI-044')).not.toBe(번호열쇠('MKT-044'));
+  });
+
+  it('게임시나리오인가 · tcId종류 — GS 는 기능 쪽 종류이고, 번호열은 FN 과 따로 남는다', () => {
+    expect(게임시나리오인가('ARG-GS-001')).toBe(true);
+    for (const id of ['ARG-FN-001', 'ARG-001', 'ARG-UI-001']) expect(게임시나리오인가(id)).toBe(false);
+    expect(tcId종류('ARG-GS-001')).toBe('FN');
+    expect(번호열쇠('ARG-GS-001')).toBe('ARG-GS-001');
+    expect(번호열쇠('ARG-GS-001')).not.toBe(번호열쇠('ARG-FN-001'));
   });
 
   it('K3 — name이 비면 잡는다', () => {

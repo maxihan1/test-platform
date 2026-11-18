@@ -18,6 +18,15 @@ ${inner}
 const 제목 = (inner: string): string[] | null => caseSteps(body(inner)).stepTitles;
 
 describe('caseSteps — stepTitles', () => {
+  it('정리 자리가 있으면 시작 정리를 맨 앞, 끝 정리를 맨 뒤에 낸다 — kit 이 그 차례로 순번을 매긴다', () => {
+    expect(
+      제목(`
+  await test.cleanup('부른 임프 치우기', async () => {});
+  await test.step('임프를 잡는다', async () => { await verify('잡았다', 1, 1); });
+`),
+    ).toEqual(['시작 정리 — 부른 임프 치우기', '임프를 잡는다', '끝 정리 — 부른 임프 치우기']);
+  });
+
   it('도는 차례대로 제목을 낸다 — 안쪽 절차는 바깥 절차 바로 뒤다(러너 seq 차례)', () => {
     expect(
       제목(`

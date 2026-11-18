@@ -76,6 +76,14 @@ describe('caseSteps', () => {
     expect(skippable(viaVar)[0]).toBe(false);
   });
 
+  it('verify.log 는 판정이고 옵션은 넷째 자리다 — verify.note 는 판정이 아니다', () => {
+    const 로그 = R16.replace("verify('한 건이다', 1, 1, { blocker: true })", "verify.log('한 건이다', [1], { max: 1 }, { blocker: true })");
+    expect(skippable(로그)).toEqual([true, false, false]);
+    expect(skippable(로그.replace('{ blocker: true }', '{ max: 1 }'))).toEqual([false, false, false]);
+    const 기록 = R16.replace("await verify('한 건이다', 1, 1, { blocker: true });", "verify.note('한 건', 1);");
+    expect(caseSteps(기록).steps.map((s) => s.skippable)).toEqual([false, false, false]);
+  });
+
   it('blocker: false 는 blocker 가 아니다', () => {
     expect(skippable(R16.replace('blocker: true', 'blocker: false'))[0]).toBe(false);
   });
@@ -323,6 +331,13 @@ describe('확인문장들', () => {
   await verify.element('공격력이 기획서와 같다', 'item:a', 1, 1);
   await verify.rates('확률이 표대로다', { a: 1 }, { a: 1 }, 0.03);`);
     expect(확인문장들(소스)).toEqual(['공격력이 기획서와 같다', '확률이 표대로다']);
+  });
+
+  it('verify.log 문장은 들고 verify.note 는 안 든다', () => {
+    const 소스 = body(`
+  await verify.log('접속 시간이 기준 안이다', [1], { max: 3 });
+  verify.note('접속 시간', 1);`);
+    expect(확인문장들(소스)).toEqual(['접속 시간이 기준 안이다']);
   });
 
   it('문자열이 아닌 첫 인자와 verify 아닌 호출은 건너뛴다', () => {

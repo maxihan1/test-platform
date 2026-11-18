@@ -48,6 +48,7 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     const 앱 = (more: object) => 측정({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQD-001'], ...more });
     expect((await 앱({ env: 'dev' })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '대상 서버 줄에 앱 파일이 없습니다' });
     expect((await 앱({ caseIds: ['XQDB-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '이 애플리케이션의 케이스가 아닙니다: XQDB-001' });
+    expect((await 앱({ caseIds: ['XQD-GS-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 시나리오는 기기 성능에 쓰지 않습니다: XQD-GS-001' });
     expect((await 앱({ caseIds: ['XQD-002'] })).json()).toMatchObject({ detail: 'Android 앱 케이스가 아닙니다: XQD-002' });
     expect((await 앱({ devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: 'Appium 케이스는 팜 폰만 잴 수 있습니다' });
     expect((await 앱({ devices: [{ serial: 'FA1', where: 'FARM' }, { serial: 'FA1', where: 'FARM' }] })).statusCode).toBe(400);

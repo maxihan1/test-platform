@@ -396,6 +396,7 @@ export const 실행말: Record<string, string> = {
   '원문 보기': 'Show raw',
   '실패 이유': 'Why it failed',
   '뒤 절차 중단': 'Later steps halted',
+  '정리 실패': 'Cleanup failed',
   '코드를 불러오지 못했습니다': 'Could not load the code',
   '오류': 'Error',
   '경고': 'Warning',

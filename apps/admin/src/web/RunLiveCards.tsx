@@ -51,6 +51,8 @@ export function 짧은단계글(절차: 항목진행 | null, t: 말): string | n
 export function 제한경과글(절차: 항목진행 | null, 언어: 언어, t: 말): string | null {
   const 경과 = 절차?.itemElapsedMs ?? 절차?.elapsedMs;
   if (절차 === null || 경과 === undefined) return null;
+  // 0 은 한도 없음(게임 시나리오) — 남은 시간을 그릴 수 없어 경과만 둔다 (도메인/실행 §7 진행 응답)
+  if (절차.timeoutMs === 0) return 시간글자(경과, 언어);
   return t('{경과} / 제한 {제한}', { 경과: 시간글자(경과, 언어), 제한: 시간글자(절차.timeoutMs, 언어) });
 }
 

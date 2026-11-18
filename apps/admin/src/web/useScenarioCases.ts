@@ -1,5 +1,6 @@
 // E2E 조립 화면 팔레트와 마법사 「단계」가 같이 쓰는 재료 — 한 애플리케이션의 기능 테스트 목록과 첫 단계 · 다음 단계 추천 (도메인/시나리오 §8.11)
 
+import { 게임시나리오인가 } from '@platform/kit/protocol';
 import { useEffect, useState } from 'react';
 
 import { api, type CaseRow } from './api.js';
@@ -22,7 +23,8 @@ async function 모으기(service: string, 끊겼나: () => boolean): Promise<읽
   let PRD씀 = false;
   for (let page = 1; page <= 쪽상한; page += 1) {
     const 쪽 = await api.cases({ service, kind: 'FN', page });
-    목록.push(...쪽.items);
+    // 게임 시나리오(-GS-)는 E2E 단계가 될 수 없다 — 조립 검사도 막는다
+    목록.push(...쪽.items.filter((c) => !게임시나리오인가(c.tcId)));
     PRD씀 ||= 쪽.hasFeatures === true;
     if (끊겼나() || 쪽.items.length === 0 || 쪽.items.length < 쪽.pageSize) return { 목록, 잘림: false, PRD씀 };
   }

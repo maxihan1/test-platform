@@ -10,7 +10,7 @@ import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // ci-covers-tests 가 같은 꼴로 면제하도록 꺼내 둔다 — 한쪽만 바뀌면 cases 차선과 면제가 어긋난다
-export const 케이스파일꼴 = /^tests\/[^/]+\/[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN)-)?\d{3}\.spec\.ts$/;
+export const 케이스파일꼴 = /^tests\/[^/]+\/[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN|GS)-)?\d{3}\.spec\.ts$/;
 export const 페이지파일꼴 = /^tests\/[^/]+\/pages\/[a-z][a-z0-9-]{0,40}\.page\.ts$/;
 export const 부품파일꼴 = /^tests\/[^/]+\/components\/[a-z][a-z0-9-]{0,40}\.component\.ts$/;
 export const 도우미파일꼴 = /^tests\/[^/]+\/helpers\/[a-z][a-z0-9-]{0,40}\.helper\.ts$/;
@@ -22,7 +22,7 @@ export const 도우미파일꼴 = /^tests\/[^/]+\/helpers\/[a-z][a-z0-9-]{0,40}\
  * 막을 까닭이 없어 뺐다 (2026-09-25 사용자 승인).
  *
  * 대신 이름 꼴을 좁게 박는다 (2026-09-25 게이트 2 · 2026-10-02 #129 두 종류 케이스).
- * - spec 은 케이스 번호 세 꼴만 — `<접두사>-NNN` · `<접두사>-UI-NNN` · `<접두사>-FN-NNN` + `.spec.ts`
+ * - spec 은 케이스 번호 네 꼴만 — `<접두사>-NNN` · `<접두사>-UI-NNN` · `<접두사>-FN-NNN` · `<접두사>-GS-NNN` + `.spec.ts`
  * - Page Object 는 `tests/<폴더>/pages/<이름>.page.ts`, 화면 조각은 `tests/<폴더>/components/<이름>.component.ts`,
  *   로그인 · 계정 · 데이터 같은 공용 도우미는 `tests/<폴더>/helpers/<이름>.helper.ts`,
  *   이름은 `^[a-z][a-z0-9-]{0,40}$` 하나뿐이다

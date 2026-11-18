@@ -102,7 +102,7 @@ const 절차SQL = `
   SELECT h AS history_id,
          EXISTS (SELECT 1 FROM run_item_step s CROSS JOIN LATERAL jsonb_array_elements(s.assertions) AS a(value)
                   WHERE s.history_id = h AND a.value->>'status' = 'FAIL') AS assert_failed,
-         COALESCE((SELECT s.error->>'message' FROM run_item_step s WHERE s.history_id = h AND s.error IS NOT NULL ORDER BY s.seq LIMIT 1), '') AS step_message
+         COALESCE((SELECT s.error->>'message' FROM run_item_step s WHERE s.history_id = h AND s.error IS NOT NULL AND s.status <> 'NA' ORDER BY s.seq LIMIT 1), '') AS step_message
     FROM unnest($1::bigint[]) AS h`;
 
 const 빈셈 = (): 판정셈 => ({ pass: 0, fail: 0, notRun: 0, unconfirmed: 0 });

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { 반영계획만들기, 반영막힘, 반영절, 테스트고침읽기, 테스트고침줄 } from './authoring-apply.js';
 import { PR제목 } from './authoring-chain.js';
 import type { 보고손 } from './authoring-io.js';
-import { 고장줄읽기, 고친곳읽기, 고치기전후, 다시돌림글, 다시돌림세기, 되묻기인자, 요약되받기, 자동병합재기, 테스트고침싣는손 } from './authoring-test-fix.js';
+import { 판정읽기, 고장줄읽기, 고친곳읽기, 고치기전후, 다시돌림글, 다시돌림세기, 되묻기인자, 요약되받기, 자동병합재기, 테스트고침싣는손 } from './authoring-test-fix.js';
 import { 세션번호 } from './authoring-usage.js';
 
 const 판 = { version: 3, items: [{ reqId: 'X-REQ-001', feature: '로그인', text: '로그인하면 홈으로 간다', basis: [], status: 'CONFIRMED' } as PrdItem] };
@@ -118,6 +118,12 @@ describe('다시 돌린 횟수 · 끝내기 result.testFix', () => {
     } finally {
       rmSync(폴더, { recursive: true, force: true });
     }
+  });
+
+  it('로그 견주기(verify.log)도 확인 문장으로 세고 셋째 인자를 기대값으로 본다', () => {
+    const 글 = (기대: string) => `export const spec = defineCase({ tcId: 'X-GS-001', expected: null });\ntest(spec, async () => { await test.step('견준다', async () => { await verify.log('준 피해', 값들, ${기대}); }); });`;
+    expect(판정읽기(글('12'))?.수).toBe(1);
+    expect(판정읽기(글('{ min: 10, max: 14 }'))?.기대값).not.toEqual(판정읽기(글('{ min: 10, max: 999 }'))?.기대값);
   });
 
   it('자동 병합 세 조건 — 기대값 그대로 · 확인 문장 수 그대로 · 고장 내 보기가 고장마다 그 자리를 빨갛게 했을 때만 비고, 못 재면 「재지 못함」', () => {

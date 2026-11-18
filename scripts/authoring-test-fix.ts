@@ -91,7 +91,7 @@ export function 판정읽기(글: string): { 수: number; 기대값: string[]; e
   const 훑기 = (n: ts.Node): void => {
     if (ts.isCallExpression(n)) {
       const e = n.expression;
-      const 칸 = ts.isIdentifier(e) && e.text === 'verify' ? [2] : ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'verify' ? { element: [3], rates: [2, 3] }[e.name.text] : undefined;
+      const 칸 = ts.isIdentifier(e) && e.text === 'verify' ? [2] : ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'verify' ? { element: [3], rates: [2, 3], log: [2] }[e.name.text] : undefined;
       if (칸 !== undefined) {
         수 += 1;
         기대값.push(칸.map((i) => (n.arguments[i] === undefined ? '' : 꼴풀기(n.arguments[i]!, sf))).join(' ⟂ '), ...견주는값들(n.arguments[칸[0]! - 1], sf));

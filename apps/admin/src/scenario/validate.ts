@@ -5,7 +5,7 @@ import type { Platform, ScenarioLink, ScenarioPart, ScenarioResponseRef } from '
 import { 값주입이름 as 값이름 } from '@platform/kit/protocol';
 import { z } from 'zod';
 
-import { tcId종류 } from '../catalog/rules.js';
+import { tcId종류, 게임시나리오인가 } from '../catalog/rules.js';
 
 import { type 앱종류, 단계디바이스, 앱단계인가, 섞였나, 케이스접두사 } from './mixed.js';
 
@@ -170,9 +170,13 @@ export function 조립검사(
         );
         return;
       }
-      // 재료가 UI 를 빼 두므로 먼저 본다 — 아니면 「없거나 비활성」으로 잘못 말한다 (도메인/작성 §3.6 「★ 테스트 두 갈래」)
+      // 재료가 UI 를 빼 두므로 먼저 본다 — 아니면 「없거나 비활성」으로 잘못 말한다 (도메인/작성 §3.6 「★ 테스트 두 갈래」). 게임 시나리오도 같다
       if (tcId종류(p.tcId) === 'UI') {
         오류.push(`${자리}: ${p.tcId} 는 UI 테스트라 E2E 단계가 될 수 없다`);
+        return;
+      }
+      if (게임시나리오인가(p.tcId)) {
+        오류.push(`${자리}: ${p.tcId} 는 게임 시나리오라 E2E 단계가 될 수 없다`);
         return;
       }
       const 케이스 = 재료.get(p.tcId);

@@ -100,6 +100,16 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     expect(카드.textContent).toContain('12초 / 제한 30초');
   });
 
+  it('제한이 없는 게임 시나리오 항목은 경과만 적는다', async () => {
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    render(<RunProgressModal data={실행([항목(15, 'desktop')])} 진행목록={[절차(15, { live: true, timeoutMs: 0 })]} onClose={() => {}} />);
+    await 흘리기();
+
+    const 카드 = 카드들()[0]!;
+    expect(카드.textContent).toContain('12초');
+    expect(카드.textContent).not.toContain('제한');
+  });
+
   it('경과는 항목 경과이고, 단계 제목을 알면 「3 / 5단계」다 (점검표 B13 · B11)', () => {
     vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
     const 제목들 = ['홈을 연다', '장바구니를 연다', '수량을 3으로 바꾼다', '주문한다', '확인한다'];

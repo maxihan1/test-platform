@@ -20,7 +20,7 @@ const 원인식 = `CASE WHEN NOT bool_and(i.status = 'PASS') AND t.day >= $4::te
                     'itemMessage', COALESCE(f.error->>'message', ''),
                     'stepMessage', COALESCE(
                       (SELECT s.error->>'message' FROM run_item_step s
-                       WHERE s.history_id = f.history_id AND s.error IS NOT NULL
+                       WHERE s.history_id = f.history_id AND s.error IS NOT NULL AND s.status <> 'NA'
                        ORDER BY s.seq
                        LIMIT 1), ''))
            FROM ${지금항목('o.run_id = t.run_id AND o.tc_id = i.tc_id AND o.platform = i.platform')} f

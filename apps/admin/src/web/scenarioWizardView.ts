@@ -113,7 +113,8 @@ export function 멈춘까닭(part: TrialResult['parts'][number]): 항목실패 |
     status: part.status,
     assertFailed: 확인 !== undefined || 모양틀림,
     itemMessage: part.error?.message ?? '',
-    stepMessage: part.steps.find((s) => s.error !== undefined)?.error?.message ?? '',
+    // 정리 절차(NA)의 오류는 판정 밖이다 (reporting/itemFailure.ts 와 같다)
+    stepMessage: part.steps.find((s) => s.status !== 'NA' && s.error !== undefined)?.error?.message ?? '',
   });
   if (원인 === 'stopped') return null;
   const 한줄 = 한줄로자른다(확인?.statement || part.error?.message || '');

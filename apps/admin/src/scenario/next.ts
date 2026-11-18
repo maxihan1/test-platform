@@ -2,7 +2,7 @@
 // 정상 쪽만 남기는 일은 화면이 팔레트와 같은 규칙으로 한다 — 같은 규칙을 서버에 또 두면 둘이 어긋난다 (§8.11)
 
 import { 주소틀, 틀닿나 } from '../../../../scripts/authoring-crawl-rules.js';
-import { tcId종류 } from '../catalog/rules.js';
+import { tcId종류, 게임시나리오인가 } from '../catalog/rules.js';
 import { db } from '../settings/store.js';
 
 export interface 다음케이스 {
@@ -56,7 +56,7 @@ export function 메뉴뺀연결들(연결들: 연결줄[]): 연결줄[] {
 /**
  * 머문 화면에서 나간 연결의 도착 화면에 닿는 케이스. 앞 케이스가 이미 쓰는 화면으로 가는 연결 · 머리 · 바닥 메뉴 링크는 다음 화면이 아니라 뺀다.
  * 화면 파일 주소와 크롤러 틀은 `틀닿나` 로 맞춘다(인자 없는 주소는 인자 붙은 틀도 덮는다 — PRD-F9-04).
- * 앞 케이스 자신과 UI 테스트(E2E 부품이 아니다)는 뺀다. 여러 화면에 닿으면 받은 차례의 첫 화면을 적는다
+ * 앞 케이스 자신과 UI · 게임 시나리오 테스트(E2E 부품이 아니다)는 뺀다. 여러 화면에 닿으면 받은 차례의 첫 화면을 적는다
  */
 export function 다음케이스들(after: string, 화면들: 화면줄[], 연결들: 연결줄[]): 다음케이스[] {
   const 머문 = new Set(머문틀(after, 화면들));
@@ -65,12 +65,12 @@ export function 다음케이스들(after: string, 화면들: 화면줄[], 연결
   return 닿는케이스들(이어짐, 화면들, after);
 }
 
-/** 그 화면들 가운데 하나에 닿는 케이스. UI 테스트와 뺄 케이스는 뺀다. 여러 화면에 닿으면 받은 차례의 첫 화면을 적는다 */
+/** 그 화면들 가운데 하나에 닿는 케이스. UI · 게임 시나리오 테스트와 뺄 케이스는 뺀다. 여러 화면에 닿으면 받은 차례의 첫 화면을 적는다 */
 function 닿는케이스들(곳들: string[], 화면들: 화면줄[], 뺄?: string): 다음케이스[] {
   const 고른 = new Map<string, string>();
   for (const x of 화면들) {
     const 곳 = 주소틀(x.url);
-    if (곳 === null || x.tcId === 뺄 || 고른.has(x.tcId) || tcId종류(x.tcId) === 'UI') continue;
+    if (곳 === null || x.tcId === 뺄 || 고른.has(x.tcId) || tcId종류(x.tcId) === 'UI' || 게임시나리오인가(x.tcId)) continue;
     if (곳들.some((to) => 틀닿나(to, new Set([곳])))) 고른.set(x.tcId, 곳);
   }
   return [...고른].map(([tcId, screen]) => ({ tcId, screen }));

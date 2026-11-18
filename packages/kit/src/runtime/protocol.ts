@@ -66,3 +66,10 @@ export const 값주입이름 = /^[A-Za-z0-9_가-힣]{1,20}$/;
 // 폰 Chrome 은 창(브라우저 컨텍스트)을 새로 못 만든다. 폰이 내는 오류는 Chrome 판마다 달라 미리 같은 글로 막는다 (SPEC 도메인/실행 §3.2 「실제 폰에서 안 되는 것」).
 // 러너 고정 spec(apps/runner/scenario/realPhone.ts)이 옮겨 적는다
 export const 창하나글 = '실제 폰 Chrome 은 창을 하나만 쓴다 — 케이스가 창을 새로 만들었다(browser.newContext)';
+
+// 게임 시나리오 번호 — kit 은 이 번호로 전체 한도를 끄고 admin 은 제한 시간 0 을 싣는다. 두 쪽이 같은 꼴을 봐야 한다 (공통/3-공유계약 「게임 시나리오 도구」)
+export const 게임시나리오인가 = (tcId: string): boolean => /-GS-\d{3}$/.test(tcId);
+
+// test.cleanup 절차 제목 — kit 이 짓고 리포팅 · 카탈로그 단계 제목이 같은 꼴로 알아본다
+export const 정리제목 = (때: '시작' | '끝', title: string): string => `${때} 정리 — ${title}`;
+export const 정리절차인가 = (title: string): boolean => /^(시작|끝) 정리 — /.test(title);

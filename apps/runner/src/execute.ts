@@ -236,10 +236,14 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   child.stdout.on('data', (chunk: string) => { stdout += chunk; });
   child.stderr.on('data', (chunk: string) => { stderr += chunk; });
 
-  const timer = setTimeout(() => {
-    entry.killedBy = 'TIMEOUT';
-    killTree(child);
-  }, req.timeoutMs);
+  // 0 은 한도 없음(게임 시나리오) — 미션 멈춤은 kit 이 잡고 사람이 멈추는 것은 abort 가 한다 (도메인/게임 §3.10 결정 21)
+  const timer =
+    req.timeoutMs === 0
+      ? undefined
+      : setTimeout(() => {
+          entry.killedBy = 'TIMEOUT';
+          killTree(child);
+        }, req.timeoutMs);
 
   // spawn 실패(프로세스를 못 띄움)는 러너 자체의 고장이므로 던져서 500으로 올린다
   const code = await new Promise<number | null>((done, fail) => {

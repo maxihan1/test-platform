@@ -166,7 +166,7 @@ const 유형재료뽑기 = `
          COALESCE(i.error->>'message', '') AS item_message,
          COALESCE(
            (SELECT s.error->>'message' FROM run_item_step s
-            WHERE s.history_id = i.history_id AND s.error IS NOT NULL
+            WHERE s.history_id = i.history_id AND s.error IS NOT NULL AND s.status <> 'NA'
             ORDER BY s.seq
             LIMIT 1), '') AS step_message
   FROM ${지금항목('o.run_id = $1')} i

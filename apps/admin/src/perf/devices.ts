@@ -4,6 +4,7 @@ import { 패키지이름인가 } from '@platform/kit/protocol';
 import { z } from 'zod';
 
 import { 대상줄읽기 } from '../authoring/reverse.js';
+import { 게임시나리오인가 } from '../catalog/rules.js';
 import { 팜머리, 팜주소 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 러너머리 } from '../execution/runnerAddr.js';
@@ -139,6 +140,7 @@ async function 케이스검사(serviceId: number, caseIds: string[], 이름: str
   const 행 = new Map(r.rows.map((x) => [x.tc_id, x]));
   for (const id of caseIds) {
     const x = 행.get(id);
+    if (게임시나리오인가(id)) return `게임 시나리오는 기기 성능에 쓰지 않습니다: ${id}`;
     if (x === undefined) return `이 애플리케이션의 케이스가 아닙니다: ${id}`;
     if (!x.platforms.includes('android')) return `${이름} 케이스가 아닙니다: ${id}`;
   }

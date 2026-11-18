@@ -31,6 +31,7 @@ const 장소열쇠 = (key: string) => `game:World/${key}`;
 
 /**
  * 고를 수 있는 케이스는 그 애플리케이션의 활성 케이스 가운데 폰에서 도는 것(android · mobile)이다.
+ * 게임 시나리오(-GS-)는 호환성 점검에 안 쓰니 뺀다 — 저장할 때도 후보 밖이라 UNKNOWN_CASE 400 이다.
  * 보류 케이스는 거르지 않는다 — 값을 안 채운 보류 케이스는 main 에 못 들어간다(K13 `check:tests --no-held`)
  */
 export async function 재료읽기(serviceId: number, prefix: string): Promise<재료> {
@@ -50,7 +51,7 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
     ),
     pool.query<{ tc_id: string; name: string }>(
       `SELECT tc_id, name FROM test_case
-        WHERE is_active AND split_part(tc_id, '-', 1) = $1 AND (platforms ? 'android' OR platforms ? 'mobile')
+        WHERE is_active AND split_part(tc_id, '-', 1) = $1 AND tc_id !~ '-GS-[0-9]{3}$' AND (platforms ? 'android' OR platforms ? 'mobile')
         ORDER BY tc_id COLLATE "C"`,
       [prefix],
     ),
