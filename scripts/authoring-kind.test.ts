@@ -63,33 +63,28 @@ describe('입구고르기 — 종류를 못 읽으면 로그에 남긴다', () =
     expect(입구고르기(트리만들기([]), 'GAME', 알림)).toEqual({ 스킬: 'tpx-author' });
     expect(알림).not.toHaveBeenCalled();
   });
-
-  it('작업 폴더를 안 받았으면 알리지 않고 옛 입구다', () => {
-    const 알림 = vi.fn();
-    expect(입구고르기(undefined, undefined, 알림)).toEqual({ 스킬: 'tpx-author' });
-    expect(알림).not.toHaveBeenCalled();
-  });
 });
 
 describe('줄프롬프트 — 종류 입구 (도메인/작성 §3.6 「종류별 작성 AI」)', () => {
   const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
   const 대상 = { 폴더: 'mkt', 서버들: [{ env: 'qa', baseUrl: 'https://qa.mkt.test' }] };
   const 앱화면 = { 글: '첫 화면' };
-  const 글 = (더: { 트리?: string; 종류?: string }, 화면?: typeof 앱화면) =>
-    줄프롬프트(것, 'MKT', [], { ...대상, ...더 }, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 화면);
+  /** 에이전트처럼 작업 폴더와 kind 로 입구를 한 번 골라 싣는다. 안 주면 입구 칸 없이 부른다 */
+  const 글 = (더?: { 트리: string; 종류: string }, 화면?: typeof 앱화면) =>
+    줄프롬프트(것, 'MKT', [], 더 === undefined ? 대상 : { ...대상, 입구: 입구고르기(더.트리, 더.종류, () => undefined) }, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 화면);
 
   it('작업 폴더에 입구가 없으면 종류를 받아도 지금 프롬프트와 글자 하나 안 다르다', () => {
-    const 지금 = 글({});
+    const 지금 = 글();
     expect(지금.split('\n')[0]).toBe('/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 MKT 다.');
     expect(지금).toContain('\n- tpx-author 스킬을 따라라. 다른 체인 스킬은 부르지 마라.\n');
     expect(지금).not.toContain('이 애플리케이션은 종류');
-    for (const 종류 of ['SCREEN', 'APP', 'API', 'GAME']) expect(글({ 트리: 트리만들기([]), 종류 }, 앱화면)).toBe(글({}, 앱화면));
+    for (const 종류 of ['SCREEN', 'APP', 'API', 'GAME']) expect(글({ 트리: 트리만들기([]), 종류 }, 앱화면)).toBe(글(undefined, 앱화면));
   });
 
   it('입구가 있으면 첫 줄이 그 입구이고 종류 줄을 적는다', () => {
     const 게임 = 글({ 트리: 트리만들기(['tpx-author-game']), 종류: 'GAME' });
     expect(게임.split('\n')[0]).toBe('/tpx-author-game 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 MKT 다.');
-    expect(게임).toContain('\n- 이 애플리케이션은 종류 「게임」이다. tpx-author-game 스킬을 따라라. 다른 체인 스킬은 부르지 마라.\n');
+    expect(게임).toContain('\n- 이 애플리케이션은 종류 「게임」이다. tpx-author-game 스킬을 따라라(공통 절차 tpx-author 는 그 스킬이 시키는 대로 연다). 다른 체인 스킬은 부르지 마라.\n');
     expect(글({ 트리: 트리만들기(['tpx-author-app']), 종류: 'APP' })).toContain('종류 「Android 앱」이다. tpx-author-app 스킬을 따라라');
   });
 

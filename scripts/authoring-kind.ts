@@ -42,9 +42,11 @@ export function 스킬고르기(트리: string, 종류: 작성종류 | null): �
   return existsSync(join(트리, '.claude', 'skills', 스킬, 'SKILL.md')) ? { 스킬, 종류 } : { 스킬: 옛입구 };
 }
 
-/** 프롬프트가 부른다. 작업 폴더를 안 받았으면 옛 입구이고, 종류를 못 읽으면 종류 없이 띄우고 로그에 남긴다 */
-export function 입구고르기(트리: string | undefined, kind: string | undefined, 알림: (글: string) => void): 입구 {
-  if (트리 === undefined) return { 스킬: 옛입구 };
+/**
+ * 자식을 띄우기 전에 한 번 부른다 — 트리는 자식이 쓰는 자리라 띄울 때마다 다시 보면 같은 요청 안에서 입구가 바뀔 수 있다.
+ * 종류를 못 읽으면 종류 없이 띄우고 로그에 남긴다
+ */
+export function 입구고르기(트리: string, kind: string | undefined, 알림: (글: string) => void): 입구 {
   const 종류 = 작성종류(kind);
   if (종류 === null) 알림(`애플리케이션 종류를 못 읽었다(kind=${JSON.stringify(kind ?? null)}) — 종류 없이 ${옛입구} 로 띄운다`);
   return 스킬고르기(트리, 종류);
