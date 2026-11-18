@@ -1,4 +1,4 @@
-// 게임 시나리오 미션 목록 — 작성 에이전트가 올린 목록의 모양 검사 · 저장, 결정 목록이 고를 미션 · 제외 (도메인/게임 §3.10 결정 24 · 도메인/작성 §3.6 「★ 결정 목록」 · §7 「미션 목록 통로」)
+// 게임 시나리오 미션 목록 — 작성 에이전트가 올린 목록의 모양 검사 · 저장, 결정 목록이 고를 미션 · 제외 (도메인/게임 §3.10 결정 24 · §7 `PUT …/missions` · 도메인/작성 §3.6 「★ 결정 목록」 · §7 「결정 목록 통로」)
 
 import { createHash } from 'node:crypto';
 
@@ -29,7 +29,9 @@ export interface 미션칸 extends 미션올림 {
   skipped: string[];
 }
 
-const 상한 = { 미션: 200, 줄: 20, 규칙: 1000, 제목: 300, 글: 1000, 번호: 100 } as const;
+/** 한 목록의 미션 수 상한 — 에이전트가 올리기 전에 같은 값으로 미리 본다 */
+export const 미션상한 = 200;
+const 상한 = { 미션: 미션상한, 줄: 20, 규칙: 1000, 제목: 300, 글: 1000, 번호: 100 } as const;
 const 미션번호 = /^M\d{2,3}$/;
 
 const 글인가 = (x: unknown, 최대: number): x is string => typeof x === 'string' && x.trim() !== '' && x.length <= 최대;
@@ -81,16 +83,14 @@ export function 미션검사(몸: unknown): 미션올림 | { error: 'INVALID_MIS
 export const 미션지문 = (m: 미션): string =>
   createHash('sha256').update(JSON.stringify([m.id, m.title, m.start, m.todo, m.success, m.logs.map((l) => [l.text, l.reqId])])).digest('hex').slice(0, 16);
 
-/** 결정 항목 열쇠의 지문 — 사람이 본 고를 미션과 진행 때 미션이 같은지 본다 */
-export const 목록지문 = (ms: readonly 미션[]): string => createHash('sha256').update(ms.map(미션지문).join('|')).digest('hex').slice(0, 16);
-
 /**
- * 올린 목록을 그 요청에 둔다. [제외]는 그 서비스가 바로 앞에 올린 목록에서 물려받는다 — 같은 번호 미션을 사람이 또 제외하지 않게
+ * 올린 목록을 그 요청에 둔다. [제외]는 그 서비스가 바로 앞에 올린 목록에서 물려받는다 — 같은 미션을 사람이 또 제외하지 않게.
+ * 내용이 바뀐 미션은 물려받지 않는다 — 쓴 미션과 같은 기준(지문)이라야 사람이 못 본 새 내용이 제외 칸에 숨지 않는다
  */
 export async function 미션넣기(요청: number, 서비스: number, 올림: 미션올림): Promise<void> {
   const 앞 = await 최신미션(서비스);
-  const 번호들 = new Set(올림.items.map((m) => m.id));
-  const skipped = (앞?.칸.skipped ?? []).filter((id) => 번호들.has(id));
+  const 앞제외 = new Set((앞?.칸.items ?? []).filter((m) => 앞!.칸.skipped.includes(m.id)).map(미션지문));
+  const skipped = 올림.items.filter((m) => 앞제외.has(미션지문(m))).map((m) => m.id);
   const 칸: 미션칸 = { ...올림, skipped };
   await (await db()).query('UPDATE authoring_request SET missions = $2 WHERE id = $1', [요청, JSON.stringify(칸)]);
 }
@@ -110,11 +110,17 @@ export async function 최신미션(서비스: number, 손?: PoolClient): Promise
   return 행 === undefined ? null : { requestId: Number(행.id), 칸: { ...행.missions, skipped: 행.missions.skipped ?? [] } };
 }
 
-/** 이미 쓰러 보낸 미션의 지문 — 폐기 안 된 게임 시나리오 작성 요청(params.missions)이 실은 것 */
+/**
+ * 이미 쓰러 보낸 미션의 지문 — 폐기 안 된 게임 시나리오 작성 요청(params.missions)이 실은 것. 최신 실행이 실패로 끝난 작성은 빼서 다시 고르게 한다.
+ * 멈춘 작성은 이어 할 수 있어 쓴 것으로 본다
+ */
 async function 쓴미션지문(서비스: number, 손?: PoolClient): Promise<Set<string>> {
   const r = await (손 ?? (await db())).query<{ items: unknown }>(
     `SELECT params->'missions'->'items' AS items FROM authoring_request
-      WHERE service_id = $1 AND kind = 'AUTHOR' AND discarded_at IS NULL AND params ? 'missions'`,
+      WHERE service_id = $1 AND kind = 'AUTHOR' AND discarded_at IS NULL AND params ? 'missions'
+        AND (SELECT x.status FROM authoring_request x
+              WHERE (x.id = authoring_request.id OR x.source_id = authoring_request.id) AND x.kind <> 'MERGE'
+              ORDER BY x.id DESC LIMIT 1) <> 'FAILED'`,
     [서비스],
   );
   return new Set(r.rows.flatMap((x) => (Array.isArray(x.items) ? (x.items as 미션[]).map(미션지문) : [])));
@@ -143,7 +149,9 @@ export async function 고를미션읽기(서비스: number, 손?: PoolClient): P
 }
 
 /** [제외] · [되돌리기] — 지금 목록에 있는 미션만. 확인 창을 거쳐 적용 버튼 없이 곧바로 바꾼다(제외한 화면과 같다) */
-export async function 미션제외바꾸기(서비스: number, 요청: number, id: string, skip: boolean): Promise<'OK' | 'NOT_FOUND'> {
+export async function 미션제외바꾸기(서비스: number, 요청: number, id: string, skip: boolean): Promise<'OK' | 'NOT_FOUND' | 'STALE'> {
+  // 그 사이 새 목록이 올라왔으면 옛 목록을 고쳐도 화면에 안 보인다 — 조용히 OK 를 주지 않는다
+  if ((await 최신미션(서비스))?.requestId !== 요청) return 'STALE';
   const r = await (await db()).query(
     `UPDATE authoring_request
         SET missions = jsonb_set(missions, '{skipped}',

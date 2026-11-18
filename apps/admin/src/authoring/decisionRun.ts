@@ -260,6 +260,7 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
           { 서비스, kind: 'AUTHOR', 기획서: null, 값: { ...결정(), ...(준.보완.skip.length > 0 ? { skipScreens: 준.보완.skip } : {}) }, 누가: 사람.username, 이름: 사람.displayName, 대조: { env: 준.보완.env, startUrl: 준.보완.startUrl } },
           손,
         );
+        앞것.push(id);
         steps.push({ step: 5, key: 준.보완.key, requestId: id, version: null });
       }
       if (준.미션 !== null) {

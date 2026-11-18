@@ -26,7 +26,7 @@ import {
 } from './decisionItems.js';
 import { 기다리는요청들, 병합된API버전, 손남은뿌리들, 최근대조, 판정없는실패들 } from './decisionReads.js';
 import { 목록요약들 } from './listSummary.js';
-import { 고를미션읽기, 목록지문 } from './missions.js';
+import { 고를미션읽기 } from './missions.js';
 import { 열린작성 } from './openRoots.js';
 
 /** 부른 사람이 그 애플리케이션에서 할 수 있는 것 — admin 은 배정된 애플리케이션에서 전부다(auth/gate.ts `권한이되나`) */
@@ -196,7 +196,7 @@ async function 미션묶음(서비스: number, 열린: number[], 대기뿌리: S
   const 재료 = await 고를미션읽기(서비스);
   if (재료 === null) return [];
   const 고름값 = 재료.missions.length > 0 ? 셋째고름(누구, 열린, 대기뿌리, ['WRITE']) : { picks: [] as 고르기[], blockedBy: 누구.작성쓰기 ? null : ('NO_WRITE' as const) };
-  return [{ key: `missions:${String(재료.requestId)}:${목록지문(재료.missions)}`, group: 3, kind: 'MISSIONS', ...고름값, ...재료 }];
+  return [{ key: `missions:${String(재료.requestId)}`, group: 3, kind: 'MISSIONS', ...고름값, ...재료 }];
 }
 
 /** 덮는 케이스를 쓰는 E2E 시나리오 — GET /api/scenarios?uses= 와 같은 셈(최신 버전 부품) */

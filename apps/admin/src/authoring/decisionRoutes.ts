@@ -55,6 +55,7 @@ export default async function decisionRoutes(app: FastifyInstance): Promise<void
       return reply.code(400).send({ error: 'INVALID_REQUEST' });
     }
     const 결과 = await 미션제외바꾸기(서비스, requestId, id, skip);
+    if (결과 === 'STALE') return reply.code(409).send({ error: 'DECISIONS_STALE' });
     if (결과 !== 'OK') return reply.code(400).send({ error: 결과 });
     return { ok: true };
   });

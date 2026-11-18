@@ -63,7 +63,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   // 할 일이 없는 탭은 안 그린다. 고른 탭이 사라지면(적용해서 다 빠지면) 남은 첫 탭이다
   // 미션 승인은 미션 수를 센다 — 제외한 미션만 남은 항목도 되돌릴 자리로 한 칸은 센다
   const 수 = (x: 탭) =>
-    items.filter((y) => 탭of(y) === x).reduce((합, y) => 합 + (y.kind === 'MISSIONS' ? Math.max(1, y.missions.length) : 1), 0) + (x === 'fail' ? 목록.failMore : 0);
+    items.filter((y) => 탭of(y) === x).length + (x === 'fail' ? 목록.failMore : 0);
   const 보이는 = 탭차례.filter((x) => 수(x) > 0);
   const 지금 = 고른탭 !== null && 보이는.includes(고른탭) ? 고른탭 : 보이는[0]!;
   const 탭항목 = items.filter((x) => 탭of(x) === 지금);

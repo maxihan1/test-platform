@@ -1,10 +1,11 @@
-// 게임 시나리오 미션 — 케이스 목록 파일의 미션 절을 읽어 올리고, 승인된 미션(params.missions)을 자식에게 넘긴다 (도메인/게임 §3.10 결정 24 · 도메인/작성 §7 「미션 목록 통로」)
+// 게임 시나리오 미션 — 케이스 목록 파일의 미션 절을 읽어 올리고, 승인된 미션(params.missions)을 자식에게 넘긴다 (도메인/게임 §3.10 결정 24 · 도메인/게임 §7 `PUT …/missions`)
 // 서버 약속(올리는 본문 · 승인 뒤 params)은 apps/admin/src/authoring/missions.ts 가 정본이다 — 모양 검사는 그 `미션검사` 를 그대로 쓴다
 
 import { readdirSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
-import { type 미션, 미션검사 } from '../apps/admin/src/authoring/missions.js';
+import { type 미션, 미션검사, 미션상한 } from '../apps/admin/src/authoring/missions.js';
+import { 본문상한 } from '../apps/admin/src/prd/rules.js';
 import { 부른다 } from './authoring-io.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, 원장대조, tcId들 } from './authoring-ledger-check.js';
@@ -80,7 +81,13 @@ export function 미션절읽기(표글: string): { items: 미션[]; gaps: 빈칸
   const 줄들 = 표글.split(/\r?\n/);
   const 시작 = 줄들.findIndex((l) => 절머리.test(l.trim()));
   if (시작 < 0) return null;
-  const 끝 = 줄들.findIndex((l, i) => i > 시작 && /^#{1,2}\s/.test(l));
+  // 코드 덩이 안의 `# …` 줄은 제목이 아니다 — 거기서 끊으면 뒤 미션과 공식 빈칸이 말없이 빠진다
+  let 덩이안 = false;
+  const 끝 = 줄들.findIndex((l, i) => {
+    if (i <= 시작) return false;
+    if (l.trimStart().startsWith('```')) 덩이안 = !덩이안;
+    return !덩이안 && /^#{1,2}\s/.test(l);
+  });
   const 덩이들: { 제목: string; 몸: string[] }[] = [];
   for (const 줄 of 줄들.slice(시작 + 1, 끝 < 0 ? undefined : 끝)) {
     const 제목 = /^###\s+(.+?)\s*$/.exec(줄);
@@ -157,6 +164,9 @@ export async function 미션올리기(
     const 볼글 = [...읽음.items.flatMap((m) => [m.title, m.start, m.todo, m.success, ...m.logs.flatMap((l) => [l.text, l.reqId])]), ...읽음.gaps.map((g) => g.note), ...uncovered.map((u) => u.text)];
     if (계정섞였나(볼글, 입력.비밀)) return ['게임 시나리오 미션: 목록에 테스트 계정 비밀번호가 들어 있어 안 올림'];
     const 못읽음글 = 읽음.못읽음.length === 0 ? '' : ` · 못 읽은 미션 ${읽음.못읽음.length}개(${읽음.못읽음.slice(0, 3).join(' / ')})`;
+    // 서버는 상한을 넘으면 목록을 통째로 거절한다 — 400 한 줄보다 까닭을 PR 머리에 남긴다(apps/admin/src/authoring/missions.ts 상한 · prd/rules.ts 본문상한)
+    if (읽음.items.length > 미션상한) return [`게임 시나리오 미션: 못 올림 — 미션 ${읽음.items.length}개가 서버 상한 ${미션상한}개를 넘는다. 미션을 묶어 줄인다${못읽음글}`];
+    if (Buffer.byteLength(JSON.stringify(몸)) > 본문상한) return [`게임 시나리오 미션: 못 올림 — 목록이 서버 본문 상한(${본문상한} 바이트)을 넘는다${못읽음글}`];
     const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/missions`, { method: 'PUT', body: 몸 });
     if (답.status === 204) {
       return [`게임 시나리오 미션: ${읽음.items.length}개 올림 · 공식 빈칸 ${읽음.gaps.length}개 · 미션도 테스트도 없는 규칙 ${uncovered.length}개${못읽음글}`];

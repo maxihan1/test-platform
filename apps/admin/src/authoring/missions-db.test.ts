@@ -130,6 +130,10 @@ describe.skipIf(연결 === undefined)('미션 목록 · 미션 승인', () => {
 
     // 세운 작성이 열린 작성이라 고르기는 닫히지만 남은 미션은 M02 하나다
     expect((await 미션항목())!.missions!.map((m) => m.id)).toEqual(['M02']);
+
+    // 그 작성이 실패로 끝나면 M01 을 다시 고른다
+    await q(`UPDATE authoring_request SET status = 'FAILED', finished_at = now() WHERE id = $1`, [step.requestId]);
+    expect((await 미션항목())!.missions!.map((m) => m.id)).toEqual(['M01', 'M02']);
   });
 
   it('[제외]한 미션은 접힌 목록으로 가고 되돌릴 수 있으며, 다음에 올린 목록이 제외를 물려받는다. 내용이 바뀐 미션은 다시 고른다', async () => {
@@ -150,8 +154,16 @@ describe.skipIf(연결 === undefined)('미션 목록 · 미션 승인', () => {
     await 올리기(둘째, 목록본문([미션('M01', 7), 미션('M02')]));
     await 끝내고병합(둘째);
     expect(await 미션항목()).toMatchObject({ requestId: 둘째, picks: ['WRITE'], missions: [{ id: 'M01' }], skipped: [{ id: 'M02' }] });
+    expect([(await 제외(첫, 'M01', true)).statusCode]).toEqual([409]); // 옛 목록을 고치면 화면에 안 보인다
 
-    expect((await 제외(둘째, 'M02', false)).json()).toEqual({ ok: true });
+    // 내용이 바뀐 미션은 제외를 물려받지 않는다 — 사람이 새 내용을 본 적이 없다
+    const 셋째 = await 도는요청();
+    await 올리기(셋째, 목록본문([미션('M01', 7), 미션('M02', 9)]));
+    await 끝내고병합(셋째);
+    expect(await 미션항목()).toMatchObject({ requestId: 셋째, missions: [{ id: 'M01' }, { id: 'M02' }], skipped: [] });
+    await 제외(셋째, 'M02', true);
+
+    expect((await 제외(셋째, 'M02', false)).json()).toEqual({ ok: true });
     expect((await 미션항목())!.missions!.map((m) => m.id)).toEqual(['M01', 'M02']);
   });
 });

@@ -286,7 +286,7 @@ describe('결정 목록', () => {
       gaps: [{ reqId: 'ARG-REQ-047', note: '치명타 배율' }],
     };
     render(<AuthoringDecide service="ARG" 목록={목록([반영, 미션])} envs={[]} 다시읽기={다시읽기} />);
-    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['승인 대기 1', '미션 승인 2']);
+    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['승인 대기 1', '미션 승인 1']);
     탭(/미션 승인/);
     expect(screen.getByText('미션 2개 중 테스트로 쓸 미션을 체크해 주세요')).toBeTruthy();
     expect(screen.getByRole('link', { name: '#15702' }).getAttribute('href')).toBe('#/authoring/15702');

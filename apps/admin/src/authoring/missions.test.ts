@@ -1,8 +1,8 @@
-// 미션 목록 모양 검사 · 지문 — DB 없이 (도메인/게임 §3.10 결정 24 · 도메인/작성 §7 「미션 목록 통로」)
+// 미션 목록 모양 검사 · 지문 — DB 없이 (도메인/게임 §3.10 결정 24 · §7 `PUT …/missions`)
 
 import { describe, expect, it } from 'vitest';
 
-import { 목록지문, 미션검사, 미션지문, type 미션 } from './missions.js';
+import { 미션검사, 미션지문, type 미션 } from './missions.js';
 
 const 임프: 미션 = {
   id: 'M01',
@@ -48,6 +48,5 @@ describe('미션지문', () => {
     const 고친 = { ...임프, logs: [{ text: '받은 피해 줄: 전부 7 (최소 1줄)', reqId: 'ARG-REQ-041' }] };
     expect(미션지문(고친)).not.toBe(미션지문(임프));
     expect(미션지문({ ...임프 })).toBe(미션지문(임프));
-    expect(목록지문([임프])).not.toBe(목록지문([]));
   });
 });
