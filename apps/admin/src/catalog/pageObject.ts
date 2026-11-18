@@ -1,10 +1,11 @@
-// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 · K15 · K16 을 검사한다
+// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 · K15 · K16 을 검사한다(K17 은 `cssLocator.ts`)
 
 import { readdir } from 'node:fs/promises';
 import { join, posix, sep } from 'node:path';
 
 import ts from 'typescript';
 
+import { k17 } from './cssLocator.js';
 import type { Violation } from './rules.js';
 
 export const K7_WHY = '같은 설명이 두 군데 생겨 한쪽이 거짓말을 시작한다';
@@ -259,7 +260,7 @@ export function checkNonCase(file: string, text: string): Violation[] {
     return [{ file, line: 1, rule: 'K7', what: 'tests 아래 JS 파일이다', why: '타입 검사와 이 검사를 피한 채 import 로 불린다' }];
   }
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  return [...k7(file, sf), ...k15(file, sf), ...k16(file, sf), ...stepOrVerify(file, sf), ...importRule(file, sf)].sort((a, b) => a.line - b.line);
+  return [...k7(file, sf), ...k15(file, sf), ...k16(file, sf), ...k17(file, sf), ...stepOrVerify(file, sf), ...importRule(file, sf)].sort((a, b) => a.line - b.line);
 }
 
 // JS 파일도 모은다 — checkNonCase 가 그 자체로 위반으로 찍는다. 이름 꼴은 cases-only 가 따로 본다. 여기서 꼴로 거르면 꼴이 어긋난 파일이 K7 을 아예 안 받는다
