@@ -56,13 +56,14 @@ function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
 }
 
 /** 서버가 적어 준 「바뀐 것」 — 앞 버전과 견주지 않고 그대로 줄마다 적는다 */
-function 적힌바뀐것({ changes }: { changes: PrdVersionChange[] }) {
+/** tcId 는 화면이 맞음 요청이 올린 AGENT 버전과 설명 안 되는 줄을 고친 DECISION 버전만 단다 — 까닭은 버전 출처로 가른다 */
+function 적힌바뀐것({ changes, 결정 }: { changes: PrdVersionChange[]; 결정: boolean }) {
   const t = use말();
   const 종류글: Record<PrdVersionChange['kind'], string> = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정'), ADD: t('추가'), DEL: t('삭제'), CHECK: t('확인 필요로 지정') };
   return (
     <ul className="prd-diff">
       {changes.map((c) => {
-        const 까닭 = [c.tcId === null ? null : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('출처 {자료}', { 자료: c.asset }), c.issueKeys === undefined || c.issueKeys.length === 0 ? null : t('{키들} 에서 옴', { 키들: c.issueKeys.join(', ') })].filter((x) => x !== null);
+        const 까닭 = [c.tcId === null ? null : 결정 ? t('설명 안 되는 줄({번호})', { 번호: c.tcId }) : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('출처 {자료}', { 자료: c.asset }), c.issueKeys === undefined || c.issueKeys.length === 0 ? null : t('{키들} 에서 옴', { 키들: c.issueKeys.join(', ') })].filter((x) => x !== null);
         return (
           <li key={`${c.kind}\n${c.reqId}`}>
             <span className="prd-kind">{종류글[c.kind]}</span>
@@ -199,7 +200,7 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
                   <td>{어디서(v)}</td>
                   <td className="prd-vchange">
                     {v.changes !== null ? (
-                      <적힌바뀐것 changes={v.changes} />
+                      <적힌바뀐것 changes={v.changes} 결정={v.source === 'DECISION'} />
                     ) : (
                       // 목록은 새 버전부터다. 앞 버전은 바로 다음 줄이다
                       <바뀐것 service={service} 판={v.version} 앞판={목록.data![i + 1]?.version ?? null} 읽은={읽은.current} 바로={i < 바로계산} />

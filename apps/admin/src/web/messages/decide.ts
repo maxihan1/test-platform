@@ -74,8 +74,8 @@ export const 결정말: Record<string, string> = {
   '승인 대기': 'Awaiting approval',
   'AI 가 만든 테스트입니다. 승인하면 케이스 목록에 정식 테스트로 들어갑니다': 'Tests the AI wrote. Approve them to add them to the case list',
   '결함 판정': 'Defect triage',
-  '실패한 테스트입니다. 화면이 틀렸으면 이슈로 등록하고 기획서가 틀렸으면 PRD 를 수정합니다':
-    'Failed tests. File an issue if the screen is wrong, or update the PRD if the spec is wrong',
+  '실패한 테스트와 미션 테스트의 설명 안 되는 줄입니다. 화면이 틀렸으면 이슈로 등록하고 기획서가 틀렸으면 PRD 를 수정합니다':
+    'Failed tests and unexplained lines from mission tests. File an issue if the screen is wrong, or update the PRD if the spec is wrong',
   '요구사항 확인': 'Requirement check',
   'AI 가 확신하지 못한 요구사항입니다. 확정하거나 수정하면 PRD 새 버전으로 저장됩니다': 'Requirements the AI was unsure about. Confirming or editing saves a new PRD version',
   '테스트 업데이트': 'Test update',
@@ -160,4 +160,8 @@ export const 결정말: Record<string, string> = {
   'AI 가 이 미션으로 테스트를 쓰지 않습니다': 'The AI will not write tests from this mission',
   '아래 「제외한 미션」에서 복원할 수 있습니다': 'You can restore it under "Excluded missions" below',
   '미션 {수}개로 게임 시나리오 테스트를 쓰는 작성을 세웁니다': 'Start an authoring run that writes game scenario tests from {수} missions',
+  '미션 테스트에 설명 안 되는 줄이 있습니다. 어떻게 처리할까요?': 'A mission test logged lines the spec does not explain. How should we handle them?',
+  '설명 안 되는 줄': 'Unexplained lines',
+  '실행 결과 보기': 'View run result',
+  '{번호} 설명 안 되는 줄을 결함으로 기록합니다': 'Record the {번호} unexplained lines as a defect',
 };

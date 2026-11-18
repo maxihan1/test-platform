@@ -8,6 +8,7 @@ import { 의도확인, 문구고르기 } from './AuthoringDecideCheck.js';
 import { 초안카드 } from './AuthoringDecideDraft.js';
 import { 반영대기, 상세할일, 실패판정 } from './AuthoringDecideItems.js';
 import { 미션고르기 } from './AuthoringDecideMissions.js';
+import { 설명판정 } from './AuthoringDecideNote.js';
 import { 새로만들기 } from './AuthoringDecideNew.js';
 import { 화면고르기 } from './AuthoringDecideScreens.js';
 import { 진행중, 차례글 } from './AuthoringDecideRun.js';
@@ -28,7 +29,7 @@ function 탭말(x: 탭, t: 말): { 이름: string; 뜻: string } {
   return {
     approve: { 이름: t('승인 대기'), 뜻: t('AI 가 만든 테스트입니다. 승인하면 케이스 목록에 정식 테스트로 들어갑니다') },
     mission: { 이름: t('미션 승인'), 뜻: t('AI 가 기획서 규칙으로 만든 게임 미션입니다. 체크한 미션만 게임 시나리오 테스트로 씁니다') },
-    fail: { 이름: t('결함 판정'), 뜻: t('실패한 테스트입니다. 화면이 틀렸으면 이슈로 등록하고 기획서가 틀렸으면 PRD 를 수정합니다') },
+    fail: { 이름: t('결함 판정'), 뜻: t('실패한 테스트와 미션 테스트의 설명 안 되는 줄입니다. 화면이 틀렸으면 이슈로 등록하고 기획서가 틀렸으면 PRD 를 수정합니다') },
     check: { 이름: t('요구사항 확인'), 뜻: t('AI 가 확신하지 못한 요구사항입니다. 확정하거나 수정하면 PRD 새 버전으로 저장됩니다') },
     update: { 이름: t('테스트 업데이트'), 뜻: t('변경된 요구사항 · API 와 테스트가 없는 화면입니다. 테스트를 다시 만들거나 신규로 추가합니다') },
   }[x];
@@ -75,6 +76,8 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   // 수정 칸을 열기만 하면 원래 글이 들어간다 — 원래 글과 같은 칸은 고친 것이 아니다
   const 고침 = [...편집].some(([key, 글]) => {
     const x = items.find((y) => y.key === key);
+    // 설명 안 되는 줄은 덮는 요구 가운데 하나의 문장으로 칸이 열린다
+    if (x?.kind === 'NOTE') return 글 !== 고른.get(key)?.text && !x.reqs.some((r) => r.text === 글);
     return 글 !== (고른.get(key)?.text ?? (x?.kind === 'CHECK' && x.basis !== 'DOCS' ? x.text : undefined));
   });
   const 안저장 = [...편집.keys()].filter((key) => 열쇠들.has(key)).length;
@@ -122,6 +125,8 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
         return <상세할일 key={x.key} x={x} />;
       case 'FAIL':
         return <실패판정 key={x.key} x={x} 고른={값} on고름={on고름} />;
+      case 'NOTE':
+        return <설명판정 key={x.key} x={x} 고른={값} on고름={on고름} 편집={편집} on편집={on편집} />;
       case 'PRD_DRAFT':
         return <초안카드 key={x.key} x={x} 고른={값} on고름={on고름} />;
       case 'SCREENS':

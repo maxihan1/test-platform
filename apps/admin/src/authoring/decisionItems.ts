@@ -35,6 +35,8 @@ export type 결정항목 = 머리 &
     | { kind: 'APPLY'; rootId: number; runId: number; summary: 목록요약; prUrl: string | null; requestedByName: string; finishedAt: string | null }
     | { kind: 'FIX'; rootId: number; summary: 목록요약; why: 'APPLY_FAILED' | 'HELD' | 'CONFLICT'; count: number; waiting: number[] }
     | { kind: 'FAIL'; runId: number; tcId: string; reqs: { reqId: string; text: string }[]; verify: string | null; reason: string | null; finishedAt: string | null }
+    // 게임 시나리오의 설명 안 되는 줄 — BUG 이슈 등록 · EDIT PRD 수정(덮는 요구 하나의 문장을 고친다 · 도메인/게임 §3.10 결정 24 의 5)
+    | { kind: 'NOTE'; runId: number; tcId: string; name: string; reqs: { reqId: string; text: string }[]; notes: { statement: string; actual: unknown }[]; finishedAt: string | null }
     | { kind: 'CHECK'; reqId: string; feature: string; text: string; checkSince: string | null; basis: 'SCREEN' | 'DOCS' | 'OTHER'; options: { asset: string; quote: string }[] }
     | { kind: 'PRD_CHANGED'; changed: 바뀐요구줄[] | null; added: 바뀐요구줄[] | null; removed: 바뀐요구줄[] | null; scenarios: { id: number; name: string }[] }
     | { kind: 'API_CHANGED'; fromVersion: number; toVersion: number; operations: { method: string; path: string; change: 'NEW' | 'CHANGED' | 'REMOVED'; breaking: boolean }[] | null }
@@ -120,7 +122,9 @@ export function 요약이름들(문서: Record<string, unknown>): { method: stri
 export type 확인결정 =
   | { reqId: string; pick: 'SAME' }
   | { reqId: string; pick: 'EDIT' | 'OWN'; text: string }
-  | { reqId: string; pick: 'PICK'; text: string; asset: string };
+  | { reqId: string; pick: 'PICK'; text: string; asset: string }
+  /** 설명 안 되는 줄의 PRD 수정 — 확인 필요가 아닌 요구도 고친다. 변경 기록에 그 케이스 번호를 단다 */
+  | { reqId: string; pick: 'NOTE'; text: string; tcId: string };
 
 /**
  * 결정 버전의 항목 — 고른 번호만 확정 · 사람이 고친 것으로 바꾸고 checkSince 를 뺀다. 문장 변경 · 문구 선택 · 직접 입력은 요구 문장을 바꾼다.
@@ -128,7 +132,9 @@ export type 확인결정 =
  */
 export function 결정판(지금: PrdItem[], 결정들: 확인결정[]): { items: PrdItem[]; changes: 판변경[]; 문장바뀜: boolean } | null {
   const 고른 = new Map(결정들.map((x) => [x.reqId, x]));
-  if (결정들.some((x) => 지금.find((y) => y.reqId === x.reqId)?.status !== 'NEEDS_CHECK')) return null;
+  // 같은 요구를 두 번 고르면 하나가 조용히 사라진다. 확인 필요 결정은 확인 필요인 요구만, 설명 안 되는 줄은 판에 있는 요구면 된다
+  if (고른.size !== 결정들.length) return null;
+  if (결정들.some((x) => { const y = 지금.find((z) => z.reqId === x.reqId); return y === undefined || (x.pick !== 'NOTE' && y.status !== 'NEEDS_CHECK'); })) return null;
   const changes: 판변경[] = [];
   let 문장바뀜 = false;
   const items = 지금.map((x): PrdItem => {
@@ -138,6 +144,12 @@ export function 결정판(지금: PrdItem[], 결정들: 확인결정[]): { items
     if (결정.pick === 'SAME') {
       changes.push({ kind: 'CONFIRM', reqId: x.reqId, text: null, asset: null, tcId: null });
       return { ...나머지, status: 'CONFIRMED', byPerson: true };
+    }
+    // 설명 안 되는 줄의 PRD 수정은 문장만 바꾼다 — 확인 필요였던 요구의 물음(어느 근거가 맞나)은 요구사항 확인 탭에 그대로 남긴다
+    if (결정.pick === 'NOTE') {
+      문장바뀜 = true;
+      changes.push({ kind: 'EDIT', reqId: x.reqId, text: 결정.text, asset: null, tcId: 결정.tcId });
+      return { ...x, text: 결정.text, byPerson: true };
     }
     // 문구 선택은 지금 문장과 같은 쪽을 골라도 어느 자료를 골랐는지 남긴다 — 버전 기록의 까닭 「<자료 이름> 쪽」
     if (결정.text === x.text && 결정.pick !== 'PICK') {
