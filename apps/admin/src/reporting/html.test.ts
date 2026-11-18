@@ -105,6 +105,21 @@ describe('증적 문서 HTML', () => {
     expect(html).toContain('2회차');
   });
 
+  it('판정에 안 드는 표시 문장은 「참고」, 실패한 정리 절차는 「정리 실패」로 적는다', () => {
+    const 정리: EvidenceStep = { seq: 3, title: '끝 정리 — 부른 임프 치우기', status: 'NA', durationMs: 5, screenshotPath: null, assertions: [] };
+    const 표시: EvidenceStep = {
+      seq: 2, title: '로그를 견준다', status: 'PASS', durationMs: 9, screenshotPath: null,
+      assertions: [{ statement: '설명 안 되는 줄 — 인원 보정', expected: 'null', actual: '{"줄":7}', status: 'NA', blocker: false }],
+    };
+    const html = renderHtml(문서([항목({ steps: [표시, 정리] })]), 옵션);
+
+    const 표시줄 = html.split('\n').find((줄) => 줄.includes('설명 안 되는 줄')) ?? '';
+    expect(표시줄).toContain('참고');
+    expect(표시줄).not.toContain('미실행');
+    const 정리줄 = html.split('\n').find((줄) => 줄.includes('끝 정리 — 부른 임프 치우기')) ?? '';
+    expect(정리줄).toContain('정리 실패');
+  });
+
   it('검증 문장마다 기대·실제·판정이 한 줄이다', () => {
     const html = renderHtml(문서([항목({ status: 'FAIL', steps: [깨진스텝] })]), 옵션);
 

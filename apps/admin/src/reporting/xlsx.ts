@@ -7,6 +7,7 @@ import ExcelJS from 'exceljs';
 
 import type { EvidenceAssertion, EvidenceDocument, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
 import type { E2E단계, E2E증적 } from './collectScenario.js';
+import { 절차판정글자, 참고글자 } from './htmlItem.js';
 
 export interface RenderOptions {
   /** 렌더 입력으로 받는다 — 함수 안에서 new Date() 를 부르면 재현성이 깨진다 (SPEC §3.3) */
@@ -89,11 +90,11 @@ function 케이스칸(item: EvidenceItem): 칸값[] {
 
 function 절차칸(s: EvidenceStep): 칸값[] {
   // 건너뛴 「만들기」 절차는 PASS 로 적혀 있다. 「통과」로 쓰면 준비까지 한 것으로 읽힌다 (E2E 증적)
-  return [s.seq, s.title, s.skipped === true ? '건너뜀' : 판정글자[s.status], s.durationMs];
+  return [s.seq, s.title, 절차판정글자(s), s.durationMs];
 }
 
 function 검증칸(a: EvidenceAssertion, s: EvidenceStep): 칸값[] {
-  return [a.statement, a.expected, a.actual, 판정글자[a.status], s.screenshotPath];
+  return [a.statement, a.expected, a.actual, a.status === 'NA' ? 참고글자 : 판정글자[a.status], s.screenshotPath];
 }
 
 const 빈절차: 칸값[] = [null, null, null, null];

@@ -42,10 +42,19 @@ function 소요(durationMs: number | null): string {
   return durationMs === null ? '' : `<span class="ms">(${durationMs}ms)</span>`;
 }
 
+// 판정에 안 드는 표시 문장(verify.note)은 NA 다 — 「미실행」이 아니라 사람이 볼 참고로 적는다 (공통/3-공유계약 「게임 시나리오 도구」)
+export const 참고글자 = '참고';
+// test.cleanup 의 절차 — 실패해도 NA 로 남고 항목 판정은 그대로다
+export const 정리절차인가 = (title: string): boolean => /^(시작|끝) 정리 — /.test(title);
+export const 절차판정글자 = (s: Pick<EvidenceStep, 'status' | 'title' | 'skipped'>): string =>
+  s.skipped === true ? '건너뜀' : s.status === 'NA' && 정리절차인가(s.title) ? '정리 실패' : 판정글자[s.status];
+
 function 검증(a: EvidenceAssertion): string {
   // 한 문장 = 한 줄이다. 기대·실제·판정이 줄을 넘어가면 훑을 수 없다 (SPEC §8.4)
   const 중단 = a.blocker ? '<span class="blocker">실행 중단</span>' : '';
-  return `      <div class="assert ${판정색[a.status]}"><span class="mark">${a.status === 'PASS' ? '✓' : '✗'}</span><span class="stmt">${안전(a.statement)}</span><span class="exp">기대 ${안전(a.expected)}</span><span class="act">실제 ${안전(a.actual)}</span>${판정(a.status)}${중단}</div>`;
+  const 참고 = a.status === 'NA';
+  const 표시 = 참고 ? `<span class="verdict v-na">${참고글자}</span>` : 판정(a.status);
+  return `      <div class="assert ${판정색[a.status]}"><span class="mark">${a.status === 'PASS' ? '✓' : 참고 ? '·' : '✗'}</span><span class="stmt">${안전(a.statement)}</span><span class="exp">기대 ${안전(a.expected)}</span><span class="act">실제 ${안전(a.actual)}</span>${표시}${중단}</div>`;
 }
 
 // 화면 항목 상세(web/ShapeChecks.tsx)와 같은 낱말이다. 문서에 모양이 없는 코드는 통과로 세지만 맞았다고 말할 수 없어 표시를 안 단다
@@ -93,7 +102,7 @@ function 스텝(s: EvidenceStep, 원문고리?: (seq: number) => string): string
   return [
     `    <div class="step">`,
     // 건너뛴 「만들기」 절차는 판정 없이 PASS 로 적힌다. 「통과」로 찍으면 준비까지 한 것으로 읽힌다 (도메인/리포팅 §8.4)
-    `      <div class="step-head"><span class="seq">${s.seq}.</span><span class="step-title">${안전(s.title)}</span>${s.skipped === true ? '<span class="badge">건너뜀</span>' : `${판정(s.status)}${소요(s.durationMs)}`}</div>`,
+    `      <div class="step-head"><span class="seq">${s.seq}.</span><span class="step-title">${안전(s.title)}</span>${s.skipped === true ? '<span class="badge">건너뜀</span>' : `<span class="verdict ${판정색[s.status]}">${절차판정글자(s)}</span>${소요(s.durationMs)}`}</div>`,
     ...줄들,
     `    </div>`,
   ];
