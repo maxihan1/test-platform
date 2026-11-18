@@ -1,7 +1,8 @@
 // 종류 정하기 · 종류 입구 고르기 · 프롬프트 머리 검사 (도메인/작성 §3.6 「종류별 작성 AI」)
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -90,6 +91,19 @@ describe('줄프롬프트 — 종류 입구 (도메인/작성 §3.6 「종류별
 
   it('API 칸 없이 온 API 애플리케이션 요청도 API 입구를 탄다', () => {
     expect(글({ 트리: 트리만들기(['tpx-author-api']), 종류: 'API' })).toContain('종류 「API」이다. tpx-author-api 스킬을 따라라');
+  });
+
+  it('실제 저장소 폴더에서는 종류 넷이 다 자기 입구를 고른다 — 실측 대신(AUT-F4-05)', () => {
+    const 저장소 = fileURLToPath(new URL('..', import.meta.url));
+    for (const [kind, 종류] of [['SCREEN', 'web'], ['APP', 'app'], ['API', 'api'], ['GAME', 'game']] as const) {
+      expect(입구고르기(저장소, kind, () => undefined)).toEqual({ 스킬: `tpx-author-${종류}`, 종류 });
+    }
+  });
+
+  it('웹 프롬프트가 더 열라고 하는 「앱 화면 절」 표가 웹 입구에 실제로 있다', () => {
+    const 웹입구 = readFileSync(new URL('../.claude/skills/tpx-author-web/SKILL.md', import.meta.url), 'utf8');
+    expect(글({ 트리: 트리만들기(['tpx-author-web']), 종류: 'SCREEN' }, 앱화면)).toContain('앱 화면 절이 붙었을 때 더 열라고 적은 파일');
+    expect(웹입구).toContain('\n## 앱 화면 절이 붙으면 더 여는 파일\n');
   });
 
   it('웹에 앱 화면 절이 붙었을 때만 앱 파일을 더 열라고 적는다', () => {
