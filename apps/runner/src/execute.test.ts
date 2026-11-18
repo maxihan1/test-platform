@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { 앱연결을닫는다 } from './appSession.js';
 import { abort, execute, gameEnv, killedResponse, resolveSpecPath, running, statusFromExit, tail, traceEnv } from './execute.js';
 import { killTree } from './kill.js';
+import { executeRequest } from './schema.js';
 
 // playwright 대신 짧은 셸 스크립트를 띄운다. 어느 스크립트인지는 테스트가 정한다
 const 스크립트 = vi.hoisted(() => ({ 지금: 'exit 0' }));
@@ -221,6 +222,16 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
     expect(응답.error?.message).toBe('TIMEOUT');
     expect(닫기).toHaveBeenCalledWith(5, 8, undefined);
     expect(상태.닫혔나()).toBe(true);
+  });
+
+  it('제한 시간 0 은 한도 없음이라 끊는 타이머를 안 건다', async () => {
+    스크립트.지금 = 'sleep 0.3';
+
+    const 응답 = await execute(요청('android', 0), 'a.spec.ts');
+
+    expect(응답.error?.message).not.toBe('TIMEOUT');
+    expect(executeRequest.parse({ ...요청('android', 0) }).timeoutMs).toBe(0);
+    expect(executeRequest.safeParse({ ...요청('android', -1) }).success).toBe(false);
   });
 
   it('desktop 항목은 닫기를 부르지 않는다', async () => {
