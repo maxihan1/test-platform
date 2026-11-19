@@ -1,7 +1,7 @@
 // 애플리케이션 종류마다 화면이 다르게 그리는 것 — 도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표를 옮긴 상수 하나
 // 화면 곳곳에서 종류를 따로 묻지 않고 이 표를 본다
 
-import type { Platform, ServiceRow, 앱종류 } from './api.js';
+import type { Platform, ServiceRow, 게임플랫폼, 앱종류 } from './api.js';
 import { t, type 언어 } from './i18n.js';
 import type { 아이콘이름 } from './icons.js';
 
@@ -84,7 +84,7 @@ const 종류표: Record<앱종류, 종류줄> = {
       예: 'RPG · 퍼즐 · 캐주얼 게임',
       확인: '게임 속 버튼 · 보상 · 확률이 기획서대로 동작하는지 확인합니다',
       성능: '성능 테스트: 서버 부하 · 디바이스 성능',
-      고름: 'Unity 로 만든 게임이다',
+      고름: 'Unity 게임을 휴대폰용(APK)으로 빌드한다',
     },
   },
   // API 는 작성 폼을 API 문서 통로가 따로 그린다(AuthoringNewApi) — 대조도 거기서 빠진다
@@ -102,8 +102,38 @@ const 종류표: Record<앱종류, 종류줄> = {
   },
 };
 
-/** 설정 마법사 종류 카드 · 애플리케이션 고르개 묶음 · 애플리케이션 줄의 차례 */
+/** 애플리케이션 고르개 묶음 · 애플리케이션 줄의 차례 */
 export const 종류차례: readonly 앱종류[] = ['SCREEN', 'APP', 'GAME', 'API'];
+
+/**
+ * 설정 마법사의 종류 카드 — 게임은 플랫폼마다 한 장이다. 모바일판과 PC판은 빌드가 달라 애플리케이션을 따로 만든다 (도메인/게임 §3.10 결정 27).
+ * 콘솔은 실기를 붙일 때 카드를 더한다
+ */
+export interface 종류카드 {
+  kind: 앱종류;
+  gamePlatform?: 게임플랫폼;
+}
+export const 카드차례: readonly 종류카드[] = [
+  { kind: 'SCREEN' }, { kind: 'APP' }, { kind: 'GAME', gamePlatform: 'android' }, { kind: 'GAME', gamePlatform: 'windows' }, { kind: 'API' },
+];
+
+// 영상 · FPS 를 아직 안 재서 PC 게임 성능 테스트는 서버 부하뿐이다 (결정 28)
+const PC게임소개 = {
+  한줄: 'Windows PC 에서 하는 Unity 게임',
+  예: 'RPG · 액션 · 콘솔 이식 게임',
+  확인: '키보드와 패드로 조작해 게임 속 버튼 · 보상이 기획서대로 동작하는지 확인합니다',
+  성능: '성능 테스트: 서버 부하',
+  고름: 'Unity 게임을 Windows 용(zip)으로 빌드한다',
+};
+
+/** 카드 한 장의 이름 · 소개. 게임 두 장만 종류 표와 다르다 */
+export function 카드줄(카드: 종류카드): 종류줄 {
+  const 줄 = 종류(카드.kind);
+  if (카드.kind !== 'GAME') return 줄;
+  return 카드.gamePlatform === 'windows' ? { ...줄, 이름: 'PC 게임', 소개: PC게임소개 } : { ...줄, 이름: '모바일 게임' };
+}
+
+export const 같은카드 = (가: 종류카드, 나: 종류카드): boolean => 가.kind === 나.kind && (가.kind !== 'GAME' || (가.gamePlatform ?? 'android') === (나.gamePlatform ?? 'android'));
 
 /**
  * 옛 응답 · 검사 가짜 행은 종류를 안 담는다 — 서버 기본값과 같이 웹으로 읽는다.
@@ -125,5 +155,9 @@ export function 종류차례로(목록: readonly ServiceRow[]): ServiceRow[] {
 /** 기기 성능 화면 이름 — 메뉴가 없는 종류(웹)도 주소로는 열리고 재는 것은 폰 앱이라 「앱 성능」으로 읽는다. 영어 표의 키다 */
 export const 기기성능이름 = (kind: 앱종류 | undefined): string => 종류(kind).기기성능 ?? '앱 성능';
 
-/** 화면 이름 — 설정 마법사 종류 카드 · 애플리케이션 고르개 묶음 제목 · 애플리케이션 줄의 읽어 주는 이름 */
-export const 종류이름 = (kind: 앱종류 | undefined, 언어: 언어): string => t(종류(kind).이름, 언어);
+/**
+ * 화면 이름 — 설정 마법사 종류 카드 · 애플리케이션 고르개 묶음 제목 · 애플리케이션 줄의 읽어 주는 이름.
+ * 게임은 플랫폼을 알면 「모바일 게임」 · 「PC 게임」이다. 플랫폼을 안 담은 옛 응답은 「게임」 그대로다
+ */
+export const 종류이름 = (kind: 앱종류 | undefined, 언어: 언어, gamePlatform?: 게임플랫폼 | null): string =>
+  t(종류키(kind) === 'GAME' && gamePlatform != null ? 카드줄({ kind: 'GAME', gamePlatform }).이름 : 종류(kind).이름, 언어);

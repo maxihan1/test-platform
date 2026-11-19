@@ -5,9 +5,7 @@ import { useMemo, useState } from 'react';
 
 import type { CaseRow, Platform } from './api.js';
 import { use말 } from './i18n.js';
-import { PLATFORM_LABEL } from './ui.js';
-
-const 차례: Platform[] = ['desktop', 'mobile', 'android'];
+import { PLATFORM_LABEL, 디바이스순서 as 차례 } from './ui.js';
 
 /**
  * 한 건 · 여러 건이 같은 체크칸을 쓴다 — 앞 판은 한 건만 창 안 다른 칸에서 골라 줄이 둘이었다.

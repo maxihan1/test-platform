@@ -314,4 +314,12 @@ export const 작성말: Record<string, string> = {
   '게임 화면 읽기': 'Reading game screens',
   'Device VISION 에서 유휴 디바이스를 할당받아 게임을 설치합니다. 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽고, 완료되면 디바이스를 반납합니다':
     'Takes a free phone from Device VISION, installs the game, and opens each window from the login window on to read its object list. The phone is released when done',
+  // 새 작성 첫 단계의 PC 게임 칸 (AuthoringNewPads · GAME-F4-06)
+  '지원 패드': 'Supported gamepads',
+  '체크한 패드마다 「버튼 그림이 화면에 뜨나」 케이스를 한 번씩 실행합니다. 나머지 케이스는 키보드로 한 번 실행합니다':
+    'The “button prompts appear” case runs once per checked gamepad. Other cases run once with the keyboard',
+  'Windows 빌드가 없어 작성을 시작할 수 없습니다': 'No Windows build yet, so authoring cannot start',
+  'CI 가 Windows 빌드(zip)를 업로드하면 작성할 수 있습니다': 'You can author once CI uploads a Windows build (zip)',
+  '작성 AI 가 Windows PC 에 빌드 {빌드} 를 설치해 화면을 읽습니다': 'The authoring AI installs build {빌드} on a Windows PC and reads its screens',
+  '없음 — 키보드만': 'None — keyboard only',
 };

@@ -86,14 +86,16 @@ export function 플랫폼밖인가(kind: string, gamePlatform: 'android' | 'wind
 /**
  * PC 게임 케이스의 windows 를 선언대로 펼친다 — 선언의 windows 는 한 번, 패드 값은 지원 패드에 남은 것마다.
  * 값 하나하나(windows-ps5)로 건 항목은 그대로다 — 사람이 고른 값이라 지원 패드를 안 본다(실패 다시 실행). 펼친 값이 하나도 없는 케이스는 빠진다 (도메인/게임 §3.10 「윈도우 PC」)
+ * @param 다시 실패 다시 실행 — windows 도 원래 항목의 값(키보드)이라 펼치지 않는다. 펼치면 키보드만 실패했는데 통과한 패드 항목까지 다시 돈다
  */
 export function 윈도우를펼친다<T extends { tcId: string; platforms: Platform[] }>(
   items: readonly T[],
   선언: ReadonlyMap<string, { platforms: readonly string[] }>,
   지원패드: readonly string[],
+  다시 = false,
 ): T[] {
   return items.flatMap((item) => {
-    if (!item.platforms.includes('windows')) return [item];
+    if (다시 || !item.platforms.includes('windows')) return [item];
     const 선언값 = (선언.get(item.tcId)?.platforms ?? []).filter(PC항목인가);
     const 펼친 = 선언값.filter((p) => p === 'windows' || 지원패드.includes(p.slice('windows-'.length)));
     const platforms = [...new Set(item.platforms.flatMap((p): Platform[] => (p === 'windows' ? 펼친 : [p])))];

@@ -29,6 +29,8 @@ export interface 배정서비스 {
   gamePlatform: 'android' | 'windows' | null;
   /** 지원 패드 — PC 게임이 아니면 [] */
   gamePads: string[];
+  /** 대상 서버를 안 고른 작성이 PC 에 깔 Windows 빌드 번호(작성의 PC빌드파일 과 같은 규칙). 없거나 PC 게임이 아니면 null — 새 작성이 시작을 막는다 (도메인/게임 §3.10 「윈도우 PC」) */
+  latestBuildNo: string | null;
   /**
    * 그 서비스의 대상 서버 목록 (SPEC §6 `service_env`).
    *
@@ -91,6 +93,15 @@ const 한사람 = `
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
              'projectId', s.project_id, 'projectName', p.name, 'kind', s.kind,
              'gamePlatform', s.game_platform, 'gamePads', s.game_pads,
+             -- 대상 서버를 안 고른 작성이 PC 에 깔 빌드다 — 작성의 고르기(authoring/appScreen.ts PC빌드파일)와 같은 규칙:
+             -- 운영 줄을 빼고 대상 서버 이름 차례로, 줄마다 최신 빌드가 파일이나 주소를 가진 첫 줄의 최신 빌드. 규칙이 갈리면 화면이 말한 빌드와 깔린 빌드가 다르다
+             'latestBuildNo', CASE WHEN s.game_platform = 'windows' THEN (
+               SELECT lb.build_no FROM service_env se
+               CROSS JOIN LATERAL (
+                 SELECT ab.build_no, ab.file_path, ab.app_url FROM app_build ab
+                  WHERE ab.service_id = s.id AND ab.env = se.env ORDER BY ab.uploaded_at DESC, ab.id DESC LIMIT 1) lb
+                WHERE se.service_id = s.id AND NOT se.is_prod AND (lb.file_path IS NOT NULL OR lb.app_url IS NOT NULL)
+                ORDER BY se.env LIMIT 1) END,
              -- 대표 애플리케이션인가 (공통/4-데이터모델 「대표 애플리케이션」). p 는 s 가 속한 프로젝트라 옮겨 간 대표는 저절로 false 다
              'primary', p.primary_service_id IS NOT DISTINCT FROM s.id,
              'envs', COALESCE(e.envs, '[]'::json),

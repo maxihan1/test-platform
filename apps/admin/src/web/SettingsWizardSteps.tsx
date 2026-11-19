@@ -5,10 +5,10 @@ import type { ReactNode } from 'react';
 
 import { 어드민키종류인가, 운영이름인가 } from '../settings/roles.js';
 
-import type { SettingsProject, SettingsServiceRow, 앱종류 } from './api.js';
+import type { SettingsProject, SettingsServiceRow, 게임플랫폼, 앱종류 } from './api.js';
 import { 아이콘 } from './icons.js';
 import { use말, use언어 } from './i18n.js';
-import { 종류, 종류이름, 종류차례 } from './kind.js';
+import { 같은카드, 카드줄, 카드차례, 종류, 종류이름 } from './kind.js';
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, type 줄 } from './SettingsEnvs.js';
 import { 피그마설정주소 } from './settingsView.js';
@@ -20,6 +20,8 @@ export interface 마법사값 {
   프로젝트이름: string;
   projectId: number | null;
   kind: 앱종류 | null;
+  /** 게임 카드 두 장 가운데 고른 것. 게임이 아니면 안 쓴다 (도메인/게임 §3.10 결정 27) */
+  gamePlatform: 게임플랫폼;
   prefix: string;
   name: string;
   testsDir: string;
@@ -130,10 +132,11 @@ export function 단계칸(p: {
     case 'kind':
       return (
         <div className="wz-kinds" role="group" aria-label={t('종류')}>
-          {종류차례.map((k) => {
-            const 줄 = 종류(k);
+          {카드차례.map((카드) => {
+            const 줄 = 카드줄(카드);
+            const 눌림 = 값.kind !== null && 같은카드(카드, { kind: 값.kind, gamePlatform: 값.gamePlatform });
             return (
-              <button key={k} type="button" className="wz-kind" aria-pressed={값.kind === k} onClick={() => 고친다({ kind: k })}>
+              <button key={줄.이름} type="button" className="wz-kind" aria-pressed={눌림} onClick={() => 고친다({ kind: 카드.kind, gamePlatform: 카드.gamePlatform ?? 'android' })}>
                 <span className="wz-kind-h">
                   <아이콘 이름={줄.아이콘} />
                   {t(줄.이름)}
@@ -247,7 +250,7 @@ function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; 만든프�
           {값.프로젝트이름.trim()} <span className="wz-badge">{p.만든프로젝트 ? t('이미 만들었습니다') : t('생성합니다')}</span>
         </>
       ) : (p.projects.find((it) => it.id === 값.projectId)?.name ?? ''))}
-      {줄('kind', 값.kind === null ? '' : 종류이름(값.kind, 언어))}
+      {줄('kind', 값.kind === null ? '' : 종류이름(값.kind, 언어, 값.gamePlatform))}
       {줄('basic', (
         <>
           {값.name} · <span className="mono">{값.prefix}-001</span>

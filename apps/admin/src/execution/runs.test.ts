@@ -138,6 +138,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
             kind: 'SCREEN',
             gamePlatform: null,
             gamePads: [],
+            latestBuildNo: null,
             envs: [],
             hasSlackWebhook: false,
             hasFigmaToken: false,

@@ -6,9 +6,10 @@
 
 import { useState } from 'react';
 
-import { api, ApiError, type EnvRow, type 앱종류 } from './api.js';
+import { api, ApiError, type EnvRow, type 패드, type 앱종류 } from './api.js';
 import { ApiDocFields, useApiDocs } from './AuthoringNewApi.js';
-import { 단계띠, 단계머리, 방법칸, 방법표, 서버칸, 파일칸, 확인칸, type 단계, type 방법 } from './AuthoringNewSteps.js';
+import { 빌드없음말, 패드칸, type PC게임 } from './AuthoringNewPads.js';
+import { 단계띠, 단계머리, 방법칸, 서버칸, 파일칸, 확인요약, 확인칸, type 단계, type 방법 } from './AuthoringNewSteps.js';
 import { 거절사유, 자료상한, 작성오류말, 피그마거절말 } from './authoringNewText.js';
 import { GuideBody, useGuideEdit } from './GuideBody.js';
 import { 구획들 } from './GuideSection.js';
@@ -27,6 +28,7 @@ export function AuthoringNew({
   피그마토큰 = true,
   serviceId,
   앱종류,
+  pc,
   on넣었다,
   onClose = () => undefined,
 }: {
@@ -41,6 +43,8 @@ export function AuthoringNew({
   피그마토큰?: boolean;
   /** Android 앱 · 게임은 대조가 화면 읽기로 바뀌고 시작 주소가 없다 (도메인/러너 §5.2 종류 표) */
   앱종류?: 앱종류;
+  /** PC 게임이면 지원 패드 체크 · Windows 빌드. 아니면 undefined */
+  pc?: PC게임;
   /** 줄에 세운 요청 번호. 목록이 시작 모달을 연다 */
   on넣었다: (id: number) => void;
   onClose?: () => void;
@@ -64,6 +68,7 @@ export function AuthoringNew({
   const 문서 = useApiDocs(serviceId);
   const api모드 = 문서.버전들 !== null;
   const [고른판, set고른판] = useState<number | null>(null);
+  const [패드들, set패드들] = useState<패드[]>(pc?.패드 ?? []);
 
   // API 애플리케이션은 화면이 없다 — 대조도 피그마도 없다 (도메인/작성 §7).
   // 「실서비스 서버」 표시는 /auth/me 에 안 와서 거를 수 없다 — 대신 기본값을 기준 서버(보통 stg)로 둔다. 실서비스를 고르면 서버가 BAD_ENV 로 막는다
@@ -120,7 +125,7 @@ export function AuthoringNew({
       case 'server':
         return 서버 === null ? t('대상 서버를 선택하세요') : null;
       case 'confirm':
-        return null;
+        return pc?.빌드 === null ? t(빌드없음말) : null;
     }
   }
   const 막힘 = 막는이유(단계);
@@ -147,7 +152,9 @@ export function AuthoringNew({
         대조 && 서버 !== null ? { compare: true as const, env: 서버, ...(주소 === '' || 줄.대조 !== 'web' ? {} : { startUrl: 주소 }) } : {};
       ({ id } = await api.createAuthoringRequest(
         service,
-        api모드 && 판 !== null && 서버 !== null ? { kind: 'AUTHOR', figma: [], apiDoc: 판, env: 서버 } : { kind: 'AUTHOR', figma: 주소들, ...역방향 },
+        api모드 && 판 !== null && 서버 !== null
+          ? { kind: 'AUTHOR', figma: [], apiDoc: 판, env: 서버 }
+          : { kind: 'AUTHOR', figma: 주소들, ...역방향, ...(pc === undefined ? {} : { gamePads: 패드들 }) },
       ));
     } catch (err) {
       set오류(사유(err));
@@ -196,30 +203,11 @@ export function AuthoringNew({
   };
   const 한번에 = 빈가이드 === true;
 
-  // 확인 단계의 요약 줄 — 칸 이름과 값
-  const 방법이름 = t(방법표.find((it) => it.값 === 방법값)!.제목);
-  const 요약: [string, string][] = [
-    [
-      t('가이드'),
-      가이드.now === null || 가이드.now.version === 0 ? t('가이드 없음') : t('{가이드} 버전 {버전} 참고', { 가이드: t(줄.가이드), 버전: 가이드.now.version }),
-    ],
-  ];
-  if (대조칸) 요약.push([t('작성 방식'), 방법이름]);
-  if (api모드 && 판 !== null) 요약.push([t('API 문서'), t('버전 {버전}', { 버전: 판 })]);
-  if (방법값 !== 'screen') {
-    const 피그마수 = 주소들.length === 0 ? [] : [t('피그마 {수}건', { 수: 주소들.length })];
-    요약.push([t('자료'), [...보낼파일.map((f) => f.name), ...피그마수].join(' · ') || '—']);
-  }
-  if ((대조 || api모드) && 서버 !== null) 요약.push([t('대상 서버'), 대조 && 줄.대조 === 'web' && 주소 !== '' ? `${서버} · ${주소}` : 서버]);
+  const 자료 = 방법값 === 'screen' ? undefined : { 파일들: 보낼파일.map((f) => f.name), 피그마수: 주소들.length };
+  const 요약서버 = (대조 || api모드) && 서버 !== null ? (대조 && 줄.대조 === 'web' && 주소 !== '' ? `${서버} · ${주소}` : 서버) : null;
+  const { 요약, 할일 } = 확인요약({ 가이드버전: 가이드.now?.version ?? 0, 가이드이름: t(줄.가이드), 패드: pc === undefined ? undefined : 패드들, 대조칸, 방법값, API판: api모드 ? 판 : undefined, 자료, 서버: 요약서버, t });
   // 확인 단계에서 시작이 꺼졌으면 앞 단계의 까닭을 보인다 — 말없이 꺼져 있으면 무엇을 고칠지 모른다
   const 첫막힘 = 단계들.map(막는이유).find((이유) => 이유 !== null) ?? null;
-  const 할일 = api모드
-    ? t('엔드포인트별로 케이스를 작성해 검토 PR 로 등록합니다')
-    : 방법값 === 'both'
-      ? t('PRD 에 있는 화면을 먼저 작성한 뒤 PRD 에 아직 없는 화면을 이어서 작성합니다')
-      : 방법값 === 'screen'
-        ? t('PRD 에 아직 없는 화면의 케이스를 작성합니다')
-        : t('요구사항별로 케이스를 작성해 검토 PR 로 등록합니다');
 
   const 버튼 =
     단계 === 'guide' && 한번에 ? (
@@ -269,6 +257,8 @@ export function AuthoringNew({
               제목={t(한번에 ? '애플리케이션 정보 입력' : '가이드 확인')}
               설명={t('AI 가 케이스를 작성할 때 참고하는 정보입니다. 기대 결과의 근거로는 쓰지 않습니다')}
             />
+            {/* 가이드 위에 둔다 — 가이드 세 칸 아래면 스크롤해야 보여 체크를 지나친다 */}
+            {pc === undefined ? null : <패드칸 pc={pc} 고른={패드들} on고름={set패드들} disabled={보내는중} />}
             {가이드.오류 !== null ? <Failed error={가이드.오류} /> : 가이드.now === null ? <Loading /> : <GuideBody service={service} 가이드={가이드} 쓰나 예={줄.가이드예} 한번에={한번에} />}
           </>
         ) : 단계 === 'method' ? (

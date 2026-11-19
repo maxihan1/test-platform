@@ -118,7 +118,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
       <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호, 애플리케이션 선택 목록, 스크립트 폴더에 쓰는 정보입니다')}>
         <프로젝트칸 지금={{ id: row.projectId, name: row.projectName }} />
         <접두사칸 값={row.prefix} />
-        <종류칸 값={kind} />
+        <종류칸 값={kind} 게임플랫폼={row.gamePlatform} />
 
         <div className="field">
           <label htmlFor="sf-name">{t('이름')}</label>

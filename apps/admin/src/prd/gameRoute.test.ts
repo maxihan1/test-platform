@@ -164,7 +164,7 @@ describe.skipIf(연결 === undefined)('조작 맵 에이전트 통로', () => {
     const { buildNo: _빌드, ...빌드없는이동 } = 이동;
     const 상태 = async () =>
       (await q<{ action: string; status: string; reason: string | null; build_no: string | null }>(
-        'SELECT action, status, reason, build_no FROM game_route WHERE service_id = $1 ORDER BY action', [서비스],
+        'SELECT action, status, reason, build_no FROM game_route WHERE service_id = $1 ORDER BY action COLLATE "C"', [서비스],
       )).rows;
     await 올리기(id, { rows: [{ ...빌드없는이동, durationMs: 2800 }, { ...파티, status: 'OK', reason: undefined }] });
     expect(await 상태()).toEqual([

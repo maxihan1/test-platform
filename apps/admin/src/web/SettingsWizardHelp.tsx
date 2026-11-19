@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 
 import { use말 } from './i18n.js';
-import { 종류, 종류차례 } from './kind.js';
+import { 같은카드, 카드줄, 카드차례, 종류 } from './kind.js';
 import { 체크그림, type 단계, type 마법사값 } from './SettingsWizardSteps.js';
 
 interface 판 {
@@ -62,17 +62,17 @@ export function 단계설명(p: { 단계: 단계; 값: 마법사값; 새프로�
       제목: '어떤 걸 선택해야 할지 모르겠다면',
       그림: (
         <span className="wz-guide">
-          {종류차례.map((k) => (
-            <span key={k} className={값.kind === k ? 'hot' : undefined}>
-              <span>{t(종류(k).소개.고름)}</span>
-              <b>{t(종류(k).이름)}</b>
+          {카드차례.map((카드) => (
+            <span key={카드줄(카드).이름} className={값.kind !== null && 같은카드(카드, { kind: 값.kind, gamePlatform: 값.gamePlatform }) ? 'hot' : undefined}>
+              <span>{t(카드줄(카드).소개.고름)}</span>
+              <b>{t(카드줄(카드).이름)}</b>
             </span>
           ))}
         </span>
       ),
       줄들: [
         '관리자 페이지(운영툴)도 브라우저로 열면 「웹」입니다',
-        '웹과 앱을 둘 다 테스트하려면 애플리케이션을 하나씩 따로 만듭니다',
+        '웹과 앱을 둘 다 테스트하려면 애플리케이션을 하나씩 따로 만듭니다. 게임도 모바일 게임과 PC 게임을 따로 만듭니다',
         '성능 테스트는 어느 종류든 쓸 수 있습니다. 서버 부하는 모두 같고, 웹은 페이지 속도를, 앱 · 게임은 디바이스 성능을 더 잽니다',
         '종류마다 테스트를 만드는 방식이 달라 처음에 한 번만 정합니다',
       ],

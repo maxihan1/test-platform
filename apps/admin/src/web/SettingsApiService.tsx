@@ -1,20 +1,20 @@
 // 설정 > 애플리케이션의 API 종류 칸 — 「종류」 칸과 「API 문서」 구획 (도메인/API §3.8 · 도메인/인증 §8.8 「종류」)
 // SettingsService.tsx 가 300줄에 닿지 않게 뗐다
 
-import type { 앱종류 } from './api.js';
+import type { 게임플랫폼, 앱종류 } from './api.js';
 import { t as 말, use말, use언어, type 언어 } from './i18n.js';
 import { 종류이름 } from './kind.js';
 import { 구획 } from './SettingsServiceParts.js';
 
 /** 「종류」 — 만들 때 마법사에서만 고른다. 엔진과 화면이 종류마다 달라서, 접두사처럼 나중에 못 바꾼다(서버 400 KIND_IMMUTABLE) */
-export function 종류칸({ 값 }: { 값: 앱종류 }) {
+export function 종류칸({ 값, 게임플랫폼 }: { 값: 앱종류; 게임플랫폼?: 게임플랫폼 | null }) {
   const t = use말();
   const 언어 = use언어();
   return (
     <div className="field">
       <span className="field-label">{t('종류')}</span>
       <div>
-        <span>{종류이름(값, 언어)}</span>
+        <span>{종류이름(값, 언어, 게임플랫폼)}</span>
         <div className="hint">{t('만든 뒤에는 변경할 수 없습니다')}</div>
       </div>
     </div>

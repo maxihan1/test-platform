@@ -19,7 +19,7 @@ export function 앱격자({ user, service, onService, 닫기 }: { user: User; se
           <button
             key={it.prefix}
             type="button"
-            aria-label={`${it.name} · ${종류이름(it.kind, 언어)}`}
+            aria-label={`${it.name} · ${종류이름(it.kind, 언어, it.gamePlatform)}`}
             {...지금이면(it.prefix === service.prefix)}
             onClick={() => {
               고른서비스를적는다(it.prefix);

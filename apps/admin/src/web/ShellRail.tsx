@@ -184,7 +184,7 @@ export function 애플리케이션줄({
       {/* 위치 판 · 휴대폰과 같은 차례다 — 같은 사람이 자리마다 다른 차례를 보지 않게 */}
       {종류차례로(service === null ? [] : 프로젝트서비스들(service.projectId, user.services))
         .map((it) => {
-          const 종류말 = 종류이름(it.kind, 언어);
+          const 종류말 = 종류이름(it.kind, 언어, it.gamePlatform);
           const 이름 = `${it.name} · ${종류말}`;
           return (
             <button
