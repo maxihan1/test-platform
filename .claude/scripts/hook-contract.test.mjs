@@ -332,19 +332,24 @@ test('migration 이 바뀐 커밋은 전체 단위 테스트 — 작업방 경�
   }
 });
 
-// 무거운 검사 묶음(vitest.config.ts 의 slow)은 전체를 다시 돌 때도 자기 폴더가 바뀌어야 돈다 (2026-11-19 — 의존성 판만 올린 push 에서 4분)
-test('의존성 판만 바뀐 커밋은 무거운 검사 묶음을 빼고, 그 묶음의 폴더도 바뀌면 전부 돈다', () => {
-  for (const [파일들, 묶음빼기] of [
+// 무거운 검사 묶음(vitest.config.ts 의 slow)은 전체를 다시 돌 때도 바뀐 코드와 이어진 것만 돈다 (2026-11-19 — 의존성 판만 올린 push 에서 4분).
+// 설정이 바뀌면 묶음까지 전부다
+test('전체를 다시 도는 커밋은 무거운 검사 묶음만 --changed 로 고르고, 설정이 바뀌면 전부 돈다', () => {
+  for (const [파일들, 묶음만골라] of [
     [['package-lock.json'], true],
-    [['package-lock.json', 'scripts/authoring-x.ts'], false],
+    [['db/migrations/20990101000000_x.sql'], true],
+    [['package.json', 'apps/runner/src/x.ts'], true],
     [['vitest.config.ts'], false],
+    [['tsconfig.json'], false],
   ]) {
     const 저장소 = 임시저장소(파일들);
     try {
       저장소에서돌린다(저장소);
-      const 전체 = 불린것(저장소.기록).split('\n').find((줄) => /^test\b/.test(줄)) ?? '';
+      const 호출 = 불린것(저장소.기록);
+      const 전체 = 호출.split('\n').find((줄) => /^test\b/.test(줄)) ?? '';
       assert.ok(전체, `${파일들} 을 바꿨는데 전체 단위 테스트를 안 돌렸다`);
-      assert.equal(/--project unit --project db/.test(전체), 묶음빼기, `${파일들} 의 전체 테스트 인자가 틀렸다: ${전체}`);
+      assert.equal(/--project unit --project db/.test(전체), 묶음만골라, `${파일들} 의 전체 테스트 인자가 틀렸다: ${전체}`);
+      assert.equal(/^run test:changed\b.*origin\/main.*--project slow/m.test(호출), 묶음만골라, `${파일들} 의 무거운 검사 고르기가 틀렸다: ${호출}`);
     } finally {
       rmSync(저장소.뿌리, { recursive: true, force: true });
     }

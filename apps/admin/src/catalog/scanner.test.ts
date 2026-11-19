@@ -1,6 +1,6 @@
 // 스캐너가 코드에서 명세를 뽑아내는지, tcId 중복을 잡는지 검사한다
 
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, relative, resolve } from 'node:path';
 
@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { caseFiles, duplicatesOf, duplicatesWith, scan, scanApart, 스캔자리 } from './scanner.js';
+import { caseFiles, duplicatesOf, duplicatesWith, scan, scanApart, testsRoot, 스캔자리 } from './scanner.js';
 
 let 깨진폴더: string;
 
@@ -135,6 +135,26 @@ describe('scan', () => {
     const { specs } = await 데모스캔();
     const 첫파일 = (await caseFiles(데모))[0]!;
     expect(specs.find((s) => s.tcId === basename(첫파일, '.spec.ts'))?.filePath).toBe(relative(데모, 첫파일));
+  });
+
+  // scanner.ts 의 testsRoot 와 kit defineCase 의 기본 기준이 갈리면 같은 케이스의 상대 경로가 둘로 갈린다.
+  // 데모 스캔과 겹치지 않게(ESM 캐시) 사본을 새 자리에 두고, @platform/kit 을 찾도록 저장소 안에 둔다
+  it('기준 폴더를 안 주면 scanner 와 kit 가 같은 tests 폴더를 기준으로 삼는다', async () => {
+    const 자리 = await mkdtemp(join(import.meta.dirname, '.base-'));
+    const 전 = process.env.PLATFORM_TESTS_DIR;
+    try {
+      const 파일 = join(자리, 'DEMO-001.spec.ts');
+      await writeFile(파일, await readFile(join(데모, 'demo', 'DEMO-001.spec.ts'), 'utf8'));
+      delete process.env.PLATFORM_TESTS_DIR;
+      const 기본 = resolve(process.cwd(), 'tests');
+      expect(testsRoot()).toBe(기본);
+      const { specs } = await scan(자리);
+      expect(specs[0]?.filePath).toBe(relative(기본, 파일));
+    } finally {
+      if (전 === undefined) delete process.env.PLATFORM_TESTS_DIR;
+      else process.env.PLATFORM_TESTS_DIR = 전;
+      await rm(자리, { recursive: true, force: true });
+    }
   });
 
   it('zod 스키마가 JSON Schema로 변환돼 있고 describe가 라벨로 남는다', async () => {

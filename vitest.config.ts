@@ -28,9 +28,9 @@ const DB파일 = ['apps', 'packages', 'scripts']
   .map((f) => relative(루트, f));
 
 // 혼자 14~72초씩 걸려 전체 5분 46초 중 4분 가까이를 먹던 검사(2026-11-19 실측). 시나리오 실행 · 작성 에이전트 git 흐름을 실제처럼 돌린다.
-// pre-push 가 전체를 다시 돌 때(의존성 판 · migration) 자기 폴더(apps/runner/ · scripts/)가 안 바뀌었으면 이 묶음을 뺀다(.claude/hooks/pre-push).
-// --changed 로는 이어진 변경이 있을 때 그대로 골라진다. DB 검사는 넣지 않는다 — DB 묶음에 남아야 차례로 돈다
-const 무거운검사 = [
+// pre-push 가 전체를 다시 돌 때(의존성 판 · migration)도 이 묶음은 --changed 로 바뀐 코드와 이어진 것만 돈다(.claude/hooks/pre-push).
+// DB 검사는 이 묶음에 안 든다(아래 걸러 냄) — DB 묶음에 남아야 한 프로세스에서 차례로 돈다
+const 무거운검사목록 = [
   'apps/runner/scenario/e2e.test.ts',
   'apps/runner/scenario/real-phone.test.ts',
   'apps/runner/scenario/push-e2e.test.ts',
@@ -39,6 +39,7 @@ const 무거운검사 = [
   'scripts/authoring-conflicts-io.test.ts',
   'scripts/authoring-typecheck.test.ts',
 ];
+const 무거운검사 = 무거운검사목록.filter((f) => !DB파일.includes(f));
 
 export default defineConfig({
   test: {
