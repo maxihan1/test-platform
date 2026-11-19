@@ -58,9 +58,11 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
   let 마지막: { 글: string; 때: string } | null = null;
   // 단계 표지 — 어느 단계가 가장 긴지 재려고 에이전트 시계로 찍는다 (AUT-F3-21 · tpx-author 「단계 표지」)
   const 시작 = 지금();
-  const 단계들: { 이름: string; 때: number }[] = [];
-  // 반장(자식) 턴의 기억 크기 최댓값 — 단계마다 하나, 0번은 첫 표지 전. 반장을 어느 단계에서 바꿀지 재려고 (AUT-F4-13)
-  const 기억최대: number[] = [0];
+  // 기억은 메인 AI(자식) 턴이 읽은 기억 크기의 단계 최댓값 — 메인 AI 를 어느 단계에서 바꿀지 재려고 (AUT-F4-13). 0번은 첫 표지 전
+  type 단계 = { 이름: string; 때: number; 기억: number };
+  const 단계들: 단계[] = [{ 이름: '(첫 표지 전)', 때: 시작, 기억: 0 }];
+  // 한 메시지가 블록마다 여러 줄로 오므로 처음 본 줄의 단계에 묶는다 — 표지를 말한 턴의 뒤 사본이 새 단계로 새지 않게
+  const 기억자리 = new Map<string, 단계>();
   return {
     /** 줄 하나를 먹고, 로그에 흘릴 글을 돌려준다. 새 단계 표지면 그 줄을 — lastAction 은 늘 흘릴줄이 고른 줄이다(작성 §7) */
     먹기(줄: string): string | null {
@@ -68,23 +70,24 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
       const m = e?.type === 'assistant' ? e.message : undefined;
       if (m?.id !== undefined && m.usage !== undefined)
         턴.set(m.id, 수(m.usage.input_tokens) + 수(m.usage.output_tokens) + 수(m.usage.cache_read_input_tokens));
+      // 자식 줄도 parent_tool_use_id: null 을 단다 — 칸이 있는지로 거르면 다 버린다. 서브에이전트 줄은 값이 문자열이다
+      const 보조줄 = typeof (e as { parent_tool_use_id?: unknown } | null)?.parent_tool_use_id === 'string';
       // 그 턴이 읽은 기억 = 입력 + 캐시 만들기 + 캐시 읽기. 출력은 다음 턴 입력에 든다. 표지를 말한 턴은 앞 단계가 쌓은 기억이라 표지보다 먼저 센다
-      if (m?.usage !== undefined && typeof (e as { parent_tool_use_id?: unknown }).parent_tool_use_id !== 'string') {
-        const 기억 = 수(m.usage.input_tokens) + 수(m.usage.cache_creation_input_tokens) + 수(m.usage.cache_read_input_tokens);
-        기억최대[기억최대.length - 1] = Math.max(기억최대.at(-1)!, 기억);
+      if (m?.usage !== undefined && !보조줄) {
+        const 자리 = (m.id === undefined ? undefined : 기억자리.get(m.id)) ?? 단계들.at(-1)!;
+        if (m.id !== undefined) 기억자리.set(m.id, 자리);
+        자리.기억 = Math.max(자리.기억, 수(m.usage.input_tokens) + 수(m.usage.cache_creation_input_tokens) + 수(m.usage.cache_read_input_tokens));
       }
       const 날글 = 흘릴줄(줄);
       if (날글 === null) return null;
       const 글 = 가리기(날글, 비밀);
       마지막 = { 글: 글자자르기(글, 160), 때: new Date().toISOString() };
-      // 자식 줄도 parent_tool_use_id: null 을 단다 — 칸이 있는지로 거르면 다 버린다. 서브에이전트 줄은 값이 문자열이다
-      if (typeof (e as { parent_tool_use_id?: unknown }).parent_tool_use_id === 'string') return 글;
+      if (보조줄) return 글;
       // 로그 줄은 글 첫 줄을 지키고 새 표지를 뒤에 붙인다 — 첫 줄이 곧 표지면 두 번 싣지 않는다
       let 로그 = 글;
       const 단계적기 = (이름: string) => {
         if (단계들.at(-1)?.이름 === 이름) return;
-        단계들.push({ 이름, 때: 지금() });
-        기억최대.push(0);
+        단계들.push({ 이름, 때: 지금(), 기억: 0 });
         if (!로그.endsWith(`[단계] ${이름}`)) 로그 += ` [단계] ${이름}`;
       };
       for (const c of m?.content ?? []) {
@@ -109,21 +112,20 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
     },
     /** 단계마다 시작(자식 시작부터)과 걸린 시간. 마지막 단계는 지금 끝난 것으로 본다. 표지가 없으면 빈 글 */
     단계표(): string {
-      if (단계들.length === 0) return '';
+      if (단계들.length === 1) return '';
       const 끝 = 지금();
-      const 줄들 = [{ 이름: '(첫 표지 전)', 때: 시작 }, ...단계들]
-        .map((s, i, 다) => ({ ...s, 걸림: (다[i + 1]?.때 ?? 끝) - s.때, 기억: 기억최대[i] ?? 0 }))
-        .filter((s, i) => i > 0 || s.걸림 > 0 || s.기억 > 0);
+      // 첫 표지를 바로 말했으면 첫 표지 전 줄은 0:00 이라 안 싣는다 — 그 기억은 시작 지침뿐이다
+      const 줄들 = 단계들.map((s, i, 다) => ({ ...s, 걸림: (다[i + 1]?.때 ?? 끝) - s.때 })).filter((s, i) => i > 0 || s.걸림 > 0);
       const 가장 = 줄들.reduce((a, b) => (b.걸림 > a.걸림 ? b : a));
       const 가장큰기억 = 줄들.reduce((a, b) => (b.기억 > a.기억 ? b : a));
       const 토큰 = (n: number) => (n > 0 ? n.toLocaleString('en-US') : '—');
       return [
-        '| 단계 | 시작 | 걸린 시간 | 반장 기억 최대 |',
+        '| 단계 | 시작 | 걸린 시간 | 메인 AI 기억 최대 |',
         '|---|---|---|---|',
         ...줄들.map((s) => `| ${s.이름.replaceAll('|', '\\|')} | ${분초(s.때 - 시작)} | ${분초(s.걸림)} | ${토큰(s.기억)} |`),
         '',
         `가장 긴 단계: ${가장.이름} — ${분초(가장.걸림)}`,
-        ...(가장큰기억.기억 > 0 ? [`반장 기억 최대: ${토큰(가장큰기억.기억)} 토큰 — ${가장큰기억.이름}`] : []),
+        ...(가장큰기억.기억 > 0 ? [`메인 AI 기억 최대: ${토큰(가장큰기억.기억)} 토큰 — ${가장큰기억.이름}`] : []),
       ].join('\n');
     },
     스냅샷(잰것: { elapsedSec: number; caseFiles: number; screens?: number }): 진척 {

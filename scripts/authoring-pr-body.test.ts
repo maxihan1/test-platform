@@ -30,9 +30,9 @@ describe('PR본문 — 절 조립', () => {
   });
 
   it('단계표를 주면 요약 뒤 · 병합 근거 줄 앞에 「단계 시각 (이번 실행)」 절로 싣는다', () => {
-    const 글 = PR본문({ 표경로: 'docs/cases/MKT.md', 표: '', 요약: '케이스 4건', 단계: '| 단계 | 시작 | 걸린 시간 |' });
+    const 글 = PR본문({ 표경로: 'docs/cases/MKT.md', 표: '', 요약: '케이스 4건', 단계: '| 단계 | 시작 | 걸린 시간 | 메인 AI 기억 최대 |' });
     expect(글.indexOf('케이스 4건')).toBeLessThan(글.indexOf('## 단계 시각 (이번 실행)'));
-    expect(글.indexOf('| 단계 | 시작 | 걸린 시간 |')).toBeLessThan(글.indexOf('병합 근거'));
+    expect(글.indexOf('| 단계 | 시작 | 걸린 시간 | 메인 AI 기억 최대 |')).toBeLessThan(글.indexOf('병합 근거'));
   });
 
   it('단계표가 비거나 없으면 그 절을 뺀다', () => {
@@ -48,7 +48,7 @@ describe('PR본문 — GitHub 상한(UTF-8 바이트) 안에 맞춘다', () => {
 
   it('표가 길면 표 절을 경로 한 줄로 바꾸고 요약 · 단계 시각 · 병합 근거는 그대로다', () => {
     const 표 = '| 요구 | 케이스 |\n' + '| REQ-001 | 한글로 쓴 긴 케이스 이름 |\n'.repeat(3000);
-    const 글 = PR본문({ 표경로: 경로, 표, 요약: `${셈}\n\n${꼬리}`, 단계: '| 단계 | 시작 | 걸린 시간 |' });
+    const 글 = PR본문({ 표경로: 경로, 표, 요약: `${셈}\n\n${꼬리}`, 단계: '| 단계 | 시작 | 걸린 시간 | 메인 AI 기억 최대 |' });
     expect(바이트(글)).toBeLessThanOrEqual(본문상한);
     expect(글).not.toContain('REQ-001');
     expect(글).toContain('`docs/cases/MKT.md`');
