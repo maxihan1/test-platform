@@ -184,25 +184,34 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     }
   });
 
-  it('PC 게임이면 파일이 있는 가장 최근 빌드 번호를 latestBuildNo 로 싣고 그 밖은 null 이다 (도메인/게임 §3.10 「윈도우 PC」)', async () => {
+  it('PC 게임이면 대상 서버를 안 고른 작성이 깔 빌드 번호를 latestBuildNo 로 싣는다 — 운영 줄은 빼고 대상 서버 이름 차례로 처음 빌드가 있는 줄 (authoring/appScreen PC빌드파일 과 같은 규칙)', async () => {
     const { pool } = await import('../db/index.js');
     const 읽기 = async () => (await 확인(await 가짜요청('xfu1-live')))?.services.find((s) => s.prefix === 'XFS1B')?.latestBuildNo;
+    const 빌드 = (env: string, 번호: string, 몇시간전: number) =>
+      pool.query(
+        `INSERT INTO app_build (service_id, env, build_no, file_path, uploaded_by, uploaded_at, platform)
+              VALUES ($1, $2, $3, $4, 'ci', now() - make_interval(hours => $5::int), 'windows')`,
+        [웹훅없는서비스id, env, 번호, `/x/${번호}.zip`, 몇시간전],
+      );
     expect(await 읽기()).toBeNull();
     try {
       await pool.query(`UPDATE service SET kind = 'GAME', game_platform = 'windows' WHERE id = $1`, [웹훅없는서비스id]);
-      expect(await 읽기()).toBeNull();
       await pool.query(
-        `INSERT INTO app_build (service_id, env, build_no, file_path, app_url, uploaded_by, uploaded_at, platform) VALUES
-           ($1, 'qa', 'old-1', '/x/old-1.zip', NULL, 'ci', now() - interval '2 hours', 'windows'),
-           ($1, 'stg', 'new-2', '/x/new-2.zip', NULL, 'ci', now() - interval '1 hour', 'windows'),
-           ($1, 'qa', 'url-3', NULL, 'https://repo.example/x.zip', 'ci', now(), 'windows')`,
+        `INSERT INTO service_env (service_id, env, base_url, is_prod) VALUES ($1, 'prod', 'https://prod.xfs1b.test', true), ($1, 'qa', 'https://qa.xfs1b.test', false), ($1, 'stg', 'https://stg.xfs1b.test', false)`,
         [웹훅없는서비스id],
       );
-      expect(await 읽기()).toBe('new-2');
+      expect(await 읽기()).toBeNull();
+      await 빌드('prod', 'p-9', 0);
+      expect(await 읽기()).toBeNull();
+      await 빌드('stg', 's-2', 1);
+      expect(await 읽기()).toBe('s-2');
+      await 빌드('qa', 'q-1', 2);
+      expect(await 읽기()).toBe('q-1');
       await pool.query(`UPDATE service SET game_platform = 'android' WHERE id = $1`, [웹훅없는서비스id]);
       expect(await 읽기()).toBeNull();
     } finally {
       await pool.query(`DELETE FROM app_build WHERE service_id = $1`, [웹훅없는서비스id]);
+      await pool.query(`DELETE FROM service_env WHERE service_id = $1`, [웹훅없는서비스id]);
       await pool.query(`UPDATE service SET kind = 'SCREEN', game_platform = NULL WHERE id = $1`, [웹훅없는서비스id]);
     }
   });
