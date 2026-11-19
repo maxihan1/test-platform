@@ -2,7 +2,7 @@
 
 import type { Pool } from 'pg';
 
-import { 최신빌드 } from './buildFile.js';
+import { 최신빌드, type 빌드플랫폼 } from './buildFile.js';
 import { markAborted } from './dispatcher.js';
 import { abortRunner } from './runner.js';
 import { 정기실행을만든다, type 로그, type 만든정기실행 } from './scheduled.js';
@@ -14,9 +14,15 @@ export interface 올린빌드 {
   prefix: string;
   env: string;
   buildNo: string;
+  // 빌드 실행은 올린 빌드 쪽 항목만 돈다 — 잇는 셈(앞 빌드 건너뛰기 · 회귀 · 더 새 빌드)도 플랫폼마다다 (도메인/게임 §3.10 「빌드 — zip 하나」)
+  platform: 빌드플랫폼;
   username: string;
   displayName: string;
 }
+
+// 빌드 실행의 자기 빌드 칸 — PC 빌드 실행은 폰 칸(build_id)이 비고 PC 칸이 찬다. 폰 빌드 실행은 PC 항목을 안 담아 PC 칸이 늘 빈다
+const 자기칸 = (플랫폼: 빌드플랫폼): string => (플랫폼 === 'windows' ? 'pc_build_id' : 'build_id');
+const 플랫폼조건 = (플랫폼: 빌드플랫폼): string => (플랫폼 === 'windows' ? 'pc_build_id IS NOT NULL' : 'pc_build_id IS NULL');
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -32,13 +38,13 @@ function 분배를맡긴다(결과: 만든정기실행, 빌드번호: string, �
 }
 
 /**
- * 같은 줄의 앞 빌드 실행 가운데 끝난 항목이 하나도 없는 것을 멈춘다 — 새 빌드가 왔으니 옛 빌드를 깔아 돌 까닭이 없다.
- * 항목 하나라도 끝난 실행은 그대로 둔다(결과가 이미 쌓이고 있다)
+ * 같은 줄 · 같은 플랫폼의 앞 빌드 실행 가운데 끝난 항목이 하나도 없는 것을 멈춘다 — 새 빌드가 왔으니 옛 빌드를 깔아 돌 까닭이 없다.
+ * 항목 하나라도 끝난 실행은 그대로 둔다(결과가 이미 쌓이고 있다). 다른 플랫폼 빌드 실행은 안 건드린다 — CI 가 APK 와 zip 을 몇 초 사이에 올린다
  */
 async function 앞빌드건너뛰기(빌드: 올린빌드): Promise<void> {
   const r = await (await db()).query<{ run_id: string }>(
     `SELECT run_id FROM test_run t
-      WHERE service_id = $1 AND env = $2 AND origin = 'BUILD' AND status = 'RUNNING' AND build_id IS DISTINCT FROM $3
+      WHERE service_id = $1 AND env = $2 AND origin = 'BUILD' AND status = 'RUNNING' AND ${플랫폼조건(빌드.platform)} AND ${자기칸(빌드.platform)} IS DISTINCT FROM $3
         AND NOT EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.finished_at IS NOT NULL)`,
     [빌드.serviceId, 빌드.env, 빌드.id],
   );
@@ -70,20 +76,24 @@ const 줄 = new Map<number, Promise<void>>();
 /** 실행이 끝날 때마다 부른다(dispatcher). 빌드 스모크의 마지막 실행이 다 통과로 끝났으면 회귀를 건다 */
 export async function 스모크뒤(runId: number, 로그: 로그 = 콘솔): Promise<void> {
   const pool = await db();
-  const r = await pool.query<{ build_id: string | null; build_stage: string | null; build_no: string; env: string; service_id: string; prefix: string; triggered_by: string; triggered_by_name: string | null }>(
-    `SELECT t.build_id, t.build_stage, t.build_no, t.env, t.service_id, s.prefix, t.triggered_by, t.triggered_by_name
+  const r = await pool.query<{ build_id: string | null; pc_build_id: string | null; build_stage: string | null; build_no: string | null; pc_build_no: string | null; env: string; service_id: string; prefix: string; triggered_by: string; triggered_by_name: string | null }>(
+    `SELECT t.build_id, t.pc_build_id, t.build_stage, t.build_no, t.pc_build_no, t.env, t.service_id, s.prefix, t.triggered_by, t.triggered_by_name
        FROM test_run t JOIN service s ON s.id = t.service_id WHERE t.run_id = $1`,
     [runId],
   );
   const 행 = r.rows[0];
-  if (행 === undefined || 행.build_stage !== 'SMOKE' || 행.build_id === null) return;
-  const buildId = Number(행.build_id);
+  if (행 === undefined || 행.build_stage !== 'SMOKE') return;
+  const 플랫폼: 빌드플랫폼 = 행.pc_build_id !== null ? 'windows' : 'android';
+  const 자기 = 플랫폼 === 'windows' ? 행.pc_build_id : 행.build_id;
+  const 번호 = (플랫폼 === 'windows' ? 행.pc_build_no : 행.build_no) ?? '';
+  if (자기 === null) return;
+  const buildId = Number(자기);
 
   const 앞 = 줄.get(buildId) ?? Promise.resolve();
   const 이번 = 앞.then(async () => {
     const 스모크 = await pool.query<{ status: string; 안통과: boolean }>(
       `SELECT t.status, EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.status <> 'PASS') AS "안통과"
-         FROM test_run t WHERE t.build_id = $1 AND t.build_stage = 'SMOKE'`,
+         FROM test_run t WHERE t.${자기칸(플랫폼)} = $1 AND t.build_stage = 'SMOKE'`,
       [buildId],
     );
     if (스모크.rows.some((s) => s.status === 'RUNNING')) return;
@@ -91,25 +101,26 @@ export async function 스모크뒤(runId: number, 로그: 로그 = 콘솔): Prom
     if (스모크.rows.some((s) => s.status !== 'FINISHED' || s.안통과)) {
       // 준비 실패는 빌드가 깨진 것이 아니다 — 로그를 가른다 (도메인/실행 §3.2 「실행 전 준비」)
       const 까닭 = 스모크.rows.some((s) => s.status === 'PREP_FAILED') ? '테스트 데이터 준비가 실패해' : '스모크가 통과하지 못해';
-      로그.info(`[build ${행.build_no}] ${행.prefix} ${까닭} 회귀를 돌리지 않는다`);
+      로그.info(`[build ${번호}] ${행.prefix} ${까닭} 회귀를 돌리지 않는다`);
       return;
     }
-    const 회귀 = await pool.query('SELECT 1 FROM test_run WHERE build_id = $1 AND build_stage = $2', [buildId, 'FULL']);
+    const 회귀 = await pool.query(`SELECT 1 FROM test_run WHERE ${자기칸(플랫폼)} = $1 AND build_stage = $2`, [buildId, 'FULL']);
     if ((회귀.rowCount ?? 0) > 0) return;
-    const 최신 = await 최신빌드(pool, Number(행.service_id), 행.env);
+    const 최신 = await 최신빌드(pool, Number(행.service_id), 행.env, 플랫폼);
     if (최신?.id !== buildId) {
-      로그.info(`[build ${행.build_no}] ${행.prefix} 새 빌드가 와서 이 빌드의 회귀는 건너뛴다`);
+      로그.info(`[build ${번호}] ${행.prefix} 새 빌드가 와서 이 빌드의 회귀는 건너뛴다`);
       return;
     }
     분배를맡긴다(
       await 정기실행을만든다(행.prefix, 행.env, 로그, {
         id: buildId,
-        buildNo: 행.build_no,
+        buildNo: 번호,
+        platform: 플랫폼,
         stage: 'FULL',
         username: 행.triggered_by,
         displayName: 행.triggered_by_name ?? 행.triggered_by,
       }),
-      행.build_no,
+      번호,
       로그,
     );
   });

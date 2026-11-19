@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { 대상줄읽기 } from '../authoring/reverse.js';
 import { 게임시나리오인가 } from '../catalog/rules.js';
-import { 팜머리, 팜주소 } from '../execution/farm.js';
+import { PC기기인가, 팜머리, 팜주소 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 러너머리 } from '../execution/runnerAddr.js';
 import { 기기목표 } from './deviceStats.js';
@@ -67,9 +67,10 @@ async function 팜기기들(팜: string): Promise<기기[]> {
   try {
     const res = await fetch(`${팜}/api/devices`, { headers: 팜머리(process.env, await 서버팜토큰()), signal: AbortSignal.timeout(목록제한ms) });
     if (!res.ok) return [];
-    const 몸 = (await res.json()) as { value?: { devices?: { serial?: unknown; state?: unknown; model?: unknown; osVersion?: unknown }[] } };
+    const 몸 = (await res.json()) as { value?: { devices?: { serial?: unknown; state?: unknown; model?: unknown; osVersion?: unknown; platform?: unknown }[] } };
+    // 윈도우 PC 는 기기 성능 대상이 아니다 — VISION 이 성능 측정을 PC 에 안 받는다 (도메인/게임 §3.10)
     return (몸.value?.devices ?? []).flatMap((d) =>
-      typeof d.serial === 'string' && 시리얼.test(d.serial)
+      typeof d.serial === 'string' && 시리얼.test(d.serial) && !PC기기인가(d)
         ? [{ serial: d.serial, model: typeof d.model === 'string' ? d.model : d.serial, os: typeof d.osVersion === 'string' ? d.osVersion : '', where: 'FARM' as const, status: d.state === 'IDLE' ? ('IDLE' as const) : ('BUSY' as const) }]
         : [],
     );
@@ -100,10 +101,10 @@ export async function 팜기기재료(): Promise<{ serial: string; model: string
   try {
     const res = await fetch(`${팜}/api/devices`, { headers: 팜머리(process.env, await 서버팜토큰()), signal: AbortSignal.timeout(목록제한ms) });
     if (!res.ok) return [];
-    const 몸 = (await res.json()) as { value?: { devices?: { serial?: unknown; model?: unknown; osVersion?: unknown; resolution?: unknown }[] } };
+    const 몸 = (await res.json()) as { value?: { devices?: { serial?: unknown; model?: unknown; osVersion?: unknown; resolution?: unknown; platform?: unknown }[] } };
     const 글 = (v: unknown) => (typeof v === 'string' ? v : '');
     return (몸.value?.devices ?? []).flatMap((d) =>
-      typeof d.serial === 'string' && 시리얼.test(d.serial) ? [{ serial: d.serial, model: 글(d.model), osVersion: 글(d.osVersion), resolution: 글(d.resolution) }] : [],
+      typeof d.serial === 'string' && 시리얼.test(d.serial) && !PC기기인가(d) ? [{ serial: d.serial, model: 글(d.model), osVersion: 글(d.osVersion), resolution: 글(d.resolution) }] : [],
     );
   } catch {
     return [];

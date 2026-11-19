@@ -2,7 +2,7 @@
 // 대기줄은 모듈 전역이다. 실행 묶음마다 2개씩 돌면 두 사람이 동시에 누를 때 4개가 돈다 —
 // 대상 서버가 2코어라 그 이상은 느려지기만 한다 (SPEC §9)
 
-import type { ExecuteResponse } from '@platform/kit';
+import { PC항목인가, type ExecuteResponse } from '@platform/kit';
 
 import { 실행문서견주기 } from '../apidoc/runCompare.js';
 import { 배포실행뒤 } from '../bts/deployFlow.js';
@@ -15,7 +15,8 @@ import { 스모크뒤 } from './buildRun.js';
 import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { notifyRun } from './notify.js';
-import { Chrome차례, 폰차례 } from './phone.js';
+import { PC로, PC기다림_ms } from './pcFarm.js';
+import { Chrome차례, PC차례, 폰차례 } from './phone.js';
 import { 준비를끊는다, 준비실패로닫는다, 준비하고돌린다 } from './prep.js';
 import { callRunner, na, type 잡은폰 } from './runner.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
@@ -136,6 +137,50 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
   });
 }
 
+async function 빌드파일(buildId: number): Promise<string | null> {
+  const { pool } = await import('../db/index.js');
+  return (await pool.query<{ file_path: string | null }>('SELECT file_path FROM app_build WHERE id = $1', [buildId])).rows[0]?.file_path ?? null;
+}
+
+/**
+ * 윈도우 PC 항목 — PC 줄에 서서 VISION 에서 PC 를 잡고(빈 PC 가 없으면 1분마다 120분까지) 고정한 zip 을 한 번 깐 뒤
+ * 항목을 차례로 돌리고 놓는다. 폰 게임 실행과 같은 꼴이고 폰 디바이스 줄은 안 쓴다 (도메인/게임 §3.10 「실행 하나의 흐름」)
+ */
+async function PC실행(runId: number, 항목들: PendingItem[]): Promise<void> {
+  const 닫는다 = async (까닭: string): Promise<void> => {
+    for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, 까닭));
+  };
+  await PC차례(async () => {
+    const 팜 = 팜주소();
+    if (팜 === undefined) return 닫는다('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
+    // 실행 하나의 PC 빌드는 하나다 — 실행을 만들 때 고정했다
+    const buildId = 항목들[0]!.pcBuildId;
+    const zip = buildId === undefined ? null : await 빌드파일(buildId);
+    if (zip === null) return 닫는다('Windows 빌드가 없습니다');
+    let 처음토큰: string | undefined;
+    try {
+      처음토큰 = await 실행팜토큰(runId);
+    } catch (err) {
+      return 닫는다(`누른 사람의 팜 토큰을 고르지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    const 다시받기 = (): Promise<string | undefined> => 실행팜토큰(runId).catch(() => 처음토큰);
+    await PC로(
+      팜,
+      zip,
+      { 기다림ms: PC기다림_ms, 멈췄나: () => 멈춘실행.has(runId), 토큰: 다시받기 },
+      async (pc) => {
+        for (const item of 항목들) {
+          if (멈춘실행.has(runId)) return;
+          const 지금 = await 다시받기();
+          await 잡기를늘린다(팜, pc.serial, fetch, 지금);
+          await runOne(runId, item, { udid: pc.serial, 토큰: 지금, 화면: pc.화면, 이름: pc.serial, 게임: pc.게임 });
+        }
+      },
+      닫는다,
+    );
+  });
+}
+
 // 요청을 받은 쪽은 기다리지 않는다. run_id만 돌려주고 실행은 여기서 계속된다 (SPEC §7)
 export async function dispatch(runId: number, items: PendingItem[]): Promise<void> {
   // 항목을 기다리게 하지 않는다 — 항목은 케이스가 만들어진 판을 DB 에서 읽는다. 끝내기 전에만 기다린다 (도메인/API §3.8 「실행 시작 때 견주기」)
@@ -147,7 +192,7 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   // 케이스마다 앞 항목이 끝나야 다음을 대기줄에 넣으므로 회차는 케이스 순서로 한 바퀴씩 돌고, 다른 케이스는 상한까지 나란히 돈다
   const 게임인가 = (i: PendingItem): boolean => i.engine === 'GAME' && i.platform === 'android';
   const 케이스줄 = new Map<string, PendingItem[]>();
-  for (const item of items.filter((i) => !게임인가(i))) {
+  for (const item of items.filter((i) => !게임인가(i) && !PC항목인가(i.platform))) {
     const 줄 = 케이스줄.get(item.tcId);
     if (줄 === undefined) 케이스줄.set(item.tcId, [item]);
     else 줄.push(item);
@@ -155,6 +200,7 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   // android 는 전역 상한 밖의 디바이스 줄이다. 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로채고,
   // 전역 상한은 컨테이너 러너의 CPU 를 지키는 값이라 그 러너에서 돌지 않는 앱 항목이 자리를 쓸 이유가 없다 (SPEC 실행 §3.2)
   const 게임들 = items.filter(게임인가);
+  const PC들 = items.filter((i) => PC항목인가(i.platform));
   const 항목을돌린다 = async (): Promise<void> => {
     await Promise.all([
       ...[...케이스줄.values()].map(async (줄) => {
@@ -165,6 +211,7 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
         }
       }),
       ...(게임들.length > 0 ? [게임실행(runId, 게임들)] : []),
+      ...(PC들.length > 0 ? [PC실행(runId, PC들)] : []),
     ]);
   };
   // 돌리기 전에 대상 서버 줄의 준비 주소를 한 번 부른다 — 같은 준비 주소의 실행이 도는 중이면 끝날 때까지 기다린다.

@@ -4,11 +4,12 @@
 import http from 'node:http';
 import https from 'node:https';
 
-import type {
-  ExecuteRequest,
+import {
+  PC항목인가,
+  type ExecuteRequest,
   ExecuteResponse,
-  ScenarioExecuteRequest,
-  ScenarioExecuteResponse,
+  type ScenarioExecuteRequest,
+  type ScenarioExecuteResponse,
 } from '@platform/kit';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
@@ -113,8 +114,10 @@ export interface 잡은폰 {
   토큰: string | undefined;
   // 그 폰의 VISION 화면 링크 — 진행 창 카드가 단다
   화면?: string | undefined;
-  // 그 폰 모델 이름 — 옛 팜은 안 준다
+  // 그 폰 모델 이름 — 옛 팜은 안 준다. PC 는 VISION 기기 이름(pc-<이름>)
   이름?: string | undefined;
+  // 윈도우 PC 만 — 디스패처가 깐 게임 이름(exe 이름). 러너에 app 으로 싣는다 (도메인/게임 §3.10 「실행 하나의 흐름」 3)
+  게임?: string;
 }
 
 // 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다.
@@ -174,6 +177,19 @@ async function 항목을보낸다(
 
   // 모바일 웹은 실행 창 「실행 위치」로 고른 항목만 실제 폰이다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   const 폰Chrome = item.platform === 'mobile' && item.실제폰 === true;
+  // 윈도우 PC 는 디스패처가 실행 하나 동안 잡고 깐 PC 로만 간다 — 러너 · kit 은 Appium 세션을 안 만든다
+  if (PC항목인가(item.platform)) {
+    if (잡은폰?.게임 === undefined) return na(item, 'Windows PC 를 잡지 않은 항목입니다');
+    const pc = 잡은폰;
+    const 멈춘 = 멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : null;
+    if (멈춘 !== null) return 멈춘;
+    항목폰화면(item.historyId, pc.화면, pc.이름);
+    try {
+      return await 보낸다(item, { ...body, udid: pc.udid, app: pc.게임!, ...(pc.토큰 !== undefined && { farmToken: pc.토큰 }) });
+    } finally {
+      항목폰화면(item.historyId, undefined);
+    }
+  }
   if (item.platform !== 'android' && !폰Chrome) return 보낸다(item, body);
   // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL). 폰을 잡는 몇 초 사이에 멈췄는지 잡은 뒤 본다
   const 멈춤 = (): ExecuteResponse | null => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : null);

@@ -2,14 +2,14 @@
 // params·expected·케이스명·사전조건은 전부 실행 시점의 스냅샷이다. param_set을 참조만 하면
 // 나중에 값이 바뀌었을 때 과거 증적이 거짓이 된다
 
-import type { ApiAuth, Platform } from '@platform/kit';
+import { PC항목인가, type ApiAuth, type Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { API인증읽기, type 어드민키, 어드민키읽기 } from '../settings/envs.js';
 
-import { 실행빌드, 앞빌드, 앱칸 } from './buildFile.js';
+import { 실행빌드, 앞빌드, 앱칸, type 빌드플랫폼 } from './buildFile.js';
 import { 엔진칸 } from './engineField.js';
 import { 선언밖디바이스, 항목제한ms } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
@@ -17,7 +17,7 @@ import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 import { 시작방식정하기 } from './single.js';
 import { 케이스지문, 테스트커밋 } from './testVersion.js';
-import { PC디바이스글, PC항목을뺀다 } from './pcPlatform.js';
+import { PC디바이스글 } from './pcPlatform.js';
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
 const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱', ...PC디바이스글 };
@@ -58,8 +58,8 @@ export interface RunItemInput {
 export interface CreateRunInput {
   // 제목은 받지 않는다 — 시작 방식과 담긴 케이스로 서버가 짓는다 (SPEC 실행 §7 「자동 제목」)
   origin: 'MANUAL' | 'SCHEDULED' | 'BUILD';
-  // 빌드로 시작한 실행만. 없으면 그 줄의 최신 빌드를 고정한다 (도메인/실행 §3.11)
-  build?: { id: number; no: string; stage: 'SMOKE' | 'FULL' };
+  // 빌드로 시작한 실행만. 없으면 그 줄의 최신 빌드를 고정한다 (도메인/실행 §3.11). platform 은 올린 빌드 쪽 — PC 빌드면 PC 칸에 고정한다 (도메인/게임 §3.10)
+  build?: { id: number; no: string; stage: 'SMOKE' | 'FULL'; platform?: 빌드플랫폼 };
   // 「실패 N건 다시 실행」이 싣는 원래 실행. 있으면 시작 방식이 RERUN 이다
   rerunOf?: number;
   // 로그인한 사람의 아이디. 요청 본문이 아니라 문(auth/gate.ts)이 실어 준 값에서 온다 (SPEC §3.5)
@@ -107,6 +107,8 @@ export interface PendingItem {
   실제폰?: true;
   // 정기 실행 android 항목 — 러너가 통과해도 logcat 을 받아 안정화 지표가 크래시 · ANR 을 센다 (도메인/안정화 §3.15 결정 3)
   stability?: true;
+  // 윈도우 PC 항목만 — 실행에 고정한 PC 빌드. 디스패처가 PC 를 잡은 뒤 이 zip 을 VISION 에 깐다. 없으면 「Windows 빌드가 없습니다」 미실행 (도메인/게임 §3.10 「실행 하나의 흐름」)
+  pcBuildId?: number;
 }
 
 // tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
@@ -150,9 +152,7 @@ const INSERT_ITEM = `
   VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13, $14, $15)
   RETURNING history_id`;
 
-export async function createRun(입력: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
-  // 정기 · 빌드 · 사람이 거는 실행이 다 여기를 지난다 — PC 항목을 싣는 길이 생기기 전까지 한 곳에서 뺀다 (pcPlatform.ts)
-  const input = { ...입력, items: PC항목을뺀다(입력.items) };
+export async function createRun(input: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
   if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
 
   // 같은 실행 안에서 케이스×환경은 한 행뿐이다(run_item의 UNIQUE). 조용히 버리면 뒤에 넣은 입력값이 사라진다
@@ -216,6 +216,9 @@ export async function createRun(입력: CreateRunInput): Promise<{ runId: number
       throw new RunInputError('ENV_NOT_FOUND', `${prefix} 서비스에 ${input.env} 대상 서버가 없다`);
     }
     const 인증들 = API인증읽기(found서비스.api_auths);
+    // 윈도우 PC 는 게임 SDK 로만 돈다 — 게임 밖 케이스가 windows 를 선언했어도 실행하지 않는다 (도메인/게임 §3.10 · 실행 §7 계약)
+    const PC있음 = input.items.some((i) => i.platforms.some(PC항목인가));
+    if (PC있음 && found서비스.kind !== 'GAME') throw new RunInputError('INVALID_REQUEST', 'Windows 디바이스는 게임 애플리케이션만 고를 수 있다');
 
     // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
     // 미확정 사유도 여기서 박제한다 — 확인 필요 항목이 나중에 확정돼도 그날 확정이 아니었다는 사실은 남아야 한다 (SPEC 실행 §3.2)
@@ -247,8 +250,11 @@ export async function createRun(입력: CreateRunInput): Promise<{ runId: number
       platforms: input.items.flatMap((i) => i.platforms),
       실제폰,
     });
-    // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11)
-    const 빌드 = await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
+    // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11).
+    // 폰 빌드와 PC 빌드를 따로 고정한다. PC 빌드로 건 빌드 실행은 PC 항목만 담아 폰 칸을 비운다 — 그 실행의 자기 빌드는 PC 칸이다 (도메인/게임 §3.10 「빌드 — zip 하나」)
+    const PC빌드실행 = input.build?.platform === 'windows';
+    const 빌드 = PC빌드실행 ? null : await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
+    const PC빌드 = PC빌드실행 || PC있음 ? await 실행빌드(client, Number(found서비스.id), input.env, PC빌드실행 ? input.build?.id : undefined, 'windows') : null;
     // 옛판에서올리기 가 깔 앞 빌드 — 실행 빌드 바로 앞에 그 줄에 올린 빌드다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
     const 앞 = 빌드 === null ? null : await 앞빌드(client, Number(found서비스.id), input.env, 빌드.id);
     const title = await 제목을짓는다(client, {
@@ -264,8 +270,8 @@ export async function createRun(입력: CreateRunInput): Promise<{ runId: number
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
       `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack, kind, origin, rerun_of,
-                             build_id, build_no, build_stage, sched_occurrence_id)
-       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING run_id`,
+                             build_id, build_no, build_stage, sched_occurrence_id, pc_build_id, pc_build_no)
+       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING run_id`,
       [
         title,
         input.triggeredBy,
@@ -285,6 +291,8 @@ export async function createRun(입력: CreateRunInput): Promise<{ runId: number
         빌드?.buildNo ?? null,
         input.build?.stage ?? null,
         input.sched?.occurrenceId ?? null,
+        PC빌드?.id ?? null,
+        PC빌드?.buildNo ?? null,
       ],
     );
     const runId = Number(run.rows[0]!.run_id);
@@ -335,6 +343,7 @@ export async function createRun(입력: CreateRunInput): Promise<{ runId: number
             ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
             ...(platform === 'mobile' && 실제폰 && { 실제폰: true as const }),
             ...(platform === 'android' && input.sched?.base === true && { stability: true as const }),
+            ...(PC항목인가(platform) && PC빌드?.hasFile === true && { pcBuildId: PC빌드.id }),
           });
         }
       }

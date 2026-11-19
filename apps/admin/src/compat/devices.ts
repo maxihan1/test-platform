@@ -1,7 +1,7 @@
 // 호환성 디바이스 목록 — 팜(Device VISION) `GET /api/devices` 의 칸과 상태 넷을 그대로 옮긴다 (도메인/호환성 §7 · 비전 안내서 11절)
 // 기기 성능 목록(perf/devices.ts)을 안 쓰는 까닭 — 그쪽은 상태를 IDLE · BUSY 로 접고 제조사 · 해상도를 버리며 내 컴퓨터 러너 폰도 섞는다
 
-import { 팜머리, 팜주소 } from '../execution/farm.js';
+import { PC기기인가, 팜머리, 팜주소 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 시리얼 } from '../perf/devices.js';
 
@@ -30,7 +30,7 @@ const 하나 = <T extends string>(v: unknown, 값들: readonly T[]) => (값들.i
 
 /** 비전이 못 읽은 칸은 없다 — 모양이 틀린 칸도 없는 것으로 둔다. 모르는 상태는 OFFLINE 으로 본다(잡을 수 없다) */
 export function 디바이스로(d: Record<string, unknown>): 호환성디바이스 | null {
-  if (typeof d.serial !== 'string' || !시리얼.test(d.serial)) return null;
+  if (typeof d.serial !== 'string' || !시리얼.test(d.serial) || PC기기인가(d)) return null;
   const displays = Array.isArray(d.displays)
     ? d.displays.flatMap((x: unknown) => {
         const v = x as { size?: unknown; inches?: unknown } | null;

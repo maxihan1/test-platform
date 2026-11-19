@@ -19,7 +19,10 @@ export function 팜머리(env: Record<string, string | undefined> = process.env,
   return 토큰 === '' ? {} : { authorization: `Bearer ${토큰}` };
 }
 
-type 기기 = { serial?: unknown; state?: unknown; detail?: unknown; model?: unknown };
+type 기기 = { serial?: unknown; state?: unknown; detail?: unknown; model?: unknown; platform?: unknown };
+
+// VISION 목록에는 윈도우 PC(pc-<이름>)도 IDLE 로 온다 — 폰 자리에 잡으면 /wd/hub 가 400 이라 폰 고르기 · 기기 목록은 뺀다 (도메인/게임 §3.10 「폰을 고르는 길은 PC 를 거른다」)
+export const PC기기인가 = (d: { platform?: unknown }): boolean => d.platform === 'windows';
 // 모델 이름은 진행 창 카드 머리에 적는다 — 옛 팜은 안 준다 (도메인/실행 §8.16 ⑤)
 type 고름 = { serial: string; model?: string } | { reason: string };
 
@@ -39,7 +42,7 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
     // 주소가 틀려 다른 쪽이 200 으로 HTML 을 주면 「닿지 못했다」가 아니라 이 말이어야 주소를 다시 본다
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;
     if (몸 === null) return { reason: 'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
-    const 기기들 = 몸.value?.devices ?? [];
+    const 기기들 = (몸.value?.devices ?? []).filter((d) => !PC기기인가(d));
     // 깔린 폰이 없으면 기다려도 안 생긴다 — 바쁜 것과 갈라 사람이 팜 「남길 앱」을 보게 한다
     if (패키지 !== undefined && 기기들.length === 0) return { reason: `Device VISION 에 ${패키지} 가 깔린 폰이 없습니다` };
     const 빈폰 = 기기들.find((d) => d.state === 'IDLE' && typeof d.serial === 'string' && d.serial !== '');

@@ -1,5 +1,6 @@
 // POST /api/runs 요청 본문 스키마와 Android 앱 실행을 받을지 판정 (SPEC 실행 §7)
 
+import { PC_PLATFORMS, PC항목인가 } from '@platform/kit';
 import { z } from 'zod';
 
 import { 게임시나리오인가 } from '../catalog/rules.js';
@@ -32,7 +33,8 @@ export const runBody = z.object({
     .array(
       z.object({
         tcId: z.string().min(1),
-        platforms: z.array(z.enum(['desktop', 'mobile', 'android'])).min(1),
+        // windows 다섯은 게임 케이스가 windows 를 선언했을 때만 받는다 — 패드는 실행 때 고른다 (도메인/게임 §3.10 「윈도우 PC」)
+        platforms: z.array(z.enum(['desktop', 'mobile', 'android', ...PC_PLATFORMS])).min(1),
         params: z.record(z.string(), z.unknown()).default({}),
         expected: z.record(z.string(), z.unknown()).default({}),
         // SPEC §10의 DEMO-007은 5초로 줘야 러너의 타임아웃 처리를 확인할 수 있다
@@ -52,8 +54,9 @@ export function 팜을본다(
   env: Record<string, string | undefined>,
   mobileOn: 'server' | 'vision' = 'server',
 ): 거절 | null {
+  // 윈도우 PC 도 VISION 기기다 (도메인/게임 §3.10 「윈도우 PC」)
   const 폰디바이스 = mobileOn === 'vision' ? ['android', 'mobile'] : ['android'];
-  if (!items.some((i) => i.platforms.some((p) => 폰디바이스.includes(p)))) return null;
+  if (!items.some((i) => i.platforms.some((p) => 폰디바이스.includes(p) || PC항목인가(p)))) return null;
   // 운영자가 고칠 자리(환경값 이름)만 싣는다
   if (팜주소(env) === undefined) return { status: 409, error: 'FARM_OFF', detail: 'DEVICE_FARM_URL 이 비어 있다' };
   return null;
@@ -68,15 +71,16 @@ export function 선언밖디바이스<P extends string>(
   for (const item of items) {
     const 케이스 = 선언.get(item.tcId);
     if (!케이스) continue;
-    const platform = item.platforms.find((p) => !케이스.platforms.includes(p));
+    // windows 를 선언했으면 패드 값 넷도 그 선언 안이다 — 선언에는 windows 하나만 적는다 (공통/2 K5)
+    const platform = item.platforms.find((p) => !케이스.platforms.includes(PC항목인가(p) ? 'windows' : p));
     if (platform !== undefined) return { tcId: item.tcId, platform };
   }
   return null;
 }
 
-// 팜이 없는 서버의 정기 실행은 앱 케이스를 뺀다 — 넣으면 매일 NA 만 쌓인다 (SPEC 공통/6-인프라 §9.2)
+// 팜이 없는 서버의 정기 실행은 앱 케이스 · 윈도우 PC 게임 케이스를 뺀다 — 넣으면 매일 NA 만 쌓인다 (SPEC 공통/6-인프라 §9.2)
 export function 앱케이스를뺀다<T extends { platforms: readonly string[] }>(items: T[], env: Record<string, string | undefined>): { 남은: T[]; 뺀수: number } {
   if (팜주소(env) !== undefined) return { 남은: items, 뺀수: 0 };
-  const 남은 = items.filter((c) => !c.platforms.includes('android'));
+  const 남은 = items.filter((c) => !c.platforms.some((p) => p === 'android' || PC항목인가(p)));
   return { 남은, 뺀수: items.length - 남은.length };
 }

@@ -1,6 +1,6 @@
 // 케이스 「테스트 실행」 통로 — 실행 기록 없이 서버 러너에서 1건을 돌리고, 도는 장면을 시작한 사람에게 건넨다 (도메인/실행 §3.2 「테스트 모드」 · §7)
 
-import type { ExecuteRequest, ExecuteResponse, Platform } from '@platform/kit';
+import { PC_PLATFORMS, PC항목인가, type ExecuteRequest, type ExecuteResponse, type Platform } from '@platform/kit';
 import type { 역할계정 } from '@platform/kit/accounts';
 
 import type { FastifyInstance } from 'fastify';
@@ -17,7 +17,8 @@ import { 사람팜토큰 } from './farmToken.js';
 import { 장면을건넨다 } from './live.js';
 import { 항목제한ms } from './location.js';
 import { caseSchemas } from './paramSets.js';
-import { Chrome차례, 폰을놓는다, 폰을바로잡는다 } from './phone.js';
+import { PC에서돌린다 } from './pcTrial.js';
+import { Chrome차례, PC를놓는다, PC를바로잡는다, 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import { abortRunner, na, 보낸다, 시험진행 } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { 엔진칸 } from './engineField.js';
@@ -49,7 +50,7 @@ const 상태들 = new Map<string, 시험상태>();
 const 중단글 = 'ABORTED';
 
 const body = z.object({
-  platform: z.enum(['desktop', 'mobile', 'android']),
+  platform: z.enum(['desktop', 'mobile', 'android', ...PC_PLATFORMS]),
   // 서버 러너는 회사 내부망에 닿는다 — 사람이 적은 주소가 아니라 대상 서버 이름을 받고 주소는 표에서 찾는다 (도메인/실행 §3.2 「아무 주소나 열지 않는다」).
   // 빠져도 ENV_NOT_FOUND 다 — 옛 화면이 주소(baseUrl)만 보내면 그 까닭이 바로 보이게 (도메인/실행 §7 「테스트 모드 통로」)
   env: z.string().default(''),
@@ -156,7 +157,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     const 행 = await 케이스행(tcId);
     const schemas = await caseSchemas(tcId);
     if (행 === null || schemas === null) return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: tcId });
-    if (!행.platforms.includes(platform)) {
+    // windows 를 선언했으면 패드 값 넷도 받는다 (공통/2 K5)
+    if (!행.platforms.includes(PC항목인가(platform) ? 'windows' : platform)) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 는 ${platform} 환경을 지원하지 않습니다` });
     }
     const 대상 = await 대상줄찾기(tcId, env);
@@ -165,6 +167,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: 'ENV_NOT_FOUND', detail });
     }
     const { 줄, 종류, serviceId } = 대상;
+    const PC씀 = PC항목인가(platform);
+    if (PC씀 && 종류 !== 'GAME') return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 'Windows 디바이스는 게임 애플리케이션만 고를 수 있습니다' });
 
     // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값 · 대상 서버 계정으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
     const { params, expected } = await 저장값으로채운다(tcId, platform, 줄.계정들, parsed.data.params, parsed.data.expected, {
@@ -194,14 +198,16 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     };
     const 폰씀 = platform === 'android';
     const 폰Chrome = platform === 'mobile' && mobileOn === 'vision'; // 실행 창에서 고른 곳 — 실제 기기는 팜이 있어야 한다(정식 실행과 같은 409 · 도메인/실행 §3.2 「테스트 모드」)
-    if ((폰씀 || 폰Chrome) && 팜주소() === undefined) {
+    if ((폰씀 || 폰Chrome || PC씀) && 팜주소() === undefined) {
       return reply.code(409).send({ error: 'FARM_OFF', detail: '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다' });
     }
     // 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로챈다. 검증 전에 잡으면 400 경로에서 디바이스가 재기동 때까지 잠긴다
-    if (폰씀 && !폰을바로잡는다()) {
+    // PC 는 폰과 따로 선 PC 줄이다 — 정식 실행이 PC 를 쓰는 중이면 기다리지 않고 409 (도메인/게임 §3.10)
+    if ((폰씀 && !폰을바로잡는다()) || (PC씀 && !PC를바로잡는다())) {
       // detail 을 싣지 않는다 — 화면 문장이 사유를 다 말하고, 같은 말을 실으면 두 번 뜬다(location.ts 「거절」)
       return reply.code(409).send({ error: 'DEVICE_BUSY' });
     }
+    const 줄놓기 = (): void => (폰씀 ? 폰을놓는다() : PC씀 ? PC를놓는다() : undefined);
     const 사람 = req.user?.username ?? '알 수 없음';
     try {
       const 일 = async (id: string, 폰화면: (url: string | undefined, 이름?: string) => void): Promise<ExecuteResponse> => {
@@ -219,6 +225,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
           const 판 = await 케이스판(tcId);
           if ('사유' in 판) return na(요청, 판.사유);
           // 앱 · 게임은 정식 실행처럼 전역 상한 밖의 디바이스 줄이다. 장면은 러너가 Appium 으로 찍는다 (도메인/실행 §3.2 「테스트 모드」 · 2026-11-05 사용자)
+          if (PC씀) return await PC에서돌린다({ ...요청, ...판, live: id }, 사람, { serviceId, env: 줄.env }, 폰화면, 보내기, 멈췄나);
           if (폰씀) return await 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, { serviceId, env: 줄.env, appPath: 줄.appPath }, 폰화면, 보내기, 멈췄나);
           // 실제 폰은 디바이스 줄 대신 Chrome 줄 → 브라우저처럼 한 자리 차례다. 장면은 폰 Chrome 탭에서 받는다 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
           if (폰Chrome) return await Chrome차례(() => enqueue(() => 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, 'chrome', 폰화면, 보내기, 멈췄나)));
@@ -226,7 +233,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
           return await enqueue(() => 보내기({ ...요청, ...판, live: id }));
         } finally {
           상태들.delete(id);
-          if (폰씀) 폰을놓는다();
+          줄놓기();
         }
       };
       const trialId = 시작한다(
@@ -242,7 +249,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(202).send({ trialId });
     } catch (err) {
       // 시작한다 가 던지면 일이 불리지 않았으므로 finally 가 안 돈다 — 여기서 놓는다
-      if (폰씀) 폰을놓는다();
+      줄놓기();
       if (err instanceof TrialBusyError) return reply.code(409).send({ error: err.code, detail: err.message });
       throw err;
     }

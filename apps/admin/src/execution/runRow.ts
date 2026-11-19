@@ -1,6 +1,6 @@
 // 실행 묶음 한 줄 — 칸 목록과 응답 모양으로 옮기기. queries.ts 가 300줄을 넘어 떼어 냈다 (SPEC 도메인/실행 §7)
 
-import type { ItemStatus, Platform } from '@platform/kit';
+import { PC_PLATFORMS, type ItemStatus, type Platform } from '@platform/kit';
 
 import type { RunKind } from './runKind.js';
 import type { 시작방식 } from './runOrigin.js';
@@ -8,14 +8,15 @@ import type { 시나리오실행줄 } from './runSummary.js';
 import type { RunSummary } from './runTypes.js';
 
 const iso = (v: Date | null): string | null => (v === null ? null : v.toISOString());
-const 디바이스차례: Platform[] = ['desktop', 'mobile', 'android'];
+// 윈도우 PC 값 다섯은 폰 뒤다 (도메인/게임 §3.10 「윈도우 PC」)
+const 디바이스차례: Platform[] = ['desktop', 'mobile', 'android', ...PC_PLATFORMS];
 
 // 실행 묶음 한 줄에 판정 개수까지 붙인다. 없으면 목록 화면이 실행마다 항목을 또 불러야 한다.
 // 통과·실패·미실행은 미확정 여부와 상관없이 모든 항목을 센다. 미확정은 「그중 N건」 하나로만 따로 센다 (SPEC 실행 §3.2)
 export const RUN_COLUMNS = `
   r.run_id, r.title, r.triggered_by, r.triggered_by_name, r.env, r.base_url, r.service_name,
-  r.status, r.started_at, r.finished_at, r.kind, r.origin, r.rerun_of, r.build_no, r.prep_note,
-  -- 디바이스 차례는 화면 차례(desktop → mobile → android)다. 시나리오 실행은 항목이 없어 빈 배열이다
+  r.status, r.started_at, r.finished_at, r.kind, r.origin, r.rerun_of, r.build_no, r.pc_build_no, r.prep_note,
+  -- 디바이스 차례는 화면 차례(desktop → mobile → android → windows*)다. 시나리오 실행은 항목이 없어 빈 배열이다
   COALESCE(array_agg(DISTINCT i.platform::text) FILTER (WHERE i.history_id IS NOT NULL), '{}') AS platforms,
   count(i.history_id)::int AS total,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS')::int AS pass,
@@ -26,7 +27,7 @@ export const RUN_COLUMNS = `
 
 // 디바이스마다 실패한 케이스 수 — 회차를 접어 tc_id 로 센다. 결과 칸의 「실패 케이스 N건」과 같은 단위라 목록 줄만 싣는다 (SPEC 실행 §8.7 「줄」)
 export const FAIL_CASE_COLUMNS = 디바이스차례
-  .map((p) => `count(DISTINCT i.tc_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.platform = '${p}')::int AS fail_${p}`)
+  .map((p) => `count(DISTINCT i.tc_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.platform = '${p}')::int AS "fail_${p}"`)
   .join(',\n  ');
 
 export type RawFailCases = Record<`fail_${Platform}`, number>;
@@ -55,6 +56,7 @@ export interface RawRun {
   origin: 시작방식;
   rerun_of: string | null;
   build_no: string | null;
+  pc_build_no: string | null;
   prep_note: string | null;
   platforms: string[];
   started_at: Date;
@@ -82,6 +84,7 @@ export function toRun(row: RawRun): RunSummary {
     origin: row.origin,
     rerunOf: row.rerun_of === null ? null : Number(row.rerun_of),
     buildNo: row.build_no,
+    pcBuildNo: row.pc_build_no,
     prepNote: row.prep_note,
     platforms: 디바이스차례.filter((p) => row.platforms.includes(p)),
     startedAt: row.started_at.toISOString(),
