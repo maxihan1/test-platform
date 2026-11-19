@@ -9,7 +9,7 @@ import { 종류키 } from './kind.js';
 import { 시간글자 } from './remainText.js';
 import { 시작빌드글 } from './RunBuild.js';
 import { 도는중, 상태라벨, 실행자이름, 준비실패 } from './runState.js';
-import { PLATFORM_LABEL, when, 디바이스순서 } from './ui.js';
+import { when, 디바이스순서, 짧은디바이스글 } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 /**
@@ -97,7 +97,7 @@ export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고�
             <span>{t('실패')}</span>
             {나눈실패.map((p) => (
               <span key={p}>
-                {t(PLATFORM_LABEL[p])} <b style={{ color: 'var(--fail-text)' }}>{run.failCases?.[p]}</b>
+                {t(짧은디바이스글(p))} <b style={{ color: 'var(--fail-text)' }}>{run.failCases?.[p]}</b>
               </span>
             ))}
           </span>

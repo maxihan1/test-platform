@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { PC항목인가 } from '@platform/kit/types';
 import { api, type CaseRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -62,7 +63,7 @@ function 진행({ 시험, 케이스들 }: { 시험: 여러건시험; 케이스�
   return (
     <>
       {/* Android 앱은 Appium 이라 늦추지 않는다 (러너 §5.2) */}
-      <띠 늦춤={디바이스 !== 'android'} />
+      <띠 늦춤={디바이스 === 'desktop' || 디바이스 === 'mobile'} />
       <div className={폰 ? 'trial-run phone' : 'trial-run'}>
         <div className="trial-colL">
           <ul className="trial-queue" aria-label={t('시험 차례')}>
@@ -85,7 +86,7 @@ function 진행({ 시험, 케이스들 }: { 시험: 여러건시험; 케이스�
         </div>
         <div className="trial-colR">
           {지금 === null ? (
-            도는중 ? <장면칸 key="시작" 주소={null} 도는중 vision={null} 부제={부제} 폰만={첫 === 'android'} 모바일웹={첫 === 'mobile'} 늦춤글={false} 뼈대 /> : null
+            도는중 ? <장면칸 key="시작" 주소={null} 도는중 vision={null} 부제={부제} 폰만={첫 === 'android' || (첫 !== undefined && PC항목인가(첫))} 모바일웹={첫 === 'mobile'} 늦춤글={false} 뼈대 /> : null
           ) : (
             <장면칸
               key={지금.trialId}
@@ -93,7 +94,7 @@ function 진행({ 시험, 케이스들 }: { 시험: 여러건시험; 케이스�
               도는중={지금줄?.종류 === 'run'}
               vision={지금.vision}
               부제={부제}
-              폰만={지금.platform === 'android'}
+              폰만={지금.platform === 'android' || PC항목인가(지금.platform)}
               모바일웹={지금.platform === 'mobile'}
               늦춤글={false}
               뼈대

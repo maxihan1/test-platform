@@ -22,7 +22,7 @@ import { useWizardKeys } from './useWizardKeys.js';
 import { use단계주소 } from './useWizardStep.js';
 
 const 처음값 = (projectId: number | null): 마법사값 => ({
-  프로젝트이름: '', projectId, kind: null, prefix: '', name: '', testsDir: '', testsRepo: '', envs: [], apiDocPath: '', apiDocEnv: '', webhook: '', figma: '', 제외: '',
+  프로젝트이름: '', projectId, kind: null, gamePlatform: 'android', prefix: '', name: '', testsDir: '', testsRepo: '', envs: [], apiDocPath: '', apiDocEnv: '', webhook: '', figma: '', 제외: '',
 });
 
 /**
@@ -172,6 +172,8 @@ export function SettingsWizard(p: Props) {
         projectId,
         prefix: 값.prefix,
         kind: 값.kind,
+        // 게임 플랫폼은 게임만 보낸다 — 다른 종류가 보내면 서버가 400 NOT_GAME_SERVICE 를 낸다
+        ...(값.kind === 'GAME' ? { gamePlatform: 값.gamePlatform } : {}),
         color: 안쓰는서비스색,
         name: 값.name,
         testsRepo: 값.testsRepo,

@@ -6,7 +6,7 @@ import { Fragment, useEffect, useState } from 'react';
 import type { CaseRow, Platform, RunRequestItem, TrialResult, 모바일위치 } from './api.js';
 import { 원문보기 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
-import { type 고친값표, 실행항목 } from './pickRun.js';
+import { type 고친값표, 실행항목, 윈도우펼침 } from './pickRun.js';
 import { 걸린글 } from './trialView.js';
 import { PLATFORM_LABEL, Verdict } from './ui.js';
 import { type 디바이스칸, type 시험줄, useTrialQueue } from './useTrialQueue.js';
@@ -67,7 +67,7 @@ export function use여러건시험(옵션: {
       if (env === '') return 알림(() => t('시험 실행할 대상 서버를 선택하세요.'));
       set확인('trial');
     },
-    시작: () => 건다(실행항목(케이스들, 고친값)),
+    시작: () => 건다(실행항목(케이스들.map(윈도우펼침), 고친값)),
     /** 완료 창의 「실패 N건 다시 시험」 — 실패한 케이스 × 디바이스만 다시 돈다. 한 번 확인했으니 묻지 않는다 */
     실패다시: (실패: { tcId: string; platform: Platform }[]) =>
       건다(

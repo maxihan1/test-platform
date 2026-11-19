@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 
+import { PC항목인가 } from '@platform/kit/types';
 import { ApiError, type CaseRow, type ServiceRow, type User, type 모바일위치 } from './api.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
@@ -212,7 +213,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       {시험.보기 !== 'edit' ? <시험화면 시험={시험} 케이스들={돌릴것} env={env} /> : (<>
       <머리줄 디바이스={디바이스} service={service} env={env} on서버={(값) => { 손댐(); setEnv(값); }}
         mobileOn={mobileOn} on모바일={(값) => { 손댐(); setMobileOn(값); }} />
-      <RunLocation android={android} 앱종류={service?.kind} />
+      <RunLocation android={android} 앱종류={service?.kind} 게임플랫폼={service?.gamePlatform} />
       {한건 === null ? null : <한건머리 케이스={한건} />}
 
       {/* 고른 것이 왜 줄었는지. 제목의 건수만 보면 어디서 사라졌는지 아무 데도 안 적힌다 */}
@@ -233,7 +234,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           const 칸 = 값.칸들.get(c.tcId);
           const 값수 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0);
           // 돈 디바이스 칸에만 남긴다 — 시험 뒤 디바이스를 바꾸면 끈 디바이스의 결과는 걷는다 (도메인/실행 §8.16 ① · 점검표 B5)
-          const 시험줄 = 시험.줄들[c.tcId]?.filter((칸) => c.platforms.includes(칸.platform));
+          // 「Windows」로 접은 케이스는 패드 값 칸도 그 케이스 것이다 — 시험은 선언 값마다 돈다
+          const 시험줄 = 시험.줄들[c.tcId]?.filter((칸) => c.platforms.includes(칸.platform) || (c.platforms.includes('windows') && PC항목인가(칸.platform)));
           const 폈나 = 펼친.has(c.tcId);
 
           return (

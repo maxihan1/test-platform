@@ -4,6 +4,7 @@
 import { api, type CaseRow, type Platform, type 모바일위치 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
+import { 펼친수 } from './pickRun.js';
 import { PLATFORM_LABEL, useAsync, when } from './ui.js';
 import { 디바이스차례 } from './useTrialQueue.js';
 
@@ -57,10 +58,10 @@ export function 시작확인({ 종류, 케이스들, env, 반복수, slack, mobi
     })
     .join(' · ');
   // 케이스마다 켠 디바이스가 달라 케이스별로 센다 — 곱셈식은 F9-01 이 뺐고 결과 한 줄만 적는다 (점검표 U9)
-  const 총횟수 = 케이스들.reduce((합, c) => 합 + c.platforms.length, 0) * 반복수;
+  const 총횟수 = 케이스들.reduce((합, c) => 합 + 펼친수(c), 0) * 반복수;
   // 합이 케이스 수와 우연히 같아도 숨기지 않는다 — 숨기는 것은 모든 케이스가 디바이스 하나 · 반복 1 일 때뿐이다
-  const 한번씩 = 반복수 === 1 && 케이스들.every((c) => c.platforms.length === 1);
-  const 브라우저 = 디바이스들.some((p) => p !== 'android');
+  const 한번씩 = 반복수 === 1 && 케이스들.every((c) => 펼친수(c) === 1);
+  const 브라우저 = 디바이스들.some((p) => p === 'desktop' || p === 'mobile');
 
   return (
     <Modal

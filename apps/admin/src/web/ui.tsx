@@ -8,11 +8,14 @@ import { ApiError, type ItemStatus, type Platform } from './api.js';
 import { use올라가기 } from './dashboardView.js';
 import { 요청오류문장 } from './errorText.js';
 import { PC디바이스글 } from '../execution/pcPlatform.js';
+import { PC항목인가 } from '@platform/kit/types';
 
 export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱', ...PC디바이스글 };
+/** 좁은 자리(실행 기록 줄)의 디바이스 이름 — PC 게임 앱 안에서는 「Windows ·」를 빼도 패드로 읽힌다. 나머지는 PLATFORM_LABEL 그대로 */
+export const 짧은디바이스글 = (p: Platform): string => (PC항목인가(p) && p !== 'windows' ? PLATFORM_LABEL[p].replace('Windows · ', '') : PLATFORM_LABEL[p]);
 export const PLATFORMS: Platform[] = ['desktop', 'mobile'];
 /** 결과 화면이 디바이스를 늘어놓는 차례. 카드 안 줄과 옆 칸이 같은 순서를 쓴다 */
-export const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];
+export const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android', 'windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox'];
 
 /**
  * 결과 칸과 디바이스 칩이 그 실행에 든 디바이스를 따르게 한다 (도메인/실행 §8.3).
@@ -25,8 +28,10 @@ export function 돈디바이스들(items: { platform: Platform }[]): Platform[] 
 
 export function 실행디바이스들(items: { platform: Platform }[]): Platform[] {
   const 앱 = items.some((it) => it.platform === 'android');
-  const 브라우저 = !앱 || items.some((it) => it.platform !== 'android');
-  return [...(브라우저 ? PLATFORMS : []), ...(앱 ? (['android'] as Platform[]) : [])];
+  // PC 게임은 돈 값마다 칸 하나다 — 「Windows」 · 「Windows · PS5 패드」 · … (도메인/게임 §3.10 「윈도우 PC」 「패드별 결과」)
+  const PC = 디바이스순서.filter((p) => PC항목인가(p) && items.some((it) => it.platform === p));
+  const 브라우저 = (!앱 && PC.length === 0) || items.some((it) => it.platform === 'desktop' || it.platform === 'mobile');
+  return [...(브라우저 ? PLATFORMS : []), ...(앱 ? (['android'] as Platform[]) : []), ...PC];
 }
 
 export const STATUS_LABEL: Record<ItemStatus, string> = { PASS: '통과', FAIL: '실패', NA: '미실행' };

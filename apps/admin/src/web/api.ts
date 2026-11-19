@@ -35,6 +35,8 @@ export interface CaseRow {
   tcId: string;
   name: string;
   platforms: Platform[];
+  /** 실행 창이 PC 게임 값을 「Windows」 하나로 접기 전의 선언. 화면만 쓴다 — 시험 실행이 값마다 차례로 보낸다 (RunWindow 디바이스칸) */
+  윈도우선언?: Platform[];
   precondition: string[];
   filePath: string;
   paramSchema: JsonSchema;
@@ -662,7 +664,16 @@ export interface ServiceRow {
   kind?: 앱종류;
   /** 프로젝트가 이은 Issue Bunker 주소 — 사이드바 「결함 관리 ↗」가 연다. 선택으로 둔 건 kind 와 같은 이유다 — 없거나 null 이면 메뉴가 없다 (공통/5-화면공통 §8 「자리 목록」) */
   btsUrl?: string | null;
+  /** 게임의 플랫폼 — 'android' 모바일 게임 · 'windows' PC 게임 · 게임이 아니면 null. 선택으로 둔 건 kind 와 같은 이유다 — 없으면 모바일로 읽는다 (도메인/게임 §3.10 결정 27) */
+  gamePlatform?: 게임플랫폼 | null;
+  /** PC 게임의 지원 패드 — 새 작성 첫 단계의 체크가 남긴 것. PC 게임이 아니면 [] */
+  gamePads?: 패드[];
+  /** PC 게임의 최신 Windows 빌드 번호(어느 대상 서버 줄이든). 없거나 PC 게임이 아니면 null — 새 작성이 PC 게임이면 시작을 막는다 (도메인/게임 §3.10 「윈도우 PC」) */
+  latestBuildNo?: string | null;
 }
+
+export type 게임플랫폼 = 'android' | 'windows';
+export type 패드 = 'ps5' | 'ps4' | 'switch' | 'xbox';
 
 /** 애플리케이션 종류 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 · 도메인/API §3.8) */
 export type 앱종류 = 'SCREEN' | 'APP' | 'GAME' | 'API';
@@ -1417,7 +1428,7 @@ export const api = {
   createAuthoringRequest: (
     service: string,
     body:
-      | { kind: 'AUTHOR'; figma: string[]; compare?: true; env?: string; startUrl?: string }
+      | { kind: 'AUTHOR'; figma: string[]; compare?: true; env?: string; startUrl?: string; gamePads?: 패드[] }
       | { kind: 'AUTHOR'; figma: string[]; apiDoc: number; env: string }
       | { kind: 'RERUN'; sourceId: number; resume?: true }
       | { kind: 'AUTHOR'; continueFrom: number },
@@ -1522,6 +1533,8 @@ export const api = {
     crawlExclude?: string[];
     /** 만들 때만 보낸다 — 고칠 때 보내면 400 KIND_IMMUTABLE. 안 보내면 SCREEN */
     kind?: 앱종류;
+    /** 게임만 보낸다 — 게임이 아닌 종류가 보내면 400 NOT_GAME_SERVICE. 만든 뒤에는 바꿀 수 없다 */
+    gamePlatform?: 게임플랫폼;
     /** API 종류만 받는다. API 가 아닌 종류가 보내면 400 NOT_API_SERVICE */
     apiDocPath?: string | null;
     apiDocEnv?: string | null;

@@ -150,6 +150,10 @@ export const 오류영어: Record<string, string> = {
   'API 인증 칸이 맞지 않습니다. 이름은 1~20자이고 한 서버 안에서 겹치지 않아야 합니다':
     'Invalid API auth. Names are 1–20 characters and must be unique per server',
   '어드민 키는 게임 · API 애플리케이션에만 넣을 수 있습니다': 'Admin keys can only be set on game and API applications',
+  '게임 플랫폼은 모바일 게임 · PC 게임 중 하나만 선택할 수 있습니다': 'A game platform must be either mobile game or PC game',
+  '게임 플랫폼은 만든 뒤에 변경할 수 없습니다. 다른 플랫폼은 애플리케이션을 따로 만듭니다': 'The game platform cannot be changed after creation. Create a separate application for another platform',
+  '지원 패드는 PC 게임에만 넣을 수 있습니다': 'Supported gamepads can only be set on PC games',
+  '지원 패드는 PS5 · PS4 · Switch · Xbox 중에서 겹치지 않게 선택합니다': 'Pick supported gamepads from PS5 · PS4 · Switch · Xbox without duplicates',
   '어드민 키 칸이 맞지 않습니다. 헤더 이름은 영문 · 숫자 · - 이고 값은 12자 이상이며 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다': 'Admin key is invalid. The header name uses letters, digits and -, and the value needs 12+ characters with at most one space in the middle',
   '새 어드민 키 헤더에는 값을 넣어야 합니다': 'A new admin key header needs a value',
   '테스트 데이터 준비 칸이 맞지 않습니다. 주소는 http(s) 이고 헤더 이름은 영문 · 숫자 · - 이며 값은 12자 이상, 시간 한도 범위는 10~600초입니다':

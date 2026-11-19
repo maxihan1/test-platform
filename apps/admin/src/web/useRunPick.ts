@@ -8,7 +8,7 @@ import { useRef, useState } from 'react';
 import { api, type CaseQuery, type CaseRow, type Platform, type ServiceRow, type User } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
-import { 담을것, 디바이스만 } from './pickRun.js';
+import { 담을것, 디바이스만, 윈도우접기 } from './pickRun.js';
 import type { 실행요청 } from './pickRun.js';
 import { message } from './ui.js';
 import { useRunStart } from './useRunStart.js';
@@ -116,10 +116,10 @@ export function useRunPick(옵션: {
         알림(t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다'));
         return;
       }
-      await 사람읽기();
+      const 앱 = await 사람읽기();
       // 디바이스로 좁혀 빠진 것은 단추 이름의 건수가 이미 말했다 — 비활성으로 빠진 것만 따로 적는다
       set안내(빠진안내({ 고른수: 지목.size, 담을수: 다.length, 잘렸나, 모은수: 모은.length }, t));
-      set담은것(담을);
+      set담은것(담을.map((c) => 윈도우접기(c, 앱?.gamePads ?? [])));
     } catch (err) {
       알림(message(err, 언어));
     } finally {
@@ -129,8 +129,10 @@ export function useRunPick(옵션: {
 
   async function 사람읽기() {
     const { user } = await api.me();
+    const 앱 = user.services.find((it) => it.prefix === service) ?? null;
     set사람(user);
-    set서비스(user.services.find((it) => it.prefix === service) ?? null);
+    set서비스(앱);
+    return 앱;
   }
 
   /**
@@ -145,9 +147,9 @@ export function useRunPick(옵션: {
       return;
     }
     try {
-      await 사람읽기();
+      const 앱 = await 사람읽기();
       set안내(undefined);
-      set담은것([디바이스 === undefined ? row : { ...row, platforms: [디바이스] }]);
+      set담은것([디바이스 === undefined ? 윈도우접기(row, 앱?.gamePads ?? []) : { ...row, platforms: [디바이스] }]);
     } catch (err) {
       알림(message(err, 언어));
     }
@@ -158,7 +160,7 @@ export function useRunPick(옵션: {
     try {
       const 새 = await api.caseOf(tcId);
       // 디바이스는 창을 연 ▶ 가 좁혀 둔 그대로 둔다 — 새로 읽은 선언으로 되돌리면 「PC ▶」로 연 창에 모바일이 다시 낀다
-      set담은것((전) => 전?.map((c) => (c.tcId === tcId ? { ...새, platforms: c.platforms } : c)) ?? 전);
+      set담은것((전) => 전?.map((c) => (c.tcId === tcId ? { ...새, platforms: c.platforms, 윈도우선언: c.윈도우선언 } : c)) ?? 전);
     } catch (err) {
       알림(message(err, 언어));
     }

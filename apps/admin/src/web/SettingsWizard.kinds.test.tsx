@@ -52,7 +52,7 @@ describe('종류마다 다른 칸', () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
     그린다();
     다음();
-    종류를고른다('게임');
+    종류를고른다('모바일 게임');
     다음();
     이름을채운다('ASH', 'Ashveil');
     다음();
@@ -66,8 +66,43 @@ describe('종류마다 다른 칸', () => {
     await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
     const 본문 = 만듦.mock.calls[0]?.[0];
     expect(본문?.kind).toBe('GAME');
+    expect(본문?.gamePlatform).toBe('android');
     expect(본문?.envs[0]?.adminKey).toEqual({ header: 'X-Admin-Key', value: 'secret-admin-0001' });
     expect(본문?.envs[0]).not.toHaveProperty('apiAuths');
+  });
+
+  it('PC 게임 카드는 종류 GAME 에 gamePlatform windows 를 보내고, 확인 표에 「PC 게임」으로 보인다 (도메인/게임 §3.10 결정 27)', async () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
+    그린다();
+    다음();
+    종류를고른다('PC 게임');
+    다음();
+    이름을채운다('ARW', 'Boss Room PC');
+    다음();
+    다음();
+    다음();
+    expect(screen.getByText('PC 게임')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+
+    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
+    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ kind: 'GAME', gamePlatform: 'windows' });
+  });
+
+  it('게임이 아닌 종류는 gamePlatform 을 보내지 않는다 — 서버가 400 NOT_GAME_SERVICE 를 낸다', async () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
+    그린다();
+    다음();
+    종류를고른다('PC 게임');
+    종류를고른다('웹');
+    다음();
+    이름을채운다('PAY', '결제');
+    다음();
+    다음();
+    다음();
+    fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+
+    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
+    expect(만듦.mock.calls[0]?.[0]).not.toHaveProperty('gamePlatform');
   });
 });
 

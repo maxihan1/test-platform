@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { api, ApiError, type CaseRow, type Platform, type ServiceRow, type User, type 모바일위치 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { type 글자표, 지난값글자 } from './pickRun.js';
+import { type 글자표, 윈도우접기, 지난값글자 } from './pickRun.js';
 import { RunPickModal } from './RunPickModal.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { schemaToFields } from './schema.js';
@@ -28,9 +28,12 @@ interface 연것 {
   위치못읽음: string | null;
 }
 
-/** 케이스가 선언한 디바이스 가운데 `돌릴` 것만 남긴다. 겹치는 게 없으면 선언 그대로 둔다 — 빈 디바이스로 걸 수는 없다 */
-function 디바이스칸(c: CaseRow, 돌릴?: Platform[]): CaseRow {
-  if (돌릴 === undefined) return c;
+/**
+ * 케이스가 선언한 디바이스 가운데 `돌릴` 것만 남긴다. 겹치는 게 없으면 선언 그대로 둔다 — 빈 디바이스로 걸 수는 없다.
+ * `돌릴` 이 없으면 PC 게임 값을 「Windows」 하나로 접는다. 실패 다시 실행처럼 값을 하나하나 준 것은 그대로다
+ */
+function 디바이스칸(c: CaseRow, 돌릴: Platform[] | undefined, 지원패드: readonly string[]): CaseRow {
+  if (돌릴 === undefined) return 윈도우접기(c, 지원패드);
   const 겹침 = c.platforms.filter((p) => 돌릴.includes(p));
   return 겹침.length === 0 ? c : { ...c, platforms: 겹침 };
 }
@@ -85,6 +88,8 @@ export function RunWindow({
     const 원래읽기 = (runId: number) => api.run(runId).catch((err: unknown) => message(err, 언어));
     const [받은, { user }, 원래] = await Promise.all([Promise.all(tcIds.map(읽기)), api.me(), 위치실행 === undefined ? null : 원래읽기(위치실행)]);
     const 읽은 = 받은.filter((c): c is CaseRow => typeof c !== 'string');
+    // 시험 실행은 「Windows」를 서버처럼 지원 패드로 거른 선언 값으로 펼친다 (도메인/게임 §3.10 「시험 실행은 「Windows」 칸이면」)
+    const 지원패드 = user.services.find((s) => s.prefix === 케이스서비스(tcIds[0] ?? ''))?.gamePads ?? [];
     const 없는 = 받은.filter((c): c is string => typeof c === 'string');
     // 띠가 아니라 tcId 접두사가 서비스를 말한다 — 알림 주소로 와서 띠가 다른 서비스여도 그 실행의 서버를 고른다
     const 접두사 = 케이스서비스(tcIds[0] ?? '');
@@ -100,7 +105,7 @@ export function RunWindow({
     const 기준 = 기준시각 === undefined ? null : new Date(기준시각).getTime();
     return {
       // 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다. 빼고 그 사실을 창에 적는다
-      케이스들: 읽은.filter((c) => c.isActive).map((c) => 디바이스칸(c, 디바이스?.[c.tcId])),
+      케이스들: 읽은.filter((c) => c.isActive).map((c) => 디바이스칸(c, 디바이스?.[c.tcId], 지원패드)),
       바뀐저장값:
         기준 === null
           ? []
