@@ -180,7 +180,7 @@ describe('callRunner', () => {
       받은것.push(body);
       return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
     });
-    const PC항목: PendingItem = { ...항목, platform: 'windows-ps5', engine: 'GAME', pcBuildId: 9 };
+    const PC항목: PendingItem = { ...항목, platform: 'windows-ps5', engine: 'GAME', buildId: 9 };
 
     expect((await callRunner(7, PC항목, () => false, { udid: 'pc-pc1', 토큰: 'pat_kim', 게임: 'BossRoom' })).status).toBe('PASS');
     expect(받은것[0]).toMatchObject({ platform: 'windows-ps5', udid: 'pc-pc1', app: 'BossRoom', engine: 'GAME', farmToken: 'pat_kim' });

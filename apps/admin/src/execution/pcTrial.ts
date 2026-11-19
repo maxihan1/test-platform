@@ -1,4 +1,4 @@
-// 케이스 테스트 실행의 윈도우 PC 길 — 그 줄 최신 PC 빌드를 깔고 1건을 돌린 뒤 놓는다. 기다리지 않는다 (도메인/게임 §3.10 「케이스 테스트 실행도 같은 길이다」)
+// 케이스 테스트 실행의 윈도우 PC 길 — 그 줄 최신 빌드(PC 게임은 늘 zip)를 깔고 1건을 돌린 뒤 놓는다. 기다리지 않는다 (도메인/게임 §3.10 「케이스 테스트 실행도 같은 길이다」)
 
 import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
@@ -10,7 +10,7 @@ import { na } from './runner.js';
 
 async function 최신PC빌드파일(serviceId: number, env: string): Promise<string | null> {
   const { pool } = await import('../db/index.js');
-  const 빌드 = await 최신빌드(pool, serviceId, env, 'windows');
+  const 빌드 = await 최신빌드(pool, serviceId, env);
   if (빌드 === null) return null;
   return (await pool.query<{ file_path: string | null }>('SELECT file_path FROM app_build WHERE id = $1', [빌드.id])).rows[0]?.file_path ?? null;
 }

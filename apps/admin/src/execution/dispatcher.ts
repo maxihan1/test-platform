@@ -153,8 +153,8 @@ async function PC실행(runId: number, 항목들: PendingItem[]): Promise<void> 
   await PC차례(async () => {
     const 팜 = 팜주소();
     if (팜 === undefined) return 닫는다('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
-    // 실행 하나의 PC 빌드는 하나다 — 실행을 만들 때 고정했다
-    const buildId = 항목들[0]!.pcBuildId;
+    // 실행 하나의 빌드는 하나다 — 실행을 만들 때 고정했다(PC 게임의 빌드는 늘 zip)
+    const buildId = 항목들[0]!.buildId;
     const zip = buildId === undefined ? null : await 빌드파일(buildId);
     if (zip === null) return 닫는다('Windows 빌드가 없습니다');
     let 처음토큰: string | undefined;

@@ -386,7 +386,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
 
   it('게임 애플리케이션의 android 테스트 실행은 엔진 GAME 과 그 줄의 어드민 키를 싣고, 다른 환경은 안 싣는다', async () => {
     process.env.DEVICE_FARM_URL = 러너주소;
-    await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+    await q(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [서비스]);
     await q(`UPDATE service_env SET admin_key = $2 WHERE service_id = $1 AND env = 'qa'`, [서비스, JSON.stringify({ header: 'X-Admin-Key', value: 'xtr-key' })]);
     try {
       const 폰 = await 시작({ ...정상, platform: 'android' });
@@ -400,16 +400,19 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       ]);
     } finally {
       await q(`UPDATE service_env SET admin_key = NULL WHERE service_id = $1 AND env = 'qa'`, [서비스]);
-      await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [서비스]);
+      await q(`UPDATE service SET kind = 'SCREEN', game_platform = NULL WHERE id = $1`, [서비스]);
     }
   });
 
-  it('윈도우 PC 테스트 실행 — 게임이 아니면 400, PC 줄이 쓰이는 중이면 409, 올린 Windows 빌드가 없으면 그 까닭의 미실행이다', async () => {
+  it('윈도우 PC 테스트 실행 — PC 게임이 아니거나 선언하지 않은 값이면 400, PC 줄이 쓰이는 중이면 409, 올린 Windows 빌드가 없으면 그 까닭의 미실행이다', async () => {
     process.env.DEVICE_FARM_URL = 러너주소;
-    await q(`UPDATE test_case SET platforms = '["desktop","windows"]' WHERE tc_id = $1`, [케이스]);
+    await q(`UPDATE test_case SET platforms = '["windows","windows-xbox"]' WHERE tc_id = $1`, [케이스]);
     try {
+      expect((await 시작({ ...정상, platform: 'windows' })).json()).toMatchObject({ error: 'INVALID_REQUEST' });
+      await q(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [서비스]);
+      expect((await 시작({ ...정상, platform: 'windows' })).json()).toMatchObject({ error: 'INVALID_REQUEST' });
+      await q(`UPDATE service SET game_platform = 'windows' WHERE id = $1`, [서비스]);
       expect((await 시작({ ...정상, platform: 'windows-ps5' })).json()).toMatchObject({ error: 'INVALID_REQUEST' });
-      await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
       expect(PC를바로잡는다()).toBe(true);
       try {
         const 바쁨 = await 시작({ ...정상, platform: 'windows' });
@@ -423,7 +426,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       expect(끝).toMatchObject({ result: { status: 'NA', error: { message: 'Windows 빌드가 없습니다' } } });
       expect(받은요청).toEqual([]);
     } finally {
-      await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [서비스]);
+      await q(`UPDATE service SET kind = 'SCREEN', game_platform = NULL WHERE id = $1`, [서비스]);
       await q(`UPDATE test_case SET platforms = '["desktop","mobile","android"]' WHERE tc_id = $1`, [케이스]);
     }
   });
