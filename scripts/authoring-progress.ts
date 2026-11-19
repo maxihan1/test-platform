@@ -59,6 +59,8 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
   // 단계 표지 — 어느 단계가 가장 긴지 재려고 에이전트 시계로 찍는다 (AUT-F3-21 · tpx-author 「단계 표지」)
   const 시작 = 지금();
   const 단계들: { 이름: string; 때: number }[] = [];
+  // 반장(자식) 턴의 기억 크기 최댓값 — 단계마다 하나, 0번은 첫 표지 전. 반장을 어느 단계에서 바꿀지 재려고 (AUT-F4-13)
+  const 기억최대: number[] = [0];
   return {
     /** 줄 하나를 먹고, 로그에 흘릴 글을 돌려준다. 새 단계 표지면 그 줄을 — lastAction 은 늘 흘릴줄이 고른 줄이다(작성 §7) */
     먹기(줄: string): string | null {
@@ -66,6 +68,11 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
       const m = e?.type === 'assistant' ? e.message : undefined;
       if (m?.id !== undefined && m.usage !== undefined)
         턴.set(m.id, 수(m.usage.input_tokens) + 수(m.usage.output_tokens) + 수(m.usage.cache_read_input_tokens));
+      // 그 턴이 읽은 기억 = 입력 + 캐시 만들기 + 캐시 읽기. 출력은 다음 턴 입력에 든다. 표지를 말한 턴은 앞 단계가 쌓은 기억이라 표지보다 먼저 센다
+      if (m?.usage !== undefined && typeof (e as { parent_tool_use_id?: unknown }).parent_tool_use_id !== 'string') {
+        const 기억 = 수(m.usage.input_tokens) + 수(m.usage.cache_creation_input_tokens) + 수(m.usage.cache_read_input_tokens);
+        기억최대[기억최대.length - 1] = Math.max(기억최대.at(-1)!, 기억);
+      }
       const 날글 = 흘릴줄(줄);
       if (날글 === null) return null;
       const 글 = 가리기(날글, 비밀);
@@ -77,6 +84,7 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
       const 단계적기 = (이름: string) => {
         if (단계들.at(-1)?.이름 === 이름) return;
         단계들.push({ 이름, 때: 지금() });
+        기억최대.push(0);
         if (!로그.endsWith(`[단계] ${이름}`)) 로그 += ` [단계] ${이름}`;
       };
       for (const c of m?.content ?? []) {
@@ -104,15 +112,18 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
       if (단계들.length === 0) return '';
       const 끝 = 지금();
       const 줄들 = [{ 이름: '(첫 표지 전)', 때: 시작 }, ...단계들]
-        .map((s, i, 다) => ({ ...s, 걸림: (다[i + 1]?.때 ?? 끝) - s.때 }))
-        .filter((s, i) => i > 0 || s.걸림 > 0);
+        .map((s, i, 다) => ({ ...s, 걸림: (다[i + 1]?.때 ?? 끝) - s.때, 기억: 기억최대[i] ?? 0 }))
+        .filter((s, i) => i > 0 || s.걸림 > 0 || s.기억 > 0);
       const 가장 = 줄들.reduce((a, b) => (b.걸림 > a.걸림 ? b : a));
+      const 가장큰기억 = 줄들.reduce((a, b) => (b.기억 > a.기억 ? b : a));
+      const 토큰 = (n: number) => (n > 0 ? n.toLocaleString('en-US') : '—');
       return [
-        '| 단계 | 시작 | 걸린 시간 |',
-        '|---|---|---|',
-        ...줄들.map((s) => `| ${s.이름.replaceAll('|', '\\|')} | ${분초(s.때 - 시작)} | ${분초(s.걸림)} |`),
+        '| 단계 | 시작 | 걸린 시간 | 반장 기억 최대 |',
+        '|---|---|---|---|',
+        ...줄들.map((s) => `| ${s.이름.replaceAll('|', '\\|')} | ${분초(s.때 - 시작)} | ${분초(s.걸림)} | ${토큰(s.기억)} |`),
         '',
         `가장 긴 단계: ${가장.이름} — ${분초(가장.걸림)}`,
+        ...(가장큰기억.기억 > 0 ? [`반장 기억 최대: ${토큰(가장큰기억.기억)} 토큰 — ${가장큰기억.이름}`] : []),
       ].join('\n');
     },
     스냅샷(잰것: { elapsedSec: number; caseFiles: number; screens?: number }): 진척 {
