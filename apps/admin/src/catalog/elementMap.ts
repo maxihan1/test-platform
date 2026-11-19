@@ -1,6 +1,7 @@
 // 케이스 선언의 게임 요소 열쇠(`elements`)로 게임 지도의 요소를 거친 케이스(game_element_case)를 다시 채운다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」 · 공통/4 game_element_case)
 
 import type { CaseSpec } from '@platform/kit';
+import { PC항목인가 } from '@platform/kit/types';
 import type { Pool } from 'pg';
 
 async function db(): Promise<Pool> {
@@ -9,14 +10,40 @@ async function db(): Promise<Pool> {
 }
 
 /**
- * 게임이 아닌 애플리케이션 케이스가 적은 요소 · windows — 지도에 넣지 않고 스캔 문제로 알린다(kit 은 종류를 몰라 막지 못한다).
- * windows 는 윈도우 PC 게임만 돈다 (공통/3-공유계약 「윈도우 PC 게임」)
+ * 게임이 아닌 애플리케이션 케이스가 적은 요소 · 윈도우 값 — 지도에 넣지 않고 스캔 문제로 알린다(kit 은 종류를 몰라 막지 못한다).
+ * 윈도우 값은 PC 게임만 돈다 (공통/3-공유계약 「윈도우 PC 게임」)
  */
 export function 게임밖요소(specs: readonly CaseSpec[]): string[] {
   return [
     ...specs.filter((s) => (s.elements ?? []).length > 0).map((s) => `${s.filePath}의 ${s.tcId}은 게임 애플리케이션 케이스가 아닌데 elements 를 적어 게임 지도에 넣지 않았다`),
-    ...specs.filter((s) => s.platforms.includes('windows')).map((s) => `${s.filePath}의 ${s.tcId}은 게임 애플리케이션 케이스가 아닌데 windows 를 적었다 — 윈도우 PC 에서는 게임만 돈다`),
+    ...specs
+      .filter((s) => s.platforms.some(PC항목인가))
+      .map((s) => `${s.filePath}의 ${s.tcId}은 게임 애플리케이션 케이스가 아닌데 ${s.platforms.filter(PC항목인가).join(' · ')} 를 적었다 — 윈도우 PC 에서는 게임만 돈다`),
   ];
+}
+
+/**
+ * 게임 애플리케이션의 플랫폼과 맞지 않는 선언 — 모바일 게임이 윈도우 값을, PC 게임이 android 를 적은 것과
+ * PC 게임이 지원 패드에 없는 패드 값(windows-ps5 → ps5)을 적은 것. 실행은 그 항목을 빼고 도니 사람이 알아야 고친다 (도메인/게임 §3.10 「윈도우 PC」)
+ */
+export function 게임플랫폼어긋남(specs: readonly CaseSpec[], 플랫폼: 'android' | 'windows', 지원패드: readonly string[]): string[] {
+  const 문제: string[] = [];
+  for (const s of specs) {
+    const 앞 = `${s.filePath}의 ${s.tcId}은`;
+    const 윈도우값 = s.platforms.filter(PC항목인가);
+    if (플랫폼 === 'android' && 윈도우값.length > 0) {
+      문제.push(`${앞} 모바일 게임 케이스인데 ${윈도우값.join(' · ')} 를 적었다 — 모바일 게임은 android 만 돈다`);
+    } else if (플랫폼 === 'windows' && s.platforms.includes('android')) {
+      문제.push(`${앞} PC 게임 케이스인데 android 를 적었다 — PC 게임은 윈도우 값만 돈다`);
+    } else if (플랫폼 === 'windows') {
+      const 밖 = 윈도우값.filter((p) => p !== 'windows' && !지원패드.includes(p.slice('windows-'.length)));
+      if (밖.length > 0) {
+        const 지원 = 지원패드.length === 0 ? '지원 패드를 하나도 체크하지 않았다' : `지원 패드는 ${지원패드.join(' · ')} 이다`;
+        문제.push(`${앞} 지원 패드에 없는 ${밖.join(' · ')} 를 적었다 — ${지원}`);
+      }
+    }
+  }
+  return 문제;
 }
 
 /**
