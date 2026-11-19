@@ -69,7 +69,7 @@ describe('defineCase', () => {
     ).toThrow('DEMO-005: android · windows 는 desktop · mobile 과 함께 선언하지 않는다');
   });
 
-  it.each([[['windows']], [['android', 'windows']]] as const)('게임 케이스는 %j 로 선언한다', (platforms) => {
+  it.each([[['windows']], [['android']], [['windows-ps5', 'windows-xbox']]] as const)('게임 케이스는 %j 로 선언한다', (platforms) => {
     const spec = defineCase({ tcId: 'DEMO-006', name: 'PC 게임', platforms: [...platforms], precondition: [], params: null, expected: null });
     expect(spec.platforms).toEqual(platforms);
   });
@@ -80,10 +80,16 @@ describe('defineCase', () => {
     ).toThrow('DEMO-007: android · windows 는 desktop · mobile 과 함께 선언하지 않는다');
   });
 
-  it('패드 값은 선언에 적지 못한다 — 실행할 때 고른다', () => {
+  it('패드 값을 브라우저 디바이스와 섞으면 던진다', () => {
     expect(() =>
-      defineCase({ tcId: 'DEMO-008', name: '패드 선언', platforms: ['windows-ps5'], precondition: [], params: null, expected: null }),
-    ).toThrow('DEMO-008: 패드는 실행할 때 고른다 — platforms 에는 windows 만 적는다');
+      defineCase({ tcId: 'DEMO-009', name: '섞인 패드', platforms: ['windows-ps5', 'desktop'], precondition: [], params: null, expected: null }),
+    ).toThrow('DEMO-009: android · windows 는 desktop · mobile 과 함께 선언하지 않는다');
+  });
+
+  it.each([[['android', 'windows']], [['windows-xbox', 'android']]] as const)('android 와 윈도우 값은 %j 처럼 같이 적지 못한다', (platforms) => {
+    expect(() =>
+      defineCase({ tcId: 'DEMO-008', name: '섞인 게임', platforms: [...platforms], precondition: [], params: null, expected: null }),
+    ).toThrow('DEMO-008: android 와 windows 는 함께 선언하지 않는다 — 게임 하나에 플랫폼 하나다');
   });
 
   it('keepAppData 는 android 케이스에만 달고 명세(스캐너 JSON)에는 안 싣는다', () => {
