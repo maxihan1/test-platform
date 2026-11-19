@@ -1,4 +1,4 @@
-// 게임 작성의 앞뒤 — 창 기록 저장본 · 게임 지도 받기, 훑은 창 중 바뀐 것만 올리기 · 못 본 창은 안 지우기 · 비밀번호 든 기록 막기, 게임 지도 요소 올리기, 화면만이 찾은 창이 다 덮였나 · 바뀐 창
+// 게임 작성의 앞뒤 — 창 기록 저장본 · 게임 지도 · 조작 맵 받기, 훑은 창 중 바뀐 것만 올리기 · 못 본 창은 안 지우기 · 비밀번호 든 기록 막기, 게임 지도 요소 올리기, 화면만이 찾은 창이 다 덮였나 · 바뀐 창
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -38,8 +38,12 @@ afterEach(() => {
 });
 
 describe('게임준비', () => {
-  it('게임 창 기록만 game-kept/ 로 넣고 게임 지도 글을 game-map.txt 로 받는다', async () => {
-    서버({ 'GET /screens': { status: 200, 몸: { screens: [저장된창, 웹화면], links: [] } }, 'GET /game-map': { status: 200, 몸: { text: '# 기대값의 근거가 아니다\n## 게임 데이터 (DATA) — 0개' } } });
+  it('게임 창 기록만 game-kept/ 로 넣고 게임 지도 글을 game-map.txt 로, 조작 맵 글을 game-route.txt 로 받는다', async () => {
+    서버({
+      'GET /screens': { status: 200, 몸: { screens: [저장된창, 웹화면], links: [] } },
+      'GET /game-map': { status: 200, 몸: { text: '# 기대값의 근거가 아니다\n## 게임 데이터 (DATA) — 0개' } },
+      'GET /game-route': { status: 200, 몸: { text: '# 조작 맵 — 행 1개\n\n## 상태 설정 (SETUP) — 1행\n- zone:Town → /gm killall → state:몬스터 없음 · 확인\n' } },
+    });
 
     await 게임준비(통로, 자료);
 
@@ -48,18 +52,21 @@ describe('게임준비', () => {
     ]);
     expect(readFileSync(join(자료, 'game-kept', '001.yml'), 'utf8')).toContain('로그인 창');
     expect(readFileSync(join(자료, 'game-map.txt'), 'utf8')).toContain('기대값의 근거가 아니다');
+    expect(readFileSync(join(자료, 'game-route.txt'), 'utf8')).toContain('- zone:Town → /gm killall → state:몬스터 없음 · 확인');
   });
 
-  it('못 받으면 앞 실행이 남긴 저장본 · 지도도 지워 낡은 것을 안 보인다 — 작성은 간다', async () => {
+  it('못 받으면 앞 실행이 남긴 저장본 · 지도 · 맵도 지워 낡은 것을 안 보인다 — 작성은 간다', async () => {
     mkdirSync(join(자료, 'game-kept'));
     writeFileSync(join(자료, 'game-kept', 'index.json'), '[]');
     writeFileSync(join(자료, 'game-map.txt'), '옛 지도');
+    writeFileSync(join(자료, 'game-route.txt'), '옛 맵');
     서버({});
 
     await expect(게임준비(통로, 자료)).resolves.toBeUndefined();
 
     expect(existsSync(join(자료, 'game-kept'))).toBe(false);
     expect(existsSync(join(자료, 'game-map.txt'))).toBe(false);
+    expect(existsSync(join(자료, 'game-route.txt'))).toBe(false);
   });
 });
 
