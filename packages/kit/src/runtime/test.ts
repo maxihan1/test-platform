@@ -2,15 +2,15 @@
 
 import { test as base, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
 
-import type { ApiAuth, StepResult } from '../types.js';
+import { PC항목인가, type ApiAuth, type StepResult } from '../types.js';
 import { api만들기, 어드민도구, 어드민키, 인증목록 } from './apiAuth.js';
 import { 판읽기 } from './apiShape.js';
 import { captureApp, type AppDriver } from './app.js';
 import { 앱테스트 } from './appFixture.js';
 import { saveShot } from './artifacts.js';
 import { runScope, type RunScope, type 짚을요소 } from './context.js';
-import { keepsAppData, 실어켤값, type CaseHandle } from './defineCase.js';
-import { 게임증적을남긴다, isGame, type GameDriver } from './game.js';
+import { keepsAppData, 선언했나, 실어켤값, type CaseHandle } from './defineCase.js';
+import { captureGame, 게임증적을남긴다, isGame, type GameDriver } from './game.js';
 import { cleanup, 게임시나리오인가, 끝정리 } from './gameScenario.js';
 import { 앱을지켜본다, 웹사진, 웹을지켜본다 } from './highlight.js';
 import { traced } from './http.js';
@@ -22,7 +22,7 @@ import { registerScenarioCase, registerScenarioPhone, type ScenarioCaseRunner } 
 import { 느린망 } from './slowApi.js';
 import { step, StopTest } from './step.js';
 
-// 브라우저 케이스에는 page, android 앱 케이스에는 driver 만 있다. game 은 게임 애플리케이션 항목에만, admin 은 대상 서버 줄에 어드민 키가 있을 때만. 없는 쪽을 꺼내면 던진다
+// 브라우저 케이스에는 page, android 앱 케이스에는 driver 만 있다. 윈도우 PC 항목은 game 뿐이다. game 은 게임 애플리케이션 항목에만, admin 은 대상 서버 줄에 어드민 키가 있을 때만. 없는 쪽을 꺼내면 던진다
 export interface CaseBodyArgs<P, E> {
   page: Page;
   driver: AppDriver;
@@ -53,7 +53,7 @@ function platformLabel(project: string): string {
   return project;
 }
 
-type Side = { page: Page } | { driver: AppDriver; game?: GameDriver };
+type Side = { page: Page } | { driver: AppDriver; game?: GameDriver } | { game: GameDriver };
 type AdminKey = { header: string; value: string };
 
 // 없는 칸(page / driver / game / admin)은 꺼내면 던진다. 열거되면 `{ ...args }` 나 `({ page, ...rest })` 만 써도 터지므로 숨긴다
@@ -67,11 +67,15 @@ function bodyArgs<P, E>(
   토큰도구: APIRequestContext = request,
   키?: AdminKey,
 ): CaseBodyArgs<P, E> {
-  const 없는칸: [string, string][] = [
+  const 없는칸: [string, string][] =
     'page' in side
-      ? ['driver', `${tcId}은 브라우저 케이스라 driver 가 없다`]
-      : ['page', `${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`],
-  ];
+      ? [['driver', `${tcId}은 브라우저 케이스라 driver 가 없다`]]
+      : 'driver' in side
+        ? [['page', `${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`]]
+        : [
+            ['page', `${tcId}은 PC 항목이라 page 가 없다 — game 을 쓴다`],
+            ['driver', `${tcId}은 PC 항목이라 driver 가 없다 — game 을 쓴다`],
+          ];
   if (!('game' in side && side.game !== undefined)) {
     없는칸.push(['game', `${tcId}은 게임 애플리케이션 항목이 아니라 game 이 없다`]);
   }
@@ -90,7 +94,7 @@ function bodyArgs<P, E>(
     params: inputs.params,
     expected: inputs.expected,
     // 케이스가 다룬 요소를 적는 판으로 넘긴다 — 실패 사진에 그 요소를 표시한다 (highlight.ts)
-    ...('page' in side ? { page: 웹을지켜본다(side.page) } : { ...side, driver: 앱을지켜본다(side.driver) }),
+    ...('page' in side ? { page: 웹을지켜본다(side.page) } : 'driver' in side ? { ...side, driver: 앱을지켜본다(side.driver) } : side),
   };
   for (const [칸, message] of 없는칸) {
     Object.defineProperty(args, 칸, {
@@ -128,7 +132,7 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       stopped: false,
       skip: new Set(skipSteps),
       phase,
-      capture: (s, 요소) => (side === undefined ? Promise.resolve(undefined) : 'page' in side ? capture(side.page, s, 요소) : captureApp(side.driver, s, 요소)),
+      capture: (s, 요소) => (side === undefined || !('page' in side || 'driver' in side) ? Promise.resolve(undefined) : 'page' in side ? capture(side.page, s, 요소) : captureApp(side.driver, s, 요소)),
       emit: async (result) => {
         steps.push(result);
         // trace 를 단계로 가르는 경계다. 한 zip 에 부품이 다 섞여 이것 없이는 admin 이 실패 부품 몫을 못 뗀다 (도메인/시나리오 §7 「실패 기록」)
@@ -146,7 +150,7 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
     let error: { message: string; stack?: string } | undefined;
     try {
       // 조립할 때 서버가 막지만, 조립 뒤에 케이스가 디바이스를 뺄 수 있다. 틀린 조립은 언제나 빨강이다 (2026-09-28 사용자)
-      if (!spec.platforms.some((p) => p === platform)) {
+      if (!선언했나(spec.platforms, platform)) {
         throw new Error(`${spec.tcId}은 ${platformLabel(platform)} 환경을 선언하지 않았다`);
       }
       if (side === undefined) throw new Error(`${spec.tcId}에 줄 창도 폰 연결도 없다`);
@@ -171,7 +175,7 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
     }
     await 끝정리(run);
     // 단계 사이에 앱을 다시 켜지 않는다 — 이 단계가 눌러 둔 손가락(touchDown)이 다음 단계까지 남지 않게 거둔다. 실패 순간이 남게 증적 뒤에
-    await game?.손가락을뗀다();
+    await game?.입력을거둔다();
     return { seq: run.seq, steps, failed, ...(error === undefined ? {} : { error }) };
   };
 }
@@ -187,7 +191,8 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     return;
   }
 
-  const isApp = spec.platforms.includes('android');
+  // 윈도우 PC 항목도 브라우저 없이 같은 fixture 로 돈다 — 폰과 PC 는 그 항목의 프로젝트 이름으로 가른다 (appFixture.ts)
+  const isApp = spec.platforms.includes('android') || spec.platforms.includes('windows');
 
   // 케이스를 건너뛸지는 본문에서 가른다. fixture 는 그보다 먼저 돌아서 거기서 열면 보류 케이스도 Appium 에 붙는다
   const appTest = isApp ? 앱테스트() : undefined;
@@ -202,7 +207,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
 
     // 선언하지 않은 환경에서 돌면 케이스의 전제가 깨진다. 판정 대신 건너뛴다
     base.skip(
-      !spec.platforms.some((p) => p === testInfo.project.name),
+      !선언했나(spec.platforms, testInfo.project.name),
       `${spec.tcId}은 ${platformLabel(testInfo.project.name)} 환경을 선언하지 않았다`,
     );
 
@@ -269,8 +274,14 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
       const inputs = prepare(testInfo);
       const intent = await 실어켤값(spec, inputs.params);
       // 게임 시나리오는 싸우는 동안 게임 명령만 보내 Appium 명령이 오래 없다 — 연결 유지 한도를 끈다
-      const side = await appSession.open({ keepData: keepsAppData(spec), ...(intent && { intent }), ...(게임시나리오인가(spec.tcId) && { noCommandTimeout: true }) });
-      await execute(testInfo, request, side, (seq, 요소) => captureApp(side.driver, seq, 요소), inputs, appSession.끝정리를건다);
+      // 윈도우 PC 항목은 Appium 설정이 쓰이지 않는다 — VISION 에 게임을 켜고 붙는다
+      const side = await appSession.open(
+        PC항목인가(testInfo.project.name)
+          ? { pc: true }
+          : { keepData: keepsAppData(spec), ...(intent && { intent }), ...(게임시나리오인가(spec.tcId) && { noCommandTimeout: true }) },
+      );
+      const 찍기: RunScope['capture'] = 'driver' in side ? (seq, 요소) => captureApp(side.driver, seq, 요소) : (seq) => captureGame(side.game, seq);
+      await execute(testInfo, request, side, 찍기, inputs, appSession.끝정리를건다);
     });
     return;
   }

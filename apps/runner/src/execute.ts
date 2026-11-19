@@ -7,7 +7,7 @@ import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { stripVTControlCharacters } from 'node:util';
 
-import { runDir, type ExecuteRequest, type ExecuteResponse, type FpsSample, type ItemStatus, type StepProgress } from '@platform/kit';
+import { PC항목인가, runDir, type ExecuteRequest, type ExecuteResponse, type FpsSample, type ItemStatus, type StepProgress } from '@platform/kit';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
@@ -136,17 +136,24 @@ export function killedResponse(
   };
 }
 
-// trace 는 정식 실행에서만 켠다. 테스트 실행(runId 0)은 기록이 없고, 앱 실행은 브라우저가 없다 (SPEC 도메인/실행 §3.2 「trace」)
+// trace 는 정식 실행에서만 켠다. 테스트 실행(runId 0)은 기록이 없고, 앱 · 윈도우 PC 실행은 브라우저가 없다 (SPEC 도메인/실행 §3.2 「trace」)
 export function traceEnv(req: Pick<ExecuteRequest, 'runId' | 'platform'>): '0' | '1' {
-  return req.runId > 0 && req.platform !== 'android' ? '1' : '0';
+  return req.runId > 0 && req.platform !== 'android' && !PC항목인가(req.platform) ? '1' : '0';
 }
 
-export function gameEnv(req: Pick<ExecuteRequest, 'platform' | 'engine' | 'udid' | 'adminKey'>): Record<string, string> {
-  const 게임 = req.platform === 'android' && req.engine === 'GAME';
+// 폰 · VISION 기기에 붙는 항목 — 팜 토큰 · 기기 번호를 받는다. 윈도우 PC 는 VISION 기기지만 Appium 을 안 쓴다 (도메인/러너 §5.2 「윈도우 PC 게임 항목」)
+const 기기항목인가 = (platform: ExecuteRequest['platform']): boolean => platform === 'android' || PC항목인가(platform);
+
+export function gameEnv(req: Pick<ExecuteRequest, 'platform' | 'engine' | 'udid' | 'adminKey' | 'app'>): Record<string, string> {
+  const 게임 = 기기항목인가(req.platform) && req.engine === 'GAME';
+  const pc = PC항목인가(req.platform);
   return {
     PLATFORM_ENGINE: 게임 ? 'GAME' : '',
     PLATFORM_GAME_LINK: 게임 ? (req.udid === undefined ? 'usb' : 'farm') : '',
     PLATFORM_ADMIN_KEY: req.adminKey === undefined ? '' : JSON.stringify(req.adminKey),
+    // 둘 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받아 폰 항목이 PC 길을 타지 않게. 패드 없음은 빈 값이다 (공통/3-공유계약 「윈도우 PC 게임」)
+    PLATFORM_PC_GAME: pc ? (req.app ?? '') : '',
+    PLATFORM_PAD: pc && req.platform !== 'windows' ? req.platform.slice('windows-'.length) : '',
   };
 }
 
@@ -192,10 +199,10 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         // 늘 적는다 — 러너를 켠 셸의 값을 물려받으면 앞 빌드가 없는 실행에서 옛판에서올리기 가 엉뚱한 판을 깐다. undefined 는 spawn 이 뺀다
         PLATFORM_APP_PREVIOUS: req.platform === 'android' ? req.previousApp : undefined,
         // admin 이 팜에서 잡은 폰이다. 안 주면 팜이 잡힌 폰 아무것에나 붙인다 (러너 §5.2 「디바이스 팜 접속 방식」)
-        ...(req.platform === 'android' && req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
+        ...(기기항목인가(req.platform) && req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
         // 팜 토큰은 앱 · 게임 항목만 받는다 — 웹 · API 케이스(AI 가 쓴 코드)는 쓸 일이 없는데 읽을 수는 있다. undefined 는 spawn 이 빼고 넘긴다.
         // admin 이 누른 사람 토큰으로 폰을 잡았으면 그것이다 — 잡은 사람과 붙는 사람이 다르면 팜이 거절한다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
-        PLATFORM_APPIUM_TOKEN: req.platform === 'android' ? (req.farmToken ?? process.env.PLATFORM_APPIUM_TOKEN) : undefined,
+        PLATFORM_APPIUM_TOKEN: 기기항목인가(req.platform) ? (req.farmToken ?? process.env.PLATFORM_APPIUM_TOKEN) : undefined,
         // 셋 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게. 게임에 닿는 길은 칸을 더하지 않고 폰 번호로 정한다:
         // admin 이 팜 폰을 잡아 번호를 실은 정식 실행은 디바이스 팜, 번호 없는 내 컴퓨터 테스트 실행은 USB (공통/3-공유계약 「게임 테스트 타입」 engine)
         ...gameEnv(req),
@@ -228,7 +235,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   child.stderr.setEncoding('utf8');
   진행을_모은다(entry, child.stdout);
   // 게임 정식 실행 항목만 — 테스트 실행(runId 0)은 기록이 안 남는다 (러너 §5.2 「게임 항목 FPS」)
-  const 측정 = req.runId > 0 && gameEnv(req).PLATFORM_ENGINE === 'GAME' ? FPS를잰다(req.runId, req.historyId, req.farmToken, () => entry.progress?.step.seq) : undefined;
+  // 윈도우 PC 항목은 FPS 를 안 잰다 — 1차 밖이다 (도메인/게임 §3.10 「1차 밖 · 나중」)
+  const 측정 = req.runId > 0 && req.platform === 'android' && gameEnv(req).PLATFORM_ENGINE === 'GAME' ? FPS를잰다(req.runId, req.historyId, req.farmToken, () => entry.progress?.step.seq) : undefined;
 
   let stdout = '';
   let stderr = '';

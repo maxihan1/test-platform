@@ -71,7 +71,7 @@ describe('openGame', () => {
     const 번호 = await 케이스.touchDown('/HudCanvas/ActionBar/Skill1');
     expect(번호).toBe(10);
     await 케이스.touchUp(번호);
-    await game.손가락을뗀다();
+    await game.입력을거둔다();
     expect(보낸).toEqual([
       { cmd: 'touch-down', target: '/HudCanvas/ActionBar/Skill1' },
       { cmd: 'touch-up', finger: 10 },
@@ -87,8 +87,8 @@ describe('openGame', () => {
   it('손가락을 눌러 둔 채 끝나면 정리 단계가 그 손가락을 한 번 뗀다', async () => {
     const { game, 보낸 } = await 손가락게임();
     await game.touchDown('Skill1');
-    await game.손가락을뗀다();
-    await game.손가락을뗀다();
+    await game.입력을거둔다();
+    await game.입력을거둔다();
     expect(보낸).toEqual([{ cmd: 'touch-down', target: 'Skill1' }, { cmd: 'touch-up', finger: 10 }]);
   });
 
@@ -98,8 +98,31 @@ describe('openGame', () => {
       return undefined;
     });
     await expect(game.touchDown('Skill1')).rejects.toThrow('팜이 답하지 않았습니다');
-    await game.손가락을뗀다();
+    await game.입력을거둔다();
     expect(보낸).toEqual([{ cmd: 'touch-down', target: 'Skill1' }, { cmd: 'input-reset' }]);
+  });
+
+  it('keyDown 으로 눌러 둔 키는 keyUp 하면 정리 단계가 안 건드리고, 떼지 않고 끝나면 한 번 뗀다', async () => {
+    const { game, 보낸 } = await 손가락게임();
+    const 케이스: GameDriver = game;
+    await 케이스.keyDown('W');
+    await 케이스.keyUp('W');
+    await 케이스.keyDown('A+LeftShift');
+    await 케이스.key('Pad.Cross', { duration: 0.5 });
+    await game.입력을거둔다();
+    await game.입력을거둔다();
+    expect(보낸).toEqual([
+      { cmd: 'key-down', key: 'W' },
+      { cmd: 'key-up', key: 'W' },
+      { cmd: 'key-down', key: 'A+LeftShift' },
+      { cmd: 'key', key: 'Pad.Cross', duration: 0.5 },
+      { cmd: 'key-up', key: 'A+LeftShift' },
+    ]);
+  });
+
+  it('PLATFORM_PAD 가 넷 밖의 값이면 던진다 — 러너가 늘 넷 중 하나나 빈 값을 넘긴다', async () => {
+    const link: Link = async () => ({ ok: true, app: 'BossRoom', version: '0.12.0' });
+    await expect(openGame({ PLATFORM_PAD: 'generic' }, link, 안쉼)).rejects.toThrow('모르는 패드다: PLATFORM_PAD=generic');
   });
 
   it('거두기가 실패하면 다음 정리 때 다시 해 본다', async () => {
@@ -109,10 +132,10 @@ describe('openGame', () => {
       return undefined;
     });
     await game.touchDown('Skill1');
-    await game.손가락을뗀다();
+    await game.입력을거둔다();
     막힘 = false;
-    await game.손가락을뗀다();
-    await game.손가락을뗀다();
+    await game.입력을거둔다();
+    await game.입력을거둔다();
     expect(보낸.map((c) => (c as { cmd: string }).cmd)).toEqual(['touch-down', 'touch-up', 'input-reset', 'touch-up']);
   });
 

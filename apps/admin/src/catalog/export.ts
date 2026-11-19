@@ -8,6 +8,7 @@ import type { CaseSpec, ItemStatus, Platform } from '@platform/kit';
 
 import type { 보류, 입력한것, 칸 } from '../authoring/held.js';
 import { 가려야하나 } from '../web/mask.js';
+import { PC디바이스글 } from '../execution/pcPlatform.js';
 
 export interface ExportCase
   extends Pick<CaseSpec, 'tcId' | 'name' | 'platforms' | 'precondition' | 'paramSchema' | 'expectedSchema' | 'techniques'> {
@@ -43,7 +44,7 @@ export interface ExportInput {
 }
 
 // reporting/xlsx.ts 와 같은 낱말이다. 한 납품물의 두 엑셀이 다른 말을 하면 안 된다
-const 디바이스: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
+const 디바이스: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱', ...PC디바이스글 };
 // 마지막 결과는 케이스 하나의 판정(prd/trace.ts 케이스판정)이라 NA 는 「기기가 다 통과하지도 하나라도 깨지지도 않았다」 — 목록 · 추적표처럼 미실행이다
 const 판정글자: Record<ItemStatus, string> = { PASS: '통과', FAIL: '실패', NA: '미실행' };
 const 구분글자: Record<보류['kind'], string> = { UNDECIDABLE: '기대 결과 없음', ON_HOLD: '테스트 데이터 없음' };

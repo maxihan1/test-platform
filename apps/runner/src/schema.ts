@@ -1,6 +1,6 @@
 // 러너 HTTP 계약(SPEC §5.2)의 요청 모양 — 입구가 이 꼴로 거른다. 라우트 처리는 routes.ts 가 한다
 
-import { 앱파일값인가, type ScenarioLink, type ScenarioPart, type ScenarioResponseRef } from '@platform/kit';
+import { PC_PLATFORMS, PC항목인가, 앱파일값인가, type ScenarioLink, type ScenarioPart, type ScenarioResponseRef } from '@platform/kit';
 import { 값주입이름 } from '@platform/kit/protocol';
 import { z } from 'zod';
 
@@ -47,19 +47,26 @@ const cdpUrl = z.string().max(2000).regex(/^wss?:\/\/\S+$/, 'cdpUrl 은 ws(s) �
 // 기기 칸 · logcat 을 그 폰 번호로 VISION 에서 받는다
 const 실제폰은모바일만 = (r: { cdpUrl?: string; platform: string; udid?: string }): boolean => r.cdpUrl === undefined || (r.platform === 'mobile' && r.udid !== undefined);
 const 실제폰은모바일만글 = '폰 Chrome 주소(cdpUrl)는 mobile 항목에 그 폰 번호(udid)와 같이 온다';
+// 윈도우 PC 항목은 VISION 이 잡아 준 PC · 거기 깐 게임 이름 · 게임 엔진이 다 있어야 돈다 — 내 컴퓨터 러너의 USB 길이 PC 에는 없다 (도메인/러너 §5.2 「윈도우 PC 게임 항목」)
+const PC는셋이다 = (r: { platform: string; engine?: string; udid?: string; app?: string }): boolean =>
+  !PC항목인가(r.platform) || (r.engine === 'GAME' && r.udid !== undefined && r.app !== undefined);
+const PC는셋이다글 = '윈도우 PC 항목(windows*)은 engine GAME · udid(VISION 이 잡은 PC) · app(VISION 에 깐 게임 이름)이 같이 온다';
+// 폰 항목의 app 은 파일 경로 · 주소 · 패키지 이름이고 PC 항목은 VISION 게임 이름이다 — 자식 환경값으로 가니 제어 문자만 막는다
+const 앱값 = (r: { platform: string; app?: string }): boolean => r.app === undefined || (PC항목인가(r.platform) ? r.app.length <= 200 && ![...r.app].some((c) => c < ' ') : 앱파일값인가(r.app));
+const 앱값글 = 'app 은 파일 경로나 http(s) 주소여야 한다(윈도우 PC 항목은 VISION 게임 이름)';
 
 export const executeRequest = z.object({
   runId: z.number(),
   historyId: z.number(),
   tcId: z.string(),
-  platform: z.enum(['desktop', 'mobile', 'android']),
+  platform: z.enum(['desktop', 'mobile', 'android', ...PC_PLATFORMS]),
   filePath: z.string(),
   baseUrl: z.string(),
   params: z.record(z.string(), z.unknown()),
   expected: z.record(z.string(), z.unknown()),
   // 0 은 한도 없음 — 게임 시나리오 항목이다 (공통/3-공유계약 「게임 시나리오 도구」)
   timeoutMs: z.number().int().nonnegative().default(300_000),
-  app: 앱파일경로.optional(),
+  app: z.string().min(1).optional(),
   // 빌드 목록의 앞 빌드 — 안 적으면 z.object 가 버려 옛판에서올리기 가 「앞 빌드가 없다」로 던진다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
   previousApp: 앱파일경로.optional(),
   udid: z.string().min(1).optional(),
@@ -77,7 +84,7 @@ export const executeRequest = z.object({
   recordHar,
   live,
   cdpUrl,
-}).refine(실제폰은모바일만, 실제폰은모바일만글);
+}).refine(실제폰은모바일만, 실제폰은모바일만글).refine(PC는셋이다, PC는셋이다글).refine(앱값, 앱값글);
 
 // farmToken 은 admin 이 그 폰을 잡은 팜 토큰이다 — 연결 열기 · 닫기 · 게임 명령이 같은 주인이어야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
 export const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional(), farmToken: 팜토큰.optional() });

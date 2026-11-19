@@ -168,7 +168,8 @@ export const tcId종류 = (tcId: string): 'UI' | 'FN' => (/-UI-\d{3}$/.test(tcId
 export { 게임시나리오인가 } from '@platform/kit/protocol';
 // FN 과 옛 꼴은 한 번호열이다(MKT-044 = MKT-FN-044) — 글자로 견주면 같은 번호가 두 번 쓰여 실행 이력이 섞인다. UI · GS 는 따로 센다
 export const 번호열쇠 = (tcId: string): string => tcId.replace(/-FN-(\d{3})$/, '-$1');
-const PLATFORMS = new Set(['desktop', 'mobile', 'android']);
+// 패드 값(windows-ps5 …)은 선언에 못 적는다 — defineCase 가 던져 K8 로 찍힌다 (공통/2-명세선언 K5)
+const PLATFORMS = new Set(['desktop', 'mobile', 'android', 'windows']);
 
 function missingDescribe(file: string, line: number, schema: JsonSchema, key: string): Violation[] {
   const properties = schema.properties;
@@ -279,7 +280,7 @@ export function checkSpec(
   }
   for (const platform of spec.platforms) {
     if (PLATFORMS.has(platform)) continue;
-    out.push(v(file, at('platforms'), 'K5', `platforms에 ${platform}가 있다. desktop·mobile·android 만 된다`));
+    out.push(v(file, at('platforms'), 'K5', `platforms에 ${platform}가 있다. desktop·mobile·android·windows 만 된다`));
   }
   out.push(...missingDescribe(file, at('params'), spec.paramSchema, 'params'));
   out.push(...missingDescribe(file, at('expected'), spec.expectedSchema, 'expected'));

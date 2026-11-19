@@ -132,7 +132,8 @@ const 통과화면SQL = `SELECT DISTINCT i.platform FROM ${지금항목('o.run_i
  */
 async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: number, c: FailureCase, 마감: number | null) {
   const d = c.devices[0]!;
-  const 깨짐 = c.devices.flatMap((x) => (x.platform === 'android' ? [] : [x.platform]));
+  // 화면 사진은 브라우저 항목만 있다 — 폰 · 윈도우 PC 항목은 뺀다
+  const 깨짐 = c.devices.flatMap((x) => (x.platform === 'desktop' || x.platform === 'mobile' ? [x.platform] : []));
   // API 애플리케이션 케이스도 디바이스가 desktop 이지만 브라우저를 열지 않아 화면이 없다(도메인/API 「디바이스는 desktop 하나다」)
   const 웹 = 실행.kind === 'SCREEN' && 깨짐.length > 0;
   const 둘 = 웹 ? c.devices[1] : undefined;

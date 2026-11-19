@@ -280,8 +280,9 @@ describe('checkSpec', () => {
   it('K5 — android 는 허용 값이라 위반이 아니고 tablet 문장은 android 를 안내한다', () => {
     const 안드로이드 = spec({ platforms: ['android'] });
     expect(checkSpec('x.spec.ts', 안드로이드, lines).filter((f) => f.rule === 'K5')).toEqual([]);
+    expect(checkSpec('x.spec.ts', spec({ platforms: ['android', 'windows'] }), lines).filter((f) => f.rule === 'K5')).toEqual([]);
     const 잘못 = spec({ platforms: ['tablet'] as unknown as CaseSpec['platforms'] });
-    expect(checkSpec('x.spec.ts', 잘못, lines)[0].what).toBe('platforms에 tablet가 있다. desktop·mobile·android 만 된다');
+    expect(checkSpec('x.spec.ts', 잘못, lines)[0].what).toBe('platforms에 tablet가 있다. desktop·mobile·android·windows 만 된다');
   });
 
   it('K4 — 스키마 필드에 describe가 없으면 잡는다', () => {

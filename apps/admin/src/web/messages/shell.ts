@@ -119,6 +119,10 @@ export const 껍데기말: Record<string, string> = {
   미실행: 'Not run',
   모바일: 'Mobile',
   'Android 앱': 'Android app',
+  'Windows · PS5 패드': 'Windows · PS5 pad',
+  'Windows · PS4 패드': 'Windows · PS4 pad',
+  'Windows · Switch 패드': 'Windows · Switch pad',
+  'Windows · Xbox 패드': 'Windows · Xbox pad',
   '없는 주소입니다.': 'Page not found.',
   // 케이스 권한이 없는 사람도 닿는 자리(route.ts `집`)로 보낸다
   처음으로: 'Home',

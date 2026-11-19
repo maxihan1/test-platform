@@ -8,6 +8,7 @@ import ExcelJS from 'exceljs';
 import type { EvidenceAssertion, EvidenceDocument, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
 import type { E2E단계, E2E증적 } from './collectScenario.js';
 import { 절차판정글자, 참고글자 } from './htmlItem.js';
+import { PC디바이스글 } from '../execution/pcPlatform.js';
 
 export interface RenderOptions {
   /** 렌더 입력으로 받는다 — 함수 안에서 new Date() 를 부르면 재현성이 깨진다 (SPEC §3.3) */
@@ -15,7 +16,7 @@ export interface RenderOptions {
 }
 
 /** 화면 표기는 PC / 모바일이다. desktop / mobile 은 코드 안에서만 쓴다 (SPEC §2 · web/ui.tsx) */
-const 디바이스: Record<EvidenceItem['platform'], string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
+const 디바이스: Record<EvidenceItem['platform'], string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱', ...PC디바이스글 };
 
 // htmlItem.ts 의 같은 표와 낱말이 어긋나면 한 문서의 두 형식이 다른 말을 한다. 고칠 때 둘을 같이 고친다
 const 판정글자: Record<EvidenceItem['status'], string> = {
