@@ -10,6 +10,7 @@ import { 해시 } from '../auth/password.js';
 import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
 import { enqueue } from './dispatcher.js';
+import { PC를놓는다, PC를바로잡는다 } from './phone.js';
 import { 전부비운다 } from './trial.js';
 import trialRoutes from './trialRoutes.js';
 
@@ -400,6 +401,30 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     } finally {
       await q(`UPDATE service_env SET admin_key = NULL WHERE service_id = $1 AND env = 'qa'`, [서비스]);
       await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [서비스]);
+    }
+  });
+
+  it('윈도우 PC 테스트 실행 — 게임이 아니면 400, PC 줄이 쓰이는 중이면 409, 올린 Windows 빌드가 없으면 그 까닭의 미실행이다', async () => {
+    process.env.DEVICE_FARM_URL = 러너주소;
+    await q(`UPDATE test_case SET platforms = '["desktop","windows"]' WHERE tc_id = $1`, [케이스]);
+    try {
+      expect((await 시작({ ...정상, platform: 'windows-ps5' })).json()).toMatchObject({ error: 'INVALID_REQUEST' });
+      await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+      expect(PC를바로잡는다()).toBe(true);
+      try {
+        const 바쁨 = await 시작({ ...정상, platform: 'windows' });
+        expect([바쁨.statusCode, 바쁨.json<{ error: string }>().error]).toEqual([409, 'DEVICE_BUSY']);
+      } finally {
+        PC를놓는다();
+      }
+      const res = await 시작({ ...정상, platform: 'windows-xbox' });
+      expect(res.statusCode).toBe(202);
+      const 끝 = await 끝날때까지(res.json<{ trialId: string }>().trialId);
+      expect(끝).toMatchObject({ result: { status: 'NA', error: { message: 'Windows 빌드가 없습니다' } } });
+      expect(받은요청).toEqual([]);
+    } finally {
+      await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [서비스]);
+      await q(`UPDATE test_case SET platforms = '["desktop","mobile","android"]' WHERE tc_id = $1`, [케이스]);
     }
   });
 

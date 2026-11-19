@@ -87,6 +87,15 @@ describe('팜폰으로', () => {
     expect(받음.at(-1)).toBe('DELETE /api/devices/R3CR10TCVCD/hold');
   });
 
+  it('목록의 윈도우 PC 는 IDLE 이어도 고르지 않는다 — 폰 자리에 잡으면 /wd/hub 가 400 이다', async () => {
+    const pc있음 = { status: 200, body: { value: { devices: [{ serial: 'pc-pc1', state: 'IDLE', platform: 'windows' }, { serial: 'R3CR10TCVCD', state: 'IDLE' }] } } };
+    const { 받음, 부르기 } = 가짜팜({ 목록: [pc있음] });
+    expect(await 팜폰으로(팜, async (udid) => udid, (까닭) => 까닭, 부르기, 안쉼)).toBe('R3CR10TCVCD');
+    const pc만 = 가짜팜({ 목록: [{ status: 200, body: { value: { devices: [{ serial: 'pc-pc1', state: 'IDLE', platform: 'windows' }] } } }] });
+    expect(await 팜폰으로(팜, async (udid) => udid, (까닭) => 까닭, pc만.부르기, 안쉼)).toBe('Device VISION 에 빈 폰이 없습니다');
+    expect(받음[1]).toContain('/api/devices/R3CR10TCVCD/hold');
+  });
+
   it('빈 폰이 없으면 잡지도 놓지도 않고 까닭을 넘긴다 — 사람이 잡은 폰은 기다리지 않는다', async () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [남이씀] });
 

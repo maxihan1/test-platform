@@ -174,6 +174,21 @@ describe('callRunner', () => {
     expect(받은것[1]?.farmToken).toBe('pat_kim');
   });
 
+  it('윈도우 PC 항목은 디스패처가 잡고 깐 PC 번호와 게임 이름으로만 보낸다 — PC 를 안 잡았으면 보내지 않는다', async () => {
+    const 받은것: ExecuteRequest[] = [];
+    await 띄운다((body) => {
+      받은것.push(body);
+      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+    });
+    const PC항목: PendingItem = { ...항목, platform: 'windows-ps5', engine: 'GAME', pcBuildId: 9 };
+
+    expect((await callRunner(7, PC항목, () => false, { udid: 'pc-pc1', 토큰: 'pat_kim', 게임: 'BossRoom' })).status).toBe('PASS');
+    expect(받은것[0]).toMatchObject({ platform: 'windows-ps5', udid: 'pc-pc1', app: 'BossRoom', engine: 'GAME', farmToken: 'pat_kim' });
+
+    expect((await callRunner(7, PC항목)).error?.message).toBe('Windows PC 를 잡지 않은 항목입니다');
+    expect(받은것).toHaveLength(1);
+  });
+
   it('API 케이스면 그 케이스 판 원문을 싣는다 (도메인/API §3.8)', async () => {
     const 판 = { version: 3, doc: { openapi: '3.1.0', paths: {} } };
     vi.mocked(케이스판).mockResolvedValueOnce({ apiDoc: 판 });

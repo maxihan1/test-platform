@@ -111,6 +111,12 @@ describe('runBody', () => {
     expect(고름('local').success).toBe(false);
   });
 
+  it('윈도우 값 다섯을 받는다 — 패드 값은 실행 때 고른다', () => {
+    const 고름 = (platforms: string[]) => runBody.safeParse({ ...기본, items: [{ ...기본.items[0], platforms }] }).success;
+    expect(고름(['windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox'])).toBe(true);
+    expect(고름(['windows-ps3'])).toBe(false);
+  });
+
   it('기본 timeoutMs 가 곧 상한이다 — 300000 하나', () => {
     expect(DEFAULT_TIMEOUT_MS).toBe(300000);
   });
@@ -125,5 +131,18 @@ describe('항목제한ms', () => {
   it('그 밖은 준 값, 없으면 기본값이다', () => {
     expect(항목제한ms('ARG-FN-001', 5000)).toBe(5000);
     expect(항목제한ms('ARG-FN-001')).toBe(DEFAULT_TIMEOUT_MS);
+  });
+});
+
+describe('윈도우 PC 항목', () => {
+  it('windows 를 선언한 케이스는 패드 값도 선언 안이다 — 선언 안 한 케이스는 아니다', () => {
+    const 선언 = new Map([['ARG-FN-001', { platforms: ['android', 'windows'] }], ['ARG-FN-002', { platforms: ['android'] }]]);
+    expect(선언밖디바이스([{ tcId: 'ARG-FN-001', platforms: ['android', 'windows-xbox'] }], 선언)).toBeNull();
+    expect(선언밖디바이스([{ tcId: 'ARG-FN-002', platforms: ['windows'] }], 선언)).toEqual({ tcId: 'ARG-FN-002', platform: 'windows' });
+  });
+
+  it('윈도우 PC 도 VISION 기기라 팜이 없으면 거절하고, 팜 없는 정기 실행은 그 케이스를 뺀다', () => {
+    expect(팜을본다([{ platforms: ['windows-ps5'] }], {})).toMatchObject({ error: 'FARM_OFF' });
+    expect(앱케이스를뺀다([{ platforms: ['windows'] }, { platforms: ['desktop'] }], {})).toEqual({ 남은: [{ platforms: ['desktop'] }], 뺀수: 1 });
   });
 });
