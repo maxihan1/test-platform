@@ -102,35 +102,40 @@ describe('duplicatesWith — 맡은 파일만 볼 때 K2', () => {
 });
 
 describe('scan', () => {
-  // 케이스 파일이 1,400개를 넘어 스캔 한 번이 혼자서도 10초쯤 걸린다. 검사마다 다시 훑으면 전체 검사 때 30초 제한을 넘는다(2026-10-12) —
-  // 한 번 훑은 결과를 같이 쓰고, 그 한 번을 치르는 첫 검사만 제한을 늘린다
-  let 한번: ReturnType<typeof scan> | undefined;
-  const 전체스캔 = () => (한번 ??= scan());
+  // tests 폴더(케이스 4,800건이 넘는다)를 통째로 훑으면 혼자 150초가 걸려 전체 검사 때 제한을 넘었다(2026-11-19).
+  // 실제 케이스가 전부 읽히는지는 npm run check:tests 가 같은 scan 으로 본다 — 여기는 옛 데모 케이스 사본으로 scan 의 동작만 본다.
+  // 작성 에이전트가 tests/demo 를 다시 쓰며 DEMO-001~013 을 지운 일(2026-10-27 작성 요청 14683번)에도 흔들리지 않는다.
+  // ESM 캐시 때문에 한 번만 훑는다. filePath 는 import 순간의 기준 폴더로 정해지므로 그동안만 기준을 사본 폴더로 둔다
+  const 데모 = resolve(import.meta.dirname, 'fixtures');
+  let 데모한번: ReturnType<typeof scan> | undefined;
+  const 데모스캔 = () =>
+    (데모한번 ??= (async () => {
+      const 전 = process.env.PLATFORM_TESTS_DIR;
+      process.env.PLATFORM_TESTS_DIR = 데모;
+      try {
+        return await scan(데모);
+      } finally {
+        if (전 === undefined) delete process.env.PLATFORM_TESTS_DIR;
+        else process.env.PLATFORM_TESTS_DIR = 전;
+      }
+    })());
 
   // 건수를 손으로 적으면 케이스를 더할 때마다 여기가 따라오지 못하고 조용히 틀려진다.
   // 폴더에 있는 파일 이름이 곧 tcId 목록이다
   it('케이스 파일을 빠짐없이 tcId 순으로 돌려준다', async () => {
-    const { specs, failures, duplicates } = await 전체스캔();
+    const { specs, failures, duplicates } = await 데모스캔();
     expect(failures).toEqual([]);
     expect(duplicates).toEqual([]);
-    const 파일이름들 = (await caseFiles()).map((f) => basename(f, '.spec.ts')).sort();
+    const 파일이름들 = (await caseFiles(데모)).map((f) => basename(f, '.spec.ts')).sort();
+    expect(파일이름들.length).toBeGreaterThan(1);
     expect(specs.map((s) => s.tcId)).toEqual(파일이름들);
-  }, 120_000);
-
-  // 특정 케이스 번호를 적지 않는다 — 작성 에이전트가 tests/demo 를 다시 쓰며 DEMO-001~013 을 지워(2026-10-27 작성 요청 14683번) 이 검사가 메인에서 빨갰다
-  it('filePath는 tests 폴더 기준 상대 경로다', async () => {
-    const { specs } = await 전체스캔();
-    const 파일들 = await caseFiles();
-    expect(파일들.length).toBeGreaterThan(0);
-    const 첫파일 = 파일들[0]!;
-    const 뿌리 = resolve(process.cwd(), 'tests');
-    expect(specs.find((s) => s.tcId === basename(첫파일, '.spec.ts'))?.filePath).toBe(relative(뿌리, 첫파일));
   });
 
-  // 아래 넷은 tests 폴더 대신 옛 데모 케이스 사본을 읽는다 — 위와 같은 까닭이다
-  const 데모 = resolve(import.meta.dirname, 'fixtures');
-  let 데모한번: ReturnType<typeof scan> | undefined;
-  const 데모스캔 = () => (데모한번 ??= scan(데모));
+  it('filePath는 케이스 폴더 기준 상대 경로다', async () => {
+    const { specs } = await 데모스캔();
+    const 첫파일 = (await caseFiles(데모))[0]!;
+    expect(specs.find((s) => s.tcId === basename(첫파일, '.spec.ts'))?.filePath).toBe(relative(데모, 첫파일));
+  });
 
   it('zod 스키마가 JSON Schema로 변환돼 있고 describe가 라벨로 남는다', async () => {
     const { specs } = await 데모스캔();
