@@ -136,6 +136,8 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
             projectId: 1,
             projectName: '실행 검사용', primary: false,
             kind: 'SCREEN',
+            gamePlatform: null,
+            gamePads: [],
             envs: [],
             hasSlackWebhook: false,
             hasFigmaToken: false,

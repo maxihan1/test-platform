@@ -9,9 +9,9 @@ import type { Pool } from 'pg';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { API인증읽기, type 어드민키, 어드민키읽기 } from '../settings/envs.js';
 
-import { 실행빌드들, 앱칸, type 빌드플랫폼 } from './buildFile.js';
+import { 실행빌드, 앞빌드, 앱칸 } from './buildFile.js';
 import { 엔진칸 } from './engineField.js';
-import { 선언밖디바이스, 항목제한ms } from './location.js';
+import { 선언밖디바이스, 윈도우를펼친다, 플랫폼밖인가, 항목제한ms } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
@@ -33,7 +33,9 @@ export class RunInputError extends Error {
       | 'ENV_NOT_FOUND'
       | 'SERVICE_FORBIDDEN'
       | 'TOO_MANY_ITEMS'
-      | 'BAD_RERUN',
+      | 'BAD_RERUN'
+      // 정기 · 빌드 · 배포 신호 실행에서 플랫폼 밖 값 · 지원 패드 밖 패드를 빼고 나니 돌 항목이 없다 — 실패가 아니다(그 종류 실행만 안 선다)
+      | 'NO_ITEMS',
     message: string,
     // TOO_MANY_ITEMS 는 응답에 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
     readonly detail: { limit: number; requested: number } | undefined = undefined,
@@ -58,8 +60,8 @@ export interface RunItemInput {
 export interface CreateRunInput {
   // 제목은 받지 않는다 — 시작 방식과 담긴 케이스로 서버가 짓는다 (SPEC 실행 §7 「자동 제목」)
   origin: 'MANUAL' | 'SCHEDULED' | 'BUILD';
-  // 빌드로 시작한 실행만. 없으면 그 줄의 최신 빌드를 고정한다 (도메인/실행 §3.11). platform 은 올린 빌드 쪽 — PC 빌드면 PC 칸에 고정한다 (도메인/게임 §3.10)
-  build?: { id: number; no: string; stage: 'SMOKE' | 'FULL'; platform?: 빌드플랫폼 };
+  // 빌드로 시작한 실행만. 없으면 그 줄의 최신 빌드를 고정한다 (도메인/실행 §3.11)
+  build?: { id: number; no: string; stage: 'SMOKE' | 'FULL' };
   // 「실패 N건 다시 실행」이 싣는 원래 실행. 있으면 시작 방식이 RERUN 이다
   rerunOf?: number;
   // 로그인한 사람의 아이디. 요청 본문이 아니라 문(auth/gate.ts)이 실어 준 값에서 온다 (SPEC §3.5)
@@ -93,7 +95,7 @@ export interface PendingItem {
   timeoutMs: number;
   // android 항목만. 그 대상 서버 줄의 앱 파일 경로 — 없으면 러너가 자기 환경값을 쓴다 (러너 §5.2 · APP-F1-03)
   app?: string;
-  // 실행에 고정한 빌드가 올린 APK 면 app 대신 번호만 — 서명 주소는 폰을 잡은 뒤 만든다 (도메인/실행 §3.11)
+  // 실행에 고정한 빌드가 올린 파일이면 app 대신 번호만 — APK 는 폰을 잡은 뒤 서명 주소를 만들고, 윈도우 zip 은 디스패처가 PC 를 잡은 뒤 VISION 에 깐다 (도메인/실행 §3.11 · 게임 §3.10 「실행 하나의 흐름」)
   buildId?: number;
   // 앞 빌드 — app · buildId 와 같은 꼴(회사 저장소 주소면 주소, 올린 APK 면 번호). 실행 앱이 빌드일 때만 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
   previousApp?: string;
@@ -107,8 +109,6 @@ export interface PendingItem {
   실제폰?: true;
   // 정기 실행 android 항목 — 러너가 통과해도 logcat 을 받아 안정화 지표가 크래시 · ANR 을 센다 (도메인/안정화 §3.15 결정 3)
   stability?: true;
-  // 윈도우 PC 항목만 — 실행에 고정한 PC 빌드. 디스패처가 PC 를 잡은 뒤 이 zip 을 VISION 에 깐다. 없으면 「Windows 빌드가 없습니다」 미실행 (도메인/게임 §3.10 「실행 하나의 흐름」)
-  pcBuildId?: number;
 }
 
 // tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
@@ -125,6 +125,8 @@ interface ServiceRow {
   app_path: string | null;
   api_auths: unknown;
   admin_key: unknown;
+  game_platform: 'android' | 'windows' | null;
+  game_pads: string[];
 }
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
@@ -203,7 +205,7 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
 
     // 서비스와 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (SPEC §6)
     const service = await client.query<ServiceRow>(
-      `SELECT s.id, s.name, s.tests_repo, s.kind, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths, e.admin_key
+      `SELECT s.id, s.name, s.tests_repo, s.kind, s.game_platform, s.game_pads, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths, e.admin_key
          FROM service s
          LEFT JOIN service_env e ON e.service_id = s.id AND e.env = $2
         WHERE s.prefix = $1 AND s.is_active`,
@@ -217,14 +219,19 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
       throw new RunInputError('ENV_NOT_FOUND', `${prefix} 서비스에 ${input.env} 대상 서버가 없다`);
     }
     const 인증들 = API인증읽기(found서비스.api_auths);
-    // 윈도우 PC 는 게임 SDK 로만 돈다 — 게임 밖 케이스가 windows 를 선언했어도 실행하지 않는다 (도메인/게임 §3.10 · 실행 §7 계약)
-    if (found서비스.kind !== 'GAME' && input.items.some((i) => i.platforms.some(PC항목인가))) {
-      // 사람이 고른 것만 거절한다 — 정기 · 빌드 실행은 그 항목만 빼고 나머지를 돌린다(카탈로그는 게임 밖 windows 를 경고만 한다)
-      if (input.origin === 'MANUAL') throw new RunInputError('INVALID_REQUEST', 'Windows 디바이스는 게임 애플리케이션만 고를 수 있다');
-      input = { ...input, items: input.items.map((i) => ({ ...i, platforms: i.platforms.filter((p) => !PC항목인가(p)) })).filter((i) => i.platforms.length > 0) };
-      if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
+    // 게임 하나에 플랫폼 하나 — 윈도우 PC 는 PC 게임만, android 는 PC 게임이 아닌 것만 돈다 (도메인/게임 §3.10 결정 27 · §7)
+    const 밖인가 = (p: string): boolean => 플랫폼밖인가(found서비스.kind, found서비스.game_platform, p);
+    const 밖값 = input.items.flatMap((i) => i.platforms.filter(밖인가).map((p) => ({ tcId: i.tcId, p })))[0];
+    if (밖값 !== undefined) {
+      // 사람이 고른 것만 거절한다 — 정기 · 빌드 · 배포 신호 실행은 그 항목만 빼고 나머지를 돌린다. 케이스 하나 때문에 밤 정기 실행 전체가 멈추지 않게(스캐너가 문제 줄로 알린다)
+      if (input.origin === 'MANUAL') throw new RunInputError('INVALID_REQUEST', `${밖값.tcId} 의 ${PLATFORM_LABEL[밖값.p]} 디바이스는 이 애플리케이션에서 돌지 않는다 — 게임 하나에 플랫폼 하나다`);
+      input = { ...input, items: input.items.map((i) => ({ ...i, platforms: i.platforms.filter((p) => !밖인가(p)) })).filter((i) => i.platforms.length > 0) };
+      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '이 애플리케이션 플랫폼으로 돌 케이스가 없다');
     }
-    const PC있음 = input.items.some((i) => i.platforms.some(PC항목인가));
+    // 정기 · 빌드 · 배포 신호 실행은 카탈로그 선언을 그대로 싣는다 — 윈도우 값을 windows 하나로 접어 아래에서 지원 패드로 다시 펼친다(지원 패드에서 뺀 패드는 안 돈다)
+    if (input.origin !== 'MANUAL') {
+      input = { ...input, items: input.items.map((i) => ({ ...i, platforms: [...new Set(i.platforms.map((p) => (PC항목인가(p) ? 'windows' : p)))] })) };
+    }
 
     // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
     // 미확정 사유도 여기서 박제한다 — 확인 필요 항목이 나중에 확정돼도 그날 확정이 아니었다는 사실은 남아야 한다 (SPEC 실행 §3.2)
@@ -238,6 +245,14 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
     if (missing.length > 0) throw new RunInputError('CASE_NOT_FOUND', `카탈로그에 없는 케이스다: ${missing.join(', ')}`);
     const 밖 = 선언밖디바이스(input.items, cases);
     if (밖) throw new RunInputError('INVALID_REQUEST', `${밖.tcId} 는 ${PLATFORM_LABEL[밖.platform]} 환경을 선언하지 않았다`);
+    input = { ...input, items: 윈도우를펼친다(input.items, cases, found서비스.game_pads) };
+    if (input.items.length === 0) {
+      throw new RunInputError(input.origin === 'MANUAL' ? 'INVALID_REQUEST' : 'NO_ITEMS', '실행할 케이스가 하나도 없다 — 버튼 그림 케이스의 패드가 지원 패드에 없다');
+    }
+    const 펼친수 = input.items.reduce((n, i) => n + i.platforms.length, 0) * repeat;
+    if (펼친수 > MAX_ITEMS) {
+      throw new RunInputError('TOO_MANY_ITEMS', `한 번에 ${MAX_ITEMS}건까지 만들 수 있는데 ${펼친수}건을 요청했다`, { limit: MAX_ITEMS, requested: 펼친수 });
+    }
 
     const tcIds = [...cases.keys()].sort();
     if (input.rerunOf !== undefined) {
@@ -257,7 +272,9 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
       실제폰,
     });
     // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11)
-    const { 빌드, 앞, PC빌드 } = await 실행빌드들(client, Number(found서비스.id), input.env, input.build, PC있음);
+    const 빌드 = await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
+    // 옛판에서올리기 가 깔 앞 빌드 — 실행 빌드 바로 앞에 그 줄에 올린 빌드다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
+    const 앞 = 빌드 === null ? null : await 앞빌드(client, Number(found서비스.id), input.env, 빌드.id);
     const title = await 제목을짓는다(client, {
       origin,
       ...(rerunOf === null ? {} : { rerunOf }),
@@ -271,8 +288,8 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
       `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack, kind, origin, rerun_of,
-                             build_id, build_no, build_stage, sched_occurrence_id, pc_build_id, pc_build_no)
-       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING run_id`,
+                             build_id, build_no, build_stage, sched_occurrence_id)
+       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING run_id`,
       [
         title,
         input.triggeredBy,
@@ -292,8 +309,6 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
         빌드?.buildNo ?? null,
         input.build?.stage ?? null,
         input.sched?.occurrenceId ?? null,
-        PC빌드?.id ?? null,
-        PC빌드?.buildNo ?? null,
       ],
     );
     const runId = Number(run.rows[0]!.run_id);
@@ -344,7 +359,8 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
             ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
             ...(platform === 'mobile' && 실제폰 && { 실제폰: true as const }),
             ...(platform === 'android' && input.sched?.base === true && { stability: true as const }),
-            ...(PC항목인가(platform) && PC빌드?.hasFile === true && { pcBuildId: PC빌드.id }),
+            // PC 게임의 빌드는 늘 올린 zip 이다 — 없으면 디스패처가 「Windows 빌드가 없습니다」로 닫는다
+            ...(PC항목인가(platform) && 빌드?.hasFile === true && { buildId: 빌드.id }),
           });
         }
       }

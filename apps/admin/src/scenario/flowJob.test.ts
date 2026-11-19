@@ -116,12 +116,12 @@ describe.skipIf(연결 === undefined)('E2E AI 흐름 후보', { timeout: 60_000 
 
   it('게임 애플리케이션인데 게임 화면을 여는 케이스가 없으면 맡기기 전에 409 다', async () => {
     const 원래 = (await pool.query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [서비스])).rows[0]?.kind;
-    await pool.query("UPDATE service SET kind = 'GAME' WHERE id = $1", [서비스]);
+    await pool.query("UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1", [서비스]);
     await pool.query(`UPDATE test_case SET platforms = '["android"]' WHERE tc_id = ANY($1)`, [번호들]);
     try {
       expect((await 맡기기({ service: 접두사, platform: 'android' })).json()).toMatchObject({ error: 'NO_DATA', detail: '게임 화면을 여는 기능 테스트가 없습니다' });
     } finally {
-      await pool.query('UPDATE service SET kind = $2 WHERE id = $1', [서비스, 원래]);
+      await pool.query("UPDATE service SET kind = $2::text, game_platform = CASE WHEN $2::text = 'GAME' THEN 'android' END WHERE id = $1", [서비스, 원래]);
       await pool.query(`UPDATE test_case SET platforms = '["desktop"]' WHERE tc_id = ANY($1)`, [번호들]);
     }
   });

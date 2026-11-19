@@ -30,8 +30,8 @@ describe.skipIf(연결 === undefined)('안정화 게임 집계', () => {
     const { pool: 풀 } = await import('../db/index.js');
     pool = 풀;
     const s = await pool.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind)
-       VALUES ('XGX', 'XGX 안정화 게임 집계 검사용', '#3A5FCD', '', 'xgx', 'GAME')
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind, game_platform)
+       VALUES ('XGX', 'XGX 안정화 게임 집계 검사용', '#3A5FCD', '', 'xgx', 'GAME', 'android')
        ON CONFLICT (prefix) DO UPDATE SET is_active = true RETURNING id`,
     );
     서비스 = Number(s.rows[0]!.id);

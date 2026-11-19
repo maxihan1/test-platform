@@ -18,6 +18,7 @@ import { 목록요약들 } from './listSummary.js';
 import { 보류상세, 보류통로 } from './held-routes.js';
 import { 머지세우기 } from './merge.js';
 import { API칸판정, 재실행API } from './apiDoc.js';
+import { 패드판정 } from './gamePads.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호, 물려받을값 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
@@ -160,6 +161,9 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           if (정규 === null) return reply.code(400).send({ error: 'BAD_FIGMA_URL', detail: String(주소) });
           피그마.push(정규);
         }
+        // 지원 패드는 PC 게임만 받는다 — 값은 DRAFT 를 세울 때 같은 묶음으로 애플리케이션에 남긴다 (도메인/작성 §7)
+        const 패드 = await 패드판정(req.body?.gamePads, 서비스);
+        if (패드.error !== undefined) return reply.code(400).send({ error: 패드.error });
         // API 애플리케이션은 판 하나와 대상 서버를 받고 역방향 칸을 안 받는다 (§7 「AUTHOR API 문서 판」)
         const api = await API칸판정(req.body, 서비스);
         if ('error' in api) return reply.code(400).send({ error: api.error });
@@ -179,6 +183,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           이름,
           피그마,
           값,
+          ...(패드.패드 === undefined ? {} : { 패드: 패드.패드 }),
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
           ...(api.api ? { api: { env: api.env, 판id: api.판id, version: api.version } } : {}),
         });

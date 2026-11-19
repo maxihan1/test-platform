@@ -51,6 +51,8 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
           projectId: 1,
           projectName: 'XDR 대시보드', primary: false,
           kind: 'SCREEN',
+          gamePlatform: null,
+          gamePads: [],
           envs: [],
           hasSlackWebhook: false,
           hasFigmaToken: false,

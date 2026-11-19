@@ -14,11 +14,14 @@ export async function 케이스행(tcId: string): Promise<{ platforms: string[];
 }
 
 /** 그 케이스 애플리케이션의 그 이름 대상 서버 줄. 애플리케이션이나 줄이 없으면 null */
-export async function 대상줄찾기(tcId: string, env: string): Promise<{ 줄: 대상줄; 종류: string; serviceId: number } | null> {
+export async function 대상줄찾기(
+  tcId: string,
+  env: string,
+): Promise<{ 줄: 대상줄; 종류: string; 게임플랫폼: 'android' | 'windows' | null; serviceId: number } | null> {
   const { pool } = await import('../db/index.js');
-  const r = await pool.query<{ id: string; kind: string }>('SELECT id, kind FROM service WHERE prefix = $1', [prefixOf(tcId)]);
+  const r = await pool.query<{ id: string; kind: string; game_platform: 'android' | 'windows' | null }>('SELECT id, kind, game_platform FROM service WHERE prefix = $1', [prefixOf(tcId)]);
   const 서비스 = r.rows[0];
   if (서비스 === undefined) return null;
   const 줄 = (await 대상줄들읽기(Number(서비스.id))).find((c) => c.env === env);
-  return 줄 === undefined ? null : { 줄, 종류: 서비스.kind, serviceId: Number(서비스.id) };
+  return 줄 === undefined ? null : { 줄, 종류: 서비스.kind, 게임플랫폼: 서비스.game_platform, serviceId: Number(서비스.id) };
 }

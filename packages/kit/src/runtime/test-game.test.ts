@@ -77,7 +77,7 @@ afterEach(() => {
 
 describe('게임 항목', () => {
   it('윈도우 PC 항목은 Appium 없이 PC 를 열고 game 만 준다 — 실패 증적 · 입력 거두기 뒤에 게임을 끈다', async () => {
-    const pcSpec = defineCase({ tcId: 'ASH-FN-002', name: 'PC 강화', precondition: [], params: null, expected: null, platforms: ['android', 'windows'] });
+    const pcSpec = defineCase({ tcId: 'ASH-FN-002', name: 'PC 강화', precondition: [], params: null, expected: null, platforms: ['windows-ps5'] });
     let 받은: { game: unknown; driver?: string } = { game: undefined };
     test(pcSpec, async (args) => {
       받은.game = args.game;

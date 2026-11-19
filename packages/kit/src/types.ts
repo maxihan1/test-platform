@@ -2,7 +2,7 @@
 
 export type TcId = string;                         // 'AUTH-002'
 export type BrowserPlatform = 'desktop' | 'mobile';   // 브라우저 디바이스. E2E 웹 단계가 도는 창
-// 윈도우 PC 게임 — VISION PC 하나에 패드를 실행할 때 고른다. 선언은 windows 하나고 실행 항목은 다섯 값 어느 것이든 받는다 (공통/3-공유계약 「윈도우 PC 게임」 · 도메인/게임 §3.10 결정 27)
+// 윈도우 PC 게임 — VISION PC 하나. 보통 케이스는 windows(키보드), 버튼 그림 케이스는 지원 패드 값을 선언하고 선언한 값마다 한 항목이다 (공통/3-공유계약 「윈도우 PC 게임」 · 도메인/게임 §3.10 결정 27)
 export const PC_PLATFORMS = ['windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox'] as const;
 export type PcPlatform = (typeof PC_PLATFORMS)[number];
 export const PC항목인가 = (p: string): p is PcPlatform => (PC_PLATFORMS as readonly string[]).includes(p);

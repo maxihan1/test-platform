@@ -89,6 +89,8 @@ function 사람(role: 사용자['role'], 칸들: Record<string, 'none' | 'read' 
       projectId: 1,
       projectName: prefix, primary: false,
       kind: 'SCREEN' as const,
+      gamePlatform: null,
+      gamePads: [],
       envs: [],
       hasSlackWebhook: false,
       hasFigmaToken: false,

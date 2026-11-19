@@ -1,6 +1,6 @@
 // POST /api/runs 요청 본문 스키마와 Android 앱 실행을 받을지 판정 (SPEC 실행 §7)
 
-import { PC_PLATFORMS, PC항목인가 } from '@platform/kit';
+import { PC_PLATFORMS, PC항목인가, type Platform } from '@platform/kit';
 import { z } from 'zod';
 
 import { 게임시나리오인가 } from '../catalog/rules.js';
@@ -33,7 +33,7 @@ export const runBody = z.object({
     .array(
       z.object({
         tcId: z.string().min(1),
-        // windows 다섯은 게임 케이스가 windows 를 선언했을 때만 받는다 — 패드는 실행 때 고른다 (도메인/게임 §3.10 「윈도우 PC」)
+        // windows 는 선언대로 펼치고 윈도우 값 하나하나는 선언에 있어야 받는다 — PC 게임만 (도메인/게임 §3.10 「윈도우 PC」)
         platforms: z.array(z.enum(['desktop', 'mobile', 'android', ...PC_PLATFORMS])).min(1),
         params: z.record(z.string(), z.unknown()).default({}),
         expected: z.record(z.string(), z.unknown()).default({}),
@@ -71,11 +71,34 @@ export function 선언밖디바이스<P extends string>(
   for (const item of items) {
     const 케이스 = 선언.get(item.tcId);
     if (!케이스) continue;
-    // windows 를 선언했으면 패드 값 넷도 그 선언 안이다 — 선언에는 windows 하나만 적는다 (공통/2 K5)
-    const platform = item.platforms.find((p) => !케이스.platforms.includes(PC항목인가(p) ? 'windows' : p));
+    // windows 는 「선언한 윈도우 값으로 펼쳐 달라」라 패드 값만 선언한 버튼 그림 케이스에도 건다. 윈도우 값 하나하나는 선언에 그대로 있어야 한다 (도메인/게임 §7)
+    const platform = item.platforms.find((p) => (p === 'windows' ? !케이스.platforms.some(PC항목인가) : !케이스.platforms.includes(p)));
     if (platform !== undefined) return { tcId: item.tcId, platform };
   }
   return null;
+}
+
+/** 애플리케이션이 돌릴 수 없는 디바이스 값 — 게임 밖 · 모바일 게임의 윈도우 값, PC 게임의 android. 게임 하나에 플랫폼 하나다 (도메인/게임 §3.10 결정 27) */
+export function 플랫폼밖인가(kind: string, gamePlatform: 'android' | 'windows' | null, p: string): boolean {
+  return kind === 'GAME' && gamePlatform === 'windows' ? p === 'android' : PC항목인가(p);
+}
+
+/**
+ * PC 게임 케이스의 windows 를 선언대로 펼친다 — 선언의 windows 는 한 번, 패드 값은 지원 패드에 남은 것마다.
+ * 값 하나하나(windows-ps5)로 건 항목은 그대로다 — 사람이 고른 값이라 지원 패드를 안 본다(실패 다시 실행). 펼친 값이 하나도 없는 케이스는 빠진다 (도메인/게임 §3.10 「윈도우 PC」)
+ */
+export function 윈도우를펼친다<T extends { tcId: string; platforms: Platform[] }>(
+  items: readonly T[],
+  선언: ReadonlyMap<string, { platforms: readonly string[] }>,
+  지원패드: readonly string[],
+): T[] {
+  return items.flatMap((item) => {
+    if (!item.platforms.includes('windows')) return [item];
+    const 선언값 = (선언.get(item.tcId)?.platforms ?? []).filter(PC항목인가);
+    const 펼친 = 선언값.filter((p) => p === 'windows' || 지원패드.includes(p.slice('windows-'.length)));
+    const platforms = [...new Set(item.platforms.flatMap((p): Platform[] => (p === 'windows' ? 펼친 : [p])))];
+    return platforms.length === 0 ? [] : [{ ...item, platforms }];
+  });
 }
 
 // 팜이 없는 서버의 정기 실행은 앱 케이스 · 윈도우 PC 게임 케이스를 뺀다 — 넣으면 매일 NA 만 쌓인다 (SPEC 공통/6-인프라 §9.2)

@@ -10,6 +10,8 @@ import { 설정오류 } from './errors.js';
 
 export { 설정오류, type 오류코드 } from './errors.js';
 
+export type 게임플랫폼 = 'android' | 'windows';
+
 export interface 서비스행 {
   id: number;
   prefix: string;
@@ -21,6 +23,10 @@ export interface 서비스행 {
   testsDir: string;
   /** 만들 때 정하고 바꾸지 않는다 (도메인/API §3.8) */
   kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
+  /** 게임 하나에 플랫폼 하나 — 만들 때 정하고 바꾸지 않는다. GAME 이 아니면 null (도메인/게임 §3.10 결정 27) */
+  gamePlatform: 게임플랫폼 | null;
+  /** 지원 패드 — PC 게임만 채운다. 작성 시작이 갈아 끼운다 */
+  gamePads: string[];
   apiDocPath: string | null;
   apiDocEnv: string | null;
   isActive: boolean;
@@ -57,7 +63,7 @@ export async function 한묶음<T>(일: (client: PoolClient) => Promise<T>): Pro
 // 케이스 수는 test_case 에 서비스 칸이 없어 접두사로 센다. 그 표에는 서비스 칸이 없고 앞으로도 없다 (SPEC §6)
 const 서비스들 = `
   SELECT s.id, s.prefix, s.name, s.color, s.project_id, p.name AS project_name, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude, s.code_repos,
-         s.kind, s.api_doc_path, s.api_doc_env,
+         s.kind, s.api_doc_path, s.api_doc_env, s.game_platform, s.game_pads,
          (s.slack_webhook IS NOT NULL AND s.slack_webhook <> '') AS has_slack_webhook,
          (s.figma_token IS NOT NULL AND s.figma_token <> '') AS has_figma_token,
          (SELECT count(*) FROM test_case tc
@@ -79,6 +85,8 @@ interface 서비스원행 {
   tests_repo: string;
   tests_dir: string;
   kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
+  game_platform: 게임플랫폼 | null;
+  game_pads: string[];
   api_doc_path: string | null;
   api_doc_env: string | null;
   is_active: boolean;
@@ -104,6 +112,8 @@ export async function 서비스목록(): Promise<서비스행[]> {
     testsRepo: r.tests_repo,
     testsDir: r.tests_dir,
     kind: r.kind,
+    gamePlatform: r.game_platform,
+    gamePads: r.game_pads,
     apiDocPath: r.api_doc_path,
     apiDocEnv: r.api_doc_env,
     isActive: r.is_active,
@@ -131,6 +141,8 @@ export interface 서비스입력 {
   figmaToken?: string;
   crawlExclude?: string[];
   kind?: 'SCREEN' | 'APP' | 'GAME' | 'API';
+  /** GAME 일 때만. 안 보내면 'android' — 라우트가 NOT_GAME_SERVICE · BAD_GAME_PLATFORM 을 먼저 막는다 */
+  gamePlatform?: 게임플랫폼;
   apiDocPath?: string | null;
   apiDocEnv?: string | null;
 }
@@ -145,8 +157,8 @@ export async function 서비스만들기(입력: 서비스입력): Promise<numbe
   return 한묶음(async (client) => {
     if (입력.projectId !== undefined) await 프로젝트확인(client, 입력.projectId);
     const rows = await client.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token, crawl_exclude, project_id, kind, api_doc_path, api_doc_env)
-            VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), $8, $9, $10, $11, $12)
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token, crawl_exclude, project_id, kind, api_doc_path, api_doc_env, game_platform)
+            VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), $8, $9, $10, $11, $12, $13)
        ON CONFLICT (prefix) DO NOTHING
          RETURNING id`,
       [
@@ -162,6 +174,8 @@ export async function 서비스만들기(입력: 서비스입력): Promise<numbe
         입력.kind ?? 'SCREEN',
         입력.apiDocPath ?? null,
         입력.apiDocEnv ?? null,
+        // DB CHECK 가 GAME 만 값을 갖게 묶는다 — 종류가 GAME 일 때만 기본값을 채운다
+        입력.kind === 'GAME' ? (입력.gamePlatform ?? 'android') : null,
       ],
     );
     const id = rows.rows[0]?.id === undefined ? undefined : Number(rows.rows[0].id);
