@@ -7,6 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
+import { 돌발팝업칸 } from '../prd/gameRoute.js';
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
 import { artifactsDir } from '../artifactFile.js';
 import { 옛시험치우기 } from '../scenario/trial.js';
@@ -193,6 +194,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       timeoutMs: 항목제한ms(tcId, 제한ms),
       // 정식 실행과 같은 규칙 — 게임 애플리케이션이면 엔진을 싣는다 (도메인/게임 §3.10 결정 6)
       ...엔진칸(종류, platform, 줄.adminKey),
+      // 정식 실행과 같은 규칙 — 게임 항목이면 조작 맵의 돌발 팝업을 싣는다 (도메인/게임 §3.10 결정 31)
+      ...(엔진칸(종류, platform).engine === 'GAME' && (await 돌발팝업칸(serviceId))),
       // 정식 실행과 같은 규칙 — 그 대상 서버 줄에 API 인증이 있으면 싣는다 (도메인/API §3.8)
       ...(줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
     };

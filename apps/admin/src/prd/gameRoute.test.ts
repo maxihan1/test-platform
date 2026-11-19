@@ -4,7 +4,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import prdAgentRoutes from './agentRoutes.js';
-import { 조작행검사 } from './gameRoute.js';
+import { 돌발팝업들, 돌발팝업칸, 조작행검사 } from './gameRoute.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XGT';
@@ -202,4 +202,19 @@ describe.skipIf(연결 === undefined)('조작 맵 에이전트 통로', () => {
       ].join('\n') + '\n',
     );
   });
+
+  it('실행 요청의 돌발 팝업은 「확인」 POPUP 행만 — 창 열쇠의 장면 머리를 떼고 동작 칸이 닫는 주소다', async () => {
+    const id = await 요청넣기();
+    const 초대 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Invite', action: '/Canvas/Invite/Decline', status: 'OK' };
+    const 공지 = { kind: 'POPUP', fromKey: 'Notice', action: 'Notice/Close', status: 'OK' };
+    const 출석 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Attend', action: '/Canvas/Attend/Close', status: 'BLOCKED', reason: '닫기 버튼을 못 찾음' };
+    expect((await 올리기(id, { rows: [초대, 공지, 출석, 몰살] })).statusCode).toBe(204);
+    expect(await 돌발팝업들(서비스)).toEqual([
+      { window: 'Notice', close: 'Notice/Close' },
+      { window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' },
+    ]);
+    await 치우기();
+    expect(await 돌발팝업칸(서비스)).toEqual({});
+  });
 });
+

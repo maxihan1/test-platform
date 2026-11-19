@@ -8,6 +8,7 @@ import { isDeepStrictEqual } from 'node:util';
 import type { Game, Link, WaitOptions } from 'control-cli';
 
 import { runDir, saveShot } from './artifacts.js';
+import { 돌발팝업읽기, 돌발팝업을건다 } from './gamePopups.js';
 import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.js';
 
 type Env = Record<string, string | undefined>;
@@ -81,6 +82,8 @@ export async function openGame(
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
 ): Promise<KitGame> {
   const { Game, WAIT } = await import('control-cli');
+  // 꼴이 틀리면 게임에 붙기 전에 던진다 — 러너가 늘 맞는 꼴을 넘긴다
+  const 팝업들 = 돌발팝업읽기(env);
   const game = new Game(link ?? (await gameLink(env)));
   // 문구는 waitFor 의 글자 기다림과 같은 꼴이라야 실패 유형이 「시간 초과」로 가른다 (reporting/failureType.ts)
   const waitForValue: GameDriver['waitForValue'] = async (target, prop, value, options = {}) => {
@@ -194,6 +197,7 @@ export async function openGame(
     if (!(PAD_KINDS as readonly string[]).includes(패드값)) throw new Error(`모르는 패드다: PLATFORM_PAD=${패드값}`);
     await 패드(패드값 as PadKind);
   }
+  돌발팝업을건다(드라이버, 팝업들);
   return 드라이버;
 }
 

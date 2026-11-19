@@ -1,6 +1,8 @@
 // 조작 맵 — 작성 에이전트가 올리는 조작 행과 경로 검색 명령이 읽는 맵 글 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」 · §7 game-route)
 // 맵은 「어떻게 가나」만 담는다 — 기대값 근거가 아니다. 「재확인 필요」는 정식 실행만 단다(GAME-F5-06)
 
+import type { GamePopup } from '@platform/kit';
+
 import { db } from '../settings/store.js';
 
 export const 행종류 = { MOVE: '이동 · 조작', SETUP: '상태 설정', LOG: '로그', TERM: '용어', POPUP: '돌발 팝업' } as const;
@@ -188,4 +190,26 @@ export async function 맵글(서비스: number): Promise<string> {
     return 들.length === 0 ? [] : [`## ${행종류[k]} (${k}) — ${String(들.length)}행`, ...들.map(행줄), ''];
   });
   return [`# 조작 맵 — 행 ${String(r.rows.length)}개. 「어떻게 가나」만 담는다 — 기대값의 근거가 아니다`, '', ...묶음].join('\n').trimEnd() + '\n';
+}
+
+// 러너가 자식 환경값 한 칸으로 넘기는 상한과 같다 — 넘으면 러너가 요청을 400 으로 거절해 실행이 서지 않는다 (apps/runner/src/schema.ts 돌발팝업상한)
+const 팝업상한 = 100;
+
+/**
+ * 실행 요청에 싣는 돌발 팝업 — 「확인」 POPUP 행만. 창 열쇠(game:<장면>/<창 경로>)는 장면 머리를 떼 게임 드라이버가 찾는 주소로 바꾸고, 동작 칸은 닫을 때 누르는 주소다.
+ * 장면을 떼는 까닭 — 공지 · 초대 창은 장면을 가리지 않고 뜬다. 열쇠가 game: 꼴이 아니면(사람이 주소로 적은 행) 그대로 싣는다 (도메인/게임 §3.10 결정 31)
+ */
+export async function 돌발팝업들(서비스: number): Promise<GamePopup[]> {
+  const r = await (await db()).query<{ from_key: string; action: string }>(
+    `SELECT from_key, action FROM game_route WHERE service_id = $1 AND kind = 'POPUP' AND status = 'OK'
+      ORDER BY from_key COLLATE "C", action COLLATE "C" LIMIT $2`,
+    [서비스, 팝업상한],
+  );
+  return r.rows.map((x) => ({ window: /^game:[^/]*(\/.+)$/.exec(x.from_key)?.[1] ?? x.from_key, close: x.action }));
+}
+
+/** 실행 요청에 펼쳐 넣는 칸 — 행이 없으면 칸을 안 싣는다 */
+export async function 돌발팝업칸(서비스: number): Promise<{ gamePopups?: GamePopup[] }> {
+  const 들 = await 돌발팝업들(서비스);
+  return 들.length === 0 ? {} : { gamePopups: 들 };
 }
