@@ -1740,6 +1740,16 @@
 - [x] `GAME-F3-06` 「설명 안 되는 줄」을 「결정 필요」에 — 돌려 본 게임 시나리오의 `verify.note` 를 사람이 기획서에 없는 규칙(PRD 수정)인지 버그(이슈 등록)인지 가르는 항목으로 세운다(공통/3 「게임 시나리오 도구」 셋째 블록 · 2026-11-18 GAME-F3-04 시작 질문에서 뗐다)
   - 근거 PR #848 · 2026-11-18 (결함 판정 탭의 「설명 안 되는 줄」 — 이슈 등록은 판정 기록 run_case_note 만 · PRD 수정은 덮는 요구 하나의 문장을 사람이 고쳐 기획서 새 버전과 바뀐 요구 다시 만들기 · BTS 연결 프로젝트도 싣고 Bunker 이슈는 안 만든다 · 폰 실측은 안 함)
 
+### GAME-F4 — 윈도우 PC 게임 · 콘솔 패드 (2026-11-19 사용자 「모바일 스펙과 동일하게」)
+**무엇** 게임을 윈도우 PC 에서도 돌린다. PC 는 Device VISION 기기(`pc-<이름>` — Devicefarm ADR-061)이고 서버가 폰처럼 잡아 빌드 zip 을 깔고 서버 러너가 VISION 게임 명령 주소로 조작한다. PC 에 러너 · CLI 를 깔지 않는다 — control_cli 계획(`~/Projects/control_cli/docs/console/plan.md` Q1 ~ Q5)의 PC 러너 · `PC_RUNNER_URL` 안은 버렸다. 패드(없음 · PS5 · PS4 · Switch · Xbox)는 실행할 때 고르고 결과가 패드마다 남는다. 정본은 게임 §3.10 결정 26 ~ 28 · 「윈도우 PC」. 실물 PC `pc-pc1` · Boss Room 윈도우 QA 빌드(boss-room `windows-qa` branch run 44447960178 — boss-room `showcase` 에는 올리지 않는다)
+- [x] `GAME-F4-01` 명세 — 게임 §3.10 결정 26 ~ 28 · 「윈도우 PC」 · 공통/3 「윈도우 PC 게임」 · 공통/4 「윈도우 PC 빌드」 · 러너 「윈도우 PC 게임 항목」 · 실행 §3.2 · §7 · §8.2. 계약 블록은 전부 「대기」
+  - 근거 PR #855 · 2026-11-19 (화면 표기는 「PC」가 이미 브라우저 desktop 이름이라 「Windows」로 적음 — 04 에서 사용자와 확정 · PC 줄(정식 실행은 기다리고 시험은 409) · 빌드 셈은 플랫폼마다 · BTS 배포 신호는 1차에 폰만 · 폰 고르기가 PC 를 거르지 않는 지금 코드 문제를 적어 둠)
+- [ ] `GAME-F4-02` kit · 러너 — control-cli `v0.8.0` → `v0.16.1`(러너 이미지 다시 빌드 · 서버 배포는 그 세션이 하지 않고 보고에 명령으로 남긴다) · Platform 다섯 · 선언 규칙(K5 · defineCase) · PC 항목 앞뒤(`pcStop` → `pcLaunch` → ping → `PLATFORM_PAD` → 몸통 → 증적 → `pcStop`) · `game.screenshot` · GameDriver `key` · `keyDown` · `keyUp` · `pad` · 러너 입구 · `PLATFORM_PC_GAME` · `PLATFORM_PAD` · Playwright 프로젝트 다섯 (공통/3 「윈도우 PC 게임」 블록)
+- [ ] `GAME-F4-03` 서버 — 마이그레이션(`app_build.platform` · 유일성 · `test_run.pc_build_id` · `pc_build_no`) · 빌드 올리기 zip 판별 · 실행 고정 · 빌드 실행을 잇는 셈 · 앞 빌드를 플랫폼마다 · PC 줄(정식 실행은 기다리고 시험은 409) · PC 잡기(acquire `platform=windows`) · 폰 고르기 · 호환성 · 기기 성능 목록에서 PC 줄 빼기 · 깔기 · 항목 보내기 · 놓기 · 테스트 실행 · 빌드 실행은 올린 쪽 항목만 · `POST /api/runs` 디바이스 값 (게임 §7 마지막 블록 · 공통/4 블록)
+- [ ] `GAME-F4-04` 화면 — 실행 창 「Windows」 아래 패드 고르기 · 결과 · 실행 목록 표기(「Windows · PS5 패드」 · 「Windows 빌드 77」) · 한 케이스에 폰과 패드 다섯이 같이 들 때 결과 칸 · 필터 · 진행 창 PC 카드 · 케이스 목록 디바이스 거르기 (시안 먼저 · 낱말은 사용자와 확정 — 「PC」는 이미 브라우저 `desktop` 이름이다)
+- [ ] `GAME-F4-05` 작성 지침 — 키 · 패드 명령 · `Pad.` 이름표 · 확인/취소 자리는 패드마다 다르다 · `game.pad()` 로 기대값 가르기 · 작성 빠른 검사의 「platforms 는 `['android']` 하나」 넓히기 · 「PC 전용」 제외 규칙 다시 보기 · 폰에서 못 돌려 보는 키 · 패드 케이스 다루기
+- [ ] `GAME-F4-06` 실측 — `pc-pc1` 에 Boss Room 윈도우 빌드를 CI 처럼 올려 케이스 하나를 Windows · PS5 · Switch · Xbox 로 돌려 결과가 패드마다 남는지 · 실패 스크린샷이 붙는지 · 놓은 뒤 PC 가 깨끗한지 (사용자가 말할 때 — 끝-끝 지연 · 대역은 Devicefarm DEV-F16-05)
+
 ## HAR — 개발 체계
 
 ### /tpx 체인 · Phase 1
