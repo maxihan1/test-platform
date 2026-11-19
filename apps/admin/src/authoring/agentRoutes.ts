@@ -26,6 +26,7 @@ import { 보류모양검사, 옮겨올입력 } from './held.js';
 import { 뿌리, 뿌리잠그고 } from './history.js';
 import { 머지집기칸 } from './held-routes.js';
 import { 끝냈다고알림 } from './notify.js';
+import { 게임칸읽기 } from './gamePads.js';
 import { 집기대상칸 } from './reverse.js';
 import { 진척검사 } from './stop.js';
 import { 사용량통로 } from './usage.js';
@@ -144,6 +145,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const 고치기 = 집은것.kind === 'EDIT' || (집은것.kind === 'RERUN' && 집은것.sourceId !== null && (await 한건(집은것.sourceId))?.kind === 'EDIT');
         const edits = 고치기 ? 행의고칠것(집은것.params) : null;
         const 겹침칸 = await 집기겹침칸(집은것);
+        // 게임 애플리케이션이면 플랫폼 · 지원 패드를 싣는다 — 에이전트가 PC 를 잡을지와 자식에게 넘길 패드를 이것으로 안다 (도메인/작성 §7)
+        const 게임 = await 게임칸읽기(서비스);
         // PRD 초안은 자식이 MCP 로 노트 · 이슈를 찾을 프로젝트 번호와 맡은 이슈를 싣는다 (도메인/BTS §7 집기)
         const 초안칸 = 집은것.kind === 'PRD_DRAFT' ? { draft: await 초안집기칸(서비스, 대상칸.target?.env ?? null, 집은것.params) } : {};
         // 수정 AI 는 맡을 때 서버가 읽어 둔 이슈 글과 대상 저장소를 싣는다 — 자식은 BTS 열쇠를 안 갖는다 (도메인/BTS 「수정 AI」).
@@ -160,6 +163,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
           ...api칸,
           ...보류칸,
           ...겹침칸,
+          ...(게임 === null ? {} : 게임),
           ...(edits === null ? {} : { edits }),
           ...초안칸,
           ...수정칸,

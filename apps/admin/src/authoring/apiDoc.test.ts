@@ -104,13 +104,13 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
   });
 
   it('게임 애플리케이션도 Android 앱처럼 대조 원본을 BAD_ENV 로 거절한다', async () => {
-    await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [앱서비스]);
+    await q(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [앱서비스]);
     try {
       expect(await 역방향칸판정({ compare: true, env: 'stg', startUrl: null }, 앱서비스)).toEqual({ error: 'BAD_ENV' });
       expect(await 역방향칸판정({ startUrl: 'http://127.0.0.1:3000/' }, 앱서비스)).toEqual({ error: 'BAD_ENV' });
       expect(await 역방향칸판정({}, 앱서비스)).toEqual({ compare: false });
     } finally {
-      await q(`UPDATE service SET kind = 'APP' WHERE id = $1`, [앱서비스]);
+      await q(`UPDATE service SET kind = 'APP', game_platform = NULL WHERE id = $1`, [앱서비스]);
     }
   });
 

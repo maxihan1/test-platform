@@ -86,18 +86,18 @@ describe.skipIf(연결 === undefined)('Android 앱 작성 집기 accounts', () =
 
   it('게임 애플리케이션도 앱 파일 경로가 있는 줄의 계정을 받는다', async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+    await pool.query(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [서비스]);
     try {
       await 하나만세운다();
       expect(((await 집기()).accounts as { env: string }[]).map((a) => a.env)).toEqual(['qa', 'qa']);
     } finally {
-      await pool.query(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
+      await pool.query(`UPDATE service SET kind = 'APP', game_platform = NULL WHERE id = $1`, [서비스]);
     }
   });
 
   it('게임 애플리케이션은 앱 줄의 어드민 키를 그 줄 이름 · 주소와 같이 받는다 — 다른 줄 · 실서비스 서버 줄 키는 안 싣는다', async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+    await pool.query(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [서비스]);
     await pool.query(`UPDATE service_env SET admin_key = jsonb_build_object('header', 'X-Admin-Key', 'value', env || '-xac-어드민-키-원문') WHERE service_id = $1`, [서비스]);
     try {
       await 하나만세운다();
@@ -106,7 +106,7 @@ describe.skipIf(연결 === undefined)('Android 앱 작성 집기 accounts', () =
       await 하나만세운다();
       expect('adminKey' in (await 집기())).toBe(false);
     } finally {
-      await pool.query(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
+      await pool.query(`UPDATE service SET kind = 'APP', game_platform = NULL WHERE id = $1`, [서비스]);
     }
   });
 
