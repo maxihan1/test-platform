@@ -9,7 +9,7 @@ import type { Pool } from 'pg';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { API인증읽기, type 어드민키, 어드민키읽기 } from '../settings/envs.js';
 
-import { 실행빌드, 앞빌드, 앱칸, type 빌드플랫폼 } from './buildFile.js';
+import { 실행빌드들, 앱칸, type 빌드플랫폼 } from './buildFile.js';
 import { 엔진칸 } from './engineField.js';
 import { 선언밖디바이스, 항목제한ms } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
@@ -152,7 +152,8 @@ const INSERT_ITEM = `
   VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13, $14, $15)
   RETURNING history_id`;
 
-export async function createRun(input: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
+export async function createRun(요청: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
+  let input = 요청;
   if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
 
   // 같은 실행 안에서 케이스×환경은 한 행뿐이다(run_item의 UNIQUE). 조용히 버리면 뒤에 넣은 입력값이 사라진다
@@ -217,8 +218,13 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     }
     const 인증들 = API인증읽기(found서비스.api_auths);
     // 윈도우 PC 는 게임 SDK 로만 돈다 — 게임 밖 케이스가 windows 를 선언했어도 실행하지 않는다 (도메인/게임 §3.10 · 실행 §7 계약)
+    if (found서비스.kind !== 'GAME' && input.items.some((i) => i.platforms.some(PC항목인가))) {
+      // 사람이 고른 것만 거절한다 — 정기 · 빌드 실행은 그 항목만 빼고 나머지를 돌린다(카탈로그는 게임 밖 windows 를 경고만 한다)
+      if (input.origin === 'MANUAL') throw new RunInputError('INVALID_REQUEST', 'Windows 디바이스는 게임 애플리케이션만 고를 수 있다');
+      input = { ...input, items: input.items.map((i) => ({ ...i, platforms: i.platforms.filter((p) => !PC항목인가(p)) })).filter((i) => i.platforms.length > 0) };
+      if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
+    }
     const PC있음 = input.items.some((i) => i.platforms.some(PC항목인가));
-    if (PC있음 && found서비스.kind !== 'GAME') throw new RunInputError('INVALID_REQUEST', 'Windows 디바이스는 게임 애플리케이션만 고를 수 있다');
 
     // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
     // 미확정 사유도 여기서 박제한다 — 확인 필요 항목이 나중에 확정돼도 그날 확정이 아니었다는 사실은 남아야 한다 (SPEC 실행 §3.2)
@@ -250,13 +256,8 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
       platforms: input.items.flatMap((i) => i.platforms),
       실제폰,
     });
-    // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11).
-    // 폰 빌드와 PC 빌드를 따로 고정한다. PC 빌드로 건 빌드 실행은 PC 항목만 담아 폰 칸을 비운다 — 그 실행의 자기 빌드는 PC 칸이다 (도메인/게임 §3.10 「빌드 — zip 하나」)
-    const PC빌드실행 = input.build?.platform === 'windows';
-    const 빌드 = PC빌드실행 ? null : await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
-    const PC빌드 = PC빌드실행 || PC있음 ? await 실행빌드(client, Number(found서비스.id), input.env, PC빌드실행 ? input.build?.id : undefined, 'windows') : null;
-    // 옛판에서올리기 가 깔 앞 빌드 — 실행 빌드 바로 앞에 그 줄에 올린 빌드다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
-    const 앞 = 빌드 === null ? null : await 앞빌드(client, Number(found서비스.id), input.env, 빌드.id);
+    // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11)
+    const { 빌드, 앞, PC빌드 } = await 실행빌드들(client, Number(found서비스.id), input.env, input.build, PC있음);
     const title = await 제목을짓는다(client, {
       origin,
       ...(rerunOf === null ? {} : { rerunOf }),

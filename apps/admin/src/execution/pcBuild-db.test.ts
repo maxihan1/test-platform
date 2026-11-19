@@ -14,6 +14,7 @@ import { 토큰해시 } from '../auth/agentToken.js';
 import { 인증등록 } from '../auth/gate.js';
 import { 세션등록 } from '../auth/session.js';
 
+import { 앞빌드 } from './buildFile.js';
 import buildRoutes from './buildRoutes.js';
 import { 스모크뒤 } from './buildRun.js';
 import { dispatch } from './dispatcher.js';
@@ -43,7 +44,7 @@ describe.skipIf(연결 === undefined)('윈도우 PC 빌드', { timeout: 60_000 }
     await pool.query(`DELETE FROM service_env WHERE service_id IN ${ids}`, [접두사들]);
     await pool.query('DELETE FROM service WHERE prefix = ANY($1)', [접두사들]);
     await pool.query("DELETE FROM project WHERE name = 'XPW 프로젝트'");
-    await pool.query("DELETE FROM app_user WHERE username = 'xpw-admin'");
+    await pool.query("DELETE FROM app_user WHERE username = 'xpcb-admin'");
   }
 
   const zip = async (파일들: string[]): Promise<Buffer> => {
@@ -73,7 +74,7 @@ describe.skipIf(연결 === undefined)('윈도우 PC 빌드', { timeout: 60_000 }
     await 치운다();
 
     // CI 토큰은 발급한 admin 계정에 묶인다
-    await pool.query("INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password) VALUES ('xpw-admin', 'xpw', 'x', 'admin', true, false)");
+    await pool.query("INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password) VALUES ('xpcb-admin', 'xpw', 'x', 'admin', true, false)");
     const 프로젝트 = Number((await pool.query<{ id: string }>("INSERT INTO project (name) VALUES ('XPW 프로젝트') RETURNING id")).rows[0]!.id);
     for (const [prefix, kind] of [['XPW', 'GAME'], ['XPWA', 'APP']] as const) {
       서비스[prefix] = Number((await pool.query<{ id: string }>(
@@ -82,7 +83,7 @@ describe.skipIf(연결 === undefined)('윈도우 PC 빌드', { timeout: 60_000 }
       )).rows[0]!.id);
       await pool.query(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'http://qa.xpw.test')`, [서비스[prefix]]);
       토큰[prefix] = `cit_${prefix.padEnd(43, 'x')}`;
-      await pool.query("INSERT INTO service_token (service_id, name, token_hash, created_by) VALUES ($1, 'CI', $2, 'xpw-admin')", [서비스[prefix], 토큰해시(토큰[prefix]!)]);
+      await pool.query("INSERT INTO service_token (service_id, name, token_hash, created_by) VALUES ($1, 'CI', $2, 'xpcb-admin')", [서비스[prefix], 토큰해시(토큰[prefix]!)]);
     }
     for (const [tcId, platforms] of [['XPW-FN-001', '["android","windows"]'], ['XPW-FN-002', '["android"]'], ['XPWA-FN-001', '["android","windows"]']] as const) {
       await pool.query(
@@ -146,7 +147,7 @@ describe.skipIf(연결 === undefined)('윈도우 PC 빌드', { timeout: 60_000 }
   it('사람이 거는 실행은 패드 값을 받고 그 줄 최신 PC 빌드를 고정한다. 게임이 아니면 Windows 를 못 고른다', async () => {
     const { runId, items } = await createRun({
       origin: 'MANUAL',
-      triggeredBy: 'xpw-admin',
+      triggeredBy: 'xpcb-admin',
       env: 'qa',
       items: [{ tcId: 'XPW-FN-001', platforms: ['android', 'windows-ps5'], params: {}, expected: {} }],
     });
@@ -157,8 +158,25 @@ describe.skipIf(연결 === undefined)('윈도우 PC 빌드', { timeout: 60_000 }
       ['windows-ps5', 'GAME', Number(최신.rows[0]!.id)],
     ]);
 
-    const 막힘 = createRun({ origin: 'MANUAL', triggeredBy: 'xpw-admin', env: 'qa', items: [{ tcId: 'XPWA-FN-001', platforms: ['windows'], params: {}, expected: {} }] });
+    const 막힘 = createRun({ origin: 'MANUAL', triggeredBy: 'xpcb-admin', env: 'qa', items: [{ tcId: 'XPWA-FN-001', platforms: ['windows'], params: {}, expected: {} }] });
     await expect(막힘).rejects.toBeInstanceOf(RunInputError);
     await expect(막힘).rejects.toMatchObject({ code: 'INVALID_REQUEST' });
+    // 정기 · 빌드 실행은 거절하지 않고 그 Windows 항목만 뺀다 — 카탈로그는 게임 밖 windows 를 경고만 한다
+    const 자동 = await createRun({ origin: 'SCHEDULED', triggeredBy: 'xpcb-admin', env: 'qa', items: [{ tcId: 'XPWA-FN-001', platforms: ['android', 'windows'], params: {}, expected: {} }] });
+    expect(자동.items.map((i) => i.platform)).toEqual(['android']);
+  });
+  it('앞 빌드는 같은 플랫폼의 바로 앞 빌드다 — 사이에 올린 윈도우 zip 을 폰에 깔려 하지 않는다', async () => {
+    const 번호 = async (platform: string, buildNo: string) =>
+      Number((await pool.query<{ id: string }>('SELECT id FROM app_build WHERE service_id = $1 AND platform = $2 AND build_no = $3', [서비스.XPW, platform, buildNo])).rows[0]!.id);
+    expect((await 앞빌드(pool, 서비스.XPW!, 'qa', await 번호('android', '78')))?.id).toBe(await 번호('android', '77'));
+  });
+
+  it('보관은 플랫폼마다 최근 5개이고, 도는 실행이 PC 칸에 쥔 빌드도 남긴다', async () => {
+    for (const n of ['79', '80', '81', '82', '83', '84']) expect((await 보낸다('XPW', n, await 윈도우())).statusCode).toBe(201);
+    const 남은 = async (platform: string) =>
+      (await pool.query<{ build_no: string }>('SELECT build_no FROM app_build WHERE service_id = $1 AND platform = $2 ORDER BY build_no', [서비스.XPW, platform])).rows.map((r) => r.build_no);
+    // 78 은 앞 검사의 회귀 · 사람 실행이 도는 중으로 쥐고 있다. 79 는 84 가 오며 멈춰 지워진다
+    expect(await 남은('windows')).toEqual(['78', '80', '81', '82', '83', '84']);
+    expect(await 남은('android')).toEqual(['77', '78']);
   });
 });

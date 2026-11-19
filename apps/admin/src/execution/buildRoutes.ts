@@ -89,11 +89,11 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
       : !앱인가 && (값.apk !== undefined || 값.apkUrl !== undefined) ? 거절(400, 'APK_NOT_ALLOWED', '웹 · API 애플리케이션은 파일 없이 빌드 번호만 보냅니다')
       : null;
     if (막힘 !== null) return 끊고(막힘);
-    // 같은 번호 겹침은 플랫폼마다다 — 파일은 목차를 본 뒤에야 플랫폼을 알아 그때 본다(INSERT 의 유일성이 막는다). 파일 없는 빌드는 지금 본다
-    if (값.apk === undefined) {
-      const 겹침 = await pool.query("SELECT 1 FROM app_build WHERE service_id = $1 AND env = $2 AND platform = 'android' AND build_no = $3", [주인.serviceId, 값.env, 값.buildNo]);
-      if ((겹침.rowCount ?? 0) > 0) return 끊고(거절(409, 'BUILD_EXISTS', 값.buildNo));
-    }
+    // 같은 번호 겹침은 플랫폼마다다 — 파일은 목차를 본 뒤에야 플랫폼을 알아 INSERT 의 유일성이 막는다.
+    // 다만 받을 수 있는 플랫폼에 그 번호가 다 있으면 큰 본문을 받기 전에 409 다(게임은 폰 · PC 둘, 그 밖은 폰 하나)
+    const 받을플랫폼 = 값.apk !== undefined && 주인.kind === 'GAME' ? ['android', 'windows'] : ['android'];
+    const 겹침 = await pool.query('SELECT DISTINCT platform FROM app_build WHERE service_id = $1 AND env = $2 AND build_no = $3 AND platform = ANY($4)', [주인.serviceId, 값.env, 값.buildNo, 받을플랫폼]);
+    if ((겹침.rowCount ?? 0) === 받을플랫폼.length) return 끊고(거절(409, 'BUILD_EXISTS', 값.buildNo));
 
     let buildId: number;
     let 플랫폼: 빌드플랫폼 = 'android';

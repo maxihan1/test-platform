@@ -20,9 +20,10 @@ export interface 올린빌드 {
   displayName: string;
 }
 
-// 빌드 실행의 자기 빌드 칸 — PC 빌드 실행은 폰 칸(build_id)이 비고 PC 칸이 찬다. 폰 빌드 실행은 PC 항목을 안 담아 PC 칸이 늘 빈다
+// 빌드 실행의 자기 빌드 칸 — PC 빌드 실행은 폰 칸(build_id)이 비고 PC 칸이 찬다(store.ts 실행빌드들). 폰 칸이 찬 실행은 PC 칸이 있어도 폰 빌드 실행이다
 const 자기칸 = (플랫폼: 빌드플랫폼): string => (플랫폼 === 'windows' ? 'pc_build_id' : 'build_id');
-const 플랫폼조건 = (플랫폼: 빌드플랫폼): string => (플랫폼 === 'windows' ? 'pc_build_id IS NOT NULL' : 'pc_build_id IS NULL');
+const PC빌드실행SQL = '(build_id IS NULL AND pc_build_id IS NOT NULL)';
+const 플랫폼조건 = (플랫폼: 빌드플랫폼): string => (플랫폼 === 'windows' ? PC빌드실행SQL : `NOT ${PC빌드실행SQL}`);
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -83,7 +84,7 @@ export async function 스모크뒤(runId: number, 로그: 로그 = 콘솔): Prom
   );
   const 행 = r.rows[0];
   if (행 === undefined || 행.build_stage !== 'SMOKE') return;
-  const 플랫폼: 빌드플랫폼 = 행.pc_build_id !== null ? 'windows' : 'android';
+  const 플랫폼: 빌드플랫폼 = 행.build_id === null && 행.pc_build_id !== null ? 'windows' : 'android';
   const 자기 = 플랫폼 === 'windows' ? 행.pc_build_id : 행.build_id;
   const 번호 = (플랫폼 === 'windows' ? 행.pc_build_no : 행.build_no) ?? '';
   if (자기 === null) return;

@@ -89,7 +89,8 @@ export async function PC로<T>(팜: string, zip: string, 설정: PC잡기설정,
     if (설정.멈췄나()) return 못잡음('멈춘 실행이라 Windows PC 를 잡지 않았습니다');
     let 답: 잡기답;
     try {
-      답 = await 잡는다(팜, 처음, 부르기);
+      // 120분까지 기다리는 사이 대신 PAT 가 끝날 수 있다 — 잡을 때마다 다시 고른다(주인은 같다)
+      답 = await 잡는다(팜, await 설정.토큰().catch(() => 처음), 부르기);
     } catch (err) {
       // ponytail: 답을 못 받은 잡기는 VISION 이 잡았을 수 있어 그 PC 가 120분 묶일 수 있다. 자주 나면 기기 목록에서 내 api 잡기를 찾아 놓는다(VISION 안내서 4절)
       return 못잡음(`Device VISION 에 닿지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
@@ -102,7 +103,7 @@ export async function PC로<T>(팜: string, zip: string, 설정: PC잡기설정,
     await 쉬기(다시_잡기_ms);
   }
   try {
-    const 깔음 = await 깐다(팜, 잡음.serial, zip, 처음, 부르기);
+    const 깔음 = await 깐다(팜, 잡음.serial, zip, await 설정.토큰().catch(() => 처음), 부르기);
     if ('까닭' in 깔음) return 못잡음(깔음.까닭);
     return await 일({ serial: 잡음.serial, 게임: 깔음.게임, 화면: 잡음.화면 });
   } finally {

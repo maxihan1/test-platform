@@ -143,6 +143,24 @@ export async function 실행빌드(client: Pick<Pool, 'query'>, serviceId: numbe
   return { id: Number(행.id), buildNo: 행.build_no, hasFile: 행.file_path !== null, appUrl: 행.app_url };
 }
 
+/**
+ * 실행에 고정할 빌드 셋 — 폰 빌드 · 그 앞 빌드(옛판에서올리기 — 도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08) · PC 빌드.
+ * PC 빌드로 건 빌드 실행은 PC 항목만 담아 폰 칸을 비운다 — 그 실행의 자기 빌드는 PC 칸이다 (도메인/게임 §3.10 「빌드 — zip 하나」)
+ */
+export async function 실행빌드들(
+  client: Pick<Pool, 'query'>,
+  serviceId: number,
+  env: string,
+  빌드실행: { id: number; platform?: 빌드플랫폼 } | undefined,
+  PC있음: boolean,
+): Promise<{ 빌드: 빌드행 | null; 앞: 빌드행 | null; PC빌드: 빌드행 | null }> {
+  const PC빌드실행 = 빌드실행?.platform === 'windows';
+  const 빌드 = PC빌드실행 ? null : await 실행빌드(client, serviceId, env, 빌드실행?.id);
+  const PC빌드 = PC빌드실행 || PC있음 ? await 실행빌드(client, serviceId, env, PC빌드실행 ? 빌드실행?.id : undefined, 'windows') : null;
+  const 앞 = 빌드 === null ? null : await 앞빌드(client, serviceId, env, 빌드.id);
+  return { 빌드, 앞, PC빌드 };
+}
+
 /** 그 줄 · 같은 플랫폼에서 이 빌드 바로 앞에 올린 빌드 — kit 옛판에서올리기 가 깐다. 없으면 null (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08 · 도메인/게임 §3.10 「앞 빌드」) */
 export async function 앞빌드(client: Pick<Pool, 'query'>, serviceId: number, env: string, 기준: number): Promise<빌드행 | null> {
   const r = await client.query<{ id: string; build_no: string; file_path: string | null; app_url: string | null }>(
