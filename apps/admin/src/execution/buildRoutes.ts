@@ -15,7 +15,7 @@ import { 볼륨파일 } from '../artifactFile.js';
 import { BTS이은서비스인가 } from '../bts/link.js';
 import { 올리기거절, 올리기막기, 파일로 } from '../perf/dummy.js';
 
-import { APK인가, 빌드상한, 빌드파일자리, 빌드폴더, 서명맞나, 오래된빌드치우기 } from './buildFile.js';
+import { 빌드상한, 빌드종류, 빌드파일자리, 빌드폴더, 서명맞나, 오래된빌드치우기, 윈도우빌드상한, type 빌드플랫폼 } from './buildFile.js';
 import { 빌드실행을건다 } from './buildRun.js';
 
 async function db(): Promise<Pool> {
@@ -23,7 +23,8 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-const APK종류 = ['application/octet-stream', 'application/vnd.android.package-archive'];
+// 윈도우 zip 도 같은 통로다 — 무엇인지는 머리가 아니라 zip 목차로 가른다 (도메인/게임 §3.10 「빌드 — zip 하나」)
+const APK종류 = ['application/octet-stream', 'application/vnd.android.package-archive', 'application/zip'];
 const 빌드번호 = z.string().regex(/^[A-Za-z0-9._+-]{1,100}$/);
 // JSON 본문은 파일 없이 부를 때다 — 웹 · API 의 배포 알림, 또는 회사 저장소의 APK 주소
 const 파일없이 = z
@@ -44,7 +45,7 @@ function 꺼내기(req: FastifyRequest): { env: string; buildNo: string; apkUrl?
     const q = req.query as { env?: unknown; buildNo?: unknown };
     const env = typeof q.env === 'string' ? q.env : '';
     const buildNo = 빌드번호.safeParse(q.buildNo);
-    if (env === '' || !buildNo.success) return 거절(400, 'INVALID_REQUEST', 'APK 를 보낼 때는 주소에 ?env=&buildNo= 를 붙입니다');
+    if (env === '' || !buildNo.success) return 거절(400, 'INVALID_REQUEST', 'APK · 윈도우 zip 을 보낼 때는 주소에 ?env=&buildNo= 를 붙입니다');
     return { env, buildNo: buildNo.data, apk: req.body as Readable };
   }
   const 몸 = 파일없이.safeParse(req.body ?? req.query);
@@ -88,10 +89,14 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
       : !앱인가 && (값.apk !== undefined || 값.apkUrl !== undefined) ? 거절(400, 'APK_NOT_ALLOWED', '웹 · API 애플리케이션은 파일 없이 빌드 번호만 보냅니다')
       : null;
     if (막힘 !== null) return 끊고(막힘);
-    const 겹침 = await pool.query('SELECT 1 FROM app_build WHERE service_id = $1 AND env = $2 AND build_no = $3', [주인.serviceId, 값.env, 값.buildNo]);
-    if ((겹침.rowCount ?? 0) > 0) return 끊고(거절(409, 'BUILD_EXISTS', 값.buildNo));
+    // 같은 번호 겹침은 플랫폼마다다 — 파일은 목차를 본 뒤에야 플랫폼을 알아 INSERT 의 유일성이 막는다.
+    // 다만 받을 수 있는 플랫폼에 그 번호가 다 있으면 큰 본문을 받기 전에 409 다(게임은 폰 · PC 둘, 그 밖은 폰 하나)
+    const 받을플랫폼 = 값.apk !== undefined && 주인.kind === 'GAME' ? ['android', 'windows'] : ['android'];
+    const 겹침 = await pool.query('SELECT DISTINCT platform FROM app_build WHERE service_id = $1 AND env = $2 AND build_no = $3 AND platform = ANY($4)', [주인.serviceId, 값.env, 값.buildNo, 받을플랫폼]);
+    if ((겹침.rowCount ?? 0) === 받을플랫폼.length) return 끊고(거절(409, 'BUILD_EXISTS', 값.buildNo));
 
     let buildId: number;
+    let 플랫폼: 빌드플랫폼 = 'android';
     if (값.apk !== undefined) {
       // 보낸다고 밝힌 크기가 상한을 넘으면 읽지 않고 돌려보낸다
       if (Number(req.headers['content-length'] ?? 0) > 빌드상한) return 끊고(거절(413, 'PAYLOAD_TOO_LARGE'));
@@ -101,20 +106,24 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
       let 자리: string | null = null;
       try {
         await 파일로(값.apk, 올리기막기(빌드상한), 임시);
-        if (!(await APK인가(임시))) throw new 올리기거절(400, 'BAD_FILE_TYPE');
+        const 종류 = await 빌드종류(임시);
+        // 윈도우 빌드는 게임만 돈다 — Android 앱 애플리케이션이 zip 을 보내면 APK 가 아닌 것과 같다
+        if (종류 === null || (종류 === 'windows' && 주인.kind !== 'GAME')) throw new 올리기거절(400, 'BAD_FILE_TYPE');
+        플랫폼 = 종류;
         const 크기 = (await stat(임시)).size;
+        if (플랫폼 === 'windows' && 크기 > 윈도우빌드상한) throw new 올리기거절(413, 'PAYLOAD_TOO_LARGE');
         buildId = Number((await pool.query<{ id: string }>("SELECT nextval(pg_get_serial_sequence('app_build', 'id')) AS id")).rows[0]!.id);
-        자리 = 빌드파일자리(buildId);
+        자리 = 빌드파일자리(buildId, 플랫폼);
         await rename(임시, 자리);
         await pool.query(
-          'INSERT INTO app_build (id, service_id, env, build_no, file_path, size_bytes, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-          [buildId, 주인.serviceId, 값.env, 값.buildNo, 자리, 크기, 주인.username],
+          'INSERT INTO app_build (id, service_id, env, platform, build_no, file_path, size_bytes, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [buildId, 주인.serviceId, 값.env, 플랫폼, 값.buildNo, 자리, 크기, 주인.username],
         );
       } catch (e) {
         await rm(임시, { force: true });
         if (자리 !== null) await rm(자리, { force: true });
         // zip 머리가 아니어도 APK 가 아니다 — 더미 올리기의 말(zip 파일이 아닙니다)을 빌드 말로 바꾼다
-        if (e instanceof 올리기거절) return 보낸다(reply, e.status === 413 ? 거절(413, 'PAYLOAD_TOO_LARGE') : 거절(400, 'BAD_FILE_TYPE', 'APK 파일만 받습니다(AAB · OBB 는 안 받습니다)'));
+        if (e instanceof 올리기거절) return 보낸다(reply, e.status === 413 ? 거절(413, 'PAYLOAD_TOO_LARGE') : 거절(400, 'BAD_FILE_TYPE', 주인.kind === 'GAME' ? 'APK 나 윈도우 빌드 zip(맨 위나 한 폴더 아래에 exe 하나)만 받습니다' : 'APK 파일만 받습니다(AAB · OBB 는 안 받습니다)'));
         if ((e as { code?: string }).code === '23505') return 보낸다(reply, 거절(409, 'BUILD_EXISTS', 값.buildNo));
         throw e;
       }
@@ -140,6 +149,7 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
         prefix: 그줄!.prefix,
         env: 값.env,
         buildNo: 값.buildNo,
+        platform: 플랫폼,
         username: 주인.username,
         displayName: 주인.displayName,
       });
@@ -162,7 +172,8 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
     const buildId = /^\d{1,15}$/.test(req.params.buildId) ? Number(req.params.buildId) : null;
     if (buildId === null || !서명맞나(buildId, req.query.exp, req.query.sig)) return reply.code(403).send({ error: 'BAD_SIGNATURE' });
     const r = await (await db()).query<{ file_path: string | null }>(
-      'SELECT file_path FROM app_build WHERE id = $1',
+      // 팜이 서명 주소로 받는 것은 APK 뿐이다 — 윈도우 zip 은 서버가 VISION 에 올려 깐다
+      "SELECT file_path FROM app_build WHERE id = $1 AND platform = 'android'",
       [buildId],
     );
     // 볼륨은 root 로 도는 케이스도 쓴다 — 가는 길에 바로가기가 끼면 없는 파일로 친다. 안 그러면 APK 자리에 건 /proc/self/environ 이 admin 비밀값을 내준다 (공통/6 §9)

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import JSZip from 'jszip';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { APK인가, 서명맞나, 서명주소, 앱칸 } from './buildFile.js';
+import { 빌드종류, 서명맞나, 서명주소, 앱칸 } from './buildFile.js';
 
 const 시 = 60 * 60 * 1000;
 
@@ -93,14 +93,24 @@ describe('APK 판별', () => {
   }
 
   it('맨 위에 AndroidManifest.xml 이 있으면 APK 다', async () => {
-    expect(await APK인가(await zip('a.apk', ['classes.dex', 'AndroidManifest.xml', 'res/x.png']))).toBe(true);
+    expect(await 빌드종류(await zip('a.apk', ['classes.dex', 'AndroidManifest.xml', 'res/x.png']))).toBe('android');
   });
 
-  it('AAB(base/manifest/ 아래) · 매니페스트 없는 zip · zip 이 아닌 파일은 APK 가 아니다', async () => {
-    expect(await APK인가(await zip('b.aab', ['BundleConfig.pb', 'base/manifest/AndroidManifest.xml']))).toBe(false);
-    expect(await APK인가(await zip('c.zip', ['readme.txt']))).toBe(false);
+  it('AAB(base/manifest/ 아래) · 매니페스트 없는 zip · zip 이 아닌 파일은 받지 않는다', async () => {
+    expect(await 빌드종류(await zip('b.aab', ['BundleConfig.pb', 'base/manifest/AndroidManifest.xml']))).toBe(null);
+    expect(await 빌드종류(await zip('c.zip', ['readme.txt']))).toBe(null);
     const 글 = join(폴더, 'd.apk');
     await writeFile(글, 'PK 처럼 보이지만 zip 이 아니다');
-    expect(await APK인가(글)).toBe(false);
+    expect(await 빌드종류(글)).toBe(null);
+  });
+
+  it('맨 위나 한 폴더 아래에 exe 가 꼭 하나면 윈도우 빌드다 — UnityCrashHandler 는 세지 않는다', async () => {
+    expect(await 빌드종류(await zip('w1.zip', ['BossRoom.exe', 'UnityCrashHandler64.exe', 'BossRoom_Data/x.assets']))).toBe('windows');
+    expect(await 빌드종류(await zip('w2.zip', ['BossRoom/BossRoom.exe', 'BossRoom/UnityPlayer.dll']))).toBe('windows');
+  });
+
+  it('exe 가 둘이거나 두 폴더 아래에만 있으면 받지 않는다', async () => {
+    expect(await 빌드종류(await zip('w3.zip', ['A.exe', 'B.exe']))).toBe(null);
+    expect(await 빌드종류(await zip('w4.zip', ['out/BossRoom/BossRoom.exe']))).toBe(null);
   });
 });

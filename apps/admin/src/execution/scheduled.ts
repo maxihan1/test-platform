@@ -1,6 +1,8 @@
 // 서비스 하나의 활성 케이스를 UI · 기능 실행 둘로 만든다 — 빌드 실행(buildRun.ts)이 쓴다 (도메인/실행 §3.11).
 // 정기 실행 세트의 회차는 sched/runner.ts 가 줄마다 만든다 (도메인/정기실행 §3.16). 이름은 옛 정기 실행에서 왔다
 
+import { PC항목인가 } from '@platform/kit';
+
 import { listCases } from '../catalog/store.js';
 
 import { dispatch } from './dispatcher.js';
@@ -27,6 +29,8 @@ const 이름 = { UI: 'UI 테스트', FN: '기능 테스트' } as const;
 export interface 빌드로 {
   id: number;
   buildNo: string;
+  // 올린 빌드 쪽 항목만 돈다 — PC 빌드면 windows 를 선언한 케이스를 windows(패드 없음)로, 폰 빌드면 PC 항목을 뺀다 (도메인/게임 §3.10 「빌드 — zip 하나」)
+  platform: 'android' | 'windows';
   stage: 'SMOKE' | 'FULL';
   /** 토큰을 발급한 사람 — 실행자다 */
   username: string;
@@ -62,7 +66,14 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
     return { runIds: [], 실패: false, 끝: Promise.resolve() };
   }
 
-  const items = 남은.map((c) => ({
+  const 플랫폼들 = (ps: typeof 남은[number]['platforms']) => (빌드.platform === 'windows' ? ps.filter((p) => p === 'windows') : ps.filter((p) => !PC항목인가(p)));
+  const 담을 = 남은.map((c) => ({ ...c, platforms: 플랫폼들(c.platforms) })).filter((c) => c.platforms.length > 0);
+  if (담을.length === 0) {
+    로그.info(`${꼬리} ${prefix} 이 빌드(${빌드.platform})로 돌 케이스가 없어 실행을 만들지 않았다`);
+    return { runIds: [], 실패: false, 끝: Promise.resolve() };
+  }
+
+  const items = 담을.map((c) => ({
     tcId: c.tcId,
     platforms: c.platforms,
     // 빈 칸으로 보낸다. createRun 이 저장값 → 케이스 코드 기본값 순서로 채운다 — 사람이 채워야만 도는 케이스는 §4 K10 이 막는다
@@ -77,7 +88,7 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
     try {
       const { runId, items: 보낼것 } = await createRun({
         origin: 'BUILD' as const,
-        build: { id: 빌드.id, no: 빌드.buildNo, stage: 빌드.stage },
+        build: { id: 빌드.id, no: 빌드.buildNo, stage: 빌드.stage, platform: 빌드.platform },
         triggeredBy: 빌드.username,
         triggeredByName: 빌드.displayName,
         env,
