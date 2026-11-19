@@ -332,6 +332,25 @@ test('migration 이 바뀐 커밋은 전체 단위 테스트 — 작업방 경�
   }
 });
 
+// 무거운 검사 묶음(vitest.config.ts 의 slow)은 전체를 다시 돌 때도 자기 폴더가 바뀌어야 돈다 (2026-11-19 — 의존성 판만 올린 push 에서 4분)
+test('의존성 판만 바뀐 커밋은 무거운 검사 묶음을 빼고, 그 묶음의 폴더도 바뀌면 전부 돈다', () => {
+  for (const [파일들, 묶음빼기] of [
+    [['package-lock.json'], true],
+    [['package-lock.json', 'scripts/authoring-x.ts'], false],
+    [['vitest.config.ts'], false],
+  ]) {
+    const 저장소 = 임시저장소(파일들);
+    try {
+      저장소에서돌린다(저장소);
+      const 전체 = 불린것(저장소.기록).split('\n').find((줄) => /^test\b/.test(줄)) ?? '';
+      assert.ok(전체, `${파일들} 을 바꿨는데 전체 단위 테스트를 안 돌렸다`);
+      assert.equal(/--project unit --project db/.test(전체), 묶음빼기, `${파일들} 의 전체 테스트 인자가 틀렸다: ${전체}`);
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
 test('문서만 바뀐 커밋은 docs 차선 — check:spec 만 돌고 통과한다', () => {
   const 저장소 = 임시저장소(['docs/SETUP.md']);
   try {

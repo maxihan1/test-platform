@@ -27,6 +27,19 @@ const DB파일 = ['apps', 'packages', 'scripts']
   .filter((f) => readFileSync(f, 'utf8').includes('DATABASE_URL'))
   .map((f) => relative(루트, f));
 
+// 혼자 14~72초씩 걸려 전체 5분 46초 중 4분 가까이를 먹던 검사(2026-11-19 실측). 시나리오 실행 · 작성 에이전트 git 흐름을 실제처럼 돌린다.
+// pre-push 가 전체를 다시 돌 때(의존성 판 · migration) 자기 폴더(apps/runner/ · scripts/)가 안 바뀌었으면 이 묶음을 뺀다(.claude/hooks/pre-push).
+// --changed 로는 이어진 변경이 있을 때 그대로 골라진다. DB 검사는 넣지 않는다 — DB 묶음에 남아야 차례로 돈다
+const 무거운검사 = [
+  'apps/runner/scenario/e2e.test.ts',
+  'apps/runner/scenario/real-phone.test.ts',
+  'apps/runner/scenario/push-e2e.test.ts',
+  'scripts/authoring-main-merge.test.ts',
+  'scripts/authoring-draft-login.test.ts',
+  'scripts/authoring-conflicts-io.test.ts',
+  'scripts/authoring-typecheck.test.ts',
+];
+
 export default defineConfig({
   test: {
     // CI·훅은 `--changed` 로 바뀐 것과 이어진 검사만 돈다. migration · lockfile · tsconfig 는 어떤 코드도 import 하지 않아
@@ -46,8 +59,9 @@ export default defineConfig({
         extends: true,
         test: { name: 'db', include: DB파일, setupFiles: ['apps/admin/src/db/test-setup.ts'], poolOptions: { forks: { singleFork: true } } },
       },
-      // 동시에 돌면 CPU 를 나눠 써 무거운 검사(케이스 354개를 다시 읽는 scanner.test 등)가 기본 5초를 넘긴다. 멈춤을 잡는 데는 30초로 충분하다
-      { extends: true, test: { name: 'unit', include: 검사자리, exclude: [...configDefaults.exclude, ...DB파일], testTimeout: 30_000 } },
+      // 동시에 돌면 CPU 를 나눠 써 무거운 검사가 기본 5초를 넘긴다. 멈춤을 잡는 데는 30초로 충분하다
+      { extends: true, test: { name: 'unit', include: 검사자리, exclude: [...configDefaults.exclude, ...DB파일, ...무거운검사], testTimeout: 30_000 } },
+      { extends: true, test: { name: 'slow', include: 무거운검사, testTimeout: 30_000 } },
     ],
   },
 });
