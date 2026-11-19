@@ -145,3 +145,12 @@
 
 /* 「다음」을 막는 까닭 — 단추 왼쪽에 한 줄 */
 .wiz-new-why { margin-right: auto; font-size: 13px; color: var(--ink-muted); }
+
+/* PC 게임 지원 패드 — 가이드 아래 한 구획. 체크는 칩처럼 한 줄에 넷 (도메인/게임 §3.10 「지원 패드」) */
+.wiz-new-pads { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
+.wiz-new-pads-head { display: flex; flex-direction: column; gap: 4px; }
+.wiz-new-pads-head small { font-size: 13px; line-height: 1.6; color: var(--ink-muted); }
+.wiz-new-pad-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.wiz-new-pad { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 14px; cursor: pointer; }
+.wiz-new-pad:has(input:checked) { border-color: var(--accent-mark); background: var(--accent-soft); }
+.wiz-new-pads .error-text { margin: 0; }

@@ -105,6 +105,16 @@ describe('게임형식 — 게임 작성', () => {
     expect(본다(케이스("platforms: ['android',] as const,"))).toEqual([]);
     expect(본다(케이스("platforms: ['android', 'desktop'],"))[0]).toMatch(/platforms/);
   });
+
+  it('PC 게임은 platforms 에 윈도우 값만 받는다 — android 하나 · 다른 기기 · 빈 배열은 짚고, 모바일 게임은 윈도우 값을 짚는다', () => {
+    const PC = (글: string) => 게임형식([{ 경로: 'tests/ash/ASH-FN-012.spec.ts', 글 }], 지도, 'windows');
+    expect(PC(케이스("platforms: ['windows'],"))).toEqual([]);
+    expect(PC(케이스("platforms: ['windows-ps5', 'windows-xbox'],"))).toEqual([]);
+    for (const 틀린 of ["platforms: ['android'],", "platforms: ['windows', 'desktop'],", 'platforms: [],', "platforms: ['windows-ps3'],"]) {
+      expect(PC(케이스(틀린))).toEqual(["tests/ash/ASH-FN-012.spec.ts — PC 게임 케이스의 platforms 는 윈도우 값(windows · windows-ps5 · windows-ps4 · windows-switch · windows-xbox)만이다"]);
+    }
+    expect(본다(케이스("platforms: ['windows'],"))[0]).toMatch(/\['android'\] 하나다/);
+  });
 });
 
 describe('게임형식 — 게임 아닌 작성', () => {

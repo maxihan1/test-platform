@@ -2,9 +2,9 @@
 
 import { useId } from 'react';
 
-import type { 모바일위치, 앱종류 } from './api.js';
-import { use말 } from './i18n.js';
-import { 종류 } from './kind.js';
+import type { 게임플랫폼, 모바일위치, 앱종류 } from './api.js';
+import { use말, use언어 } from './i18n.js';
+import { 종류, 종류이름 } from './kind.js';
 import { PLATFORM_LABEL } from './ui.js';
 
 /** 모바일 웹 줄의 값과 바꾸기. 고를 케이스에 모바일이 없으면 넘기지 않는다 — 그 줄이 안 선다 */
@@ -20,8 +20,9 @@ export interface 모바일고르개 {
  * Android 앱 · 게임 애플리케이션은 고른 케이스와 상관없이 늘 띄운다 (도메인/러너 §5.2 종류 표).
  * 모바일 웹은 기본이 가상 기기다 — 폰이 적어 기본을 실제 폰으로 두면 앱 · 게임 실행이 줄줄이 기다린다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
  */
-export function RunLocation({ android, 앱종류, 모바일 }: { android: boolean; 앱종류?: 앱종류; 모바일?: 모바일고르개 }) {
+export function RunLocation({ android, 앱종류, 게임플랫폼, 모바일 }: { android: boolean; 앱종류?: 앱종류; 게임플랫폼?: 게임플랫폼 | null; 모바일?: 모바일고르개 }) {
   const t = use말();
+  const 언어 = use언어();
   // 한 화면에 둘이 서도(E2E 목록 · 실행 창) 라디오 묶음이 섞이지 않게 이름을 따로 짓는다
   const 이름 = useId();
   const 늘 = 종류(앱종류).실행위치늘;
@@ -60,7 +61,7 @@ export function RunLocation({ android, 앱종류, 모바일 }: { android: boolea
       )}
       {!앱줄 ? null : (
         <>
-          <span className="run-loc-k">{t(늘 ? 종류(앱종류).이름 : PLATFORM_LABEL.android)}</span>
+          <span className="run-loc-k">{늘 ? 종류이름(앱종류, 언어, 게임플랫폼) : t(PLATFORM_LABEL.android)}</span>
           <div className="run-loc-v">
             <span>Device VISION</span>
           </div>

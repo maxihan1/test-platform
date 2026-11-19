@@ -3,20 +3,23 @@
 // 빈 폰과 폰마다 계정(「일반 회원 N」)이 있으면 여러 폰에 나눠 나란히 돈다 — 나누는 규칙은 authoring-phone-split (2026-11-16 · 작성 §3.6 「폰 여러 대로 나눠 돌린다」)
 // 돌려 보기 명령(authoring-run3)이 `게임` · `앱` · `앱서버` 모드를 여기로 넘긴다 — 여기서 그 파일을 import 하지 않는다(그쪽 맨 위 await 와 엮이면 서로 기다린다)
 
+import { PC항목인가 } from '@platform/kit/types';
 import { spawn } from 'node:child_process';
 import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { type 돌린판, 돌린기록들, 판들읽기 } from './authoring-gate3.js';
 import { 바뀐것 } from './authoring-base-list.js';
-import { 게임자료환경 } from './authoring-check-game.js';
+import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { type 팜, 끊겼나, 덤폰놓기, 덤폰잡기, 빈폰질의, 폰목록, 폰이름 } from './authoring-phone-farm.js';
 import {
-  type 일, type 판정, 계정번호들, 끈묶음읽기, 끈묶음적기, 다음기록번호, 덤폰수, 묶음계정글, 묶음기록이름, 묶음짜기, 초록유지말, 판정말들, 판정하기, 폰고르기, 표본말, 한판들, 혼자도나,
+  type 일, type 판정, 계정번호들, 끈묶음읽기, 끈묶음적기, 다음기록번호, 덤폰수, 묶음계정글, 묶음기록이름, 묶음짜기, 초록유지말, 판정말들, 폰고르기, 표본말, 혼자도나,
 } from './authoring-phone-split.js';
+import { type 폰갈래, PC환경, 앱줄주소, 윈도우값들, 차례짜기, 패드자리이름, 폰판정들, 폰환경 } from './authoring-run3-env.js';
 
-/** 폰에서 도는 두 갈래 — 게임은 control-cli, 앱은 appium-cli 로 AI 가 폰을 잡는다. 기록 · 잡은 폰 파일 · CLI 세션 이름이 갈린다 */
-export type 폰갈래 = '게임' | '앱';
+export type { 폰갈래 } from './authoring-run3-env.js';
+export { 앱줄주소, 폰판정들 } from './authoring-run3-env.js';
+/** 갈래마다 기록 · 잡은 폰 파일 · CLI 세션 이름이 갈린다 */
 const 갈래들 = {
   게임: { 기록: 'gate3-game', 도구: 'control-cli', 세션: 'g' },
   앱: { 기록: 'gate3-app', 도구: 'appium-cli', 세션: 'probe' },
@@ -75,36 +78,17 @@ export function 잡은폰(트리: string, 갈래: 폰갈래 = '게임'): string 
 }
 
 /**
- * 폰 케이스가 갈 서버 — 게임은 어드민 키가 있으면 에이전트가 그 줄 주소를 `PLATFORM_BASE_URL` 로 넘겼다. 없으면 `PLATFORM_ACCOUNTS` 맨 앞(앱 줄 — 작성.md §3.6 「★ 역할별 계정」)의 주소.
- * 앱은 에이전트가 주소를 안 넘겨 `PLATFORM_BASE_URL` 이 AI 가 고른 것이다 — 프롬프트 서버 목록에는 어느 줄이 앱 줄인지 없어서 계정 맨 앞을 먼저 본다(`계정먼저`).
- * 둘 다 없으면 null — AI 가 주소를 고르면 키 · 계정과 다른 서버로 갈 수 있다
+ * 폰 기록을 파일마다 — 깨진 기록은 빼고 본다(그 파일을 다시 돌리면 된다).
+ * PC 게임의 윈도우 값(패드마다 프로젝트 하나)은 한 파일로 모은다 — 패드는 기록 이름의 PC 번호 꼬리(`pc-pc1:ps5`)로 갈려 판정에서 섞이지 않는다
  */
-export function 앱줄주소(env: NodeJS.ProcessEnv, 계정먼저 = false): string | null {
-  let 첫줄: unknown;
-  try {
-    첫줄 = (JSON.parse(env.PLATFORM_ACCOUNTS || '[]') as { baseUrl?: unknown }[])[0]?.baseUrl;
-  } catch {
-    첫줄 = undefined;
-  }
-  const 계정줄 = typeof 첫줄 === 'string' && 첫줄 !== '' ? 첫줄 : null;
-  return (계정먼저 ? (계정줄 ?? env.PLATFORM_BASE_URL) : (env.PLATFORM_BASE_URL || 계정줄)) || null;
-}
-
-/** kit 이 팜 폰에 붙는 환경값 — 정식 실행의 러너(execute.ts gameEnv)와 같다. 앱도 셋 다 적는다 — 셸의 게임 값을 물려받으면 kit 이 게임 설정으로 붙는다 */
-export const 게임환경 = (폰: string): Record<string, string> => ({ PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm', PLATFORM_DEVICE_UDID: 폰 });
-const 폰환경 = (갈래: 폰갈래, 폰: string): Record<string, string> => (갈래 === '게임' ? 게임환경(폰) : { PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_DEVICE_UDID: 폰 });
-
-/** 폰 기록을 파일마다 — 깨진 기록은 빼고 본다(그 파일을 다시 돌리면 된다) */
 export function 폰판들(결과폴더: string, 갈래: 폰갈래 = '게임'): Map<string, 돌린판[]> {
   const 판들 = 판들읽기(돌린기록들(결과폴더, 기록꼴(갈래)), true)?.판들 ?? new Map<string, 돌린판[]>();
-  return new Map([...판들].filter(([열쇠]) => 열쇠.endsWith('\0android')).map(([열쇠, 판]) => [열쇠.slice(0, -'\0android'.length), 판]));
-}
-
-/** 파일마다 지금 판정 — 이번에 쓸 수 있는 폰 · 계정을 주면 다시 볼 것도 고른다 */
-export function 폰판정들(대상: Record<string, number>, 판들: Map<string, 돌린판[]>, 있는폰들: readonly string[] = [], 계정들: readonly number[] = [1]): [string, 판정][] {
-  return Object.entries(대상)
-    .map(([파일, 수정]): [string, 판정] => [파일, 판정하기(한판들(판들.get(파일), 수정), 있는폰들, 계정들)])
-    .sort(([a], [b]) => a.localeCompare(b));
+  const 모음 = new Map<string, 돌린판[]>();
+  for (const [열쇠, 판] of 판들) {
+    const [파일 = '', 기기 = ''] = 열쇠.split('\0');
+    if (기기 === 'android' || PC항목인가(기기)) 모음.set(파일, [...(모음.get(파일) ?? []), ...판]);
+  }
+  return 모음;
 }
 
 /**
@@ -116,7 +100,7 @@ export function 폰끝검사(결과폴더: string, 트리: string, 폴더: strin
   try {
     const 판들 = 폰판들(결과폴더, 갈래);
     const { 대상, 뺀기존, 초록유지 } = 폰고르기(트리, 폴더, 바뀐, 판들);
-    const 판정들 = 폰판정들(대상, 판들);
+    const 판정들 = 폰판정들(대상, 판들, [], [1], (f) => 윈도우값들(파일글(트리, f)));
     const 모음 = (...상태들: 판정['상태'][]) => 판정들.filter(([, p]) => 상태들.includes(p.상태));
     const 줄 = (말: string, 것들: [string, 판정][], 꼬리 = (_: 판정) => '') => (것들.length === 0 ? [] : [`⚠️ ${말} ${갈래} 케이스 ${것들.length}개 — ${것들.map(([f, p]) => f + 꼬리(p)).join(' · ')}`]);
     return [
@@ -146,9 +130,9 @@ export function 폰앱링크(env: NodeJS.ProcessEnv): string | undefined {
   return 링크 || env.PLATFORM_APP;
 }
 
-function 돌리기(트리: string, 결과폴더: string, 이름: string, 파일들: readonly string[], 폰환경값: Record<string, string>, 상한: number, env: NodeJS.ProcessEnv): Promise<number> {
+function 돌리기(트리: string, 결과폴더: string, 이름: string, 파일들: readonly string[], 폰환경값: Record<string, string>, 상한: number, env: NodeJS.ProcessEnv, 프로젝트 = 'android'): Promise<number> {
   const 로그 = openSync(join(결과폴더, `${이름}.log`), 'w');
-  const 인자 = ['playwright', 'test', ...파일들.map((f) => `tests/${f}`), '--project=android', '--workers=1', '--repeat-each=1', `--global-timeout=${Math.round(상한)}`, '--reporter=line,json'];
+  const 인자 = ['playwright', 'test', ...파일들.map((f) => `tests/${f}`), `--project=${프로젝트}`, '--workers=1', '--repeat-each=1', `--global-timeout=${Math.round(상한)}`, '--reporter=line,json'];
   const 자식 = spawn('npx', 인자, {
     cwd: 트리,
     env: { ...env, ...폰환경값, PLAYWRIGHT_JSON_OUTPUT_FILE: join(결과폴더, `${이름}.json`), PLATFORM_OUTPUT_ID: 이름 },
@@ -197,9 +181,24 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     console.error(`${머리} 앱 줄을 모른다(어드민 키 · 계정이 없다) — 폰에서 못 돌린다. 결과 요약 「3번 돌려 보기」 줄에 \`안 돌림(앱 줄 모름)\` 을 적는다`);
     return 2;
   }
+  // PC 게임은 잡은 PC 한 대에서만 돈다 — 덤 PC 를 잡지 않는다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
+  const pc = 갈래 === '게임' && env[PC게임환경] === 'windows';
   const 폰 = 잡은폰(트리, 갈래);
   if (폰 === null) {
-    console.error(`${머리} 잡은 폰이 없다 — \`npx ${도구} hold --minutes 30\` 으로 잡고, 열어 둔 CLI 세션은 \`npx ${도구} -s=${세션} close\` 로 닫은 뒤 다시 부른다(케이스가 같은 폰에 새로 붙는다)`);
+    console.error(`${머리} 잡은 ${pc ? 'PC' : '폰'}이 없다 — \`npx ${도구} hold ${pc ? '--pc ' : ''}--minutes 30\` 으로 잡고, 열어 둔 CLI 세션은 \`npx ${도구} -s=${세션} close\` 로 닫은 뒤 다시 부른다(케이스가 같은 ${pc ? 'PC' : '폰'}에 새로 붙는다)`);
+    return 2;
+  }
+  // kit 은 VISION 게임 목록의 이름으로 켠다 — zip 을 깐 open 이 찍은 이름이다. 이 명령이 다시 깔지 않는다(1GB 까지라 부를 때마다 깔면 7분 30초를 다 쓴다)
+  const PC게임 = env.PLATFORM_PC_GAME;
+  if (pc && !PC게임) {
+    console.error(`${머리} PC 에 켤 게임 이름을 모른다 — \`npx control-cli open --app <zip>\` 이 찍은 「VISION PC ${폰} · <이름>」의 이름으로 \`PLATFORM_PC_GAME=<이름> npm run -s authoring:run -- 게임 ${폴더}\` 를 부른다`);
+    return 2;
+  }
+  // PC 게임인데 윈도우 값이 없는 케이스는 어느 프로젝트에서도 안 돌아 늘 「남은 것」이 된다 — 같은 명령을 끝없이 다시 부르지 않게 먼저 멈춘다
+  const PC값들 = (f: string) => (pc ? 윈도우값들(파일글(트리, f)) : []);
+  const 값없음 = pc ? Object.keys(대상).filter((f) => PC값들(f).length === 0) : [];
+  if (값없음.length > 0) {
+    console.error(`${머리} PC 게임인데 platforms 에 윈도우 값이 없는 케이스 ${값없음.length}건 — ${값없음.join(' · ')}. 빠른 검사대로 platforms 를 고친 뒤 다시 부른다`);
     return 2;
   }
   const 팜: 팜 = { 부르기, 주소: env.PLATFORM_APPIUM_URL.replace(/\/wd\/hub\/?$/, ''), 토큰: env.PLATFORM_APPIUM_TOKEN };
@@ -213,53 +212,61 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
   const 주폰 = 끊겼나(팜목록, 폰) ? null : 폰;
   const 혼자맵 = new Map(Object.keys(대상).map((f) => [f, 혼자도나(파일글(트리, f))]));
   const 일고르기 = (판들: Map<string, 돌린판[]>, 있는폰들: readonly string[]): 일[] =>
-    폰판정들(대상, 판들, 있는폰들, 계정들).flatMap(([파일, p]): 일[] =>
+    폰판정들(대상, 판들, 있는폰들, 계정들, PC값들).flatMap(([파일, p]): 일[] =>
       p.상태 === '안돎' ? [{ 파일, 계정: null, 뺄폰: null, 혼자: 혼자맵.get(파일)! }] : p.상태 === '다시' ? [{ 파일, 계정: p.계정, 뺄폰: p.뺄폰, 혼자: 혼자맵.get(파일)! }] : [],
     );
   const 판수 = (판들: Map<string, 돌린판[]>) => [...판들.values()].flat().reduce((합, p) => 합 + p.상태들.length, 0);
   const 앞판들 = 폰판들(결과폴더, 갈래);
   // 어림에만 쓴다 — 잡기는 팜이 고른다(덤폰잡기). 목록이 상태를 안 거른 팜이어도 IDLE 만 센다
-  const 빈폰들 = ((await 폰목록(팜, 빈폰질의(앱))) ?? []).filter((p) => p.state === undefined || p.state === 'IDLE').map((p) => p.serial).filter((p) => p !== 폰 && !끈것.폰들.has(p));
-  const 미리 = 일고르기(앞판들, [...(주폰 === null ? [] : [주폰]), ...빈폰들]);
+  const 빈폰들 = pc ? [] : ((await 폰목록(팜, 빈폰질의(앱))) ?? []).filter((p) => p.state === undefined || p.state === 'IDLE').map((p) => p.serial).filter((p) => p !== 폰 && !끈것.폰들.has(p));
+  // PC 는 다른 PC 로 다시 보지 않는다 — 패드마다 갈린 기록(`pc-pc1:ps5`)이 다른 폰으로 읽혀 같은 PC 에서 끝없이 다시 돌지 않게
+  const 다시볼폰들 = (폰들: readonly string[]) => (pc ? [] : 폰들);
+  const 미리 = 일고르기(앞판들, 다시볼폰들([...(주폰 === null ? [] : [주폰]), ...빈폰들]));
   const 시작 = Date.now();
   let 묶음들: ReturnType<typeof 묶음짜기> = [];
   const 로그들: string[] = [];
   const 끊긴폰들: string[] = [];
   const 빈묶음들: { 폰: string; 계정: number; 로그: string }[] = [];
   // 잡은 뒤로는 무엇이 던져도 놓는다 — 놓기를 놓쳐도 held-<번호> 기록으로 에이전트가 끝에 놓는다
-  const 잡은덤 = await 덤폰잡기(팜, Math.min(덤폰수(미리, 계정들, 주폰), 빈폰들.length), 앱, CLI폴더);
+  const 잡은덤 = pc ? [] : await 덤폰잡기(팜, Math.min(덤폰수(미리, 계정들, 주폰), 빈폰들.length), 앱, CLI폴더);
   const 덤 = 잡은덤.filter((p) => !끈것.폰들.has(p));
   const 폰들 = [...(주폰 === null ? [] : [주폰]), ...덤];
   try {
     // 팜이 고른 폰이 앞 차례에 끈 폰이면 바로 놓는다
     await 덤폰놓기(팜, 잡은덤.filter((p) => 끈것.폰들.has(p)), CLI폴더);
     if (폰들.length === 0) {
-      console.error(`${머리} 잡은 폰 ${폰} 이 끊겼고 빈 폰도 없다 — \`npx ${도구} release\` 뒤 \`hold --minutes 30\` 으로 다시 잡고 부른다`);
+      console.error(`${머리} 잡은 ${pc ? 'PC' : '폰'} ${폰} 이 끊겼고${pc ? '' : ' 빈 폰도 없다'} — \`npx ${도구} release\` 뒤 \`hold ${pc ? '--pc ' : ''}--minutes 30\` 으로 다시 잡고 부른다`);
       return 2;
     }
     // 앞 기록의 평균으로 묶음마다 예산 안에 드는 만큼 — 처음엔 어림이 커서 적게 돌고, 다음 차례는 배운 값으로 늘린다
     const 시간들 = [...앞판들.values()].flat().flatMap((p) => p.시간들);
     const 어림 = 시간들.length === 0 ? 게임회차 : 시간들.reduce((a, b) => a + b, 0) / 시간들.length;
-    묶음들 = 묶음짜기(일고르기(앞판들, 폰들), 폰들, 계정들, Math.max(1, Math.floor(예산 / 어림)));
+    묶음들 = 묶음짜기(일고르기(앞판들, 다시볼폰들(폰들)), 폰들, 계정들, Math.max(1, Math.floor(예산 / 어림)));
     const 번호 = 다음기록번호(readdirSync(결과폴더), 기록);
+    // 묶음마다 돌릴 차례 — 폰은 android 한 번, PC 는 선언한 윈도우 값마다 한 번(패드는 기록 이름의 PC 번호 꼬리로 가른다)
+    const 차례들 = new Map(묶음들.map((b) => [b, 차례짜기(pc, b.파일들, (f) => 파일글(트리, f), b.폰, (자리) => 묶음기록이름(기록, 번호, 자리, b.계정))]));
     await Promise.all(
-      묶음들.map((b) => {
-        const 이름 = 묶음기록이름(기록, 번호, b.폰, b.계정);
-        로그들.push(join(결과폴더, `${이름}.log`));
+      묶음들.map(async (b) => {
         const 계정글 = 묶음계정글(env.PLATFORM_ACCOUNTS, 주소, b.계정);
         const 묶음env = { ...env, PLATFORM_BASE_URL: 주소, PLATFORM_APP: 앱, ...(계정글 === undefined ? {} : { PLATFORM_ACCOUNTS: 계정글 }) };
-        return 돌리기(트리, 결과폴더, 이름, 폰차례(b.파일들, (f) => 데이터남기나(트리, f)), 폰환경(갈래, b.폰), 예산, 묶음env);
+        // 한 PC 에서 값마다 차례로 돈다 — 게임 명령 포트가 PC 에 하나다
+        for (const c of 차례들.get(b)!) {
+          const 남은시간 = 예산 - (Date.now() - 시작);
+          if (남은시간 <= 0) break;
+          로그들.push(join(결과폴더, `${c.이름}.log`));
+          await 돌리기(트리, 결과폴더, c.이름, 폰차례(c.파일들, (f) => 데이터남기나(트리, f)), { ...폰환경(갈래, b.폰), ...(pc ? PC환경(c.값, PC게임!) : {}) }, 남은시간, 묶음env, c.값);
+        }
       }),
     );
     // 도중에 끊긴 폰의 기록은 버린다 — 연결 오류로 빨개진 케이스를 「폰 차이」로 읽지 않게. 그 케이스는 다음 차례에 남은 폰으로 다시 돈다
     const 뒤목록 = 묶음들.length > 0 ? await 폰목록(팜) : null;
+    const 남은기록들 = new Set([...폰판들(결과폴더, 갈래).values()].flat().map((p) => p.기록));
     for (const b of 묶음들) {
-      const 이름 = 묶음기록이름(기록, 번호, b.폰, b.계정);
-      const 기록파일 = join(결과폴더, `${이름}.json`);
+      const 이름들 = 차례들.get(b)!.map((c) => c.이름);
       if (끊겼나(뒤목록, b.폰)) {
         끊긴폰들.push(b.폰);
-        if (existsSync(기록파일)) renameSync(기록파일, `${기록파일}.끊김`);
-      } else if (![...폰판들(결과폴더, 갈래).values()].flat().some((p) => p.기록 === `${이름}.json`)) 빈묶음들.push({ 폰: b.폰, 계정: b.계정, 로그: join(결과폴더, `${이름}.log`) });
+        for (const 이름 of 이름들) if (existsSync(join(결과폴더, `${이름}.json`))) renameSync(join(결과폴더, `${이름}.json`), join(결과폴더, `${이름}.json.끊김`));
+      } else if (!이름들.some((이름) => 남은기록들.has(`${이름}.json`))) 빈묶음들.push({ 폰: b.폰, 계정: b.계정, 로그: join(결과폴더, `${이름들[0]}.log`) });
     }
     // 결과를 못 낸 묶음 — 잡은 폰 · 원래 계정이 아니면 그 폰(덤)과 그 계정(「일반 회원 N」)을 이 작성에서 끈다. 잡은 폰 · 원래 계정이면 지금처럼 로그를 보라고 한다
     for (const b of 빈묶음들) 끈묶음적기(결과폴더, b.폰 === 주폰 ? null : b.폰, b.계정 === 1 ? null : b.계정);
@@ -267,7 +274,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     await 덤폰놓기(팜, 덤, CLI폴더);
   }
   const 뒤판들 = 폰판들(결과폴더, 갈래);
-  const 판정들 = 폰판정들(대상, 뒤판들, 폰들.filter((p) => !끊긴폰들.includes(p)), 계정들);
+  const 판정들 = 폰판정들(대상, 뒤판들, 다시볼폰들(폰들.filter((p) => !끊긴폰들.includes(p))), 계정들, PC값들);
   const 모음 = (...상태들: 판정['상태'][]) => 판정들.filter(([, p]) => 상태들.includes(p.상태));
   const 이번 = 묶음들.reduce((합, b) => 합 + b.파일들.length, 0);
   const 묶음말 = 묶음들.map((b) => `${폰이름(팜목록, b.폰)}(${b.폰}) 계정 ${b.계정} · ${b.파일들.length}건`).join(' / ');
@@ -283,7 +290,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
   const 빨강 = 모음('빨강');
   const 폰차이 = 모음('폰차이');
   const 계정차이 = 모음('계정차이');
-  for (const 말 of 판정말들(빨강, 폰차이, 계정차이, (x) => 폰이름(팜목록, x))) console.log(말);
+  for (const 말 of 판정말들(빨강, 폰차이, 계정차이, (x) => (pc ? 패드자리이름(x) : 폰이름(팜목록, x)))) console.log(말);
   const 남은 = 모음('안돎', '다시').length;
   if (남은 > 0) {
     console.log(`남은 것 ${남은}건(다시 보기 포함) — 같은 명령을 다시 부른다(30분이 지나면 폰을 놓고 다시 잡는다). 폰 연결이 끊긴 것 같으면 로그를 본다: ${로그들.join(' · ') || '이번에 안 돌림'}`);

@@ -9,9 +9,9 @@ import { Failed, Loading, useAsync, when } from './ui.js';
 
 type 탭 = 'github' | 'curl';
 
-// 파일을 올리는 종류는 APK 를 보낸다. 화면 · API 는 배포가 끝난 뒤 알리기만 한다.
+// 파일을 올리는 종류는 APK 를 보낸다 — PC 게임은 Windows 빌드 zip 이다(도메인/게임 §3.10 「윈도우 PC」). 화면 · API 는 배포가 끝난 뒤 알리기만 한다.
 // 한국어가 든 템플릿 문자열은 messages.test.ts 가 막으므로 줄을 배열로 이어 붙인다
-function 예시글(종류: SettingsServiceRow['kind'], 탭: 탭, env: string, 제목: string, 바탕: string): string {
+function 예시글(종류: SettingsServiceRow['kind'], pc: boolean, 탭: 탭, env: string, 제목: string, 바탕: string): string {
   const 파일 = 종류 === 'APP' || 종류 === 'GAME';
   const github = 탭 === 'github';
   const 들여 = github ? '    ' : '';
@@ -21,7 +21,7 @@ function 예시글(종류: SettingsServiceRow['kind'], 탭: 탭, env: string, �
   const curl = [
     'curl --fail -X POST \\',
     `  -H "Authorization: Bearer ${열쇠}" \\`,
-    ...(파일 ? ['  -H "Content-Type: application/octet-stream" \\', '  --data-binary @build/app-qa.apk \\'] : []),
+    ...(파일 ? ['  -H "Content-Type: application/octet-stream" \\', pc ? '  --data-binary @build/game-qa.zip \\' : '  --data-binary @build/app-qa.apk \\'] : []),
     `  "${주소}"`,
   ].map((줄) => 들여 + 줄);
   return github ? ['- name: ' + 제목, '  run: |', ...curl].join('\n') : curl.join('\n');
@@ -47,7 +47,7 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
   const 파일 = 종류 === 'APP' || 종류 === 'GAME';
   // 브라우저를 연 주소는 localhost 일 수 있어 CI 가 닿지 않는다 — 서버의 공개 주소가 있으면 그것을 쓴다 (GAME-F2-17)
   const 바탕 = list.data?.publicUrl ?? window.location.origin;
-  const 예시 = 예시글(종류, 탭, 고른env, 파일 ? t('Test Commander 에 빌드 업로드') : t('Test Commander 에 빌드 알리기'), 바탕);
+  const 예시 = 예시글(종류, row.gamePlatform === 'windows', 탭, 고른env, 파일 ? t('Test Commander 에 빌드 업로드') : t('Test Commander 에 빌드 알리기'), 바탕);
 
   async function 일하기(일: () => Promise<void>) {
     set오류(null);

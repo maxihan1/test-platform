@@ -217,6 +217,15 @@ describe('끝검사줄들 — 앱 케이스는 웹 돌려 보기로 세지 않�
     expect(앱케이스나누기(파일들, { 'mda/A.spec.ts': 1, 'mda/B.spec.ts': 2 })).toEqual({ 앱: ['mda/A.spec.ts'], 나머지: { 'mda/B.spec.ts': 2 } });
   });
 
+  it('앱케이스나누기 — PC 게임 케이스(윈도우 값 · 패드 값 여럿)도 웹 돌려 보기에서 뺀다', () => {
+    const 파일들 = [
+      { 경로: 'ash/A.spec.ts', 글: "defineCase({ tcId: 'ASH-FN-001', platforms: ['windows'] })" },
+      { 경로: 'ash/B.spec.ts', 글: "defineCase({ tcId: 'ASH-FN-002', platforms: ['windows-ps5', 'windows-xbox'] })" },
+      { 경로: 'ash/C.spec.ts', 글: 웹케이스 },
+    ];
+    expect(앱케이스나누기(파일들, { 'ash/A.spec.ts': 1, 'ash/B.spec.ts': 2, 'ash/C.spec.ts': 3 })).toEqual({ 앱: ['ash/A.spec.ts', 'ash/B.spec.ts'], 나머지: { 'ash/C.spec.ts': 3 } });
+  });
+
   it('앱 케이스만 바꿨으면 돌려 본 기록이 없어도 웹 경고를 내지 않는다', () => {
     const 트리 = mkdtempSync(join(tmpdir(), 'gate3-트리-'));
     const 기록 = mkdtempSync(join(tmpdir(), 'gate3-기록-'));

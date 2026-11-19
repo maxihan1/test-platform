@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CaseRow, Platform } from './api.js';
 import { 넘었나 } from './runPlan.js';
-import { 담을것, 디바이스만, 몇건, 실행항목, 안드로이드있나, 지난값글자 } from './pickRun.js';
+import { 담을것, 디바이스만, 몇건, 실행항목, 안드로이드있나, 윈도우접기, 윈도우펼침, 지난값글자 } from './pickRun.js';
 import { schemaToFields } from './schema.js';
 
 function 케이스(tcId: string, platforms: Platform[], isActive = true): CaseRow {
@@ -132,5 +132,34 @@ describe('디바이스만', () => {
   it('그 디바이스를 선언한 케이스만 남기고 디바이스를 그것 하나로 좁힌다', () => {
     const 결과 = 디바이스만([케이스('A', ['desktop', 'mobile']), 케이스('B', ['desktop']), 케이스('C', ['mobile'])], 'mobile');
     expect(결과.map((c) => [c.tcId, c.platforms])).toEqual([['A', ['mobile']], ['C', ['mobile']]]);
+  });
+});
+
+describe('PC 게임 케이스는 실행 창에서 「Windows」 하나로 접힌다 (도메인/게임 §3.10 「실행 창에는 패드 칸이 없다」)', () => {
+  const 보통 = 케이스('ARW-FN-043', ['windows']);
+  const 패드 = 케이스('ARW-FN-090', ['windows-ps5', 'windows-xbox', 'windows-switch']);
+
+  it('패드 값만 선언한 케이스도 windows 하나로 접고, 지원 패드에 남은 값만 선언으로 들고 있다', () => {
+    const 접힌 = 윈도우접기(패드, ['ps5', 'xbox']);
+    expect(접힌.platforms).toEqual(['windows']);
+    expect(접힌.윈도우선언).toEqual(['windows-ps5', 'windows-xbox']);
+  });
+
+  it('지원 패드에 남은 패드가 없는 버튼 그림 케이스는 디바이스가 빈다 — 창에 「Windows」로 세우면 서버가 안 펼쳐 건수가 어긋난다', () => {
+    expect(윈도우접기(패드, ['ps4']).platforms).toEqual([]);
+  });
+
+  it('PC 값이 없는 케이스는 그대로다', () => {
+    const 웹 = 케이스('ZZP-0002', ['desktop', 'mobile']);
+    expect(윈도우접기(웹, ['ps5'])).toBe(웹);
+  });
+
+  it('건수는 서버가 펼칠 수로 센다 — 보통 케이스 1 · 패드 케이스는 지원 패드 수', () => {
+    expect(몇건([윈도우접기(보통, ['ps5', 'xbox']), 윈도우접기(패드, ['ps5', 'xbox'])], 1)).toBe(3);
+  });
+
+  it('시험 실행은 접은 windows 를 선언 값으로 다시 편다 — 시험 통로는 선언한 값 하나만 받는다', () => {
+    expect(윈도우펼침(윈도우접기(패드, ['ps5', 'xbox'])).platforms).toEqual(['windows-ps5', 'windows-xbox']);
+    expect(윈도우펼침(윈도우접기(보통, [])).platforms).toEqual(['windows']);
   });
 });

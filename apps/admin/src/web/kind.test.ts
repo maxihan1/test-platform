@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow } from './api.js';
-import { 종류차례로 } from './kind.js';
+import { 종류이름, 종류차례로 } from './kind.js';
 
 const 앱 = (prefix: string, kind: ServiceRow['kind'], primary?: boolean): ServiceRow => ({
   id: prefix.length,
@@ -28,5 +28,14 @@ describe('종류차례로', () => {
   it('대표는 종류와 상관없이 맨 위이고 나머지 차례는 그대로다', () => {
     const 목록 = [앱('API1', 'API', true), 앱('WEB1', 'SCREEN', false), 앱('APP1', 'APP'), 앱('WEB2', 'SCREEN')];
     expect(종류차례로(목록).map((it) => it.prefix)).toEqual(['API1', 'WEB1', 'WEB2', 'APP1']);
+  });
+});
+
+describe('종류이름', () => {
+  it('게임은 플랫폼으로 「모바일 게임」 · 「PC 게임」이고, 플랫폼을 모르는 옛 응답은 「게임」이다 (도메인/게임 §3.10 결정 27)', () => {
+    expect(종류이름('GAME', 'ko', 'windows')).toBe('PC 게임');
+    expect(종류이름('GAME', 'ko', 'android')).toBe('모바일 게임');
+    expect(종류이름('GAME', 'ko')).toBe('게임');
+    expect(종류이름('APP', 'ko', null)).toBe('Android 앱');
   });
 });

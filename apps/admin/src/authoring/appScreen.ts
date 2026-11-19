@@ -120,14 +120,15 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     if ((await 게임서비스인가(행.serviceId)) !== 게임만) return { ...비움, [칸]: null };
-    // PC 게임은 폰을 안 잡는다 — AI 가 PC 를 잡은 뒤 control-cli 로 첫 화면을 읽는다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
-    if (게임만 && (await 게임칸읽기(행.serviceId))?.gamePlatform === 'windows') return { screen: null, reason: 'PC 게임은 작성 AI 가 PC 에서 읽는다', game: null };
+    const PC게임 = 게임만 && (await 게임칸읽기(행.serviceId))?.gamePlatform === 'windows';
     const appPath = await 작성앱파일(행);
-    // 게임은 앱 파일이 없으면 켤 게임이 없다 — 앱처럼 「앱 없는 서비스」로 비우면 AI 가 까닭을 모른다
-    if (게임만 && appPath === null) return { screen: null, reason: '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };
+    // 게임은 앱 파일이 없으면 켤 게임이 없다 — 앱처럼 「앱 없는 서비스」로 비우면 AI 가 까닭을 모른다. PC 게임은 에이전트가 이 까닭으로 PC 를 잡기 전에 멈춘다
+    if (게임만 && appPath === null) return { screen: null, reason: PC게임 ? 'Windows 빌드가 없다 — 그 애플리케이션에 Windows 빌드 zip 을 올린 뒤 다시 작성한다' : '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };
     const 팜 = 팜주소();
     // 작성 AI 는 서버 몫이다. 한 번 고른 토큰으로 폰을 잡고 러너가 붙고, AI 가 눌러 가며 읽을 때도 같은 주인으로 붙게 넘긴다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
     const 토큰 = 팜 === undefined || appPath === null ? undefined : await 서버팜토큰();
+    // PC 게임은 폰을 안 잡는다 — AI 가 그 팜 주소 · 토큰으로 PC 를 잡고 zip 을 깐 뒤 control-cli 로 첫 화면을 읽는다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
+    if (PC게임) return { screen: null, reason: 'PC 게임은 작성 AI 가 PC 에서 읽는다', game: 앱탐색주소(appPath, 팜, 토큰) };
     // 스토어 앱(패키지 이름)이면 그 앱이 깔린 폰만 잡는다 — 깔지 않고 켜서다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」)
     const 잡기: 폰잡기 | undefined = 팜 === undefined ? undefined : (일, 못잡음) => 팜폰으로(팜, 일, 못잡음, fetch, undefined, undefined, 토큰, 거를패키지(appPath));
     const 답 = await 앱화면읽기(appPath, runnerUrl(), 잡기, fetch, 곳, 토큰);

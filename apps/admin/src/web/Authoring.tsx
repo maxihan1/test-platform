@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, type AuthoringListRow, type EnvRow, type Paged, type 앱종류 } from './api.js';
+import type { PC게임 } from './AuthoringNewPads.js';
 import { AuthoringDecide } from './AuthoringDecide.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { decideApi } from './decideApi.js';
@@ -91,7 +92,7 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringListRow; 지금: number }) {
   );
 }
 
-export function Authoring({ service, serviceId, envs = [], 피그마토큰 = true, 앱종류, 할수 }: { service: string; serviceId?: number; envs?: EnvRow[]; 피그마토큰?: boolean; 앱종류?: 앱종류; 할수: 판정 }) {
+export function Authoring({ service, serviceId, envs = [], 피그마토큰 = true, 앱종류, pc, 할수 }: { service: string; serviceId?: number; envs?: EnvRow[]; 피그마토큰?: boolean; 앱종류?: 앱종류; pc?: PC게임; 할수: 판정 }) {
   const t = use말();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
@@ -248,6 +249,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
           운영자={할수('설정')}
           피그마토큰={피그마토큰}
           앱종류={앱종류}
+          pc={pc}
           onClose={() => set마법사(false)}
           on넣었다={(id) => {
             줄들.reload();

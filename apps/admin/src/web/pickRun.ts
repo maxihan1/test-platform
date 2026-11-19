@@ -1,5 +1,6 @@
 // 목록에서 고른 케이스를 실행 요청 항목으로 바꾸는 계산 (SPEC §8.2). 화면 조각은 없다
 
+import { PC항목인가 } from '@platform/kit/types';
 import type { CaseRow, Platform, RunRequestItem, 모바일위치 } from './api.js';
 import { 항목수 } from './runPlan.js';
 import type { Field } from './schema.js';
@@ -104,9 +105,29 @@ export function 모바일있나(케이스들: CaseRow[]): boolean {
  * 둘 다 도는 케이스가 섞이면 곱셈은 있지도 않은 조합을 센다.
  * 셈과 상한은 runPlan 이 정본이다 (CLAUDE.md §2.7 ⑤)
  */
+/**
+ * PC 게임 값(windows · 패드 값)을 「Windows」 하나로 접는다 — 실행 창에는 패드 칸이 없고 서버가 선언과 지원 패드대로 펼친다.
+ * 접기 전 선언은 지원 패드로 걸러 남긴다 — 시험 실행이 값마다 차례로 보낸다. 거르고 남은 값이 없으면 디바이스가 빈 케이스다 (도메인/게임 §3.10 「윈도우 PC」 「실행 창에는 패드 칸이 없다」)
+ */
+export function 윈도우접기(c: CaseRow, 지원패드: readonly string[]): CaseRow {
+  if (!c.platforms.some(PC항목인가)) return c;
+  const 선언 = c.platforms.filter((p) => p === 'windows' || (PC항목인가(p) && 지원패드.includes(p.slice('windows-'.length))));
+  // 지원 패드에 남은 패드가 없는 버튼 그림 케이스는 돌 값이 없다 — 「Windows」로 세우면 창은 1건 · 서버는 0건이라 어긋난다. 부르는 쪽이 빈 케이스를 뺀다
+  return { ...c, platforms: [...c.platforms.filter((p) => !PC항목인가(p)), ...(선언.length === 0 ? [] : ['windows' as const])], 윈도우선언: 선언 };
+}
+
+/** 「Windows」로 접은 PC 게임 케이스를 시험 통로가 받는 선언 값으로 편다 — 시험 통로는 선언한 값 하나만 받는다 (도메인/실행 §7 test-run) */
+export const 윈도우펼침 = (c: CaseRow): CaseRow =>
+  c.윈도우선언 === undefined || !c.platforms.includes('windows') ? c : { ...c, platforms: c.platforms.flatMap((p) => (p === 'windows' ? (c.윈도우선언 ?? []) : [p])) };
+
+/**
+ * 케이스 하나가 만들 항목 수. 「Windows」로 접은 PC 게임 케이스는 서버가 펼칠 수 — 지원 패드로 거른 선언 값 수(윈도우접기)만큼이다
+ */
+export const 펼친수 = (c: CaseRow): number => c.platforms.length - (c.윈도우선언 !== undefined && c.platforms.includes('windows') ? 1 - c.윈도우선언.length : 0);
+
 export function 몇건(케이스들: CaseRow[], 반복: number): number {
   return 항목수(
-    케이스들.map((c) => c.platforms.length),
+    케이스들.map(펼친수),
     반복,
   );
 }

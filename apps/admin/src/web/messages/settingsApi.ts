@@ -4,6 +4,8 @@ export const 설정API말: Record<string, string> = {
   // 기본 정보 「종류」
   웹: 'Web',
   게임: 'Game',
+  '모바일 게임': 'Mobile game',
+  'PC 게임': 'PC game',
 
   // 「API 문서」 구획
   'API 문서': 'API document',

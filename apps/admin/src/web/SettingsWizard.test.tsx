@@ -50,7 +50,7 @@ describe('애플리케이션만 더하기', () => {
     fireEvent.click(screen.getByRole('button', { name: /데모마켓/ }));
     다음();
 
-    expect(종류카드들().map((it) => it.querySelector('.wz-kind-h')?.textContent)).toEqual(['웹', 'Android 앱', '게임', 'API']);
+    expect(종류카드들().map((it) => it.querySelector('.wz-kind-h')?.textContent)).toEqual(['웹', 'Android 앱', '모바일 게임', 'PC 게임', 'API']);
     종류를고른다('웹');
     다음();
 

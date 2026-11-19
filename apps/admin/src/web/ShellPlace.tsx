@@ -81,7 +81,7 @@ export function 위치카드({ user, service, onService, 새로만들기 }: { us
           <span className="place-app-text">
             <b>{service.name}</b>
             <small>
-              {종류이름(service.kind, 언어)} · {service.prefix}
+              {종류이름(service.kind, 언어, service.gamePlatform)} · {service.prefix}
             </small>
           </span>
         </span>
@@ -235,7 +235,7 @@ export function 위치판({
             key={it.prefix}
             type="button"
             className="place-app-row"
-            aria-label={`${it.name} · ${종류이름(it.kind, 언어)}`}
+            aria-label={`${it.name} · ${종류이름(it.kind, 언어, it.gamePlatform)}`}
             {...(지금 ? { 'aria-current': 'page' as const } : {})}
             onClick={() => 고른다(it.prefix)}
           >
@@ -245,7 +245,7 @@ export function 위치판({
             <span className="place-app-text">
               <b>{it.name}</b>
               <small>
-                {종류이름(it.kind, 언어)} · {it.prefix}
+                {종류이름(it.kind, 언어, it.gamePlatform)} · {it.prefix}
               </small>
             </span>
             <span className="place-check" aria-hidden="true">

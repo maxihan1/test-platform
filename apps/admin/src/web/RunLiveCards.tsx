@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { PC항목인가 } from '@platform/kit/types';
 import { api, type 항목진행 } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import type { RunDetail, 도는것 } from './runProgress.js';
@@ -65,6 +66,8 @@ function 기기글({ 항목, 절차 }: 도는것, t: 말): string | null {
 
 /** 첫 단계 전 발 글 — 브라우저를 여는 4~5초 · 폰을 잡는 동안 카드가 멈춘 것처럼 보이지 않게 (점검표 B1 · B2) */
 function 첫단계전글({ 항목, 절차 }: 도는것, t: 말): string {
+  // PC 는 정식 실행이면 빈 PC 를 120분까지 기다린다 — 「찾는 중」보다 「기다리는 중」이 맞다 (도메인/게임 §3.10 「윈도우 PC」)
+  if (PC항목인가(항목.platform)) return 절차?.vision === undefined ? t('빈 Windows PC 를 기다리는 중') : t('게임을 여는 중');
   if (항목.platform !== 'android') return t('브라우저를 여는 중');
   return 절차?.vision === undefined ? t('사용할 디바이스를 찾는 중') : t('앱을 여는 중');
 }
@@ -110,7 +113,7 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
       </div>
       <div className="lc-scene">
         {화면있음 ? (
-          <장면 runId={runId} historyId={항목.historyId} 폰={항목.platform !== 'desktop'} 앱폰={항목.platform === 'android'} 기다림글={첫단계전글(것, t)} />
+          <장면 runId={runId} historyId={항목.historyId} 폰={항목.platform === 'mobile' || 항목.platform === 'android'} 앱폰={항목.platform === 'android' || PC항목인가(항목.platform)} 기다림글={첫단계전글(것, t)} />
         ) : (
           // 장면 열쇠가 없는 항목이다 — admin 이 다시 떠 열쇠를 잃었거나 열쇠를 안 만든 옛 실행이다. 폰을 잡았으면 VISION 링크가 그 화면을 연다.
           // 단계가 이미 도는데 장면이 없을 때 「여는 중」이라 하면 멈춘 것처럼 읽힌다

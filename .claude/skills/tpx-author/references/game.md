@@ -53,6 +53,27 @@ npx control-cli release                  # 반드시 — 놓아야 팜이 깐 �
 - 만든 케이스는 마지막에 이 폰에서 1번씩 돌린다 — `tpx-cases` `game.md` §7(`authoring:run -- 게임`). 그 전에 `-s=g close` 로 CLI 세션을 닫는다 — 케이스가 같은 폰에 새로 붙는다.
 - **상태 도우미는 부르기 명령으로 부른다** — `npx tsx scripts/authoring-game-state.ts <폴더> <함수> '<인자 JSON 배열>'`(`tpx-cases` `game.md` §3). 어드민 키도 계정처럼 환경값(`PLATFORM_ADMIN_KEY`)에만 있다 — 글자로 적지 않는다. 키가 없으면(앱 줄에 어드민 키가 없다) 명령이 2 로 끝난다.
 
+### PC 게임 — Windows PC 한 대 (2026-11-20 GAME-F4-07)
+
+게임 화면 절이 「PC 게임(Windows)」이면 폰 대신 Device VISION 의 Windows PC(`pc-<이름>`) 한 대에서 읽고 돌려 본다. 첫 화면은 미리 받지 않았다 — PC 를 잡고 게임을 켠 뒤 `snapshot` 으로 읽는다(도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」). 위 규칙(단계마다 잡고 놓기 · 메인만 · 토큰 · 계정 값)은 그대로다.
+
+```bash
+npx control-cli hold --pc --minutes 30   # 빈 PC 하나를 잡는다 — 폰과 같은 .control-cli/held 에 남는다
+curl -sSfL -o "$TMPDIR/game.zip" "$(cat "$AUTHORING_APP_FILE")"   # 빌드 zip 을 받는다 — 링크는 2시간짜리라 에이전트가 30분마다 갈아 끼우는 이 파일에서 읽는다
+npx control-cli -s=g open --app "$TMPDIR/game.zip"   # VISION 이 깔고 켠다(1GB 까지 · 몇십 초) — 출력 「VISION PC pc-pc1 · <이름>」의 <이름>을 적어 둔다
+npx control-cli -s=g open --app <이름>   # 같은 PC 를 다시 잡았으면 깔지 않고 켠다 — 놓아도 깐 빌드는 PC 에 남는다
+npx control-cli -s=g key Escape          # 키 한 번 — Unity KeyCode 이름(Space · Return · I · F1 · Mouse0). 여럿은 A+LeftShift
+npx control-cli -s=g pad ps5             # 살펴볼 때만 — 가상 패드를 그 종류로 바꾸고 버튼 이름(south Cross …)을 찍는다. 케이스는 패드를 바꾸지 않는다
+npx control-cli -s=g key Pad.Cross       # 지금 패드의 버튼 이름으로 누른다
+npx control-cli -s=g close
+npx control-cli release                  # 반드시 — VISION 이 켠 게임을 끄고 Unity 데이터를 지운다
+```
+
+- **폰처럼 여러 대로 나누지 않는다** — PC 는 잡은 한 대뿐이고 돌려 보기 명령도 덤 PC 를 잡지 않는다
+- **키보드 · 마우스가 그 게임의 조작이다** — 키보드 요구도 케이스로 쓴다. 「PC 전용」 머리로 빼지 않는다(`prd-game.md` §2)
+- **지원 패드는 절에 적힌 것만 쓴다** — 패드마다 `pad <종류>` 로 바꿔 보고 확인 · 취소 버튼 자리와 화면의 버튼 그림 오브젝트(이름 · 스프라이트)를 트리로 찍어 둔다. 버튼 그림 케이스는 `tpx-cases` `game.md` §8 이 맡는다
+- **PC 가 없어 못 잡으면 결과 요약 `못 읽은 자료` 줄에 `게임 탐색 — <까닭>`** 을 적는다. 첫 화면이 없어 주소를 짐작하게 되면 케이스를 쓰지 않고 멈춘다
+
 ## 4. 창 훑기 — `crawl` 다음 견주기
 
 `crawl` 은 **지금 화면**에서 버튼을 하나씩 눌러 새로 뜬 창을 찍고 닫는다(창 60개 · 10분까지). 삭제 · 탈퇴 · 로그아웃 · 종료 버튼은 CLI 가 누르지 않는다 — 더 뺄 것은 `--exclude`.

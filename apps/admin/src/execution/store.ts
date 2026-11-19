@@ -248,7 +248,7 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
     if (missing.length > 0) throw new RunInputError('CASE_NOT_FOUND', `카탈로그에 없는 케이스다: ${missing.join(', ')}`);
     const 밖 = 선언밖디바이스(input.items, cases);
     if (밖) throw new RunInputError('INVALID_REQUEST', `${밖.tcId} 는 ${PLATFORM_LABEL[밖.platform]} 환경을 선언하지 않았다`);
-    input = { ...input, items: 윈도우를펼친다(input.items, cases, found서비스.game_pads) };
+    input = { ...input, items: 윈도우를펼친다(input.items, cases, found서비스.game_pads, input.rerunOf !== undefined) };
     if (input.items.length === 0) {
       throw new RunInputError(input.origin === 'MANUAL' ? 'INVALID_REQUEST' : 'NO_ITEMS', '실행할 케이스가 하나도 없다 — 버튼 그림 케이스의 패드가 지원 패드에 없다');
     }

@@ -54,6 +54,16 @@ describe('폰판정들 — 고친 뒤 폰에서 돈 기록으로 판정한다', 
   });
 });
 
+describe('폰판정들 — PC 게임은 선언한 윈도우 값이 다 돌아야 판정한다', () => {
+  it('PS5 만 돌고 Xbox 가 시간 안에 못 돌았으면 초록이 아니라 안돎이고, 둘 다 돌았으면 초록이다', () => {
+    const 패드판 = (자리: string) => ({ ...판(2000, 'expected'), 기록: `gate3-game-1~${자리}~1.json` });
+    const 값들 = () => ['windows-ps5', 'windows-xbox'];
+    expect(폰판정들({ 'g/A.spec.ts': 1000 }, new Map([['g/A.spec.ts', [패드판('pc-pc1:ps5')]]]), [], [1], 값들)).toEqual([['g/A.spec.ts', { 상태: '안돎' }]]);
+    expect(폰판정들({ 'g/A.spec.ts': 1000 }, new Map([['g/A.spec.ts', [패드판('pc-pc1:ps5'), 패드판('pc-pc1:xbox')]]]), [], [1], 값들)).toEqual([['g/A.spec.ts', { 상태: '초록' }]]);
+    expect(폰판정들({ 'g/B.spec.ts': 1000 }, new Map([['g/B.spec.ts', [패드판('pc-pc1')]]]), [], [1], () => ['windows'])).toEqual([['g/B.spec.ts', { 상태: '초록' }]]);
+  });
+});
+
 describe('폰차례 · 데이터남기나 — 앱 데이터를 남기는 케이스끼리 붙여 돌린다', () => {
   it('남기는 케이스를 앞에 모으고 나머지를 뒤에 세운다 — 거르지 않아 못 도는 케이스 하나가 나머지를 막지 않는다', () => {
     const 남기나 = (f: string) => f.startsWith('m/K');
@@ -336,6 +346,61 @@ writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: 
     expect(찍힌).toMatch(/폰 한 대로 돈다/);
     expect(찍힌).toMatch(/도중에 끊긴 폰 R3CR10TCVCD — 그 폰 기록은 버렸다/);
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 — g/G-FN-001.spec.ts']);
+  });
+
+  it('PC 게임은 잡은 PC 한 대에서 선언한 윈도우 값마다 따로 돌고(패드 값은 PLATFORM_PAD) 덤 폰을 안 잡으며, 패드 하나에서만 빨간 케이스를 가른다', async () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    writeFileSync(join(트리, 'tests', 'g', 'G-FN-001.spec.ts'), 게임케이스.replace("['android']", "['windows']"));
+    writeFileSync(join(트리, 'tests', 'g', 'G-FN-003.spec.ts'), 게임케이스.replace('G-FN-001', 'G-FN-003').replace("['android']", "['windows-ps5', 'windows-xbox']"));
+    const 말 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // 가짜 Playwright — 프로젝트 · 패드 · 게임 이름 · PC 번호 · 케이스를 남기고, red-<패드> 파일에 적힌 케이스는 그 패드에서 빨갛다
+    const 가짜 = join(트리, 'bin');
+    mkdirSync(가짜);
+    writeFileSync(
+      join(가짜, 'pw.mjs'),
+      `import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+const 프로젝트 = process.argv.find((a) => a.startsWith('--project=')).slice(10);
+const 패드 = process.env.PLATFORM_PAD;
+const 빨강 = existsSync(process.env.AUTHORING_GATE3_DIR + '/red-' + 패드) ? readFileSync(process.env.AUTHORING_GATE3_DIR + '/red-' + 패드, 'utf8') : '';
+const 파일들 = process.argv.slice(2).filter((a) => a.startsWith('tests/')).map((a) => a.slice(6));
+appendFileSync(process.env.AUTHORING_GATE3_DIR + '/runs.txt', [프로젝트, 패드 || '-', process.env.PLATFORM_PC_GAME, process.env.PLATFORM_DEVICE_UDID, 파일들.join(',')].join(' ') + '\\n');
+writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: {}, stats: { startTime: new Date().toISOString() }, suites: 파일들.map((file) => ({ file, specs: [{ tests: [{ projectName: 프로젝트, status: 빨강.includes(file) ? 'unexpected' : 'expected', results: [{ duration: 1000, ...(빨강.includes(file) ? { error: { message: 'Cross 그림이 안 떴다' } } : {}) }] }] }] })) }));
+`,
+    );
+    writeFileSync(join(가짜, 'npx'), `#!/bin/sh\nshift\nshift\nexec node "${join(가짜, 'pw.mjs')}" "$@"\n`, { mode: 0o755 });
+    mkdirSync(join(트리, '.control-cli'));
+    writeFileSync(join(트리, '.control-cli', 'held'), 'pc-pc1\n');
+    writeFileSync(join(결과폴더, 'red-ps5'), 'g/G-FN-003.spec.ts');
+    const 팜 = vi.fn(async (주소: string) => {
+      if (주소.endsWith('/api/devices/acquire')) throw new Error('PC 게임은 덤 폰을 잡지 않는다');
+      return new Response(JSON.stringify({ value: { devices: [{ serial: 'pc-pc1', state: 'OCCUPIED', platform: 'windows' }] } }), { status: 200 });
+    });
+    const env = {
+      PATH: `${가짜}:${process.env.PATH ?? ''}`, AUTHORING_GATE3_DIR: 결과폴더, AUTHORING_BASE_LIST: 기준목록(트리), AUTHORING_GAME_DIR: 트리, AUTHORING_GAME_PLATFORM: 'windows',
+      PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APP: 'https://qa.test/api/builds/7/apk?exp=1&sig=a', PLATFORM_BASE_URL: 'http://qa.g.test',
+      PLATFORM_ACCOUNTS: JSON.stringify([
+        { baseUrl: 'http://qa.g.test', role: '일반 회원', loginId: 'qa_user1', loginPassword: 'pw-123456' },
+        { baseUrl: 'http://qa.g.test', role: '일반 회원 2', loginId: 'qa_par2', loginPassword: 'pw-654321' },
+      ]),
+    };
+
+    expect(await 폰실행('게임', 'g', 트리, env, 팜 as unknown as typeof fetch)).toBe(2);
+    expect(오류.mock.calls.at(-1)?.[0]).toMatch(/PLATFORM_PC_GAME=<이름>/);
+
+    writeFileSync(join(트리, 'tests', 'g', 'G-FN-004.spec.ts'), 게임케이스.replace('G-FN-001', 'G-FN-004'));
+    expect(await 폰실행('게임', 'g', 트리, { ...env, PLATFORM_PC_GAME: 'BossRoom' }, 팜 as unknown as typeof fetch)).toBe(2);
+    expect(오류.mock.calls.at(-1)?.[0]).toMatch(/윈도우 값이 없는 케이스 1건 — g\/G-FN-004\.spec\.ts/);
+    rmSync(join(트리, 'tests', 'g', 'G-FN-004.spec.ts'));
+
+    expect(await 폰실행('게임', 'g', 트리, { ...env, PLATFORM_PC_GAME: 'BossRoom' }, 팜 as unknown as typeof fetch)).toBe(1);
+    expect(readFileSync(join(결과폴더, 'runs.txt'), 'utf8').trim().split('\n')).toEqual([
+      'windows - BossRoom pc-pc1 g/G-FN-001.spec.ts',
+      'windows-ps5 ps5 BossRoom pc-pc1 g/G-FN-003.spec.ts',
+      'windows-xbox xbox BossRoom pc-pc1 g/G-FN-003.spec.ts',
+    ]);
+    expect(말.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/G-FN-003\.spec\.ts \(PS5 패드 pc-pc1:ps5 에서만 빨강\): Cross 그림이 안 떴다/);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts', 'tests/g/G-FN-003.spec.ts'])).toEqual(['⚠️ 폰마다 결과가 다른 게임 케이스 1개 — g/G-FN-003.spec.ts(pc-pc1:ps5 에서만 빨강)']);
   });
 
   it('이번에 닿은 게임 케이스가 없으면 폰 없이 0', async () => {

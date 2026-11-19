@@ -2,10 +2,11 @@
 
 import { useRef, useState } from 'react';
 
-import type { EnvRow } from './api.js';
+import type { EnvRow, 패드 } from './api.js';
+import { 패드차례 } from './AuthoringNewPads.js';
 import { 받는종류 } from './authoringNewText.js';
 import { 크기글 } from './GuideSection.js';
-import { use말 } from './i18n.js';
+import { use말, type 값들 } from './i18n.js';
 
 export type 단계 = 'guide' | 'method' | 'material' | 'server' | 'confirm';
 export type 방법 = 'prd' | 'screen' | 'both';
@@ -222,6 +223,42 @@ export function 서버칸({
 }
 
 /** 마지막 단계 — 넣은 것을 한눈에 보이고 무엇을 하는지 말한다 */
+/**
+ * 확인 단계의 요약 줄(칸 이름과 값)과 할 일 한 줄. 빈 칸은 싣지 않는다 — undefined 인 칸은 그 단계를 안 거쳤다
+ * @param 패드 PC 게임만. 체크를 다 풀었으면 「없음 — 키보드만」
+ */
+export function 확인요약(p: {
+  가이드버전: number;
+  가이드이름: string;
+  패드: readonly 패드[] | undefined;
+  대조칸: boolean;
+  방법값: 방법;
+  API판: number | null | undefined;
+  자료: { 파일들: string[]; 피그마수: number } | undefined;
+  서버: string | null;
+  t: (키: string, 값?: 값들) => string;
+}): { 요약: [string, string][]; 할일: string } {
+  const { t } = p;
+  const 요약: [string, string][] = [[t('가이드'), p.가이드버전 === 0 ? t('가이드 없음') : t('{가이드} 버전 {버전} 참고', { 가이드: p.가이드이름, 버전: p.가이드버전 })]];
+  if (p.패드 !== undefined) 요약.push([t('지원 패드'), 패드차례.filter((it) => p.패드!.includes(it.값)).map((it) => it.이름).join(' · ') || t('없음 — 키보드만')]);
+  if (p.대조칸) 요약.push([t('작성 방식'), t(방법표.find((it) => it.값 === p.방법값)!.제목)]);
+  if (p.API판 != null) 요약.push([t('API 문서'), t('버전 {버전}', { 버전: p.API판 })]);
+  if (p.자료 !== undefined) {
+    const 피그마수 = p.자료.피그마수 === 0 ? [] : [t('피그마 {수}건', { 수: p.자료.피그마수 })];
+    요약.push([t('자료'), [...p.자료.파일들, ...피그마수].join(' · ') || '—']);
+  }
+  if (p.서버 !== null) 요약.push([t('대상 서버'), p.서버]);
+  const 할일 =
+    p.API판 !== undefined
+      ? t('엔드포인트별로 케이스를 작성해 검토 PR 로 등록합니다')
+      : p.방법값 === 'both'
+        ? t('PRD 에 있는 화면을 먼저 작성한 뒤 PRD 에 아직 없는 화면을 이어서 작성합니다')
+        : p.방법값 === 'screen'
+          ? t('PRD 에 아직 없는 화면의 케이스를 작성합니다')
+          : t('요구사항별로 케이스를 작성해 검토 PR 로 등록합니다');
+  return { 요약, 할일 };
+}
+
 export function 확인칸({ 줄들, 할일 }: { 줄들: [string, string][]; 할일: string }) {
   const t = use말();
   return (

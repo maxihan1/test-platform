@@ -199,6 +199,27 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     expect(screen.getByRole('button', { name: '크게 보기' })).toBeTruthy();
   });
 
+  it('PC 게임 항목은 가로 틀이고, PC 를 잡기 전 · 뒤 발 글이 「빈 Windows PC 를 기다리는 중」 · 「게임을 여는 중」이다 (도메인/게임 §3.10 「윈도우 PC」)', async () => {
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['png'], { type: 'image/png' }) });
+    const { rerender } = render(
+      <RunProgressModal data={실행([항목(4, 'windows-ps5')])} 진행목록={[{ historyId: 4, timeoutMs: 300000, live: true }]} onClose={() => {}} />,
+    );
+    expect(카드들()[0]!.querySelector('.lc-foot')?.textContent).toContain('빈 Windows PC 를 기다리는 중');
+    rerender(
+      <RunProgressModal
+        data={실행([항목(4, 'windows-ps5')])}
+        진행목록={[{ historyId: 4, timeoutMs: 300000, live: true, vision: { url: 'https://vision.example.test/#pc=pc1', name: 'pc-pc1' } }]}
+        onClose={() => {}}
+      />,
+    );
+    await 흘리기();
+
+    expect(카드들()[0]!.querySelector('.lc-foot')?.textContent).toContain('게임을 여는 중');
+    expect(document.querySelector('.live-shot img')).toBeTruthy();
+    expect(document.querySelector('.live-shot.lc-phone')).toBeNull();
+    expect(카드들()[0]!.textContent).toContain('pc-pc1');
+  });
+
   it('장면 열쇠가 없는 항목(옛 실행 · admin 이 다시 뜸)은 장면 대신 안내를 두고 장면 통로를 묻지 않는다', () => {
     const 받기 = vi.spyOn(장면통로, '받기');
     render(
