@@ -48,6 +48,7 @@ echo '{"tool_input":{"command":"git push --force origin main"}}' | node .claude/
 - **서버 · DB 코드(`apps/` 의 화면 밖 · `packages/` · `scripts/` · `db/`)나 위 설정 파일이 바뀌면 임시 DB 에서 DB 검사도 돈다** (2026-10-09). 개발 postgres(127.0.0.1 — 포트는 main 체크아웃 `.env` 의 `POSTGRES_PORT`, 비면 5434)에 `tp_prepush_<번호>` 를 만들고 `db/init` 의 `*.sh` · `*.sql`(postgres 이미지처럼 이름 차례로, 실패하면 막는다)과 마이그레이션을 건 뒤 `DATABASE_URL` 로 넘기고, 끝나면(실패해도) 지운다. 비밀번호는 main 체크아웃 `.env` 의 `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` 이고 비면 `platform` · `grafana_ro` 다(docker compose 와 같다). **도커가 꺼져 있으면 막는다** — `docker compose up -d postgres` 뒤 다시 push. DB 검사는 `DATABASE_URL` 이 없으면 조용히 건너뛰므로 건너뛰지 않고 막는 쪽을 골랐다
 - 단위 테스트는 동시에 돈다. `DATABASE_URL` 을 읽는 검사 파일만 한 프로세스에서 차례로 돈다(`vitest.config.ts` 의 `db` 묶음 — 저절로 고른다). 걸리는 시간은 여기 적지 않는다 — 검사가 늘며 조용히 틀려진다. 재려면 `npx vitest run --reporter=json --outputFile=<파일>` 의 파일별 시간을 본다
 - 브랜치 삭제 push · 빈 시작 커밋은 검사 없이 지나간다. 입력이 비거나 diff 를 못 읽으면 `full` 이다(보수적)
+- 원격 브랜치 머리가 이 훅을 통과한 커밋이고 그 뒤 바뀐 파일이 진행판(`docs/wbs.md`) 하나뿐이면 검사 없이 지나간다 — `/tpx` 4단계가 검사를 마친 브랜치에 진행판 체크만 더해 올릴 때 `full` 을 다시 돌지 않게 (2026-11-19 사용자). 통과한 커밋 번호는 `.git/pre-push-passed` 에 적는다. GitHub 「Update branch」 · `--no-verify` 로 올라간 머리 · 새 브랜치 · 다른 파일이 섞인 push 는 그대로 검사한다
 - 훅은 검사 전에 git 이 넣어 준 `GIT_*` 환경 변수를 걷는다 — 임시 저장소를 만드는 검사가 이 저장소에 커밋한 사고가 두 번 있었다
 - 동작은 `.claude/scripts/hook-contract.test.mjs` 가 임시 저장소에서 훅을 실제로 돌려 본다
 - 급할 때 사람만 `git push --no-verify`

@@ -28,6 +28,35 @@ EOF
   fi
 fi
 
+# ── 진행판(docs/wbs.md)만 더한 push 는 바로 통과한다 ─────────────────────────
+# /tpx 4단계는 검사를 마친 브랜치에 진행판 체크만 더해 다시 올린다. 아래 차선은 origin/main 과 견주어 브랜치 전체를 다시 잡아
+# full 검사를 또 돌았다 (2026-11-19 사용자). 원격 브랜치 머리가 **이 훅을 통과한 커밋**이고 그 뒤 바뀐 파일이 docs/wbs.md 하나뿐일 때만 건너뛴다.
+# 통과 기록을 보는 까닭 — GitHub 「Update branch」 · 웹 편집 · --no-verify 로 올라간 머리는 검사를 안 거쳤다 (끝 검사 지적).
+# 새 브랜치(원격 sha 가 0) · 기록에 없는 머리 · diff 를 못 읽음 · 다른 파일이 섞임은 검사로 간다
+PASSED_FILE=""
+common_dir=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && PASSED_FILE="$common_dir/pre-push-passed"
+mark_passed() {
+  [ -n "$PASSED_FILE" ] || return 0
+  for s in $SHAS; do echo "$s"; done >> "$PASSED_FILE" 2>/dev/null || true
+}
+if [ -n "$REFS" ] && [ -n "$PASSED_FILE" ]; then
+  wbs_only=yes
+  while IFS=' ' read -r _local_ref local_sha _remote_ref remote_sha; do
+    case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+    case "$remote_sha" in *[!0]*) ;; *) wbs_only=no; break ;; esac
+    grep -qxF "$remote_sha" "$PASSED_FILE" 2>/dev/null || { wbs_only=no; break; }
+    delta=$(git -c core.quotePath=false diff --no-renames --name-only "$remote_sha" "$local_sha" 2>/dev/null) || { wbs_only=no; break; }
+    [ "$delta" = "docs/wbs.md" ] || { wbs_only=no; break; }
+  done <<EOF
+$REFS
+EOF
+  if [ "$wbs_only" = yes ]; then
+    echo "[pre-push] 진행판(docs/wbs.md)만 바뀌었고 원격 머리는 이 검사를 통과했다. 검사를 건너뛴다"
+    mark_passed
+    exit 0
+  fi
+fi
+
 echo "[pre-push] 검사 시작"
 
 # ── git 이 넣어 준 GIT_* 를 걷는다 ──────────────────────────────────────────
@@ -87,6 +116,7 @@ fi
 if [ "$lane" = "docs" ] || [ "$lane" = "spec" ]; then
   # check:spec 은 node 표준 모듈만 쓴다 — 문서 PR 에 테스트·타입 검사가 볼 것이 없다
   npm run check:spec --silent || fail "SPEC 문서 검사 실패 (없는 절·깨진 링크·색인 분량)."
+  mark_passed
   echo "[pre-push] 통과"
   exit 0
 fi
@@ -158,4 +188,5 @@ fi
 # --no-held 는 안 붙인다 — 초안 push 에는 보류 케이스가 정상이다(K13). 사람 PR 은 /tpx 4단계가 병합 직전에 막는다 (리뷰 M2 · 2026-10-24 사용자)
 npm run check:tests --silent || fail "테스트 코드 규칙 위반 (SPEC §4 K표)."
 
+mark_passed
 echo "[pre-push] 통과"
