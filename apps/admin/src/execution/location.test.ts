@@ -139,6 +139,7 @@ describe('윈도우 PC 항목', () => {
   const 선언 = new Map([
     ['ASH-FN-001', { platforms: ['windows'] }],
     ['ASH-FN-002', { platforms: ['windows-ps5', 'windows-ps4', 'windows-xbox'] }],
+    ['ASH-FN-003', { platforms: ['windows', 'windows-ps5'] }],
     ['ARG-FN-002', { platforms: ['android'] }],
   ]);
 
@@ -159,6 +160,11 @@ describe('윈도우 PC 항목', () => {
     expect(펼침([{ tcId: 'ASH-FN-002', platforms: ['windows'] }], [])).toEqual([]);
     // 실패 다시 실행처럼 값 하나로 건 항목은 지원 패드를 안 본다 — 겹치면 한 번이다
     expect(펼침([{ tcId: 'ASH-FN-002', platforms: ['windows-ps4', 'windows'] }], ['ps4'])).toEqual([['ASH-FN-002', ['windows-ps4']]]);
+  });
+
+  it('실패 다시 실행의 windows 는 키보드 항목 그대로다 — 키보드만 실패했는데 통과한 패드 항목까지 다시 돌지 않게 (도메인/게임 §3.10 「실패 다시 실행은 원래 항목의 값 그대로다」)', () => {
+    expect(윈도우를펼친다([{ tcId: 'ASH-FN-003', platforms: ['windows'] }], 선언, ['ps5'], true).map((i) => i.platforms)).toEqual([['windows']]);
+    expect(윈도우를펼친다([{ tcId: 'ASH-FN-003', platforms: ['windows'] }], 선언, ['ps5']).map((i) => i.platforms)).toEqual([['windows', 'windows-ps5']]);
   });
 
   it('게임 하나에 플랫폼 하나 — 게임 밖 · 모바일 게임의 윈도우 값, PC 게임의 android 는 돌 수 없다', () => {
