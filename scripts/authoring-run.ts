@@ -26,9 +26,9 @@ import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } 
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
-import { 게임화면받기, 받은팜토큰, 앱링크갈기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { PC게임못함, 게임화면받기, 받은팜토큰, 앱링크갈기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
-import { 게임자료환경 } from './authoring-check-game.js';
+import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
 import { 미션올리기, 미션준비 } from './authoring-missions.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
@@ -202,7 +202,12 @@ async function 사본에서(
   // 서비스 가이드는 먼저가리기 앞에 받는다 — 자료 폴더째 가려 guide/ 의 계정 비밀번호도 가려진다. 못 받아도 간다 (§3.6 「★ 서비스 가이드」). 앱 첫 화면(앱이 있는 서비스만 — 폰이 앱을 켜는 데 오래 걸려 나란히 받는다)도 같다 (§3.6 「앱 화면」)
   // 게임(me 의 종류)은 앱 화면 대신 게임 첫 화면 — 창 기록 저장본 · 게임 지도도 받는다 (도메인/게임 §3.10 「작성 — 한 바퀴」)
   const [가이드판, [앱만, 앱문구], 게임화면] = await Promise.all([가이드받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 바꾸기, 자식), 설정.게임 === true ? [undefined, undefined] as const : 앱화면받기({ 주소기지, 토큰 }, 것.id, 자리.자료).then(async (앱) => [앱, 옮긴다 && 설정.종류 === 'APP' && 앱 !== undefined ? await 앱문구받기(앱.탐색?.app, 자리.자료, 바꾸기, (글) => console.error(`[작성] ${것.id}번 — ${글}`)) : undefined] as const), 설정.게임 === true ? 게임화면받기({ 주소기지, 토큰 }, 것.id, 자리.자료) : undefined]);
-  const 앱화면 = 게임화면 ?? 앱만;
+  // PC 게임은 폰 대신 PC 한 대에서 읽는다 — 팜 주소 · zip 링크가 없으면 AI 가 읽을 것이 없어 띄우기 전에 멈춘다 (도메인/게임 §3.10 「윈도우 PC」 「작성」)
+  // 패드 값은 거르지 않고 넘긴다 — 서버가 넷 가운데 겹치지 않게 받았고, 틀린 값은 빠른 검사 · 스캐너가 짚는다
+  const PC = 게임화면 !== undefined && 것.gamePlatform === 'windows' ? { 패드: 것.gamePads ?? [] } : undefined;
+  const 앱화면 = 게임화면 === undefined ? 앱만 : { ...게임화면, ...(PC !== undefined && { PC }) };
+  const PC못함 = PC게임못함(앱화면);
+  if (PC못함 !== null) return void (await 손.끝내기({ status: 'FAILED', error: PC못함 }));
   if (게임화면 !== undefined) await 게임준비({ 주소기지, 토큰, 번호: 것.id }, 자리.자료);
   // 대조 · 반영 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호(역할 계정까지)를 먼저 가린다 (§3.6 「★ 역방향」 · 「★ 역할별 계정」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 비밀번호들(것));
@@ -237,6 +242,7 @@ async function 사본에서(
     ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면, 자리.자료),
     ...(것.api === undefined ? {} : API환경(것.api, 자리.자료)), // API 대상 서버 · 인증 · 판 파일도 환경 변수로만 (도메인/API §3.8 「API 인증」)
     ...(설정.게임 === true ? { [게임자료환경]: 자리.자료 } : {}), // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 4)
+    ...(PC !== undefined ? { [PC게임환경]: 'windows' } : {}), // 빠른 검사의 platforms 기준 · 돌려 보기 명령의 PC 갈래 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외, 앱: 설정.종류 === 'APP', 게임: 설정.게임 === true };
   const 입구 = 입구고르기(자리.트리, 설정.종류, (글) => console.error(`[작성] ${것.id}번 ${글}`)); // 띄우기 전에 한 번 — 이어 띄워도 같은 입구다 (§3.6 「종류별 작성 AI」)

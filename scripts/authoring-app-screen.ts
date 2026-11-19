@@ -15,7 +15,21 @@ import { 비밀번호꼴가리기 } from './authoring-prd.js';
 export type 앱탐색 = { url: string; app: string; token?: string };
 /** 게임 — 게임 첫 화면 통로에서 왔다. 프롬프트 절 · 놓을 폰 기록 자리(control-cli)가 다르다 */
 /** 문구 — APK 에서 꺼낸 앱 문구 파일(authoring-apk-strings). 옮기는 작성에만 붙는다 */
-export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true; 문구?: string };
+/** PC — PC 게임(집기 응답 gamePlatform 'windows')이다. 탐색의 app 은 Windows 빌드 zip 링크이고 패드는 집기 응답의 지원 패드다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」) */
+export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true; 문구?: string; PC?: { 패드: readonly string[] } };
+
+/** 서버가 PC 게임에 주는 까닭 — 이 까닭인데 탐색이 없으면 팜이 안 붙은 것이다(빌드가 없으면 서버가 다른 까닭을 준다) */
+const PC까닭 = 'PC 게임은 작성 AI 가 PC 에서 읽는다';
+
+/**
+ * PC 게임인데 PC 를 잡을 팜 주소나 깔 zip 링크가 없으면 자식을 띄우기 전에 멈출 까닭 — 폰 게임처럼 화면 없이 가면 AI 가 읽을 것이 없다.
+ * 빌드가 없으면 서버가 그 까닭을 준다 (도메인/게임 §3.10 「윈도우 PC」 「Windows 빌드가 없으면 작성을 시작하지 못한다」)
+ */
+export function PC게임못함(앱: 앱화면 | undefined): string | null {
+  if (앱?.PC === undefined || 앱.탐색 !== undefined) return null;
+  const 까닭 = '못읽음' in 앱 && 앱.못읽음 !== PC까닭 ? 앱.못읽음 : 'Device VISION 이 연결되어 있지 않아 PC 를 잡을 수 없다';
+  return `PC 게임 작성을 시작하지 못한다 — ${까닭}`;
+}
 
 /** 서버의 어느 통로에서 무엇을 받나. 기다림은 서버의 러너 기다림(앱 130 · 게임 285초)에 팜 잡기 · 놓기를 더한 것보다 길다 — 먼저 끊으면 폰을 읽는 중에 버린다 */
 type 받을곳 = { 길: string; 파일: string; 칸: 'appium' | 'game'; 기다림_ms: number; 이름: string };

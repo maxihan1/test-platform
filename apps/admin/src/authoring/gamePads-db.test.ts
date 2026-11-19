@@ -142,13 +142,29 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
     expect(앱).not.toHaveProperty('gamePads');
   });
 
-  it('game-screen 은 PC 게임이면 폰을 안 잡고 까닭을 적으며, 모바일 게임은 지금처럼 앱 파일을 본다', async () => {
-    await 줄들([['qa', null, false]]);
-    const id = await 요청넣기('RUNNING');
-    expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: 'PC 게임은 작성 AI 가 PC 에서 읽는다', game: null });
+  it('game-screen 은 PC 게임이면 폰을 안 잡고, 빌드가 없으면 그 까닭 · 있으면 팜 주소와 zip 링크를 주며, 모바일 게임은 지금처럼 앱 파일을 본다', async () => {
+    vi.stubEnv('PLATFORM_PUBLIC_URL', 'https://qahub.xgf.test');
+    vi.stubEnv('SESSION_SECRET', 'xgf-session-secret');
+    try {
+      await 줄들([['qa', null, false]]);
+      const id = await 요청넣기('RUNNING');
+      expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: 'Windows 빌드가 없다 — 그 애플리케이션에 Windows 빌드 zip 을 올린 뒤 다시 작성한다', game: null });
 
-    await 플랫폼('GAME', 'android');
-    expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null });
+      const 빌드 = await 빌드올리기('qa', 'xgf-1', '1 hour');
+      expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: 'PC 게임은 작성 AI 가 PC 에서 읽는다', game: null });
+
+      vi.stubEnv('DEVICE_FARM_URL', 'http://vision.xgf.test/');
+      const 답 = await 받기(id, 'game-screen');
+      expect(답).toMatchObject({ screen: null, reason: 'PC 게임은 작성 AI 가 PC 에서 읽는다', game: { url: 'http://vision.xgf.test/wd/hub' } });
+      expect(답.game.app).toContain(`/api/builds/${빌드}/`);
+
+      await 플랫폼('GAME', 'android');
+      vi.stubEnv('DEVICE_FARM_URL', '');
+      expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null });
+    } finally {
+      vi.unstubAllEnvs();
+      vi.mocked(서버팜토큰).mockClear();
+    }
   });
 
   it('app-link 는 PC 게임이면 빌드가 있는 줄(짚은 줄, 아니면 운영 아닌 첫 줄)의 최신 빌드 주소를 주고 app_path 로 물러서지 않는다', async () => {
