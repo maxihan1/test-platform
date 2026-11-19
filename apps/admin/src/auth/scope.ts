@@ -139,6 +139,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/game-elements': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/missions': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/game-map': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/game-route': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/guide': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/guide/files/:fileId': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/app-screen': { 종류: '작성요청', 칸: 'id' },
