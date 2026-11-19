@@ -63,18 +63,20 @@ description: 테스트 자동화 플랫폼의 모든 코드 작업 진입점. �
 
 ## 3. 끝 검사 — 한 명
 
-1. `git push` — pre-push 가 차선대로 검사한다(`docs/HOOKS.md`). 빨개지면 고치고 다시 push
-2. **렌즈 하나** — `Skill` 로 `code-review`, args 는 `<강도> origin/main...HEAD in <작업 폴더 절대경로>`.
+1. 진행판 먼저 — `docs/wbs.md` 에서 이번 태스크를 `[x]` 로, 다음 줄에 `  - 근거 PR #<번호> · <오늘>` 을 달고 커밋한다(PR 번호는 1단계 초안 PR). 해당 태스크가 없으면 건너뛴다.
+   병합 단계에서 따로 push 하면 pre-push 가 한 번 더 돈다(2026-11-19 사용자)
+2. `git push` — pre-push 가 차선대로 검사한다(`docs/HOOKS.md`). 빨개지면 고치고 다시 push
+3. **렌즈 하나** — `Skill` 로 `code-review`, args 는 `<강도> origin/main...HEAD in <작업 폴더 절대경로>`.
    강도는 0·1등급 `low` · 2·3등급 `medium` · 인증 · 권한(`AUTH` 표면)을 고쳤으면 `high`
-3. `docs/spec/**` · `docs/SPEC.md` 가 바뀌었으면 `spec-review` 를 하나 더 — `general-purpose` · `model: "opus"` 보조 에이전트에
+4. `docs/spec/**` · `docs/SPEC.md` 가 바뀌었으면 `spec-review` 를 하나 더 — `general-purpose` · `model: "opus"` 보조 에이전트에
    「작업 폴더 `<절대경로>` · 범위 `origin/main...HEAD` · 고치지 말고 보고만」으로 낸다
-4. 지적을 고친 뒤에는 **렌즈를 다시 부르지 않는다** — 고치고 push 해서 pre-push 만 다시 통과시킨다
-5. 고칠 수 없는 치명이거나 사람이 정할 문제일 때만 멈추고 묻는다. 그 밖의 지적은 고치고 넘어간다
+5. 지적을 고친 뒤에는 **렌즈를 다시 부르지 않는다** — 고치고 push 해서 pre-push 만 다시 통과시킨다
+6. 고칠 수 없는 치명이거나 사람이 정할 문제일 때만 멈추고 묻는다. 그 밖의 지적은 고치고 넘어간다
 
 ## 4. 병합
 
 1. `git status --porcelain` 이 비고 `git log origin/<브랜치>..HEAD` 가 0 인지 본다
-2. 진행판 — `docs/wbs.md` 에서 이번에 끝낸 태스크를 `[x]` 로, 다음 줄에 `  - 근거 PR #<번호> · <오늘>` 을 달고 커밋 · push. 해당 태스크가 없으면 건너뛴다
+2. 진행판 줄은 3단계 1 에서 달았다 — 빠졌을 때만 여기서 달고 커밋 · push 한다
 3. `npm run check:tests -- --no-held` — 값을 안 채운 보류 케이스(`held`)가 남았으면 병합하지 않고 멈춰 보고한다. 초안 push 에는 보류가 정상이라 pre-push 는 안 막는다(K13 · 2026-10-24 사용자) →
    `gh pr ready <번호>` → `gh pr edit <번호> --title "<[작업중] 을 뗀 제목>" --body "<최종 본문 — 한 일 · 확인 방법 · 검사 결과 한 줄>"`
 4. `gh pr view <번호> --json headRefOid -q .headRefOid` 로 헤드를 읽고 `gh pr merge <번호> --merge --delete-branch --match-head-commit <헤드>` →
