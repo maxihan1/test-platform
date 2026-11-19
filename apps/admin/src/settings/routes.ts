@@ -12,7 +12,7 @@ import { 정수 } from '../routeParams.js';
 
 import { API서버라우트 } from './apiServerRoutes.js';
 import { API칸, API칸오류, API칸지금 } from './apiService.js';
-import { 게임패키지, 게임패키지거절, 대상서버목록, 역할틀림 } from './envBody.js';
+import { 게임패키지, 게임패키지거절, 게임플랫폼검사, 대상서버목록, 역할틀림 } from './envBody.js';
 import { 준비틀림 } from './prep.js';
 import { 프로젝트고치기, 프로젝트만들기, 프로젝트목록 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
@@ -51,6 +51,8 @@ const 새서비스 = z.object({
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
   kind: z.enum(['SCREEN', 'APP', 'GAME', 'API']).default('SCREEN'),
+  // 값 모양은 라우트가 따로 본다 — 틀린 값은 BAD_GAME_PLATFORM, GAME 이 아니면 NOT_GAME_SERVICE 라 zod 오류(INVALID_REQUEST)로 안 보낸다
+  gamePlatform: z.unknown().optional(),
   ...API칸,
 });
 
@@ -170,6 +172,8 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       if (parsed.error.issues.every((i) => i.path[0] === 'kind')) return reply.code(400).send({ error: 'BAD_KIND' });
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
+    const 플랫폼 = 게임플랫폼검사(parsed.data.kind, parsed.data.gamePlatform);
+    if (플랫폼.error !== undefined) return reply.code(400).send({ error: 플랫폼.error });
     if (!접두사모양.test(parsed.data.prefix)) {
       return reply.code(400).send({ error: 'PREFIX_SHAPE', detail: parsed.data.prefix });
     }
@@ -178,7 +182,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     if (게임패키지(parsed.data.kind, parsed.data.envs)) return reply.code(400).send(게임패키지거절);
     const API오류 = API칸오류(parsed.data, { kind: parsed.data.kind, apiDocEnv: null, envs: [] });
     if (API오류 !== null) return reply.code(400).send({ error: API오류 });
-    return reply.code(201).send({ id: await 서비스만들기(parsed.data) });
+    return reply.code(201).send({ id: await 서비스만들기({ ...parsed.data, gamePlatform: 플랫폼.값 }) });
   });
 
   app.patch<{ Params: { id: string }; Body: { prefix?: unknown } }>(
@@ -191,6 +195,10 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       // 종류도 같은 까닭이다 — 바꾸면 이미 있는 케이스가 화면 케이스인지 API 케이스인지 섞인다 (도메인/API §3.8)
       if (req.body !== null && typeof req.body === 'object' && 'kind' in req.body) {
         return reply.code(400).send({ error: 'KIND_IMMUTABLE' });
+      }
+      // 플랫폼도 같다 — 바뀌면 이미 올린 빌드와 케이스 선언이 어느 플랫폼 것인지 섞인다 (도메인/게임 §3.10 결정 27)
+      if (req.body !== null && typeof req.body === 'object' && 'gamePlatform' in req.body) {
+        return reply.code(400).send({ error: 'PLATFORM_IMMUTABLE' });
       }
       const parsed = 서비스수정.safeParse(req.body);
       if (!parsed.success) {

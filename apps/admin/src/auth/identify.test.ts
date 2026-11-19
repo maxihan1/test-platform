@@ -170,6 +170,20 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     expect(JSON.stringify(user)).not.toContain('figd_xfs1');
   });
 
+  it('게임 애플리케이션이면 gamePlatform · gamePads 를 싣고 그 밖은 null · [] 이다 (도메인/게임 §3.10 결정 27)', async () => {
+    const { pool } = await import('../db/index.js');
+    const 읽기 = async () => (await 확인(await 가짜요청('xfu1-live')))?.services.find((s) => s.prefix === 'XFS1B');
+    expect(await 읽기()).toMatchObject({ gamePlatform: null, gamePads: [] });
+    try {
+      await pool.query(`UPDATE service SET kind = 'GAME', game_platform = 'windows', game_pads = '["ps5","xbox"]' WHERE id = $1`, [웹훅없는서비스id]);
+      expect(await 읽기()).toMatchObject({ kind: 'GAME', gamePlatform: 'windows', gamePads: ['ps5', 'xbox'] });
+      await pool.query(`UPDATE service SET game_platform = 'android', game_pads = '[]' WHERE id = $1`, [웹훅없는서비스id]);
+      expect(await 읽기()).toMatchObject({ gamePlatform: 'android', gamePads: [] });
+    } finally {
+      await pool.query(`UPDATE service SET kind = 'SCREEN', game_platform = NULL, game_pads = '[]' WHERE id = $1`, [웹훅없는서비스id]);
+    }
+  });
+
   it('웹훅 주소 자체는 응답 어디에도 없다 (SPEC §7)', async () => {
     const user = await 확인(await 가짜요청('xfu1-live'));
     expect(JSON.stringify(user)).not.toContain('hooks.slack.test');
