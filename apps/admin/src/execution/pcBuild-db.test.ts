@@ -182,4 +182,17 @@ describe.skipIf(연결 === undefined)('게임 하나에 플랫폼 하나 — 빌
     // 78 은 앞 검사의 회귀 · 사람 실행이 도는 중으로 쥐고 있다. 77 · 79 는 뒤 빌드가 오며 스모크가 멈춰 지워진다
     expect(남은).toEqual(['78', '80', '81', '82', '83', '84']);
   });
+
+  it('지원 패드를 다 풀어 스모크에 돌 항목이 없어도 빌드 올리기는 실패가 아니다 — 빌드를 지우고 CI 가 영영 다시 부르지 않게', async () => {
+    await pool.query("UPDATE service SET game_pads = '[]' WHERE id = $1", [서비스.XPW]);
+    await pool.query("UPDATE test_case SET smoke = false WHERE tc_id = 'XPW-FN-001'");
+    try {
+      const 올림 = await 보낸다('XPW', '85', await 윈도우());
+      expect(올림.statusCode).toBe(201);
+      expect((await pool.query("SELECT 1 FROM app_build WHERE service_id = $1 AND build_no = '85'", [서비스.XPW])).rowCount).toBe(1);
+    } finally {
+      await pool.query("UPDATE test_case SET smoke = true WHERE tc_id = 'XPW-FN-001'");
+      await pool.query(`UPDATE service SET game_pads = '["ps5","xbox"]' WHERE id = $1`, [서비스.XPW]);
+    }
+  });
 });

@@ -33,7 +33,9 @@ export class RunInputError extends Error {
       | 'ENV_NOT_FOUND'
       | 'SERVICE_FORBIDDEN'
       | 'TOO_MANY_ITEMS'
-      | 'BAD_RERUN',
+      | 'BAD_RERUN'
+      // 정기 · 빌드 · 배포 신호 실행에서 플랫폼 밖 값 · 지원 패드 밖 패드를 빼고 나니 돌 항목이 없다 — 실패가 아니다(그 종류 실행만 안 선다)
+      | 'NO_ITEMS',
     message: string,
     // TOO_MANY_ITEMS 는 응답에 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
     readonly detail: { limit: number; requested: number } | undefined = undefined,
@@ -224,7 +226,7 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
       // 사람이 고른 것만 거절한다 — 정기 · 빌드 · 배포 신호 실행은 그 항목만 빼고 나머지를 돌린다. 케이스 하나 때문에 밤 정기 실행 전체가 멈추지 않게(스캐너가 문제 줄로 알린다)
       if (input.origin === 'MANUAL') throw new RunInputError('INVALID_REQUEST', `${밖값.tcId} 의 ${PLATFORM_LABEL[밖값.p]} 디바이스는 이 애플리케이션에서 돌지 않는다 — 게임 하나에 플랫폼 하나다`);
       input = { ...input, items: input.items.map((i) => ({ ...i, platforms: i.platforms.filter((p) => !밖인가(p)) })).filter((i) => i.platforms.length > 0) };
-      if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
+      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '이 애플리케이션 플랫폼으로 돌 케이스가 없다');
     }
     // 정기 · 빌드 · 배포 신호 실행은 카탈로그 선언을 그대로 싣는다 — 윈도우 값을 windows 하나로 접어 아래에서 지원 패드로 다시 펼친다(지원 패드에서 뺀 패드는 안 돈다)
     if (input.origin !== 'MANUAL') {
@@ -244,7 +246,9 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
     const 밖 = 선언밖디바이스(input.items, cases);
     if (밖) throw new RunInputError('INVALID_REQUEST', `${밖.tcId} 는 ${PLATFORM_LABEL[밖.platform]} 환경을 선언하지 않았다`);
     input = { ...input, items: 윈도우를펼친다(input.items, cases, found서비스.game_pads) };
-    if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다 — 버튼 그림 케이스의 패드가 지원 패드에 없다');
+    if (input.items.length === 0) {
+      throw new RunInputError(input.origin === 'MANUAL' ? 'INVALID_REQUEST' : 'NO_ITEMS', '실행할 케이스가 하나도 없다 — 버튼 그림 케이스의 패드가 지원 패드에 없다');
+    }
     const 펼친수 = input.items.reduce((n, i) => n + i.platforms.length, 0) * repeat;
     if (펼친수 > MAX_ITEMS) {
       throw new RunInputError('TOO_MANY_ITEMS', `한 번에 ${MAX_ITEMS}건까지 만들 수 있는데 ${펼친수}건을 요청했다`, { limit: MAX_ITEMS, requested: 펼친수 });

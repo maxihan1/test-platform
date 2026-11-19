@@ -42,11 +42,9 @@ export async function 배포실행걸기(deployId: number, 앱들: 배포할앱[
     for (const 앱 of 앱들) {
       let buildId = 앱.buildId;
       if (buildId === null) {
-        // CI 토큰이 같은 번호를 먼저 올렸으면 그 줄을 쓴다 — 같은 번호를 409 로 막지 않는다(§7 배포 신호 200).
-        // 플랫폼은 애플리케이션 것이다 — PC 게임의 zip 줄과 겹쳐야 그 줄을 쓴다 (도메인/게임 §3.10 결정 27)
+        // CI 토큰이 같은 번호를 먼저 올렸으면 그 줄을 쓴다 — 같은 번호를 409 로 막지 않는다(§7 배포 신호 200)
         const r = await pool.query<{ id: string }>(
-          `INSERT INTO app_build (service_id, env, platform, build_no, uploaded_by)
-             SELECT $1, $2, COALESCE(game_platform, 'android'), $3, $4 FROM service WHERE id = $1
+          `INSERT INTO app_build (service_id, env, build_no, uploaded_by) VALUES ($1, $2, $3, $4)
            ON CONFLICT (service_id, env, platform, build_no) DO UPDATE SET build_no = EXCLUDED.build_no RETURNING id`,
           [앱.serviceId, 앱.env, 앱.buildNo, 사람.username],
         );

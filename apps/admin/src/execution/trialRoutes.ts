@@ -168,10 +168,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     }
     const { 줄, 종류, 게임플랫폼, serviceId } = 대상;
     const PC씀 = PC항목인가(platform);
-    // 게임 하나에 플랫폼 하나 — 모바일 게임의 윈도우 값, PC 게임의 android 는 그 애플리케이션이 돌릴 수 없다 (도메인/게임 §3.10 결정 27)
-    if (플랫폼밖인가(종류, 게임플랫폼, platform)) {
-      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 의 ${platform} 디바이스는 이 애플리케이션에서 돌지 않습니다` });
-    }
+    if (플랫폼밖인가(종류, 게임플랫폼, platform)) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 의 ${platform} 디바이스는 이 애플리케이션에서 돌지 않습니다` });
 
     // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값 · 대상 서버 계정으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
     const { params, expected } = await 저장값으로채운다(tcId, platform, 줄.계정들, parsed.data.params, parsed.data.expected, {
