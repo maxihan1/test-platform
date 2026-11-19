@@ -176,6 +176,8 @@ describe.skipIf(연결 === undefined)('조작 맵 에이전트 통로', () => {
       { action: '적 누르기 후 「공격」 누르기', status: 'OK', reason: null, build_no: '15400' },
       { action: '파티 초대', status: 'BLOCKED', reason: '두 번째 계정 없음', build_no: null },
     ]);
+    await 올리기(id, { rows: [{ ...이동, status: 'BLOCKED', reason: '창을 못 엶', buildNo: undefined }] });
+    expect((await 상태())[0]).toEqual({ action: '적 누르기 후 「공격」 누르기', status: 'BLOCKED', reason: '창을 못 엶', build_no: null });
   });
 
   it('맵 글은 종류마다 한 행 한 줄 — 상태 · 빌드 · 소요 · 도우미 · 함수 · 경고, 나머지 칸은 맨 끝 JSON', async () => {

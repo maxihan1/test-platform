@@ -23,7 +23,7 @@ export interface 조작행 {
 }
 export type 지울행 = Pick<조작행, 'kind' | 'fromKey' | 'action'>;
 
-// 2026-11-19 GAME-F5-02 시작 질문 — 게임 지도 한도와 맞춘다. 탐색 플레이 한 번에 2,000행을 넘을 일이 없다
+// 2026-11-19 GAME-F5-02 시작 질문 — 글 · 칸 한도는 게임 지도와 같고, 줄 수는 탐색 플레이 한 번에 2,000행을 넘을 일이 없어 그보다 작다
 const 상한 = { 줄: 2_000, 열쇠: 200, 글: 500, 칸: 10_000, 빌드: 100, 소요: 86_400_000 } as const;
 // 경로 검색 명령이 맵 글을 한 줄씩 「 · 」 「 → 」로 잘라 읽는다 — 글 칸에 이것들이 들면 칸이 갈린다.
 // 앞뒤 빈칸 · 끝의 「·」 「→」 는 이어 붙일 때 가르개가 되고, NUL 은 jsonb 가 받지 않아 500 이 된다
@@ -117,7 +117,7 @@ export async function 조작행넣기(서비스: number, rows: 조작행[], remo
       [서비스, JSON.stringify(remove.map((r) => ({ kind: r.kind, from_key: r.fromKey, action: r.action })))],
     );
     // 빌드 번호를 안 실은 확인 행은 다시 해 본 것이 아니다 — 「어느 빌드에서 통과」를 지키고, 정식 실행이 단 「재확인 필요」도 풀지 않는다.
-    // 까닭은 지키지 않는다 — 진행 불가였던 행이 확인으로 오면 까닭이 남으면 안 된다
+    // 까닭은 지키지 않는다 — 진행 불가였던 행이 확인으로 오면 까닭이 남으면 안 된다. 빌드는 「통과한 빌드」라 진행 불가 행은 물려받지 않는다
     await 손.query(
       `INSERT INTO game_route (service_id, kind, from_key, action, to_key, helper, duration_ms, warning, fields, status, reason, build_no)
        SELECT $1, x.kind, x.from_key, x.action, x.to_key, x.helper, x.duration_ms, x.warning, x.fields, x.status, x.reason, x.build_no
@@ -128,7 +128,8 @@ export async function 조작행넣기(서비스: number, rows: 조작행[], remo
              duration_ms = COALESCE(EXCLUDED.duration_ms, game_route.duration_ms), warning = COALESCE(EXCLUDED.warning, game_route.warning),
              fields = CASE WHEN EXCLUDED.fields IS NULL THEN game_route.fields ELSE COALESCE(game_route.fields, '{}') || EXCLUDED.fields END,
              status = CASE WHEN EXCLUDED.status = 'OK' AND EXCLUDED.build_no IS NULL AND game_route.status = 'RECHECK' THEN 'RECHECK' ELSE EXCLUDED.status END,
-             reason = EXCLUDED.reason, build_no = COALESCE(EXCLUDED.build_no, game_route.build_no), updated_at = now()`,
+             reason = EXCLUDED.reason, build_no = CASE WHEN EXCLUDED.status = 'BLOCKED' THEN EXCLUDED.build_no ELSE COALESCE(EXCLUDED.build_no, game_route.build_no) END,
+             updated_at = now()`,
       [
         서비스,
         JSON.stringify(
