@@ -37,7 +37,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
       await q(`INSERT INTO service_env (service_id, env, base_url, is_prod, app_path) VALUES ($1, $2, 'https://xgs.example', $3, $4)`, [서비스, env, isProd, appPath]);
     }
   };
-  const 종류 = (kind: string) => q('UPDATE service SET kind = $2 WHERE id = $1', [서비스, kind]);
+  const 종류 = (kind: string) => q("UPDATE service SET kind = $2, game_platform = CASE WHEN $2 = 'GAME' THEN 'android' END WHERE id = $1", [서비스, kind]);
   const 받기 = async (id: number, 길: string) => (await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}/${길}` })).json();
   const 치우기 = async () => {
     await q('DELETE FROM screen_link WHERE service_id = $1', [서비스]);
@@ -50,7 +50,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
 
   beforeAll(async () => {
     const s = await q<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind) VALUES ($1, 'XGS 게임 첫 화면 검사용', '#3A5FCD', '', 'xgs', 'GAME') RETURNING id`,
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind, game_platform) VALUES ($1, 'XGS 게임 첫 화면 검사용', '#3A5FCD', '', 'xgs', 'GAME', 'android') RETURNING id`,
       [접두사],
     );
     서비스 = Number(s.rows[0]!.id);

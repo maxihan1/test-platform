@@ -51,13 +51,14 @@ export function 스모크읽기(값: string | undefined): boolean | undefined {
 const 모르는기법 = (값: string | undefined) => ({ error: 'BAD_TECHNIQUE', detail: `설계 기법 목록에 없는 값입니다 — ${String(값)}` });
 
 // 기법과 같은 까닭으로 모르는 값은 null — 예전에는 조용히 빼서 `?platform=android` 가 웹 케이스까지 냈다 (카탈로그 §7 · APP-F1-04)
-const 디바이스들: readonly Platform[] = ['desktop', 'mobile', 'android'];
+// windows 는 윈도우 값 다섯 중 하나라도 선언한 케이스를 낸다 — 패드 값은 따로 받지 않는다 (도메인/게임 §3.10 「윈도우 PC」)
+const 디바이스들: readonly Platform[] = ['desktop', 'mobile', 'android', 'windows'];
 export function 디바이스읽기(값: string | undefined): Platform | undefined | null {
   if (값 === undefined || 값 === '') return undefined;
   return 디바이스들.find((p) => p === 값) ?? null;
 }
 
-const 모르는디바이스 = (값: string | undefined) => ({ error: 'BAD_PLATFORM', detail: `디바이스는 desktop · mobile · android 중 하나입니다 — ${String(값)}` });
+const 모르는디바이스 = (값: string | undefined) => ({ error: 'BAD_PLATFORM', detail: `디바이스는 desktop · mobile · android · windows 중 하나입니다 — ${String(값)}` });
 
 export default async function catalogRoutes(app: FastifyInstance): Promise<void> {
   기동훑기(app.log);

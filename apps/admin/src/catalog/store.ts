@@ -3,6 +3,7 @@
 import type { Pool } from 'pg';
 
 import type { CaseSpec, ItemStatus, Platform, Technique } from '@platform/kit';
+import { PC_PLATFORMS } from '@platform/kit/types';
 
 import { 자동수정목록, type 자동수정줄 } from '../bts/testFixView.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
@@ -200,7 +201,8 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
         -- 찾기는 요구 번호 · 요구 문장에도 맞는다. 그 판단은 표준 기획서를 읽은 쪽(요구로찾기)이 하고 번호만 넘긴다
         AND ($2 = '' OR tc_id ILIKE $3 ESCAPE '\\' OR name ILIKE $3 ESCAPE '\\' OR tc_id = ANY($8::text[]))
         AND (NOT $4::boolean OR is_active)
-        AND ($5::jsonb IS NULL OR platforms @> $5::jsonb)
+        -- windows 는 윈도우 값 다섯 중 하나라도 선언한 케이스다 (?| 는 키 중 하나라도 배열 안에 있으면 참)
+        AND ($5::text[] IS NULL OR platforms ?| $5::text[])
         -- UI 번호 꼴은 catalog/rules.ts tcId종류 와 같은 뜻이다
         AND ($6::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($6 = 'UI'))
         AND ($7::text IS NULL OR ($7 = 'none' AND cardinality(techniques) = 0) OR $7 = ANY(techniques))
@@ -210,7 +212,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       query.q,
       literal(query.q),
       query.activeOnly,
-      query.platform === undefined ? null : JSON.stringify([query.platform]),
+      query.platform === undefined ? null : query.platform === 'windows' ? [...PC_PLATFORMS] : [query.platform],
       query.kind ?? null,
       query.technique ?? null,
       query.q === '' ? [] : 요구로찾기(표, query.q),
@@ -261,27 +263,6 @@ export async function findCase(tcId: string): Promise<CaseRow | null> {
   return row === undefined ? null : toCase(row);
 }
 
-export interface ServiceRow {
-  id: number;
-  prefix: string;
-  name: string;
-  testsDir: string;
-  /** 애플리케이션 종류 — 게임만 게임 지도의 요소를 거친 케이스를 채운다 (도메인/게임 §3.10) */
-  kind: string;
-}
-
-// 서비스는 지우지 않고 비활성으로 내린다. 내려간 서비스의 케이스는 더 훑지 않는다 (SPEC §8.8)
-export async function activeServices(): Promise<ServiceRow[]> {
-  const pool = await db();
-  const rows = await pool.query<{ id: string; prefix: string; name: string; tests_dir: string; kind: string }>(
-    'SELECT id, prefix, name, tests_dir, kind FROM service WHERE is_active ORDER BY prefix',
-  );
-  return rows.rows.map((r) => ({ id: Number(r.id), prefix: r.prefix, name: r.name, testsDir: r.tests_dir, kind: r.kind }));
-}
-
-export async function findService(prefix: string): Promise<ServiceRow | null> {
-  const found = await activeServices();
-  return found.find((s) => s.prefix === prefix) ?? null;
-}
-
+// 서비스 읽기는 services.ts 로 떼었다(300줄) — 부르는 쪽 · 검사의 흉내가 이 입구를 그대로 쓴다
+export { activeServices, findService, type ServiceRow } from './services.js';
 export { save, type SaveResult } from './saveCases.js';

@@ -42,3 +42,13 @@ export const 대상서버목록 = z.array(대상서버).refine((envs) => new Set
 // 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다
 export const 역할틀림 = (envs: { accounts?: { role: string }[] }[] | undefined): boolean =>
   (envs ?? []).some((e) => e.accounts !== undefined && 역할까닭찾기(e.accounts.map((a) => a.role)) !== null);
+
+/**
+ * 만들기 본문의 gamePlatform 을 본다 — GAME 만 받고(아니면 NOT_GAME_SERVICE), 안 보내면 'android', 그 밖 값은 BAD_GAME_PLATFORM.
+ * GAME 이 아니면 값은 undefined 다(DB CHECK 가 종류와 묶는다)
+ */
+export function 게임플랫폼검사(kind: string, 보낸것: unknown): { error: string; 값?: undefined } | { error?: undefined; 값: 'android' | 'windows' | undefined } {
+  if (kind !== 'GAME') return 보낸것 === undefined ? { 값: undefined } : { error: 'NOT_GAME_SERVICE' };
+  if (보낸것 === undefined) return { 값: 'android' };
+  return 보낸것 === 'android' || 보낸것 === 'windows' ? { 값: 보낸것 } : { error: 'BAD_GAME_PLATFORM' };
+}

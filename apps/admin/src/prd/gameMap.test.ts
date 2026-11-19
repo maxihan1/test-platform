@@ -58,7 +58,7 @@ describe.skipIf(연결 === undefined)('게임 지도 에이전트 통로', () =>
 
   beforeAll(async () => {
     const s = await q<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind) VALUES ($1, 'XGE 게임 지도 검사용', '#3A5FCD', '', 'xge', 'GAME') RETURNING id`,
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind, game_platform) VALUES ($1, 'XGE 게임 지도 검사용', '#3A5FCD', '', 'xge', 'GAME', 'android') RETURNING id`,
       [접두사],
     );
     서비스 = Number(s.rows[0]!.id);
@@ -84,13 +84,13 @@ describe.skipIf(연결 === undefined)('게임 지도 에이전트 통로', () =>
 
   it('게임이 아닌 애플리케이션이면 400 NOT_GAME_SERVICE', async () => {
     const id = await 요청넣기();
-    await q(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
+    await q(`UPDATE service SET kind = 'APP', game_platform = NULL WHERE id = $1`, [서비스]);
     try {
       const r = await 올리기(id, { elements: [장검] });
       expect([r.statusCode, r.json()]).toEqual([400, { error: 'NOT_GAME_SERVICE' }]);
       expect((await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}/game-map` })).statusCode).toBe(400);
     } finally {
-      await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+      await q(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [서비스]);
     }
   });
 

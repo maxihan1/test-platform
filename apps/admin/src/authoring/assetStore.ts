@@ -79,6 +79,8 @@ export async function 준비세우기(입력: {
   대조?: { env: string; startUrl: string | null };
   // API 애플리케이션 — 작성 중 3회 실행이 돌 대상 서버와 자료로 붙일 판 (도메인/작성 §7 「AUTHOR API 문서 판」)
   api?: { env: string; 판id: number; version: number };
+  // PC 게임의 지원 패드 — 같은 묶음에서 애플리케이션 값을 갈아 끼운다(빈 배열이면 비운다). 안 오면 그대로 (도메인/작성 §7)
+  패드?: string[];
 }): Promise<number> {
   return 한묶음(async (client) => {
     const r = await client.query<{ id: string }>(
@@ -97,6 +99,9 @@ export async function 준비세우기(입력: {
       ],
     );
     const id = Number(r.rows[0]!.id);
+    if (입력.패드 !== undefined) {
+      await client.query('UPDATE service SET game_pads = $2::jsonb WHERE id = $1', [입력.서비스, JSON.stringify(입력.패드)]);
+    }
     for (const [i, 주소] of 입력.피그마.entries()) {
       await client.query(
         `INSERT INTO authoring_asset (request_id, position, kind, name, figma_url)

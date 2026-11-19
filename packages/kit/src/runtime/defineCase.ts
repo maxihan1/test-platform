@@ -47,9 +47,9 @@ const schemas = new WeakMap<CaseSpec, { params: CaseSchema; expected: CaseSchema
 // 연결 설정만 고르는 값이라 명세(스캐너 JSON · DB)에 싣지 않는다 — schemas 와 같은 까닭으로 바깥에 둔다
 const keepers = new WeakSet<CaseSpec>();
 
-/** 그 디바이스(Playwright 프로젝트)를 선언했나 — windows 를 선언한 케이스는 패드 값 다섯 어느 것으로도 돈다 (도메인/게임 §3.10 결정 27) */
+/** 그 디바이스(Playwright 프로젝트)를 선언했나 — 패드도 선언이 정한다. windows 케이스는 키보드로만, 버튼 그림 케이스는 적은 패드로만 돈다 (도메인/게임 §3.10 결정 27) */
 export function 선언했나(platforms: readonly Platform[], 디바이스: string): boolean {
-  return platforms.some((p) => p === 디바이스 || (p === 'windows' && PC항목인가(디바이스)));
+  return (platforms as readonly string[]).includes(디바이스);
 }
 
 export function keepsAppData(spec: CaseSpec): boolean {
@@ -93,15 +93,15 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   Error.captureStackTrace(here, defineCase);
   const file = callerFile(here);
 
-  // 패드는 실행 창에서 고른다 — 선언에 적으면 그 패드 하나로만 돈다 (공통/3-공유계약 「윈도우 PC 게임」)
-  if (input.platforms?.some((p) => p !== 'windows' && PC항목인가(p))) {
-    throw new Error(`${input.tcId}: 패드는 실행할 때 고른다 — platforms 에는 windows 만 적는다`);
-  }
   // 앱 · 게임 케이스는 브라우저 없이 돌아 한 선언에 브라우저 디바이스와 섞으면 몸통이 page 와 driver · game 중 무엇을 쓸지 정할 수 없다.
-  // android · windows 는 같은 게임 케이스가 폰과 PC 에서 도는 것이라 같이 적는다
-  const 앱쪽 = input.platforms?.filter((p) => p === 'android' || p === 'windows').length ?? 0;
-  if (앱쪽 > 0 && input.platforms !== undefined && 앱쪽 < input.platforms.length) {
+  // 게임 하나에 플랫폼 하나라 모바일(android)과 PC(윈도우 값)도 한 선언에 같이 적지 않는다 (공통/3-공유계약 「윈도우 PC 게임」)
+  const platforms = input.platforms ?? [];
+  const 앱쪽 = platforms.filter((p) => p === 'android' || PC항목인가(p)).length;
+  if (앱쪽 > 0 && 앱쪽 < platforms.length) {
     throw new Error(`${input.tcId}: android · windows 는 desktop · mobile 과 함께 선언하지 않는다`);
+  }
+  if (platforms.includes('android') && platforms.some(PC항목인가)) {
+    throw new Error(`${input.tcId}: android 와 windows 는 함께 선언하지 않는다 — 게임 하나에 플랫폼 하나다`);
   }
 
   // 브라우저 케이스에는 지울 앱 데이터가 없다 — 적어 두면 읽는 사람이 로그인이 남는 줄 안다

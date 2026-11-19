@@ -61,12 +61,12 @@ describe.skipIf(연결 === undefined)('미션 목록 · 미션 승인', () => {
   const 치우기 = async () => {
     await q('DELETE FROM authoring_request WHERE service_id = $1 AND kind = $2', [서비스, 'MERGE']);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
-    await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+    await q(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [서비스]);
   };
 
   beforeAll(async () => {
     const s = await q<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind) VALUES ($1, 'XMN 미션 승인 검사용', '#3A5FCD', '', 'xmn', 'GAME') RETURNING id`,
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind, game_platform) VALUES ($1, 'XMN 미션 승인 검사용', '#3A5FCD', '', 'xmn', 'GAME', 'android') RETURNING id`,
       [접두사],
     );
     서비스 = Number(s.rows[0]!.id);
@@ -104,7 +104,7 @@ describe.skipIf(연결 === undefined)('미션 목록 · 미션 승인', () => {
   it('게임이 아니면 400 NOT_GAME_SERVICE, 모양이 틀리면 400 INVALID_MISSIONS 이고 아무것도 안 남는다', async () => {
     const id = await 도는요청();
     expect((await 올리기(id, { items: [{ ...미션('M01'), id: 'X' }], uncovered: [], gaps: [] })).json()).toEqual({ error: 'INVALID_MISSIONS', detail: 'items[0].id' });
-    await q(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
+    await q(`UPDATE service SET kind = 'APP', game_platform = NULL WHERE id = $1`, [서비스]);
     expect((await 올리기(id, 목록본문([미션('M01')]))).json()).toEqual({ error: 'NOT_GAME_SERVICE' });
     expect((await q<{ missions: unknown }>('SELECT missions FROM authoring_request WHERE id = $1', [id])).rows[0]!.missions).toBeNull();
   });

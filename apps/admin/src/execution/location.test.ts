@@ -1,8 +1,9 @@
 // 앱 실행을 받을지 판정 · 정기 실행의 앱 케이스 빼기 · 요청 본문 스키마 검사 (DB 없이 돈다)
 
+import type { Platform } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_TIMEOUT_MS, runBody, 선언밖디바이스, 앱케이스를뺀다, 팜을본다, 항목제한ms } from './location.js';
+import { DEFAULT_TIMEOUT_MS, runBody, 선언밖디바이스, 앱케이스를뺀다, 윈도우를펼친다, 팜을본다, 플랫폼밖인가, 항목제한ms } from './location.js';
 
 const 안드로이드 = [{ platforms: ['android'] }];
 const 팜있음 = { DEVICE_FARM_URL: 'http://127.0.0.1:4723/wd/hub' };
@@ -111,7 +112,7 @@ describe('runBody', () => {
     expect(고름('local').success).toBe(false);
   });
 
-  it('윈도우 값 다섯을 받는다 — 패드 값은 실행 때 고른다', () => {
+  it('윈도우 값 다섯을 받는다 — windows 는 선언대로 펼치고 패드 값은 그대로 한 항목이다', () => {
     const 고름 = (platforms: string[]) => runBody.safeParse({ ...기본, items: [{ ...기본.items[0], platforms }] }).success;
     expect(고름(['windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox'])).toBe(true);
     expect(고름(['windows-ps3'])).toBe(false);
@@ -135,10 +136,35 @@ describe('항목제한ms', () => {
 });
 
 describe('윈도우 PC 항목', () => {
-  it('windows 를 선언한 케이스는 패드 값도 선언 안이다 — 선언 안 한 케이스는 아니다', () => {
-    const 선언 = new Map([['ARG-FN-001', { platforms: ['android', 'windows'] }], ['ARG-FN-002', { platforms: ['android'] }]]);
-    expect(선언밖디바이스([{ tcId: 'ARG-FN-001', platforms: ['android', 'windows-xbox'] }], 선언)).toBeNull();
+  const 선언 = new Map([
+    ['ASH-FN-001', { platforms: ['windows'] }],
+    ['ASH-FN-002', { platforms: ['windows-ps5', 'windows-ps4', 'windows-xbox'] }],
+    ['ARG-FN-002', { platforms: ['android'] }],
+  ]);
+
+  it('windows 는 윈도우 값을 하나라도 선언한 케이스에 걸고, 윈도우 값 하나하나는 선언에 그대로 있어야 한다', () => {
+    expect(선언밖디바이스([{ tcId: 'ASH-FN-002', platforms: ['windows'] }], 선언)).toBeNull();
+    expect(선언밖디바이스([{ tcId: 'ASH-FN-002', platforms: ['windows-ps4'] }], 선언)).toBeNull();
+    expect(선언밖디바이스([{ tcId: 'ASH-FN-001', platforms: ['windows-ps5'] }], 선언)).toEqual({ tcId: 'ASH-FN-001', platform: 'windows-ps5' });
     expect(선언밖디바이스([{ tcId: 'ARG-FN-002', platforms: ['windows'] }], 선언)).toEqual({ tcId: 'ARG-FN-002', platform: 'windows' });
+  });
+
+  it('windows 는 선언대로 펼친다 — 키보드는 한 번, 패드는 지원 패드에 남은 것마다, 값 하나하나로 건 것은 그대로', () => {
+    const 펼침 = (items: { tcId: string; platforms: Platform[] }[], 패드: string[]) => 윈도우를펼친다(items, 선언, 패드).map((i) => [i.tcId, i.platforms]);
+    expect(펼침([{ tcId: 'ASH-FN-001', platforms: ['windows'] }, { tcId: 'ASH-FN-002', platforms: ['windows'] }], ['ps5', 'xbox'])).toEqual([
+      ['ASH-FN-001', ['windows']],
+      ['ASH-FN-002', ['windows-ps5', 'windows-xbox']],
+    ]);
+    // 지원 패드를 다 풀면 버튼 그림 케이스는 빠진다
+    expect(펼침([{ tcId: 'ASH-FN-002', platforms: ['windows'] }], [])).toEqual([]);
+    // 실패 다시 실행처럼 값 하나로 건 항목은 지원 패드를 안 본다 — 겹치면 한 번이다
+    expect(펼침([{ tcId: 'ASH-FN-002', platforms: ['windows-ps4', 'windows'] }], ['ps4'])).toEqual([['ASH-FN-002', ['windows-ps4']]]);
+  });
+
+  it('게임 하나에 플랫폼 하나 — 게임 밖 · 모바일 게임의 윈도우 값, PC 게임의 android 는 돌 수 없다', () => {
+    expect(['android', 'windows', 'windows-ps5', 'desktop'].map((p) => 플랫폼밖인가('GAME', 'windows', p))).toEqual([true, false, false, false]);
+    expect(['android', 'windows', 'windows-ps5'].map((p) => 플랫폼밖인가('GAME', 'android', p))).toEqual([false, true, true]);
+    expect(['android', 'windows'].map((p) => 플랫폼밖인가('APP', null, p))).toEqual([false, true]);
   });
 
   it('윈도우 PC 도 VISION 기기라 팜이 없으면 거절하고, 팜 없는 정기 실행은 그 케이스를 뺀다', () => {

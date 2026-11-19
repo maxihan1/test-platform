@@ -25,6 +25,10 @@ export interface 배정서비스 {
   primary: boolean;
   /** 애플리케이션 종류. 화면이 종류마다 다르게 그린다 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표) */
   kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
+  /** 게임 하나에 플랫폼 하나 — 'android' 모바일 게임 · 'windows' PC 게임. GAME 이 아니면 null (도메인/게임 §3.10 결정 27) */
+  gamePlatform: 'android' | 'windows' | null;
+  /** 지원 패드 — PC 게임이 아니면 [] */
+  gamePads: string[];
   /**
    * 그 서비스의 대상 서버 목록 (SPEC §6 `service_env`).
    *
@@ -86,6 +90,7 @@ const 한사람 = `
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
              'projectId', s.project_id, 'projectName', p.name, 'kind', s.kind,
+             'gamePlatform', s.game_platform, 'gamePads', s.game_pads,
              -- 대표 애플리케이션인가 (공통/4-데이터모델 「대표 애플리케이션」). p 는 s 가 속한 프로젝트라 옮겨 간 대표는 저절로 false 다
              'primary', p.primary_service_id IS NOT DISTINCT FROM s.id,
              'envs', COALESCE(e.envs, '[]'::json),

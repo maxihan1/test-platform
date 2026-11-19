@@ -60,6 +60,10 @@ export function 못돌린응답(단계수: number, 까닭: string): ScenarioExec
 
 /** 앱 파일을 정해 싣는다. 서명 주소를 못 만들면(바깥 주소가 비었다) 그 까닭을 돌려준다 — 옛 앱 파일로 물러서지 않는다 */
 async function 앱실기(요청: ScenarioExecuteRequest, 폰: 폰앱): Promise<ScenarioExecuteRequest | string> {
+  // PC 게임의 빌드는 윈도우 zip 이라 폰에 못 깐다 — PC 게임 E2E 시나리오는 1차 밖이다 (도메인/게임 §3.10 「1차 밖 · 나중」)
+  const { pool } = await import('../db/index.js');
+  const 플랫폼 = (await pool.query<{ game_platform: string | null }>('SELECT game_platform FROM service WHERE id = $1', [폰.serviceId])).rows[0]?.game_platform;
+  if (플랫폼 === 'windows') return 'PC 게임 케이스는 E2E 시나리오에서 돌지 않습니다';
   try {
     const app = await 깔앱파일(폰.serviceId, 폰.env, 폰.appPath);
     return app === null ? 요청 : { ...요청, app };

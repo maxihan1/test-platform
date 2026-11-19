@@ -12,7 +12,7 @@ const 접두사 = 'XGM';
 const 화면접두사 = 'XGMS';
 const 키값 = 'ashveil-admin-key-xgm-9876';
 
-type 서비스응답 = { prefix: string; kind: string; envs: { env: string; adminKey: { header: string; valueLast4: string } | null }[] };
+type 서비스응답 = { prefix: string; kind: string; gamePlatform: string | null; gamePads: string[]; envs: { env: string; adminKey: { header: string; valueLast4: string } | null }[] };
 
 describe.skipIf(연결 === undefined)('설정 API 의 게임 애플리케이션 칸', { timeout: 30_000 }, () => {
   let app: FastifyInstance;
@@ -123,6 +123,52 @@ describe.skipIf(연결 === undefined)('설정 API 의 게임 애플리케이션 
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({ error: 'NOT_GAME_SERVICE' });
     expect(await 읽는다(화면접두사)).toBeUndefined();
+  });
+
+  it('게임은 gamePlatform 을 안 보내면 android 로 남고 응답에 gamePlatform · gamePads 가 나온다 — 게임이 아니면 null · []', async () => {
+    expect(await 읽는다()).toMatchObject({ gamePlatform: 'android', gamePads: [] });
+    try {
+      expect((await 만든다({ prefix: 화면접두사, kind: 'SCREEN' })).statusCode).toBe(201);
+      expect(await 읽는다(화면접두사)).toMatchObject({ gamePlatform: null, gamePads: [] });
+    } finally {
+      await 치운다();
+      const 다시 = await 만든다({ prefix: 접두사, kind: 'GAME', envs: [줄({ header: 'X-Admin-Key', value: 키값 })] });
+      번호 = 다시.json<{ id: number }>().id;
+    }
+  });
+
+  it('PC 게임은 gamePlatform windows 로 만든다 — 그 밖 값은 400 BAD_GAME_PLATFORM · 게임이 아니면 400 NOT_GAME_SERVICE 이고 아무것도 안 남는다', async () => {
+    try {
+      const 윈도우 = await 만든다({ prefix: 화면접두사, kind: 'GAME', gamePlatform: 'windows' });
+      expect(윈도우.statusCode).toBe(201);
+      expect(await 읽는다(화면접두사)).toMatchObject({ kind: 'GAME', gamePlatform: 'windows', gamePads: [] });
+      await 치운다();
+      const 다시 = await 만든다({ prefix: 접두사, kind: 'GAME', envs: [줄({ header: 'X-Admin-Key', value: 키값 })] });
+      번호 = 다시.json<{ id: number }>().id;
+
+      for (const gamePlatform of ['ios', '', null, 5]) {
+        const 틀림 = await 만든다({ prefix: 화면접두사, kind: 'GAME', gamePlatform });
+        expect([틀림.statusCode, 틀림.json()]).toEqual([400, { error: 'BAD_GAME_PLATFORM' }]);
+      }
+      for (const kind of ['SCREEN', 'APP', 'API']) {
+        const 게임아님 = await 만든다({ prefix: 화면접두사, kind, gamePlatform: 'android' });
+        expect([게임아님.statusCode, 게임아님.json()]).toEqual([400, { error: 'NOT_GAME_SERVICE' }]);
+      }
+      expect(await 읽는다(화면접두사)).toBeUndefined();
+    } finally {
+      await 치운다();
+      const 다시 = await 만든다({ prefix: 접두사, kind: 'GAME', envs: [줄({ header: 'X-Admin-Key', value: 키값 })] });
+      번호 = 다시.json<{ id: number }>().id;
+    }
+  });
+
+  it('고치기가 gamePlatform 을 받으면 같은 값이어도 400 PLATFORM_IMMUTABLE 이고 gamePads 는 모르는 칸이라 저장되지 않는다', async () => {
+    for (const gamePlatform of ['android', 'windows']) {
+      const res = await 고친다({ gamePlatform });
+      expect([res.statusCode, res.json()]).toEqual([400, { error: 'PLATFORM_IMMUTABLE' }]);
+    }
+    expect((await 고친다({ name: 'XGM 게임 이름 고침', gamePads: ['ps5'] })).statusCode).toBe(200);
+    expect(await 읽는다()).toMatchObject({ gamePlatform: 'android', gamePads: [] });
   });
 
   it('게임 줄의 앱 파일 칸에 스토어 앱 패키지 이름을 적으면 400 이고 Android 앱 애플리케이션은 받는다 — 게임은 SDK 든 APK 라야 돈다', async () => {

@@ -97,7 +97,7 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
       const r = await q(
         `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id, kind)
               VALUES ($1, $1 || ' 검사용', '#3A5FCD', 'git@x:xae.git', 'xae', $2, $3)
-         ON CONFLICT (prefix) DO UPDATE SET is_active = true, project_id = EXCLUDED.project_id, kind = EXCLUDED.kind RETURNING id`,
+         ON CONFLICT (prefix) DO UPDATE SET is_active = true, project_id = EXCLUDED.project_id, kind = EXCLUDED.kind, game_platform = NULL RETURNING id`,
         [prefix, 프로젝트, kind],
       );
       서비스[prefix!] = Number((r.rows[0] as { id: string }).id);
@@ -159,7 +159,7 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
   });
 
   it('게임이면 엔진과 어드민 키를 요청에 한 벌 싣고 부품 기록에는 안 넣는다', async () => {
-    await q("UPDATE service SET kind = 'GAME' WHERE id = $1", [서비스['XAE']]);
+    await q("UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1", [서비스['XAE']]);
     try {
       const { runId, 요청 } = await 실행만들기(await 앱시나리오(), 'stg', 사람);
 
@@ -168,20 +168,20 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
       const 기록 = await q('SELECT part FROM scenario_run_part WHERE run_id = $1', [runId]);
       expect(JSON.stringify(기록.rows)).not.toContain(키.value);
     } finally {
-      await q("UPDATE service SET kind = 'APP' WHERE id = $1", [서비스['XAE']]);
+      await q("UPDATE service SET kind = 'APP', game_platform = NULL WHERE id = $1", [서비스['XAE']]);
     }
   });
 
   it('저장 뒤 섞은 애플리케이션이 앱으로 바뀌어 앱이 둘이면 실행을 거절한다', async () => {
     const id = await 앱시나리오();
-    await q("UPDATE service SET kind = 'APP' WHERE id = $1", [서비스['XAEW']]);
+    await q("UPDATE service SET kind = 'APP', game_platform = NULL WHERE id = $1", [서비스['XAEW']]);
     try {
       const 잡은 = await 실행만들기(id, 'stg', 사람).then(() => null, (e: unknown) => e);
 
       expect((잡은 as 시나리오실행오류).code).toBe('NOT_RUNNABLE');
       expect((잡은 as 시나리오실행오류).message).toContain('앱 · 게임 애플리케이션은 한 시나리오에 하나다: XAE · XAEW');
     } finally {
-      await q("UPDATE service SET kind = 'SCREEN' WHERE id = $1", [서비스['XAEW']]);
+      await q("UPDATE service SET kind = 'SCREEN', game_platform = NULL WHERE id = $1", [서비스['XAEW']]);
     }
   });
 

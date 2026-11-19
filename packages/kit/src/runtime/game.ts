@@ -140,8 +140,8 @@ export async function openGame(
       눌린키.delete(keys);
     },
     pad: async (...인자: unknown[]) => {
-      // 패드는 실행할 때 고른다 — pad('xbox') 를 조용히 읽기로 바꾸면 그 뒤 Pad.<이름> 이 다른 패드 글자로 간다
-      if (인자.length > 0) throw new Error('game.pad() 는 읽기만 한다 — 패드는 실행할 때 고른다');
+      // 패드는 케이스 선언이 정한다 — pad('xbox') 를 조용히 읽기로 바꾸면 그 뒤 Pad.<이름> 이 다른 패드 글자로 간다
+      if (인자.length > 0) throw new Error('game.pad() 는 읽기만 한다 — 패드는 케이스 선언이 정한다');
       const { pad } = await 패드();
       // kit 은 generic 을 고르지 않는다(PLATFORM_PAD 는 넷 중 하나) — 그 밖의 값은 SDK 가 준 그대로 싣는다
       return { type: pad.type as PadKind | 'off', ...(pad.buttons && { buttons: pad.buttons }) };

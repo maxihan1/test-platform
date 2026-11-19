@@ -15,7 +15,7 @@ import { enqueue } from './dispatcher.js';
 import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
 import { 장면을건넨다 } from './live.js';
-import { 항목제한ms } from './location.js';
+import { 플랫폼밖인가, 항목제한ms } from './location.js';
 import { caseSchemas } from './paramSets.js';
 import { PC에서돌린다 } from './pcTrial.js';
 import { Chrome차례, PC를놓는다, PC를바로잡는다, 폰을놓는다, 폰을바로잡는다 } from './phone.js';
@@ -157,8 +157,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     const 행 = await 케이스행(tcId);
     const schemas = await caseSchemas(tcId);
     if (행 === null || schemas === null) return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: tcId });
-    // windows 를 선언했으면 패드 값 넷도 받는다 (공통/2 K5)
-    if (!행.platforms.includes(PC항목인가(platform) ? 'windows' : platform)) {
+    // 시험은 선언한 값 하나만 받는다 — 화면이 「Windows」 칸이면 선언한 윈도우 값을 하나씩 차례로 보낸다 (도메인/게임 §3.10 「윈도우 PC」)
+    if (!행.platforms.includes(platform)) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 는 ${platform} 환경을 지원하지 않습니다` });
     }
     const 대상 = await 대상줄찾기(tcId, env);
@@ -166,9 +166,9 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       const detail = env === '' ? '대상 서버를 고르지 않았습니다' : `${prefixOf(tcId)} 에 ${env} 대상 서버가 없습니다`;
       return reply.code(400).send({ error: 'ENV_NOT_FOUND', detail });
     }
-    const { 줄, 종류, serviceId } = 대상;
+    const { 줄, 종류, 게임플랫폼, serviceId } = 대상;
     const PC씀 = PC항목인가(platform);
-    if (PC씀 && 종류 !== 'GAME') return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 'Windows 디바이스는 게임 애플리케이션만 고를 수 있습니다' });
+    if (플랫폼밖인가(종류, 게임플랫폼, platform)) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 의 ${platform} 디바이스는 이 애플리케이션에서 돌지 않습니다` });
 
     // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값 · 대상 서버 계정으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
     const { params, expected } = await 저장값으로채운다(tcId, platform, 줄.계정들, parsed.data.params, parsed.data.expected, {

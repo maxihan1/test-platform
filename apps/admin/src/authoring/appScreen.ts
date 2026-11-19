@@ -3,14 +3,16 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { 깔앱파일 } from '../execution/buildFile.js';
+import { 깔앱파일, 최신빌드 } from '../execution/buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 import { runnerUrl, 러너머리 } from '../execution/runnerAddr.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
 import { 게임서비스인가 } from '../prd/gameMap.js';
+import { db } from '../settings/store.js';
 
+import { 게임칸읽기 } from './gamePads.js';
 import { 대상줄들읽기, 앱줄고르기 } from './reverse.js';
 
 export type 앱화면답 = { screen: string | null; reason: string | null };
@@ -94,8 +96,22 @@ const 비움 = { screen: null, reason: null };
  * 그 줄의 최신 빌드가 앱 파일 경로보다 앞선다 (도메인/실행 §3.11)
  */
 async function 작성앱파일(행: { serviceId: number; env: string | null }, 고정?: number): Promise<string | null> {
+  if ((await 게임칸읽기(행.serviceId))?.gamePlatform === 'windows') return PC빌드파일(행, 고정);
   const 줄 = 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env);
   return 줄 === undefined ? null : 깔앱파일(행.serviceId, 줄.env, 줄.appPath, 고정);
+}
+
+/**
+ * PC 게임은 「앱 파일 경로가 있는 줄」 대신 「빌드가 있는 줄」을 고른다(짚은 줄, 아니면 운영 아닌 첫 줄) — app_path 로 물러서지 않는다.
+ * 빌드가 없으면 null 이다. 그 줄 최신 zip 의 서명 주소를 준다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
+ */
+async function PC빌드파일(행: { serviceId: number; env: string | null }, 고정?: number): Promise<string | null> {
+  const 풀 = await db();
+  for (const 줄 of (await 대상줄들읽기(행.serviceId)).filter((j) => !j.isProd && (행.env === null || j.env === 행.env))) {
+    const 빌드 = await 최신빌드(풀, 행.serviceId, 줄.env);
+    if (빌드 !== null && (빌드.hasFile || 빌드.appUrl !== null)) return 깔앱파일(행.serviceId, 줄.env, null, 고정);
+  }
+  return null;
 }
 
 export default async function appScreenAgentRoutes(app: FastifyInstance): Promise<void> {
@@ -104,6 +120,8 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     if ((await 게임서비스인가(행.serviceId)) !== 게임만) return { ...비움, [칸]: null };
+    // PC 게임은 폰을 안 잡는다 — AI 가 PC 를 잡은 뒤 control-cli 로 첫 화면을 읽는다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
+    if (게임만 && (await 게임칸읽기(행.serviceId))?.gamePlatform === 'windows') return { screen: null, reason: 'PC 게임은 작성 AI 가 PC 에서 읽는다', game: null };
     const appPath = await 작성앱파일(행);
     // 게임은 앱 파일이 없으면 켤 게임이 없다 — 앱처럼 「앱 없는 서비스」로 비우면 AI 가 까닭을 모른다
     if (게임만 && appPath === null) return { screen: null, reason: '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };

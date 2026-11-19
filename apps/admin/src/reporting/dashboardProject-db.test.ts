@@ -32,7 +32,7 @@ describe.skipIf(연결 === undefined)('대시보드 프로젝트 요약', () => 
 
   async function 서비스(접두: string, kind: 볼서비스['kind']): Promise<볼서비스> {
     const r = await pool.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind) VALUES ($1, $1, '#445566', '', $2, $3) RETURNING id`,
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind, game_platform) VALUES ($1, $1, '#445566', '', $2, $3::text, CASE WHEN $3::text = 'GAME' THEN 'android' END) RETURNING id`,
       [접두, 접두.toLowerCase(), kind],
     );
     return { id: Number(r.rows[0]!.id), prefix: 접두, name: 접두, kind };

@@ -60,7 +60,7 @@ export async function 배포실행걸기(deployId: number, 앱들: 배포할앱[
           continue;
         }
       }
-      runIds.push(...(await 빌드실행을건다({ id: buildId, serviceId: 앱.serviceId, prefix: 앱.prefix, env: 앱.env, buildNo: 앱.buildNo, platform: 'android', ...사람 })));
+      runIds.push(...(await 빌드실행을건다({ id: buildId, serviceId: 앱.serviceId, prefix: 앱.prefix, env: 앱.env, buildNo: 앱.buildNo, ...사람 })));
       await 오래된빌드치우기(앱.serviceId, 앱.env).catch((err: unknown) => console.error(`[bts] ${앱.prefix} ${앱.env} 의 오래된 빌드를 못 치웠다: ${글(err)}`));
     }
   } catch (err) {

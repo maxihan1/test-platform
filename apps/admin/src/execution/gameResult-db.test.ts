@@ -39,8 +39,8 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
     pool = new Pool({ connectionString: 연결 });
     await 치운다();
     await pool.query(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind)
-       VALUES ('XGR', 'XGR 게임', '#445566', 'https://xgr.example.com', 'xgr', 'GAME')`,
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind, game_platform)
+       VALUES ('XGR', 'XGR 게임', '#445566', 'https://xgr.example.com', 'xgr', 'GAME', 'android')`,
     );
     await pool.query(`INSERT INTO service_env (service_id, env, base_url) VALUES (${서비스번호}, 'qa', 'http://127.0.0.1:5080')`);
     await pool.query(

@@ -102,13 +102,13 @@ describe.skipIf(연결 === undefined)('대상 서버 앱 파일 경로', () => {
       ).items.map((i) => [i.engine, i.adminKey]);
     const 키 = { header: 'X-Admin-Key', value: 'k-1234' };
     expect(await 만든다()).toEqual([[undefined, undefined], [undefined, undefined]]);
-    await pool.query("UPDATE service SET kind = 'GAME' WHERE id = $1", [서비스]);
+    await pool.query("UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1", [서비스]);
     try {
       expect(await 만든다()).toEqual([['GAME', undefined], [undefined, undefined]]);
       await pool.query("UPDATE service_env SET admin_key = $2 WHERE service_id = $1 AND env = 'qa'", [서비스, JSON.stringify(키)]);
       expect(await 만든다()).toEqual([['GAME', 키], [undefined, undefined]]);
     } finally {
-      await pool.query("UPDATE service SET kind = 'SCREEN' WHERE id = $1", [서비스]);
+      await pool.query("UPDATE service SET kind = 'SCREEN', game_platform = NULL WHERE id = $1", [서비스]);
       await pool.query("UPDATE service_env SET admin_key = NULL WHERE service_id = $1", [서비스]);
     }
   });

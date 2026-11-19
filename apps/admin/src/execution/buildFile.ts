@@ -89,7 +89,7 @@ const 서명 = (열쇠: Buffer, buildId: number, exp: number): string =>
   createHmac('sha256', 열쇠).update(`${String(buildId)}.${String(exp)}`).digest('base64url');
 
 /**
- * 디바이스 팜이 APK 를 받는 기한 있는 주소. 폰을 잡고 깔기 직전에 만들고 저장하지 않는다.
+ * 디바이스 팜이 APK 를 받는 기한 있는 주소. 폰을 잡고 깔기 직전에 만들고 저장하지 않는다. PC 게임 작성 에이전트도 이 주소로 zip 을 받는다(app-link).
  * 기한은 다음 정시 뒤 한 시간이라 남은 시간이 1~2시간이다 — 같은 시간대의 게임 항목이 같은 주소를 받아 Appium 이 받아 둔 APK 를 다시 쓴다.
  * 바깥 주소나 열쇠가 없으면 null 이다(부르는 쪽이 까닭을 붙여 해당 없음으로 닫는다)
  */
@@ -117,56 +117,37 @@ export interface 빌드행 {
   appUrl: string | null;
 }
 
-/** 그 대상 서버 줄 · 플랫폼의 가장 최근 빌드. 없으면 null — 폰 앱 파일은 그 줄의 app_path 로 돈다 */
-export async function 최신빌드(client: Pick<Pool, 'query'>, serviceId: number, env: string, 플랫폼: 빌드플랫폼 = 'android'): Promise<빌드행 | null> {
+/** 그 대상 서버 줄의 가장 최근 빌드. 없으면 null — 폰 앱 파일은 그 줄의 app_path 로 돈다. 한 애플리케이션의 빌드는 한 플랫폼이라 줄만 본다 (도메인/게임 §3.10 결정 27) */
+export async function 최신빌드(client: Pick<Pool, 'query'>, serviceId: number, env: string): Promise<빌드행 | null> {
   const r = await client.query<{ id: string; build_no: string; file_path: string | null; app_url: string | null }>(
     `SELECT id, build_no, file_path, app_url FROM app_build
-      WHERE service_id = $1 AND env = $2 AND platform = $3 ORDER BY uploaded_at DESC, id DESC LIMIT 1`,
-    [serviceId, env, 플랫폼],
+      WHERE service_id = $1 AND env = $2 ORDER BY uploaded_at DESC, id DESC LIMIT 1`,
+    [serviceId, env],
   );
   const 행 = r.rows[0];
   return 행 === undefined ? null : { id: Number(행.id), buildNo: 행.build_no, hasFile: 행.file_path !== null, appUrl: 행.app_url };
 }
 
 /**
- * 실행에 고정할 빌드 — 빌드 실행은 올린 그 빌드, 그 밖(사람 · 정기 · 다시)은 그 줄 · 플랫폼의 최신 빌드.
- * 정한 빌드가 그 줄 · 플랫폼 것이 아니면 던진다 — 부르는 쪽(빌드 올리기 · 스모크 뒤)이 같은 줄로만 부르므로 오면 코드가 틀린 것이다
+ * 실행에 고정할 빌드 — 빌드 실행은 올린 그 빌드, 그 밖(사람 · 정기 · 다시)은 그 줄의 최신 빌드.
+ * 정한 빌드가 그 줄 것이 아니면 던진다 — 부르는 쪽(빌드 올리기 · 스모크 뒤)이 같은 줄로만 부르므로 오면 코드가 틀린 것이다
  */
-export async function 실행빌드(client: Pick<Pool, 'query'>, serviceId: number, env: string, 정한?: number, 플랫폼: 빌드플랫폼 = 'android'): Promise<빌드행 | null> {
-  if (정한 === undefined) return 최신빌드(client, serviceId, env, 플랫폼);
+export async function 실행빌드(client: Pick<Pool, 'query'>, serviceId: number, env: string, 정한?: number): Promise<빌드행 | null> {
+  if (정한 === undefined) return 최신빌드(client, serviceId, env);
   const r = await client.query<{ id: string; build_no: string; file_path: string | null; app_url: string | null }>(
-    'SELECT id, build_no, file_path, app_url FROM app_build WHERE id = $1 AND service_id = $2 AND env = $3 AND platform = $4',
-    [정한, serviceId, env, 플랫폼],
+    'SELECT id, build_no, file_path, app_url FROM app_build WHERE id = $1 AND service_id = $2 AND env = $3',
+    [정한, serviceId, env],
   );
   const 행 = r.rows[0];
-  if (행 === undefined) throw new Error(`빌드 ${String(정한)}은 이 애플리케이션 ${env} 줄의 ${플랫폼} 빌드가 아니다`);
+  if (행 === undefined) throw new Error(`빌드 ${String(정한)}은 이 애플리케이션 ${env} 줄의 빌드가 아니다`);
   return { id: Number(행.id), buildNo: 행.build_no, hasFile: 행.file_path !== null, appUrl: 행.app_url };
 }
 
-/**
- * 실행에 고정할 빌드 셋 — 폰 빌드 · 그 앞 빌드(옛판에서올리기 — 도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08) · PC 빌드.
- * PC 빌드로 건 빌드 실행은 PC 항목만 담아 폰 칸을 비운다 — 그 실행의 자기 빌드는 PC 칸이다 (도메인/게임 §3.10 「빌드 — zip 하나」)
- */
-export async function 실행빌드들(
-  client: Pick<Pool, 'query'>,
-  serviceId: number,
-  env: string,
-  빌드실행: { id: number; platform?: 빌드플랫폼 } | undefined,
-  PC있음: boolean,
-): Promise<{ 빌드: 빌드행 | null; 앞: 빌드행 | null; PC빌드: 빌드행 | null }> {
-  const PC빌드실행 = 빌드실행?.platform === 'windows';
-  const 빌드 = PC빌드실행 ? null : await 실행빌드(client, serviceId, env, 빌드실행?.id);
-  const PC빌드 = PC빌드실행 || PC있음 ? await 실행빌드(client, serviceId, env, PC빌드실행 ? 빌드실행?.id : undefined, 'windows') : null;
-  const 앞 = 빌드 === null ? null : await 앞빌드(client, serviceId, env, 빌드.id);
-  return { 빌드, 앞, PC빌드 };
-}
-
-/** 그 줄 · 같은 플랫폼에서 이 빌드 바로 앞에 올린 빌드 — kit 옛판에서올리기 가 깐다. 없으면 null (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08 · 도메인/게임 §3.10 「앞 빌드」) */
+/** 그 줄에서 이 빌드 바로 앞에 올린 빌드 — kit 옛판에서올리기 가 깐다. 없으면 null (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08) */
 export async function 앞빌드(client: Pick<Pool, 'query'>, serviceId: number, env: string, 기준: number): Promise<빌드행 | null> {
   const r = await client.query<{ id: string; build_no: string; file_path: string | null; app_url: string | null }>(
     `SELECT id, build_no, file_path, app_url FROM app_build
-      WHERE service_id = $1 AND env = $2 AND platform = (SELECT platform FROM app_build WHERE id = $3)
-        AND (uploaded_at, id) < (SELECT uploaded_at, id FROM app_build WHERE id = $3)
+      WHERE service_id = $1 AND env = $2 AND (uploaded_at, id) < (SELECT uploaded_at, id FROM app_build WHERE id = $3)
       ORDER BY uploaded_at DESC, id DESC LIMIT 1`,
     [serviceId, env, 기준],
   );
@@ -190,13 +171,13 @@ export function 앱칸(
 }
 
 /**
- * 케이스 테스트 실행 · 작성처럼 실행 기록을 안 남기는 쪽이 깔 앱 파일 — 그 줄 최신 빌드의 서명 주소 · 회사 저장소 주소, 없으면 app_path.
+ * 케이스 테스트 실행 · 작성처럼 실행 기록을 안 남기는 쪽이 깔 앱 파일 — 그 줄 최신 빌드(PC 게임이면 zip)의 서명 주소 · 회사 저장소 주소, 없으면 app_path.
  * 서명 주소를 못 만들면(바깥 주소가 비었다) 던진다 — 옛 app_path 로 물러서면 정식 실행(미실행으로 닫힘)과 다른 빌드로 케이스를 쓰고 아무도 모른다
  */
 export async function 깔앱파일(serviceId: number, env: string, appPath: string | null, 고정?: number): Promise<string | null> {
   const pool = await db();
   // 작성 링크 갈아 끼우기(app-link ?build=)는 시작 때의 빌드를 끝까지 깐다 — 지워졌거나 그 줄 것이 아니면 최신 빌드로 간다 (도메인/작성 §7 「앱 화면 통로」)
-  const 남았나 = 고정 !== undefined && ((await pool.query("SELECT 1 FROM app_build WHERE id = $1 AND service_id = $2 AND env = $3 AND platform = 'android' AND file_path IS NOT NULL", [고정, serviceId, env])).rowCount ?? 0) > 0;
+  const 남았나 = 고정 !== undefined && ((await pool.query("SELECT 1 FROM app_build WHERE id = $1 AND service_id = $2 AND env = $3 AND file_path IS NOT NULL", [고정, serviceId, env])).rowCount ?? 0) > 0;
   const 빌드: 빌드행 | null = 남았나 && 고정 !== undefined ? { id: 고정, buildNo: String(고정), hasFile: true, appUrl: null } : await 최신빌드(pool, serviceId, env);
   if (빌드?.appUrl != null) return 빌드.appUrl;
   if (빌드?.hasFile !== true) return appPath;
@@ -214,15 +195,14 @@ export async function 깔앞앱파일(serviceId: number, env: string): Promise<s
   return 앞?.hasFile === true ? 서명주소(앞.id) : null;
 }
 
-/** 줄 · 플랫폼마다 최근 보관개수만 남기고 파일과 행을 지운다. 도는 실행이 쥔 빌드(폰 칸이든 PC 칸이든)는 남긴다 — 그 실행이 끝까지 그 빌드를 깐다 */
+/** 줄마다 최근 보관개수만 남기고 파일과 행을 지운다. 도는 실행이 쥔 빌드는 남긴다 — 그 실행이 끝까지 그 빌드를 깐다 */
 export async function 오래된빌드치우기(serviceId: number, env: string): Promise<void> {
   const pool = await db();
   const r = await pool.query<{ id: string; file_path: string | null }>(
     `DELETE FROM app_build b
       WHERE b.service_id = $1 AND b.env = $2
-        AND b.id NOT IN (SELECT id FROM (SELECT id, row_number() OVER (PARTITION BY platform ORDER BY uploaded_at DESC, id DESC) AS n
-                                           FROM app_build WHERE service_id = $1 AND env = $2) x WHERE n <= $3)
-        AND NOT EXISTS (SELECT 1 FROM test_run t WHERE (t.build_id = b.id OR t.pc_build_id = b.id) AND t.status = 'RUNNING')
+        AND b.id NOT IN (SELECT id FROM app_build WHERE service_id = $1 AND env = $2 ORDER BY uploaded_at DESC, id DESC LIMIT $3)
+        AND NOT EXISTS (SELECT 1 FROM test_run t WHERE t.build_id = b.id AND t.status = 'RUNNING')
       RETURNING b.id, b.file_path`,
     [serviceId, env, 보관개수],
   );
