@@ -219,15 +219,47 @@ describe('진척누적기 — 단계 표지', () => {
     시계.흐름(3725);
     expect(누적.단계표()).toBe(
       [
-        '| 단계 | 시작 | 걸린 시간 |',
-        '|---|---|---|',
-        '| (첫 표지 전) | 0:00 | 1:05 |',
-        '| 요구사항 표 | 1:05 | 10:00 |',
-        '| 관문 3 | 11:05 | 62:05 |',
+        '| 단계 | 시작 | 걸린 시간 | 메인 AI 기억 최대 |',
+        '|---|---|---|---|',
+        '| (첫 표지 전) | 0:00 | 1:05 | 1 |',
+        '| 요구사항 표 | 1:05 | 10:00 | 1 |',
+        '| 관문 3 | 11:05 | 62:05 | — |',
         '',
         '가장 긴 단계: 관문 3 — 62:05',
+        '메인 AI 기억 최대: 1 토큰 — (첫 표지 전)',
       ].join('\n'),
     );
+  });
+
+  it('메인 AI 기억 — 메인 AI 턴의 입력 · 캐시 만들기 · 캐시 읽기 합을 단계마다 최댓값으로 · 표지를 말한 턴은 앞 단계 몫 · 보조 AI 턴과 출력은 안 센다', () => {
+    const 턴 = (id: string, text: string, 입력: number, 만들기: number, 읽기: number, parent: string | null = null) =>
+      JSON.stringify({
+        type: 'assistant',
+        message: { id, content: [{ type: 'text', text }], usage: { input_tokens: 입력, cache_creation_input_tokens: 만들기, cache_read_input_tokens: 읽기, output_tokens: 90_000 } },
+        parent_tool_use_id: parent,
+      });
+    const 시계 = 가짜시계();
+    const 누적 = 진척누적기(60, {}, 시계.지금);
+    시계.흐름(5);
+    누적.먹기(턴('a', '[단계] 요구사항 표', 10, 2_000, 30_000));
+    누적.먹기(턴('b', '표를 쓴다', 5, 1_000, 180_000));
+    누적.먹기(턴('c', '[단계] 보조 AI 결과 합치기', 5, 500, 181_000));
+    누적.먹기(JSON.stringify({ type: 'assistant', message: { id: 'c', content: [{ type: 'tool_use', name: 'Bash', input: { command: 'ls' } }], usage: { input_tokens: 5, cache_creation_input_tokens: 500, cache_read_input_tokens: 181_000 } }, parent_tool_use_id: null }));
+    누적.먹기(턴('d', '보조가 읽는다', 1, 1, 900_000, 'toolu_01'));
+    누적.먹기(턴('e', '합친다', 3, 4_000, 449_000));
+    const 표 = 누적.단계표();
+    expect(표).toContain('| (첫 표지 전) | 0:00 | 0:05 | 32,010 |');
+    expect(표).toContain('| 요구사항 표 | 0:05 | 0:00 | 181,505 |');
+    expect(표).toContain('| 보조 AI 결과 합치기 | 0:05 | 0:00 | 453,003 |');
+    expect(표.endsWith('메인 AI 기억 최대: 453,003 토큰 — 보조 AI 결과 합치기')).toBe(true);
+  });
+
+  it('메인 AI 기억 — 표지를 말한 턴이 tool_use 블록으로 한 줄 더 와도 새 단계로 새지 않는다', () => {
+    const 누적 = 진척누적기(60);
+    const 사용 = { input_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 400_000 };
+    누적.먹기(JSON.stringify({ type: 'assistant', message: { id: 'a', content: [{ type: 'text', text: '[단계] 케이스 작성' }], usage: 사용 }, parent_tool_use_id: null }));
+    누적.먹기(JSON.stringify({ type: 'assistant', message: { id: 'a', content: [{ type: 'tool_use', name: 'Bash', input: { command: 'ls' } }], usage: 사용 }, parent_tool_use_id: null }));
+    expect(누적.단계표()).toContain('| 케이스 작성 | 0:00 | 0:00 | — |');
   });
 
   it('표지가 하나도 없으면 단계표는 빈 글이다', () => {
