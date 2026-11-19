@@ -325,7 +325,7 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
     const 지문들 = new Map(await Promise.all([...cases.values()].map(async (c) => [c.tc_id, await 케이스지문(c.file_path)] as const)));
 
     // 게임 애플리케이션만 읽는다 — 항목마다 같은 목록이라 한 번
-    const 팝업칸 = found서비스.kind === 'GAME' ? await 돌발팝업칸(Number(found서비스.id)) : {};
+    const 팝업칸 = found서비스.kind === 'GAME' ? await 돌발팝업칸(Number(found서비스.id), client) : {};
     const items: PendingItem[] = [];
     for (const item of 채운항목) {
       const spec = cases.get(item.tcId)!;

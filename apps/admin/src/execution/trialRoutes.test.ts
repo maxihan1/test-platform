@@ -384,10 +384,11 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect(받은요청).toEqual([]);
   });
 
-  it('게임 애플리케이션의 android 테스트 실행은 엔진 GAME 과 그 줄의 어드민 키를 싣고, 다른 환경은 안 싣는다', async () => {
+  it('게임 애플리케이션의 android 테스트 실행은 엔진 GAME 과 그 줄의 어드민 키 · 조작 맵의 돌발 팝업을 싣고, 다른 환경은 안 싣는다', async () => {
     process.env.DEVICE_FARM_URL = 러너주소;
     await q(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [서비스]);
     await q(`UPDATE service_env SET admin_key = $2 WHERE service_id = $1 AND env = 'qa'`, [서비스, JSON.stringify({ header: 'X-Admin-Key', value: 'xtr-key' })]);
+    await q(`INSERT INTO game_route (service_id, kind, from_key, action, status) VALUES ($1, 'POPUP', 'game:Main/Canvas/Invite', '/Canvas/Invite/Decline', 'OK')`, [서비스]);
     try {
       const 폰 = await 시작({ ...정상, platform: 'android' });
       expect(폰.statusCode).toBe(202);
@@ -398,7 +399,9 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
         ['android', 'GAME', { header: 'X-Admin-Key', value: 'xtr-key' }],
         ['desktop', undefined, undefined],
       ]);
+      expect(받은요청.map((r) => r.gamePopups)).toEqual([[{ window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' }], undefined]);
     } finally {
+      await q('DELETE FROM game_route WHERE service_id = $1', [서비스]);
       await q(`UPDATE service_env SET admin_key = NULL WHERE service_id = $1 AND env = 'qa'`, [서비스]);
       await q(`UPDATE service SET kind = 'SCREEN', game_platform = NULL WHERE id = $1`, [서비스]);
     }

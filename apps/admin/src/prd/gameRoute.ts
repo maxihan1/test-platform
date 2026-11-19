@@ -192,24 +192,36 @@ export async function 맵글(서비스: number): Promise<string> {
   return [`# 조작 맵 — 행 ${String(r.rows.length)}개. 「어떻게 가나」만 담는다 — 기대값의 근거가 아니다`, '', ...묶음].join('\n').trimEnd() + '\n';
 }
 
-// 러너가 자식 환경값 한 칸으로 넘기는 상한과 같다 — 넘으면 러너가 요청을 400 으로 거절해 실행이 서지 않는다 (apps/runner/src/schema.ts 돌발팝업상한)
-const 팝업상한 = 100;
+// 러너 요청 검사와 같은 한도 — 넘으면 러너가 요청을 400 으로 거절해 그 실행의 게임 항목이 다 못 선다 (apps/runner/src/schema.ts 돌발팝업상한)
+const 팝업상한 = { 줄: 100, 글: 200 } as const;
+// 올리기 검사(가르개)는 줄바꿈 · NUL 만 막아 탭 같은 제어 문자가 든 행이 저장될 수 있다 — 그 행만 빼고 싣는다
+const 실을주소 = (v: string): boolean => v.length <= 팝업상한.글 && ![...v].some((c) => c < ' ');
+
+/** 맵 행을 읽는 손 — 실행을 만드는 트랜잭션 안이면 그 연결을 넘긴다(풀에서 둘째 연결을 기다리며 서로 막히지 않게) */
+type 읽는손 = { query: Awaited<ReturnType<typeof db>>['query'] };
 
 /**
  * 실행 요청에 싣는 돌발 팝업 — 「확인」 POPUP 행만. 창 열쇠(game:<장면>/<창 경로>)는 장면 머리를 떼 게임 드라이버가 찾는 주소로 바꾸고, 동작 칸은 닫을 때 누르는 주소다.
  * 장면을 떼는 까닭 — 공지 · 초대 창은 장면을 가리지 않고 뜬다. 열쇠가 game: 꼴이 아니면(사람이 주소로 적은 행) 그대로 싣는다 (도메인/게임 §3.10 결정 31)
  */
-export async function 돌발팝업들(서비스: number): Promise<GamePopup[]> {
-  const r = await (await db()).query<{ from_key: string; action: string }>(
+export async function 돌발팝업들(서비스: number, 손?: 읽는손): Promise<GamePopup[]> {
+  const r = await (손 ?? (await db())).query<{ from_key: string; action: string }>(
     `SELECT from_key, action FROM game_route WHERE service_id = $1 AND kind = 'POPUP' AND status = 'OK'
-      ORDER BY from_key COLLATE "C", action COLLATE "C" LIMIT $2`,
-    [서비스, 팝업상한],
+      ORDER BY from_key COLLATE "C", action COLLATE "C"`,
+    [서비스],
   );
-  return r.rows.map((x) => ({ window: /^game:[^/]*(\/.+)$/.exec(x.from_key)?.[1] ?? x.from_key, close: x.action }));
+  const 들 = r.rows
+    .map((x) => ({ window: /^game:[^/]*(\/.+)$/.exec(x.from_key)?.[1] ?? x.from_key, close: x.action }))
+    .filter((p) => 실을주소(p.window) && 실을주소(p.close));
+  if (들.length < r.rows.length || 들.length > 팝업상한.줄) {
+    // 빠진 창은 자동으로 안 닫혀 그 창이 뜬 항목이 실패한다 — 까닭을 남긴다
+    console.warn(`[admin] 돌발 팝업 행 ${String(r.rows.length)}개 중 ${String(Math.min(들.length, 팝업상한.줄))}개만 싣는다 — 제어 문자 · 200자 넘는 행과 ${String(팝업상한.줄)}개 뒤는 뺀다 (service ${String(서비스)})`);
+  }
+  return 들.slice(0, 팝업상한.줄);
 }
 
 /** 실행 요청에 펼쳐 넣는 칸 — 행이 없으면 칸을 안 싣는다 */
-export async function 돌발팝업칸(서비스: number): Promise<{ gamePopups?: GamePopup[] }> {
-  const 들 = await 돌발팝업들(서비스);
+export async function 돌발팝업칸(서비스: number, 손?: 읽는손): Promise<{ gamePopups?: GamePopup[] }> {
+  const 들 = await 돌발팝업들(서비스, 손);
   return 들.length === 0 ? {} : { gamePopups: 들 };
 }

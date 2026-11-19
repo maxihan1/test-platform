@@ -86,7 +86,7 @@ describe.skipIf(연결 === undefined)('대상 서버 앱 파일 경로', () => {
     expect(items.map((i) => [i.tcId, i.app])).toEqual([['XAP-001', '/apk/qa.apk'], ['XAP-002', undefined]]);
   });
 
-  it('게임 애플리케이션이면 android 항목에만 엔진 GAME 과 그 줄의 어드민 키를 싣고, 아니면 칸이 없다', async () => {
+  it('게임 애플리케이션이면 android 항목에만 엔진 GAME 과 그 줄의 어드민 키 · 조작 맵의 돌발 팝업을 싣고, 아니면 칸이 없다', async () => {
     await 저장({ env: 'qa', baseUrl: 'https://qa.example.com', appPath: '/apk/qa.apk' });
     const 만든다 = async () =>
       (
@@ -107,7 +107,17 @@ describe.skipIf(연결 === undefined)('대상 서버 앱 파일 경로', () => {
       expect(await 만든다()).toEqual([['GAME', undefined], [undefined, undefined]]);
       await pool.query("UPDATE service_env SET admin_key = $2 WHERE service_id = $1 AND env = 'qa'", [서비스, JSON.stringify(키)]);
       expect(await 만든다()).toEqual([['GAME', 키], [undefined, undefined]]);
+      await pool.query(
+        `INSERT INTO game_route (service_id, kind, from_key, action, status) VALUES ($1, 'POPUP', 'game:Main/Canvas/Invite', '/Canvas/Invite/Decline', 'OK')`,
+        [서비스],
+      );
+      const 팝업 = (await createRun({
+        origin: 'MANUAL', triggeredBy: 'tester', env: 'qa',
+        items: [{ tcId: 'XAP-001', platforms: ['android'], params: {}, expected: {} }, { tcId: 'XAP-002', platforms: ['desktop'], params: {}, expected: {} }],
+      })).items.map((i) => i.gamePopups);
+      expect(팝업).toEqual([[{ window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' }], undefined]);
     } finally {
+      await pool.query('DELETE FROM game_route WHERE service_id = $1', [서비스]);
       await pool.query("UPDATE service SET kind = 'SCREEN', game_platform = NULL WHERE id = $1", [서비스]);
       await pool.query("UPDATE service_env SET admin_key = NULL WHERE service_id = $1", [서비스]);
     }

@@ -16,6 +16,7 @@ async function 초대창게임(팝업: unknown, 창이떠있나 = true): Promise
   const link: Link = async (cmd) => {
     if (cmd.cmd === 'ping') return { ok: true, app: 'Ashveil', version: '0.1.27' };
     보낸.push(cmd);
+    if (cmd.cmd === 'find' && cmd.target === 'Accept') return { ok: true, found: true, path: '/Canvas/Invite/Accept' };
     if (cmd.cmd === 'find') return cmd.target === 초대.window && 떠있음 ? { ok: true, found: true, path: 초대.window } : { ok: true, found: false };
     if (cmd.cmd === 'click' && cmd.target === 초대.close) {
       떠있음 = false;
@@ -35,6 +36,7 @@ describe('돌발 팝업 자동 닫기', () => {
     await stepScope.run(절차, () => game.click('/Hud/Enhance'));
     expect(보낸.map((c) => [c.cmd, c.target])).toEqual([
       ['click', '/Hud/Enhance'],
+      ['find', '/Hud/Enhance'],
       ['find', '/Canvas/Invite'],
       ['click', '/Canvas/Invite/Decline'],
       ['click', '/Hud/Enhance'],
@@ -65,13 +67,27 @@ describe('돌발 팝업 자동 닫기', () => {
   it('떠 있는 돌발 팝업이 없으면 다시 하지 않고 원래 실패를 낸다', async () => {
     const { game, 보낸 } = await 초대창게임([{ window: '/Canvas/Notice', close: '/Canvas/Notice/Close' }]);
     await expect(game.click('/Hud/Enhance')).rejects.toThrow('/Hud/Enhance 는 가려져 누를 수 없습니다');
-    expect(보낸.map((c) => [c.cmd, c.target])).toEqual([['click', '/Hud/Enhance'], ['find', '/Canvas/Notice']]);
+    expect(보낸.map((c) => [c.cmd, c.target])).toEqual([['click', '/Hud/Enhance'], ['find', '/Hud/Enhance'], ['find', '/Canvas/Notice']]);
   });
 
-  it('케이스가 그 창 안 오브젝트를 다루는 동작이면 창을 닫지 않는다 — 초대 창을 확인하는 케이스가 버그를 숨기지 않게', async () => {
+  it('케이스가 그 창 안 오브젝트를 다루는 동작이면 경로로 주든 이름으로 주든 창을 닫지 않는다 — 초대 창을 확인하는 케이스가 버그를 숨기지 않게', async () => {
     const { game, 보낸 } = await 초대창게임([초대]);
     await expect(game.click('/Canvas/Invite/Accept')).rejects.toThrow('가려져');
-    expect(보낸.map((c) => c.cmd)).toEqual(['click']);
+    await expect(game.click('Accept')).rejects.toThrow('가려져');
+    expect(보낸.filter((c) => c.target === 초대.close)).toEqual([]);
+  });
+
+  it('답을 못 받은 동작은 다시 하지 않는다 — 게임은 이미 눌렀을 수 있다', async () => {
+    const 보낸: string[] = [];
+    const link: Link = async (cmd) => {
+      if (cmd.cmd === 'ping') return { ok: true, app: 'Ashveil', version: '0.1.27' };
+      보낸.push(String(cmd.cmd));
+      if (cmd.cmd === 'click' && cmd.target === '/Shop/Buy') throw new Error('팜이 15초 안에 답하지 않았습니다');
+      return cmd.cmd === 'find' ? { ok: true, found: true, path: String(cmd.target) } : { ok: true, x: 1, y: 2 };
+    };
+    const game = await openGame({ PLATFORM_GAME_POPUPS: JSON.stringify([초대]) }, link, 안쉼);
+    await expect(game.click('/Shop/Buy')).rejects.toThrow('답하지 않았습니다');
+    expect(보낸).toEqual(['click']);
   });
 
   it('한 번 더 해도 실패하면 그 실패를 낸다 — 두 번째는 닫지 않는다', async () => {
@@ -79,13 +95,13 @@ describe('돌발 팝업 자동 닫기', () => {
     const link: Link = async (cmd) => {
       if (cmd.cmd === 'ping') return { ok: true, app: 'Ashveil', version: '0.1.27' };
       보낸.push(String(cmd.cmd));
-      if (cmd.cmd === 'find') return { ok: true, found: true, path: 초대.window };
+      if (cmd.cmd === 'find') return { ok: true, found: true, path: String(cmd.target) };
       if (cmd.cmd === 'click' && cmd.target === 초대.close) return { ok: true, x: 1, y: 2 };
       return { ok: false, error: '여전히 막혔습니다' };
     };
     const game = await openGame({ PLATFORM_GAME_POPUPS: JSON.stringify([초대]) }, link, 안쉼);
     await expect(game.click('/Hud/Enhance')).rejects.toThrow('여전히 막혔습니다');
-    expect(보낸).toEqual(['click', 'find', 'click', 'click']);
+    expect(보낸).toEqual(['click', 'find', 'find', 'click', 'click']);
   });
 
   it('목록이 비면 감싸지 않는다 — 지금처럼 실패다', async () => {
