@@ -2,6 +2,9 @@
 
 import { PC_PLATFORMS, PC항목인가 } from '@platform/kit/types';
 
+import type { 돌린판 } from './authoring-gate3.js';
+import { type 판정, 판정하기, 한판들 } from './authoring-phone-split.js';
+
 /** 폰에서 도는 두 갈래 — 게임은 control-cli, 앱은 appium-cli 로 AI 가 폰을 잡는다 */
 export type 폰갈래 = '게임' | '앱';
 
@@ -47,3 +50,18 @@ export function 차례짜기(pc: boolean, 파일들: readonly string[], 글: (�
 
 /** PC 판정 줄의 「폰」 자리 — 패드 꼬리가 붙은 기록은 패드 이름으로 읽는다 */
 export const 패드자리이름 = (자리: string): string => (자리.includes(':') ? `${자리.slice(자리.indexOf(':') + 1).toUpperCase()} 패드` : '키보드');
+
+/**
+ * 파일마다 지금 판정 — 이번에 쓸 수 있는 폰 · 계정을 주면 다시 볼 것도 고른다.
+ * 값들은 PC 게임 케이스가 선언한 윈도우 값이다 — 시간이 모자라 한 패드라도 안 돌았으면 초록이 아니라 안돎이다(돈 패드만 보고 초록으로 세지 않게)
+ */
+export function 폰판정들(대상: Record<string, number>, 판들: Map<string, 돌린판[]>, 있는폰들: readonly string[] = [], 계정들: readonly number[] = [1], 값들: (파일: string) => string[] = () => []): [string, 판정][] {
+  return Object.entries(대상)
+    .map(([파일, 수정]): [string, 판정] => {
+      const 돈것 = 한판들(판들.get(파일), 수정);
+      const 판정 = 판정하기(돈것, 있는폰들, 계정들);
+      const 돈값 = (값: string) => 돈것.some((p) => (값 === 'windows' ? !(p.폰 ?? '').includes(':') : (p.폰 ?? '').endsWith(`:${값.slice('windows-'.length)}`)));
+      return [파일, 판정.상태 === '초록' && !값들(파일).every(돈값) ? { 상태: '안돎' } : 판정];
+    })
+    .sort(([a], [b]) => a.localeCompare(b));
+}

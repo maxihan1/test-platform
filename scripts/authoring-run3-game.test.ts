@@ -54,6 +54,16 @@ describe('폰판정들 — 고친 뒤 폰에서 돈 기록으로 판정한다', 
   });
 });
 
+describe('폰판정들 — PC 게임은 선언한 윈도우 값이 다 돌아야 판정한다', () => {
+  it('PS5 만 돌고 Xbox 가 시간 안에 못 돌았으면 초록이 아니라 안돎이고, 둘 다 돌았으면 초록이다', () => {
+    const 패드판 = (자리: string) => ({ ...판(2000, 'expected'), 기록: `gate3-game-1~${자리}~1.json` });
+    const 값들 = () => ['windows-ps5', 'windows-xbox'];
+    expect(폰판정들({ 'g/A.spec.ts': 1000 }, new Map([['g/A.spec.ts', [패드판('pc-pc1:ps5')]]]), [], [1], 값들)).toEqual([['g/A.spec.ts', { 상태: '안돎' }]]);
+    expect(폰판정들({ 'g/A.spec.ts': 1000 }, new Map([['g/A.spec.ts', [패드판('pc-pc1:ps5'), 패드판('pc-pc1:xbox')]]]), [], [1], 값들)).toEqual([['g/A.spec.ts', { 상태: '초록' }]]);
+    expect(폰판정들({ 'g/B.spec.ts': 1000 }, new Map([['g/B.spec.ts', [패드판('pc-pc1')]]]), [], [1], () => ['windows'])).toEqual([['g/B.spec.ts', { 상태: '초록' }]]);
+  });
+});
+
 describe('폰차례 · 데이터남기나 — 앱 데이터를 남기는 케이스끼리 붙여 돌린다', () => {
   it('남기는 케이스를 앞에 모으고 나머지를 뒤에 세운다 — 거르지 않아 못 도는 케이스 하나가 나머지를 막지 않는다', () => {
     const 남기나 = (f: string) => f.startsWith('m/K');
@@ -377,6 +387,11 @@ writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: 
 
     expect(await 폰실행('게임', 'g', 트리, env, 팜 as unknown as typeof fetch)).toBe(2);
     expect(오류.mock.calls.at(-1)?.[0]).toMatch(/PLATFORM_PC_GAME=<이름>/);
+
+    writeFileSync(join(트리, 'tests', 'g', 'G-FN-004.spec.ts'), 게임케이스.replace('G-FN-001', 'G-FN-004'));
+    expect(await 폰실행('게임', 'g', 트리, { ...env, PLATFORM_PC_GAME: 'BossRoom' }, 팜 as unknown as typeof fetch)).toBe(2);
+    expect(오류.mock.calls.at(-1)?.[0]).toMatch(/윈도우 값이 없는 케이스 1건 — g\/G-FN-004\.spec\.ts/);
+    rmSync(join(트리, 'tests', 'g', 'G-FN-004.spec.ts'));
 
     expect(await 폰실행('게임', 'g', 트리, { ...env, PLATFORM_PC_GAME: 'BossRoom' }, 팜 as unknown as typeof fetch)).toBe(1);
     expect(readFileSync(join(결과폴더, 'runs.txt'), 'utf8').trim().split('\n')).toEqual([
