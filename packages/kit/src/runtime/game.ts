@@ -7,7 +7,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import type { Game, Link, WaitOptions } from 'control-cli';
 
-import { runDir } from './artifacts.js';
+import { runDir, saveShot } from './artifacts.js';
 import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.js';
 
 type Env = Record<string, string | undefined>;
@@ -18,13 +18,24 @@ type Env = Record<string, string | undefined>;
  * waitForValue — 「값이 될 때까지」. SDK 에 기다리기 명령이 없어 get 을 waitFor 와 같은 간격 · 한도로 되풀이한다 (도메인/게임 §3.10 「케이스 꼴」 기다림)
  * touchDown · touchUp — 「손가락을 올려 둔 동안만 보이는 것」(말풍선). 길게 누르기(longPress)는 눌렀다 뗀 뒤에 답해 그 사이 뜬 것을 못 본다.
  * control-cli 의 touchDown 은 좌표도 받아서 Pick 으로 내지 않고 주소만 받는 꼴로 좁혀 낸다 (2026-11-17 Boss Room 말풍선 케이스 2건 보류)
+ * key · keyDown · keyUp · pad — 윈도우 PC 게임의 키보드 · 패드 (공통/3-공유계약 「윈도우 PC 게임」). power(GetAxis 값)는 내지 않는다.
+ * pad 는 읽기만 한다 — 패드를 바꾸는 길은 러너가 넘긴 PLATFORM_PAD 하나뿐이다(도메인/게임 §3.10 결정 27)
  */
-export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'waitFor' | 'layout' | 'errors' | 'touchUp'> & {
+export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'waitFor' | 'layout' | 'errors' | 'touchUp' | 'keyUp'> & {
   touchDown(target: string, options?: Parameters<Game['touchDown']>[1]): Promise<number>;
+  key(name: string, options?: { duration?: number }): Promise<void>;
+  keyDown(keys: string): Promise<void>;
+  pad(): Promise<{ type: PadKind | 'off'; buttons?: Record<string, string> }>;
   waitForValue(target: string, prop: string, value: unknown, options?: Pick<WaitOptions, 'timeoutMs'>): Promise<void>;
 };
-/** 손가락을뗀다 — 케이스가 touchUp 전에 끝나도(실패 · 제한 시간) 정리 단계가 눌러 둔 손가락을 거둔다 */
-export type KitGame = Game & Pick<GameDriver, 'waitForValue'> & { 손가락을뗀다(): Promise<void> };
+/**
+ * 입력을거둔다 — 케이스가 touchUp · keyUp 전에 끝나도(실패 · 제한 시간) 정리 단계가 눌러 둔 손가락 · 키를 거둔다.
+ * pad · keyDown 은 kit 이 덮어 인자를 덜 받는다 — 타입에 Game 의 원래 꼴이 남아 있어 덮은 쪽이 남는 인자를 받으면 던진다
+ */
+export type KitGame = Game & Pick<GameDriver, 'waitForValue' | 'pad'> & { 입력을거둔다(): Promise<void> };
+
+export const PAD_KINDS = ['ps5', 'ps4', 'switch', 'xbox'] as const;
+export type PadKind = (typeof PAD_KINDS)[number];
 
 export const isGame = (env: Env): boolean => env.PLATFORM_ENGINE === 'GAME';
 
@@ -91,12 +102,16 @@ export async function openGame(
       await 쉬기(WAIT.intervalMs);
     }
   };
-  // 눌러 둔 손가락 번호 — E2E 는 단계 사이에 앱을 다시 켜지 않아, 떼지 않고 끝난 손가락이 다음 단계까지 눌린 채 남는다
+  // 눌러 둔 손가락 번호 · 키 — E2E 는 단계 사이에 앱을 다시 켜지 않아, 떼지 않고 끝난 입력이 다음 단계까지 눌린 채 남는다
   const 눌린 = new Set<number>();
+  const 눌린키 = new Set<string>();
   // 누르기 답을 못 받았다(끊김 · 제한 시간) — 게임에서는 눌렸을 수 있어 번호를 몰라도 거둔다
   let 모름 = false;
   const 누르기 = game.touchDown.bind(game);
   const 떼기 = game.touchUp.bind(game);
+  const 키누르기 = game.keyDown.bind(game);
+  const 키떼기 = game.keyUp.bind(game);
+  const 패드 = game.pad.bind(game);
   const 드라이버: KitGame = Object.assign(game, {
     waitForValue,
     touchDown: async (target: string, options?: Parameters<Game['touchDown']>[1]): Promise<number> => {
@@ -112,8 +127,27 @@ export async function openGame(
       await 떼기(번호);
       눌린.delete(번호);
     },
-    손가락을뗀다: async (): Promise<void> => {
-      if (눌린.size === 0 && !모름) return;
+    // 몸통은 power 를 못 넘긴다 — 타입을 피해 넘긴 값을 조용히 버리지 않고 던진다
+    keyDown: async (keys: string, ...더: unknown[]): Promise<void> => {
+      if (더.length > 0) throw new Error('keyDown 은 키만 받는다 — power 는 쓰지 않는다');
+      모름 = true;
+      await 키누르기(keys);
+      모름 = false;
+      눌린키.add(keys);
+    },
+    keyUp: async (keys: string): Promise<void> => {
+      await 키떼기(keys);
+      눌린키.delete(keys);
+    },
+    pad: async (...인자: unknown[]) => {
+      // 패드는 실행할 때 고른다 — pad('xbox') 를 조용히 읽기로 바꾸면 그 뒤 Pad.<이름> 이 다른 패드 글자로 간다
+      if (인자.length > 0) throw new Error('game.pad() 는 읽기만 한다 — 패드는 실행할 때 고른다');
+      const { pad } = await 패드();
+      // kit 은 generic 을 고르지 않는다(PLATFORM_PAD 는 넷 중 하나) — 그 밖의 값은 SDK 가 준 그대로 싣는다
+      return { type: pad.type as PadKind | 'off', ...(pad.buttons && { buttons: pad.buttons }) };
+    },
+    입력을거둔다: async (): Promise<void> => {
+      if (눌린.size === 0 && 눌린키.size === 0 && !모름) return;
       try {
         // 진짜로 뗀 것처럼 하나씩 뗀다 — 입력 거두기(input-reset)는 누름을 「취소」해 게임의 떼기 처리가 안 돌 수 있다. 번호를 모르거나 떼기가 실패한 것만 거둔다
         let 거둘것 = 모름;
@@ -125,12 +159,21 @@ export async function openGame(
             거둘것 = true;
           }
         }
+        for (const 키 of [...눌린키]) {
+          try {
+            await 키떼기(키);
+            눌린키.delete(키);
+          } catch {
+            거둘것 = true;
+          }
+        }
         if (거둘것) await game.resetInput();
         눌린.clear();
+        눌린키.clear();
         모름 = false;
       } catch (err) {
         // 이미 난 판정을 덮지 않는다. 못 거둔 것은 남겨 두어 다음 정리(E2E 다음 단계 끝)가 다시 해 본다
-        console.error(`[kit] 눌러 둔 손가락을 떼지 못했다: ${글(err)}`);
+        console.error(`[kit] 눌러 둔 손가락 · 키를 떼지 못했다: ${글(err)}`);
       }
     },
   });
@@ -138,13 +181,25 @@ export async function openGame(
   for (;;) {
     try {
       await game.ping();
-      return 드라이버;
+      break;
     } catch (err) {
       // 원문을 남겨야 실패 유형이 「환경 오류」로 가른다 (reporting/failureType.ts)
       if (/HTTP 4(?!08|29)\d\d/.test(글(err)) || Date.now() >= 끝) throw new Error(`게임이 ${켜짐.timeoutMs / 1000}초 안에 답하지 않았습니다 — ${글(err)}`);
       await 쉬기(켜짐.intervalMs);
     }
   }
+  // 실행 창에서 고른 패드 — 몸통 앞에 한 번 정한다. 폰 · 패드 없음은 빈 값이다 (공통/3-공유계약 「윈도우 PC 게임」)
+  const 패드값 = env.PLATFORM_PAD ?? '';
+  if (패드값 !== '') {
+    if (!(PAD_KINDS as readonly string[]).includes(패드값)) throw new Error(`모르는 패드다: PLATFORM_PAD=${패드값}`);
+    await 패드(패드값 as PadKind);
+  }
+  return 드라이버;
+}
+
+/** 윈도우 PC 항목의 단계 · 실패 스크린샷 — Appium 이 없어 게임이 프레임 끝에서 찍은 화면을 쓴다 (공통/3-공유계약 「윈도우 PC 게임」) */
+export function captureGame(game: Game, seq: number): Promise<string | undefined> {
+  return saveShot(seq, async (path) => writeFile(path, await game.screenshot('png')));
 }
 
 /**

@@ -23,6 +23,12 @@ describe('게임밖요소', () => {
       'xgc/XGC-FN-001.spec.ts의 XGC-FN-001은 게임 애플리케이션 케이스가 아닌데 elements 를 적어 게임 지도에 넣지 않았다',
     ]);
   });
+
+  it('windows 를 적은 케이스도 알린다 — 윈도우 PC 는 게임만 돈다', () => {
+    expect(게임밖요소([{ ...케이스('XGC-FN-004'), platforms: ['android', 'windows'] }])).toEqual([
+      'xgc/XGC-FN-004.spec.ts의 XGC-FN-004은 게임 애플리케이션 케이스가 아닌데 windows 를 적었다 — 윈도우 PC 에서는 게임만 돈다',
+    ]);
+  });
 });
 
 const 연결 = process.env.DATABASE_URL;

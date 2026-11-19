@@ -12,7 +12,9 @@ const game = vi.hoisted(() => ({
   isGame: (env: Record<string, string | undefined>) => env.PLATFORM_ENGINE === 'GAME',
   openGame: vi.fn(),
   게임증적을남긴다: vi.fn(),
+  captureGame: vi.fn(),
 }));
+const pc = vi.hoisted(() => ({ PC를연다: vi.fn(), PC를끈다: vi.fn() }));
 
 vi.mock('@playwright/test', () => ({
   test: Object.assign(() => {}, {
@@ -25,12 +27,13 @@ vi.mock('@playwright/test', () => ({
 }));
 vi.mock('./app.js', () => app);
 vi.mock('./game.js', () => game);
+vi.mock('./pc.js', () => pc);
 
 const { defineCase } = await import('./defineCase.js');
 const { test } = await import('./test.js');
 
 const driver = { id: 'fake-driver' };
-const 게임 = { id: 'fake-game', 손가락을뗀다: vi.fn(async () => {}) };
+const 게임 = { id: 'fake-game', 입력을거둔다: vi.fn(async () => {}) };
 const spec = defineCase({ tcId: 'ASH-FN-001', name: '강화', precondition: [], params: null, expected: null, platforms: ['android'] });
 
 function 응답(status: number) {
@@ -38,8 +41,8 @@ function 응답(status: number) {
 }
 
 // 정리 단계 testInfo.status 로 실패를 가른다 — Playwright 는 본문이 끝난 뒤 그 값을 채운다
-async function 돌린다(request: object, 판정: 'passed' | 'failed' = 'passed') {
-  const testInfo = { project: { name: 'android' }, attach: vi.fn(), status: 판정, expectedStatus: 'passed' };
+async function 돌린다(request: object, 판정: 'passed' | 'failed' = 'passed', 디바이스 = 'android') {
+  const testInfo = { project: { name: 디바이스 }, attach: vi.fn(async (..._인자: unknown[]) => {}), status: 판정, expectedStatus: 'passed' };
   let 던짐: unknown;
   await pw.fixtures.appSession(
     {},
@@ -58,6 +61,9 @@ beforeEach(() => {
   app.readDevice.mockReset().mockResolvedValue({ model: null, osVersion: null, appVersion: null });
   game.openGame.mockReset().mockResolvedValue(게임);
   game.게임증적을남긴다.mockReset().mockResolvedValue(undefined);
+  game.captureGame.mockReset().mockResolvedValue('artifacts/runs/0/0/1.png');
+  pc.PC를연다.mockReset().mockResolvedValue({ game: 게임, device: { model: 'pc-pc1', osVersion: 'Windows', appVersion: null, appBuild: null } });
+  pc.PC를끈다.mockReset().mockResolvedValue(undefined);
   process.env.PLATFORM_ENGINE = 'GAME';
   process.env.PLATFORM_BASE_URL = 'https://ash.example.com';
   process.env.PLATFORM_ADMIN_KEY = JSON.stringify({ header: 'X-Admin-Key', value: 'k-1234' });
@@ -70,6 +76,29 @@ afterEach(() => {
 });
 
 describe('게임 항목', () => {
+  it('윈도우 PC 항목은 Appium 없이 PC 를 열고 game 만 준다 — 실패 증적 · 입력 거두기 뒤에 게임을 끈다', async () => {
+    const pcSpec = defineCase({ tcId: 'ASH-FN-002', name: 'PC 강화', precondition: [], params: null, expected: null, platforms: ['android', 'windows'] });
+    let 받은: { game: unknown; driver?: string } = { game: undefined };
+    test(pcSpec, async (args) => {
+      받은.game = args.game;
+      try {
+        void args.driver;
+      } catch (err) {
+        받은.driver = (err as Error).message;
+      }
+      throw new Error('강화 실패');
+    });
+    const { testInfo, 던짐 } = await 돌린다({}, 'failed', 'windows-ps5');
+    expect((던짐 as Error).message).toBe('강화 실패');
+    expect(받은).toEqual({ game: 게임, driver: 'ASH-FN-002은 PC 항목이라 driver 가 없다 — game 을 쓴다' });
+    expect(app.openApp).not.toHaveBeenCalled();
+    expect(app.closeApp).not.toHaveBeenCalled();
+    expect(testInfo.attach).toHaveBeenCalledWith('platform-device', expect.objectContaining({ body: JSON.stringify({ model: 'pc-pc1', osVersion: 'Windows', appVersion: null, appBuild: null }) }));
+    const 차례 = [game.게임증적을남긴다, 게임.입력을거둔다, pc.PC를끈다].map((f) => f.mock.invocationCallOrder[0]);
+    expect(차례).toEqual([...차례].sort((a, b) => a! - b!));
+    expect(차례.every((n) => n !== undefined)).toBe(true);
+  });
+
   it('몸통이 game · driver 를 받고, admin 은 어드민 키 머리를 붙이고 부른 API 를 첨부로 남긴다', async () => {
     const get = vi.fn(async () => 응답(200));
     let 받은: { game: unknown; driver: unknown } | undefined;
@@ -92,7 +121,7 @@ describe('게임 항목', () => {
 
   it('통과 못 한 항목은 연결을 닫기 전에 게임 증적을 남긴다', async () => {
     const 차례: string[] = [];
-    게임.손가락을뗀다.mockImplementationOnce(async () => void 차례.push('손가락'));
+    게임.입력을거둔다.mockImplementationOnce(async () => void 차례.push('손가락'));
     game.게임증적을남긴다.mockImplementation(async () => void 차례.push('증적'));
     app.closeApp.mockImplementation(async () => void 차례.push('닫기'));
     test(spec, async () => {});

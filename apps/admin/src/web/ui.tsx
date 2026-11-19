@@ -7,8 +7,9 @@ import { t, use말, use언어, type 언어 } from './i18n.js';
 import { ApiError, type ItemStatus, type Platform } from './api.js';
 import { use올라가기 } from './dashboardView.js';
 import { 요청오류문장 } from './errorText.js';
+import { PC디바이스글 } from '../execution/pcPlatform.js';
 
-export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
+export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱', ...PC디바이스글 };
 export const PLATFORMS: Platform[] = ['desktop', 'mobile'];
 /** 결과 화면이 디바이스를 늘어놓는 차례. 카드 안 줄과 옆 칸이 같은 순서를 쓴다 */
 export const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];

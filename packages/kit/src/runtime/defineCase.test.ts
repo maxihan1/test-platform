@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { defineCase, keepsAppData, schemasOf } from './defineCase.js';
+import { defineCase, keepsAppData, schemasOf, 선언했나 } from './defineCase.js';
 
 beforeAll(() => {
   // filePath는 테스트 루트 기준 상대 경로다. 이 파일이 루트인 셈 치고 검사한다
@@ -66,7 +66,24 @@ describe('defineCase', () => {
         params: null,
         expected: null,
       }),
-    ).toThrow('DEMO-005: android 는 다른 디바이스와 함께 선언하지 않는다');
+    ).toThrow('DEMO-005: android · windows 는 desktop · mobile 과 함께 선언하지 않는다');
+  });
+
+  it.each([[['windows']], [['android', 'windows']]] as const)('게임 케이스는 %j 로 선언한다', (platforms) => {
+    const spec = defineCase({ tcId: 'DEMO-006', name: 'PC 게임', platforms: [...platforms], precondition: [], params: null, expected: null });
+    expect(spec.platforms).toEqual(platforms);
+  });
+
+  it('windows 를 브라우저 디바이스와 섞으면 던진다', () => {
+    expect(() =>
+      defineCase({ tcId: 'DEMO-007', name: '섞인 PC', platforms: ['windows', 'mobile'], precondition: [], params: null, expected: null }),
+    ).toThrow('DEMO-007: android · windows 는 desktop · mobile 과 함께 선언하지 않는다');
+  });
+
+  it('패드 값은 선언에 적지 못한다 — 실행할 때 고른다', () => {
+    expect(() =>
+      defineCase({ tcId: 'DEMO-008', name: '패드 선언', platforms: ['windows-ps5'], precondition: [], params: null, expected: null }),
+    ).toThrow('DEMO-008: 패드는 실행할 때 고른다 — platforms 에는 windows 만 적는다');
   });
 
   it('keepAppData 는 android 케이스에만 달고 명세(스캐너 JSON)에는 안 싣는다', () => {
@@ -302,5 +319,10 @@ describe('defineCase', () => {
 
     expect('elements' in spec).toBe(false);
     expect('smoke' in spec).toBe(false);
+  });
+
+  it('windows 를 선언한 케이스는 패드 값 다섯 어느 것으로도 돌고 android 는 그대로다', () => {
+    expect(['windows', 'windows-ps5', 'windows-xbox', 'android', 'desktop'].map((d) => 선언했나(['windows'], d))).toEqual([true, true, true, false, false]);
+    expect(선언했나(['android', 'windows'], 'android')).toBe(true);
   });
 });

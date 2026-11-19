@@ -49,6 +49,7 @@ describe('traceEnv', () => {
   it('테스트 실행(runId 0)과 앱 실행은 끈다', () => {
     expect(traceEnv({ runId: 0, platform: 'desktop' })).toBe('0');
     expect(traceEnv({ runId: 5, platform: 'android' })).toBe('0');
+    expect(traceEnv({ runId: 5, platform: 'windows-ps5' })).toBe('0');
   });
 });
 
@@ -59,8 +60,17 @@ describe('gameEnv', () => {
   });
 
   it('게임이 아니면 셋 다 빈 값으로 늘 적는다 — 러너를 켠 셸의 값을 물려받지 않게', () => {
-    expect(gameEnv({ platform: 'android', udid: 'R3CR' })).toEqual({ PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '' });
+    expect(gameEnv({ platform: 'android', udid: 'R3CR' })).toEqual({ PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '', PLATFORM_PC_GAME: '', PLATFORM_PAD: '' });
     expect(gameEnv({ platform: 'desktop', engine: 'GAME' }).PLATFORM_ENGINE).toBe('');
+  });
+
+  it('윈도우 PC 항목은 팜 길로 가고 게임 이름 · 패드를 넘긴다 — 패드 없음은 빈 값이다', () => {
+    expect(gameEnv({ platform: 'windows-ps5', engine: 'GAME', udid: 'pc-pc1', app: 'BossRoom' })).toMatchObject({
+      PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm', PLATFORM_PC_GAME: 'BossRoom', PLATFORM_PAD: 'ps5',
+    });
+    expect(gameEnv({ platform: 'windows-switch', engine: 'GAME', udid: 'pc-pc1', app: 'BossRoom' }).PLATFORM_PAD).toBe('switch');
+    expect(gameEnv({ platform: 'windows', engine: 'GAME', udid: 'pc-pc1', app: 'BossRoom' })).toMatchObject({ PLATFORM_PC_GAME: 'BossRoom', PLATFORM_PAD: '' });
+    expect(gameEnv({ platform: 'android', engine: 'GAME', udid: 'R3CR', app: '/apk/a.apk' })).toMatchObject({ PLATFORM_PC_GAME: '', PLATFORM_PAD: '' });
   });
 
   it('어드민 키는 JSON 으로 넘긴다', () => {

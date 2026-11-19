@@ -11,6 +11,14 @@ async function 시나리오설정읽기(): Promise<{ metadata?: { partTimeoutMs?
   return (await import('../scenario/playwright.config.js')).default;
 }
 
+describe('윈도우 PC 프로젝트', () => {
+  it('패드 값 다섯마다 프로젝트가 있고 한도는 android 와 같다 — 러너가 platform 을 --project 로 넘긴다', async () => {
+    const 설정 = (await 설정읽기()) as { projects?: { name?: string; timeout?: number }[] };
+    const 찾기 = (name: string) => 설정.projects?.find((p) => p.name === name)?.timeout;
+    expect(['windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox'].map(찾기)).toEqual(Array(5).fill(찾기('android')));
+  });
+});
+
 describe('PLATFORM_HEADED', () => {
   afterEach(() => {
     vi.unstubAllEnvs();

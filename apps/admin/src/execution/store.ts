@@ -17,9 +17,10 @@ import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 import { 시작방식정하기 } from './single.js';
 import { 케이스지문, 테스트커밋 } from './testVersion.js';
+import { PC디바이스글, PC항목을뺀다 } from './pcPlatform.js';
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
-const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
+const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱', ...PC디바이스글 };
 
 // 요청이 잘못된 것과 서버가 고장난 것을 라우트가 문자열로 가려내지 않게 한다
 export class RunInputError extends Error {
@@ -149,7 +150,9 @@ const INSERT_ITEM = `
   VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13, $14, $15)
   RETURNING history_id`;
 
-export async function createRun(input: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
+export async function createRun(입력: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
+  // 정기 · 빌드 · 사람이 거는 실행이 다 여기를 지난다 — PC 항목을 싣는 길이 생기기 전까지 한 곳에서 뺀다 (pcPlatform.ts)
+  const input = { ...입력, items: PC항목을뺀다(입력.items) };
   if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
 
   // 같은 실행 안에서 케이스×환경은 한 행뿐이다(run_item의 UNIQUE). 조용히 버리면 뒤에 넣은 입력값이 사라진다

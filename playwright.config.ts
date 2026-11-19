@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { PC_PLATFORMS } from './packages/kit/src/types.js';
+
 // /tests는 컨테이너에 읽기 전용으로 마운트되므로 산출물은 반드시 그 밖에 쌓아야 한다 (SPEC §9)
 const testsDir = process.env.PLATFORM_TESTS_DIR ?? './tests';
 const artifactsDir = process.env.PLATFORM_ARTIFACTS_DIR ?? './artifacts';
@@ -46,5 +48,7 @@ export default defineConfig({
     // 기다림은 단계마다 조건 기반이고 이건 케이스 전체 상한이다. 앱은 화면 여럿을 지나 정상으로도 30초를 넘긴다 (§5.2 「앱 실행」).
     // 러너가 프로세스째 끊는 timeoutMs(기본 5분)보다 짧아야 kit 이 Appium 연결을 닫고 결과를 남긴다
     { name: 'android', timeout: 120_000 },
+    // 윈도우 PC 게임 — 브라우저 없이 kit 이 VISION 에 게임을 켜고 붙는다. 패드마다 프로젝트 하나고 한도는 android 와 같다 (도메인/러너 §5.2 「윈도우 PC 게임 항목」)
+    ...PC_PLATFORMS.map((name) => ({ name, timeout: 120_000 })),
   ],
 });

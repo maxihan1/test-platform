@@ -8,9 +8,15 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-/** 게임이 아닌 애플리케이션 케이스가 적은 요소 — 지도에 넣지 않고 스캔 문제로 알린다(kit 은 종류를 몰라 막지 못한다) */
+/**
+ * 게임이 아닌 애플리케이션 케이스가 적은 요소 · windows — 지도에 넣지 않고 스캔 문제로 알린다(kit 은 종류를 몰라 막지 못한다).
+ * windows 는 윈도우 PC 게임만 돈다 (공통/3-공유계약 「윈도우 PC 게임」)
+ */
 export function 게임밖요소(specs: readonly CaseSpec[]): string[] {
-  return specs.filter((s) => (s.elements ?? []).length > 0).map((s) => `${s.filePath}의 ${s.tcId}은 게임 애플리케이션 케이스가 아닌데 elements 를 적어 게임 지도에 넣지 않았다`);
+  return [
+    ...specs.filter((s) => (s.elements ?? []).length > 0).map((s) => `${s.filePath}의 ${s.tcId}은 게임 애플리케이션 케이스가 아닌데 elements 를 적어 게임 지도에 넣지 않았다`),
+    ...specs.filter((s) => s.platforms.includes('windows')).map((s) => `${s.filePath}의 ${s.tcId}은 게임 애플리케이션 케이스가 아닌데 windows 를 적었다 — 윈도우 PC 에서는 게임만 돈다`),
+  ];
 }
 
 /**

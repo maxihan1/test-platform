@@ -86,6 +86,38 @@ describe('POST /execute', () => {
     expect(execute).toHaveBeenCalledWith(expect.objectContaining({ platform: 'android' }), expect.any(String));
   });
 
+  it('윈도우 PC 항목은 패드 값 다섯을 받고 게임 이름(app)을 파일 경로처럼 거르지 않는다', async () => {
+    const 칸 = { runId: 1, historyId: 3, tcId: 'ARG-FN-001', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', params: {}, expected: {} };
+    for (const platform of ['windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox']) {
+      const res = await 서버().inject({ method: 'POST', url: '/execute', payload: { ...칸, platform, engine: 'GAME', udid: 'pc-pc1', app: 'Boss Room' } });
+      expect(res.statusCode).not.toBe(400);
+      expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ platform, app: 'Boss Room', udid: 'pc-pc1' }), expect.any(String));
+    }
+  });
+
+  it.each([
+    ['udid', { engine: 'GAME', app: 'BossRoom' }],
+    ['app', { engine: 'GAME', udid: 'pc-pc1' }],
+    ['engine', { udid: 'pc-pc1', app: 'BossRoom' }],
+  ])('윈도우 PC 항목에 %s 가 없으면 400 이다 — 내 컴퓨터 러너의 USB 길이 PC 에는 없다', async (_칸, 더) => {
+    const res = await 서버().inject({
+      method: 'POST',
+      url: '/execute',
+      payload: { runId: 1, historyId: 4, tcId: 'ARG-FN-001', platform: 'windows', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', params: {}, expected: {}, ...더 },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe('INVALID_REQUEST');
+  });
+
+  it('폰 항목의 app 은 지금처럼 http(s) 밖의 주소를 막는다', async () => {
+    const res = await 서버().inject({
+      method: 'POST',
+      url: '/execute',
+      payload: { runId: 1, historyId: 5, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', params: {}, expected: {}, app: 'file:///etc/passwd' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('앱 파일 경로(app)를 버리지 않고 실행에 넘긴다 — 입구가 모르는 칸은 지운다', async () => {
     await 서버().inject({
       method: 'POST',

@@ -1,4 +1,4 @@
-// Android 앱 · 게임 케이스의 Appium 연결(과 게임 SDK 연결)을 열고 닫는 Playwright fixture (도메인/러너 §5.2 「앱 실행」 · 도메인/게임 §3.10 「게임 연결」)
+// Android 앱 · 게임 케이스의 Appium 연결(과 게임 SDK 연결) · 윈도우 PC 게임을 열고 닫는 Playwright fixture (도메인/러너 §5.2 「앱 실행」 · 「윈도우 PC 게임 항목」 · 도메인/게임 §3.10 「게임 연결」)
 
 import { test as base } from '@playwright/test';
 
@@ -6,21 +6,25 @@ import { closeApp, type AppDriver, type AppOpenOptions } from './app.js';
 import { 게임증적을남긴다, type KitGame } from './game.js';
 import { 폰장면걸기, type 장면 } from './live.js';
 import { 폰을연다 } from './phone.js';
+import { PC를끈다, PC를연다 } from './pc.js';
 import { DEVICE_ATTACHMENT } from './protocol.js';
 
-export type AppSide = { driver: AppDriver; game?: KitGame };
+// 윈도우 PC 항목에는 Appium 연결이 없다 — VISION 의 /wd/hub 는 PC 에 400 이다
+export type AppSide = { driver: AppDriver; game?: KitGame } | { game: KitGame };
+// pc — 그 항목의 프로젝트가 windows* 다. 본문이 프로젝트 이름을 보고 고른다(test.ts)
+type 여는값 = AppOpenOptions & { pc?: true };
 
 // 케이스마다 만든다 — 앞 판처럼 defineTest 가 부를 때 extend 한다
 export const 앱테스트 = () =>
-  base.extend<{ appSession: { open(options?: AppOpenOptions): Promise<AppSide>; 끝정리를건다(끝: () => Promise<void>): void } }>({
+  base.extend<{ appSession: { open(options?: 여는값): Promise<AppSide>; 끝정리를건다(끝: () => Promise<void>): void } }>({
     appSession: async ({}, use, testInfo) => {
       // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
       let opening: Promise<AppSide> | undefined;
       // 폰 장면 — 연 직후 걸고 닫기 전에 끈다. 러너가 장면 파일을 준 실행(테스트 모드 · 정식 실행)에만 걸린다
       let 폰장면: 장면 | undefined;
       // 기기 정보는 연 직후 한 번 남긴다 — 리포터가 결과 줄 device 로 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
-      const 열고남긴다 = async (options?: AppOpenOptions): Promise<AppSide> => {
-        const { device, ...side } = await 폰을연다(process.env, options);
+      const 열고남긴다 = async ({ pc, ...options }: 여는값 = {}): Promise<AppSide> => {
+        const { device, ...side } = pc ? await PC를연다(process.env) : await 폰을연다(process.env, options);
         // 여기서 던지면 열린 연결을 아무도 못 닫는다(opening 이 실패로 끝난다). 남기지 못한 것만 알린다
         if (device !== undefined) {
           try {
@@ -29,7 +33,7 @@ export const 앱테스트 = () =>
             console.error(`[kit] 기기 정보를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
-        폰장면 = await 폰장면걸기(side.driver);
+        if ('driver' in side) 폰장면 = await 폰장면걸기(side.driver);
         return side;
       };
       // test.cleanup 의 끝 정리 — 실패 증적 뒤 · 연결을 닫기 전에 돈다 (공통/3-공유계약 「게임 시나리오 도구」)
@@ -57,12 +61,16 @@ export const 앱테스트 = () =>
         if (!통과 || 안정화 !== undefined) {
           await 게임증적을남긴다(side.game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0', 0, 안정화);
         }
-        // 케이스가 눌러 둔 손가락(touchDown)을 떼지 않고 끝났으면 거둔다 — 실패 순간의 오브젝트 목록(누른 동안 뜬 말풍선)이 남게 증적 뒤에
-        await side.game.손가락을뗀다();
+        // 케이스가 눌러 둔 손가락(touchDown) · 키(keyDown)를 떼지 않고 끝났으면 거둔다 — 실패 순간의 오브젝트 목록(누른 동안 뜬 말풍선)이 남게 증적 뒤에
+        await side.game.입력을거둔다();
       }
       // 정리 절차는 실패해도 NA 로 남고 던지지 않는다 — 남기기(attach)가 터진 것만 알린다
       await 끝?.().catch((err: unknown) => console.error(`[kit] 끝 정리를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`));
       // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
+      if (!('driver' in side)) {
+        await PC를끈다(process.env);
+        return;
+      }
       try {
         await closeApp(side.driver);
       } catch (err) {

@@ -300,6 +300,8 @@ describe('앱 · 게임 단계가 있는 시나리오', () => {
         PLATFORM_APPIUM_TOKEN: 'farm-token', PLATFORM_APP: '/apk/dma.apk', PLATFORM_DEVICE_UDID: 'R58M',
         PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '1201', PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm', PLATFORM_ADMIN_KEY: '{"header":"X-Admin-Key","value":"k1"}',
         PLATFORM_UI_CHECK: '',
+        PLATFORM_PC_GAME: '',
+        PLATFORM_PAD: '',
       });
       // admin 이 누른 사람 토큰으로 폰을 잡았으면 그 토큰이다
       expect(폰환경({ ...앱, farmToken: 'pat_kim' }).PLATFORM_APPIUM_TOKEN).toBe('pat_kim');
