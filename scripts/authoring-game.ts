@@ -12,7 +12,7 @@ import { type 상태, 상태인가 } from './authoring-screens-keep.js';
 import { type 화면통로, 새로쓰기, 안전히읽기, 폴더인가 } from './authoring-screens-keep-io.js';
 
 /** 자료 폴더 안 자리 — 자식 지침(tpx-author references/game.md)과 프롬프트 절이 같은 이름을 쓴다 */
-export const 게임자리 = { 저장본: 'game-kept', 훑기: 'game-crawl', 지도: 'game-map.txt', 요소: 'game-elements.json' } as const;
+export const 게임자리 = { 저장본: 'game-kept', 훑기: 'game-crawl', 지도: 'game-map.txt', 요소: 'game-elements.json', 맵: 'game-route.txt' } as const;
 
 const 기록상한 = 200_000;
 // 서버 game-elements 본문 상한(prd 통로와 같은 4MiB)보다 작게 — 넘으면 서버가 413 으로 돌려보낸다
@@ -32,13 +32,14 @@ function 받은창들(몸: unknown): (저장한창 & { 글: string; 훑은때: s
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 /**
- * 자식을 띄우기 전 — 창 기록 저장본(그 게임의 앱 줄)을 `game-kept/` 로, 게임 지도 글을 `game-map.txt` 로 받는다.
- * 못 받아도 작성은 간다(창을 전부 다시 정리할 뿐 · 지도가 빌 뿐). 앞 실행이 남긴 것은 먼저 지운다 — 이어받은 폴더에 낡은 지도가 보이면 안 된다
+ * 자식을 띄우기 전 — 창 기록 저장본(그 게임의 앱 줄)을 `game-kept/` 로, 게임 지도 글을 `game-map.txt` 로, 조작 맵 글을 `game-route.txt` 로 받는다.
+ * 못 받아도 작성은 간다(창을 전부 다시 정리할 뿐 · 지도 · 맵이 빌 뿐). 앞 실행이 남긴 것은 먼저 지운다 — 이어받은 폴더에 낡은 지도가 보이면 안 된다
  */
 export async function 게임준비(통로: 화면통로, 자료: string): Promise<void> {
   const 저장본 = join(자료, 게임자리.저장본);
   rmSync(저장본, { force: true, recursive: true });
   rmSync(join(자료, 게임자리.지도), { force: true });
+  rmSync(join(자료, 게임자리.맵), { force: true });
   const 못받음 = (무엇: string, 왜: string) => console.error(`[작성] ${통로.번호}번 — ${무엇}을 못 받았다(작성은 간다): ${왜}`);
   try {
     const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/screens`);
@@ -56,13 +57,16 @@ export async function 게임준비(통로: 화면통로, 자료: string): Promis
   } catch (e) {
     못받음('창 기록 저장본', 까닭(e));
   }
-  try {
-    const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/game-map`);
-    const 글 = (답.몸 as { text?: unknown } | null)?.text;
-    if (답.status === 200 && typeof 글 === 'string') 새로쓰기(join(자료, 게임자리.지도), 글);
-    else 못받음('게임 지도', `서버 ${답.status}`);
-  } catch (e) {
-    못받음('게임 지도', 까닭(e));
+  // 조작 맵은 경로 검색 명령이 읽는다 — 못 받으면 맵이 빈 것과 같아 목표를 전부 폰에서 해 본다 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
+  for (const [길, 무엇, 자리] of [['game-map', '게임 지도', 게임자리.지도], ['game-route', '조작 맵', 게임자리.맵]] as const) {
+    try {
+      const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/${길}`);
+      const 글 = (답.몸 as { text?: unknown } | null)?.text;
+      if (답.status === 200 && typeof 글 === 'string') 새로쓰기(join(자료, 자리), 글);
+      else 못받음(무엇, `서버 ${답.status}`);
+    } catch (e) {
+      못받음(무엇, 까닭(e));
+    }
   }
 }
 

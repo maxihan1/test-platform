@@ -1,4 +1,4 @@
-// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 (도메인/작성 §7 「표준 기획서 통로」 · 도메인/게임 §7)
+// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 · 조작 맵 (도메인/작성 §7 「표준 기획서 통로」 · 도메인/게임 §7)
 // 서비스 경계는 문이 요청 번호로 봤다. 여기서는 맥 계정 · 집은 쪽 · 도는 중인지를 본다(authoring/agentRoutes.ts 와 같은 문턱)
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -8,6 +8,7 @@ import { 문서설정읽기 } from '../apidoc/store.js';
 import { 대상줄들읽기, 앱줄고르기, 폰앱인가 } from '../authoring/reverse.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
+import { 맵글, 조작행검사, 조작행넣기 } from './gameRoute.js';
 import { 미션검사, 미션넣기 } from '../authoring/missions.js';
 import type { 앱요청 } from '../authoring/store.js';
 import { TCID } from '../catalog/rules.js';
@@ -145,6 +146,24 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     if (행 === null) return reply;
     if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
     return { text: await 지도글(행.serviceId) };
+  });
+
+  // 조작 맵 — 게임 애플리케이션만. 탐색 플레이가 해 본 동작을 행으로 올리고 다음 작성의 경로 검색이 맵 글을 읽는다 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
+  app.put<경로 & { Body: unknown }>('/authoring/requests/:id/game-route', { bodyLimit: 본문상한 }, async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
+    const 읽음 = 조작행검사(req.body);
+    if ('error' in 읽음) return reply.code(400).send(읽음);
+    await 조작행넣기(행.serviceId, 읽음.rows, 읽음.remove);
+    return reply.code(204).send();
+  });
+
+  app.get<경로>('/authoring/requests/:id/game-route', async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
+    return { text: await 맵글(행.serviceId) };
   });
 
   // seen 5,000개에 화면 크기 차이(화면 하나 최대 13KB)까지 실려 기본 1MiB 를 넘을 수 있다 (PRD-F10-07)
