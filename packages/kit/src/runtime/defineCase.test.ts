@@ -327,8 +327,8 @@ describe('defineCase', () => {
     expect('smoke' in spec).toBe(false);
   });
 
-  it('windows 를 선언한 케이스는 패드 값 다섯 어느 것으로도 돌고 android 는 그대로다', () => {
-    expect(['windows', 'windows-ps5', 'windows-xbox', 'android', 'desktop'].map((d) => 선언했나(['windows'], d))).toEqual([true, true, true, false, false]);
-    expect(선언했나(['android', 'windows'], 'android')).toBe(true);
+  it('선언한 값으로만 돈다 — windows 케이스는 패드 항목에서 안 돌고 버튼 그림 케이스는 적은 패드로만 돈다', () => {
+    expect(['windows', 'windows-ps5', 'windows-xbox', 'android', 'desktop'].map((d) => 선언했나(['windows'], d))).toEqual([true, false, false, false, false]);
+    expect(['windows', 'windows-ps5', 'windows-xbox'].map((d) => 선언했나(['windows-ps5', 'windows-xbox'], d))).toEqual([false, true, true]);
   });
 });

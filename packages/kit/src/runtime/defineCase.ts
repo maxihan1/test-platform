@@ -47,9 +47,9 @@ const schemas = new WeakMap<CaseSpec, { params: CaseSchema; expected: CaseSchema
 // 연결 설정만 고르는 값이라 명세(스캐너 JSON · DB)에 싣지 않는다 — schemas 와 같은 까닭으로 바깥에 둔다
 const keepers = new WeakSet<CaseSpec>();
 
-/** 그 디바이스(Playwright 프로젝트)를 선언했나 — windows 를 선언한 케이스는 패드 값 다섯 어느 것으로도 돈다 (도메인/게임 §3.10 결정 27) */
+/** 그 디바이스(Playwright 프로젝트)를 선언했나 — 패드도 선언이 정한다. windows 케이스는 키보드로만, 버튼 그림 케이스는 적은 패드로만 돈다 (도메인/게임 §3.10 결정 27) */
 export function 선언했나(platforms: readonly Platform[], 디바이스: string): boolean {
-  return platforms.some((p) => p === 디바이스 || (p === 'windows' && PC항목인가(디바이스)));
+  return (platforms as readonly string[]).includes(디바이스);
 }
 
 export function keepsAppData(spec: CaseSpec): boolean {

@@ -192,8 +192,9 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     return;
   }
 
-  // 윈도우 PC 항목도 브라우저 없이 같은 fixture 로 돈다 — 폰과 PC 는 그 항목의 프로젝트 이름으로 가른다 (appFixture.ts)
-  const isApp = spec.platforms.includes('android') || spec.platforms.includes('windows');
+  // 윈도우 PC 항목도 브라우저 없이 같은 fixture 로 돈다 — 폰과 PC 는 그 항목의 프로젝트 이름으로 가른다 (appFixture.ts).
+  // 버튼 그림 케이스는 패드 값만 적는다 — windows 하나만 보면 브라우저 길로 빠진다 (도메인/게임 §3.10 결정 27)
+  const isApp = spec.platforms.some((p) => p === 'android' || PC항목인가(p));
 
   // 케이스를 건너뛸지는 본문에서 가른다. fixture 는 그보다 먼저 돌아서 거기서 열면 보류 케이스도 Appium 에 붙는다
   const appTest = isApp ? 앱테스트() : undefined;
