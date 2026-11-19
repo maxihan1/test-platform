@@ -29,6 +29,8 @@ export interface 배정서비스 {
   gamePlatform: 'android' | 'windows' | null;
   /** 지원 패드 — PC 게임이 아니면 [] */
   gamePads: string[];
+  /** PC 게임이 올린 가장 최근 Windows 빌드 번호(대상 서버 줄과 상관없이). 없거나 PC 게임이 아니면 null — 새 작성이 시작을 막는다 (도메인/게임 §3.10 「윈도우 PC」) */
+  latestBuildNo: string | null;
   /**
    * 그 서비스의 대상 서버 목록 (SPEC §6 `service_env`).
    *
@@ -91,6 +93,11 @@ const 한사람 = `
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
              'projectId', s.project_id, 'projectName', p.name, 'kind', s.kind,
              'gamePlatform', s.game_platform, 'gamePads', s.game_pads,
+             -- 작성 AI 가 PC 에 깔 빌드가 있는지만 화면이 알면 된다 — 어느 줄 빌드를 깔지는 작성이 정한다. 파일 없는 줄(회사 저장소 주소)은 PC 가 못 받는다
+             'latestBuildNo', CASE WHEN s.game_platform = 'windows' THEN (
+               SELECT ab.build_no FROM app_build ab
+                WHERE ab.service_id = s.id AND ab.file_path IS NOT NULL
+                ORDER BY ab.uploaded_at DESC, ab.id DESC LIMIT 1) END,
              -- 대표 애플리케이션인가 (공통/4-데이터모델 「대표 애플리케이션」). p 는 s 가 속한 프로젝트라 옮겨 간 대표는 저절로 false 다
              'primary', p.primary_service_id IS NOT DISTINCT FROM s.id,
              'envs', COALESCE(e.envs, '[]'::json),

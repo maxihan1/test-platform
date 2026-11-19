@@ -53,6 +53,7 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
           kind: 'SCREEN',
           gamePlatform: null,
           gamePads: [],
+          latestBuildNo: null,
           envs: [],
           hasSlackWebhook: false,
           hasFigmaToken: false,

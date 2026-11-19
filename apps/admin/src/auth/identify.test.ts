@@ -184,6 +184,29 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     }
   });
 
+  it('PC 게임이면 파일이 있는 가장 최근 빌드 번호를 latestBuildNo 로 싣고 그 밖은 null 이다 (도메인/게임 §3.10 「윈도우 PC」)', async () => {
+    const { pool } = await import('../db/index.js');
+    const 읽기 = async () => (await 확인(await 가짜요청('xfu1-live')))?.services.find((s) => s.prefix === 'XFS1B')?.latestBuildNo;
+    expect(await 읽기()).toBeNull();
+    try {
+      await pool.query(`UPDATE service SET kind = 'GAME', game_platform = 'windows' WHERE id = $1`, [웹훅없는서비스id]);
+      expect(await 읽기()).toBeNull();
+      await pool.query(
+        `INSERT INTO app_build (service_id, env, build_no, file_path, app_url, uploaded_by, uploaded_at, platform) VALUES
+           ($1, 'qa', 'old-1', '/x/old-1.zip', NULL, 'ci', now() - interval '2 hours', 'windows'),
+           ($1, 'stg', 'new-2', '/x/new-2.zip', NULL, 'ci', now() - interval '1 hour', 'windows'),
+           ($1, 'qa', 'url-3', NULL, 'https://repo.example/x.zip', 'ci', now(), 'windows')`,
+        [웹훅없는서비스id],
+      );
+      expect(await 읽기()).toBe('new-2');
+      await pool.query(`UPDATE service SET game_platform = 'android' WHERE id = $1`, [웹훅없는서비스id]);
+      expect(await 읽기()).toBeNull();
+    } finally {
+      await pool.query(`DELETE FROM app_build WHERE service_id = $1`, [웹훅없는서비스id]);
+      await pool.query(`UPDATE service SET kind = 'SCREEN', game_platform = NULL WHERE id = $1`, [웹훅없는서비스id]);
+    }
+  });
+
   it('웹훅 주소 자체는 응답 어디에도 없다 (SPEC §7)', async () => {
     const user = await 확인(await 가짜요청('xfu1-live'));
     expect(JSON.stringify(user)).not.toContain('hooks.slack.test');
