@@ -34,13 +34,16 @@ export function 실행위치(run: Pick<RunListRow, 'platforms' | 'devices' | 'mo
   const 폰글 = ([첫폰, ...남은폰]: string[]): string[] =>
     첫폰 === undefined ? [] : [남은폰.length === 0 ? 첫폰 : t('{모델} 외 {수}대', { 모델: 첫폰, 수: 남은폰.length })];
   const 실제폰 = run.mobileDevices ?? [];
-  // 윈도우 PC 줄의 표기는 진행판 GAME-F4-04 시안이 정한다 — 그때까지 디바이스순서에 없어 그리지 않는다
+  // PC 게임은 키보드 · 패드 값이 여럿이어도 PC 한 대에서 돈다 — 「windows」 자리에 한 번만 적는다 (도메인/게임 §3.10 「윈도우 PC」)
+  const PC = run.platforms?.some((p) => p.startsWith('windows')) === true;
   const 글: Partial<Record<Platform, string[]>> = {
     desktop: ['PC Chrome'],
     mobile: 실제폰.length === 0 ? [t('모바일 Safari')] : [t('Device VISION'), ...폰글(실제폰)],
     android: [t('Device VISION'), ...폰글(run.devices ?? [])],
+    windows: PC ? [t('Device VISION'), 'Windows PC'] : [],
   };
-  return 디바이스순서.filter((p) => run.platforms?.includes(p) === true).flatMap((p) => 글[p] ?? []);
+  const 차례 = 디바이스순서.filter((p) => !p.startsWith('windows-'));
+  return 차례.filter((p) => (p === 'windows' ? PC : run.platforms?.includes(p) === true)).flatMap((p) => 글[p] ?? []);
 }
 
 export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고름: boolean; on고르기: (runId: number) => void }) {

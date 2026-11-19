@@ -145,6 +145,10 @@ describe('PC 게임 케이스는 실행 창에서 「Windows」 하나로 접힌
     expect(접힌.윈도우선언).toEqual(['windows-ps5', 'windows-xbox']);
   });
 
+  it('지원 패드에 남은 패드가 없는 버튼 그림 케이스는 디바이스가 빈다 — 창에 「Windows」로 세우면 서버가 안 펼쳐 건수가 어긋난다', () => {
+    expect(윈도우접기(패드, ['ps4']).platforms).toEqual([]);
+  });
+
   it('PC 값이 없는 케이스는 그대로다', () => {
     const 웹 = 케이스('ZZP-0002', ['desktop', 'mobile']);
     expect(윈도우접기(웹, ['ps5'])).toBe(웹);

@@ -119,7 +119,13 @@ export function useRunPick(옵션: {
       const 앱 = await 사람읽기();
       // 디바이스로 좁혀 빠진 것은 단추 이름의 건수가 이미 말했다 — 비활성으로 빠진 것만 따로 적는다
       set안내(빠진안내({ 고른수: 지목.size, 담을수: 다.length, 잘렸나, 모은수: 모은.length }, t));
-      set담은것(담을.map((c) => 윈도우접기(c, 앱?.gamePads ?? [])));
+      // 지원 패드에 남은 패드가 없는 버튼 그림 케이스는 돌 값이 없어 뺀다 (pickRun 윈도우접기)
+      const 접은 = 담을.map((c) => 윈도우접기(c, 앱?.gamePads ?? [])).filter((c) => c.platforms.length > 0);
+      if (접은.length === 0) {
+        알림(t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다'));
+        return;
+      }
+      set담은것(접은);
     } catch (err) {
       알림(message(err, 언어));
     } finally {
@@ -149,7 +155,12 @@ export function useRunPick(옵션: {
     try {
       const 앱 = await 사람읽기();
       set안내(undefined);
-      set담은것([디바이스 === undefined ? 윈도우접기(row, 앱?.gamePads ?? []) : { ...row, platforms: [디바이스] }]);
+      const 담을 = 디바이스 === undefined ? 윈도우접기(row, 앱?.gamePads ?? []) : { ...row, platforms: [디바이스] };
+      if (담을.platforms.length === 0) {
+        알림(t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다'));
+        return;
+      }
+      set담은것([담을]);
     } catch (err) {
       알림(message(err, 언어));
     }

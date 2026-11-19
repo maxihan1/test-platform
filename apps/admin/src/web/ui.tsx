@@ -7,12 +7,22 @@ import { t, use말, use언어, type 언어 } from './i18n.js';
 import { ApiError, type ItemStatus, type Platform } from './api.js';
 import { use올라가기 } from './dashboardView.js';
 import { 요청오류문장 } from './errorText.js';
-import { PC디바이스글 } from '../execution/pcPlatform.js';
-import { PC항목인가 } from '@platform/kit/types';
+import type { PcPlatform } from '@platform/kit/types';
+
+// PC 게임 디바이스 이름은 kit 의 PC_PLATFORM_LABEL 과 같은 글자를 여기 글자로 둔다 — 영어 표(messages)가 화면 소스의 글자를 키로 찾아서다. 둘이 같은지는 ui.test 가 본다
+const PC디바이스글: Record<PcPlatform, string> = {
+  windows: 'Windows',
+  'windows-ps5': 'Windows · PS5 패드',
+  'windows-ps4': 'Windows · PS4 패드',
+  'windows-switch': 'Windows · Switch 패드',
+  'windows-xbox': 'Windows · Xbox 패드',
+};
+/** 좁은 자리(실행 기록 줄)의 이름 — PC 게임 앱 안에서는 「Windows ·」를 빼도 패드로 읽힌다 (도메인/게임 §3.10 「패드별 결과」) */
+const 짧은PC글: Record<PcPlatform, string> = { windows: 'Windows', 'windows-ps5': 'PS5 패드', 'windows-ps4': 'PS4 패드', 'windows-switch': 'Switch 패드', 'windows-xbox': 'Xbox 패드' };
 
 export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱', ...PC디바이스글 };
-/** 좁은 자리(실행 기록 줄)의 디바이스 이름 — PC 게임 앱 안에서는 「Windows ·」를 빼도 패드로 읽힌다. 나머지는 PLATFORM_LABEL 그대로 */
-export const 짧은디바이스글 = (p: Platform): string => (PC항목인가(p) && p !== 'windows' ? PLATFORM_LABEL[p].replace('Windows · ', '') : PLATFORM_LABEL[p]);
+/** 좁은 자리(실행 기록 줄)의 디바이스 이름. PC 게임 값만 짧고 나머지는 PLATFORM_LABEL 그대로 */
+export const 짧은디바이스글 = (p: Platform): string => (p in 짧은PC글 ? 짧은PC글[p as PcPlatform] : PLATFORM_LABEL[p]);
 export const PLATFORMS: Platform[] = ['desktop', 'mobile'];
 /** 결과 화면이 디바이스를 늘어놓는 차례. 카드 안 줄과 옆 칸이 같은 순서를 쓴다 */
 export const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android', 'windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox'];
@@ -29,7 +39,7 @@ export function 돈디바이스들(items: { platform: Platform }[]): Platform[] 
 export function 실행디바이스들(items: { platform: Platform }[]): Platform[] {
   const 앱 = items.some((it) => it.platform === 'android');
   // PC 게임은 돈 값마다 칸 하나다 — 「Windows」 · 「Windows · PS5 패드」 · … (도메인/게임 §3.10 「윈도우 PC」 「패드별 결과」)
-  const PC = 디바이스순서.filter((p) => PC항목인가(p) && items.some((it) => it.platform === p));
+  const PC = 디바이스순서.filter((p) => p in PC디바이스글 && items.some((it) => it.platform === p));
   const 브라우저 = (!앱 && PC.length === 0) || items.some((it) => it.platform === 'desktop' || it.platform === 'mobile');
   return [...(브라우저 ? PLATFORMS : []), ...(앱 ? (['android'] as Platform[]) : []), ...PC];
 }

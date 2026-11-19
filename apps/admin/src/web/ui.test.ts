@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { seconds, when, 실행디바이스들, 짧은디바이스글 } from './ui.js';
+import { PC_PLATFORM_LABEL } from '@platform/kit/types';
+
+import { PLATFORM_LABEL, seconds, when, 실행디바이스들, 짧은디바이스글 } from './ui.js';
 
 describe('시각과 소요시간은 언어를 따른다 (SPEC §8 다국어)', () => {
   const 그때 = '2026-09-22T05:13:00.000Z';
@@ -38,6 +40,10 @@ describe('PC 게임 결과 칸 (도메인/게임 §3.10 「윈도우 PC」 「�
 
   it('웹 실행은 그대로 PC · 모바일 두 칸이다', () => {
     expect(실행디바이스들([{ platform: 'desktop' }])).toEqual(['desktop', 'mobile']);
+  });
+
+  it('화면에 글자로 둔 PC 디바이스 이름이 kit 표와 같다 — 영어 표가 화면 글자를 키로 찾아 화면 쪽에 따로 둔다', () => {
+    for (const [값, 이름] of Object.entries(PC_PLATFORM_LABEL)) expect(PLATFORM_LABEL[값 as keyof typeof PC_PLATFORM_LABEL]).toBe(이름);
   });
 
   it('좁은 자리는 패드 이름만 쓰고 키보드 칸은 「Windows」 그대로다', () => {

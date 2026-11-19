@@ -487,4 +487,13 @@ export const 실행말: Record<string, string> = {
   // 진행 창의 PC 카드 (RunLiveCards · GAME-F4-06)
   '빈 Windows PC 를 기다리는 중': 'Waiting for a free Windows PC',
   '게임을 여는 중': 'Opening the game',
+  // PC 게임 디바이스 이름 (ui.tsx — 좁은 자리는 「Windows ·」를 뺀다)
+  'Windows · PS5 패드': 'Windows · PS5 pad',
+  'Windows · PS4 패드': 'Windows · PS4 pad',
+  'Windows · Switch 패드': 'Windows · Switch pad',
+  'Windows · Xbox 패드': 'Windows · Xbox pad',
+  'PS5 패드': 'PS5 pad',
+  'PS4 패드': 'PS4 pad',
+  'Switch 패드': 'Switch pad',
+  'Xbox 패드': 'Xbox pad',
 };

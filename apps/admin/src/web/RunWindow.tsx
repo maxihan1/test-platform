@@ -105,7 +105,7 @@ export function RunWindow({
     const 기준 = 기준시각 === undefined ? null : new Date(기준시각).getTime();
     return {
       // 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다. 빼고 그 사실을 창에 적는다
-      케이스들: 읽은.filter((c) => c.isActive).map((c) => 디바이스칸(c, 디바이스?.[c.tcId], 지원패드)),
+      케이스들: 읽은.filter((c) => c.isActive).map((c) => 디바이스칸(c, 디바이스?.[c.tcId], 지원패드)).filter((c) => c.platforms.length > 0),
       바뀐저장값:
         기준 === null
           ? []
