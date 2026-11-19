@@ -11,7 +11,7 @@
 test-platform/                      ← 프로젝트 루트 (이름은 자유)
 ├── CLAUDE.md                       ★ 루트에 둔다. Claude Code가 자동으로 읽는다
 ├── .gitignore
-├── .github/workflows/ci.yml        ★ GitHub Actions. 타입 · 단위 테스트 · 테스트 코드 규칙 · SPEC 문서
+├── .github/workflows/ci.yml        ★ GitHub Actions. 작성 에이전트 PR 에서만 돈다 — 검사 목록은 HOOKS.md 「CI 와 병합 차단」
 ├── .claude/
 │   ├── settings.json               ★ 훅 설정. 커밋한다
 │   ├── scripts/
@@ -59,7 +59,8 @@ test-results/
 EOF
 
 # pre-push 훅 — 파일은 저장소에 있다. 배선만 걸면 된다
-git config core.hooksPath .claude/hooks
+# 절대경로로 건다 — 작업 폴더에서 push 해도 main 체크아웃의 훅이 돈다 (HOOKS.md)
+git config core.hooksPath "$(pwd)/.claude/hooks"
 
 git add -A && git commit -m "프로젝트 문서와 규칙 설정"
 git tag g0-docs
@@ -116,30 +117,17 @@ Claude Code에 던지기 전에 Maxi님이 직접 읽으실 순서다. 리뷰 �
 
 ## 5. 내일 첫 명령
 
-Phase 0는 보호 파일을 **처음 만드는** 단계라 예외 스위치를 켜고 시작한다.
-
 ```bash
 cd test-platform
-printf '{\n  "env": { "ALLOW_PROTECTED": "1" }\n}\n' > .claude/settings.local.json
 claude
 ```
 
-**`ALLOW_PROTECTED=1 claude`처럼 앞에 붙이는 방식은 안 먹는다.** Claude Code가 데몬
-(백그라운드에 상주하며 세션을 대신 돌리는 관리 프로세스) 구조라 세션이 터미널이 아니라
-데몬에서 태어나고, 터미널 앞에 붙인 환경변수가 세션까지 전달되지 않기 때문이다.
-설정 파일에 넣어야 한다. 자세한 것은 `HOOKS.md`.
+예전에는 여기서 계약 파일 잠금을 푸는 스위치(`ALLOW_PROTECTED`)를 `.claude/settings.local.json` 에 넣고 시작했다.
+그 잠금 장치는 없어졌다 — 지금 `types.ts` · `db/migrations/` · `docker-compose.yml` 은 CLAUDE.md §1.3 대로
+SPEC 에 적힌 대로만 바꾸고, 막는 장치는 없다. 옛 명령은 `settings.local.json` 의 권한 목록을 통째로 덮어쓰니 쓰지 않는다.
 
 [0] 계획 검토는 2026-09-16에 끝났다 (`docs/archive/reviews/2026-09-16-G0.md`).
 바로 `docs/WORKSTREAMS.md`의 Phase 0 킥오프 프롬프트를 넣는다.
-
-Phase 0가 끝나고 G1을 통과하면 **스위치를 지운다.**
-
-```bash
-rm .claude/settings.local.json
-```
-
-그 시점부터 `types.ts` · `db/migrations/` · `docker-compose.yml`이 계약으로 잠긴다.
-파일로 남는 스위치라 끄는 것을 잊기 쉽다. 지우는 것까지가 G1이다.
 
 ---
 
@@ -495,8 +483,8 @@ macOS (약 15분, 관리자 비밀번호가 필요하다):
 
 이 스크립트의 판단(과금 안전핀·인자 읽기·push 선행 확인·`claude` 인자)은 전부 순수 함수이고
 `scripts/authoring-agent.test.ts` 가 고정한다. **`npm test` 가 `scripts/**` 도 본다** —
-`vitest.config.ts` 의 `include` 에 그 무늬가 들어 있다. CI 의 단위 테스트 단계(`test:changed` · `test:always`)가
-이것을 돌리므로 CI 에 따로 이을 줄은 없다.
+`vitest.config.ts` 의 `include` 에 그 무늬가 들어 있다. pre-push 의 단위 테스트 단계(`test:changed` · `test:always`)가
+이것을 돌린다(`docs/HOOKS.md`). CI 는 작성 에이전트 PR 에서만 돌고 단위 테스트는 돌리지 않는다.
 
 ---
 
