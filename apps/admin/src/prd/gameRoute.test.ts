@@ -42,6 +42,18 @@ describe('조작 맵 본문 검사', () => {
     expect(조작행검사({ rows: [{ ...몰살, warning: '레벨이 오른다 · 먼저' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.warning' });
     expect(조작행검사({ rows: [공격] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.action' });
     expect(조작행검사({ rows: [{ ...공격, action: '적 누르기→공격' }] })).not.toHaveProperty('error');
+    expect(조작행검사({ rows: [{ ...몰살, fromKey: 'zone:Town ' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.fromKey' });
+    expect(조작행검사({ rows: [{ ...몰살, action: '누르기 ·' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.action' });
+    expect(조작행검사({ rows: [{ ...몰살, toKey: '→ zone:Town' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.toKey' });
+  });
+
+  it('NUL 이 든 글 · 칸은 500 이 아니라 그 자리로 돌려준다', () => {
+    expect(조작행검사({ rows: [{ ...몰살, helper: 'game\u0000tap' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.helper' });
+    expect(조작행검사({ rows: [{ ...몰살, fields: { progress: '처치\u0000줄' } }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.fields' });
+  });
+
+  it('탐색 플레이 때는 함수 이름이 아직 없어 fields.fn 이 null 이어도 된다', () => {
+    expect(조작행검사({ rows: [{ ...몰살, fields: { fn: null, progress: '처치 줄 수' } }] })).not.toHaveProperty('error');
   });
 
   it('AI 는 확인 · 진행 불가만 올리고 까닭은 진행 불가에만 꼭 있다', () => {
@@ -128,22 +140,42 @@ describe.skipIf(연결 === undefined)('조작 맵 에이전트 통로', () => {
     expect([r.statusCode, r.json()]).toEqual([409, { error: 'NOT_RUNNING', detail: 'DONE' }]);
   });
 
-  it('올린 행만 넣고 고치며 remove 는 지우고, 빌드 번호를 안 실은 올리기는 지난 번호를 지킨다', async () => {
+  it('올린 행만 넣고 고치며 remove 는 지우고, 빈 칸은 지난 값을 지키며 fields 는 열쇠마다 덮는다', async () => {
     const id = await 요청넣기();
     expect((await 올리기(id, { rows: [이동, 몰살, 파티] })).statusCode).toBe(204);
-    await q(`UPDATE game_route SET status = 'RECHECK' WHERE service_id = $1 AND kind = 'MOVE' AND from_key = 'zone:Dungeon'`, [서비스]);
-    const { buildNo: _빌드, ...빌드없는이동 } = 이동;
-    expect((await 올리기(id, { rows: [{ ...빌드없는이동, durationMs: 2800 }], remove: [{ kind: 'MOVE', fromKey: 'state:인원=2', action: '파티 초대' }] })).statusCode).toBe(204);
-    const r = await q<{ kind: string; action: string; duration_ms: number | null; status: string; build_no: string | null }>(
-      'SELECT kind, action, duration_ms, status, build_no FROM game_route WHERE service_id = $1 ORDER BY kind, action',
+    const 함수만 = { kind: 'SETUP', fromKey: 'zone:Dungeon', action: '/gm killall', fields: { fn: 'gm.몰살()' }, status: 'OK' };
+    expect((await 올리기(id, { rows: [함수만], remove: [{ kind: 'MOVE', fromKey: 'state:인원=2', action: '파티 초대' }] })).statusCode).toBe(204);
+    const r = await q<{ kind: string; to_key: string | null; warning: string | null; fields: unknown; status: string; reason: string | null }>(
+      'SELECT kind, to_key, warning, fields, status, reason FROM game_route WHERE service_id = $1 ORDER BY kind, action',
       [서비스],
     );
     expect(r.rows).toEqual([
-      { kind: 'MOVE', action: '적 누르기 후 「공격」 누르기', duration_ms: 2800, status: 'OK', build_no: '15309' },
-      { kind: 'SETUP', action: '/gm killall', duration_ms: null, status: 'OK', build_no: null },
+      { kind: 'MOVE', to_key: 'state:처치', warning: null, fields: { fn: '전투.공격()', progress: '처치 줄 수' }, status: 'OK', reason: null },
+      { kind: 'SETUP', to_key: 'state:몬스터 없음', warning: 몰살.warning, fields: { fn: 'gm.몰살()' }, status: 'OK', reason: null },
     ]);
     const 틀림 = await 올리기(id, { rows: [{ ...몰살, fromKey: '' }] });
     expect([틀림.statusCode, 틀림.json()]).toEqual([400, { error: 'BAD_ROUTE', detail: 'rows.0.fromKey' }]);
+  });
+
+  it('빌드 번호 없는 확인은 다시 해 본 것이 아니라 「재확인 필요」 · 지난 빌드를 지키고, 빌드를 실은 확인 · 진행 불가는 그것을 바꾼다', async () => {
+    const id = await 요청넣기();
+    await 올리기(id, { rows: [이동, 파티] });
+    await q(`UPDATE game_route SET status = 'RECHECK' WHERE service_id = $1`, [서비스]);
+    const { buildNo: _빌드, ...빌드없는이동 } = 이동;
+    const 상태 = async () =>
+      (await q<{ action: string; status: string; reason: string | null; build_no: string | null }>(
+        'SELECT action, status, reason, build_no FROM game_route WHERE service_id = $1 ORDER BY action', [서비스],
+      )).rows;
+    await 올리기(id, { rows: [{ ...빌드없는이동, durationMs: 2800 }, { ...파티, status: 'OK', reason: undefined }] });
+    expect(await 상태()).toEqual([
+      { action: '적 누르기 후 「공격」 누르기', status: 'RECHECK', reason: null, build_no: '15309' },
+      { action: '파티 초대', status: 'RECHECK', reason: null, build_no: null },
+    ]);
+    await 올리기(id, { rows: [{ ...이동, buildNo: '15400' }, 파티] });
+    expect(await 상태()).toEqual([
+      { action: '적 누르기 후 「공격」 누르기', status: 'OK', reason: null, build_no: '15400' },
+      { action: '파티 초대', status: 'BLOCKED', reason: '두 번째 계정 없음', build_no: null },
+    ]);
   });
 
   it('맵 글은 종류마다 한 행 한 줄 — 상태 · 빌드 · 소요 · 도우미 · 함수 · 경고, 나머지 칸은 맨 끝 JSON', async () => {

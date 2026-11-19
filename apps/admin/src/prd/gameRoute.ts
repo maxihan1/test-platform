@@ -25,12 +25,13 @@ export type 지울행 = Pick<조작행, 'kind' | 'fromKey' | 'action'>;
 
 // 2026-11-19 GAME-F5-02 시작 질문 — 게임 지도 한도와 맞춘다. 탐색 플레이 한 번에 2,000행을 넘을 일이 없다
 const 상한 = { 줄: 2_000, 열쇠: 200, 글: 500, 칸: 10_000, 빌드: 100, 소요: 86_400_000 } as const;
-// 경로 검색 명령이 맵 글을 한 줄씩 「 · 」 「 → 」로 잘라 읽는다 — 글 칸에 이것들이 들면 칸이 갈린다
-const 가르개 = /\n|\r| · | → /;
+// 경로 검색 명령이 맵 글을 한 줄씩 「 · 」 「 → 」로 잘라 읽는다 — 글 칸에 이것들이 들면 칸이 갈린다.
+// 앞뒤 빈칸 · 끝의 「·」 「→」 는 이어 붙일 때 가르개가 되고, NUL 은 jsonb 가 받지 않아 500 이 된다
+const 가르개 = /\n|\r|\u0000| · | → |^[·→]|[·→]$/;
 
 const 틀림 = (detail: string) => ({ error: 'BAD_ROUTE', detail }) as const;
 const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
-const 글인가 = (v: unknown, 최대: number): v is string => typeof v === 'string' && v.trim() !== '' && v.length <= 최대 && !가르개.test(v);
+const 글인가 = (v: unknown, 최대: number): v is string => typeof v === 'string' && v.trim() === v && v !== '' && v.length <= 최대 && !가르개.test(v);
 /** 빈 칸(undefined · null)은 null, 있으면 글 검사를 지나야 한다. 틀리면 undefined */
 const 빈칸또는글 = (v: unknown, 최대: number): string | null | undefined => (v === undefined || v === null ? null : 글인가(v, 최대) ? v : undefined);
 const 묶음열쇠 = (kind: string, fromKey: string, action: string) => JSON.stringify([kind, fromKey, action]);
@@ -57,9 +58,11 @@ function 행검사(x: unknown, 자리: string): 조작행 | { error: 'BAD_ROUTE'
   const warning = 빈칸또는글(e.warning, 상한.글);
   if (warning === undefined) return 틀림(`${자리}.warning`);
   const f = e.fields ?? null;
-  // 화면 객체 함수 이름(fn)은 정식 실행이 행을 맞출 때 열쇠로 쓴다(GAME-F5-06) — 다른 칸과 같이 글 규칙을 지킨다
-  if (f !== null && (typeof f !== 'object' || Array.isArray(f) || JSON.stringify(f).length > 상한.칸)) return 틀림(`${자리}.fields`);
-  if (f !== null && 'fn' in f && !글인가((f as Record<string, unknown>).fn, 상한.열쇠)) return 틀림(`${자리}.fields.fn`);
+  // JSON.stringify 는 NUL 을 \u0000 으로 적고 jsonb 는 그것을 받지 않는다
+  if (f !== null && (typeof f !== 'object' || Array.isArray(f) || JSON.stringify(f).length > 상한.칸 || JSON.stringify(f).includes('\\u0000'))) return 틀림(`${자리}.fields`);
+  // 화면 객체 함수 이름(fn)은 정식 실행이 행을 맞출 때 열쇠로 쓴다(GAME-F5-06) — 다른 칸과 같이 글 규칙을 지킨다. 탐색 플레이 때는 아직 없어 null 도 받는다
+  const fn = f === null ? null : (f as Record<string, unknown>).fn ?? null;
+  if (fn !== null && !글인가(fn, 상한.열쇠)) return 틀림(`${자리}.fields.fn`);
   // AI 는 「확인」 「진행 불가」만 올린다 — 「재확인 필요」는 실행이 단다
   if (e.status !== 'OK' && e.status !== 'BLOCKED') return 틀림(`${자리}.status`);
   const reason = 빈칸또는글(e.reason, 상한.글);
@@ -100,7 +103,10 @@ export function 조작행검사(본문: unknown): { rows: 조작행[]; remove: �
   return { rows, remove };
 }
 
-/** 올린 행만 넣거나 고치고 remove 는 지운다. 그 애플리케이션 몫을 통째로 바꾸지 않는다 — 작성마다 새로 해 본 행만 올린다 */
+/**
+ * 올린 행만 넣거나 고치고 remove 는 지운다. 그 애플리케이션 몫을 통째로 바꾸지 않는다 — 작성마다 새로 해 본 행만 올린다.
+ * 이미 있는 행은 빈 칸이 지난 값을 지키고 fields 는 열쇠마다 덮는다 — 작성 끝에 함수 이름만 채워 다시 올려도 경고 · 진행 값이 남는다
+ */
 export async function 조작행넣기(서비스: number, rows: 조작행[], remove: 지울행[]): Promise<void> {
   const 손 = await (await db()).connect();
   try {
@@ -110,16 +116,19 @@ export async function 조작행넣기(서비스: number, rows: 조작행[], remo
         WHERE g.service_id = $1 AND g.kind = x.kind AND g.from_key = x.from_key AND g.action = x.action`,
       [서비스, JSON.stringify(remove.map((r) => ({ kind: r.kind, from_key: r.fromKey, action: r.action })))],
     );
-    // 빌드 번호를 안 실은 행은 지난 번호를 지킨다 — 함수 이름만 채워 다시 올리는 작성 끝 올리기가 「어느 빌드에서 통과」를 지우면 안 된다
+    // 빌드 번호를 안 실은 확인 행은 다시 해 본 것이 아니다 — 「어느 빌드에서 통과」를 지키고, 정식 실행이 단 「재확인 필요」도 풀지 않는다.
+    // 까닭은 지키지 않는다 — 진행 불가였던 행이 확인으로 오면 까닭이 남으면 안 된다
     await 손.query(
       `INSERT INTO game_route (service_id, kind, from_key, action, to_key, helper, duration_ms, warning, fields, status, reason, build_no)
        SELECT $1, x.kind, x.from_key, x.action, x.to_key, x.helper, x.duration_ms, x.warning, x.fields, x.status, x.reason, x.build_no
          FROM jsonb_to_recordset($2::jsonb) AS x(kind text, from_key text, action text, to_key text, helper text, duration_ms integer,
                                                 warning text, fields jsonb, status text, reason text, build_no text)
        ON CONFLICT (service_id, kind, from_key, action) DO UPDATE
-         SET to_key = EXCLUDED.to_key, helper = EXCLUDED.helper, duration_ms = EXCLUDED.duration_ms, warning = EXCLUDED.warning,
-             fields = EXCLUDED.fields, status = EXCLUDED.status, reason = EXCLUDED.reason,
-             build_no = COALESCE(EXCLUDED.build_no, game_route.build_no), updated_at = now()`,
+         SET to_key = COALESCE(EXCLUDED.to_key, game_route.to_key), helper = COALESCE(EXCLUDED.helper, game_route.helper),
+             duration_ms = COALESCE(EXCLUDED.duration_ms, game_route.duration_ms), warning = COALESCE(EXCLUDED.warning, game_route.warning),
+             fields = CASE WHEN EXCLUDED.fields IS NULL THEN game_route.fields ELSE COALESCE(game_route.fields, '{}') || EXCLUDED.fields END,
+             status = CASE WHEN EXCLUDED.status = 'OK' AND EXCLUDED.build_no IS NULL AND game_route.status = 'RECHECK' THEN 'RECHECK' ELSE EXCLUDED.status END,
+             reason = EXCLUDED.reason, build_no = COALESCE(EXCLUDED.build_no, game_route.build_no), updated_at = now()`,
       [
         서비스,
         JSON.stringify(
@@ -131,11 +140,16 @@ export async function 조작행넣기(서비스: number, rows: 조작행[], remo
       ],
     );
     await 손.query('COMMIT');
-  } catch (err) {
-    await 손.query('ROLLBACK');
-    throw err;
-  } finally {
     손.release();
+  } catch (err) {
+    // 되돌리기마저 실패하면 끊긴 연결이다 — 원래 오류를 던지고 그 연결은 풀에 돌려놓지 않고 버린다
+    try {
+      await 손.query('ROLLBACK');
+      손.release();
+    } catch (e) {
+      손.release(e instanceof Error ? e : new Error(String(e)));
+    }
+    throw err;
   }
 }
 
