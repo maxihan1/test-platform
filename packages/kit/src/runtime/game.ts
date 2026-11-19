@@ -28,7 +28,10 @@ export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' 
   pad(): Promise<{ type: PadKind | 'off'; buttons?: Record<string, string> }>;
   waitForValue(target: string, prop: string, value: unknown, options?: Pick<WaitOptions, 'timeoutMs'>): Promise<void>;
 };
-/** 입력을거둔다 — 케이스가 touchUp · keyUp 전에 끝나도(실패 · 제한 시간) 정리 단계가 눌러 둔 손가락 · 키를 거둔다 */
+/**
+ * 입력을거둔다 — 케이스가 touchUp · keyUp 전에 끝나도(실패 · 제한 시간) 정리 단계가 눌러 둔 손가락 · 키를 거둔다.
+ * pad · keyDown 은 kit 이 덮어 인자를 덜 받는다 — 타입에 Game 의 원래 꼴이 남아 있어 덮은 쪽이 남는 인자를 받으면 던진다
+ */
 export type KitGame = Game & Pick<GameDriver, 'waitForValue' | 'pad'> & { 입력을거둔다(): Promise<void> };
 
 export const PAD_KINDS = ['ps5', 'ps4', 'switch', 'xbox'] as const;
@@ -124,8 +127,9 @@ export async function openGame(
       await 떼기(번호);
       눌린.delete(번호);
     },
-    // 몸통은 power 를 못 넘긴다 — 받은 키만 보낸다
-    keyDown: async (keys: string): Promise<void> => {
+    // 몸통은 power 를 못 넘긴다 — 타입을 피해 넘긴 값을 조용히 버리지 않고 던진다
+    keyDown: async (keys: string, ...더: unknown[]): Promise<void> => {
+      if (더.length > 0) throw new Error('keyDown 은 키만 받는다 — power 는 쓰지 않는다');
       모름 = true;
       await 키누르기(keys);
       모름 = false;
@@ -135,7 +139,9 @@ export async function openGame(
       await 키떼기(keys);
       눌린키.delete(keys);
     },
-    pad: async () => {
+    pad: async (...인자: unknown[]) => {
+      // 패드는 실행할 때 고른다 — pad('xbox') 를 조용히 읽기로 바꾸면 그 뒤 Pad.<이름> 이 다른 패드 글자로 간다
+      if (인자.length > 0) throw new Error('game.pad() 는 읽기만 한다 — 패드는 실행할 때 고른다');
       const { pad } = await 패드();
       // kit 은 generic 을 고르지 않는다(PLATFORM_PAD 는 넷 중 하나) — 그 밖의 값은 SDK 가 준 그대로 싣는다
       return { type: pad.type as PadKind | 'off', ...(pad.buttons && { buttons: pad.buttons }) };

@@ -120,6 +120,13 @@ describe('openGame', () => {
     ]);
   });
 
+  it('kit 이 덮은 pad · keyDown 은 남는 인자를 버리지 않고 던진다', async () => {
+    const { game, 보낸 } = await 손가락게임();
+    await expect(game.pad('xbox' as never)).rejects.toThrow('읽기만 한다');
+    await expect(game.keyDown('W', { power: 0.5 })).rejects.toThrow('power 는 쓰지 않는다');
+    expect(보낸).toEqual([]);
+  });
+
   it('PLATFORM_PAD 가 넷 밖의 값이면 던진다 — 러너가 늘 넷 중 하나나 빈 값을 넘긴다', async () => {
     const link: Link = async () => ({ ok: true, app: 'BossRoom', version: '0.12.0' });
     await expect(openGame({ PLATFORM_PAD: 'generic' }, link, 안쉼)).rejects.toThrow('모르는 패드다: PLATFORM_PAD=generic');

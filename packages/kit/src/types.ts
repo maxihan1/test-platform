@@ -6,6 +6,14 @@ export type BrowserPlatform = 'desktop' | 'mobile';   // 브라우저 디바이�
 export const PC_PLATFORMS = ['windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox'] as const;
 export type PcPlatform = (typeof PC_PLATFORMS)[number];
 export const PC항목인가 = (p: string): p is PcPlatform => (PC_PLATFORMS as readonly string[]).includes(p);
+// 사람이 읽는 자리의 표기 — kit 의 건너뜀 문구와 admin 화면 · 증적이 같은 말을 한다 (도메인/게임 §3.10 「윈도우 PC」 표)
+export const PC_PLATFORM_LABEL: Record<PcPlatform, string> = {
+  windows: 'Windows',
+  'windows-ps5': 'Windows · PS5 패드',
+  'windows-ps4': 'Windows · PS4 패드',
+  'windows-switch': 'Windows · Switch 패드',
+  'windows-xbox': 'Windows · Xbox 패드',
+};
 export type Platform = BrowserPlatform | 'android' | PcPlatform;
 export type ItemStatus = 'PASS' | 'FAIL' | 'NA';
 export type JsonSchema = Record<string, unknown>;  // zod 내장 z.toJSONSchema 출력. 검증하지 않고 그대로 저장·전달한다

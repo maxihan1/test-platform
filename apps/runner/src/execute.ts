@@ -7,11 +7,12 @@ import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { stripVTControlCharacters } from 'node:util';
 
-import { PC항목인가, runDir, type ExecuteRequest, type ExecuteResponse, type FpsSample, type ItemStatus, type StepProgress } from '@platform/kit';
+import { runDir, type ExecuteRequest, type ExecuteResponse, type FpsSample, type ItemStatus, type StepProgress } from '@platform/kit';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
 import { FPS를잰다 } from './gameFps.js';
+import { gameEnv, traceEnv, 기기항목인가 } from './itemEnv.js';
 import { killTree } from './kill.js';
 import { 장면환경 } from './live.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
@@ -136,26 +137,7 @@ export function killedResponse(
   };
 }
 
-// trace 는 정식 실행에서만 켠다. 테스트 실행(runId 0)은 기록이 없고, 앱 · 윈도우 PC 실행은 브라우저가 없다 (SPEC 도메인/실행 §3.2 「trace」)
-export function traceEnv(req: Pick<ExecuteRequest, 'runId' | 'platform'>): '0' | '1' {
-  return req.runId > 0 && req.platform !== 'android' && !PC항목인가(req.platform) ? '1' : '0';
-}
-
-// 폰 · VISION 기기에 붙는 항목 — 팜 토큰 · 기기 번호를 받는다. 윈도우 PC 는 VISION 기기지만 Appium 을 안 쓴다 (도메인/러너 §5.2 「윈도우 PC 게임 항목」)
-const 기기항목인가 = (platform: ExecuteRequest['platform']): boolean => platform === 'android' || PC항목인가(platform);
-
-export function gameEnv(req: Pick<ExecuteRequest, 'platform' | 'engine' | 'udid' | 'adminKey' | 'app'>): Record<string, string> {
-  const 게임 = 기기항목인가(req.platform) && req.engine === 'GAME';
-  const pc = PC항목인가(req.platform);
-  return {
-    PLATFORM_ENGINE: 게임 ? 'GAME' : '',
-    PLATFORM_GAME_LINK: 게임 ? (req.udid === undefined ? 'usb' : 'farm') : '',
-    PLATFORM_ADMIN_KEY: req.adminKey === undefined ? '' : JSON.stringify(req.adminKey),
-    // 둘 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받아 폰 항목이 PC 길을 타지 않게. 패드 없음은 빈 값이다 (공통/3-공유계약 「윈도우 PC 게임」)
-    PLATFORM_PC_GAME: pc ? (req.app ?? '') : '',
-    PLATFORM_PAD: pc && req.platform !== 'windows' ? req.platform.slice('windows-'.length) : '',
-  };
-}
+export { gameEnv, traceEnv };
 
 export async function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse> {
   const startedAt = Date.now();

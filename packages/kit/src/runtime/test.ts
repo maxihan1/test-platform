@@ -2,7 +2,7 @@
 
 import { test as base, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
 
-import { PC항목인가, type ApiAuth, type StepResult } from '../types.js';
+import { PC_PLATFORM_LABEL, PC항목인가, type ApiAuth, type StepResult } from '../types.js';
 import { api만들기, 어드민도구, 어드민키, 인증목록 } from './apiAuth.js';
 import { 판읽기 } from './apiShape.js';
 import { captureApp, type AppDriver } from './app.js';
@@ -50,6 +50,7 @@ function platformLabel(project: string): string {
   if (project === 'desktop') return 'PC';
   if (project === 'mobile') return '모바일';
   if (project === 'android') return 'Android 앱';
+  if (PC항목인가(project)) return PC_PLATFORM_LABEL[project];
   return project;
 }
 
