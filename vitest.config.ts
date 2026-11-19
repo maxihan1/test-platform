@@ -61,7 +61,8 @@ export default defineConfig({
       },
       // 동시에 돌면 CPU 를 나눠 써 무거운 검사가 기본 5초를 넘긴다. 멈춤을 잡는 데는 30초로 충분하다
       { extends: true, test: { name: 'unit', include: 검사자리, exclude: [...configDefaults.exclude, ...DB파일, ...무거운검사], testTimeout: 30_000 } },
-      { extends: true, test: { name: 'slow', include: 무거운검사, testTimeout: 30_000 } },
+      // 준비(beforeAll)도 무겁다 — DB 검사와 같이 도는 push 에서 real-phone 의 준비가 기본 10초를 넘겨 떨어졌다(2026-11-19, 혼자는 통과)
+      { extends: true, test: { name: 'slow', include: 무거운검사, testTimeout: 30_000, hookTimeout: 30_000 } },
     ],
   },
 });
