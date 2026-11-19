@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 게임화면받기, 게임화면파일, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
+import { PC게임못함, 게임화면받기, 게임화면파일, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
 import { 줄프롬프트 } from './authoring-prompt.js';
 
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
@@ -419,5 +419,27 @@ describe('게임화면받기 · 게임 폰 놓기 · 게임 화면 절 (도메�
     expect(글).toContain('.claude/skills/tpx-author/references/game.md');
     expect(글).toContain('npx control-cli');
     for (const 자리 of ['/w/자료/game-kept/', '/w/자료/game-map.txt', '/w/자료/game-crawl/<이름>/', '/w/자료/game-elements.json']) expect(글).toContain(자리);
+  });
+
+  it('PC 게임의 게임 화면 절은 PC 잡기 · zip 받기 · 지원 패드 값을 싣고 「게임 화면 못 읽음」을 시키지 않는다', () => {
+    const 프롬프트 = (패드: string[]) => 줄프롬프트(
+      { id: 1, kind: 'AUTHOR' as const, specText: '본문' }, 'ASH', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      { 못읽음: 'PC 게임은 작성 AI 가 PC 에서 읽는다', 탐색, 게임: true, PC: { 패드 } }, '/w/자료',
+    );
+
+    const 글 = 프롬프트(['ps5', 'xbox']);
+    expect(글).toContain('hold --pc');
+    expect(글).toContain('$AUTHORING_APP_FILE');
+    expect(글).toContain("['windows-ps5', 'windows-xbox']");
+    expect(글).not.toContain('게임 화면 못 읽음');
+    expect(프롬프트([])).toContain('지원 패드가 없다');
+  });
+
+  it('PC 게임은 팜 주소 · zip 링크(탐색)가 없으면 서버가 준 까닭으로 멈추고, 모바일 게임 · 앱은 멈추지 않는다', () => {
+    expect(PC게임못함({ 못읽음: 'Windows 빌드가 없다 — 올린 뒤 다시 작성한다', 게임: true, PC: { 패드: [] } })).toBe('PC 게임 작성을 시작하지 못한다 — Windows 빌드가 없다 — 올린 뒤 다시 작성한다');
+    expect(PC게임못함({ 못읽음: 'PC 게임은 작성 AI 가 PC 에서 읽는다', 게임: true, PC: { 패드: [] } })).toBe('PC 게임 작성을 시작하지 못한다 — Device VISION 이 연결되어 있지 않아 PC 를 잡을 수 없다');
+    expect(PC게임못함({ 못읽음: 'PC 게임은 작성 AI 가 PC 에서 읽는다', 탐색, 게임: true, PC: { 패드: ['ps5'] } })).toBeNull();
+    expect(PC게임못함({ 못읽음: '대상 서버 줄에 게임 앱 파일 경로가 없다', 게임: true })).toBeNull();
+    expect(PC게임못함(undefined)).toBeNull();
   });
 });

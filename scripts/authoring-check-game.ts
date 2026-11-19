@@ -4,12 +4,15 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { PC_PLATFORMS, PC항목인가 } from '@platform/kit/types';
 import ts from 'typescript';
 
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 
 /** 에이전트가 게임 작성에서만 자식에게 넘기는 자료 폴더 — 지난 지도 `game-map.txt` 와 이번에 쓴 `game-elements.json` 이 있다(authoring-game.ts 게임자리) */
 export const 게임자료환경 = 'AUTHORING_GAME_DIR';
+/** PC 게임 작성이면 에이전트가 'windows' 로 준다 — 빠른 검사의 platforms 기준 · 돌려 보기 명령의 PC 갈래 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」) */
+export const PC게임환경 = 'AUTHORING_GAME_PLATFORM';
 
 /** 지도 열쇠 — 지난 지도 글의 요소 줄(`- <열쇠> · <이름> …` — prd/gameMap.ts 지도글)과 이번 요소 파일의 열쇠, 이번에 지우는 열쇠는 뺀다 */
 export function 지도열쇠들(지도글: string | null, 요소글: string | null): { 열쇠: Set<string>; 까닭?: string } {
@@ -97,7 +100,7 @@ export function 케이스요소들(글: string): string[] {
  * 파일들(저장소 뿌리 기준 경로와 글)을 본다. 지도가 null 이면 게임 작성이 아니다 — 케이스가 elements 를 적었는지만 본다.
  * 케이스(`.spec.ts`)는 요소 · 디바이스 · 몸통을, 모든 파일(화면 객체 · 도우미 포함)은 좌표를 본다
  */
-export function 게임형식(파일들: readonly { 경로: string; 글: string }[], 지도: Set<string> | null): string[] {
+export function 게임형식(파일들: readonly { 경로: string; 글: string }[], 지도: Set<string> | null, 플랫폼: 'android' | 'windows' = 'android'): string[] {
   const 틀림: string[] = [];
   for (const f of 파일들) {
     // 게임 아닌 작성은 웹 폴더 전체(1,000건 넘게)를 받을 수 있다 — 낱말이 없으면 파서를 안 돌린다
@@ -114,8 +117,11 @@ export function 게임형식(파일들: readonly { 경로: string; 글: string }
       else for (const k of 요소.filter((k) => !지도.has(k))) 틀림.push(`${f.경로} — 요소 ${k} 가 게임 지도에 없다. game-elements.json 에 먼저 적거나 game-map.txt 의 열쇠를 쓴다`);
       let 기기 = 속성(명세, 'platforms')?.initializer;
       while (기기 !== undefined && (ts.isAsExpression(기기) || ts.isSatisfiesExpression(기기) || ts.isParenthesizedExpression(기기))) 기기 = 기기.expression;
-      const 안드로이드만 = 기기 !== undefined && ts.isArrayLiteralExpression(기기) && 기기.elements.length === 1 && ts.isStringLiteralLike(기기.elements[0]!) && 기기.elements[0].text === 'android';
-      if (!안드로이드만) 틀림.push(`${f.경로} — 게임 케이스의 platforms 는 ['android'] 하나다`);
+      // 게임 하나에 플랫폼 하나다 — 모바일 게임은 android 하나, PC 게임은 윈도우 값만(버튼 그림 케이스는 패드 값 여럿) (게임 §3.10 결정 27)
+      const 값들 = 기기 !== undefined && ts.isArrayLiteralExpression(기기) && 기기.elements.every(ts.isStringLiteralLike) ? 기기.elements.map((e) => (e as ts.StringLiteralLike).text) : null;
+      if (플랫폼 === 'windows') {
+        if (값들 === null || 값들.length === 0 || !값들.every(PC항목인가)) 틀림.push(`${f.경로} — PC 게임 케이스의 platforms 는 윈도우 값(${PC_PLATFORMS.join(' · ')})만이다`);
+      } else if (값들?.length !== 1 || 값들[0] !== 'android') 틀림.push(`${f.경로} — 게임 케이스의 platforms 는 ['android'] 하나다`);
       if (몸통이름들(sf).includes('page')) 틀림.push(`${f.경로} — 게임 케이스 몸통에는 page 가 없다. game · admin · driver 를 쓴다`);
     }
     for (const 줄 of 좌표자리(sf)) 틀림.push(`${f.경로}:${줄} — 좌표({ x, y })를 쓴다. 오브젝트 이름이나 / 경로로 찾는다`);
@@ -143,7 +149,7 @@ export function 게임검사(트리: string, 경로들: readonly string[], env: 
   const 읽음 = (p: string) => (existsSync(p) ? readFileSync(p, 'utf8') : null);
   const 지도 = 자료 ? 지도열쇠들(읽음(join(자료, 'game-map.txt')), 읽음(join(자료, 'game-elements.json'))) : null;
   const 파일들 = 경로들.filter((p) => p.startsWith('tests/') && p.endsWith('.ts') && existsSync(join(트리, p))).map((p) => ({ 경로: p, 글: readFileSync(join(트리, p), 'utf8') }));
-  const 틀림 = 게임형식(파일들, 지도?.열쇠 ?? null);
+  const 틀림 = 게임형식(파일들, 지도?.열쇠 ?? null, env[PC게임환경] === 'windows' ? 'windows' : 'android');
   if (지도 === null && 틀림.length === 0) return null;
   const 케이스글들 = (자리: string) => (existsSync(자리) ? readdirSync(자리).filter((n) => n.endsWith('.spec.ts')).map((n) => readFileSync(join(자리, n), 'utf8')) : []);
   const 스모크 = 지도 === null || 폴더 === undefined ? null : 스모크틀림(폴더, 케이스글들(join(트리, 'tests', 폴더)));
