@@ -31,7 +31,7 @@ import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
 import { 미션올리기, 미션준비 } from './authoring-missions.js';
-import { type 탐색단계, 세션띄우기, 탐색끝줄 } from './authoring-explore.js';
+import { type 탐색단계, 세션띄우기, 탐색끝줄, 탐색하나 } from './authoring-explore.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 새로쓰기, 원장과남은번호 } from './authoring-ledger-io.js';
 import { 기준목록이름 } from './authoring-base-list.js';
@@ -277,9 +277,9 @@ async function 사본에서(
   const 한번 = (이어하기: typeof 방.이어하기, 탐색?: 탐색단계) => 크레딧먼저(process.env[크레딧키이름] || undefined, (키) => 띄운다(키, 이어하기, undefined, 탐색), 알린다, {
     멈추라했다: 박동.멈추라했다, 거두기, 띄운다: () => 띄운다(undefined, 이어하기?.이유 === 'EXPLORED' || 이어하기 === undefined ? { 번호: 것.id, 이유: 'CREDIT', 까닭: null } : 이어하기, undefined, 탐색),
   });
-  // 게임은 탐색 플레이 세션 → 체크포인트 → 케이스 작성 세션으로 나눠 띄운다. 승인된 미션만 쓰는 작성은 탐색하지 않는다 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
+  // 게임은 탐색 플레이 세션 → 체크포인트 → 케이스 작성 세션으로 나눠 띄운다. 케이스를 새로 쓰지 않는 작성은 빼고 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
   const { 돌린것, 크레딧으로, 앞낸것, 거절: 탐색거절 } = await 세션띄우기({
-    탐색: 게임화면 !== undefined && 미션 === null, 통로: { 주소기지, 토큰, 번호: 것.id }, 자료: 자리.자료, 비밀: 비밀번호들(것), 이어하기: 방.이어하기, 한번, 거두기, 멈추라했다: 박동.멈추라했다, 알린다,
+    탐색: 탐색하나(것, 게임화면 !== undefined, 미션 !== null), 통로: { 주소기지, 토큰, 번호: 것.id }, 자료: 자리.자료, 비밀: 비밀번호들(것), 이어하기: 방.이어하기, 한번, 거두기, 멈추라했다: 박동.멈추라했다, 알린다,
   }).finally(링크끄기);
   const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
   console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`);

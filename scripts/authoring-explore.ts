@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
 import { 게임자리, 글받기 } from './authoring-game.js';
 import { type 맵행, 경로, 맵행읽기, 목표풀기, 새행더하기, 출발고르기 } from './authoring-game-route.js';
 import { type 돌린결과, 부른다 } from './authoring-io.js';
@@ -162,6 +163,13 @@ export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀:
   const 올림 = await 맵올리기(통로, 자료, 비밀);
   return [지남, 올림.줄, 팝업추가줄(안전히읽기(자료, 게임자리.새맵행, 4_000_000), 비밀)].filter((x): x is string => x !== null && x !== undefined && x !== '');
 }
+
+/**
+ * 탐색하는 작성 — 게임이고 케이스를 새로 쓰는 작성. 승인된 미션만 쓰는 작성과, 있는 케이스를 고치는 BTS 「테스트 수정」 · 「화면이 맞음」은 뺀다
+ * (2026-11-20 사용자 — 케이스 하나를 고치려고 기능 단위 전체를 탐색하지 않는다. 고칠 때도 경로 검색은 쓴다)
+ */
+export const 탐색하나 = (것: { params?: unknown }, 게임: boolean, 미션만: boolean): boolean =>
+  게임 && !미션만 && 테스트고침읽기(것) === undefined && 화면이맞음읽기(것) === undefined;
 
 export interface 띄운결과 {
   돌린것: 돌린결과;

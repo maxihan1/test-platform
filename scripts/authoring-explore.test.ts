@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type 읽은행, 맵글짓기 } from '../apps/admin/src/prd/gameRoute.js';
-import { type 탐색목표, 맵올리기, 목표들읽기, 세션띄우기, 실행, 체크포인트, 탐색줄, 팝업추가줄 } from './authoring-explore.js';
+import { type 탐색목표, 맵올리기, 목표들읽기, 세션띄우기, 실행, 체크포인트, 탐색줄, 탐색하나, 팝업추가줄 } from './authoring-explore.js';
 import { 맵읽기 } from './authoring-game-route.js';
 import type { 돌린결과 } from './authoring-spawn.js';
 import { 돌발팝업값, 맵돌발팝업 } from './authoring-run3-env.js';
@@ -163,6 +163,19 @@ describe('맵올리기', () => {
 });
 
 const 결과 = (낸것: string, x: Partial<돌린결과> = {}): 돌린결과 => ({ 코드: 0, 낸것, 오류: '', 시간초과: false, 멈춤으로죽음: false, ...x });
+
+describe('탐색하나', () => {
+  it('케이스를 새로 쓰는 게임 작성만 — 게임이 아니거나 승인된 미션만 쓰거나 BTS 테스트 수정 · 화면이 맞음이면 안 한다', () => {
+    const 고침 = { testFix: { issueKey: 'ARG-1', cases: [{ runId: 1, tcId: 'ARG-FN-001', env: 'qa' }], note: '' } };
+    expect(탐색하나({}, true, false)).toBe(true);
+    expect(탐색하나({ params: { prdApply: true } }, true, false)).toBe(true);
+    expect(탐색하나({}, false, false)).toBe(false);
+    expect(탐색하나({}, true, true)).toBe(false);
+    expect(탐색하나({ params: 고침 }, true, false)).toBe(false);
+    expect(탐색하나({ params: { testFix: { 틀린: true } } }, true, false)).toBe(false);
+    expect(탐색하나({ params: { screenRight: [{ runId: 1, tcId: 'ARG-FN-001', env: 'qa', reqIds: ['R-1'] }] } }, true, false)).toBe(false);
+  });
+});
 
 describe('세션띄우기', () => {
   const 판 = (한번: ReturnType<typeof vi.fn>, x: { 탐색?: boolean; 멈추라했다?: () => boolean } = {}) => ({
