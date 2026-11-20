@@ -26,7 +26,7 @@ import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } 
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
-import { PC게임못함, 게임화면받기, 받은팜토큰, 앱링크갈기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { PC게임못함, 게임화면받기, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
@@ -210,6 +210,7 @@ async function 사본에서(
   const PC못함 = PC게임못함(앱화면);
   if (PC못함 !== null) return void (await 손.끝내기({ status: 'FAILED', error: PC못함 }));
   if (게임화면 !== undefined) await 게임준비({ 주소기지, 토큰, 번호: 것.id }, 자리.자료);
+  if (설정.종류 === 'APP') await 앱맵받기({ 주소기지, 토큰 }, 것.id, 자리.자료);
   // 대조 · 반영 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호(역할 계정까지)를 먼저 가린다 (§3.6 「★ 역방향」 · 「★ 역할별 계정」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 비밀번호들(것));
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));

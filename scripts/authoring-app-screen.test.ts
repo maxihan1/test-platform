@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PC게임못함, 게임화면받기, 게임화면파일, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
+import { PC게임못함, 게임화면받기, 게임화면파일, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱맵받기, 앱맵파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
 import { 줄프롬프트 } from './authoring-prompt.js';
 
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
@@ -74,6 +74,26 @@ describe('앱화면받기', () => {
       throw new TypeError('fetch failed');
     });
     expect(await 앱화면받기(서버, 7, 자료)).toBeUndefined();
+  });
+});
+
+describe('앱맵받기 — 앱 조작 맵 글 (도메인/작성 §3.6 「★ 앱 탐색」)', () => {
+  it('맵 글을 자료 폴더 app-route.txt 로 받는다', async () => {
+    const 부름 = 서버가({ text: '# 앱 조작 맵 — 줄 1개\n\n## 이동 (MOVE) — 1줄\n- app:.MainActivity/홈 → 「알림」 탭 누르기 → app:.MainActivity/알림 · 확인\n' });
+
+    await 앱맵받기(서버, 7, 자료);
+
+    expect((부름.mock.calls[0] as unknown as [string])[0]).toBe('http://admin:3000/api/authoring/requests/7/app-route');
+    expect(readFileSync(앱맵파일(자료), 'utf8')).toContain('- app:.MainActivity/홈 → 「알림」 탭 누르기 → app:.MainActivity/알림 · 확인');
+  });
+
+  it('못 받으면 앞 실행이 남긴 맵을 지워 낡은 길을 안 보인다 — 작성은 간다', async () => {
+    writeFileSync(앱맵파일(자료), '옛 맵');
+    서버가({ error: 'NOT_APP_SERVICE' }, 400);
+
+    await expect(앱맵받기(서버, 7, 자료)).resolves.toBeUndefined();
+
+    expect(existsSync(앱맵파일(자료))).toBe(false);
   });
 });
 
