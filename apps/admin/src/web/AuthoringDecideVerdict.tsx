@@ -11,6 +11,9 @@ import { PRD항목주소 } from './route.js';
 
 type 확인항목 = Extract<결정항목, { kind: 'CHECK' }>;
 
+// 어디서 본 것 — 실행 번호가 아니면 작성이 본 곳이다. 앱은 셋을 나눠 보인다 — 화면에서 해 본 것과 앱 안 글자 표는 믿을 만한 정도가 달라서 (도메인/작성 §3.6 「★ 앱 탐색」 결정 9)
+const 본곳글 = { EXPLORE: '탐색 플레이', APP_EXPLORE: '앱 탐색', APP_STRINGS: '앱 문구', APP_TRIAL: '작성 중 디바이스 실행' } as const;
+
 export function 판정카드({ 줄들, 고른표, on고름, 편집, on편집 }: { 줄들: 확인항목[]; 고른표: 고른표; on고름: 고름하기; 편집: 편집표; on편집: 편집하기 }) {
   const t = use말();
   const 나이글 = use나이글();
@@ -24,7 +27,7 @@ export function 판정카드({ 줄들, 고른표, on고름, 편집, on편집 }: 
         const 적던 = 편집.get(x.key);
         const 저장함 = 고른?.pick === 'EDIT' ? (고른.text ?? '') : null;
         const 나이 = 나이글(x.checkSince);
-        const 어디 = 본것.where === 'EXPLORE' ? t('탐색 플레이') : `RUN ${String(본것.where)}`;
+        const 어디 = typeof 본것.where === 'number' ? `RUN ${String(본것.where)}` : t(본곳글[본것.where]);
         const 꼬리 = [어디, ...(본것.build === null ? [] : [t('빌드 {번호}', { 번호: 본것.build })]), t('{수}번 확인', { 수: 본것.count })].join(' · ');
         return (
           <div key={x.key} className="decide-sub">
