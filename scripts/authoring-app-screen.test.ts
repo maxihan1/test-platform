@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PC게임못함, 게임화면받기, 게임화면파일, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱맵받기, 앱맵파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
+import { PC게임못함, 게임화면받기, 게임화면파일, 받은빌드이름, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱맵받기, 앱맵파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
 import { 줄프롬프트 } from './authoring-prompt.js';
 
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
@@ -150,6 +150,28 @@ describe('앱 링크 갈아 끼우기 — 서명 링크는 2시간이라 작성 
     const 뒤 = 서버가({ app: 'https://qa.test/api/builds/1/apk?exp=3&sig=late' });
     await vi.advanceTimersByTimeAsync(60 * 60_000);
     expect(뒤).not.toHaveBeenCalled();
+  });
+
+  it('app-link 가 준 빌드 이름을 처음 것으로 받아 둔다 — 링크에 빌드가 없으면(앱 파일 경로) 안 받는다 · 첫 화면을 다시 받으면 비운다 (APP-F4-05)', async () => {
+    vi.useFakeTimers();
+    서버가({ app: 'https://qa.test/api/builds/1/apk?exp=2&sig=new', buildNo: '1.4.0-57' });
+    const 끄기 = 앱링크갈기(서버, 7, 자료, { 글: 'x', 탐색 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(받은빌드이름(자료)).toBe('1.4.0-57');
+    서버가({ app: 'https://qa.test/api/builds/2/apk?exp=3&sig=new', buildNo: '1.4.0-58' });
+    await vi.advanceTimersByTimeAsync(30 * 60_000);
+    expect(받은빌드이름(자료)).toBe('1.4.0-57');
+    끄기();
+
+    서버가({ screen: null, reason: null });
+    await 앱화면받기(서버, 7, 자료);
+    expect(받은빌드이름(자료)).toBeUndefined();
+
+    서버가({ app: 'https://builds/qa.apk', buildNo: '1.4.0-58' });
+    const 끄기2 = 앱링크갈기(서버, 7, 자료, { 글: 'x', 탐색: { ...탐색, app: 'https://builds/qa.apk' } });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(받은빌드이름(자료)).toBeUndefined();
+    끄기2();
   });
 
   it('대신 PAT 는 3시간이라 app-link 가 준 팜 토큰을 토큰 파일에 갈아 끼우고 가릴 목록에 넣는다 — 링크를 못 받아도 토큰은 바꾼다', async () => {

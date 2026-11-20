@@ -3,7 +3,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { 깔앱파일, 최신빌드 } from '../execution/buildFile.js';
+import { 깔앱, 깔앱파일, 최신빌드 } from '../execution/buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
@@ -95,21 +95,25 @@ const 비움 = { screen: null, reason: null };
  * 작성 에이전트에 줄 앱 — app-screen 과 app-link 가 같은 줄 · 같은 규칙으로 고른다. 줄은 집기 계정 · 대상 서버와 같은 규칙(앱줄고르기)이고
  * 그 줄의 최신 빌드가 앱 파일 경로보다 앞선다 (도메인/실행 §3.11)
  */
+async function 작성앱줄(행: { serviceId: number; env: string | null }): Promise<{ env: string; appPath: string | null } | null> {
+  if ((await 게임칸읽기(행.serviceId))?.gamePlatform === 'windows') return PC빌드줄(행);
+  return 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env) ?? null;
+}
+
 async function 작성앱파일(행: { serviceId: number; env: string | null }, 고정?: number): Promise<string | null> {
-  if ((await 게임칸읽기(행.serviceId))?.gamePlatform === 'windows') return PC빌드파일(행, 고정);
-  const 줄 = 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env);
-  return 줄 === undefined ? null : 깔앱파일(행.serviceId, 줄.env, 줄.appPath, 고정);
+  const 줄 = await 작성앱줄(행);
+  return 줄 === null ? null : 깔앱파일(행.serviceId, 줄.env, 줄.appPath, 고정);
 }
 
 /**
  * PC 게임은 「앱 파일 경로가 있는 줄」 대신 「빌드가 있는 줄」을 고른다(짚은 줄, 아니면 운영 아닌 첫 줄) — app_path 로 물러서지 않는다.
  * 빌드가 없으면 null 이다. 그 줄 최신 zip 의 서명 주소를 준다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
  */
-async function PC빌드파일(행: { serviceId: number; env: string | null }, 고정?: number): Promise<string | null> {
+async function PC빌드줄(행: { serviceId: number; env: string | null }): Promise<{ env: string; appPath: null } | null> {
   const 풀 = await db();
   for (const 줄 of (await 대상줄들읽기(행.serviceId)).filter((j) => !j.isProd && (행.env === null || j.env === 행.env))) {
     const 빌드 = await 최신빌드(풀, 행.serviceId, 줄.env);
-    if (빌드 !== null && (빌드.hasFile || 빌드.appUrl !== null)) return 깔앱파일(행.serviceId, 줄.env, null, 고정);
+    if (빌드 !== null && (빌드.hasFile || 빌드.appUrl !== null)) return { env: 줄.env, appPath: null };
   }
   return null;
 }
@@ -143,9 +147,11 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     const 고정 = /^\d{1,12}$/.test(req.query.build ?? '') ? Number(req.query.build) : undefined;
-    const 링크 = await 작성앱파일(행, 고정);
+    const 줄 = await 작성앱줄(행);
+    // buildNo 는 링크가 까는 빌드의 이름 — 에이전트가 crawl 결과를 앱 조작 맵에 올릴 때 「어느 빌드에서 통과」로 단다. 빌드 없이 app_path 면 null (§3.6 「★ 앱 탐색」 · APP-F4-05)
+    const { 링크, buildNo } = 줄 === null ? { 링크: null, buildNo: null } : await 깔앱(행.serviceId, 줄.env, 줄.appPath, 고정);
     // 링크가 없어도(도중에 앱 줄이 바뀜) 준다 — 잡은 폰은 그 토큰으로 놓아야 한다
     const 토큰 = 팜주소() === undefined ? undefined : await 서버팜토큰();
-    return { app: 링크, ...(토큰 !== undefined && { token: 토큰 }) };
+    return { app: 링크, buildNo, ...(토큰 !== undefined && { token: 토큰 }) };
   });
 }
