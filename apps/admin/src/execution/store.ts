@@ -2,10 +2,11 @@
 // params·expected·케이스명·사전조건은 전부 실행 시점의 스냅샷이다. param_set을 참조만 하면
 // 나중에 값이 바뀌었을 때 과거 증적이 거짓이 된다
 
-import { PC항목인가, type ApiAuth, type Platform } from '@platform/kit';
+import { PC항목인가, type ApiAuth, type GamePopup, type Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import { 돌발팝업칸 } from '../prd/gameRoute.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { API인증읽기, type 어드민키, 어드민키읽기 } from '../settings/envs.js';
 
@@ -105,6 +106,8 @@ export interface PendingItem {
   // engine 은 게임 애플리케이션의 android 항목만 (도메인/게임 §3.10 결정 6). adminKey 는 게임 · API 항목에 그 대상 서버 줄의 어드민 키 원문
   engine?: 'GAME';
   adminKey?: 어드민키;
+  // 게임 항목만 — 그 애플리케이션 조작 맵의 「확인」 돌발 팝업 행. 게임 드라이버가 막힌 동작에서 닫고 한 번 더 한다 (도메인/게임 §3.10 결정 31)
+  gamePopups?: GamePopup[];
   // mobile 항목을 실행 창 「실행 위치」에서 고른 Device VISION 실제 폰 Chrome 에서 돌린다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   실제폰?: true;
   // 정기 실행 android 항목 — 러너가 통과해도 logcat 을 받아 안정화 지표가 크래시 · ANR 을 센다 (도메인/안정화 §3.15 결정 3)
@@ -321,6 +324,8 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
     const 커밋 = await 테스트커밋();
     const 지문들 = new Map(await Promise.all([...cases.values()].map(async (c) => [c.tc_id, await 케이스지문(c.file_path)] as const)));
 
+    // 게임 애플리케이션만 읽는다 — 항목마다 같은 목록이라 한 번
+    const 팝업칸 = found서비스.kind === 'GAME' ? await 돌발팝업칸(Number(found서비스.id), client) : {};
     const items: PendingItem[] = [];
     for (const item of 채운항목) {
       const spec = cases.get(item.tcId)!;
@@ -357,6 +362,7 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
             ...(platform === 'android' && 앱칸(빌드, found서비스.app_path, 앞)),
             ...(인증들.length > 0 && { apiAuths: 인증들 }),
             ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
+            ...(엔진칸(found서비스.kind, platform).engine === 'GAME' && 팝업칸),
             ...(platform === 'mobile' && 실제폰 && { 실제폰: true as const }),
             ...(platform === 'android' && input.sched?.base === true && { stability: true as const }),
             // PC 게임의 빌드는 늘 올린 zip 이다 — 없으면 디스패처가 「Windows 빌드가 없습니다」로 닫는다

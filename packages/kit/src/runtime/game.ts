@@ -8,6 +8,7 @@ import { isDeepStrictEqual } from 'node:util';
 import type { Game, Link, WaitOptions } from 'control-cli';
 
 import { runDir, saveShot } from './artifacts.js';
+import { 돌발팝업읽기, 돌발팝업을건다 } from './gamePopups.js';
 import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.js';
 
 type Env = Record<string, string | undefined>;
@@ -81,7 +82,19 @@ export async function openGame(
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
 ): Promise<KitGame> {
   const { Game, WAIT } = await import('control-cli');
-  const game = new Game(link ?? (await gameLink(env)));
+  // 꼴이 틀리면 게임에 붙기 전에 던진다 — 러너가 늘 맞는 꼴을 넘긴다
+  const 팝업들 = 돌발팝업읽기(env);
+  // 길이 던진 오류(답을 못 받음)를 표시한다 — 게임이 실패로 답한 것과 달리 게임은 이미 했을 수 있어 돌발 팝업 닫기가 다시 하지 않는다
+  const 끊김 = new WeakSet<object>();
+  const 길 = link ?? (await gameLink(env));
+  const game = new Game(async (cmd) => {
+    try {
+      return await 길(cmd);
+    } catch (err) {
+      if (typeof err === 'object' && err !== null) 끊김.add(err);
+      throw err;
+    }
+  });
   // 문구는 waitFor 의 글자 기다림과 같은 꼴이라야 실패 유형이 「시간 초과」로 가른다 (reporting/failureType.ts)
   const waitForValue: GameDriver['waitForValue'] = async (target, prop, value, options = {}) => {
     const timeoutMs = options.timeoutMs ?? WAIT.timeoutMs;
@@ -194,6 +207,7 @@ export async function openGame(
     if (!(PAD_KINDS as readonly string[]).includes(패드값)) throw new Error(`모르는 패드다: PLATFORM_PAD=${패드값}`);
     await 패드(패드값 as PadKind);
   }
+  돌발팝업을건다(드라이버, 팝업들, (err) => typeof err === 'object' && err !== null && 끊김.has(err));
   return 드라이버;
 }
 

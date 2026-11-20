@@ -37,6 +37,12 @@ const recordHar = z.object({ jobId: z.number().int().positive() }).optional();
 // 게임 · API 애플리케이션 항목만. 원문이 지나간다 — 머리는 kit 이 admin 요청에 넣는다 (공통/3-공유계약 「게임 테스트 타입」)
 const adminKey = z.object({ header: z.string().min(1), value: z.string().min(1) }).optional();
 
+// 게임 항목의 돌발 팝업 — 자식 환경값 하나(PLATFORM_GAME_POPUPS)로 가서 환경값 한 칸 상한(128KiB)에 걸리지 않게 줄 수 · 글 길이를 묶는다.
+// 글 길이는 조작 맵 열쇠 · 동작 칸 상한과 같다 (도메인/게임 §3.10 결정 31 · apps/admin/src/prd/gameRoute.ts 상한)
+export const 돌발팝업상한 = { 줄: 100, 글: 200 } as const;
+const 주소글 = z.string().min(1).max(돌발팝업상한.글).refine((v) => ![...v].some((c) => c < ' '), '돌발 팝업 주소에 제어 문자가 있다');
+const gamePopups = z.array(z.object({ window: 주소글, close: 주소글 })).max(돌발팝업상한.줄).optional();
+
 // 장면 열쇠. 장면 파일 이름(live/<열쇠>.jpg)에 그대로 들어가 UUID 가 아니면 ../ 로 빠져나갈 수 있다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 const live = z.string().uuid().optional();
 // 정식 실행은 장면만 찍는다(늦추기는 runId 로 가른다 — live.ts 장면환경). 앱 · 게임 항목도 받는다 — 2026-11-11 사용자가 정식 실행에도 폰 화면을 보이게 했다
@@ -79,6 +85,8 @@ export const executeRequest = z.object({
   // 정기 실행 android 항목 — 안 적으면 z.object 가 버려 통과 항목 logcat 을 안 받는다 (도메인/안정화 §3.15 결정 3)
   stability: z.literal(true).optional(),
   adminKey,
+  // 안 적으면 z.object 가 버려 끼어든 창을 못 닫는다
+  gamePopups,
   apiAuths,
   apiDoc,
   recordHar,

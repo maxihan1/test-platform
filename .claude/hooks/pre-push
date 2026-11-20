@@ -155,7 +155,8 @@ if [ "$lane" = "full" ]; then
         *) continue ;;
       esac || fail "임시 DB 에 $f 를 못 걸었다."
     done
-    docker run --rm -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
+    # 리눅스 도커(클라우드 세션)는 host.docker.internal 을 스스로 못 찾는다 — 맥 Docker Desktop 에서는 같은 자리를 가리켜 달라지는 것이 없다 (2026-11-19 사용자 승인)
+    docker run --rm --add-host=host.docker.internal:host-gateway -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
       --url "postgres://platform:$PGPASSWORD@host.docker.internal:$PG_PORT/$DB_NAME?sslmode=disable" \
       --migrations-dir /db/migrations --no-dump-schema up >/dev/null \
       || fail "임시 DB 에 마이그레이션을 못 걸었다. 도커가 켜져 있는지 보고"

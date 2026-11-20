@@ -299,6 +299,7 @@ describe('앱 · 게임 단계가 있는 시나리오', () => {
       expect(폰환경(앱)).toEqual({
         PLATFORM_APPIUM_TOKEN: 'farm-token', PLATFORM_APP: '/apk/dma.apk', PLATFORM_DEVICE_UDID: 'R58M',
         PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '1201', PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm', PLATFORM_ADMIN_KEY: '{"header":"X-Admin-Key","value":"k1"}',
+        PLATFORM_GAME_POPUPS: '',
         PLATFORM_UI_CHECK: '',
         PLATFORM_PC_GAME: '',
         PLATFORM_PAD: '',
@@ -310,7 +311,7 @@ describe('앱 · 게임 단계가 있는 시나리오', () => {
       expect(폰환경({ ...웹만, farmToken: 'pat_kim' }).PLATFORM_APPIUM_TOKEN).toBeUndefined();
       // 앱 단계가 없으면 팜 토큰 · 어드민 키를 안 넘긴다 — 러너를 켠 셸의 값도 덮는다
       expect(폰환경(웹만)).toEqual({
-        PLATFORM_APPIUM_TOKEN: undefined, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '', PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '', PLATFORM_UI_CHECK: '',
+        PLATFORM_APPIUM_TOKEN: undefined, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '', PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '', PLATFORM_GAME_POPUPS: '', PLATFORM_UI_CHECK: '',
       });
     } finally {
       if (이전 === undefined) delete process.env.PLATFORM_APPIUM_TOKEN;

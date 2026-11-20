@@ -151,8 +151,9 @@ describe('callRunner', () => {
       return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
     });
 
-    await callRunner(7, { ...항목, engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' } });
-    expect(받은것).toMatchObject({ tcId: 'DEMO-001', engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' } });
+    const gamePopups = [{ window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' }];
+    await callRunner(7, { ...항목, engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' }, gamePopups });
+    expect(받은것).toMatchObject({ tcId: 'DEMO-001', engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' }, gamePopups });
   });
 
   it('디스패처가 잡은 폰이 오면 팜을 거치지 않고 그 번호로 보낸다 — 멈춘 실행이면 보내지 않는다', async () => {

@@ -60,7 +60,7 @@ describe('gameEnv', () => {
   });
 
   it('게임이 아니면 셋 다 빈 값으로 늘 적는다 — 러너를 켠 셸의 값을 물려받지 않게', () => {
-    expect(gameEnv({ platform: 'android', udid: 'R3CR' })).toEqual({ PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '', PLATFORM_PC_GAME: '', PLATFORM_PAD: '' });
+    expect(gameEnv({ platform: 'android', udid: 'R3CR' })).toEqual({ PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '', PLATFORM_GAME_POPUPS: '', PLATFORM_PC_GAME: '', PLATFORM_PAD: '' });
     expect(gameEnv({ platform: 'desktop', engine: 'GAME' }).PLATFORM_ENGINE).toBe('');
   });
 
@@ -76,6 +76,23 @@ describe('gameEnv', () => {
   it('어드민 키는 JSON 으로 넘긴다', () => {
     const env = gameEnv({ platform: 'android', engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k' } });
     expect(JSON.parse(env.PLATFORM_ADMIN_KEY!)).toEqual({ header: 'X-Admin-Key', value: 'k' });
+  });
+
+  it('돌발 팝업은 게임 항목만 JSON 으로 넘기고 아니면 빈 값이다', () => {
+    const 초대 = [{ window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' }];
+    expect(JSON.parse(gameEnv({ platform: 'android', engine: 'GAME', gamePopups: 초대 }).PLATFORM_GAME_POPUPS!)).toEqual(초대);
+    expect(gameEnv({ platform: 'android', gamePopups: 초대 }).PLATFORM_GAME_POPUPS).toBe('');
+    expect(gameEnv({ platform: 'android', engine: 'GAME', gamePopups: [] }).PLATFORM_GAME_POPUPS).toBe('');
+  });
+
+  it('돌발 팝업 칸은 요청 검사가 지나보내고 줄 수 · 글 길이를 묶는다', () => {
+    const 초대 = { window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' };
+    const 요청 = (platform: ExecuteRequest['platform'], timeoutMs: number): ExecuteRequest =>
+      ({ runId: 5, historyId: 8, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs });
+    expect(executeRequest.parse({ ...요청('android', 1000), engine: 'GAME', gamePopups: [초대] }).gamePopups).toEqual([초대]);
+    expect(executeRequest.safeParse({ ...요청('android', 1000), gamePopups: Array.from({ length: 101 }, () => 초대) }).success).toBe(false);
+    expect(executeRequest.safeParse({ ...요청('android', 1000), gamePopups: [{ ...초대, close: 'a'.repeat(201) }] }).success).toBe(false);
+    expect(executeRequest.safeParse({ ...요청('android', 1000), gamePopups: [{ ...초대, close: '/A\nPLATFORM_X=1' }] }).success).toBe(false);
   });
 });
 

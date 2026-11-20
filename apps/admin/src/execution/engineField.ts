@@ -1,7 +1,8 @@
 // 실행 요청의 게임 칸(엔진 · 어드민 키)을 만든다 — 정식 실행 · 테스트 실행 · 기기 성능이 같이 쓴다 (도메인/게임 §3.10 결정 6 · API 항목의 어드민 키)
 
-import { PC항목인가, type Platform } from '@platform/kit';
+import { PC항목인가, type GamePopup, type Platform } from '@platform/kit';
 
+import { 돌발팝업칸 } from '../prd/gameRoute.js';
 import type { 어드민키 } from '../settings/envs.js';
 
 /**
@@ -16,3 +17,7 @@ export const 엔진칸 = (
   if (kind === 'GAME' && (platform === 'android' || PC항목인가(platform))) return { engine: 'GAME', ...(키 != null && { adminKey: 키 }) };
   return kind === 'API' && 키 != null ? { adminKey: 키 } : {};
 };
+
+/** 게임 항목이면 그 애플리케이션 조작 맵의 돌발 팝업을 싣는다 — 테스트 실행이 쓴다. 정식 실행은 항목마다 안 읽고 한 번 읽는다 (도메인/게임 §3.10 결정 31) */
+export const 돌발팝업을싣는다 = async (kind: string | null | undefined, platform: Platform, 서비스: number): Promise<{ gamePopups?: GamePopup[] }> =>
+  엔진칸(kind, platform).engine === 'GAME' ? 돌발팝업칸(서비스) : {};
