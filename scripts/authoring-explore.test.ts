@@ -48,7 +48,7 @@ afterEach(() => {
 
 describe('목표들읽기', () => {
   it('파일이 없거나 JSON 이 아니거나 목표 배열이 없으면 까닭 글이다', () => {
-    expect(목표들읽기(null)).toMatch(/game-explore\.json 이 없다/);
+    expect(목표들읽기(null)).toMatch(/game-explore\.json 이 없거나 1MB 를 넘는다/);
     expect(목표들읽기('{')).toMatch(/JSON 으로 못 읽었다/);
     expect(목표들읽기('{"goals":[]}')).toMatch(/「목표」 배열이 없다/);
   });
@@ -72,6 +72,10 @@ describe('체크포인트', () => {
 
   it('「경로 확보」는 확인 행만으로 길이 나야 지난다 — 진행 불가는 까닭만 있으면 지난다', () => {
     expect(체크포인트([목표({}), 목표({ 기능: '레이드', 열쇠: ['zone:Raid'], 결과: '진행 불가', 까닭: '두 번째 계정 없음' })], 행들)).toEqual([]);
+  });
+
+  it('목표가 하나도 없으면 못 지난다 — 두 번째 작성도 기능 단위마다 목표가 있다', () => {
+    expect(체크포인트([], 행들)).toEqual(['목표가 하나도 없다 — 표준 기획서의 기능 단위마다 목표를 적는다']);
   });
 
   it('결과가 없거나 진행 불가 까닭이 비면 못 지난다', () => {
@@ -104,15 +108,15 @@ describe('탐색줄', () => {
     expect(탐색줄([1, 2, 3, 4, 5, 6, 7].map(불가), [])).toMatch(/기능5\(로그 안 찍힘\) 외 2개$/);
   });
 
-  it('공개 PR 에 실리는 줄이라 까닭에 계정 비밀번호가 섞이면 까닭을 빼고 적는다', () => {
-    expect(탐색줄([목표({ 결과: '진행 불가', 까닭: '로그인 Secret#Pass1 실패' })], ['Secret#Pass1'])).toBe(
-      '탐색 플레이: 목표 1개 — 경로 확보 0 · 진행 불가 1 — 까닭에 테스트 계정 비밀번호가 들어 있어 안 적음',
-    );
+  it('공개 PR 에 실리는 줄이라 까닭에 계정 비밀번호가 섞이면 까닭을 빼고 적는다 — 80자에서 잘리는 자리에 걸쳐도', () => {
+    const 안적음 = '탐색 플레이: 목표 1개 — 경로 확보 0 · 진행 불가 1 — 까닭에 테스트 계정 비밀번호가 들어 있어 안 적음';
+    expect(탐색줄([목표({ 결과: '진행 불가', 까닭: '로그인 Secret#Pass1 실패' })], ['Secret#Pass1'])).toBe(안적음);
+    expect(탐색줄([목표({ 결과: '진행 불가', 까닭: `${'가'.repeat(78)}Secret#Pass1` })], ['Secret#Pass1'])).toBe(안적음);
   });
 });
 
 describe('팝업추가줄', () => {
-  it('이번 작성이 적은 「확인」 팝업 가운데 받은 맵에 없던 창만 센다', () => {
+  it('이번 작성이 적은 「확인」 팝업을 다 센다 — 맵에 있던 창을 다시 적었어도 사람이 보게 싣는다', () => {
     const 새글 = JSON.stringify({
       rows: [
         { kind: 'POPUP', fromKey: 'game:Main/Canvas/Invite', action: '/Canvas/Invite/Decline', status: 'OK' },
@@ -120,13 +124,20 @@ describe('팝업추가줄', () => {
         { kind: 'POPUP', fromKey: 'game:Main/Canvas/Error', action: '/Canvas/Error/Ok', status: 'BLOCKED', reason: '닫는 버튼 없음' },
       ],
     });
-    expect(팝업추가줄(맵, 새글, [])).toBe('돌발 팝업 행 추가 1 — game:Main/Canvas/Event');
-    expect(팝업추가줄(맵, null, [])).toBeNull();
-    expect(팝업추가줄(맵, '{', [])).toBeNull();
+    expect(팝업추가줄(새글, [])).toBe('돌발 팝업 행 추가 2 — game:Main/Canvas/Invite, game:Main/Canvas/Event');
+    expect(팝업추가줄(새글, ['/Canvas/Event'])).toBe('돌발 팝업 행 추가 2 — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음');
+    expect(팝업추가줄(null, [])).toBeNull();
+    expect(팝업추가줄('{', [])).toBeNull();
+    expect(팝업추가줄(JSON.stringify({ rows: [상점행] }), [])).toBeNull();
   });
 });
 
 describe('맵올리기', () => {
+  it('맵 행 파일이 상한을 넘거나 일반 파일이 아니면 없는 것으로 넘기지 않고 틀림으로 짚는다', async () => {
+    writeFileSync(join(자료, 'game-route.json'), 'x'.repeat(4_000_001));
+    expect((await 맵올리기(통로, 자료, [])).틀림).toBe('game-route.json 이 4MB 를 넘거나 일반 파일이 아니다');
+  });
+
   it('이번 작성이 적은 행을 PUT 하고 줄을 돌려준다 — 파일이 없으면 줄도 없다', async () => {
     expect(await 맵올리기(통로, 자료, [])).toEqual({ 줄: null, 틀림: null });
     서버({ 'PUT /game-route': { status: 204 } });
@@ -207,6 +218,17 @@ describe('세션띄우기', () => {
     const 한번 = vi.fn(async () => ({ 돌린것: 결과('탐색'), 크레딧으로: false, 앞낸것: null }));
     expect((await 세션띄우기(판(한번, { 멈추라했다: () => true }))).돌린것.멈춤으로죽음).toBe(true);
     expect(한번).toHaveBeenCalledTimes(1);
+  });
+
+  it('새 세션이 아예 안 뜨면 끊김(코드 1)으로 돌려줘 폴더를 남기고 첫 세션 출력을 토큰에 센다', async () => {
+    탐색마침();
+    서버({ 'PUT /game-route': { status: 204 }, 'GET /game-route': { status: 200, 몸: { text: 맵 } } });
+    const 한번 = vi.fn()
+      .mockResolvedValueOnce({ 돌린것: 결과('탐색'), 크레딧으로: false, 앞낸것: null })
+      .mockResolvedValueOnce({ 돌린것: 결과('', { 코드: null, 오류: 'spawn claude ENOENT' }), 크레딧으로: false, 앞낸것: null });
+    const 끝 = await 세션띄우기(판(한번));
+    expect(끝.돌린것).toMatchObject({ 코드: 1, 낸것: '탐색', 오류: 'spawn claude ENOENT' });
+    expect(existsSync(join(자료, 'game-explore.done'))).toBe(true);
   });
 
   it('이미 체크포인트를 지난 폴더(이어받음)면 탐색 세션을 건너뛰고 결과 줄을 넘긴다', async () => {

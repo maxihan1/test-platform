@@ -50,10 +50,9 @@ export async function 글받기(통로: 화면통로, 자료: string, 길: 'game
 
 /**
  * 자식을 띄우기 전 — 창 기록 저장본(그 게임의 앱 줄)을 `game-kept/` 로, 게임 지도 글을 `game-map.txt` 로, 조작 맵 글을 `game-route.txt` 로 받는다.
- * 못 받아도 작성은 간다(창을 전부 다시 정리할 뿐 · 지도 · 맵이 빌 뿐). 앞 실행이 남긴 것은 먼저 지운다 — 이어받은 폴더에 낡은 지도가 보이면 안 된다.
- * 받은 조작 맵 글을 돌려준다 — 이번 작성이 더한 돌발 팝업 행을 끝에 이것과 견준다(못 받았으면 null)
+ * 못 받아도 작성은 간다(창을 전부 다시 정리할 뿐 · 지도 · 맵이 빌 뿐). 앞 실행이 남긴 것은 먼저 지운다 — 이어받은 폴더에 낡은 지도가 보이면 안 된다
  */
-export async function 게임준비(통로: 화면통로, 자료: string): Promise<string | null> {
+export async function 게임준비(통로: 화면통로, 자료: string): Promise<void> {
   const 저장본 = join(자료, 게임자리.저장본);
   rmSync(저장본, { force: true, recursive: true });
   rmSync(join(자료, 게임자리.지도), { force: true });
@@ -80,7 +79,6 @@ export async function 게임준비(통로: 화면통로, 자료: string): Promis
     const 왜 = await 글받기(통로, 자료, 길, 자리);
     if (왜 !== null) 못받음(무엇, 왜);
   }
-  return 안전히읽기(자료, 게임자리.맵, 요소상한);
 }
 
 /** 올리기 전 — 훑은 창과 게임 지도 요소를 올리고 PR 본문 머리 줄을 돌려준다. 어느 쪽이 실패해도 작성은 간다(줄에 적는다) */

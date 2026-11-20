@@ -1,6 +1,8 @@
 // 게임 조작 맵 경로 검색 — 작성 AI 가 맵 글(자료 폴더 game-route.txt)을 통째로 읽지 않고 목표까지의 차례만 받아 본다 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」 경로 검색)
 // 쓰는 법: npx tsx scripts/authoring-game-route.ts <자료 폴더> <목표 열쇠…> [--from <출발 열쇠>] — 폰 없이 파일만 읽는다. 「확인」 행으로만 길을 낸다.
 // 이번 작성이 적은 행(game-route.json — 아직 안 올렸을 수 있다)도 같이 읽는다 — 탐색 플레이에서 찾은 길을 바로 다음 목표 · 케이스 작성이 쓴다 (GAME-F5-05)
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { 게임자리 } from './authoring-game.js';
@@ -106,7 +108,7 @@ export function 맵행읽기(폴더: string): { 행들: 맵행[]; 틀림: string
   const 새글 = 안전히읽기(폴더, 게임자리.새맵행, 맵상한);
   if (글 === null && 새글 === null) return null;
   const 행들 = 맵읽기(글 ?? '');
-  if (새글 === null) return { 행들, 틀림: null };
+  if (새글 === null) return { 행들, 틀림: existsSync(join(폴더, 게임자리.새맵행)) ? `${게임자리.새맵행} 이 4MB 를 넘거나 일반 파일이 아니다` : null };
   try {
     return { 행들: 새행더하기(행들, JSON.parse(새글)), 틀림: null };
   } catch {

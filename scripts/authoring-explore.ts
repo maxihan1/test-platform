@@ -1,10 +1,11 @@
 // 게임 작성의 탐색 플레이 — 목표 파일 검사(체크포인트) · 결과 줄 · 조작 맵 올리기 · 탐색 세션과 케이스 작성 세션 나눠 띄우기 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
 // 쓰는 법(자식이 끝내기 전에 스스로 검사): npx tsx scripts/authoring-explore.ts <자료 폴더> — 0 지남 · 1 못 지남 · 2 부를 수 없음
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { 게임자리, 글받기 } from './authoring-game.js';
-import { type 맵행, 경로, 맵읽기, 맵행읽기, 목표풀기, 새행더하기, 출발고르기 } from './authoring-game-route.js';
+import { type 맵행, 경로, 맵행읽기, 목표풀기, 새행더하기, 출발고르기 } from './authoring-game-route.js';
 import { type 돌린결과, 부른다 } from './authoring-io.js';
 import { 끝낼상태 } from './authoring-progress.js';
 import { 계정섞였나 } from './authoring-reverse.js';
@@ -29,7 +30,7 @@ const 결과들 = ['경로 확보', '진행 불가', null] as const;
 
 /** 목표 파일(game-explore.json `{ 목표: [...] }`)을 읽는다. 꼴이 틀리면 까닭 글 */
 export function 목표들읽기(글: string | null): 탐색목표[] | string {
-  if (글 === null) return `${게임자리.탐색} 이 없다 — 탐색 플레이를 시작할 때 목표부터 적는다`;
+  if (글 === null) return `${게임자리.탐색} 이 없거나 1MB 를 넘는다 — 탐색 플레이를 시작할 때 목표부터 적는다`;
   let 몸: unknown;
   try {
     몸 = JSON.parse(글);
@@ -56,6 +57,8 @@ export function 목표들읽기(글: string | null): 탐색목표[] | string {
  * 못 지난 까닭 줄들 — 비면 지났다. 진행 불가 목표가 있어도 지난다(그 기능 단위의 케이스는 보류 줄이 된다)
  */
 export function 체크포인트(목표들: 탐색목표[], 행들: 맵행[] | null): string[] {
+  // 두 번째 작성도 기능 단위마다 목표가 있다 — 맵에 길이 있으면 폰 없이 「경로 확보」일 뿐이다(§3.10 차례 2)
+  if (목표들.length === 0) return ['목표가 하나도 없다 — 표준 기획서의 기능 단위마다 목표를 적는다'];
   return 목표들.flatMap((g): string[] => {
     const 이름 = `「${g.기능}」`;
     if (g.결과 === null) return [`${이름} — 결과가 없다(「경로 확보」 또는 「진행 불가」와 까닭)`];
@@ -78,13 +81,17 @@ export function 탐색줄(목표들: 탐색목표[], 비밀: readonly string[]):
   const 불가 = 목표들.filter((g) => g.결과 === '진행 불가');
   const 머리 = `탐색 플레이: 목표 ${String(목표들.length)}개 — 경로 확보 ${String(확보)} · 진행 불가 ${String(불가.length)}`;
   if (불가.length === 0) return 머리;
+  // 자르기 전에 본다 — 자른 자리에 걸친 비밀번호 앞부분이 남지 않게
+  if (계정섞였나(불가.flatMap((g) => [g.기능, g.까닭 ?? '']), 비밀)) return `${머리} — 까닭에 테스트 계정 비밀번호가 들어 있어 안 적음`;
   const 까닭들 = 불가.slice(0, 까닭상한).map((g) => `${줄자르기(g.기능, 40)}(${줄자르기(g.까닭 ?? '', 80)})`);
-  if (계정섞였나(까닭들, 비밀)) return `${머리} — 까닭에 테스트 계정 비밀번호가 들어 있어 안 적음`;
   return `${머리} — ${까닭들.join(' · ')}${불가.length > 까닭상한 ? ` 외 ${String(불가.length - 까닭상한)}개` : ''}`;
 }
 
-/** 이번 작성이 더한 돌발 팝업 행 — 오류 창을 팝업으로 잘못 올리면 실패가 통과가 되므로 사람이 PR 에서 본다 (§3.10 「돌발 팝업 자동 닫기」) */
-export function 팝업추가줄(앞글: string | null, 새글: string | null, 비밀: readonly string[]): string | null {
+/**
+ * 이번 작성이 적은 「확인」 돌발 팝업 행(game-route.json) — 오류 창을 팝업으로 잘못 올리면 실패가 통과가 되므로 사람이 PR 에서 본다 (§3.10 「돌발 팝업 자동 닫기」).
+ * 맵에 있던 창을 다시 적은 것도 센다 — 받은 맵과 견주면 체크포인트에서 이미 올린 뒤 이어받은 실행이 그 창을 못 센다
+ */
+export function 팝업추가줄(새글: string | null, 비밀: readonly string[]): string | null {
   if (새글 === null) return null;
   let 새행들: 맵행[];
   try {
@@ -92,12 +99,10 @@ export function 팝업추가줄(앞글: string | null, 새글: string | null, �
   } catch {
     return null;
   }
-  const 팝업 = (r: 맵행) => r.kind === 'POPUP' && r.status === 'OK';
-  const 있던 = new Set(맵읽기(앞글 ?? '').filter(팝업).map((r) => `${r.from}\n${r.action}`));
-  const 더한 = 새행들.filter((r) => 팝업(r) && !있던.has(`${r.from}\n${r.action}`)).map((r) => r.from);
-  if (더한.length === 0) return null;
-  if (계정섞였나(더한, 비밀)) return `돌발 팝업 행 추가 ${String(더한.length)} — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음`;
-  return `돌발 팝업 행 추가 ${String(더한.length)} — ${더한.slice(0, 20).join(', ')}${더한.length > 20 ? ` 외 ${String(더한.length - 20)}개` : ''}`;
+  const 창들 = 새행들.filter((r) => r.kind === 'POPUP' && r.status === 'OK').map((r) => r.from);
+  if (창들.length === 0) return null;
+  if (계정섞였나(창들, 비밀)) return `돌발 팝업 행 추가 ${String(창들.length)} — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음`;
+  return `돌발 팝업 행 추가 ${String(창들.length)} — ${창들.slice(0, 20).join(', ')}${창들.length > 20 ? ` 외 ${String(창들.length - 20)}개` : ''}`;
 }
 
 /**
@@ -106,6 +111,7 @@ export function 팝업추가줄(앞글: string | null, 새글: string | null, �
  */
 export async function 맵올리기(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<{ 줄: string | null; 틀림: string | null }> {
   const 글 = 안전히읽기(자료, 게임자리.새맵행, 4_000_000);
+  if (글 === null && existsSync(join(자료, 게임자리.새맵행))) return { 줄: `조작 맵: ${게임자리.새맵행} 이 4MB 를 넘거나 일반 파일이 아니라 안 올림`, 틀림: `${게임자리.새맵행} 이 4MB 를 넘거나 일반 파일이 아니다` };
   if (글 === null) return { 줄: null, 틀림: null };
   let 몸: { rows?: unknown; remove?: unknown };
   try {
@@ -150,11 +156,11 @@ export async function 체크포인트돌기(통로: 화면통로, 자료: string
   return { 줄 };
 }
 
-/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름) · 더한 돌발 팝업. 탐색을 안 한 작성(미션만)은 빈 목록 */
-export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[], 앞맵글: string | null): Promise<string[]> {
+/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름) · 적은 돌발 팝업. 탐색을 안 한 작성(미션만)은 빈 목록 */
+export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<string[]> {
   const 지남 = 안전히읽기(자료, 게임자리.탐색지남, 파일상한)?.trim();
   const 올림 = await 맵올리기(통로, 자료, 비밀);
-  return [지남, 올림.줄, 팝업추가줄(앞맵글, 안전히읽기(자료, 게임자리.새맵행, 4_000_000), 비밀)].filter((x): x is string => x !== null && x !== undefined && x !== '');
+  return [지남, 올림.줄, 팝업추가줄(안전히읽기(자료, 게임자리.새맵행, 4_000_000), 비밀)].filter((x): x is string => x !== null && x !== undefined && x !== '');
 }
 
 export interface 띄운결과 {
@@ -196,7 +202,10 @@ export async function 세션띄우기(o: {
   if (o.멈추라했다()) return 펴기({ ...첫, 돌린것: { ...첫.돌린것, 멈춤으로죽음: true } });
   o.알린다(`탐색 플레이 체크포인트를 지났다(${판.줄}) — 케이스 작성은 새 세션으로 띄운다`);
   const 둘 = await o.한번({ 번호: o.통로.번호, 이유: 'EXPLORED', 까닭: null }, { 끝: 판.줄 });
-  return 펴기(둘, [...(첫.앞낸것 === null ? [] : [첫.앞낸것]), 첫.돌린것.낸것]);
+  const 앞 = [...(첫.앞낸것 === null ? [] : [첫.앞낸것]), 첫.돌린것.낸것];
+  // 새 세션이 아예 안 떴으면 실패(폴더 지움)가 아니라 끊김으로 멈춘다 — 탐색한 것이 남아 이어하기가 케이스 작성부터 잇고, 첫 세션 토큰도 알린다
+  if (둘.돌린것.코드 === null && !둘.돌린것.시간초과 && !둘.돌린것.멈춤으로죽음) return 펴기({ ...첫, 돌린것: { ...첫.돌린것, 코드: 1, 오류: 둘.돌린것.오류 } });
+  return 펴기(둘, 앞);
 }
 
 /** 0 지남 · 1 못 지남 · 2 부를 수 없음 — 자식이 첫 세션을 끝내기 전에 부른다. 맵은 올리지 않고 자료 폴더의 행으로 본다 */
