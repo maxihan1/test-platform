@@ -46,6 +46,7 @@ const 면제 = new Map([
   ['apps/runner/src/farmLogcat.test.ts', '가짜 팜이 임시 산출 폴더에 쓴 logcat 만 읽는다 — 저장소 파일이 아니다 (2026-11-12 STAB PR 이 빠뜨린 것을 2026-11-14 PR #767 에서 더함)'],
   ['scripts/authoring-game.test.ts', '테스트가 만든 임시 자료 폴더에 받은 창 기록 저장본 · 게임 지도만 읽는다 (2026-10-23 PR #415)'],
   ['scripts/authoring-explore.test.ts', '테스트가 만든 임시 자료 폴더에 쓴 탐색 결과 표시 · 다시 받은 맵 글만 읽는다 (2026-11-20 PR #871)'],
+  ['scripts/authoring-game-fix.test.ts', '테스트가 만든 임시 자료 폴더에 받은 게임 실패 자료 파일만 읽는다 (2026-11-20 PR #889)'],
   ['scripts/authoring-app-explore.test.ts', '테스트가 만든 임시 자료 폴더에 쓴 앱 탐색 결과 표시 · 다시 받은 맵 글만 읽는다 (2026-11-20 PR #880 — PR #881 에서 더함)'],
   ['scripts/authoring-app-crawl.test.ts', '테스트가 만든 임시 자료 폴더에 쓴 crawl 프로세스 번호만 읽는다 (2026-11-20 PR #880 — PR #881 에서 더함)'],
   ['scripts/authoring-app-crawl-route.test.ts', '테스트가 만든 임시 자료 폴더에 옮긴 화면 기록만 읽는다 (2026-11-20 PR #880 — PR #881 에서 더함)'],
