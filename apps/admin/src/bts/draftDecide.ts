@@ -140,7 +140,9 @@ export function 초안적용(지금: PrdItem[], lastNo: number, 접두사: strin
         바뀜('DEL', 줄.reqId!, null);
         continue;
       }
-      판.set(줄.reqId!, { ...나머지, text: 줄.text, basis: [근거, ...앞것.basis].slice(0, 상한.근거), status: 'CONFIRMED', ...꼬리표 });
+      // 확정되면 현재 동작 칸을 뗀다 — 확인 필요인 동안의 판단 재료다(도메인/작성 §3.6 「판정 요청 카드」)
+      const { observed: _본것, ...확정할것 } = 나머지;
+      판.set(줄.reqId!, { ...확정할것, text: 줄.text, basis: [근거, ...앞것.basis].slice(0, 상한.근거), status: 'CONFIRMED', ...꼬리표 });
       바뀜('EDIT', 줄.reqId!, 줄.text);
     }
   }

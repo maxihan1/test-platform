@@ -3,6 +3,7 @@
 import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
+import { 실행본것가리기 } from './observed.js';
 import { 반영안됨, 사람판, 옮기기판, 확인필요, 화면번호들, 화면이맞음건인가, 항목검사, type 들어온항목 } from './rules.js';
 
 const 근거 = [{ from: '기획서.docx', ref: 'REQ-1', quote: '비밀번호는 8자 이상' }];
@@ -67,6 +68,20 @@ describe('현재 동작 칸', () => {
     expect('error' in 그대로 ? null : 그대로.items[0]?.observed).toEqual(본것);
     const 확정 = 사람판(앞, [항목('MKT-REQ-001', { observed: 본것 })], 'MKT', 시각);
     expect('error' in 확정 ? null : 확정.items[0]).not.toHaveProperty('observed');
+  });
+
+  it('사람이 문장을 고치면 옛 현재 동작을 물려받지 않고, 옮기기가 칸을 빼고 보내면 지운다', () => {
+    const 앞 = { version: 1, items: [{ ...확인({ observed: 본것 }), checkSince: 시각 }], lastNo: 1 };
+    const 고침 = 사람판(앞, [확인({ text: '고친 문장' })], 'MKT', 시각);
+    expect('error' in 고침 ? null : 고침.items[0]).not.toHaveProperty('observed');
+    const 뺌 = 옮기기판(앞, 앞, [확인()], 'MKT', 시각);
+    expect('error' in 뺌 ? null : 뺌.items[0]).not.toHaveProperty('observed');
+  });
+
+  it('실행에서 본 현재 동작은 실행을 못 보는 사람에게 가린다 — 탐색 플레이에서 본 것은 그대로', () => {
+    const 판 = [확인({ observed: { ...본것, where: 412 } }), 항목('MKT-REQ-002', { status: 'NEEDS_CHECK', observed: 본것 })];
+    expect(실행본것가리기(판, true)).toBe(판);
+    expect(실행본것가리기(판, false).map((x) => x.observed)).toEqual([undefined, 본것]);
   });
 
   it('옮기기가 보낸 새 현재 동작은 앞 것을 덮는다', () => {

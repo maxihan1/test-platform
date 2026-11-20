@@ -79,6 +79,15 @@ describe('초안적용', () => {
     expect(r.lastNo).toBe(2);
   });
 
+  it('확인 필요에 현재 동작이 붙은 항목도 고른 수정 줄로 확정되면 그 칸을 뗀다', () => {
+    const 본것 = { text: '받은 피해 6', proposal: '혼자면 피해 6', where: 'EXPLORE' as const, build: null, count: 1 };
+    const 판 = [{ ...지금[0]!, status: 'NEEDS_CHECK' as const, checkSince: 시각, observed: 본것 }];
+    const r = 초안적용(판, 2, 'MKW', [{ key: 'draft:7', card: 카드([줄({ op: 'EDIT', reqId: 'MKW-REQ-001', text: '주문 내역은 최근 3개월 것을 보여 준다' })]), picked: new Set([0]) }], 시각);
+    if ('error' in r) throw new Error(r.detail);
+    expect(r.items[0]).toMatchObject({ status: 'CONFIRMED' });
+    expect(r.items[0]).not.toHaveProperty('observed');
+  });
+
   it('안 고른 「화면만 보고 적음」 줄은 확인 필요로 남는다 — 수정 · 삭제 줄은 사람이 확정한 문장을 덮지 않는다', () => {
     const r = 적용(
       [

@@ -24,15 +24,26 @@ export function 본것읽기(값: unknown): PrdObserved | null {
   return { text, proposal, where, build, count };
 }
 
+/** 실행(RUN)에서 본 현재 동작은 실행을 못 보는 사람에게 안 준다 — 결정 목록과 같은 거르기(도메인/인증 §7 「결정 목록 보기」) */
+export function 실행본것가리기(items: PrdItem[], 실행읽기: boolean): PrdItem[] {
+  if (실행읽기) return items;
+  return items.map((x) => {
+    if (typeof x.observed?.where !== 'number') return x;
+    const { observed: _뺌, ...나머지 } = x;
+    return 나머지;
+  });
+}
+
 // JSON 글자로 견주지 않는다 — JSONB 는 키 차례를 바꿔 저장한다
 export const 본것같나 = (a: PrdObserved | undefined, b: PrdObserved | undefined): boolean =>
   a === b || (a !== undefined && b !== undefined && a.text === b.text && a.proposal === b.proposal && a.where === b.where && a.build === b.build && a.count === b.count);
 
 /**
- * 확인 필요 항목에 달 현재 동작 — 보낸 것이 없으면 앞 판이 확인 필요였을 때 그 값을 물려받는다(사람 편집 화면은 이 칸을 안 보낸다).
- * 확정 항목에는 부르지 않는다 — 확정되면 칸이 없어진다
+ * 확인 필요 항목에 달 현재 동작 — 보낸 것이 없으면 `물려줄것`(앞 판이 확인 필요였을 때)의 값을 물려받는다.
+ * 부르는 쪽은 사람이 요구를 그대로 두고 저장할 때만 물려준다 — 사람 편집 화면은 이 칸을 안 보내고, 문장을 고치면 옛 관찰은 새 문장과 안 맞는다.
+ * 옮기기(에이전트)는 지금 판 항목을 칸째 되돌려 보내므로 보낸 것만 쓴다 — 빼고 보내면 낡은 관찰이 지워진다. 확정 항목에는 부르지 않는다
  */
-export function 본것물려받기(보낸것: PrdObserved | undefined, 앞것: PrdItem | undefined): { observed?: PrdObserved } {
-  const 본것 = 보낸것 ?? (앞것?.status === 'NEEDS_CHECK' ? 앞것.observed : undefined);
+export function 본것물려받기(보낸것: PrdObserved | undefined, 물려줄것: PrdItem | undefined): { observed?: PrdObserved } {
+  const 본것 = 보낸것 ?? (물려줄것?.status === 'NEEDS_CHECK' ? 물려줄것.observed : undefined);
   return 본것 === undefined ? {} : { observed: 본것 };
 }

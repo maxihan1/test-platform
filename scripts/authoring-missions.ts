@@ -5,6 +5,7 @@ import { readdirSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 import type { 원장 } from './authoring-ledger.js';
+import { 계정섞였나 } from './authoring-reverse.js';
 import { type 기준결정, 원장대조, tcId들 } from './authoring-ledger-check.js';
 import { 안전히읽기, 폴더인가 } from './authoring-screens-keep-io.js';
 
@@ -126,7 +127,7 @@ export function 미션절읽기(표글: string): { items: 미션[]; gaps: 빈칸
 
 /**
  * 미션도 테스트도 없는 규칙 — 원장 대조의 「빠짐」(요구사항 · 제외 표가 안 덮은 번호)에서 미션 확인할 로그의 규칙 번호를 뺀 것.
- * 없는 번호는 서버가 결정 목록에 「확인하는 미션이 없는 규칙」으로 올린다. 원장이 없으면 셀 수 없어 빈 목록이다
+ * PR 머리 줄 「미션도 테스트도 없는 규칙」으로 실린다(미션줄). 원장이 없으면 셀 수 없어 빈 목록이다
  */
 export function 빠진규칙(원장값: 원장 | { 없음: string }, 표글: string, 기준: 기준결정 | undefined, 미션들: readonly 미션[], 있는케이스?: Set<string>): 빠진[] {
   if ('없음' in 원장값) return [];
@@ -148,14 +149,18 @@ function 케이스글들읽기(폴더: string): string[] | undefined {
   }
 }
 
-const 번호들 = (xs: readonly string[]): string =>
-  xs.length === 0 ? '' : `(${xs.slice(0, 번호상한).join(' · ')}${xs.length > 번호상한 ? ` 외 ${String(xs.length - 번호상한)}건` : ''})`;
+// 요구 번호 꼴만 싣는다 — 공식 빈칸 줄의 앞 칸은 자식이 쓴 글이라 번호가 아닌 글이 PR 본문에 그대로 실릴 수 있다
+const 요구번호꼴 = /^[A-Z][A-Z0-9]*-REQ-\d{3}$/;
+const 번호들 = (xs: readonly string[]): string => {
+  const 번호 = xs.filter((x) => 요구번호꼴.test(x));
+  return 번호.length === 0 ? '' : `(${번호.slice(0, 번호상한).join(' · ')}${번호.length > 번호상한 ? ` 외 ${String(번호.length - 번호상한)}건` : ''})`;
+};
 
 /**
  * 자식 뒤 — 케이스 목록 파일의 미션 절을 읽어 PR 본문 머리 줄을 돌려준다. 절이 없으면 줄도 없다.
  * 공식 빈칸 · 미션도 테스트도 없는 규칙은 번호까지 싣는다 — 앞 판의 「미션 승인」 탭 경고를 사람이 PR 에서 본다. 어떻게 끝나도 던지지 않는다
  */
-export function 미션줄(입력: { 트리: string; 서비스: string; 케이스폴더: string; 원장값: 원장 | { 없음: string }; 기준?: 기준결정 }): string[] {
+export function 미션줄(입력: { 트리: string; 서비스: string; 케이스폴더: string; 원장값: 원장 | { 없음: string }; 기준?: 기준결정; 비밀: readonly string[] }): string[] {
   try {
     const 표글 = 안전히읽기(join(입력.트리, 'docs', 'cases'), `${입력.서비스}.md`, 글상한);
     const 읽음 = 표글 === null ? null : 미션절읽기(표글);
@@ -163,9 +168,8 @@ export function 미션줄(입력: { 트리: string; 서비스: string; 케이스
     const 글 = 케이스글들읽기(입력.케이스폴더);
     const 빠짐 = 빠진규칙(입력.원장값, 표글, 입력.기준, 읽음.items, 글 === undefined ? undefined : tcId들(글));
     const 못읽음글 = 읽음.못읽음.length === 0 ? '' : ` · 못 읽은 미션 ${String(읽음.못읽음.length)}개(${읽음.못읽음.slice(0, 3).join(' / ')})`;
-    return [
-      `게임 시나리오 미션: ${String(읽음.items.length)}개 · 공식 빈칸 ${String(읽음.gaps.length)}개${번호들(읽음.gaps.map((g) => g.reqId))} · 미션도 테스트도 없는 규칙 ${String(빠짐.length)}개${번호들(빠짐.map((b) => b.reqId))}${못읽음글}`,
-    ];
+    const 줄 = `게임 시나리오 미션: ${String(읽음.items.length)}개 · 공식 빈칸 ${String(읽음.gaps.length)}개${번호들(읽음.gaps.map((g) => g.reqId))} · 미션도 테스트도 없는 규칙 ${String(빠짐.length)}개${번호들(빠짐.map((b) => b.reqId))}${못읽음글}`;
+    return [계정섞였나([줄], 입력.비밀) ? '게임 시나리오 미션: 줄에 테스트 계정 비밀번호가 들어 있어 뺌' : 줄];
   } catch (e) {
     return [`게임 시나리오 미션: 못 읽음 — ${e instanceof Error ? e.message : String(e)}`];
   }

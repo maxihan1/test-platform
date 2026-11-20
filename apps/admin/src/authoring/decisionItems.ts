@@ -155,7 +155,9 @@ export function 결정판(지금: PrdItem[], 결정들: 확인결정[]): { items
     if (결정.pick === 'NOTE') {
       문장바뀜 = true;
       changes.push({ kind: 'EDIT', reqId: x.reqId, text: 결정.text, asset: null, tcId: 결정.tcId });
-      return { ...x, text: 결정.text, byPerson: true };
+      // 문장이 바뀌면 옛 문장에 대고 본 현재 동작은 안 맞는다
+      const { observed: _옛것, ...그대로 } = x;
+      return { ...그대로, text: 결정.text, byPerson: true };
     }
     // 문구 선택은 지금 문장과 같은 쪽을 골라도 어느 자료를 골랐는지 남긴다 — 버전 기록의 까닭 「<자료 이름> 쪽」
     if (결정.text === x.text && 결정.pick !== 'PICK') {

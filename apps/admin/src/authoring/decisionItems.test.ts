@@ -79,6 +79,13 @@ describe('결정판', () => {
     expect(r?.items[1]).not.toHaveProperty('observed');
   });
 
+  it('설명 안 되는 줄의 PRD 수정으로 문장이 바뀌면 현재 동작 칸을 뗀다', () => {
+    const 본것 = { text: '받은 피해 6', proposal: '혼자면 피해 6', where: 'EXPLORE' as const, build: null, count: 1 };
+    const r = 결정판([{ ...판[0]!, observed: 본것 }], [{ reqId: 'MK-REQ-001', pick: 'NOTE', text: '쿠폰은 둘까지', tcId: 'MK-GS-001' }]);
+    expect(r?.items[0]).toMatchObject({ text: '쿠폰은 둘까지', status: 'NEEDS_CHECK' });
+    expect(r?.items[0]).not.toHaveProperty('observed');
+  });
+
   it('확인 필요가 아닌 번호 · 없는 번호를 고르면 null', () => {
     expect(결정판(판, [{ reqId: 'MK-REQ-003', pick: 'SAME' }])).toBeNull();
     expect(결정판(판, [{ reqId: 'MK-REQ-009', pick: 'SAME' }])).toBeNull();

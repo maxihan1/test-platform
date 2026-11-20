@@ -89,7 +89,6 @@ export function 항목검사(값: unknown, 접두사: string): { items: 들어�
   return { items };
 }
 
-
 // JSON 글자로 견주지 않는다 — JSONB 는 키 차례를 바꿔 저장해서 DB 에서 읽은 같은 근거가 다른 글자가 된다
 function 근거같나(a: PrdBasis[], b: PrdBasis[]): boolean {
   return a.length === b.length && a.every((x, i) => x.from === b[i]!.from && x.ref === b[i]!.ref && x.quote === b[i]!.quote);
@@ -161,7 +160,7 @@ function 표시달기(항목: 들어온항목 & { reqId: string }, 앞것: PrdIt
   };
   if (항목.status === 'NEEDS_CHECK') {
     결과.checkSince = 앞것?.status === 'NEEDS_CHECK' && 앞것.checkSince !== undefined ? 앞것.checkSince : 지금;
-    Object.assign(결과, 본것물려받기(항목.observed, 앞것));
+    Object.assign(결과, 본것물려받기(항목.observed, 사람 && 앞것 !== undefined && 요구같나(항목, 앞것) ? 앞것 : undefined));
   }
   // 옮기기 항목은 사람 것을 앞에서 걸러 내 여기 오지 않는다 — 옮기기가 만든 항목에는 byPerson 을 안 단다
   if (사람 && (앞것 === undefined || !내용같나(항목, 앞것) || 앞것.byPerson === true)) 결과.byPerson = true;
