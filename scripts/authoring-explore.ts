@@ -168,11 +168,11 @@ export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀:
 }
 
 /**
- * 탐색하는 작성 — 게임이고 케이스를 새로 쓰는 작성. 승인된 미션만 쓰는 작성과, 있는 케이스를 고치는 BTS 「테스트 수정」 · 「화면이 맞음」은 뺀다
+ * 탐색하는 작성 — 게임이고 케이스를 새로 쓰는 작성. 있는 케이스를 고치는 BTS 「테스트 수정」 · 「화면이 맞음」은 뺀다
  * (2026-11-20 사용자 — 케이스 하나를 고치려고 기능 단위 전체를 탐색하지 않는다. 고칠 때도 경로 검색은 쓴다)
  */
-export const 탐색하나 = (것: { params?: unknown }, 게임: boolean, 미션만: boolean): boolean =>
-  게임 && !미션만 && 테스트고침읽기(것) === undefined && 화면이맞음읽기(것) === undefined;
+export const 탐색하나 = (것: { params?: unknown }, 게임: boolean): boolean =>
+  게임 && 테스트고침읽기(것) === undefined && 화면이맞음읽기(것) === undefined;
 
 export interface 띄운결과 {
   돌린것: 돌린결과;

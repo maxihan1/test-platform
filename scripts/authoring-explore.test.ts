@@ -173,15 +173,14 @@ describe('맵올리기', () => {
 const 결과 = (낸것: string, x: Partial<돌린결과> = {}): 돌린결과 => ({ 코드: 0, 낸것, 오류: '', 시간초과: false, 멈춤으로죽음: false, ...x });
 
 describe('탐색하나', () => {
-  it('케이스를 새로 쓰는 게임 작성만 — 게임이 아니거나 승인된 미션만 쓰거나 BTS 테스트 수정 · 화면이 맞음이면 안 한다', () => {
+  it('케이스를 새로 쓰는 게임 작성만 — 게임이 아니거나 BTS 테스트 수정 · 화면이 맞음이면 안 한다', () => {
     const 고침 = { testFix: { issueKey: 'ARG-1', cases: [{ runId: 1, tcId: 'ARG-FN-001', env: 'qa' }], note: '' } };
-    expect(탐색하나({}, true, false)).toBe(true);
-    expect(탐색하나({ params: { prdApply: true } }, true, false)).toBe(true);
-    expect(탐색하나({}, false, false)).toBe(false);
-    expect(탐색하나({}, true, true)).toBe(false);
-    expect(탐색하나({ params: 고침 }, true, false)).toBe(false);
-    expect(탐색하나({ params: { testFix: { 틀린: true } } }, true, false)).toBe(false);
-    expect(탐색하나({ params: { screenRight: [{ runId: 1, tcId: 'ARG-FN-001', env: 'qa', reqIds: ['R-1'] }] } }, true, false)).toBe(false);
+    expect(탐색하나({}, true)).toBe(true);
+    expect(탐색하나({ params: { prdApply: true } }, true)).toBe(true);
+    expect(탐색하나({}, false)).toBe(false);
+    expect(탐색하나({ params: 고침 }, true)).toBe(false);
+    expect(탐색하나({ params: { testFix: { 틀린: true } } }, true)).toBe(false);
+    expect(탐색하나({ params: { screenRight: [{ runId: 1, tcId: 'ARG-FN-001', env: 'qa', reqIds: ['R-1'] }] } }, true)).toBe(false);
   });
 });
 

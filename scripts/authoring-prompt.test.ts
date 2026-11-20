@@ -209,7 +209,7 @@ describe('줄프롬프트 — 탐색 플레이 (도메인/게임 §3.10 「탐�
   const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
   const 게임 = { 글: '/w/자료/game-screen.txt', 게임: true as const };
   const 부르기 = (탐색?: { 까지: true } | { 끝: string }, 이어하기?: { 번호: number; 이유: string | null; 까닭: string | null }) =>
-    줄프롬프트(것, 'ASH', [], undefined, undefined, 이어하기, undefined, undefined, undefined, undefined, undefined, undefined, 게임, '/w/자료', undefined, 탐색);
+    줄프롬프트(것, 'ASH', [], undefined, undefined, 이어하기, undefined, undefined, undefined, undefined, undefined, undefined, 게임, '/w/자료', 탐색);
 
   it('첫 세션은 탐색 플레이까지만 — 목표 파일을 먼저 적고 경로 검색 · 맵 행 · 스스로 검사 뒤 케이스 없이 끝내라고 싣는다', () => {
     const 절 = 부르기({ 까지: true }).split('--- 탐색 플레이 ---')[1] ?? '';

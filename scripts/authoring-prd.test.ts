@@ -27,6 +27,12 @@ describe('옮긴것읽기', () => {
     expect(옮긴것읽기([], 'MKT')).toEqual({ 사유: 'items 목록이 없다' });
   });
 
+  it('현재 동작 칸만 틀리면 그 칸만 버리고 항목은 남긴다', () => {
+    const r = 옮긴것읽기({ items: [{ ...항목('혼자면 피해가 줄어든다', ['REQ-MEM-003']), status: 'NEEDS_CHECK', observed: { text: '피해 6', proposal: '', where: 'EXPLORE', build: null, count: 0 } }] }, 'MKT');
+    expect('items' in r && r.items.map((i) => [i.text, i.observed])).toEqual([['혼자면 피해가 줄어든다', undefined]]);
+    expect('items' in r && r.버림).toEqual(['0.observed']);
+  });
+
   it('근거가 화면뿐인 항목은 확정으로 적어도 확인 필요가 된다', () => {
     const r = 옮긴것읽기(
       {

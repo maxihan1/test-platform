@@ -1,13 +1,12 @@
-// 게임 시나리오 미션 — 미션 절 읽기 · 빠진 규칙 셈 · 승인된 미션 읽기 · 올리기 · 프롬프트 절
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+// 게임 시나리오 미션 — 미션 절 읽기 · 빠진 규칙 셈 · PR 머리 줄
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { 원장 } from './authoring-ledger.js';
-import { 미션올리기, 미션절, 미션절읽기, 미션준비, 빠진규칙, 승인미션읽기 } from './authoring-missions.js';
-import { 줄프롬프트 } from './authoring-prompt.js';
+import { 미션절읽기, 미션줄, 빠진규칙 } from './authoring-missions.js';
 
 const 표 = `# ARG 케이스
 
@@ -124,68 +123,9 @@ describe('빠진규칙', () => {
   });
 });
 
-describe('승인미션읽기', () => {
-  const 미션 = 미션절읽기(표)?.items ?? [];
-
-  it('params.missions 가 없으면 null — 첫 작성', () => {
-    expect(승인미션읽기({})).toBeNull();
-    expect(승인미션읽기({ params: { prdApply: true } })).toBeNull();
-  });
-
-  it('from · items 를 읽는다', () => {
-    expect(승인미션읽기({ params: { missions: { from: 12, items: 미션 } } })).toEqual({ from: 12, items: 미션 });
-  });
-
-  it('모양이 틀리면 사유 — null · from · 빈 items · 미션 칸', () => {
-    const 틀림 = (missions: unknown) => 승인미션읽기({ params: { missions } });
-    expect(틀림(null)).toHaveProperty('사유');
-    expect(틀림({ from: 0, items: 미션 })).toHaveProperty('사유');
-    expect(틀림({ from: 3, items: [] })).toHaveProperty('사유');
-    expect(틀림({ from: 3, items: [{ ...미션[0], id: 'X1' }] })).toHaveProperty('사유');
-  });
-});
-
-describe('미션준비 · 미션절', () => {
-  let 자료 = '';
-  beforeEach(() => {
-    자료 = mkdtempSync(join(tmpdir(), 'mission-'));
-  });
-  afterEach(() => rmSync(자료, { recursive: true, force: true }));
-  const 미션 = 미션절읽기(표)?.items ?? [];
-
-  it('승인 요청이 아니면 null · 승인 요청이면 missions.json 에 items 그대로 쓴다', () => {
-    expect(미션준비({}, 자료)).toBeNull();
-    const r = 미션준비({ params: { missions: { from: 12, items: 미션 } } }, 자료);
-    expect(r).toEqual({ 파일: join(자료, 'missions.json'), 번호들: ['M01', 'M02'], from: 12 });
-    expect(JSON.parse(readFileSync(join(자료, 'missions.json'), 'utf8'))).toEqual(미션);
-  });
-
-  it('모양이 틀린 승인은 사유로 돌려준다', () => {
-    expect(미션준비({ params: { missions: { from: 12 } } }, 자료)).toHaveProperty('사유');
-  });
-
-  it('프롬프트 절 — 줄프롬프트 끝에 붙고 미션만 쓰라고 한다', () => {
-    const 입력 = { 파일: join(자료, 'missions.json'), 번호들: ['M01', 'M02'], from: 12 };
-    const 절 = 미션절(입력, 'ARG').join('\n');
-    expect(절).toContain('--- 게임 시나리오 미션 ---');
-    expect(절).toContain('M01 · M02');
-    expect(절).toContain('ARG-GS-<3자리>');
-    const 것 = { id: 3, kind: 'AUTHOR', specText: '본문' } as const;
-    const 글 = 줄프롬프트(것, 'ARG', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 입력);
-    expect(글).toContain('--- 게임 시나리오 미션 ---');
-    expect(줄프롬프트(것, 'ARG', [])).not.toContain('게임 시나리오 미션');
-  });
-});
-
-describe('미션올리기', () => {
+describe('미션줄', () => {
   let 트리 = '';
-  let 부름: ReturnType<typeof vi.fn>;
-  const 통로 = { 주소기지: 'http://admin:3000', 토큰: 't', 번호: 7 };
-  const 부르기 = (비밀: string[] = []) => 미션올리기(통로, { 트리, 서비스: 'ARG', 케이스폴더: join(트리, 'tests', 'arg'), 원장값: 원장값(), 비밀 });
-  const 서버 = (status: number, 몸: unknown = {}) => {
-    부름 = vi.fn(async () => new Response(status === 204 ? null : JSON.stringify(몸), { status }));
-    vi.stubGlobal('fetch', 부름);
-  };
+  const 부르기 = (비밀: string[] = []) => 미션줄({ 트리, 서비스: 'ARG', 케이스폴더: join(트리, 'tests', 'arg'), 원장값: 원장값(), 비밀 });
   const 표쓰기 = (글: string) => {
     mkdirSync(join(트리, 'docs', 'cases'), { recursive: true });
     writeFileSync(join(트리, 'docs', 'cases', 'ARG.md'), 글);
@@ -193,55 +133,34 @@ describe('미션올리기', () => {
     writeFileSync(join(트리, 'tests', 'arg', 'fn-001.spec.ts'), "export const spec = defineCase({ tcId: 'ARG-FN-001' });\n");
   };
   beforeEach(() => {
-    트리 = mkdtempSync(join(tmpdir(), 'mission-up-'));
+    트리 = mkdtempSync(join(tmpdir(), 'mission-line-'));
   });
   afterEach(() => {
-    vi.unstubAllGlobals();
     rmSync(트리, { recursive: true, force: true });
   });
 
-  it('절이 없으면 안 올리고 줄도 없다', async () => {
-    서버(204);
+  it('절이 없거나 표 파일이 없으면 줄이 없다', () => {
+    expect(부르기()).toEqual([]);
     표쓰기('## 요구사항\n');
-    expect(await 부르기()).toEqual([]);
-    expect(부름).not.toHaveBeenCalled();
+    expect(부르기()).toEqual([]);
   });
 
-  it('표 파일이 없어도 던지지 않는다', async () => {
-    서버(204);
-    expect(await 부르기()).toEqual([]);
-  });
-
-  it('미션 · 공식 빈칸 · 빠진 규칙을 PUT 으로 올리고 머리 줄을 돌려준다', async () => {
-    서버(204);
+  it('미션 수와 공식 빈칸 · 미션도 테스트도 없는 규칙을 번호까지 한 줄로 — 서버에는 올리지 않는다', () => {
     표쓰기(표);
-    expect(await 부르기()).toEqual(['게임 시나리오 미션: 2개 올림 · 공식 빈칸 1개 · 미션도 테스트도 없는 규칙 1개']);
-    const [url, init] = 부름.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('http://admin:3000/api/authoring/requests/7/missions');
-    expect(init.method).toBe('PUT');
-    const 몸 = JSON.parse(init.body as string) as { items: unknown[]; uncovered: unknown[]; gaps: unknown[] };
-    expect(몸.items).toHaveLength(2);
-    expect(몸.uncovered).toEqual([{ reqId: 'ARG-REQ-080', text: 'ARG-REQ-080 문장' }]);
-    expect(몸.gaps).toEqual([{ reqId: 'ARG-REQ-070', note: '공식에 보정 값이 비어 있다 — 기획서 확인 필요' }]);
+    expect(부르기()).toEqual(['게임 시나리오 미션: 2개 · 공식 빈칸 1개(ARG-REQ-070) · 미션도 테스트도 없는 규칙 1개(ARG-REQ-080)']);
   });
 
-  it('서버가 거절하면 까닭을 줄에 싣는다 — PR 은 간다', async () => {
-    서버(400, { error: 'INVALID_MISSIONS', detail: 'items[0].logs' });
-    표쓰기(표);
-    expect(await 부르기()).toEqual(['게임 시나리오 미션: 못 올림 — 서버 400 (items[0].logs)']);
+  it('공식 빈칸 줄의 앞 칸이 요구 번호 꼴이 아니면 싣지 않고, 못 읽은 줄을 옮겨 적다 비밀번호가 들면 줄을 뺀다', () => {
+    표쓰기(표.replace(' - ARG-REQ-070 — 공식에 보정 값이 비어 있다', ' - 계정 qa1 / Pw1234! 로 로그인 — 보정 칸이 비었다'));
+    expect(부르기()[0]).toContain('공식 빈칸 1개 · ');
+    expect(부르기()[0]).not.toContain('qa1');
+    표쓰기(표.replace(' - ARG-REQ-070 — 공식에 보정 값이 비어 있다 — 기획서 확인 필요', ' - 계정 qa1 Pw1234! 로 로그인'));
+    expect(부르기(['Pw1234!'])).toEqual(['게임 시나리오 미션: 줄에 테스트 계정 비밀번호가 들어 있어 뺌']);
   });
 
-  it('통신이 터져도 던지지 않는다', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new Error('연결 끊김'))));
-    표쓰기(표);
-    const [줄] = await 부르기();
-    expect(줄).toContain('게임 시나리오 미션: 못 올림');
-  });
-
-  it('테스트 계정 비밀번호가 든 목록은 올리지 않는다', async () => {
-    서버(204);
-    표쓰기(표);
-    expect(await 부르기(['전투 망치'])).toEqual(['게임 시나리오 미션: 목록에 테스트 계정 비밀번호가 들어 있어 안 올림']);
-    expect(부름).not.toHaveBeenCalled();
+  it('번호가 열을 넘으면 「외 N건」', () => {
+    const 빈칸들 = Array.from({ length: 12 }, (_, i) => ` - ARG-REQ-${String(100 + i)} — 보정 값이 비었다`).join('\n');
+    표쓰기(표.replace(/### 공식 빈칸\n```\n[^`]*```/, `### 공식 빈칸\n\`\`\`\n${빈칸들}\n\`\`\``));
+    expect(부르기()[0]).toContain('공식 빈칸 12개(ARG-REQ-100 · ARG-REQ-101 · ARG-REQ-102 · ARG-REQ-103 · ARG-REQ-104 · ARG-REQ-105 · ARG-REQ-106 · ARG-REQ-107 · ARG-REQ-108 · ARG-REQ-109 외 2건)');
   });
 });

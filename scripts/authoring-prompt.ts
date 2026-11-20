@@ -16,7 +16,6 @@ import { 게임역방향절, 앱역방향절 } from './authoring-reverse-app.js'
 import { API절 } from './authoring-api.js';
 import { 지도자리 } from './authoring-screens-keep-io.js';
 import { type 입구, 옛입구, 종류이름 } from './authoring-kind.js';
-import { type 미션입력, 미션절 } from './authoring-missions.js';
 import { 앱탐색절 } from './authoring-app-explore.js';
 import type { 탐색단계 } from './authoring-explore.js';
 
@@ -44,8 +43,6 @@ export function 줄프롬프트(
   앱화면?: 앱화면,
   /** 자료 폴더 — API 애플리케이션 행이면 판 파일 경로를 절에 싣는다 */
   자료폴더?: string,
-  /** 승인된 미션 요청이면 — 이 미션만 게임 시나리오로 쓴다 (도메인/게임 §3.10 결정 24) */
-  미션?: 미션입력,
   /** 게임 작성의 탐색 플레이 — 첫 세션은 탐색 플레이까지, 체크포인트를 지난 세션은 케이스 작성부터 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」) */
   탐색?: 탐색단계,
 ): string {
@@ -98,7 +95,6 @@ export function 줄프롬프트(
     ...(앱화면 === undefined ? [] : 앱화면.게임 === true ? 게임화면절(앱화면, 자료폴더) : 앱화면절(앱화면)),
     // 게임은 탐색 플레이, Android 앱은 crawl · 빈 곳 해 보기 (도메인/게임 §3.10 · 도메인/작성 §3.6 「★ 앱 탐색」)
     ...(탐색 === undefined ? [] : 앱화면 !== undefined && 앱화면.게임 !== true ? 앱탐색절(탐색, 자료폴더) : 탐색절(탐색, 자료폴더)),
-    ...(미션 === undefined ? [] : 미션절(미션, 서비스)),
     ...(것.api === undefined || 자료폴더 === undefined ? [] : API절(것.api, 자료폴더, 것.adminKey !== undefined)),
     // 에이전트가 자식 앞에 받아 둔다 — 받기 전에 앞 파일을 지우므로 비었거나 못 받았으면 파일이 없다 (§3.6 「서비스 지도」 · PRD-F14-05)
     ...(자료폴더 !== undefined && existsSync(지도자리(자료폴더)) ? 지도절(지도자리(자료폴더)) : []),

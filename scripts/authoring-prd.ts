@@ -72,7 +72,13 @@ export function 옮긴것읽기(몸: unknown, 접두사: string): 옮긴것 | { 
     // 임시 번호는 서버 번호 꼴이 아니라 검사 전에 떼어 둔다
     const 날번호 = (항목 as { reqId?: unknown } | null)?.reqId;
     const 임시번호 = typeof 날번호 === 'string' && 임시.test(날번호) ? 날번호 : undefined;
-    const 읽음 = 항목검사([임시번호 === undefined ? 항목 : { ...(항목 as object), reqId: undefined }], 접두사);
+    const 보낼것 = 임시번호 === undefined ? 항목 : { ...(항목 as object), reqId: undefined };
+    let 읽음 = 항목검사([보낼것], 접두사);
+    // 현재 동작 칸만 틀리면 그 칸만 버린다 — 덧붙인 판단 재료 하나로 요구 항목 전체가 사라지지 않게
+    if ('error' in 읽음 && 읽음.detail === '0.observed') {
+      버림.push(`${String(i)}.observed`);
+      읽음 = 항목검사([{ ...(보낼것 as object), observed: undefined }], 접두사);
+    }
     const 번호 = 임시번호 ?? ('items' in 읽음 ? 읽음.items[0]?.reqId : undefined);
     if ('error' in 읽음 || (번호 !== undefined && 본번호.has(번호))) {
       버림.push(`${String(i)}.${'error' in 읽음 ? 읽음.detail.replace(/^0\.?/, '') : 'reqId'}`);

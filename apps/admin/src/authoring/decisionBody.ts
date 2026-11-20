@@ -9,8 +9,6 @@ export interface 받은것 {
   rows?: unknown;
   /** SCREENS 에서 고른 화면 주소(틀) — 없으면 모두 */
   screens?: unknown;
-  /** MISSIONS 에서 체크한 미션 번호 */
-  missions?: unknown;
 }
 
 export function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] } | null {
@@ -23,7 +21,7 @@ export function 본문읽기(body: unknown): { prdVersion: number; picks: 받은
     if (typeof p !== 'object' || p === null) return null;
     const x = p as Record<string, unknown>;
     if (typeof x.key !== 'string' || typeof x.pick !== 'string') return null;
-    읽음.push({ key: x.key, pick: x.pick, text: x.text, option: x.option, env: x.env, rows: x.rows, screens: x.screens, missions: x.missions });
+    읽음.push({ key: x.key, pick: x.pick, text: x.text, option: x.option, env: x.env, rows: x.rows, screens: x.screens });
   }
   return { prdVersion, picks: 읽음 };
 }

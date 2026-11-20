@@ -3,6 +3,7 @@
 import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
+import { 실행본것가리기 } from './observed.js';
 import { 반영안됨, 사람판, 옮기기판, 확인필요, 화면번호들, 화면이맞음건인가, 항목검사, type 들어온항목 } from './rules.js';
 
 const 근거 = [{ from: '기획서.docx', ref: 'REQ-1', quote: '비밀번호는 8자 이상' }];
@@ -46,6 +47,48 @@ describe('항목검사', () => {
 
   it('999 개를 넘으면 PRD_FULL', () => {
     expect(항목검사(Array.from({ length: 1000 }, () => 새것()), 'MKT')).toEqual({ error: 'PRD_FULL', detail: '1000' });
+  });
+});
+
+describe('현재 동작 칸', () => {
+  const 본것 = { text: '혼자 던전에서 레벨 1 탱커가 임프에게 받은 피해 6', proposal: '혼자일 때 임프 피해는 6 이다', where: 'EXPLORE' as const, build: '23', count: 2 };
+  const 확인 = (덧: Partial<PrdItem> = {}) => 항목('MKT-REQ-001', { status: 'NEEDS_CHECK', ...덧 });
+
+  it('맞는 칸은 받고, 어디서 · 횟수 · 글이 틀리면 그 자리를 짚어 거절한다', () => {
+    expect(항목검사([확인({ observed: { ...본것, where: 412 } })], 'MKT')).toMatchObject({ items: [{ observed: { ...본것, where: 412 } }] });
+    expect(항목검사([확인({ observed: { ...본것, build: null } })], 'MKT')).toMatchObject({ items: [{ observed: { build: null } }] });
+    for (const 틀림 of [{ where: 0 }, { where: 'RUN' }, { count: 0 }, { proposal: '' }, { text: '가'.repeat(1001) }, { build: '' }]) {
+      expect(항목검사([{ ...확인(), observed: { ...본것, ...틀림 } }], 'MKT')).toEqual({ error: 'BAD_PRD', detail: '0.observed' });
+    }
+  });
+
+  it('사람 편집이 칸을 안 보내면 확인 필요인 동안 앞 판 것을 물려받고, 확정하면 뗀다', () => {
+    const 앞 = { version: 1, items: [{ ...확인({ observed: 본것 }), checkSince: 시각 }], lastNo: 1 };
+    const 그대로 = 사람판(앞, [확인()], 'MKT', 시각);
+    expect('error' in 그대로 ? null : 그대로.items[0]?.observed).toEqual(본것);
+    const 확정 = 사람판(앞, [항목('MKT-REQ-001', { observed: 본것 })], 'MKT', 시각);
+    expect('error' in 확정 ? null : 확정.items[0]).not.toHaveProperty('observed');
+  });
+
+  it('사람이 문장을 고치면 옛 현재 동작을 물려받지 않고, 옮기기가 칸을 빼고 보내면 지운다', () => {
+    const 앞 = { version: 1, items: [{ ...확인({ observed: 본것 }), checkSince: 시각 }], lastNo: 1 };
+    const 고침 = 사람판(앞, [확인({ text: '고친 문장' })], 'MKT', 시각);
+    expect('error' in 고침 ? null : 고침.items[0]).not.toHaveProperty('observed');
+    const 뺌 = 옮기기판(앞, 앞, [확인()], 'MKT', 시각);
+    expect('error' in 뺌 ? null : 뺌.items[0]).not.toHaveProperty('observed');
+  });
+
+  it('실행에서 본 현재 동작은 실행을 못 보는 사람에게 가린다 — 탐색 플레이에서 본 것은 그대로', () => {
+    const 판 = [확인({ observed: { ...본것, where: 412 } }), 항목('MKT-REQ-002', { status: 'NEEDS_CHECK', observed: 본것 })];
+    expect(실행본것가리기(판, true)).toBe(판);
+    expect(실행본것가리기(판, false).map((x) => x.observed)).toEqual([undefined, 본것]);
+  });
+
+  it('옮기기가 보낸 새 현재 동작은 앞 것을 덮는다', () => {
+    const 앞 = { version: 1, items: [{ ...확인({ observed: 본것 }), checkSince: 시각 }], lastNo: 1 };
+    const 새것값 = { ...본것, count: 3, build: '24' };
+    const r = 옮기기판(앞, 앞, [확인({ observed: 새것값 })], 'MKT', 시각);
+    expect('error' in r ? null : r.items[0]?.observed).toEqual(새것값);
   });
 });
 

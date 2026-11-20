@@ -8,12 +8,11 @@ import { 요구문장, type 결정항목, type 확인결정 } from './decisionIt
 import { 버그판정실패, 최근대조 } from './decisionReads.js';
 import { 결정재료읽기, type 부른이 } from './decisions.js';
 import type { 받은것 } from './decisionBody.js';
-import type { 미션 } from './missions.js';
 import { 역방향칸판정 } from './reverse.js';
 
 export interface 진행단계 {
-  /** 6 은 「PRD 초안」 카드의 버리기 · 다시 만들기 — 다시 만들기만 requestId 가 찬다. 7 은 미션 승인이 세운 게임 시나리오 작성 */
-  step: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  /** 6 은 「PRD 초안」 카드의 버리기 · 다시 만들기 — 다시 만들기만 requestId 가 찬다 */
+  step: 1 | 2 | 3 | 4 | 5 | 6;
   key: string | null;
   requestId: number | null;
   version: number | null;
@@ -40,8 +39,6 @@ export interface 준비 {
   초안: { key: string; card: 초안카드; rows: number[] }[];
   /** 버리기 · 다시 만들기 — 끝난 초안 버리기는 고른 줄 없이 진행으로 남기고, 실패 · 멈춘 초안 버리기는 폐기로 찍는다 */
   초안끝: { key: string; requestId: number; pick: 'DROP' | 'RETRY'; done: boolean }[];
-  /** 체크한 미션 — 그 몸통을 게임 시나리오 작성 요청(params.missions)에 싣는다 */
-  미션: { key: string; from: number; items: 미션[] } | null;
   /** 설명 안 되는 줄 판정 — RULE 의 고친 문장은 확인에 같이 들어 한 버전이 된다 */
   설명: { key: string; runId: number; tcId: string; verdict: 'BUG' | 'RULE' }[];
   /** 고를 때 본 열린 작성 — 잠금 안에서 다시 견준다 */
@@ -53,7 +50,7 @@ export async function 준비하기(서비스: number, 누구: 부른이, 본문:
   const 재료 = await 결정재료읽기(서비스, 누구, false);
   if (본문.prdVersion !== 재료.목록.prdVersion) return 낡음;
   const 항목들 = new Map(재료.목록.items.map((x) => [x.key, x]));
-  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 반려: [], 화면: [], 요구다시: null, API: null, 보완: null, 초안: [], 초안끝: [], 미션: null, 설명: [], 열린: 재료.목록.open };
+  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 반려: [], 화면: [], 요구다시: null, API: null, 보완: null, 초안: [], 초안끝: [], 설명: [], 열린: 재료.목록.open };
   const 본열쇠 = new Set<string>();
   for (const p of 본문.picks) {
     if (본열쇠.has(p.key)) return 틀림(p.key);
@@ -157,14 +154,6 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
       if (!Array.isArray(rows) || rows.length === 0 || new Set(rows).size !== rows.length) return 틀림(p.key);
       if (!rows.every((i) => Number.isInteger(i) && 항목.rows[i as number]?.gone === false)) return 틀림(p.key);
       준.초안.push({ key: p.key, card: 항목, rows: rows as number[] });
-      return null;
-    }
-    case 'MISSIONS': {
-      const 고른 = p.missions;
-      if (!Array.isArray(고른) || 고른.length === 0 || new Set(고른).size !== 고른.length) return 틀림(p.key);
-      const items = 항목.missions.filter((m) => 고른.includes(m.id));
-      if (items.length !== 고른.length) return 틀림(p.key);
-      준.미션 = { key: p.key, from: 항목.requestId, items };
       return null;
     }
     default:

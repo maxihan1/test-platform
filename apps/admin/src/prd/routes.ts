@@ -13,6 +13,7 @@ import { 지도를읽는다 } from './apiMap.js';
 import { 워드만들기 } from './docx.js';
 import { 보류읽기 } from './held.js';
 import { 성능목표읽기 } from './perf.js';
+import { 실행본것가리기 } from './observed.js';
 import { 본문상한, 항목검사 } from './rules.js';
 import {
   되돌리기,
@@ -55,7 +56,7 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     const 결과보나 = 칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(req.query.service ?? '');
     return {
       version: 판?.version ?? 0,
-      items: 판?.items ?? [],
+      items: 실행본것가리기(판?.items ?? [], 결과보나),
       cases,
       held,
       perf: 결과보나 ? await 성능목표읽기(서비스) : {},
@@ -81,7 +82,8 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     const version = 번호(req.params.version);
     if (version === null) return 틀린판번호(reply, 'version');
     const 판 = await 판하나(서비스, version);
-    return 판 ?? reply.code(404).send({ error: 'NOT_FOUND' });
+    if (판 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
+    return { ...판, items: 실행본것가리기(판.items, 칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(req.query.service ?? '')) };
   });
 
   // 워드는 표준 기획서, 엑셀은 요구사항 추적표다 (작성 §3.6 「워드로 내려받기」 · 「메뉴가 곧 요구사항 추적표다」)

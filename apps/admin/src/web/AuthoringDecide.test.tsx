@@ -12,7 +12,6 @@ const 보낸: { prdVersion: number; picks: 보낼고름[] }[] = [];
 const 진행답: { 값: Promise<{ steps: { step: 1 | 2 | 3 | 4 | 5 | 6 | 7; key: string | null; requestId: number | null; version: number | null }[] }> | null } = { 값: null };
 
 const 제외한: [string, boolean][] = [];
-const 미션제외한: [number, string, boolean][] = [];
 
 vi.mock('./decideApi.js', () => ({
   decideApi: {
@@ -22,10 +21,6 @@ vi.mock('./decideApi.js', () => ({
     },
     skipScreen: (_service: string, url: string, skip: boolean) => {
       제외한.push([url, skip]);
-      return Promise.resolve({ ok: true });
-    },
-    skipMission: (_service: string, requestId: number, id: string, skip: boolean) => {
-      미션제외한.push([requestId, id, skip]);
       return Promise.resolve({ ok: true });
     },
   },
@@ -38,7 +33,7 @@ vi.mock('./api.js', async () => {
 
 const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY', 'REJECT'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: 'https://github.com/x/pull/1', requestedByName: '맥시', finishedAt: null };
 const 화면확인 = (reqId: string): Extract<결정항목, { kind: 'CHECK' }> => ({
-  key: `check:${reqId}`, group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId, feature: '약관', text: `${reqId} 제목이 보인다`, checkSince: null, basis: 'SCREEN', options: [],
+  key: `check:${reqId}`, group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId, feature: '약관', text: `${reqId} 제목이 보인다`, checkSince: null, basis: 'SCREEN', options: [], observed: null,
 });
 const 바뀐요구: 결정항목 = {
   key: 'prd:1:2', group: 3, kind: 'PRD_CHANGED', picks: ['REDO'], blockedBy: null,
@@ -71,7 +66,6 @@ const 적용 = () => screen.getByRole('button', { name: /^\d+건 적용$/ }) as 
 beforeEach(() => {
   보낸.length = 0;
   제외한.length = 0;
-  미션제외한.length = 0;
   진행답.값 = null;
 });
 afterEach(cleanup);
@@ -272,71 +266,38 @@ describe('결정 목록', () => {
     expect(보낸).toEqual([{ prdVersion: 3, picks: [{ key: 'screens:ab', pick: 'FIX', screens: ['/coupons'], env: 'stg' }] }]);
   });
 
-  it('미션 승인 탭은 체크한 미션만 보내고, [제외]는 확인 창을 거쳐 곧바로 빼고, 제외한 미션은 [복원]으로 돌린다', async () => {
-    진행답.값 = Promise.resolve({ steps: [{ step: 7, key: 'missions:15702', requestId: 9, version: null }] });
-    const 다시읽기 = vi.fn();
-    const 미션: 결정항목 = {
-      key: 'missions:15702', group: 3, kind: 'MISSIONS', picks: ['WRITE'], blockedBy: null, requestId: 15702,
-      missions: [
-        { id: 'M01', title: '탱커가 임프 3마리를 잡는다', start: '탱커 · 레벨 1', todo: '임프 3마리 처치', success: '처치 줄 3줄', logs: [{ text: '받은 피해 줄 전부 6', reqId: 'ARG-REQ-041' }] },
-        { id: 'M02', title: '궁수가 임프 3마리를 잡는다', start: '궁수 · 레벨 1', todo: '임프 3마리 처치', success: '처치 줄 3줄', logs: [{ text: '준 피해 줄 10 ~ 14', reqId: 'ARG-REQ-043' }] },
-      ],
-      skipped: [{ id: 'M03', title: '보스를 잡는다', start: '탱커', todo: '보스 처치', success: '처치 줄 1줄', logs: [{ text: '골드 50', reqId: 'ARG-REQ-061' }] }],
-      uncovered: [{ reqId: 'ARG-REQ-058', text: '레벨이 오르면 최대 체력이 10 오른다' }],
-      gaps: [{ reqId: 'ARG-REQ-047', note: '치명타 배율' }],
-    };
-    render(<AuthoringDecide service="ARG" 목록={목록([반영, 미션])} envs={[]} 다시읽기={다시읽기} />);
-    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['승인 대기 1', '미션 승인 1']);
-    탭(/미션 승인/);
-    expect(screen.getByText('미션 2개 중 테스트로 쓸 미션을 체크해 주세요')).toBeTruthy();
-    expect(screen.getByRole('link', { name: '#15702' }).getAttribute('href')).toBe('#/authoring/15702');
-    expect(screen.getByText('테스트도 미션도 없는 규칙 1개')).toBeTruthy();
-    expect(screen.getByText('공식에 빈칸이 있어 값을 못 정한 규칙 1개')).toBeTruthy();
-    expect(screen.getByText('받은 피해 줄 전부 6', { exact: false })).toBeTruthy();
-    expect(screen.getByText('아직 선택한 것이 없습니다')).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('checkbox', { name: 'M02 궁수가 임프 3마리를 잡는다' }));
-    expect(screen.getByText('미션 1개로 게임 시나리오 테스트를 쓰는 작성을 세웁니다')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '전체 선택' }));
-    expect(screen.getByText('미션 2개로 게임 시나리오 테스트를 쓰는 작성을 세웁니다')).toBeTruthy();
-
-    fireEvent.click(screen.getAllByRole('button', { name: '제외' })[0]!);
-    expect(screen.getByText('M01 탱커가 임프 3마리를 잡는다 미션을 제외합니다')).toBeTruthy();
-    expect(screen.getByText('AI 가 이 미션으로 테스트를 쓰지 않습니다')).toBeTruthy();
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '제외' }));
-    await waitFor(() => expect(다시읽기).toHaveBeenCalled());
-    expect(미션제외한).toEqual([[15702, 'M01', true]]);
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.getByText('미션 1개로 게임 시나리오 테스트를 쓰는 작성을 세웁니다')).toBeTruthy();
-
-    fireEvent.click(screen.getByText('제외한 미션 1개'));
-    fireEvent.click(screen.getByRole('button', { name: '복원' }));
-    await waitFor(() => expect(미션제외한).toEqual([[15702, 'M01', true], [15702, 'M03', false]]));
-
-    fireEvent.click(적용());
-    await screen.findByText('적용을 시작했습니다');
-    expect(보낸).toEqual([{ prdVersion: 3, picks: [{ key: 'missions:15702', pick: 'WRITE', missions: ['M02'] }] }]);
-    expect(screen.getByRole('link', { name: '#9 요청 보기' })).toBeTruthy();
-  });
-
-  it('미션 승인에서 쓰기 권한이 없으면 체크 칸 · [제외] · [복원]이 없다', () => {
-    const 미션: 결정항목 = {
-      key: 'missions:1', group: 3, kind: 'MISSIONS', picks: [], blockedBy: 'NO_WRITE', requestId: 1,
-      missions: [{ id: 'M01', title: '임프를 잡는다', start: 'a', todo: 'b', success: 'c', logs: [{ text: 'd', reqId: 'R-1' }] }],
-      skipped: [{ id: 'M02', title: '보스를 잡는다', start: 'a', todo: 'b', success: 'c', logs: [{ text: 'd', reqId: 'R-2' }] }], uncovered: [], gaps: [],
-    };
-    render(<AuthoringDecide service="ARG" 목록={목록([미션])} envs={[]} 다시읽기={() => {}} />);
-    expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: '제외' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '복원' })).toBeNull();
-    expect(screen.getByText('작성 쓰기 권한이 있는 사람이 선택합니다')).toBeTruthy();
-  });
-
   it('요구사항 확인은 명세 표 차례 — 화면 기준 → 기획서 간 불일치', () => {
     const { container } = render(<AuthoringDecide service="DMW" 목록={목록([문구(), 화면확인('DMW-REQ-349')])} envs={[]} 다시읽기={() => {}} />);
     const 질문들 = [...container.querySelectorAll('.decide-q')].map((x) => x.textContent ?? '');
     expect(질문들.map((q) => q.slice(0, 8))).toEqual(['기획서에 없어서', '기획서 2개가 ']);
     expect(screen.getByRole('link', { name: 'DMW-REQ-349' }).getAttribute('href')).toBe('#/prd/DMW-REQ-349');
+  });
+
+  it('판정 요청 카드는 불일치 다음에 현재 동작과 본 곳을 보이고, [현재 동작으로 수정]은 AI 문장으로 칸을 열어 저장해야 · [기획서대로 확정]은 바로 들어간다', async () => {
+    const 카드 = (reqId: string, where: 'EXPLORE' | number): 결정항목 => ({
+      ...화면확인(reqId), basis: 'OBSERVED',
+      observed: { text: `${reqId} 받은 피해 6`, proposal: `${reqId} 혼자면 피해 0.5배`, where, build: '23', count: 3 },
+    });
+    const { container } = render(<AuthoringDecide service="ARG" 목록={목록([카드('ARG-REQ-350', 'EXPLORE'), 카드('ARG-REQ-412', 15402), 문구(), 화면확인('ARG-REQ-118')])} envs={[]} 다시읽기={() => {}} />);
+    const 질문들 = [...container.querySelectorAll('.decide-q')].map((x) => (x.textContent ?? '').slice(0, 8));
+    expect(질문들).toEqual(['기획서에 없어서', '기획서 2개가 ', '기획서가 정하지']);
+    expect(screen.getByText('· 탐색 플레이 · 빌드 23 · 3번 확인')).toBeTruthy();
+    expect(screen.getByText('· RUN 15402 · 빌드 23 · 3번 확인')).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole('button', { name: '현재 동작으로 수정' })[0]!);
+    const 칸 = screen.getByRole('textbox', { name: /수정할 요구사항/ }) as HTMLTextAreaElement;
+    expect(칸.value).toBe('ARG-REQ-350 혼자면 피해 0.5배');
+    expect(screen.getByText('저장하지 않은 수정 1건은 빠집니다')).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: '기획서대로 확정' })[1]!);
+    expect(적용().textContent).toBe('1건 적용');
+    fireEvent.click(within(칸.closest('.decide-edit') as HTMLElement).getByRole('button', { name: '저장' }));
+    expect(적용().textContent).toBe('2건 적용');
+    fireEvent.click(적용());
+    await waitFor(() => expect(보낸).toHaveLength(1));
+    expect(보낸[0]!.picks).toEqual([
+      { key: 'check:ARG-REQ-350', pick: 'EDIT', text: 'ARG-REQ-350 혼자면 피해 0.5배' },
+      { key: 'check:ARG-REQ-412', pick: 'SAME' },
+    ]);
   });
 
   it('고를 권한이 없는 불일치는 체크 칸 없이 원문만, 열린 작성 때문에 못 센 미검증 API 는 「#N 이 반영된 뒤에 셉니다」', () => {

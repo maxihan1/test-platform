@@ -2,17 +2,15 @@
 
 import { createHash } from 'node:crypto';
 
-import type { PrdItem } from '@platform/kit';
+import type { PrdItem, PrdObserved } from '@platform/kit';
 
 import { 상한, 화면에서 } from '../prd/rules.js';
 import type { 초안카드 } from '../bts/draftDecide.js';
 import type { 판변경 } from '../prd/changes.js';
 import type { 목록요약 } from './listSummary.js';
-import type { 고를미션 } from './missions.js';
 
 // TAKE · DROP · RETRY 는 「PRD 초안」 카드 — 고른 줄로 기획서 고치기 · 초안 버리기 · 실패한 초안 다시 만들기 (도메인/BTS 「PRD 초안 → 결정 필요」)
-// WRITE 는 「미션 승인」 — 체크한 미션으로 게임 시나리오 테스트를 쓰는 작성을 세운다 (도메인/게임 §3.10 결정 24)
-export type 고르기 = 'APPLY' | 'REJECT' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX' | 'TAKE' | 'DROP' | 'RETRY' | 'WRITE';
+export type 고르기 = 'APPLY' | 'REJECT' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX' | 'TAKE' | 'DROP' | 'RETRY';
 export type 막힘 = 'ADMIN_ONLY' | 'NO_WRITE' | 'NO_RUN_WRITE' | 'AUTHORING_OPEN';
 
 interface 머리 {
@@ -37,13 +35,13 @@ export type 결정항목 = 머리 &
     | { kind: 'FAIL'; runId: number; tcId: string; reqs: { reqId: string; text: string }[]; verify: string | null; reason: string | null; finishedAt: string | null }
     // 게임 시나리오의 설명 안 되는 줄 — BUG 이슈 등록 · EDIT PRD 수정(덮는 요구 하나의 문장을 고친다 · 도메인/게임 §3.10 결정 24 의 5)
     | { kind: 'NOTE'; runId: number; tcId: string; name: string; reqs: { reqId: string; text: string }[]; notes: { statement: string; actual: unknown }[]; finishedAt: string | null }
-    | { kind: 'CHECK'; reqId: string; feature: string; text: string; checkSince: string | null; basis: 'SCREEN' | 'DOCS' | 'OTHER'; options: { asset: string; quote: string }[] }
+    // OBSERVED 는 판정 요청 카드 — 작성 · 실행이 본 현재 동작이 붙은 확인 필요다(도메인/게임 §3.10 결정 34)
+    | { kind: 'CHECK'; reqId: string; feature: string; text: string; checkSince: string | null; basis: 'SCREEN' | 'DOCS' | 'OBSERVED' | 'OTHER'; options: { asset: string; quote: string }[]; observed: PrdObserved | null }
     | { kind: 'PRD_CHANGED'; changed: 바뀐요구줄[] | null; added: 바뀐요구줄[] | null; removed: 바뀐요구줄[] | null; scenarios: { id: number; name: string }[] }
     | { kind: 'API_CHANGED'; fromVersion: number; toVersion: number; operations: { method: string; path: string; change: 'NEW' | 'CHANGED' | 'REMOVED'; breaking: boolean }[] | null }
     | { kind: 'SCREENS'; screens: { state: string; url: string; name: string }[] | null; env: string | null; skipped: { url: string; name: string }[] }
     | { kind: 'APIS'; apis: { method: string; path: string; name: string | null }[] | null }
     | ({ kind: 'PRD_DRAFT' } & 초안카드)
-    | ({ kind: 'MISSIONS' } & 고를미션)
   );
 
 export interface 결정목록 {
@@ -55,10 +53,17 @@ export interface 결정목록 {
 }
 
 /**
- * 확인 필요 요구가 어느 갈래인가 — 근거가 모두 화면이면 SCREEN, 근거 자료가 둘 이상이고 원문이 서로 다르면 DOCS, 그 밖은 OTHER.
- * DOCS 만 options(근거 차례)를 싣는다 — 「문구 선택」이 고른 출처의 원문을 그대로 요구 문장으로 쓴다
+ * 확인 필요 요구가 어느 갈래인가 — 볼 수 있는 현재 동작이 붙었으면 OBSERVED(다른 갈래에 들어도 이 줄 하나로만), 근거가 모두 화면이면 SCREEN,
+ * 근거 자료가 둘 이상이고 원문이 서로 다르면 DOCS, 그 밖은 OTHER. DOCS 만 options(근거 차례)를 싣는다 — 「문구 선택」이 고른 출처의 원문을 그대로 요구 문장으로 쓴다.
+ * 실행(RUN)에서 온 현재 동작은 실행을 못 보는 사람에게 싣지 않는다 — 실패 판정을 거르는 것과 같은 까닭(도메인/인증 §7 「결정 목록 보기」)
  */
-export function 확인갈래(x: PrdItem): { basis: 'SCREEN' | 'DOCS' | 'OTHER'; options: { asset: string; quote: string }[] } {
+export function 확인갈래(x: PrdItem, 실행읽기: boolean): { basis: 'SCREEN' | 'DOCS' | 'OBSERVED' | 'OTHER'; options: { asset: string; quote: string }[]; observed: PrdObserved | null } {
+  const 본것 = x.observed !== undefined && (x.observed.where === 'EXPLORE' || 실행읽기) ? x.observed : null;
+  if (본것 !== null) return { basis: 'OBSERVED', options: [], observed: 본것 };
+  return { ...확인갈래몸(x), observed: null };
+}
+
+function 확인갈래몸(x: PrdItem): { basis: 'SCREEN' | 'DOCS' | 'OTHER'; options: { asset: string; quote: string }[] } {
   if (x.basis.every((b) => b.from === 화면에서)) return { basis: 'SCREEN', options: [] };
   const 자료 = new Set(x.basis.map((b) => b.from));
   const 원문 = new Set(x.basis.map((b) => b.quote));
@@ -140,7 +145,8 @@ export function 결정판(지금: PrdItem[], 결정들: 확인결정[]): { items
   const items = 지금.map((x): PrdItem => {
     const 결정 = 고른.get(x.reqId);
     if (결정 === undefined) return x;
-    const { checkSince: _뺌, ...나머지 } = x;
+    // 확정되면 현재 동작도 뗀다 — 판단 재료였을 뿐이다(판정 요청 카드)
+    const { checkSince: _뺌, observed: _본것, ...나머지 } = x;
     if (결정.pick === 'SAME') {
       changes.push({ kind: 'CONFIRM', reqId: x.reqId, text: null, asset: null, tcId: null });
       return { ...나머지, status: 'CONFIRMED', byPerson: true };
@@ -149,7 +155,9 @@ export function 결정판(지금: PrdItem[], 결정들: 확인결정[]): { items
     if (결정.pick === 'NOTE') {
       문장바뀜 = true;
       changes.push({ kind: 'EDIT', reqId: x.reqId, text: 결정.text, asset: null, tcId: 결정.tcId });
-      return { ...x, text: 결정.text, byPerson: true };
+      // 문장이 바뀌면 옛 문장에 대고 본 현재 동작은 안 맞는다
+      const { observed: _옛것, ...그대로 } = x;
+      return { ...그대로, text: 결정.text, byPerson: true };
     }
     // 문구 선택은 지금 문장과 같은 쪽을 골라도 어느 자료를 골랐는지 남긴다 — 버전 기록의 까닭 「<자료 이름> 쪽」
     if (결정.text === x.text && 결정.pick !== 'PICK') {
