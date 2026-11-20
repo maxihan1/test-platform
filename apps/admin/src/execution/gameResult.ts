@@ -43,7 +43,7 @@ async function 조작맵을고친다(client: PoolClient, historyId: number, resu
       if (고침.빌드적음 + 고침.다시확인 > 0) {
         console.log(`[execution] 항목 ${historyId} — 앱 조작 맵을 고쳤다: 빌드 ${자리.build_no ?? '없음'} 적은 줄 ${고침.빌드적음}개 · 「다시 확인」으로 바꾼 줄 ${고침.다시확인}개`);
       }
-    } else if (자리?.service_id != null) {
+    } else if (자리?.service_id != null && 자리.kind === 'GAME') {
       const 고침 = await 실행이맵을고친다(client, Number(자리.service_id), 자리.build_no, 맵.지난, 맵.실패);
       if (고침.빌드적음 + 고침.재확인 > 0) {
         console.log(`[execution] 항목 ${historyId} — 조작 맵을 고쳤다: 빌드 ${자리.build_no ?? '없음'} 적은 행 ${고침.빌드적음}개 · 「재확인 필요」로 바꾼 행 ${고침.재확인}개`);
