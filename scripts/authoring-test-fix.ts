@@ -290,7 +290,8 @@ export function 되묻기글(빠진: readonly string[], 게임 = false): string 
  * 테스트 고침 자식이 결과 요약을 빠뜨리고 끝났으면(고장 내 보기 줄이 없는 케이스가 있으면) 같은 세션을 한 번 이어 불러 요약만 다시 받는다 —
  * BTS-F10-09 시험(MQA-169 · PR #732)에서 자식이 「[단계] 결과 요약」 표지만 찍고 끝나 자동 반영이 「재지 못함」이었다 (도메인/BTS §3.12 「테스트 수정 바퀴」 3).
  * 돌려준 글은 새 결과 요약이다(처음부터 다시 적게 한다 — 붙이면 두 벌). 되묻지 않았으면 빈 글. 그래도 줄이 없으면 판정이 「재지 못함」 그대로다.
- * 고장 내 보기 단계(`[단계] 일부러 고장 내 보기` 표지)에 들어가지 않은 자식은 되묻지 않는다 — 안 한 고장 숫자를 지어 적으면 자동 반영이 된다
+ * 고장 내 보기 단계(`[단계] 일부러 고장 내 보기` 표지)에 들어가지 않은 자식은 되묻지 않는다 — 안 한 고장 숫자를 지어 적으면 자동 반영이 된다.
+ * 게임 자동 수정은 끝 줄만은 그 단계 없이도 되묻고, 그때 받은 고장 줄은 버린다
  */
 export async function 요약되받기(
   것: { params?: unknown },
@@ -300,11 +301,14 @@ export async function 요약되받기(
   부르기: (인자고치기: (인자: readonly string[]) => string[], 글: string) => Promise<string>,
 ): Promise<string> {
   const 고침 = 테스트고침읽기(것);
-  if (고침 === null || 고침 === undefined || 세션 === undefined || !고장단계) return '';
+  const 게임 = 고침?.auto === true;
+  if (고침 === null || 고침 === undefined || 세션 === undefined || (!고장단계 && !게임)) return '';
   const tcIds = [...new Set(고침.cases.map((x) => x.tcId))];
-  // 게임 자동 수정은 끝 줄이 없는 케이스와, 고쳤다면서(FIXED) 고장 줄이 없는 케이스를 짚는다 — 다시 돌리니 통과 · 고칠 곳 없음은 고장 내 보기가 없다
-  const 끝 = 고침.auto === true ? new Map(케이스끝들읽기(자식글, tcIds).map((x) => [x.tcId, x.outcome])) : undefined;
-  const 빠진 = tcIds.filter((tcId) => (끝 !== undefined && !끝.has(tcId)) || ((끝?.get(tcId) ?? 'FIXED') === 'FIXED' && 고장줄읽기(자식글, tcId) === undefined));
+  // 게임 자동 수정은 끝 줄이 없는 케이스를(단계와 상관없이 — 없으면 서버가 「다시 돌리니 통과」도 그만둠으로 끝낸다), 고장 내 보기에 들어갔으면 고쳤다면서(FIXED) 고장 줄이 없는 케이스도 짚는다
+  const 끝 = 게임 ? new Map(케이스끝들읽기(자식글, tcIds).map((x) => [x.tcId, x.outcome])) : undefined;
+  const 빠진 = tcIds.filter((tcId) => (끝 !== undefined && !끝.has(tcId)) || (고장단계 && (끝?.get(tcId) ?? 'FIXED') === 'FIXED' && 고장줄읽기(자식글, tcId) === undefined));
   if (빠진.length === 0) return '';
-  return 흐름풀기(await 부르기((인자) => 되묻기인자(인자, 세션), 되묻기글(빠진, 끝 !== undefined))).글;
+  const 글 = 흐름풀기(await 부르기((인자) => 되묻기인자(인자, 세션), 되묻기글(빠진, 게임))).글;
+  // 고장 내 보기를 안 한 자식이 되물음에 고장 숫자를 지어 적으면 자동 반영이 된다 — 그 줄은 버린다
+  return 고장단계 ? 글 : 글.split('\n').filter((줄) => !/^[\s>*-]*테스트 고침 고장 내 보기:/.test(줄)).join('\n');
 }

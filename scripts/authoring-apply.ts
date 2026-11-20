@@ -234,7 +234,7 @@ function 테스트고침절(고침: 테스트고침요청, 자료폴더: string,
  */
 function 게임고침절(고침: 테스트고침요청, 자료폴더: string, 서버들: readonly { env: string }[]): string[] {
   return [
-    '테스트 고침(게임 실패 자동 수정): 정식 실행에서 조작 실패(요소를 찾지 못함 · 타임아웃)로 깨진 게임 케이스를 서버가 맡겼다 — 사람이 판정한 것이 아니다. 요구(결과 파일 prd.json)는 고치지 말고 아래 케이스의 「어떻게 가나」만 고친다. `.claude/skills/tpx-author/references/apply.md` §7 「게임 갈래」를 따른다.',
+    '테스트 고침(게임 실패 자동 수정): 정식 실행에서 조작 실패(요소를 찾지 못함 · 타임아웃)로 깨진 게임 케이스를 서버가 맡겼다 — 사람이 판정한 것이 아니다. 요구(결과 파일 prd.json)는 고치지 말고 아래 케이스의 「어떻게 가나」만 고친다. `.claude/skills/tpx-author/references/apply-game.md` 를 따른다(`apply.md` §7 에서 이어서 여는 게임 갈래).',
     ...고침.cases.flatMap((x) => {
       const 자리 = 실패trace자리(자료폴더, x.runId, x.tcId);
       return [

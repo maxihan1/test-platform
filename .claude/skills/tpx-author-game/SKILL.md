@@ -26,6 +26,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 | `tpx-cases/references/test-design-game.md` | `test-design.md` 를 열 때 이어서 — 게임 관점 칸 |
 | `tpx-author/references/fanout-game.md` | `fanout.md` 를 열 때 이어서 — 폰은 자식만 |
 | `tpx-author/references/prd-game.md` | `prd.md` 를 열 때 이어서 — 게임 표 · 기획서 빈 곳 |
+| `tpx-author/references/apply-game.md` | `apply.md` §7 테스트 고침에서 이어서 — 게임 케이스 고치기 |
 
 ## 열지 않는 파일
 

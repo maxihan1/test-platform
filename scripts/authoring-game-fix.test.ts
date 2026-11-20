@@ -91,6 +91,12 @@ describe('케이스 끝', () => {
     expect(글들[0]).toContain('빠진 케이스: ARG-FN-031)');
     expect(글들[1]).toContain('`테스트 고침 끝: <tcId> · FIXED|FLAKY|NOT_FOUND · <본 것 한 줄>`');
     expect(되묻기인자(['--disallowedTools', 'X'], 's1')).toContain('--resume');
+    // 고장 내 보기에 안 들어갔으면 끝 줄만 되묻고 지어 적은 고장 줄은 버린다
+    const 흐름 = (글: string) => JSON.stringify({ type: 'result', result: 글, session_id: 's1' });
+    const 지어냄 = vi.fn(async () => 흐름([끝줄('ARG-FN-031', 'FIXED'), '테스트 고침 고장 내 보기: ARG-FN-031 · 고장 2 · 그 자리 빨강 2', 끝줄('ARG-FN-040', 'FLAKY')].join('\n')));
+    expect(await 요약되받기({ params: { testFix: 고침 } }, 끝줄('ARG-FN-040', 'FLAKY'), 's1', false, 지어냄)).toBe([끝줄('ARG-FN-031', 'FIXED'), 끝줄('ARG-FN-040', 'FLAKY')].join('\n'));
+    expect(await 요약되받기({ params: { testFix: 고침 } }, 끝줄('ARG-FN-031', 'FIXED') + '\n' + 끝줄('ARG-FN-040', 'FLAKY'), 's1', false, 지어냄)).toBe('');
+    expect(지어냄).toHaveBeenCalledTimes(1);
   });
 });
 
