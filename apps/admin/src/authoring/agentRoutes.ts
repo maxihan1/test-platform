@@ -14,6 +14,7 @@ import { 미룬롤백판세우기 } from '../bts/rollback.js';
 import { 집기API칸 } from './apiDoc.js';
 import { 병합뒤훑기 } from '../catalog/scanRun.js';
 import { 일열쇠내기 } from '../mcp/jobKey.js';
+import { 끝내기팝업맞나, 병합뒤팝업올리기 } from '../prd/gamePopupMerge.js';
 import { 노트집기칸읽기 } from '../projectNote/claim.js';
 import { 남은사건있으면세우기, 앱노트사건쌓기 } from '../projectNote/events.js';
 import { 자료목록 } from './assetStore.js';
@@ -245,7 +246,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     const 결과 = req.body?.result;
     const 결과칸 =
       typeof 결과 === 'object' && 결과 !== null
-        ? (결과 as { held?: unknown; heldUnknown?: unknown; coverage?: unknown; pulled?: unknown; conflicts?: unknown; cases?: unknown; testFix?: unknown })
+        ? (결과 as { held?: unknown; heldUnknown?: unknown; coverage?: unknown; pulled?: unknown; conflicts?: unknown; cases?: unknown; testFix?: unknown; popupRows?: unknown })
         : {};
     const 보류 = 결과칸.held === undefined ? [] : 보류모양검사(결과칸.held);
     if (보류 === null || (결과칸.heldUnknown !== undefined && 결과칸.heldUnknown !== true)) {
@@ -258,6 +259,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     if (!끝내기케이스맞나(행.kind, status, 행.params, 결과칸.cases, req.query.service)) return reply.code(400).send({ error: 'BAD_CASES' });
     // 고친 곳 · 다시 돌린 횟수는 「테스트 수정」 고침 줄만 싣는다 — 남의 줄에 실리면 이슈 댓글이 엉뚱한 글을 단다 (도메인/BTS §7 「테스트 수정 바퀴」)
     if (결과칸.testFix !== undefined && !테스트수정결과맞나(행.params, 결과칸.testFix)) return reply.code(400).send({ error: 'BAD_RESULT', detail: 'testFix' });
+    // 작성이 찾은 돌발 팝업 행은 병합 뒤에 맵에 오른다 — 꼴이 틀리면 에이전트가 이 칸만 빼고 다시 보낸다 (도메인/게임 §3.10 「돌발 팝업 자동 닫기」 · GAME-F5-15)
+    if (!끝내기팝업맞나(행.kind, status, 행.params, 결과칸.popupRows)) return reply.code(400).send({ error: 'BAD_RESULT', detail: 'popupRows' });
     // PRD 초안은 결과 통로(bts/draftRoutes.ts)로 초안을 먼저 올려야 끝난다 — 빈 DONE 이면 카드가 설 자리가 없다
     if (행.kind === 'PRD_DRAFT' && status === 'DONE' && !초안있나(행.result)) return reply.code(400).send({ error: 'BAD_DRAFT', detail: 'draft' });
     // 끝내기의 result 는 저장된 result 를 덮는다 — 초안 줄은 결과 통로로만 싣는다
@@ -287,6 +290,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         await 반영뒤저장값(손, 행, 결과칸.pulled);
         await 기획서밖화면세우기(손, 뿌리번호);
         await 반영한사람적기(손, 뿌리번호, 행.requestedBy);
+        await 병합뒤팝업올리기(손, 행.sourceId);
       }
       // 노트 밖 작성이 끝나면 노트 사건 — 같은 트랜잭션이라 끝내기가 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
       if (됨 && status === 'DONE' && 행.serviceId !== null && 행.kind !== 'PRD_DRAFT') {

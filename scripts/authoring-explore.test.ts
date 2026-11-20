@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type 읽은행, 맵글짓기 } from '../apps/admin/src/prd/gameRoute.js';
-import { type 탐색목표, 맵올리기, 목표들읽기, 세션띄우기, 실행, 체크포인트, 탐색줄, 탐색하나, 팝업추가줄 } from './authoring-explore.js';
+import { type 탐색목표, 맵올리기, 목표들읽기, 세션띄우기, 실행, 체크포인트, 탐색줄, 탐색하나, 병합팝업, 팝업싣는손 } from './authoring-explore.js';
 import { 맵읽기 } from './authoring-game-route.js';
 import type { 돌린결과 } from './authoring-spawn.js';
 import { 돌발팝업값, 맵돌발팝업 } from './authoring-run3-env.js';
@@ -115,20 +115,45 @@ describe('탐색줄', () => {
   });
 });
 
-describe('팝업추가줄', () => {
-  it('이번 작성이 적은 「확인」 팝업을 다 센다 — 올리지 않은 행이라 맵에 있던 창을 다시 적었어도 싣는다', () => {
-    const 새글 = JSON.stringify({
-      rows: [
-        { kind: 'POPUP', fromKey: 'game:Main/Canvas/Invite', action: '/Canvas/Invite/Decline', status: 'OK' },
-        { kind: 'POPUP', fromKey: 'game:Main/Canvas/Event', action: '/Canvas/Event/Close', status: 'OK' },
-        { kind: 'POPUP', fromKey: 'game:Main/Canvas/Error', action: '/Canvas/Error/Ok', status: 'BLOCKED', reason: '닫는 버튼 없음' },
-      ],
-    });
-    expect(팝업추가줄(새글, [])).toBe('올리지 않은 돌발 팝업 행 2 — game:Main/Canvas/Invite, game:Main/Canvas/Event');
-    expect(팝업추가줄(새글, ['/Canvas/Event'])).toBe('올리지 않은 돌발 팝업 행 2 — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음');
-    expect(팝업추가줄(null, [])).toBeNull();
-    expect(팝업추가줄('{', [])).toBeNull();
-    expect(팝업추가줄(JSON.stringify({ rows: [상점행] }), [])).toBeNull();
+describe('병합팝업', () => {
+  const 초대 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Invite', action: '/Canvas/Invite/Decline', status: 'OK' };
+  const 공지 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Event', action: '/Canvas/Event/Close', status: 'OK' };
+  const 막힌창 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Error', action: '/Canvas/Error/Ok', status: 'BLOCKED', reason: '닫는 버튼 없음' };
+  const 새글 = JSON.stringify({ rows: [초대, 공지, 막힌창, 상점행] });
+
+  it('이번 작성이 적은 「확인」 팝업을 끝 보고에 싣고 PR 머리에 병합하면 올릴 목록으로 적는다 — 맵에 있던 창을 다시 적었어도 싣는다', () => {
+    expect(병합팝업(새글, [])).toEqual({ 줄: '병합하면 올릴 돌발 팝업 행 2 — game:Main/Canvas/Invite, game:Main/Canvas/Event', 행들: [초대, 공지] });
+    expect(병합팝업(null, [])).toEqual({ 줄: null, 행들: [] });
+    expect(병합팝업('{', [])).toEqual({ 줄: null, 행들: [] });
+    expect(병합팝업(JSON.stringify({ rows: [상점행] }), [])).toEqual({ 줄: null, 행들: [] });
+  });
+
+  it('창 주소나 닫는 법에 계정 비밀번호가 섞이면 싣지 않고 안 올린다고만 적는다', () => {
+    expect(병합팝업(새글, ['/Canvas/Event/Close'])).toEqual({ 줄: '돌발 팝업 행 2 — 테스트 계정 비밀번호가 들어 있어 병합해도 안 올림', 행들: [] });
+  });
+
+  it('100개까지만 싣고 넘은 수를 적는다 — 서버 · 실행 요청 상한과 같다', () => {
+    const 많이 = Array.from({ length: 102 }, (_, i) => ({ ...초대, fromKey: `game:Main/Canvas/P${String(i)}` }));
+    const 결과 = 병합팝업(JSON.stringify({ rows: 많이 }), []);
+    expect(결과.행들).toHaveLength(100);
+    expect(결과.줄?.startsWith('병합하면 올릴 돌발 팝업 행 100 — game:Main/Canvas/P0,')).toBe(true);
+    expect(결과.줄?.endsWith(' 외 80개 · 100개 넘는 2개는 안 올림')).toBe(true);
+  });
+});
+
+describe('팝업싣는손', () => {
+  it('DONE 에만 result.popupRows 를 얹고, 행이 없거나 다른 끝이면 그대로 보낸다', async () => {
+    const 받은: Record<string, unknown>[] = [];
+    const 손 = { 단계: async () => undefined, 끝내기: async (몸: Record<string, unknown>) => void 받은.push(몸) };
+    const 행 = [{ kind: 'POPUP', fromKey: 'game:Main/Canvas/Invite', action: '/Canvas/Invite/Decline', status: 'OK' }];
+    await 팝업싣는손(손, () => 행).끝내기({ status: 'DONE', prUrl: 'p', result: { held: [] } });
+    await 팝업싣는손(손, () => 행).끝내기({ status: 'STOPPED', stopReason: 'REJECTED', error: 'x' });
+    await 팝업싣는손(손, () => []).끝내기({ status: 'DONE', prUrl: 'p' });
+    expect(받은).toEqual([
+      { status: 'DONE', prUrl: 'p', result: { held: [], popupRows: 행 } },
+      { status: 'STOPPED', stopReason: 'REJECTED', error: 'x' },
+      { status: 'DONE', prUrl: 'p' },
+    ]);
   });
 });
 

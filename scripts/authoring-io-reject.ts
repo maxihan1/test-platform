@@ -25,7 +25,10 @@ export function 거절된보고대신(
         : // 「테스트 수정」 고친 곳 · 다시 돌린 횟수도 같다 — 빼고 보내면 PR 은 남고 이슈 댓글만 「고친 곳」 없이 간다 (도메인/BTS §7)
           상태 === 400 && 까닭 === 'BAD_RESULT' && (답몸 as { detail?: unknown } | null)?.detail === 'testFix' && 실렸나('testFix')
           ? 'testFix'
-          : 상태 === 413
+          : // 병합 뒤 올릴 돌발 팝업 행도 같다 — 빼고 보내면 PR 은 남고 팝업 행만 다음 작성이 다시 적는다 (도메인/게임 §3.10 · GAME-F5-15)
+            상태 === 400 && 까닭 === 'BAD_RESULT' && (답몸 as { detail?: unknown } | null)?.detail === 'popupRows' && 실렸나('popupRows')
+            ? 'popupRows'
+            : 상태 === 413
           ? 실렸나('cases')
             ? 'cases'
             : 실렸나('coverage')

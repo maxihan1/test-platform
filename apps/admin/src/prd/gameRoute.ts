@@ -124,35 +124,7 @@ export async function 조작행넣기(서비스: number, rows: 조작행[], remo
   const 손 = await (await db()).connect();
   try {
     await 손.query('BEGIN');
-    await 손.query(
-      `DELETE FROM game_route g USING jsonb_to_recordset($2::jsonb) AS x(kind text, from_key text, action text)
-        WHERE g.service_id = $1 AND g.kind = x.kind AND g.from_key = x.from_key AND g.action = x.action`,
-      [서비스, JSON.stringify(remove.map((r) => ({ kind: r.kind, from_key: r.fromKey, action: r.action })))],
-    );
-    // 빌드 번호를 안 실은 확인 행은 다시 해 본 것이 아니다 — 「어느 빌드에서 통과」를 지키고, 정식 실행이 단 「재확인 필요」도 풀지 않는다.
-    // 까닭은 지키지 않는다 — 진행 불가였던 행이 확인으로 오면 까닭이 남으면 안 된다. 빌드는 「통과한 빌드」라 진행 불가 행은 물려받지 않는다
-    await 손.query(
-      `INSERT INTO game_route (service_id, kind, from_key, action, to_key, helper, duration_ms, warning, fields, status, reason, build_no)
-       SELECT $1, x.kind, x.from_key, x.action, x.to_key, x.helper, x.duration_ms, x.warning, x.fields, x.status, x.reason, x.build_no
-         FROM jsonb_to_recordset($2::jsonb) AS x(kind text, from_key text, action text, to_key text, helper text, duration_ms integer,
-                                                warning text, fields jsonb, status text, reason text, build_no text)
-       ON CONFLICT (service_id, kind, from_key, action) DO UPDATE
-         SET to_key = COALESCE(EXCLUDED.to_key, game_route.to_key), helper = COALESCE(EXCLUDED.helper, game_route.helper),
-             duration_ms = COALESCE(EXCLUDED.duration_ms, game_route.duration_ms), warning = COALESCE(EXCLUDED.warning, game_route.warning),
-             fields = CASE WHEN EXCLUDED.fields IS NULL THEN game_route.fields ELSE COALESCE(game_route.fields, '{}') || EXCLUDED.fields END,
-             status = CASE WHEN EXCLUDED.status = 'OK' AND EXCLUDED.build_no IS NULL AND game_route.status = 'RECHECK' THEN 'RECHECK' ELSE EXCLUDED.status END,
-             reason = EXCLUDED.reason, build_no = CASE WHEN EXCLUDED.status = 'BLOCKED' THEN EXCLUDED.build_no ELSE COALESCE(EXCLUDED.build_no, game_route.build_no) END,
-             updated_at = now()`,
-      [
-        서비스,
-        JSON.stringify(
-          rows.map((r) => ({
-            kind: r.kind, from_key: r.fromKey, action: r.action, to_key: r.toKey, helper: r.helper, duration_ms: r.durationMs,
-            warning: r.warning, fields: r.fields, status: r.status, reason: r.reason, build_no: r.buildNo,
-          })),
-        ),
-      ],
-    );
+    await 행넣기(손, 서비스, rows, remove);
     await 손.query('COMMIT');
     손.release();
   } catch (err) {
@@ -165,6 +137,39 @@ export async function 조작행넣기(서비스: number, rows: 조작행[], remo
     }
     throw err;
   }
+}
+
+/** 조작행넣기의 몸 — 부르는 쪽이 연 트랜잭션 안에서 돈다(반영 끝내기가 팝업 행을 같은 트랜잭션으로 올린다) */
+export async function 행넣기(손: 읽는손, 서비스: number, rows: 조작행[], remove: 지울행[]): Promise<void> {
+  await 손.query(
+    `DELETE FROM game_route g USING jsonb_to_recordset($2::jsonb) AS x(kind text, from_key text, action text)
+      WHERE g.service_id = $1 AND g.kind = x.kind AND g.from_key = x.from_key AND g.action = x.action`,
+    [서비스, JSON.stringify(remove.map((r) => ({ kind: r.kind, from_key: r.fromKey, action: r.action })))],
+  );
+  // 빌드 번호를 안 실은 확인 행은 다시 해 본 것이 아니다 — 「어느 빌드에서 통과」를 지키고, 정식 실행이 단 「재확인 필요」도 풀지 않는다.
+  // 까닭은 지키지 않는다 — 진행 불가였던 행이 확인으로 오면 까닭이 남으면 안 된다. 빌드는 「통과한 빌드」라 진행 불가 행은 물려받지 않는다
+  await 손.query(
+    `INSERT INTO game_route (service_id, kind, from_key, action, to_key, helper, duration_ms, warning, fields, status, reason, build_no)
+     SELECT $1, x.kind, x.from_key, x.action, x.to_key, x.helper, x.duration_ms, x.warning, x.fields, x.status, x.reason, x.build_no
+       FROM jsonb_to_recordset($2::jsonb) AS x(kind text, from_key text, action text, to_key text, helper text, duration_ms integer,
+                                              warning text, fields jsonb, status text, reason text, build_no text)
+     ON CONFLICT (service_id, kind, from_key, action) DO UPDATE
+       SET to_key = COALESCE(EXCLUDED.to_key, game_route.to_key), helper = COALESCE(EXCLUDED.helper, game_route.helper),
+           duration_ms = COALESCE(EXCLUDED.duration_ms, game_route.duration_ms), warning = COALESCE(EXCLUDED.warning, game_route.warning),
+           fields = CASE WHEN EXCLUDED.fields IS NULL THEN game_route.fields ELSE COALESCE(game_route.fields, '{}') || EXCLUDED.fields END,
+           status = CASE WHEN EXCLUDED.status = 'OK' AND EXCLUDED.build_no IS NULL AND game_route.status = 'RECHECK' THEN 'RECHECK' ELSE EXCLUDED.status END,
+           reason = EXCLUDED.reason, build_no = CASE WHEN EXCLUDED.status = 'BLOCKED' THEN EXCLUDED.build_no ELSE COALESCE(EXCLUDED.build_no, game_route.build_no) END,
+           updated_at = now()`,
+    [
+      서비스,
+      JSON.stringify(
+        rows.map((r) => ({
+          kind: r.kind, from_key: r.fromKey, action: r.action, to_key: r.toKey, helper: r.helper, duration_ms: r.durationMs,
+          warning: r.warning, fields: r.fields, status: r.status, reason: r.reason, build_no: r.buildNo,
+        })),
+      ),
+    ],
+  );
 }
 
 export interface 읽은행 {
@@ -209,7 +214,7 @@ export function 맵글짓기(행들: 읽은행[]): string {
 }
 
 /** 맵 행을 읽거나 고치는 손 — 실행을 만들거나 항목을 닫는 트랜잭션 안이면 그 연결을 넘긴다(풀에서 둘째 연결을 기다리며 서로 막히지 않게) */
-type 읽는손 = { query: Awaited<ReturnType<typeof db>>['query'] };
+export type 읽는손 = { query: Awaited<ReturnType<typeof db>>['query'] };
 
 // 행의 함수 칸 · 도우미 칸은 「던전화면.공격()」처럼 괄호를 달아 적기도 한다 — 괄호 앞까지만 견준다. 실행 기록의 이름은 괄호가 없다
 const 함수가맞는행 = `(btrim(split_part(fields->>'fn', '(', 1)) = ANY($2::text[]) OR btrim(split_part(helper, '(', 1)) = ANY($2::text[]))`;
