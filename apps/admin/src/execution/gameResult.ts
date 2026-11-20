@@ -23,27 +23,46 @@ export function 맵재료(result: Pick<ExecuteResponse, 'status' | 'steps'>): { 
   return 지난.length === 0 && 실패.length === 0 ? null : { 지난, 실패 };
 }
 
-/**
- * 판정을 넣은 트랜잭션 안에서 부른다. 지도는 힌트라 깨져도 판정은 남긴다 — SAVEPOINT 로 지도만 되돌리고 알린다 (execution/traceIngest.ts 와 같은 꼴).
- * android 게임은 trace 가 없어 서비스 지도의 케이스 줄을 러너가 본 호출(apiCalls)로 채운다
- */
-export async function 게임결과를넣는다(client: PoolClient, historyId: number, result: ExecuteResponse): Promise<void> {
+/** 맵 고침은 지도 채우기와 따로 되돌린다 — 지도 한 줄이 깨져도 그 실행 몫의 맵 고침은 남고, 맵을 못 고쳐도 판정과 지도는 남는다 */
+async function 조작맵을고친다(client: PoolClient, historyId: number, result: ExecuteResponse): Promise<void> {
   const 맵 = 맵재료(result);
-  if (result.elementChecks === undefined && result.apiCalls === undefined && 맵 === null) return;
-  await client.query('SAVEPOINT game_result');
+  if (맵 === null) return;
+  await client.query('SAVEPOINT game_route_result');
   try {
     const 자리 = (
-      await client.query<{ run_id: string; tc_id: string; service_id: string | null; base_url: string | null; build_no: string | null }>(
-        'SELECT i.run_id, i.tc_id, r.service_id, r.base_url, r.build_no FROM run_item i JOIN test_run r ON r.run_id = i.run_id WHERE i.history_id = $1',
+      await client.query<{ service_id: string | null; build_no: string | null }>(
+        'SELECT r.service_id, r.build_no FROM run_item i JOIN test_run r ON r.run_id = i.run_id WHERE i.history_id = $1',
         [historyId],
       )
     ).rows[0];
-    if (맵 !== null && 자리?.service_id != null) {
+    if (자리?.service_id != null) {
       const 고침 = await 실행이맵을고친다(client, Number(자리.service_id), 자리.build_no, 맵.지난, 맵.실패);
       if (고침.빌드적음 + 고침.재확인 > 0) {
         console.log(`[execution] 항목 ${historyId} — 조작 맵을 고쳤다: 빌드 ${자리.build_no ?? '없음'} 적은 행 ${고침.빌드적음}개 · 「재확인 필요」로 바꾼 행 ${고침.재확인}개`);
       }
     }
+    await client.query('RELEASE SAVEPOINT game_route_result');
+  } catch (err) {
+    await client.query('ROLLBACK TO SAVEPOINT game_route_result');
+    console.error(`[execution] 항목 ${historyId} 의 조작 맵을 못 고쳤다(판정은 남긴다): ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/**
+ * 판정을 넣은 트랜잭션 안에서 부른다. 지도는 힌트라 깨져도 판정은 남긴다 — SAVEPOINT 로 지도만 되돌리고 알린다 (execution/traceIngest.ts 와 같은 꼴).
+ * android 게임은 trace 가 없어 서비스 지도의 케이스 줄을 러너가 본 호출(apiCalls)로 채운다
+ */
+export async function 게임결과를넣는다(client: PoolClient, historyId: number, result: ExecuteResponse): Promise<void> {
+  await 조작맵을고친다(client, historyId, result);
+  if (result.elementChecks === undefined && result.apiCalls === undefined) return;
+  await client.query('SAVEPOINT game_result');
+  try {
+    const 자리 = (
+      await client.query<{ run_id: string; tc_id: string; service_id: string | null; base_url: string | null }>(
+        'SELECT i.run_id, i.tc_id, r.service_id, r.base_url FROM run_item i JOIN test_run r ON r.run_id = i.run_id WHERE i.history_id = $1',
+        [historyId],
+      )
+    ).rows[0];
     // 서비스 통합 전 실행은 서비스가 없어 지도를 안 채운다
     if (자리?.service_id != null && 자리.base_url != null) {
       const [서비스, runId] = [Number(자리.service_id), Number(자리.run_id)];
