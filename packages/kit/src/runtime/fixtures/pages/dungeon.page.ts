@@ -29,8 +29,9 @@ export class 던전화면 {
     await this.game.click('/Hud/Attack');
     throw new Error('공격 뒤에 피해 숫자가 뜨지 않았다');
   }
-}
 
-export async function 사냥한번(game: 누르는것): Promise<void> {
-  await new 던전화면(game).공격();
+  async 없으면넘어간다(): Promise<void> {
+    const 누르기 = async (): Promise<unknown> => this.game.click('/Hud/Attack');
+    await 누르기().catch(() => undefined);
+  }
 }

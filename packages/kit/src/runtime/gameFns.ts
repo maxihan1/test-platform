@@ -3,11 +3,11 @@
 
 import { readFileSync } from 'node:fs';
 
-import { stepScope } from './context.js';
+import { stepScope, type StepScope } from './context.js';
 
-// 화면 객체 · 도우미 · 화면 조각 폴더의 프레임만 본다 — 케이스 파일 · kit · 라이브러리는 행의 함수가 아니다.
+// 화면 객체 · 도우미 · 화면 조각 폴더(하위 폴더까지)의 프레임만 본다 — 케이스 파일 · kit · 라이브러리는 행의 함수가 아니다.
 // 이름에 빈칸이 든 프레임(new 던전화면 · get 이름)은 걸리지 않는다 — 행에 적는 함수가 아니다
-const 프레임 = /^\s*at (?:async )?(\S+) \((?:file:\/\/)?(\/[^()]*\/(?:pages|helpers|components)\/[^/()]+):(\d+):\d+\)$/;
+const 프레임 = /^\s*at (?:async )?(\S+) \((?:file:\/\/)?(\/[^()]*\/(pages|helpers|components)\/[^()]+):(\d+):\d+\)$/;
 const 클래스줄 = /^\s*(?:export\s+)?(?:default\s+)?(?:abstract\s+)?class\s+([^\s{<]+)/;
 /** 절차 하나에 남기는 이름 수 — 결과 줄이 끝없이 커지지 않게 */
 export const 함수상한 = 200;
@@ -40,25 +40,38 @@ export function 지나던함수(stack: string | undefined): string[] {
   for (const 줄 of (stack ?? '').split('\n')) {
     const m = 프레임.exec(줄);
     if (m === null) continue;
-    const [, 이름, file, line] = m as unknown as [string, string, string, string];
-    // 이름 없는 함수(<anonymous>)는 바깥 프레임이 그 함수다
-    if (이름.includes('<')) continue;
-    const 클래스 = 이름.startsWith('Function.') ? 클래스이름(file, Number(line)) : '';
-    if (클래스 === undefined) continue;
-    const 풀이름 = 클래스 === '' ? 이름 : `${클래스}.${이름.slice('Function.'.length)}`;
+    const [, 찍힌이름, file, 폴더, line] = m as unknown as [string, string, string, string, string];
+    // 이름 없는 함수(<anonymous>)는 바깥 프레임이 그 함수다. 라이브러리 안의 같은 이름 폴더는 테스트 폴더가 아니다
+    if (찍힌이름.includes('<') || file.includes('/node_modules/')) continue;
+    // 객체에 묶어 내보낸 도우미(`gm.GM골드`)와 묶음 import(`import * as`)는 「Object.」 「Module.」 머리가 붙는다 — 행에는 함수 이름만 적는다
+    const 이름 = 찍힌이름.replace(/^(?:Object|Module)\./, '');
+    let 풀이름 = 이름;
+    if (이름.startsWith('Function.')) {
+      const 클래스 = 클래스이름(file, Number(line));
+      if (클래스 === undefined) continue;
+      풀이름 = `${클래스}.${이름.slice('Function.'.length)}`;
+    } else if (!이름.includes('.') && 폴더 !== 'helpers') {
+      // 화면 객체 · 화면 조각 파일의 머리 없는 이름은 함수 안에서 변수에 담은 화살표 함수다 — 같은 이름의 도우미 행과 잘못 맞지 않게 뺀다
+      continue;
+    }
     if (!들.includes(풀이름)) 들.push(풀이름);
   }
   return 들;
 }
 
-/** 지금 부르는 자리의 함수 이름을 그 절차에 더하고 돌려준다. 절차 밖이면 적을 곳이 없어 스택도 안 읽는다 */
-export function 지난함수를적는다(): string[] {
+/** 동작을 부른 자리 — 절차 밖이면 적을 곳이 없어 스택도 안 읽는다(null). 부르는 순간 그 절차는 게임 동작이 있는 절차가 된다 */
+export function 부른자리(): { scope: StepScope; 들: string[] } | null {
   const scope = stepScope.getStore();
-  if (scope === undefined) return [];
-  const 들 = 지나던함수(new Error().stack);
-  const 모음 = (scope.gameFns ??= []);
-  for (const f of 들) if (모음.length < 함수상한 && !모음.includes(f)) 모음.push(f);
-  return 들;
+  if (scope === undefined) return null;
+  scope.gameFns ??= [];
+  return { scope, 들: 지나던함수(new Error().stack) };
+}
+
+/** 동작이 끝까지 된 뒤에만 「지난 함수」로 적는다 — 화면 객체가 삼킨 실패(없으면 넘어가기)를 지난 것으로 세면 깨진 행에 새 빌드가 적힌다 */
+export function 지났다고적는다(자리: { scope: StepScope; 들: string[] } | null): void {
+  if (자리 === null) return;
+  const 모음 = (자리.scope.gameFns ??= []);
+  for (const f of 자리.들) if (모음.length < 함수상한 && !모음.includes(f)) 모음.push(f);
 }
 
 // 동작을 부른 순간의 함수 이름 — 오류가 만들어진 자리(소켓 이벤트 · 타이머)의 스택에는 부른 쪽이 안 남을 수 있다
@@ -79,13 +92,16 @@ export function 함수를적게건다(드라이버: object): void {
   for (const 이름 of 적을동작) {
     const 원래 = 칸[이름]!.bind(드라이버);
     칸[이름] = async (...인자: unknown[]): Promise<unknown> => {
-      const 들 = 지난함수를적는다();
+      const 자리 = 부른자리();
+      let 값: unknown;
       try {
-        return await 원래(...인자);
+        값 = await 원래(...인자);
       } catch (err) {
-        if (들.length > 0 && typeof err === 'object' && err !== null && !부른함수.has(err)) 부른함수.set(err, 들);
+        if (자리 !== null && 자리.들.length > 0 && typeof err === 'object' && err !== null && !부른함수.has(err)) 부른함수.set(err, 자리.들);
         throw err;
       }
+      지났다고적는다(자리);
+      return 값;
     };
   }
 }

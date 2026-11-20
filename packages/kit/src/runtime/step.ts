@@ -100,9 +100,9 @@ export async function runStep(
   if (scope.httpTrace !== undefined) result.httpTrace = scope.httpTrace;
   if (scope.shapeChecks !== undefined) result.shapeChecks = scope.shapeChecks;
   if (error !== undefined) result.error = error;
-  // 게임 동작을 하나도 안 적은 절차(웹 · 앱 케이스)는 두 칸 다 없다 — 웹 화면 객체 프레임을 게임 함수로 읽지 않는다
+  // 게임 동작을 하나도 안 부른 절차(웹 · 앱 케이스)는 두 칸 다 없다 — 웹 화면 객체 프레임을 게임 함수로 읽지 않는다
   if (scope.gameFns !== undefined) {
-    result.gameFns = scope.gameFns;
+    if (scope.gameFns.length > 0) result.gameFns = scope.gameFns;
     const 실패 = fatal === undefined ? [] : 실패함수들(fatal).slice(0, 함수상한);
     if (실패.length > 0) result.gameFailedFns = 실패;
   }

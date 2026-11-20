@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { StepResult } from '../types.js';
 import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
-import { 던전화면, 로비화면, 사냥한번 } from './fixtures/pages/dungeon.page.js';
+import { gm, 사냥한번 } from './fixtures/helpers/shop/hunt.helper.js';
+import { 던전화면, 로비화면 } from './fixtures/pages/dungeon.page.js';
 import { openGame } from './game.js';
 import { 실패함수들, 지나던함수 } from './gameFns.js';
 import { traced } from './http.js';
@@ -47,6 +48,18 @@ describe('지나던함수', () => {
     expect(지나던함수(undefined)).toEqual([]);
   });
 
+  it('하위 폴더의 파일도 읽고, 라이브러리 안의 같은 이름 폴더 · 화면 객체 파일의 머리 없는 이름(변수에 담은 화살표 함수)은 뺀다. 객체에 묶은 도우미는 「Object.」 머리를 뗀다', () => {
+    const stack = [
+      'Error: x',
+      '    at 닫기 (/repo/tests/arg/pages/shop/shop.page.ts:12:9)',
+      '    at async 상점창.열기 (/repo/tests/arg/pages/shop/shop.page.ts:20:5)',
+      '    at async 줄이기 (/repo/node_modules/lib/helpers/x.js:3:1)',
+      '    at async Object.GM골드 (/repo/tests/arg/helpers/gm/gm.helper.ts:8:3)',
+      '    at async Module.로비로 (/repo/tests/arg/helpers/enter.helper.ts:8:3)',
+    ].join('\n');
+    expect(지나던함수(stack)).toEqual(['상점창.열기', 'GM골드', '로비로']);
+  });
+
   it('정적 함수(Function.열기)는 소스에서 그 줄 위의 클래스 이름을 읽어 붙이고, 못 읽으면 그 프레임을 뺀다', () => {
     const 파일 = new URL('./fixtures/pages/dungeon.page.ts', import.meta.url).pathname;
     expect(지나던함수(`Error\n    at Function.열기 (${파일}:10:16)\n    at Function.열기 (${파일}:19:16)`)).toEqual(['로비화면.열기', '던전화면.열기']);
@@ -64,8 +77,18 @@ describe('게임 동작마다 함수 이름을 적는다', () => {
       await 던전.공격();
       await 던전.공격();
       await 사냥한번(game);
+      await gm.GM골드(game);
     });
-    expect(절차.gameFns).toEqual(['로비화면.열기', '던전화면.열기', '던전화면.공격', '사냥한번']);
+    expect(절차.gameFns).toEqual(['로비화면.열기', '던전화면.열기', '던전화면.공격', '사냥한번', 'GM골드']);
+  });
+
+  it('화면 객체가 삼킨 실패는 지난 함수로 세지 않는다 — 깨진 행에 새 빌드가 적히지 않게', async () => {
+    const game = await 가짜게임(true);
+    const { run, emitted } = makeRun();
+    await runStep(run, '안내가 있으면 닫는다', () => new 던전화면(game).없으면넘어간다());
+    expect(emitted[0]).toMatchObject({ status: 'PASS' });
+    expect(emitted[0]).not.toHaveProperty('gameFns');
+    expect(emitted[0]).not.toHaveProperty('gameFailedFns');
   });
 
   it('절차 밖의 동작은 적지 않는다', async () => {
@@ -80,7 +103,7 @@ describe('게임 동작마다 함수 이름을 적는다', () => {
       await 로비화면.열기(game);
       await 사냥한번(game);
     });
-    expect(emitted[0]).toMatchObject({ status: 'FAIL', gameFns: ['로비화면.열기', '던전화면.공격', '사냥한번'] });
+    expect(emitted[0]).toMatchObject({ status: 'FAIL', gameFns: ['로비화면.열기'] });
     expect(emitted[0]!.gameFailedFns).toContain('던전화면.공격');
     expect(emitted[0]!.gameFailedFns).not.toContain('로비화면.열기');
   });
