@@ -9,7 +9,7 @@ import { type 읽은행, 맵글짓기 } from '../apps/admin/src/prd/gameRoute.js
 import { type 탐색목표, 맵올리기, 목표들읽기, 세션띄우기, 실행, 체크포인트, 탐색줄, 팝업추가줄 } from './authoring-explore.js';
 import { 맵읽기 } from './authoring-game-route.js';
 import type { 돌린결과 } from './authoring-spawn.js';
-import { 돌발팝업값 } from './authoring-run3-env.js';
+import { 돌발팝업값, 맵돌발팝업 } from './authoring-run3-env.js';
 
 const 행 = (x: Partial<읽은행> & Pick<읽은행, 'kind' | 'from_key' | 'action'>): 읽은행 => ({
   to_key: null, helper: null, duration_ms: null, warning: null, fields: null, status: 'OK', reason: null, build_no: null, ...x,
@@ -258,8 +258,23 @@ describe('돌발팝업값 — 작성 돌려 보기의 PLATFORM_GAME_POPUPS', () 
     쓰기('game-route.txt', 맵);
     쓰기('game-route.json', { rows: [{ kind: 'POPUP', fromKey: 'game:Main/Canvas/Event', action: '/Canvas/Event/Close', status: 'OK' }] });
     expect(JSON.parse(돌발팝업값(자료))).toEqual([
-      { window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' },
       { window: '/Canvas/Event', close: '/Canvas/Event/Close' },
+      { window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' },
     ]);
+  });
+
+  it('서버 돌발팝업들과 같은 거르기 — 「확인」만 · 제어 문자 · 200자 넘는 주소는 빼고 열쇠 차례로 100개까지', () => {
+    const 팝업 = (from: string, action: string, status: '확인' | '재확인 필요' = '확인') => `- ${from} → ${action} · ${status}`;
+    const 글 = ['## 돌발 팝업 (POPUP) — 6행', 팝업('game:Main/Canvas/B', '/Canvas/B/X'), 팝업('game:Main/Canvas/A', '/Canvas/A/X'),
+      팝업('game:Main/Canvas/C', '/Canvas/C/X', '재확인 필요'), 팝업('game:Main/Canvas/Tab\t', '/X'), 팝업(`game:Main/${'a'.repeat(200)}`, '/X'), 팝업('/Canvas/Raw', '/Canvas/Raw/X')].join('\n');
+    expect(맵돌발팝업(맵읽기(글))).toEqual([
+      { window: '/Canvas/Raw', close: '/Canvas/Raw/X' },
+      { window: '/Canvas/A', close: '/Canvas/A/X' },
+      { window: '/Canvas/B', close: '/Canvas/B/X' },
+    ]);
+    const 많은 = ['## 돌발 팝업 (POPUP) — 120행', ...Array.from({ length: 120 }, (_, i) => 팝업(`game:Main/P${String(i).padStart(3, '0')}`, '/X'))].join('\n');
+    const 실린 = 맵돌발팝업(맵읽기(많은));
+    expect(실린).toHaveLength(100);
+    expect(실린.at(-1)?.window).toBe('/P099');
   });
 });

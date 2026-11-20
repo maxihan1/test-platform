@@ -30,10 +30,14 @@ export const 게임환경 = (폰: string): Record<string, string> => ({ PLATFORM
 export const 폰환경 = (갈래: 폰갈래, 폰: string): Record<string, string> => (갈래 === '게임' ? 게임환경(폰) : { PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_DEVICE_UDID: 폰 });
 
 /** 맵의 「확인」 돌발 팝업 행을 실행 요청 꼴로 — 창 열쇠의 장면 머리를 떼고(서버 돌발팝업들과 같다) 제어 문자 · 200자 넘는 행은 빼고 100개까지 (GAME-F5-03 · 05) */
+const 차례 = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
 export function 맵돌발팝업(행들: readonly 맵행[]): { window: string; close: string }[] {
   const 실을주소 = (v: string): boolean => v.length <= 200 && ![...v].some((c) => c < ' ');
   return 행들
     .filter((r) => r.kind === 'POPUP' && r.status === 'OK')
+    // 서버처럼 열쇠 · 닫는 주소 차례로 — 100개를 넘을 때 같은 것이 빠진다(서버는 C 차례 — 글자 값 차례와 같다)
+    .sort((a, b) => 차례(a.from, b.from) || 차례(a.action, b.action))
     .map((r) => ({ window: /^game:[^/]*(\/.+)$/.exec(r.from)?.[1] ?? r.from, close: r.action }))
     .filter((p) => 실을주소(p.window) && 실을주소(p.close))
     .slice(0, 100);

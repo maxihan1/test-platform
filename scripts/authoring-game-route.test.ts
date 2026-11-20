@@ -243,6 +243,12 @@ describe('새행더하기 — 이번 작성이 적은 행(game-route.json)을 �
     expect(새행더하기(행들, null)).toEqual(행들);
   });
 
+  it('서버 올리기와 같이 빌드를 안 실은 확인 행은 「재확인 필요」 행을 풀지 않는다 — 빌드를 실으면 푼다', () => {
+    const 상점 = (x: Record<string, unknown>) => 새행더하기(행들, { rows: [{ kind: 'MOVE', fromKey: 'game:Main', action: '상점 버튼', toKey: 'game:Main/Canvas/Shop', status: 'OK', ...x }] }).find((r) => r.action === '상점 버튼');
+    expect(상점({})).toMatchObject({ status: 'RECHECK', line: 'game:Main → 상점 버튼 → game:Main/Canvas/Shop · 재확인 필요' });
+    expect(상점({ buildNo: '16' })?.status).toBe('OK');
+  });
+
   it('경로 검색 명령이 자료 폴더의 새 행으로 길을 낸다 — JSON 이 깨졌으면 알리고 받은 맵만 쓴다', () => {
     const 폴더 = mkdtempSync(join(tmpdir(), 'game-route-new-'));
     const 찍음 = vi.spyOn(console, 'log').mockImplementation(() => undefined);
@@ -250,9 +256,9 @@ describe('새행더하기 — 이번 작성이 적은 행(game-route.json)을 �
     try {
       writeFileSync(join(폴더, 'game-route.txt'), 맵);
       expect(실행([폴더, 'game:Main/Canvas/Shop/Upgrade'])).toBe(1);
-      writeFileSync(join(폴더, 'game-route.json'), JSON.stringify({ rows: [{ kind: 'MOVE', fromKey: 'game:Main', action: '상점 버튼', toKey: 'game:Main/Canvas/Shop', status: 'OK' }] }));
+      writeFileSync(join(폴더, 'game-route.json'), JSON.stringify({ rows: [{ kind: 'MOVE', fromKey: 'game:Main', action: '상점 버튼', toKey: 'game:Main/Canvas/Shop', status: 'OK', buildNo: '16' }] }));
       expect(실행([폴더, 'game:Main/Canvas/Shop/Upgrade'])).toBe(0);
-      expect(찍음.mock.calls.at(-1)?.[0]).toContain('1. [이동 · 조작] game:Main → 상점 버튼 → game:Main/Canvas/Shop · 확인');
+      expect(찍음.mock.calls.at(-1)?.[0]).toContain('1. [이동 · 조작] game:Main → 상점 버튼 → game:Main/Canvas/Shop · 확인 · 빌드 16');
       writeFileSync(join(폴더, 'game-route.json'), '{');
       expect(실행([폴더, 'game:Main/Canvas/Shop/Upgrade'])).toBe(1);
       expect(오류.mock.calls.some(([x]) => String(x).includes('game-route.json 을 JSON 으로 못 읽었다'))).toBe(true);

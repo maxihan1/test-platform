@@ -56,16 +56,16 @@ export function 맵읽기(글: string): 맵행[] {
   return 행들;
 }
 
-const 상태글 = { OK: '확인', BLOCKED: '진행 불가' } as const;
+const 상태글 = { OK: '확인', RECHECK: '재확인 필요', BLOCKED: '진행 불가' } as const;
 const 글칸 = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 
 /** 이번 작성이 적은 행 한 줄 — 서버 맵 글(apps/admin/src/prd/gameRoute.ts 행줄)과 같은 꼴로 찍는다 */
-function 새행줄(x: Record<string, unknown>, status: 'OK' | 'BLOCKED'): string {
+function 새행줄(x: Record<string, unknown>, status: 맵행['status']): string {
   const 칸 = typeof x.fields === 'object' && x.fields !== null && !Array.isArray(x.fields) ? (x.fields as Record<string, unknown>) : {};
   const { fn, ...나머지 } = 칸;
   return [
     [x.fromKey, x.action, x.toKey].map(글칸).filter((v) => v !== null).join(' → '),
-    status === 'BLOCKED' ? `${상태글.BLOCKED} — ${글칸(x.reason) ?? ''}` : 상태글.OK,
+    status === 'BLOCKED' ? `${상태글.BLOCKED} — ${글칸(x.reason) ?? ''}` : 상태글[status],
     글칸(x.buildNo) === null ? null : `빌드 ${String(x.buildNo)}`,
     typeof x.durationMs === 'number' ? `소요 ${String(x.durationMs)}ms` : null,
     글칸(x.helper) === null ? null : `도우미 ${String(x.helper)}`,
@@ -79,17 +79,20 @@ function 새행줄(x: Record<string, unknown>, status: 'OK' | 'BLOCKED'): string
 
 /**
  * 맵 글의 행에 이번 작성이 적은 행(PUT game-route 본문 `{ rows, remove? }`)을 얹는다 — 같은 행(종류 · 출발 · 동작)은 새 행이 이기고 remove 는 뺀다.
+ * 서버 올리기(apps/admin/src/prd/gameRoute.ts 조작행넣기)와 같이 빌드를 안 실은 확인 행은 「재확인 필요」 행을 풀지 않는다 — 다시 해 본 것이 아니다.
  * 꼴이 틀린 행은 건너뛴다(서버가 올릴 때 틀린 자리를 짚는다)
  */
 export function 새행더하기(행들: 맵행[], 몸: unknown): 맵행[] {
   const b = typeof 몸 === 'object' && 몸 !== null ? (몸 as { rows?: unknown; remove?: unknown }) : {};
   const 들 = (v: unknown) => (Array.isArray(v) ? (v as unknown[]) : []).filter((x): x is Record<string, unknown> => typeof x === 'object' && x !== null);
   const 열쇠 = (kind: unknown, from: unknown, action: unknown) => JSON.stringify([kind, from, action]);
+  const 재확인 = new Set(행들.filter((r) => r.status === 'RECHECK').map((r) => 열쇠(r.kind, r.from, r.action)));
   const 새것: 맵행[] = [];
   for (const x of 들(b.rows)) {
     const kind = (종류들 as readonly unknown[]).includes(x.kind) ? (x.kind as 종류) : null;
-    const status = x.status === 'OK' || x.status === 'BLOCKED' ? x.status : null;
-    if (kind === null || status === null || 글칸(x.fromKey) === null || 글칸(x.action) === null) continue;
+    const 온상태 = x.status === 'OK' || x.status === 'BLOCKED' ? x.status : null;
+    if (kind === null || 온상태 === null || 글칸(x.fromKey) === null || 글칸(x.action) === null) continue;
+    const status = 온상태 === 'OK' && 글칸(x.buildNo) === null && 재확인.has(열쇠(kind, x.fromKey, x.action)) ? 'RECHECK' : 온상태;
     새것.push({ kind, from: x.fromKey as string, action: x.action as string, to: 글칸(x.toKey), status, warning: 글칸(x.warning), line: 새행줄(x, status) });
   }
   const 뺄 = new Set([...들(b.remove).map((x) => 열쇠(x.kind, x.fromKey, x.action)), ...새것.map((r) => 열쇠(r.kind, r.from, r.action))]);
