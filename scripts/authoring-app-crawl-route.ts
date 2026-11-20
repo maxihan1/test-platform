@@ -65,8 +65,8 @@ export function 크롤맵줄(색인: unknown, 빌드?: string): { 줄들: 올릴
 // 서버는 한 번에 5,000줄 · 4MiB 까지 받는다 — 한글은 3바이트라 줄 수가 아니라 바이트로 나눈다
 const 몫바이트 = 3_500_000;
 const 몫줄 = 5_000;
-// crawl 은 100장 넘게 돌 수 있다 — 화면 기록 저장본 읽기(authoring-screens-keep-io.ts 본목록상한)와 같다
-const 색인상한 = 20_000_000;
+// crawl 은 상한 없이 돈다(APP-F4-06) — 화면 기록 저장본 읽기(authoring-screens-keep-io.ts 본목록상한)와 같다
+export const 크롤색인상한 = 64 * 1024 * 1024;
 
 function 나누기(줄들: 올릴줄[]): 올릴줄[][] {
   const 몫들: 올릴줄[][] = [];
@@ -94,7 +94,7 @@ export async function 크롤맵올리기(통로: { 주소기지: string; 토큰:
   if (!폴더인가(크롤)) return [];
   let 색인: unknown = null;
   try {
-    색인 = JSON.parse(안전히읽기(크롤, 'index.json', 색인상한) ?? 'null');
+    색인 = JSON.parse(안전히읽기(크롤, 'index.json', 크롤색인상한) ?? 'null');
   } catch {
     // 깨진 색인은 못 읽은 것과 같다 — 아래 줄로 알린다
   }
