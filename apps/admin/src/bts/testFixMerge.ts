@@ -8,6 +8,7 @@ import { 뿌리잠그고 } from '../authoring/history.js';
 import { 한건 } from '../authoring/store.js';
 import { BTS부르기, type 부르기함수 } from './client.js';
 import { BTS요청자 } from './close.js';
+import { 게임수정요청자 } from './gameFixShared.js';
 import { type 걸린까닭, 걸린까닭읽기, 댓글한번 } from './testFix.js';
 import { 그만두기, 이슈확인, type 이슈자리 } from './testFixIssue.js';
 import { 사람확인글 } from './testFixView.js';
@@ -32,7 +33,8 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-type 판정끝 = { 끝: 'AUTO' | null } | { 끝: 'PERSON'; projectId: number; issueKey: string; 까닭: string[] };
+// issueKey 가 null 이면 게임 줄이다 — 이슈가 없어 댓글 대신 줄에 까닭을 적는다
+type 판정끝 = { 끝: 'AUTO' | null } | { 끝: 'PERSON'; projectId: number; issueKey: string | null; 까닭: string[] };
 
 /**
  * 고침 작성(요청번호 — 끝난 그 실행)이 PR 을 연 뒤 한 번. 그 PR 의 병합 기다림 줄이 없으면(바퀴 전 요청 · 사람이 이슈를 옮김 · 이미 반영함) 아무것도 안 한다.
@@ -70,7 +72,7 @@ export async function 테스트수정병합판정(
   }
   const 판정 = await 뿌리잠그고(뿌리번호, async (손): Promise<판정끝> => {
     const 줄 = (
-      await 손.query<{ project_id: string; issue_key: string }>(
+      await 손.query<{ project_id: string; issue_key: string | null }>(
         `UPDATE bts_test_fix SET held = $3, updated_at = now() WHERE request_id = $1 AND pr_url = $2 AND state = 'WAIT_MERGE' AND merge IS NULL RETURNING project_id, issue_key`,
         [뿌리번호, prUrl, 걸림],
       )
@@ -80,7 +82,7 @@ export async function 테스트수정병합판정(
     if (걸림.length > 0) return 사람에게(걸림.map((k) => 까닭글[k]));
     const 행 = await 한건(요청번호, 손);
     if (행 === null) return { 끝: null };
-    const { 누가, 이름 } = BTS요청자(줄.issue_key);
+    const { 누가, 이름 } = 줄.issue_key === null ? { 누가: 게임수정요청자.누가, 이름: 게임수정요청자.이름 } : BTS요청자(줄.issue_key);
     // 결정 진행(decisionRun.ts)과 같다 — 대상 서버를 묻는 반영이면 그 작성의 대상 서버로 한 번 더
     let 세움 = await 머지세우기(손, 행, 서비스, undefined, { username: 누가, displayName: 이름 });
     if ('error' in 세움 && 세움.error === 'BAD_ENV' && !행.compare && 행.env !== null) 세움 = await 머지세우기(손, 행, 서비스, 행.env, { username: 누가, displayName: 이름 });
@@ -91,8 +93,22 @@ export async function 테스트수정병합판정(
     if (세움.error === 'RUN_ACTIVE' || 세움.error === 'NOT_LATEST') return { 끝: null };
     return 사람에게([막힘글[세움.error] ?? '자동 반영을 세우지 못했어요']);
   });
-  if (판정.끝 === 'PERSON') await 댓글한번(판정.projectId, 판정.issueKey, `${사람확인글} — ${판정.까닭.join(' · ')}\n${prUrl}`);
+  if (판정.끝 === 'PERSON') {
+    if (판정.issueKey === null) await 까닭적기(뿌리번호, 판정.까닭);
+    else await 댓글한번(판정.projectId, 판정.issueKey, `${사람확인글} — ${판정.까닭.join(' · ')}\n${prUrl}`);
+  }
   return 판정.끝;
+}
+
+/** 게임 줄은 이슈 댓글이 없다 — 사람 확인이 필요한 까닭을 그 요청의 병합 기다림 줄에 적는다(같은 글은 한 번) */
+export async function 까닭적기(뿌리번호: number, 까닭들: string[]): Promise<void> {
+  for (const 글 of 까닭들) {
+    await (await db()).query(
+      `UPDATE bts_test_fix SET person_why = array_append(person_why, $2::text), updated_at = now()
+        WHERE request_id = $1 AND issue_key IS NULL AND state = 'WAIT_MERGE' AND NOT ($2::text = ANY(person_why))`,
+      [뿌리번호, 글],
+    );
+  }
 }
 
 /**
@@ -102,7 +118,7 @@ export async function 테스트수정병합판정(
 export async function 반영한사람적기(손: PoolClient, 뿌리번호: number, 반영요청자: string): Promise<void> {
   await 손.query(`UPDATE bts_test_fix SET merge = $2, updated_at = now() WHERE request_id = $1 AND state = 'WAIT_MERGE'`, [
     뿌리번호,
-    반영요청자 === BTS요청자('').누가 ? 'AUTO' : 'PERSON',
+    반영요청자 === BTS요청자('').누가 || 반영요청자 === 게임수정요청자.누가 ? 'AUTO' : 'PERSON',
   ]);
 }
 
@@ -111,9 +127,12 @@ export async function 반영한사람적기(손: PoolClient, 뿌리번호: numbe
  * 줄은 병합 기다림 그대로라 사람이 테스트 작성 화면에서 반영하면 다시 실행으로 이어진다 — 되돌리면 PR 을 고쳐 반영해도 이슈가 안 닫힌다
  */
 export async function 자동반영실패(뿌리번호: number): Promise<void> {
-  const 줄들 = await (await db()).query<{ project_id: string; issue_key: string; pr_url: string }>(
+  const 줄들 = await (await db()).query<{ project_id: string; issue_key: string | null; pr_url: string }>(
     `SELECT project_id, issue_key, pr_url FROM bts_test_fix WHERE request_id = $1 AND state = 'WAIT_MERGE' AND merge = 'AUTO' AND pr_url IS NOT NULL`,
     [뿌리번호],
   );
-  for (const 줄 of 줄들.rows) await 댓글한번(Number(줄.project_id), 줄.issue_key, `${사람확인글} — 자동 반영이 실패했어요\n${줄.pr_url}`);
+  for (const 줄 of 줄들.rows) {
+    if (줄.issue_key === null) await 까닭적기(뿌리번호, ['자동 반영이 실패했어요']);
+    else await 댓글한번(Number(줄.project_id), 줄.issue_key, `${사람확인글} — 자동 반영이 실패했어요\n${줄.pr_url}`);
+  }
 }

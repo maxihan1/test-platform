@@ -20,7 +20,8 @@ export const 도는상태 = ['FIXING', 'WAIT_MERGE', 'RERUNNING'];
 
 /** 이슈를 다시 읽는 데 드는 칸 — bts_test_fix 줄에 bts_link 를 붙여 읽는다 */
 export interface 이슈자리 {
-  issue_key: string;
+  /** 게임 실패 자동 수정 줄은 이슈가 없다(null) */
+  issue_key: string | null;
   base_url: string | null;
   bot_username: string | null;
   status_map: Record<string, string> | null;
@@ -31,6 +32,8 @@ export type 이슈확인결과 = '이어감' | '다시' | { 그만: string };
 
 /** 다음 단계 전에 이슈를 다시 읽는다 — 알림을 놓쳤어도 사람이 옮긴 이슈에 손대지 않게 (「테스트 수정 바퀴」 6) */
 export async function 이슈확인(자리: 이슈자리, 부르기: 부르기함수 = BTS부르기): Promise<이슈확인결과> {
+  // 게임 줄은 읽을 이슈가 없다 — 늘 이어간다
+  if (자리.issue_key === null) return '이어감';
   const 수정 = 자리.status_map?.TEST_FIX ?? '';
   if (자리.base_url === null || 수정 === '') return { 그만: 'Issue Bunker 연결에서 「테스트 수정」 상태를 뺐어요' };
   try {
