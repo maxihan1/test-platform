@@ -291,6 +291,16 @@ export interface PrdItem {
   checkSince?: string;                             // 확인 필요가 된 때(ISO). 확인 필요인 동안 물려받고 확정이면 키가 없다
   byPerson?: true;                                 // 사람이 마지막으로 고친 항목 — 옮기기가 덮지 않는다
   fromIssues?: string[];                           // BTS 이슈 키('DM-12'). PRD 초안에서 온 항목만 · 다음 초안이 같은 항목을 고치면 키를 더한다
+  observed?: PrdObserved;                          // 현재 동작 — 확인 필요 항목에만. 확정되면 키가 없다(판정 요청 카드)
+}
+
+// 작성 · 실행이 본 실제 동작. 기대값이 아니라 사람이 고를 때 볼 재료다 (도메인/작성 §3.6 「★ 결정 목록」 「판정 요청 카드」)
+export interface PrdObserved {
+  text: string;                                    // 무엇을 했고 무엇이 나왔나 — 「혼자 던전에서 레벨 1 탱커가 임프에게 받은 피해 6」
+  proposal: string;                                // 현재 동작으로 고쳐 쓴 요구 문장 — 「현재 동작으로 수정」 칸에 채운다
+  where: 'EXPLORE' | number;                       // 어디서 봤나 — 탐색 플레이 · 실행(RUN) 번호
+  build: string | null;                            // 본 빌드 번호. 모르면 null
+  count: number;                                   // 같은 동작을 본 횟수
 }
 
 // 서비스 가이드 — 서버 · 화면 · 작성 에이전트가 같은 모양을 쓴다. 무엇이고 왜인지는 SPEC 도메인/작성 §3.6 「★ 서비스 가이드」

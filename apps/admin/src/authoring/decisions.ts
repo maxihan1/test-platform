@@ -112,16 +112,16 @@ async function 초안묶음(서비스: number, 판: PrdItem[], 누구: 부른이
   }));
 }
 
-/** ② 확인 필요 — 화면 기준 · 불일치 · 그 밖 차례, 그 안에서 오래 기다린 것부터 */
+/** ② 확인 필요 — 화면 기준 · 불일치 · 판정 요청 카드 · 그 밖 차례, 그 안에서 오래 기다린 것부터 */
 function 확인묶음(판: PrdItem[], 누구: 부른이): 결정항목[] {
-  const 차례 = { SCREEN: 0, DOCS: 1, OTHER: 2 } as const;
+  const 차례 = { SCREEN: 0, DOCS: 1, OBSERVED: 2, OTHER: 3 } as const;
   return 판
     .filter((x) => x.status === 'NEEDS_CHECK')
-    .map((x) => ({ x, ...확인갈래(x) }))
+    .map((x) => ({ x, ...확인갈래(x, 누구.실행읽기) }))
     .sort((a, b) => 차례[a.basis] - 차례[b.basis] || (a.x.checkSince ?? '￿').localeCompare(b.x.checkSince ?? '￿') || a.x.reqId.localeCompare(b.x.reqId))
-    .map(({ x, basis, options }): 결정항목 => ({
+    .map(({ x, basis, options, observed }): 결정항목 => ({
       key: `check:${x.reqId}`, group: 2, kind: 'CHECK', ...고름(누구.작성쓰기, basis === 'DOCS' ? ['PICK', 'OWN'] : ['SAME', 'EDIT'], 'NO_WRITE'),
-      reqId: x.reqId, feature: x.feature, text: x.text, checkSince: x.checkSince ?? null, basis, options,
+      reqId: x.reqId, feature: x.feature, text: x.text, checkSince: x.checkSince ?? null, basis, options, observed,
     }));
 }
 

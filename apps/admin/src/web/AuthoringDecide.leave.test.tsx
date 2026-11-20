@@ -9,7 +9,7 @@ import type { 결정목록, 결정항목 } from './decideApi.js';
 import { 주소로간다, 주소보기, 주소에선다 } from './keepState.fixture.js';
 
 const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY', 'REJECT'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: 'https://github.com/x/pull/1', requestedByName: '맥시', finishedAt: null };
-const 화면확인: 결정항목 = { key: 'check:DMW-REQ-349', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'DMW-REQ-349', feature: '약관', text: 'DMW-REQ-349 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] };
+const 화면확인: 결정항목 = { key: 'check:DMW-REQ-349', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'DMW-REQ-349', feature: '약관', text: 'DMW-REQ-349 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [], observed: null };
 const 목록 = (items: 결정항목[]): 결정목록 => ({ prdVersion: 3, count: items.length, open: [], items, failMore: 0 });
 
 function 그리기(items: 결정항목[]) {

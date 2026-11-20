@@ -17,13 +17,22 @@ const 항목 = (reqId: string, text: string, 근거: [string, string][], status:
 
 describe('확인갈래', () => {
   it('근거가 모두 화면이면 화면 기준, 자료 둘이 서로 다르게 적었으면 불일치(근거 차례로 선택지), 그 밖은 기타다', () => {
-    expect(확인갈래(항목('MK-REQ-001', '쿠폰은 하나만', [['화면', '쿠폰 1장']]))).toEqual({ basis: 'SCREEN', options: [] });
-    expect(확인갈래(항목('MK-REQ-002', '3만원 이상 무료', [['웹.docx', '3만원 이상 무료'], ['앱.docx', '5만원 이상 무료']]))).toEqual({
+    expect(확인갈래(항목('MK-REQ-001', '쿠폰은 하나만', [['화면', '쿠폰 1장']]), true)).toEqual({ basis: 'SCREEN', options: [], observed: null });
+    expect(확인갈래(항목('MK-REQ-002', '3만원 이상 무료', [['웹.docx', '3만원 이상 무료'], ['앱.docx', '5만원 이상 무료']]), true)).toEqual({
       basis: 'DOCS',
       options: [{ asset: '웹.docx', quote: '3만원 이상 무료' }, { asset: '앱.docx', quote: '5만원 이상 무료' }],
+      observed: null,
     });
-    expect(확인갈래(항목('MK-REQ-003', '배송은 빠르게', [['웹.docx', '배송은 빠르게'], ['앱.docx', '배송은 빠르게']]))).toEqual({ basis: 'OTHER', options: [] });
-    expect(확인갈래(항목('MK-REQ-004', '배송은 빠르게', [['웹.docx', '배송은 빠르게']]))).toEqual({ basis: 'OTHER', options: [] });
+    expect(확인갈래(항목('MK-REQ-003', '배송은 빠르게', [['웹.docx', '배송은 빠르게'], ['앱.docx', '배송은 빠르게']]), true)).toEqual({ basis: 'OTHER', options: [], observed: null });
+    expect(확인갈래(항목('MK-REQ-004', '배송은 빠르게', [['웹.docx', '배송은 빠르게']]), true)).toEqual({ basis: 'OTHER', options: [], observed: null });
+  });
+
+  it('현재 동작이 붙으면 다른 갈래에 들어도 판정 요청 카드 하나다. 실행에서 본 것은 실행을 못 보는 사람에게 안 싣고 본래 갈래로 간다', () => {
+    const 탐색 = { text: '혼자 던전에서 레벨 1 탱커가 임프에게 받은 피해 6', proposal: '혼자일 때 임프 피해는 6 이다', where: 'EXPLORE' as const, build: '23', count: 2 };
+    const 실행 = { ...탐색, where: 412 };
+    expect(확인갈래({ ...항목('ARG-REQ-349', '인원 보정', [['화면', '피해']]), observed: 탐색 }, false)).toEqual({ basis: 'OBSERVED', options: [], observed: 탐색 });
+    expect(확인갈래({ ...항목('ARG-REQ-349', '인원 보정', [['기획.docx', '피해']]), observed: 실행 }, true)).toEqual({ basis: 'OBSERVED', options: [], observed: 실행 });
+    expect(확인갈래({ ...항목('ARG-REQ-349', '인원 보정', [['화면', '피해']]), observed: 실행 }, false)).toEqual({ basis: 'SCREEN', options: [], observed: null });
   });
 });
 
@@ -56,6 +65,18 @@ describe('결정판', () => {
     const r = 결정판(판, [{ reqId: 'MK-REQ-002', pick: 'PICK', text: '3만원 이상 무료', asset: '웹.docx' }]);
     expect(r?.changes).toEqual([{ kind: 'PICK', reqId: 'MK-REQ-002', text: '3만원 이상 무료', asset: '웹.docx', tcId: null }]);
     expect(r?.문장바뀜).toBe(false);
+  });
+
+  it('판정 요청 카드를 기획서대로 확정해도 · 현재 동작으로 수정해도 현재 동작 칸을 뗀다', () => {
+    const 본것 = { text: '받은 피해 6', proposal: '혼자일 때 임프 피해는 6 이다', where: 'EXPLORE' as const, build: null, count: 1 };
+    const 카드판 = [{ ...판[1]!, observed: 본것 }, { ...판[0]!, observed: 본것 }];
+    const r = 결정판(카드판, [
+      { reqId: 'MK-REQ-002', pick: 'SAME' },
+      { reqId: 'MK-REQ-001', pick: 'EDIT', text: '혼자일 때 임프 피해는 6 이다' },
+    ]);
+    expect(r?.items[0]).not.toHaveProperty('observed');
+    expect(r?.items[1]).toMatchObject({ text: '혼자일 때 임프 피해는 6 이다', status: 'CONFIRMED' });
+    expect(r?.items[1]).not.toHaveProperty('observed');
   });
 
   it('확인 필요가 아닌 번호 · 없는 번호를 고르면 null', () => {

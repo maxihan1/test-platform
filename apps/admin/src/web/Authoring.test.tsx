@@ -284,7 +284,7 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
       failMore: 0,
       items: [
         { key: 'apply:7001:7002', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 7001, runId: 7002, summary: 요약(), prUrl: null, requestedByName: '테스터', finishedAt: null },
-        { key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] },
+        { key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [], observed: null },
       ],
     };
     render(<Authoring service="PAY" 할수={() => true} />);
@@ -309,7 +309,7 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
       count: 1,
       open: [],
       failMore: 0,
-      items: [{ key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] }],
+      items: [{ key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [], observed: null }],
     };
     render(<Authoring service="PAY" 할수={() => true} />);
     await screen.findByRole('tab', { name: /^요구사항 확인/ });
@@ -328,7 +328,7 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
       failMore: 0,
       items: [
         { key: 'apply:7001:7002', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 7001, runId: 7002, summary: 요약(), prUrl: null, requestedByName: '테스터', finishedAt: null },
-        { key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] },
+        { key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [], observed: null },
       ],
     };
     render(<Authoring service="PAY" 할수={() => true} />);

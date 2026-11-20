@@ -11,6 +11,7 @@ import { 미션고르기 } from './AuthoringDecideMissions.js';
 import { 설명판정 } from './AuthoringDecideNote.js';
 import { 새로만들기 } from './AuthoringDecideNew.js';
 import { 화면고르기 } from './AuthoringDecideScreens.js';
+import { 판정카드 } from './AuthoringDecideVerdict.js';
 import { 진행중, 차례글 } from './AuthoringDecideRun.js';
 import { decideApi, type 결정목록, type 결정항목, type 진행단계 } from './decideApi.js';
 import { 고름바꾼표, 보낼것, 차례, 탭of, type 고른값, type 차례줄, type 탭 } from './decideView.js';
@@ -78,7 +79,9 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
     const x = items.find((y) => y.key === key);
     // 설명 안 되는 줄은 덮는 요구 가운데 하나의 문장으로 칸이 열린다
     if (x?.kind === 'NOTE') return 글 !== 고른.get(key)?.text && !x.reqs.some((r) => r.text === 글);
-    return 글 !== (고른.get(key)?.text ?? (x?.kind === 'CHECK' && x.basis !== 'DOCS' ? x.text : undefined));
+    // 판정 요청 카드는 현재 동작으로 쓴 문장으로 칸이 열린다
+    const 처음 = x?.kind !== 'CHECK' || x.basis === 'DOCS' ? undefined : x.basis === 'OBSERVED' ? x.observed?.proposal : x.text;
+    return 글 !== (고른.get(key)?.text ?? 처음);
   });
   const 안저장 = [...편집.keys()].filter((key) => 열쇠들.has(key)).length;
 
@@ -116,6 +119,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   const 확인 = (basis: 'SCREEN' | 'OTHER') => 탭항목.filter((x): x is 항목of<'CHECK'> => x.kind === 'CHECK' && x.basis === basis);
   const 화면기준 = 확인('SCREEN');
   const 그밖 = 확인('OTHER');
+  const 판정 = 탭항목.filter((x): x is 항목of<'CHECK'> => x.kind === 'CHECK' && x.basis === 'OBSERVED');
   const 항목그림 = (x: 결정항목) => {
     const 값 = 고른.get(x.key);
     switch (x.kind) {
@@ -181,11 +185,12 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
             ) : null}
           </>
         ) : (
-          // 명세 표 차례 — PRD 초안 → 화면 기준 → 기획서 간 불일치 → 그 밖의 확인 필요
+          // 명세 표 차례 — PRD 초안 → 화면 기준 → 기획서 간 불일치 → 판정 요청 카드 → 그 밖의 확인 필요
           <>
             {탭항목.filter((x) => x.kind === 'PRD_DRAFT').map(항목그림)}
             {화면기준.length === 0 ? null : <의도확인 줄들={화면기준} 화면기준 고른표={고른} on고름={on고름} 편집={편집} on편집={on편집} />}
             {탭항목.filter((x) => x.kind === 'CHECK' && x.basis === 'DOCS').map(항목그림)}
+            {판정.length === 0 ? null : <판정카드 줄들={판정} 고른표={고른} on고름={on고름} 편집={편집} on편집={on편집} />}
             {그밖.length === 0 ? null : <의도확인 줄들={그밖} 화면기준={false} 고른표={고른} on고름={on고름} 편집={편집} on편집={on편집} />}
           </>
         )}

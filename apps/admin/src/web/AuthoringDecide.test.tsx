@@ -38,7 +38,7 @@ vi.mock('./api.js', async () => {
 
 const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY', 'REJECT'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: 'https://github.com/x/pull/1', requestedByName: '맥시', finishedAt: null };
 const 화면확인 = (reqId: string): Extract<결정항목, { kind: 'CHECK' }> => ({
-  key: `check:${reqId}`, group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId, feature: '약관', text: `${reqId} 제목이 보인다`, checkSince: null, basis: 'SCREEN', options: [],
+  key: `check:${reqId}`, group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId, feature: '약관', text: `${reqId} 제목이 보인다`, checkSince: null, basis: 'SCREEN', options: [], observed: null,
 });
 const 바뀐요구: 결정항목 = {
   key: 'prd:1:2', group: 3, kind: 'PRD_CHANGED', picks: ['REDO'], blockedBy: null,
@@ -337,6 +337,33 @@ describe('결정 목록', () => {
     const 질문들 = [...container.querySelectorAll('.decide-q')].map((x) => x.textContent ?? '');
     expect(질문들.map((q) => q.slice(0, 8))).toEqual(['기획서에 없어서', '기획서 2개가 ']);
     expect(screen.getByRole('link', { name: 'DMW-REQ-349' }).getAttribute('href')).toBe('#/prd/DMW-REQ-349');
+  });
+
+  it('판정 요청 카드는 불일치 다음에 현재 동작과 본 곳을 보이고, [현재 동작으로 수정]은 AI 문장으로 칸을 열어 저장해야 · [기획서대로 확정]은 바로 들어간다', async () => {
+    const 카드 = (reqId: string, where: 'EXPLORE' | number): 결정항목 => ({
+      ...화면확인(reqId), basis: 'OBSERVED',
+      observed: { text: `${reqId} 받은 피해 6`, proposal: `${reqId} 혼자면 피해 0.5배`, where, build: '23', count: 3 },
+    });
+    const { container } = render(<AuthoringDecide service="ARG" 목록={목록([카드('ARG-REQ-350', 'EXPLORE'), 카드('ARG-REQ-412', 15402), 문구(), 화면확인('ARG-REQ-118')])} envs={[]} 다시읽기={() => {}} />);
+    const 질문들 = [...container.querySelectorAll('.decide-q')].map((x) => (x.textContent ?? '').slice(0, 8));
+    expect(질문들).toEqual(['기획서에 없어서', '기획서 2개가 ', '기획서가 정하지']);
+    expect(screen.getByText('· 탐색 플레이 · 빌드 23 · 3번 확인')).toBeTruthy();
+    expect(screen.getByText('· RUN 15402 · 빌드 23 · 3번 확인')).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole('button', { name: '현재 동작으로 수정' })[0]!);
+    const 칸 = screen.getByRole('textbox', { name: /수정할 요구사항/ }) as HTMLTextAreaElement;
+    expect(칸.value).toBe('ARG-REQ-350 혼자면 피해 0.5배');
+    expect(screen.getByText('저장하지 않은 수정 1건은 빠집니다')).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: '기획서대로 확정' })[1]!);
+    expect(적용().textContent).toBe('1건 적용');
+    fireEvent.click(within(칸.closest('.decide-edit') as HTMLElement).getByRole('button', { name: '저장' }));
+    expect(적용().textContent).toBe('2건 적용');
+    fireEvent.click(적용());
+    await waitFor(() => expect(보낸).toHaveLength(1));
+    expect(보낸[0]!.picks).toEqual([
+      { key: 'check:ARG-REQ-350', pick: 'EDIT', text: 'ARG-REQ-350 혼자면 피해 0.5배' },
+      { key: 'check:ARG-REQ-412', pick: 'SAME' },
+    ]);
   });
 
   it('고를 권한이 없는 불일치는 체크 칸 없이 원문만, 열린 작성 때문에 못 센 미검증 API 는 「#N 이 반영된 뒤에 셉니다」', () => {

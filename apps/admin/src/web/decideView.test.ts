@@ -9,10 +9,11 @@ import { 보낼것, 줄요청, 차례, 켜졌나, 탭of, 탭읽기, type 고른�
 
 const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY', 'REJECT'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: null, requestedByName: '맥시', finishedAt: null };
 const 실패: 결정항목 = { key: 'fail:7:DMW-FN-271', group: 2, kind: 'FAIL', picks: ['SCREEN', 'BUG'], blockedBy: null, runId: 7, tcId: 'DMW-FN-271', reqs: [{ reqId: 'DMW-REQ-088', text: '주문 취소' }], verify: null, reason: null, finishedAt: null };
-const 화면확인: 결정항목 = { key: 'check:DMW-REQ-349', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'DMW-REQ-349', feature: '약관', text: '제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] };
+const 화면확인: 결정항목 = { key: 'check:DMW-REQ-349', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'DMW-REQ-349', feature: '약관', text: '제목이 보인다', checkSince: null, basis: 'SCREEN', options: [], observed: null };
 const 문구: 결정항목 = {
   key: 'check:DMW-REQ-021', group: 2, kind: 'CHECK', picks: ['PICK', 'OWN'], blockedBy: null, reqId: 'DMW-REQ-021', feature: '로그인', text: '올바르지 않습니다', checkSince: null, basis: 'DOCS',
   options: [{ asset: '기능정리.docx', quote: '올바르지 않습니다' }, { asset: '화면설명메모.md', quote: '확인해 주세요' }],
+  observed: null,
 };
 const 바뀐요구: 결정항목 = { key: 'prd:1:2', group: 3, kind: 'PRD_CHANGED', picks: ['REDO'], blockedBy: null, needsApply: true, changed: null, added: null, removed: null, scenarios: [] };
 const 바뀐API: 결정항목 = { key: 'api:1:2', group: 3, kind: 'API_CHANGED', picks: ['REDO'], blockedBy: null, fromVersion: 1, toVersion: 2, operations: [{ method: 'GET', path: '/a', change: 'CHANGED', breaking: false }, { method: 'GET', path: '/b', change: 'REMOVED', breaking: true }] };

@@ -49,6 +49,34 @@ describe('항목검사', () => {
   });
 });
 
+describe('현재 동작 칸', () => {
+  const 본것 = { text: '혼자 던전에서 레벨 1 탱커가 임프에게 받은 피해 6', proposal: '혼자일 때 임프 피해는 6 이다', where: 'EXPLORE' as const, build: '23', count: 2 };
+  const 확인 = (덧: Partial<PrdItem> = {}) => 항목('MKT-REQ-001', { status: 'NEEDS_CHECK', ...덧 });
+
+  it('맞는 칸은 받고, 어디서 · 횟수 · 글이 틀리면 그 자리를 짚어 거절한다', () => {
+    expect(항목검사([확인({ observed: { ...본것, where: 412 } })], 'MKT')).toMatchObject({ items: [{ observed: { ...본것, where: 412 } }] });
+    expect(항목검사([확인({ observed: { ...본것, build: null } })], 'MKT')).toMatchObject({ items: [{ observed: { build: null } }] });
+    for (const 틀림 of [{ where: 0 }, { where: 'RUN' }, { count: 0 }, { proposal: '' }, { text: '가'.repeat(1001) }, { build: '' }]) {
+      expect(항목검사([{ ...확인(), observed: { ...본것, ...틀림 } }], 'MKT')).toEqual({ error: 'BAD_PRD', detail: '0.observed' });
+    }
+  });
+
+  it('사람 편집이 칸을 안 보내면 확인 필요인 동안 앞 판 것을 물려받고, 확정하면 뗀다', () => {
+    const 앞 = { version: 1, items: [{ ...확인({ observed: 본것 }), checkSince: 시각 }], lastNo: 1 };
+    const 그대로 = 사람판(앞, [확인()], 'MKT', 시각);
+    expect('error' in 그대로 ? null : 그대로.items[0]?.observed).toEqual(본것);
+    const 확정 = 사람판(앞, [항목('MKT-REQ-001', { observed: 본것 })], 'MKT', 시각);
+    expect('error' in 확정 ? null : 확정.items[0]).not.toHaveProperty('observed');
+  });
+
+  it('옮기기가 보낸 새 현재 동작은 앞 것을 덮는다', () => {
+    const 앞 = { version: 1, items: [{ ...확인({ observed: 본것 }), checkSince: 시각 }], lastNo: 1 };
+    const 새것값 = { ...본것, count: 3, build: '24' };
+    const r = 옮기기판(앞, 앞, [확인({ observed: 새것값 })], 'MKT', 시각);
+    expect('error' in r ? null : r.items[0]?.observed).toEqual(새것값);
+  });
+});
+
 describe('사람판', () => {
   const 앞 = { version: 3, lastNo: 5, items: [항목('MKT-REQ-001'), 항목('MKT-REQ-004', { status: 'NEEDS_CHECK', checkSince: '2026-10-01T00:00:00.000Z' })] };
 
