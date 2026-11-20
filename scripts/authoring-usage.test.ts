@@ -236,9 +236,12 @@ describe('사용량보고 — 자식이 끝나면 서버에 한 번 알린다', 
       return 답(200);
     });
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    await 사용량보고({ 주소기지: 'http://a', 토큰: 't' }, 'MKT', 1, 샘플, 샘플);
+    await 사용량보고({ 주소기지: 'http://a', 토큰: 't' }, 'MKT', 1, 샘플, [샘플]);
     expect(건것).toHaveLength(1);
     expect(건것[0]).toMatchObject({ input: 952 * 2, output: 475 * 2, partial: false });
+    // 게임 작성은 탐색 세션 · 크레딧 자식까지 앞 자식이 둘일 수 있다
+    await 사용량보고({ 주소기지: 'http://a', 토큰: 't' }, 'MKT', 1, 샘플, [샘플, 샘플]);
+    expect(건것[1]).toMatchObject({ input: 952 * 3, output: 475 * 3 });
   });
 
   it('끊긴 흐름은 비용·모델 칸을 빼고 partial 로 보낸다', async () => {

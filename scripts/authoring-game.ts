@@ -12,7 +12,11 @@ import { type 상태, 상태인가 } from './authoring-screens-keep.js';
 import { type 화면통로, 새로쓰기, 안전히읽기, 폴더인가 } from './authoring-screens-keep-io.js';
 
 /** 자료 폴더 안 자리 — 자식 지침(tpx-author references/game.md)과 프롬프트 절이 같은 이름을 쓴다 */
-export const 게임자리 = { 저장본: 'game-kept', 훑기: 'game-crawl', 지도: 'game-map.txt', 요소: 'game-elements.json', 맵: 'game-route.txt' } as const;
+export const 게임자리 = {
+  저장본: 'game-kept', 훑기: 'game-crawl', 지도: 'game-map.txt', 요소: 'game-elements.json', 맵: 'game-route.txt',
+  // 탐색 플레이 — 목표와 결과 · 이번 작성이 적은 맵 행(PUT game-route 본문) · 체크포인트를 지난 표시(결과 줄) (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
+  탐색: 'game-explore.json', 새맵행: 'game-route.json', 탐색지남: 'game-explore.done',
+} as const;
 
 const 기록상한 = 200_000;
 // 서버 game-elements 본문 상한(prd 통로와 같은 4MiB)보다 작게 — 넘으면 서버가 413 으로 돌려보낸다
@@ -30,6 +34,19 @@ function 받은창들(몸: unknown): (저장한창 & { 글: string; 훑은때: s
 }
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
+/** 지도 · 맵 글 하나를 받아 자료 폴더에 쓴다 — 못 받으면 까닭(작성은 간다) */
+export async function 글받기(통로: 화면통로, 자료: string, 길: 'game-map' | 'game-route', 자리: string): Promise<string | null> {
+  try {
+    const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/${길}`);
+    const 글 = (답.몸 as { text?: unknown } | null)?.text;
+    if (답.status !== 200 || typeof 글 !== 'string') return `서버 ${답.status}`;
+    새로쓰기(join(자료, 자리), 글);
+    return null;
+  } catch (e) {
+    return 까닭(e);
+  }
+}
 
 /**
  * 자식을 띄우기 전 — 창 기록 저장본(그 게임의 앱 줄)을 `game-kept/` 로, 게임 지도 글을 `game-map.txt` 로, 조작 맵 글을 `game-route.txt` 로 받는다.
@@ -59,14 +76,8 @@ export async function 게임준비(통로: 화면통로, 자료: string): Promis
   }
   // 조작 맵은 경로 검색 명령이 읽는다 — 못 받으면 맵이 빈 것과 같아 목표를 전부 폰에서 해 본다 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
   for (const [길, 무엇, 자리] of [['game-map', '게임 지도', 게임자리.지도], ['game-route', '조작 맵', 게임자리.맵]] as const) {
-    try {
-      const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/${길}`);
-      const 글 = (답.몸 as { text?: unknown } | null)?.text;
-      if (답.status === 200 && typeof 글 === 'string') 새로쓰기(join(자료, 자리), 글);
-      else 못받음(무엇, `서버 ${답.status}`);
-    } catch (e) {
-      못받음(무엇, 까닭(e));
-    }
+    const 왜 = await 글받기(통로, 자료, 길, 자리);
+    if (왜 !== null) 못받음(무엇, 왜);
   }
 }
 

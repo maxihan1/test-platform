@@ -15,7 +15,7 @@ import { type 팜, 끊겼나, 덤폰놓기, 덤폰잡기, 빈폰질의, 폰목�
 import {
   type 일, type 판정, 계정번호들, 끈묶음읽기, 끈묶음적기, 다음기록번호, 덤폰수, 묶음계정글, 묶음기록이름, 묶음짜기, 초록유지말, 판정말들, 폰고르기, 표본말, 혼자도나,
 } from './authoring-phone-split.js';
-import { type 폰갈래, PC환경, 앱줄주소, 윈도우값들, 차례짜기, 패드자리이름, 폰판정들, 폰환경 } from './authoring-run3-env.js';
+import { type 폰갈래, PC환경, 돌발팝업값, 앱줄주소, 윈도우값들, 차례짜기, 패드자리이름, 폰판정들, 폰환경 } from './authoring-run3-env.js';
 
 export type { 폰갈래 } from './authoring-run3-env.js';
 export { 앱줄주소, 폰판정들 } from './authoring-run3-env.js';
@@ -254,7 +254,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
           const 남은시간 = 예산 - (Date.now() - 시작);
           if (남은시간 <= 0) break;
           로그들.push(join(결과폴더, `${c.이름}.log`));
-          await 돌리기(트리, 결과폴더, c.이름, 폰차례(c.파일들, (f) => 데이터남기나(트리, f)), { ...폰환경(갈래, b.폰), ...(pc ? PC환경(c.값, PC게임!) : {}) }, 남은시간, 묶음env, c.값);
+          await 돌리기(트리, 결과폴더, c.이름, 폰차례(c.파일들, (f) => 데이터남기나(트리, f)), { ...폰환경(갈래, b.폰), PLATFORM_GAME_POPUPS: 갈래 === '게임' ? 돌발팝업값(env[게임자료환경]) : '', ...(pc ? PC환경(c.값, PC게임!) : {}) }, 남은시간, 묶음env, c.값);
         }
       }),
     );

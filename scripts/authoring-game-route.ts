@@ -1,5 +1,8 @@
 // 게임 조작 맵 경로 검색 — 작성 AI 가 맵 글(자료 폴더 game-route.txt)을 통째로 읽지 않고 목표까지의 차례만 받아 본다 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」 경로 검색)
-// 쓰는 법: npx tsx scripts/authoring-game-route.ts <자료 폴더> <목표 열쇠…> [--from <출발 열쇠>] — 폰 없이 파일만 읽는다. 「확인」 행으로만 길을 낸다
+// 쓰는 법: npx tsx scripts/authoring-game-route.ts <자료 폴더> <목표 열쇠…> [--from <출발 열쇠>] — 폰 없이 파일만 읽는다. 「확인」 행으로만 길을 낸다.
+// 이번 작성이 적은 행(game-route.json — 아직 안 올렸을 수 있다)도 같이 읽는다 — 탐색 플레이에서 찾은 길을 바로 다음 목표 · 케이스 작성이 쓴다 (GAME-F5-05)
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { 게임자리 } from './authoring-game.js';
@@ -51,6 +54,69 @@ export function 맵읽기(글: string): 맵행[] {
     행들.push({ kind, from: 칸들[0]!, action: 칸들[1]!, to: 칸들[2] ?? null, status, warning: 경고?.slice(2) ?? null, line });
   }
   return 행들;
+}
+
+const 상태글 = { OK: '확인', RECHECK: '재확인 필요', BLOCKED: '진행 불가' } as const;
+const 글칸 = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
+
+/** 이번 작성이 적은 행 한 줄 — 서버 맵 글(apps/admin/src/prd/gameRoute.ts 행줄)과 같은 꼴로 찍는다 */
+function 새행줄(x: Record<string, unknown>, status: 맵행['status']): string {
+  const 칸 = typeof x.fields === 'object' && x.fields !== null && !Array.isArray(x.fields) ? (x.fields as Record<string, unknown>) : {};
+  const { fn, ...나머지 } = 칸;
+  return [
+    [x.fromKey, x.action, x.toKey].map(글칸).filter((v) => v !== null).join(' → '),
+    status === 'BLOCKED' ? `${상태글.BLOCKED} — ${글칸(x.reason) ?? ''}` : 상태글[status],
+    글칸(x.buildNo) === null ? null : `빌드 ${String(x.buildNo)}`,
+    typeof x.durationMs === 'number' ? `소요 ${String(x.durationMs)}ms` : null,
+    글칸(x.helper) === null ? null : `도우미 ${String(x.helper)}`,
+    typeof fn === 'string' ? `함수 ${fn}` : null,
+    글칸(x.warning) === null ? null : `⚠ ${String(x.warning)}`,
+    Object.keys(나머지).length === 0 ? null : `칸 ${JSON.stringify(나머지)}`,
+  ]
+    .filter((v) => v !== null)
+    .join(' · ');
+}
+
+/**
+ * 맵 글의 행에 이번 작성이 적은 행(PUT game-route 본문 `{ rows, remove? }`)을 얹는다 — 같은 행(종류 · 출발 · 동작)은 새 행이 이기고 remove 는 뺀다.
+ * 서버 올리기(apps/admin/src/prd/gameRoute.ts 조작행넣기)와 같이 빌드를 안 실은 확인 행은 「재확인 필요」 행을 풀지 않는다 — 다시 해 본 것이 아니다.
+ * 꼴이 틀린 행은 건너뛴다(서버가 올릴 때 틀린 자리를 짚는다)
+ */
+export function 새행더하기(행들: 맵행[], 몸: unknown): 맵행[] {
+  const b = typeof 몸 === 'object' && 몸 !== null ? (몸 as { rows?: unknown; remove?: unknown }) : {};
+  const 들 = (v: unknown) => (Array.isArray(v) ? (v as unknown[]) : []).filter((x): x is Record<string, unknown> => typeof x === 'object' && x !== null);
+  const 열쇠 = (kind: unknown, from: unknown, action: unknown) => JSON.stringify([kind, from, action]);
+  const 재확인 = new Set(행들.filter((r) => r.status === 'RECHECK').map((r) => 열쇠(r.kind, r.from, r.action)));
+  const 새것: 맵행[] = [];
+  for (const x of 들(b.rows)) {
+    const kind = (종류들 as readonly unknown[]).includes(x.kind) ? (x.kind as 종류) : null;
+    const 온상태 = x.status === 'OK' || x.status === 'BLOCKED' ? x.status : null;
+    if (kind === null || 온상태 === null || 글칸(x.fromKey) === null || 글칸(x.action) === null) continue;
+    const status = 온상태 === 'OK' && 글칸(x.buildNo) === null && 재확인.has(열쇠(kind, x.fromKey, x.action)) ? 'RECHECK' : 온상태;
+    새것.push({ kind, from: x.fromKey as string, action: x.action as string, to: 글칸(x.toKey), status, warning: 글칸(x.warning), line: 새행줄(x, status) });
+  }
+  const 뺄 = new Set([...들(b.remove).map((x) => 열쇠(x.kind, x.fromKey, x.action)), ...새것.map((r) => 열쇠(r.kind, r.from, r.action))]);
+  return [...행들.filter((r) => !뺄.has(열쇠(r.kind, r.from, r.action))), ...새것];
+}
+
+// 서버 game-route 본문 상한(4MiB)과 같다 — 넘으면 자식이 고친 파일이다
+const 맵상한 = 4_000_000;
+
+/**
+ * 자료 폴더의 맵 — 받은 맵 글(game-route.txt)에 이번 작성이 적은 행(game-route.json)을 얹는다. 둘 다 없으면 null.
+ * 새 행 파일을 JSON 으로 못 읽으면 `틀림` 에 까닭을 싣고 받은 맵 글만 쓴다
+ */
+export function 맵행읽기(폴더: string): { 행들: 맵행[]; 틀림: string | null } | null {
+  const 글 = 안전히읽기(폴더, 게임자리.맵, 맵상한);
+  const 새글 = 안전히읽기(폴더, 게임자리.새맵행, 맵상한);
+  if (글 === null && 새글 === null) return null;
+  const 행들 = 맵읽기(글 ?? '');
+  if (새글 === null) return { 행들, 틀림: existsSync(join(폴더, 게임자리.새맵행)) ? `${게임자리.새맵행} 이 4MB 를 넘거나 일반 파일이 아니다` : null };
+  try {
+    return { 행들: 새행더하기(행들, JSON.parse(새글)), 틀림: null };
+  } catch {
+    return { 행들, 틀림: `${게임자리.새맵행} 을 JSON 으로 못 읽었다` };
+  }
 }
 
 const 상태조각 = (열쇠: string | null): string[] =>
@@ -181,38 +247,46 @@ export function 경로(행들: 맵행[], 목표: 목표, 출발: string): { 줄�
   return { 줄들, 다찾음 };
 }
 
-// 서버 game-route 본문 상한(4MiB)과 같다 — 넘으면 자식이 고친 파일이다
-const 맵상한 = 4_000_000;
+/** 목표 열쇠들을 상태 조각과 자리 하나로 — 비었거나 자리가 둘 이상이거나 같은 상태 이름에 값이 둘이면(레벨=1 · 레벨=2) null */
+export function 목표풀기(열쇠들: readonly string[]): 목표 | null {
+  const 자리들 = 열쇠들.filter((k) => !k.startsWith('state:'));
+  const 상태 = [...new Set(열쇠들.flatMap(상태조각))];
+  if ((상태.length === 0 && 자리들.length === 0) || 자리들.length > 1 || new Set(상태.map(이름)).size < 상태.length) return null;
+  return { 상태, 자리: 자리들[0] ?? null };
+}
+
+/** 출발 — 준 열쇠가 있으면 그것, 없으면 맵의 장면 첫 화면이 하나일 때만. 못 정하면 까닭 */
+export function 출발고르기(행들: 맵행[], 준것?: string): { 출발: string } | { 까닭: string } {
+  if (준것 !== undefined) return { 출발: 준것 };
+  const 첫화면들 = 장면첫화면들(행들);
+  if (첫화면들.length === 1) return { 출발: 첫화면들[0]! };
+  return { 까닭: `장면 첫 화면(game:<장면>)이 ${첫화면들.length === 0 ? '맵에 없다' : `여럿이다 — ${첫화면들.join(' · ')}`} — 로그인 직후 화면 열쇠를 출발로 준다` };
+}
+
 const 쓰는법 = '쓰는 법: npx tsx scripts/authoring-game-route.ts <자료 폴더> <목표 열쇠…> [--from <출발 열쇠>] — 목표 열쇠는 state:<이름>=<값>,… 와 창 · 구역 열쇠 하나';
 
 /** 0 길을 다 찾았다 · 1 길이 없는 목표가 있다(찾은 데까지 찍는다) · 2 부를 수 없다 */
 export function 실행(인자: string[]): number {
   const [폴더, ...나머지] = 인자;
   const 앞 = 나머지.indexOf('--from');
-  const 출발 = 앞 < 0 ? undefined : 나머지[앞 + 1];
-  const 열쇠들 = 나머지.filter((_, i) => 앞 < 0 || (i !== 앞 && i !== 앞 + 1));
-  const 자리들 = 열쇠들.filter((k) => !k.startsWith('state:'));
-  const 상태 = [...new Set(열쇠들.flatMap(상태조각))];
-  // 같은 이름에 값이 둘이면(레벨=1 · 레벨=2) 어느 쪽을 뜻했는지 모른다
-  const 이름겹침 = new Set(상태.map(이름)).size < 상태.length;
-  if (폴더 === undefined || (상태.length === 0 && 자리들.length === 0) || 자리들.length > 1 || 이름겹침 || (앞 >= 0 && 출발 === undefined)) {
+  const 준출발 = 앞 < 0 ? undefined : 나머지[앞 + 1];
+  const 목표 = 목표풀기(나머지.filter((_, i) => 앞 < 0 || (i !== 앞 && i !== 앞 + 1)));
+  if (폴더 === undefined || 목표 === null || (앞 >= 0 && 준출발 === undefined)) {
     console.error(쓰는법);
     return 2;
   }
-  const 글 = 안전히읽기(폴더, 게임자리.맵, 맵상한);
-  if (글 === null) {
+  const 맵 = 맵행읽기(폴더);
+  if (맵 === null) {
     console.error(`[경로 검색] ${폴더}/${게임자리.맵} 이 없다 — 에이전트가 조작 맵을 못 받았다. 목표를 폰에서 해 본다`);
     return 2;
   }
-  const 행들 = 맵읽기(글);
-  const 첫화면들 = 장면첫화면들(행들);
-  if (출발 === undefined && 첫화면들.length !== 1) {
-    console.error(
-      `[경로 검색] 장면 첫 화면(game:<장면>)이 ${첫화면들.length === 0 ? '맵에 없다' : `여럿이다 — ${첫화면들.join(' · ')}`} — 로그인 직후 화면 열쇠를 --from 으로 준다`,
-    );
+  if (맵.틀림 !== null) console.error(`[경로 검색] ${맵.틀림} — 이번 작성이 적은 행은 빼고 찾는다`);
+  const 출발 = 출발고르기(맵.행들, 준출발);
+  if ('까닭' in 출발) {
+    console.error(`[경로 검색] ${출발.까닭.replace('출발로 준다', '--from 으로 준다')}`);
     return 2;
   }
-  const { 줄들, 다찾음 } = 경로(행들, { 상태, 자리: 자리들[0] ?? null }, 출발 ?? 첫화면들[0]!);
+  const { 줄들, 다찾음 } = 경로(맵.행들, 목표, 출발.출발);
   console.log(줄들.join('\n'));
   return 다찾음 ? 0 : 1;
 }

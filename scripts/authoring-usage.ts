@@ -203,9 +203,10 @@ export async function 사용량보고(
   서비스: string,
   id: number,
   낸것: string,
-  앞낸것?: string,
+  /** 앞서 띄운 자식들의 출력(크레딧 자식 · 게임 탐색 세션) — 토큰을 다 더하고 글은 마지막 자식 것 */
+  앞낸것: readonly string[] = [],
 ): Promise<풀린흐름> {
-  const 풀린 = 앞낸것 === undefined ? 흐름풀기(낸것) : 흐름더하기(흐름풀기(앞낸것), 흐름풀기(낸것));
+  const 풀린 = [...앞낸것, 낸것].map(흐름풀기).reduce(흐름더하기);
   const { costUsd, model, ...나머지 } = 풀린.사용량;
   const 몸 = { ...나머지, ...(costUsd === null ? {} : { costUsd }), ...(model === null ? {} : { model }) };
   const 표 = `입력 ${나머지.input} · 출력 ${나머지.output} · 캐시 ${나머지.cacheRead + 나머지.cacheWrite}${나머지.partial ? ' (끊김 · 하한값)' : ''}`;
