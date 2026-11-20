@@ -252,6 +252,20 @@ describe('세션띄우기', () => {
     expect(existsSync(join(자료, 'game-explore.done'))).toBe(true);
   });
 
+  it('앱 갈래면 그 체크포인트 · 지남 표시 · 이름을 쓴다', async () => {
+    const 체크 = vi.fn(async () => ({ 줄: '앱 탐색: 목표 1개' }));
+    const 알린다 = vi.fn();
+    const 한번 = vi.fn(async () => ({ 돌린것: 결과('하나'), 크레딧으로: false, 앞낸것: null }));
+    await 세션띄우기({ ...판(한번), 알린다, 갈래: { 지남: 'app-explore.done', 체크포인트: 체크, 이름: '앱 탐색' } });
+    expect(체크).toHaveBeenCalledTimes(1);
+    expect(알린다).toHaveBeenCalledWith('앱 탐색 체크포인트를 지났다(앱 탐색: 목표 1개) — 케이스 작성은 새 세션으로 띄운다');
+    expect(한번.mock.calls[1]).toEqual([{ 번호: 7, 이유: 'EXPLORED', 까닭: null }, { 끝: '앱 탐색: 목표 1개' }]);
+    쓰기('app-explore.done', '앱 탐색: 목표 2개');
+    한번.mockClear();
+    await 세션띄우기({ ...판(한번), 갈래: { 지남: 'app-explore.done', 체크포인트: 체크, 이름: '앱 탐색' } });
+    expect(한번.mock.calls).toEqual([[undefined, { 끝: '앱 탐색: 목표 2개' }]]);
+  });
+
   it('이미 체크포인트를 지난 폴더(이어받음)면 탐색 세션을 건너뛰고 결과 줄을 넘긴다', async () => {
     쓰기('game-explore.done', '탐색 플레이: 목표 1개 — 경로 확보 1 · 진행 불가 0\n');
     const 한번 = vi.fn(async () => ({ 돌린것: 결과('케이스'), 크레딧으로: false, 앞낸것: null }));

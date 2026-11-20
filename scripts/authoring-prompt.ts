@@ -17,6 +17,7 @@ import { API절 } from './authoring-api.js';
 import { 지도자리 } from './authoring-screens-keep-io.js';
 import { type 입구, 옛입구, 종류이름 } from './authoring-kind.js';
 import { type 미션입력, 미션절 } from './authoring-missions.js';
+import { 앱탐색절 } from './authoring-app-explore.js';
 import type { 탐색단계 } from './authoring-explore.js';
 
 /**
@@ -95,7 +96,8 @@ export function 줄프롬프트(
     ...(반영 === undefined ? [] : 반영절(반영, 대상?.서버들)),
     ...(가이드 === undefined ? [] : 가이드절(가이드, 서비스)),
     ...(앱화면 === undefined ? [] : 앱화면.게임 === true ? 게임화면절(앱화면, 자료폴더) : 앱화면절(앱화면)),
-    ...(탐색 === undefined ? [] : 탐색절(탐색, 자료폴더)),
+    // 게임은 탐색 플레이, Android 앱은 crawl · 빈 곳 해 보기 (도메인/게임 §3.10 · 도메인/작성 §3.6 「★ 앱 탐색」)
+    ...(탐색 === undefined ? [] : 앱화면 !== undefined && 앱화면.게임 !== true ? 앱탐색절(탐색, 자료폴더) : 탐색절(탐색, 자료폴더)),
     ...(미션 === undefined ? [] : 미션절(미션, 서비스)),
     ...(것.api === undefined || 자료폴더 === undefined ? [] : API절(것.api, 자료폴더, 것.adminKey !== undefined)),
     // 에이전트가 자식 앞에 받아 둔다 — 받기 전에 앞 파일을 지우므로 비었거나 못 받았으면 파일이 없다 (§3.6 「서비스 지도」 · PRD-F14-05)
