@@ -138,7 +138,11 @@ export async function 앱맵올리기(통로: 화면통로, 자료: string, 비�
   if (계정섞였나(글자들(몸), 비밀)) return { 줄: '앱 조작 맵: 탐색 줄에 테스트 계정 비밀번호가 들어 있어 안 올림', 틀림: `${새맵줄이름} 에 테스트 계정 비밀번호가 들어 있다` };
   const 수 = (v: unknown) => (Array.isArray(v) ? v.length : 0);
   const 쓸빌드 = 올릴빌드(빌드);
-  const 빌드없는확인 = (r: unknown): r is Record<string, unknown> => typeof r === 'object' && r !== null && (r as Record<string, unknown>).status === 'OK' && (r as Record<string, unknown>).buildNo == null;
+  // 빈 글 빌드는 서버가 빈칸으로 읽어 「다시 확인」을 못 푼다 — 없는 것으로 친다
+  const 빌드없는확인 = (r: unknown): r is Record<string, unknown> => {
+    const 줄 = typeof r === 'object' && r !== null ? (r as Record<string, unknown>) : null;
+    return 줄 !== null && 줄.status === 'OK' && (typeof 줄.buildNo !== 'string' || 줄.buildNo.trim() === '');
+  };
   const 단수 = 쓸빌드 === undefined || !Array.isArray(몸.rows) ? 0 : 몸.rows.filter(빌드없는확인).length;
   if (단수 > 0) 몸 = { ...몸, rows: (몸.rows as unknown[]).map((r) => (빌드없는확인(r) ? { ...r, buildNo: 쓸빌드 } : r)) };
   try {
