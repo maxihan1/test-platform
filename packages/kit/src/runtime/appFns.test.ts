@@ -18,27 +18,34 @@ let 서버: Server;
 let 주소 = 0;
 
 beforeAll(async () => {
-  // 「~없음」만 못 찾고 「~가려진」 요소(e2)는 찾아도 누르기가 실패하는 가짜 Appium
+  // 「~없음」은 못 찾고, 「~가려진」(e2)은 찾아도 누르기 · 손짓이 실패하고, 「~사라진」(e4)은 누르면 stale, 「~늦게」(e3)는 두 번째 찾기부터 뜨는 가짜 Appium
+  let 늦게찾기 = 0;
   서버 = createServer((req, res) => {
     let 몸 = '';
     req.on('data', (c: Buffer) => (몸 += c.toString()));
     req.on('end', () => {
       const url = req.url ?? '';
       res.setHeader('content-type', 'application/json');
-      if (url.endsWith('/element') && 몸.includes('없음')) {
+      const 늦음 = url.endsWith('/element') && 몸.includes('늦게') && 늦게찾기++ === 0;
+      if (url.endsWith('/element') && (몸.includes('없음') || 늦음)) {
         res.writeHead(404);
         res.end(JSON.stringify({ value: { error: 'no such element', message: '없음', stacktrace: '' } }));
         return;
       }
-      if (url.endsWith('/element/e2/click')) {
+      if (url.endsWith('/element/e2/click') || (url.endsWith('/execute/sync') && 몸.includes('e2'))) {
         res.writeHead(400);
         res.end(JSON.stringify({ value: { error: 'element click intercepted', message: '다른 창에 가려졌다', stacktrace: '' } }));
         return;
       }
+      if (url.endsWith('/element/e4/click')) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ value: { error: 'stale element reference', message: '화면에서 사라졌다', stacktrace: '' } }));
+        return;
+      }
       const value =
         url === '/session' ? { sessionId: 's1', capabilities: { platformName: 'Android' } }
-        : url.endsWith('/elements') ? []
-        : url.endsWith('/element') ? { [W3C요소]: 몸.includes('가려진') ? 'e2' : 'e1' }
+        : url.endsWith('/elements') ? (몸.includes('늦게') ? [{ [W3C요소]: 'e3' }] : [])
+        : url.endsWith('/element') ? { [W3C요소]: 몸.includes('가려진') ? 'e2' : 몸.includes('늦게') ? 'e3' : 몸.includes('사라진') ? 'e4' : 'e1' }
         : url.endsWith('/text') ? '알림 3'
         : null;
       res.end(JSON.stringify({ value }));
@@ -105,6 +112,30 @@ describe('앱 명령마다 함수 이름을 적는다', () => {
       await new 홈화면(driver).가려진것삼키고닫기();
     });
     expect(emitted[0]).toMatchObject({ status: 'PASS', gameFns: ['홈화면.열기'] });
+  });
+
+  it('부른 순간 아직 없던 요소도 누르기가 기다렸다가 되면 지난 것으로 센다 — WebdriverIO 가 기다리며 부르는 $$ 가 찾는다', async () => {
+    const driver = await 폰();
+    const { run, emitted } = makeRun();
+    await runStep(run, '늦게 뜨는 버튼을 누른다', () => new 홈화면(driver).늦게뜬것누르기());
+    expect(emitted[0]).toMatchObject({ status: 'PASS', gameFns: ['홈화면.늦게뜬것누르기'] });
+  });
+
+  it('하위 요소 · 손짓 명령의 실패를 삼켜도 그 요소를 찾은 맨 안쪽 함수만 빠지고, 부른 바깥 함수는 남는다', async () => {
+    const driver = await 폰();
+    const { run, emitted } = makeRun();
+    await runStep(run, '목록 안 가려진 항목을 눌러 본다', () => new 홈화면(driver).목록에서눌러보기());
+    await runStep(run, '가려진 버튼을 손짓으로 눌러 본다', () => new 홈화면(driver).손짓으로눌러보기());
+    expect(emitted[0]).toMatchObject({ status: 'PASS', gameFns: ['홈화면.목록에서눌러보기'] });
+    expect(emitted[1]).toMatchObject({ status: 'PASS' });
+    expect(emitted[1]).not.toHaveProperty('gameFns');
+  });
+
+  it('stale element 실패는 WebdriverIO 가 스스로 다시 찾는 실패라 빼지 않는다 — 사라지기를 기다리는 함수가 빠지지 않게', async () => {
+    const driver = await 폰();
+    const { run, emitted } = makeRun();
+    await runStep(run, '사라진 버튼을 눌러 본다', () => new 홈화면(driver).사라진것눌러보기());
+    expect(emitted[0]).toMatchObject({ status: 'PASS', gameFns: ['홈화면.사라진것눌러보기'] });
   });
 
   it('waitUntil 에 문구를 줬어도 시간이 넘었으면 오류 머리에 「waitUntil condition timed out」이 붙는다 — 실패 유형이 타임아웃이 되게', async () => {
