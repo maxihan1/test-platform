@@ -1,5 +1,5 @@
 // 조작 맵 — 작성 에이전트가 올리는 조작 행과 경로 검색 명령이 읽는 맵 글 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」 · §7 game-route)
-// 맵은 「어떻게 가나」만 담는다 — 기대값 근거가 아니다. 「재확인 필요」는 정식 실행만 단다(GAME-F5-06)
+// 맵은 「어떻게 가나」만 담는다 — 기대값 근거가 아니다. 「재확인 필요」는 정식 실행만 단다(아래 실행이맵을고친다 — GAME-F5-06)
 
 import type { GamePopup } from '@platform/kit';
 
@@ -197,13 +197,39 @@ export function 맵글짓기(행들: 읽은행[]): string {
   return [`# 조작 맵 — 행 ${String(행들.length)}개. 「어떻게 가나」만 담는다 — 기대값의 근거가 아니다`, '', ...묶음].join('\n').trimEnd() + '\n';
 }
 
+/** 맵 행을 읽거나 고치는 손 — 실행을 만들거나 항목을 닫는 트랜잭션 안이면 그 연결을 넘긴다(풀에서 둘째 연결을 기다리며 서로 막히지 않게) */
+type 읽는손 = { query: Awaited<ReturnType<typeof db>>['query'] };
+
+// 행의 함수 칸 · 도우미 칸은 「던전화면.공격()」처럼 괄호를 달아 적기도 한다 — 괄호 앞까지만 견준다. 실행 기록의 이름은 괄호가 없다
+const 함수가맞는행 = `(btrim(split_part(fields->>'fn', '(', 1)) = ANY($2::text[]) OR btrim(split_part(helper, '(', 1)) = ANY($2::text[]))`;
+
+/**
+ * 정식 실행 항목 하나가 맵을 고친다 — 통과한 항목이 지난 행에 그 빌드를 적고, 조작이 실패한 동작의 행을 「재확인 필요」로 바꾼다 (도메인/게임 §3.10 결정 32).
+ * 행은 함수 이름으로 맞춘다(2026-11-20 GAME-F5-06 시작 질문) — 함수 칸도 도우미 칸도 빈 행은 못 고친다.
+ * 둘 다 「확인」 행만 고친다 — 통과는 「재확인 필요」를 풀지 못해(푸는 쪽은 폰에서 다시 해 본 작성이다) 같은 실행에서 통과와 실패가 엇갈려도 항목이 끝난 차례와 상관없이 「재확인 필요」가 남는다
+ */
+export async function 실행이맵을고친다(손: 읽는손, 서비스: number, 빌드: string | null, 지난: string[], 실패: string[]): Promise<{ 빌드적음: number; 재확인: number }> {
+  const 재확인 =
+    실패.length === 0
+      ? 0
+      : ((await 손.query(`UPDATE game_route SET status = 'RECHECK', updated_at = now() WHERE service_id = $1 AND status = 'OK' AND ${함수가맞는행}`, [서비스, 실패])).rowCount ?? 0);
+  // 빌드 목록에 없는 앱으로 돈 실행은 빌드 번호가 없어 적을 것이 없다
+  const 빌드적음 =
+    빌드 === null || 지난.length === 0
+      ? 0
+      : ((
+          await 손.query(
+            `UPDATE game_route SET build_no = $3, updated_at = now() WHERE service_id = $1 AND status = 'OK' AND build_no IS DISTINCT FROM $3 AND ${함수가맞는행}`,
+            [서비스, 지난, 빌드],
+          )
+        ).rowCount ?? 0);
+  return { 빌드적음, 재확인 };
+}
+
 // 러너 요청 검사와 같은 한도 — 넘으면 러너가 요청을 400 으로 거절해 그 실행의 게임 항목이 다 못 선다 (apps/runner/src/schema.ts 돌발팝업상한)
 const 팝업상한 = { 줄: 100, 글: 200 } as const;
 // 올리기 검사(가르개)는 줄바꿈 · NUL 만 막아 탭 같은 제어 문자가 든 행이 저장될 수 있다 — 그 행만 빼고 싣는다
 const 실을주소 = (v: string): boolean => v.length <= 팝업상한.글 && ![...v].some((c) => c < ' ');
-
-/** 맵 행을 읽는 손 — 실행을 만드는 트랜잭션 안이면 그 연결을 넘긴다(풀에서 둘째 연결을 기다리며 서로 막히지 않게) */
-type 읽는손 = { query: Awaited<ReturnType<typeof db>>['query'] };
 
 /**
  * 실행 요청에 싣는 돌발 팝업 — 「확인」 POPUP 행만. 창 열쇠(game:<장면>/<창 경로>)는 장면 머리를 떼 게임 드라이버가 찾는 주소로 바꾸고, 동작 칸은 닫을 때 누르는 주소다.
