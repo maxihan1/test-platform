@@ -27,9 +27,9 @@ export type 지울행 = Pick<조작행, 'kind' | 'fromKey' | 'action'>;
 
 // 2026-11-19 GAME-F5-02 시작 질문 — 글 · 칸 한도는 게임 지도와 같고, 줄 수는 탐색 플레이 한 번에 2,000행을 넘을 일이 없어 그보다 작다
 const 상한 = { 줄: 2_000, 열쇠: 200, 글: 500, 칸: 10_000, 빌드: 100, 소요: 86_400_000 } as const;
-// 경로 검색 명령이 맵 글을 한 줄씩 「 · 」 「 → 」로 잘라 읽는다 — 글 칸에 이것들이 들면 칸이 갈린다.
-// 앞뒤 빈칸 · 끝의 「·」 「→」 는 이어 붙일 때 가르개가 되고, NUL 은 jsonb 가 받지 않아 500 이 된다
-const 가르개 = /\n|\r|\u0000| · | → |^[·→]|[·→]$/;
+// 맵 글은 한 행 한 줄이라 줄바꿈을 못 넣고, NUL 은 jsonb 가 받지 않아 500 이 된다.
+// 「 · 」 「 → 」는 받는다 — 게임 오브젝트 이름에 들기도 해서(BRM 「친구 · 파티」 창) 맵 글에서 따옴표로 감싼다(아래 칸글)
+const 가르개 = /\n|\r|\u0000/;
 
 const 틀림 = (detail: string) => ({ error: 'BAD_ROUTE', detail }) as const;
 const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
@@ -177,17 +177,23 @@ export interface 읽은행 {
   warning: string | null; fields: Record<string, unknown> | null; status: 상태; reason: string | null; build_no: string | null;
 }
 
-/** 한 행 한 줄 — 앞은 「출발 → 동작 → 도착」, 뒤는 「이름 값」 칸을 「 · 」로 잇고 칸(JSON)은 맨 끝에 둔다(경로 검색이 남은 줄을 통째로 JSON 으로 읽는다) */
+/**
+ * 맵 글의 글 칸 하나 — 칸을 잇는 「 · 」 「 → 」나 따옴표가 들었거나 처음 · 끝이 「·」 「→」(이어 붙이면 「 · 」가 된다)면 JSON 글로 감싼다.
+ * 경로 검색은 따옴표 안을 자르지 않는다(scripts/authoring-game-route.ts 자르기). 그 밖의 글은 지금 꼴 그대로다
+ */
+const 칸글 = (v: string): string => (/ · | → |"|^[·→]|[·→]$/.test(v) ? JSON.stringify(v) : v);
+
+/** 한 행 한 줄 — 앞은 「출발 → 동작 → 도착」, 뒤는 「이름 값」 칸을 「 · 」로 잇고 칸(JSON)은 맨 끝에 둔다 */
 function 행줄(x: 읽은행): string {
   const { fn, ...나머지 } = x.fields ?? {};
   return [
-    `- ${[x.from_key, x.action, x.to_key].filter((v) => v !== null).join(' → ')}`,
-    x.status === 'BLOCKED' ? `${상태글.BLOCKED} — ${x.reason ?? ''}` : 상태글[x.status],
-    x.build_no === null ? null : `빌드 ${x.build_no}`,
+    `- ${[x.from_key, x.action, x.to_key].filter((v) => v !== null).map(칸글).join(' → ')}`,
+    x.status === 'BLOCKED' ? `${상태글.BLOCKED} — ${칸글(x.reason ?? '')}` : 상태글[x.status],
+    x.build_no === null ? null : `빌드 ${칸글(x.build_no)}`,
     x.duration_ms === null ? null : `소요 ${String(x.duration_ms)}ms`,
-    x.helper === null ? null : `도우미 ${x.helper}`,
-    typeof fn === 'string' ? `함수 ${fn}` : null,
-    x.warning === null ? null : `⚠ ${x.warning}`,
+    x.helper === null ? null : `도우미 ${칸글(x.helper)}`,
+    typeof fn === 'string' ? `함수 ${칸글(fn)}` : null,
+    x.warning === null ? null : `⚠ ${칸글(x.warning)}`,
     Object.keys(나머지).length === 0 ? null : `칸 ${JSON.stringify(나머지)}`,
   ]
     .filter((v) => v !== null)

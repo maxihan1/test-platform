@@ -58,6 +58,85 @@ describe('맵읽기', () => {
   });
 });
 
+describe('이름에 「 · 」 「 → 」가 든 글 칸', () => {
+  const 친구창 = 'game:CharSelect/Showcase HUD/Window 친구 · 파티';
+  const 들 = 작은맵([
+    행({ kind: 'MOVE', from_key: 'game:CharSelect', action: '친구 버튼', to_key: 친구창 }),
+    행({ kind: 'MOVE', from_key: 친구창, action: '「닫기 → 확인」 누르기', to_key: 'game:CharSelect', warning: '열려 있으면 · 먼저 닫는다', helper: 'ui.tap · 두 번' }),
+    행({ kind: 'MOVE', from_key: 'zone:A', action: '"OK" 누르기 ·', to_key: 'zone:B', status: 'BLOCKED', reason: '버튼이 · 안 보인다', fields: { fn: '창.닫기 · 둘' } }),
+  ]);
+
+  it('서버가 따옴표로 감싸 적고 경로 검색이 그대로 풀어 읽는다', () => {
+    expect(들.map((r) => [r.from, r.action, r.to, r.status, r.warning])).toEqual([
+      ['game:CharSelect', '친구 버튼', 친구창, 'OK', null],
+      [친구창, '「닫기 → 확인」 누르기', 'game:CharSelect', 'OK', '열려 있으면 · 먼저 닫는다'],
+      ['zone:A', '"OK" 누르기 ·', 'zone:B', 'BLOCKED', null],
+    ]);
+    expect(들[1]?.line).toBe(`"${친구창}" → "「닫기 → 확인」 누르기" → game:CharSelect · 확인 · 도우미 "ui.tap · 두 번" · ⚠ "열려 있으면 · 먼저 닫는다"`);
+    expect(들[2]?.line).toBe('zone:A → "\\"OK\\" 누르기 ·" → zone:B · 진행 불가 — "버튼이 · 안 보인다" · 함수 "창.닫기 · 둘"');
+  });
+
+  it('그 창으로 길을 내고, 이번 작성이 적은 행도 서버 맵 글과 같은 꼴로 찍는다', () => {
+    const { 줄들, 다찾음 } = 경로(들, { 상태: [], 자리: 친구창 }, 'game:CharSelect');
+    expect(다찾음).toBe(true);
+    expect(줄들[1]).toBe(`1. [이동 · 조작] game:CharSelect → 친구 버튼 → "${친구창}" · 확인`);
+    const 얹은 = 새행더하기([], { rows: [{ kind: 'MOVE', fromKey: 친구창, action: '「닫기 → 확인」 누르기', toKey: 'game:CharSelect', status: 'OK', warning: '열려 있으면 · 먼저 닫는다', helper: 'ui.tap · 두 번' }] });
+    expect(얹은[0]?.line).toBe(들[1]?.line);
+  });
+});
+
+describe('계정이 정해진 상태 설정 행', () => {
+  const 로그인 = (계정: string, action: string) => 행({ kind: 'MOVE', from_key: 'game:Login', action, to_key: 'game:Lobby', fields: { 계정 } });
+  const 기본 = [
+    로그인('두 번째 플레이어', '두 번째 플레이어 로그인'),
+    로그인('일반 회원', '일반 회원 로그인'),
+    행({ kind: 'SETUP', from_key: 'game:Lobby', action: '파티 초대 받기', to_key: 'state:파티=2', fields: { 계정: '두 번째 플레이어' } }),
+    행({ kind: 'SETUP', from_key: 'game:Lobby', action: '/gm level 1', to_key: 'state:레벨=1' }),
+  ];
+
+  it('로그인 화면에서 출발하면 그 계정의 로그인 걸음을 고른다', () => {
+    const { 줄들, 다찾음 } = 경로(작은맵(기본), { 상태: ['파티=2'], 자리: null }, 'game:Login');
+    expect(다찾음).toBe(true);
+    expect(줄들.slice(1)).toEqual([
+      '1. [이동 · 조작] game:Login → 두 번째 플레이어 로그인 → game:Lobby · 확인 · 칸 {"계정":"두 번째 플레이어"}',
+      '2. [상태 설정] game:Lobby → 파티 초대 받기 → state:파티=2 · 확인 · 칸 {"계정":"두 번째 플레이어"}',
+    ]);
+  });
+
+  it('계정이 없는 상태 설정 행은 맵에서 앞에 있는 다른 계정 로그인 말고 일반 회원 로그인 걸음을 고른다', () => {
+    expect(경로(작은맵(기본), { 상태: ['레벨=1'], 자리: null }, 'game:Login').줄들[1]).toContain('일반 회원 로그인');
+  });
+
+  it('다른 계정 행을 먼저 치고, 계정이 없는 행과 목표 자리는 일반 회원으로 다시 들어와 한다', () => {
+    const 로그아웃 = 행({ kind: 'MOVE', from_key: 'game:Lobby', action: '로그아웃', to_key: 'game:Login' });
+    const 상점 = 행({ kind: 'MOVE', from_key: 'game:Lobby', action: '상점 버튼', to_key: 'game:Lobby/Shop' });
+    const { 줄들, 다찾음 } = 경로(작은맵([...기본, 로그아웃, 상점]), { 상태: ['레벨=1', '파티=2'], 자리: 'game:Lobby/Shop' }, 'game:Lobby');
+    expect(다찾음).toBe(true);
+    expect(줄들.slice(1).map((x) => x.replace(/ · 확인.*$/, ''))).toEqual([
+      '1. [이동 · 조작] game:Lobby → 로그아웃 → game:Login',
+      '2. [이동 · 조작] game:Login → 두 번째 플레이어 로그인 → game:Lobby',
+      '3. [상태 설정] game:Lobby → 파티 초대 받기 → state:파티=2',
+      '4. [이동 · 조작] game:Lobby → 로그아웃 → game:Login',
+      '5. [이동 · 조작] game:Login → 일반 회원 로그인 → game:Lobby',
+      '6. [상태 설정] game:Lobby → /gm level 1 → state:레벨=1',
+      '7. [이동 · 조작] game:Lobby → 상점 버튼 → game:Lobby/Shop',
+    ]);
+  });
+
+  it('일반 회원으로 로비에 있으면 로그아웃해 그 계정으로 다시 들어오고, 그 길이 없으면 길 없음이다', () => {
+    const 로그아웃 = 행({ kind: 'MOVE', from_key: 'game:Lobby', action: '로그아웃', to_key: 'game:Login' });
+    const 있음 = 경로(작은맵([...기본, 로그아웃]), { 상태: ['파티=2'], 자리: null }, 'game:Lobby');
+    expect(있음.다찾음).toBe(true);
+    expect(있음.줄들.slice(1, 3)).toEqual([
+      '1. [이동 · 조작] game:Lobby → 로그아웃 → game:Login · 확인',
+      '2. [이동 · 조작] game:Login → 두 번째 플레이어 로그인 → game:Lobby · 확인 · 칸 {"계정":"두 번째 플레이어"}',
+    ]);
+    const 없음 = 경로(작은맵(기본), { 상태: ['파티=2'], 자리: null }, 'game:Lobby');
+    expect(없음.다찾음).toBe(false);
+    expect(없음.줄들[1]).toBe('길 없음: game:Lobby (상태 설정 「파티 초대 받기」 을 치는 자리 — 「두 번째 플레이어」 계정으로 로그인하는 길이 없다) — 폰에서 해 볼 목표다');
+  });
+});
+
 describe('경로', () => {
   it('상태 설정 → 순간이동 → 이동 차례를 찍고 경고 달린 설정을 먼저 친다', () => {
     const { 줄들, 다찾음 } = 경로(행들, { 상태: ['레벨=1', '직업=탱커', '인원=1', '몬스터 없음'], 자리: 'zone:Dungeon/ImpRoom' }, 'game:Main');
@@ -235,7 +314,7 @@ describe('새행더하기 — 이번 작성이 적은 행(game-route.json)을 �
     });
     expect(얹은).toHaveLength(행들.length - 1);
     expect(얹은.find((r) => r.action === '상점 버튼')).toEqual({
-      kind: 'MOVE', from: 'game:Main', action: '상점 버튼', to: 'game:Main/Canvas/Shop', status: 'OK', warning: null,
+      kind: 'MOVE', from: 'game:Main', action: '상점 버튼', to: 'game:Main/Canvas/Shop', status: 'OK', warning: null, account: null,
       line: 'game:Main → 상점 버튼 → game:Main/Canvas/Shop · 확인 · 빌드 16 · 소요 800ms · 함수 상점.열기() · 칸 {"진행값":"없음"}',
     });
     expect(얹은.find((r) => r.from === 'zone:Raid')?.line).toBe('zone:Raid → 레이드 들어가기 · 진행 불가 — 두 번째 계정 없음');

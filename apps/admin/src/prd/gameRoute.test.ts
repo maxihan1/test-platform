@@ -37,14 +37,11 @@ describe('조작 맵 본문 검사', () => {
     expect(조작행검사({ rows: Array.from({ length: 2_001 }, (_, i) => ({ ...몰살, action: `동작 ${String(i)}` })) })).toEqual({ error: 'BAD_ROUTE', detail: 'rows' });
   });
 
-  it('맵 글을 한 줄씩 자르는 가르개(줄바꿈 · 「 · 」 · 「 → 」)는 글 칸에 못 넣는다', () => {
+  it('맵 글은 한 행 한 줄이라 줄바꿈 · 앞뒤 빈칸은 못 넣고, 「 · 」 「 → 」는 받는다(맵 글에서 따옴표로 감싼다)', () => {
     expect(조작행검사({ rows: [{ ...몰살, action: '/gm killall\n/gm level 1' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.action' });
-    expect(조작행검사({ rows: [{ ...몰살, warning: '레벨이 오른다 · 먼저' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.warning' });
-    expect(조작행검사({ rows: [공격] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.action' });
-    expect(조작행검사({ rows: [{ ...공격, action: '적 누르기→공격' }] })).not.toHaveProperty('error');
     expect(조작행검사({ rows: [{ ...몰살, fromKey: 'zone:Town ' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.fromKey' });
-    expect(조작행검사({ rows: [{ ...몰살, action: '누르기 ·' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.action' });
-    expect(조작행검사({ rows: [{ ...몰살, toKey: '→ zone:Town' }] })).toEqual({ error: 'BAD_ROUTE', detail: 'rows.0.toKey' });
+    expect(조작행검사({ rows: [공격] })).not.toHaveProperty('error');
+    expect(조작행검사({ rows: [{ ...몰살, fromKey: 'game:Lobby/Window 친구 · 파티', warning: '레벨이 오른다 · 먼저', toKey: '→ zone:Town' }] })).not.toHaveProperty('error');
   });
 
   it('NUL 이 든 글 · 칸은 500 이 아니라 그 자리로 돌려준다', () => {

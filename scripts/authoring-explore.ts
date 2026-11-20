@@ -132,8 +132,8 @@ export function 병합팝업(새글: string | null, 비밀: readonly string[]): 
   return { 줄: `병합하면 올릴 돌발 팝업 행 ${String(실을.length)} — ${창들.slice(0, 20).join(', ')}${창들.length > 20 ? ` 외 ${String(창들.length - 20)}개` : ''}${꼬리}`, 행들: 실을 };
 }
 
-// 서버 조작 맵 글 칸 규칙(apps/admin/src/prd/gameRoute.ts 글인가 · 가르개)과 같다 — 경로 검색이 맵 글을 「 · 」 「 → 」로 잘라 읽는다
-const 팝업글인가 = (v: unknown): v is string => typeof v === 'string' && v.trim() === v && v !== '' && v.length <= 200 && !/\n|\r|\u0000| · | → |^[·→]|[·→]$/.test(v);
+// 서버 조작 맵 글 칸 규칙(apps/admin/src/prd/gameRoute.ts 글인가 · 가르개)과 같다 — 한 행 한 줄이라 줄바꿈이 못 들고 NUL 은 jsonb 가 받지 않는다
+const 팝업글인가 = (v: unknown): v is string => typeof v === 'string' && v.trim() === v && v !== '' && v.length <= 200 && !/\n|\r|\u0000/.test(v);
 
 /** 자료 폴더의 game-route.json 에서 — 탐색끝줄과 끝 보고가 같이 읽는다 */
 export const 병합팝업행 = (자료: string, 비밀: readonly string[]) => 병합팝업(안전히읽기(자료, 게임자리.새맵행, 4_000_000), 비밀);
