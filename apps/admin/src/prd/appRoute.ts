@@ -202,3 +202,32 @@ export function 앱맵글짓기(줄들: 읽은줄[]): string {
   });
   return [`# 앱 조작 맵 — 줄 ${String(줄들.length)}개. 「어떻게 가나」만 담는다 — 기대값의 근거가 아니다`, '', ...묶음].join('\n').trimEnd() + '\n';
 }
+
+/** 맵 줄을 고치는 손 — 항목을 닫는 트랜잭션 안의 연결을 넘긴다(풀에서 둘째 연결을 기다리며 서로 막히지 않게) */
+type 쓰는손 = { query: Awaited<ReturnType<typeof db>>['query'] };
+
+// 줄의 함수 칸 · 도우미 칸은 「홈화면.알림열기()」처럼 괄호를 달아 적기도 한다 — 괄호 앞까지만 견준다. 실행 기록의 이름은 괄호가 없다
+const 함수가맞는줄 = `(btrim(split_part(fields->>'fn', '(', 1)) = ANY($2::text[]) OR btrim(split_part(helper, '(', 1)) = ANY($2::text[]))`;
+
+/**
+ * 정식 실행 항목 하나가 앱 조작 맵을 고친다 — 통과한 항목이 지난 줄에 그 빌드를 적고, 조작이 실패한 동작의 줄을 「다시 확인」으로 바꾼다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 10).
+ * 줄은 함수 이름으로 맞춘다(2026-11-20 APP-F4-09 시작 질문 — 게임 조작 맵과 같은 규칙, 코드는 결정 6 대로 따로). 함수 칸도 도우미 칸도 빈 줄(crawl 이 올린 이동 · API)은 못 고친다.
+ * 둘 다 「확인」 줄만 고친다 — 통과는 「다시 확인」을 풀지 못한다. 푸는 쪽은 폰에서 다시 해 보고 빌드를 실어 올린 작성이다(§7 PUT)
+ */
+export async function 실행이앱맵을고친다(손: 쓰는손, 서비스: number, 빌드: string | null, 지난: string[], 실패: string[]): Promise<{ 빌드적음: number; 다시확인: number }> {
+  const 다시확인 =
+    실패.length === 0
+      ? 0
+      : ((await 손.query(`UPDATE app_route SET status = 'RECHECK', updated_at = now() WHERE service_id = $1 AND status = 'OK' AND ${함수가맞는줄}`, [서비스, 실패])).rowCount ?? 0);
+  // 빌드 목록에 없는 앱으로 돈 실행은 빌드 번호가 없어 적을 것이 없다
+  const 빌드적음 =
+    빌드 === null || 지난.length === 0
+      ? 0
+      : ((
+          await 손.query(
+            `UPDATE app_route SET build_no = $3, updated_at = now() WHERE service_id = $1 AND status = 'OK' AND build_no IS DISTINCT FROM $3 AND ${함수가맞는줄}`,
+            [서비스, 지난, 빌드],
+          )
+        ).rowCount ?? 0);
+  return { 빌드적음, 다시확인 };
+}
