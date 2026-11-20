@@ -3,6 +3,7 @@
 import type { DeviceInfo, ElementCheck, FpsSample, ItemStatus, Platform } from '@platform/kit';
 
 import { BTS카드칸들, type BTS카드칸 } from '../bts/card.js';
+import { 카드자동수정중들, type 카드자동수정중 } from '../bts/gameFixView.js';
 import { 자동수정실행빼기, 카드자동수정들, type 카드자동수정 } from '../bts/testFixView.js';
 import { 팜증적목록, type 팜파일 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
@@ -41,6 +42,8 @@ export interface FailureCase {
   bts?: BTS카드칸 | null;
   /** Issue Bunker 「테스트 수정」으로 고쳐 다시 실행에서 통과한 카드 — 「수정 후 통과」 (도메인/BTS §7 · §8.15 「자동 수정 표시」 B) */
   autoFix: 카드자동수정 | null;
+  /** 게임 실패 자동 수정이 도는 중이거나 통과 못 하고 끝난 카드 — 카드는 실패 그대로다 (도메인/게임 §3.10 「실패 자동 수정」 7) */
+  autoFixing: 카드자동수정중 | null;
 }
 
 export interface FailureCards {
@@ -79,7 +82,7 @@ const 실패행들SQL = `
 
 export async function 실패카드(runId: number, page: number, platform?: Platform, 자동수정만 = false): Promise<FailureCards> {
   const pool = await db();
-  const [비교, 자동수정] = await Promise.all([compareWithPrevious(runId), 카드자동수정들(runId)]);
+  const [비교, 자동수정, 고치는중] = await Promise.all([compareWithPrevious(runId), 카드자동수정들(runId), 카드자동수정중들(runId)]);
   const 변화표 = new Map<string, 카드변화>();
   for (const c of 비교.케이스들) {
     if (c.판정 === '새로깨짐' || c.판정 === '계속깨짐') 변화표.set(`${c.tcId}|${c.platform}`, c.판정);
@@ -146,6 +149,7 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
       judgment: 판정표.get(c.tcId) ?? null,
       ...(bts표 !== null && { bts: bts표.get(c.tcId) ?? null }),
       autoFix: 자동수정.get(c.tcId) ?? null,
+      autoFixing: 고치는중.get(c.tcId) ?? null,
       devices: await Promise.all(
         c.devices.map(async ({ firstFailedHistoryId, ...나머지 }): Promise<FailureDevice> => {
           const rerun = 다시실행들.get(firstFailedHistoryId) ?? null;

@@ -8,13 +8,14 @@ import { 문서설정읽기 } from '../apidoc/store.js';
 import { 대상줄들읽기, 앱줄고르기, 폰앱인가 } from '../authoring/reverse.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
-import { 맵글, 조작행검사, 조작행넣기 } from './gameRoute.js';
+import { 고침이팝업을올렸나, 맵글, 조작행검사, 조작행넣기 } from './gameRoute.js';
 import { 맵줄검사, 맵줄넣기, 앱맵글, 앱서비스인가 } from './appRoute.js';
 import type { 앱요청 } from '../authoring/store.js';
 import { TCID } from '../catalog/rules.js';
 import { 누가, 판번호, 틀린판번호 } from './routes.js';
 import { 본문상한, 항목검사, 화면번호들, 화면이맞음건인가 } from './rules.js';
 import { 다봄, 다봄검사, 화면검사, 화면넣기, 화면들 } from './screens.js';
+import { 게임실패자료 } from './gameFailData.js';
 import { 실패요약 } from './screenRight.js';
 import { 기준판, 서비스접두사, 옮기기, 읽은판, 지금판, 판하나 } from './store.js';
 
@@ -109,7 +110,8 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     if (!Number.isSafeInteger(runId) || runId <= 0 || !TCID.test(tcId)) return reply.code(400).send({ error: 'INVALID_REQUEST' });
     // 실린 짝이 아니면 없는 것과 같다 — 번호로 다른 실행의 기록을 떠보지 못하게
     if (!화면이맞음건인가(행.params, runId, tcId)) return reply.code(404).send({ error: 'NO_TRACE', detail: '이 요청의 화면이 맞음 건이 아니다' });
-    const 결과 = await 실패요약(행.serviceId, runId, tcId);
+    // 게임 항목은 브라우저 trace 를 안 남긴다 — 실패한 절차 · 오류 원문 · 오브젝트 목록 · 게임 오류 로그를 준다 (도메인/게임 §3.10 「실패 자동 수정」 3)
+    const 결과 = (await 게임서비스인가(행.serviceId)) ? await 게임실패자료(행.serviceId, runId, tcId) : await 실패요약(행.serviceId, runId, tcId);
     return 'error' in 결과 ? reply.code(404).send(결과) : 결과;
   });
 
@@ -145,6 +147,8 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
     const 읽음 = 조작행검사(req.body);
     if ('error' in 읽음) return reply.code(400).send(읽음);
+    const 팝업 = 고침이팝업을올렸나(행.params, 읽음.rows);
+    if (팝업 !== null) return reply.code(400).send(팝업);
     await 조작행넣기(행.serviceId, 읽음.rows, 읽음.remove);
     return reply.code(204).send();
   });

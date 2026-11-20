@@ -7,6 +7,7 @@ import { PC항목인가, type ExecuteResponse } from '@platform/kit';
 import { 실행문서견주기 } from '../apidoc/runCompare.js';
 import { 배포실행뒤 } from '../bts/deployFlow.js';
 import { 실패등록 } from '../bts/failReport.js';
+import { 게임자동수정실행뒤 } from '../bts/gameFix.js';
 import { 테스트수정실행뒤 } from '../bts/testFixRerun.js';
 import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 import { 안정화집계를맡긴다 } from '../stability/aggregate.js';
@@ -252,6 +253,13 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
     await 테스트수정실행뒤(runId);
   } catch (err) {
     console.error(`[execution] 실행 ${runId} 뒤 Issue Bunker 테스트 수정 판정을 못 했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // BTS 를 안 이은 게임 애플리케이션이면 조작 실패 케이스로 테스트 고침을 스스로 세운다. 깨져도 실행은 이미 끝났다 (도메인/게임 §3.10 「실패 자동 수정」)
+  try {
+    await 게임자동수정실행뒤(runId);
+  } catch (err) {
+    console.error(`[execution] 실행 ${runId} 뒤 게임 실패 자동 수정을 세우지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // 알림 전송이 실패해도 실행은 실패가 아니다. 실행은 이미 끝났고 결과는 test_run 에 남아 있다 (SPEC §8.9)

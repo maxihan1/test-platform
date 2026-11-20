@@ -6,6 +6,7 @@ import type { Pool } from 'pg';
 
 import { 사슬식, 최신식 } from '../authoring/chainSql.js';
 import { BTS부르기, type 부르기함수 } from './client.js';
+import { 게임작성끝살피기 } from './gameFix.js';
 import { 테스트수정병합판정 } from './testFixMerge.js';
 import { 걸기, 끝보기, 되돌리기, 이어가나, 줄읽기, type 줄 } from './testFixRerun.js';
 
@@ -37,6 +38,7 @@ async function 작성끝까닭(줄: 줄): Promise<string | null> {
 
 /** 고침 작성이 PR 없이 끝났으면 되돌린다 */
 async function 작성끝살피기(줄: 줄, 부르기: 부르기함수): Promise<boolean> {
+  if (줄.issue_key === null) return 게임작성끝살피기(줄);
   const 까닭 = await 작성끝까닭(줄);
   if (까닭 === null) return false;
   if (await 이어가나(줄, 부르기)) await 되돌리기(줄, 까닭);
@@ -50,6 +52,8 @@ async function 작성끝살피기(줄: 줄, 부르기: 부르기함수): Promise
 async function 판정다시(줄: 줄, 부르기: 부르기함수): Promise<void> {
   if (줄.merge !== null || 줄.held.length > 0 || 줄.pr_url === null || 줄.request_id === null) return;
   const pool = await db();
+  // 게임 줄은 댓글 대신 줄에 까닭을 적는다
+  if (줄.issue_key === null && 줄.person_why.length > 0) return;
   const 댓글 = await pool.query(
     `SELECT 1 FROM bts_outbox WHERE project_id = $1 AND issue_key = $2 AND kind = 'COMMENT'
         AND starts_with(payload->>'body', '사람 확인이 필요해요') AND right(payload->>'body', length($3)) = $3`,

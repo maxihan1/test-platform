@@ -28,11 +28,20 @@ export interface 바뀐요구줄 {
   oldText: string | null;
 }
 
+/** 게임 실패 자동 수정의 가장 늦은 줄 — 실패 판정 항목에 붙는다 (도메인/게임 §3.10 「실패 자동 수정」 7) */
+export interface 판정자동수정 {
+  state: 'FIXING' | 'WAIT_MERGE' | 'RERUNNING' | 'FAILED' | 'FLAKY' | 'GAVE_UP';
+  prUrl: string | null;
+  rerunId: number | null;
+  rerunPage: boolean;
+  reason: string | null;
+}
+
 export type 결정항목 = 머리 &
   (
     | { kind: 'APPLY'; rootId: number; runId: number; summary: 목록요약; prUrl: string | null; requestedByName: string; finishedAt: string | null }
     | { kind: 'FIX'; rootId: number; summary: 목록요약; why: 'APPLY_FAILED' | 'HELD' | 'CONFLICT'; count: number; waiting: number[] }
-    | { kind: 'FAIL'; runId: number; tcId: string; reqs: { reqId: string; text: string }[]; verify: string | null; reason: string | null; finishedAt: string | null }
+    | { kind: 'FAIL'; runId: number; tcId: string; reqs: { reqId: string; text: string }[]; verify: string | null; reason: string | null; finishedAt: string | null; autoFix?: 판정자동수정 | null }
     // 게임 시나리오의 설명 안 되는 줄 — BUG 이슈 등록 · EDIT PRD 수정(덮는 요구 하나의 문장을 고친다 · 도메인/게임 §3.10 결정 24 의 5)
     | { kind: 'NOTE'; runId: number; tcId: string; name: string; reqs: { reqId: string; text: string }[]; notes: { statement: string; actual: unknown }[]; finishedAt: string | null }
     // OBSERVED 는 판정 요청 카드 — 작성 · 실행이 본 현재 동작이 붙은 확인 필요다(도메인/게임 §3.10 결정 34)

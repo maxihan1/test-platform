@@ -106,6 +106,17 @@ export function 조작행검사(본문: unknown): { rows: 조작행[]; remove: �
 }
 
 /**
+ * 테스트 고침 요청(params.testFix — 게임 실패 자동 수정 · BTS 테스트 수정)의 맵 올리기는 돌발 팝업 행을 받지 않는다 —
+ * 팝업은 탐색 플레이가 찾는 것이라, 고치는 자식이 지어낸 행이 정식 실행 팝업 목록으로 새지 않게 한다 (도메인/게임 §3.10 「실패 자동 수정」 3)
+ */
+export function 고침이팝업을올렸나(params: unknown, rows: 조작행[]): { error: 'BAD_ROUTE'; detail: string } | null {
+  const 고침 = (params as { testFix?: unknown } | null)?.testFix;
+  if (typeof 고침 !== 'object' || 고침 === null) return null;
+  const i = rows.findIndex((r) => r.kind === 'POPUP');
+  return i < 0 ? null : 틀림(`rows.${String(i)}.kind`);
+}
+
+/**
  * 올린 행만 넣거나 고치고 remove 는 지운다. 그 애플리케이션 몫을 통째로 바꾸지 않는다 — 작성마다 새로 해 본 행만 올린다.
  * 이미 있는 행은 빈 칸이 지난 값을 지키고 fields 는 열쇠마다 덮는다 — 작성 끝에 함수 이름만 채워 다시 올려도 경고 · 진행 값이 남는다
  */

@@ -4,11 +4,12 @@
 import type { Platform } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
-import { 사슬식 } from '../authoring/chainSql.js';
 import { 팜을본다 } from '../execution/location.js';
 import { BTS부르기, type 부르기함수 } from './client.js';
 import { BTS요청자, 실패한실행 } from './close.js';
+import { 게임다시걸기, 게임끝보기, 게임줄끝내기 } from './gameFixRerun.js';
 import { 그만두기, 다시받을, 도는상태, 되돌림넣기, 이슈잠그고, 이슈확인, 줄넣기, type 이슈자리 } from './testFixIssue.js';
+import { 디바이스이름, 반영끝났나, 실행표시 } from './testFixShared.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -26,15 +27,18 @@ export interface 줄 extends 이슈자리 {
   pr_url: string | null;
   merge: string | null;
   held: string[];
+  person_why: string[];
   rerun_id: string | null;
   state: string;
+  /** 실행 번호를 못 적고 10분 넘게 서 있다 — 게임 줄의 다시 실행이 막 걸리는 중인지 가른다 */
+  stale: boolean;
   resolution_map: Record<string, string> | null;
 }
 
 export async function 줄읽기(id: number | string): Promise<줄 | undefined> {
   return (
     await (await db()).query<줄>(
-      `SELECT f.id, f.project_id, f.issue_key, f.tc_id, f.env, f.failed_run, f.moved_by_id, f.request_id, f.pr_url, f.merge, f.held, f.rerun_id, f.state,
+      `SELECT f.id, f.project_id, f.issue_key, f.tc_id, f.env, f.failed_run, f.moved_by_id, f.request_id, f.pr_url, f.merge, f.held, f.person_why, f.rerun_id, f.state, f.updated_at < now() - interval '10 minutes' AS stale,
               l.base_url, l.bot_username, l.status_map, l.resolution_map
          FROM bts_test_fix f LEFT JOIN bts_link l ON l.project_id = f.project_id WHERE f.id = $1`,
       [id],
@@ -44,14 +48,17 @@ export async function 줄읽기(id: number | string): Promise<줄 | undefined> {
 
 /** 끝을 적고 「QA 검토」로 되돌린다. 같은 이슈의 다른 도는 줄도 놓는다 — 되돌린 이슈를 그 줄이 뒤늦게 닫지 않게 */
 export async function 되돌리기(줄: 줄, 까닭: string): Promise<void> {
-  await 이슈잠그고(줄.project_id, 줄.issue_key, async (손) => {
+  // 게임 줄은 되돌릴 이슈가 없다 — 줄에 끝과 까닭만 적는다
+  const 이슈 = 줄.issue_key;
+  if (이슈 === null) return 게임줄끝내기([줄.id], 'FAILED', 까닭);
+  await 이슈잠그고(줄.project_id, 이슈, async (손) => {
     const 끝 = await 손.query(`UPDATE bts_test_fix SET state = 'FAILED', reason = $2, updated_at = now() WHERE id = $1 AND state = ANY($3)`, [줄.id, 까닭, 도는상태]);
     if (끝.rowCount !== 1) return;
     await 손.query(
       `UPDATE bts_test_fix SET state = 'GAVE_UP', reason = '같은 이슈의 다른 테스트를 되돌렸어요', updated_at = now() WHERE project_id = $1 AND issue_key = $2 AND state = ANY($3)`,
-      [줄.project_id, 줄.issue_key, 도는상태],
+      [줄.project_id, 이슈, 도는상태],
     );
-    await 되돌림넣기(손, 줄.project_id, 줄.issue_key, 줄.status_map?.QA_REVIEW ?? '', 줄.moved_by_id, 까닭);
+    await 되돌림넣기(손, 줄.project_id, 이슈, 줄.status_map?.QA_REVIEW ?? '', 줄.moved_by_id, 까닭);
   });
 }
 
@@ -61,15 +68,6 @@ export async function 이어가나(줄: 줄, 부르기: 부르기함수): Promis
   if (확인 === '이어감') return true;
   if (확인 !== '다시') await 그만두기(줄.id, 확인.그만);
   return false;
-}
-
-/** 고침 작성의 반영이 끝났나 — 사슬에 끝난 반영이 있다 */
-async function 반영끝났나(뿌리: string): Promise<boolean> {
-  const r = await (await db()).query(
-    `WITH RECURSIVE ${사슬식('id = $1')} SELECT 1 FROM 사슬 s JOIN authoring_request a ON a.id = s.id WHERE a.kind = 'MERGE' AND a.status = 'DONE' LIMIT 1`,
-    [뿌리],
-  );
-  return (r.rowCount ?? 0) > 0;
 }
 
 interface 실행재료 {
@@ -111,6 +109,9 @@ export async function 다시실행걸기(id: number | string, 부르기: 부르�
 
 export async function 걸기(줄: 줄, 부르기: 부르기함수): Promise<void> {
   if (줄.state !== 'WAIT_MERGE' || 줄.request_id === null || !(await 반영끝났나(줄.request_id))) return;
+  const 이슈 = 줄.issue_key;
+  // 게임 줄은 그 요청의 병합 기다림 줄 전부를 실행 하나로 건다
+  if (이슈 === null) return 게임다시걸기(줄.request_id);
   if (!(await 이어가나(줄, 부르기))) return;
   const pool = await db();
   const 차지 = await pool.query(`UPDATE bts_test_fix SET state = 'RERUNNING', updated_at = now() WHERE id = $1 AND state = 'WAIT_MERGE'`, [줄.id]);
@@ -123,28 +124,15 @@ export async function 걸기(줄: 줄, 부르기: 부르기함수): Promise<void
     // 실행 쪽이 bts 를 가져오므로(실행 끝 실패 등록) 부를 때 가져온다
     const { createRun } = await import('../execution/store.js');
     const { dispatch } = await import('../execution/dispatcher.js');
-    const { 누가, 이름 } = BTS요청자(줄.issue_key);
+    const { 누가, 이름 } = BTS요청자(이슈);
     const 실행 = await createRun({ origin: 'MANUAL', env: 줄.env, triggeredBy: 누가, triggeredByName: 이름, ...재료 });
     // 분배 전에 적는다 — 실행 끝 실패 등록이 이 실행을 건너뛰고(failReport.ts) 끝 판정이 이 줄을 찾게
     await pool.query('UPDATE bts_test_fix SET rerun_id = $2, updated_at = now() WHERE id = $1', [줄.id, 실행.runId]);
-    void dispatch(실행.runId, 실행.items).catch((err: unknown) => console.error(`[bts] ${줄.issue_key} 다시 실행 ${String(실행.runId)} 분배가 깨졌다: ${String(err)}`));
+    void dispatch(실행.runId, 실행.items).catch((err: unknown) => console.error(`[bts] ${이슈} 다시 실행 ${String(실행.runId)} 분배가 깨졌다: ${String(err)}`));
   } catch (err) {
-    console.error(`[bts] ${줄.issue_key} 다시 실행을 걸지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[bts] ${이슈} 다시 실행을 걸지 못했다: ${err instanceof Error ? err.message : String(err)}`);
     await 되돌리기(줄, '다시 실행을 걸지 못했어요');
   }
-}
-
-const 디바이스이름 = (platform: string, real: boolean): string => (platform === 'desktop' ? 'PC' : platform === 'android' ? 'Android 앱' : real ? '실제 폰' : '모바일');
-
-/**
- * 댓글의 「RUN N」 과 다음 줄 고리 — 사람이 화면에서 찾을 수 있는 실행이다. 붙은 한 건은 붙은 실행(그 화면에 결과가 바꿔 끼워진다),
- * 붙을 곳이 없던 한 건은 결과 화면이 없어 번호만, 반복 실행에 걸려 새로 선 실행은 그 실행이다
- */
-function 실행표시(실행: { run_id: string; origin: string; rerun_of: string | null }): string {
-  const 한건 = 실행.origin === 'SINGLE';
-  const 번호 = 한건 ? (실행.rerun_of ?? 실행.run_id) : 실행.run_id;
-  const 주소 = (process.env.PLATFORM_PUBLIC_URL ?? '').replace(/\/+$/, '');
-  return 주소 === '' || (한건 && 실행.rerun_of === null) ? `RUN ${번호}` : `RUN ${번호}\n${주소}/#/runs/${번호}`;
 }
 
 /** 「테스트 문제」 해결 상태의 Issue Bunker 번호 — 연결은 이름을 적어 둔다. 못 닿으면 '다시', 못 찾으면 null(해결 상태 없이 옮긴다) */
@@ -173,6 +161,8 @@ export async function 다시실행끝(id: number | string, 부르기: 부르기�
 
 export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<void> {
   if (줄.state !== 'RERUNNING') return;
+  const 이슈 = 줄.issue_key;
+  if (이슈 === null) return 게임끝보기(줄);
   const pool = await db();
   const 실행 =
     줄.rerun_id === null ? undefined : (await pool.query<{ run_id: string; status: string; origin: string; rerun_of: string | null; prep_note: string | null }>('SELECT run_id, status, origin, rerun_of, prep_note FROM test_run WHERE run_id = $1', [줄.rerun_id]))
@@ -185,14 +175,14 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
           .rows;
   const 통과 = 항목.length > 0 && 항목.every((i) => i.status === 'PASS');
   const 다른줄도나 = async (손: Pick<PoolClient, 'query'>) =>
-    ((await 손.query('SELECT 1 FROM bts_test_fix WHERE project_id = $1 AND issue_key = $2 AND id <> $3 AND state = ANY($4)', [줄.project_id, 줄.issue_key, 줄.id, 도는상태])).rowCount ?? 0) > 0;
+    ((await 손.query('SELECT 1 FROM bts_test_fix WHERE project_id = $1 AND issue_key = $2 AND id <> $3 AND state = ANY($4)', [줄.project_id, 이슈, 줄.id, 도는상태])).rowCount ?? 0) > 0;
   const 통과만적기 = (손: Pick<PoolClient, 'query'>) => 손.query(`UPDATE bts_test_fix SET state = 'PASSED', updated_at = now() WHERE id = $1 AND state = 'RERUNNING'`, [줄.id]);
   const 기다림 = async (손: PoolClient): Promise<boolean> => {
     if (!(await 다른줄도나(손))) return false;
     await 통과만적기(손);
     return true;
   };
-  if (통과 && (await 이슈잠그고(줄.project_id, 줄.issue_key, 기다림))) return;
+  if (통과 && (await 이슈잠그고(줄.project_id, 이슈, 기다림))) return;
   if (!(await 이어가나(줄, 부르기))) return;
   // 고친 테스트가 틀린 것이 아니라 데이터 준비가 안 됐다 — 스스로 다시 걸지 않는다. 준비 주소가 꺼져 있으면 60초마다 실행이 쌓인다 (도메인/BTS 「테스트 수정 바퀴」 5)
   if (실행?.status === 'PREP_FAILED') {
@@ -205,13 +195,13 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
   }
   const 해결 = await 해결번호(줄, 부르기);
   if (해결 === '다시') return;
-  await 이슈잠그고(줄.project_id, 줄.issue_key, async (손) => {
+  await 이슈잠그고(줄.project_id, 이슈, async (손) => {
     if ((await 기다림(손)) || (await 통과만적기(손)).rowCount !== 1) return;
     await 손.query(`UPDATE bts_issue_case SET closed_at = now(), resolution = 'TEST_PROBLEM' WHERE project_id = $1 AND issue_key = $2 AND closed_at IS NULL`, [
       줄.project_id,
-      줄.issue_key,
+      이슈,
     ]);
-    await 줄넣기(손, 줄.project_id, 'TRANSITION', 줄.issue_key, {
+    await 줄넣기(손, 줄.project_id, 'TRANSITION', 이슈, {
       toStatusKey: 줄.status_map?.CLOSED ?? '',
       ...(해결 !== null && { resolutionId: 해결 }),
       comment: `${디바이스} 에서 통과했어요 · ${실행 === undefined ? '' : 실행표시(실행)}`,
@@ -219,10 +209,11 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
   });
 }
 
-/** 반영이 끝나면(작성 에이전트 끝내기 · MERGE DONE) 그 작성의 병합 기다림 줄마다 다시 실행 */
+/** 반영이 끝나면(작성 에이전트 끝내기 · MERGE DONE) 그 작성의 병합 기다림 줄마다 다시 실행 — 게임 줄은 요청 하나가 실행 하나다 */
 export async function 테스트수정반영뒤(뿌리번호: number, 부르기: 부르기함수 = BTS부르기): Promise<void> {
-  const 줄들 = await (await db()).query<{ id: string }>(`SELECT id FROM bts_test_fix WHERE request_id = $1 AND state = 'WAIT_MERGE'`, [뿌리번호]);
-  for (const { id } of 줄들.rows) await 다시실행걸기(id, 부르기);
+  const 줄들 = await (await db()).query<{ id: string; issue_key: string | null }>(`SELECT id, issue_key FROM bts_test_fix WHERE request_id = $1 AND state = 'WAIT_MERGE' ORDER BY id`, [뿌리번호]);
+  for (const { id, issue_key } of 줄들.rows) if (issue_key !== null) await 다시실행걸기(id, 부르기);
+  if (줄들.rows.some((r) => r.issue_key === null)) await 게임다시걸기(뿌리번호);
 }
 
 /** 실행이 끝날 때마다 부른다(dispatcher) — 바퀴의 다시 실행이면 끝 판정 */

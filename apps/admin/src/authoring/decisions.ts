@@ -5,6 +5,7 @@ import type { PrdItem } from '@platform/kit';
 import { 판비교 } from '../apidoc/doc.js';
 import { 문서설정읽기, 판원문 } from '../apidoc/store.js';
 import { 초안카드들 } from '../bts/draftDecide.js';
+import { 판정자동수정들 } from '../bts/gameFixView.js';
 import { BTS이은서비스인가 } from '../bts/link.js';
 import { findItem } from '../execution/queries.js';
 import { 지도를읽는다 } from '../prd/apiMap.js';
@@ -74,13 +75,15 @@ async function 첫묶음(서비스: number, 누구: 부른이): Promise<결정�
  */
 async function 실패묶음(서비스: number, 판: PrdItem[], 누구: 부른이, 상세: boolean): Promise<{ items: 결정항목[]; more: number; 전부: Map<string, 결정항목> }> {
   if (!누구.실행읽기) return { items: [], more: 0, 전부: new Map() };
-  const [실패들, 지도, 이음] = await Promise.all([판정없는실패들(서비스), 케이스지도(서비스), BTS이은서비스인가(서비스)]);
+  const [실패들, 지도, 이음, 게임고침] = await Promise.all([판정없는실패들(서비스), 케이스지도(서비스), BTS이은서비스인가(서비스), 판정자동수정들(서비스)]);
   if (이음) return { items: [], more: 0, 전부: new Map() };
   const 덮는요구 = new Map<string, Set<string>>();
   for (const [reqId, 케이스들] of Object.entries(지도)) {
     for (const c of 케이스들) 덮는요구.set(c.tcId, (덮는요구.get(c.tcId) ?? new Set<string>()).add(reqId));
   }
+  // 게임 실패 자동 수정이 도는 동안은 판정할 것이 아직 없다 — 끝난 뒤(실패 · 흔들림 · 그만둠)에 한 줄을 달고 선다(도메인/게임 §3.10 「실패 자동 수정」 7)
   const 든것 = 실패들.flatMap((f) => {
+    if (게임고침.get(`${f.runId}:${f.tcId}`)?.숨김 === true) return [];
     const 덮음 = 덮는요구.get(f.tcId);
     const reqs = 판.filter((x) => 덮음?.has(x.reqId) === true).map((x) => ({ reqId: x.reqId, text: x.text }));
     return reqs.length === 0 ? [] : [{ ...f, reqs }];
@@ -91,6 +94,7 @@ async function 실패묶음(서비스: number, 판: PrdItem[], 누구: 부른이
   const 줄 = (f: (typeof 든것)[number], verify: string | null, reason: string | null): 결정항목 => ({
     key: `fail:${String(f.runId)}:${f.tcId}`, group: 2, kind: 'FAIL', ...고를것,
     runId: f.runId, tcId: f.tcId, reqs: f.reqs, verify, reason, finishedAt: f.finishedAt,
+    ...(게임고침.get(`${f.runId}:${f.tcId}`)?.autoFix == null ? {} : { autoFix: 게임고침.get(`${f.runId}:${f.tcId}`)!.autoFix }),
   });
   const items = await Promise.all(
     든것.slice(0, 실패상한).map(async (f) => {

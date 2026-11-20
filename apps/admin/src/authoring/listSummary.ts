@@ -2,6 +2,7 @@
 
 import type { PrdItem } from '@platform/kit';
 
+import { 게임고침인가 } from '../bts/gameFixShared.js';
 import { API서비스인가 } from './apiDoc.js';
 import { 행케이스 } from './cases.js';
 import { 사슬식 } from './chainSql.js';
@@ -96,7 +97,8 @@ function 종류(x: 줄, api: boolean): 요약종류 {
 
 function 시작한곳(x: 줄, kind: 요약종류): 목록요약['from'] {
   const 결정 = 결정수(x.root_params.decision);
-  const by = 결정 !== null ? 'DECISION' : kind === 'UNCOVERED' ? 'AUTO' : kind === 'EDIT' ? 'CASES' : kind === 'PRD_APPLY' ? 'PRD' : 'PERSON';
+  // 서버가 조작 실패로 스스로 세운 요청은 화면이 「Agent」로 보인다 — 사람이 시작하지 않았다(도메인/게임 §3.10 「실패 자동 수정」 7)
+  const by = 게임고침인가(x.root_params) ? 'AUTO' : 결정 !== null ? 'DECISION' : kind === 'UNCOVERED' ? 'AUTO' : kind === 'EDIT' ? 'CASES' : kind === 'PRD_APPLY' ? 'PRD' : 'PERSON';
   const after = kind === 'UNCOVERED' ? 밖화면뿌리(x.root_params.uncoveredOf) : kind === 'CONTINUE' ? Number(x.continue_from) : null;
   return { by, after, decisions: 결정, assets: x.assets, assetsMore: Math.max(0, Number(x.asset_n) - 자료수) };
 }

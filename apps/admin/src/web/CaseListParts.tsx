@@ -126,7 +126,14 @@ export function 케이스줄({
         {typeof row.unconfirmed === 'string' ? <span className="case-tag" title={row.unconfirmed}>{t('미확정')}</span> : null}
         {/* 테스트 수정 바퀴로 고쳐 다시 통과한 케이스 — 가장 늦은 줄이 통과일 때만 (도메인/BTS §8.15 「자동 수정 표시」 A) */}
         {row.autoFix?.state === 'PASSED' ? (
-          <span className="fix-tag" title={t('Issue Bunker {키} · {날짜} · 수정 후 다시 실행에서 통과', { 키: row.autoFix.issueKey, 날짜: 월일(row.autoFix.at, 언어) })}>
+          <span
+            className="fix-tag"
+            title={
+              row.autoFix.issueKey === null
+                ? t('조작 실패 자동 수정 · {날짜} · 수정 후 다시 실행에서 통과', { 날짜: 월일(row.autoFix.at, 언어) })
+                : t('Issue Bunker {키} · {날짜} · 수정 후 다시 실행에서 통과', { 키: row.autoFix.issueKey, 날짜: 월일(row.autoFix.at, 언어) })
+            }
+          >
             {t('자동 수정')}
           </span>
         ) : null}
