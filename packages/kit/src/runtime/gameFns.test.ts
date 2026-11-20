@@ -136,14 +136,14 @@ describe('어드민 API 도우미', () => {
     await admin.post('/admin/reset');
   }
 
-  it('게임 항목이면 요청을 부른 함수 이름을 적고, 게임 항목이 아니면 스택을 읽지 않는다', async () => {
+  it('게임 · 앱 항목(맵함수)이면 요청을 부른 함수 이름을 적고, 아니면(웹) 스택을 읽지 않는다', async () => {
     const 감싼 = traced(요청, new Set());
     const 부른다 = async (run: RunScope): Promise<StepScope> => {
       const 절차: StepScope = { assertions: [] };
       await runScope.run(run, () => stepScope.run(절차, () => 사냥한번({ click: () => 계정되돌리기(감싼) })));
       return 절차;
     };
-    expect((await 부른다({ ...makeRun().run, apiCalls: [] })).gameFns).toEqual(['던전화면.공격', '사냥한번']);
+    expect((await 부른다({ ...makeRun().run, 맵함수: true })).gameFns).toEqual(['던전화면.공격', '사냥한번']);
     expect((await 부른다(makeRun().run)).gameFns).toBeUndefined();
   });
 });

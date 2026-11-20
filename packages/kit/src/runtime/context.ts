@@ -23,7 +23,7 @@ export interface StepScope {
   마지막요소?: 짚을요소 | undefined;
   // 처음 실패한 순간의 마지막요소. blocker 가 아닌 실패 뒤에도 절차는 돌아 다른 요소를 다루므로 그때 굳힌다
   실패요소?: 짚을요소 | undefined;
-  // 게임 항목에서만 — 이 절차의 게임 동작 · 대상 서버 API 호출이 지나던 화면 객체 함수 · 도우미 이름 (gameFns.ts)
+  // 게임 · Android 앱 항목에서만 — 이 절차의 게임 동작 · 앱 명령 · 대상 서버 API 호출이 지나던 화면 객체 함수 · 도우미 이름 (gameFns.ts)
   gameFns?: string[];
   // test.cleanup 의 정리 절차 — 판정(verify) · 절차(test.step)를 부르면 던진다
   정리?: true;
@@ -52,6 +52,8 @@ export interface RunScope {
   // 게임 항목에서만 있다 — 결과 줄의 elementChecks · apiCalls 로 간다 (공통/3-공유계약 「게임 테스트 타입」)
   elementChecks?: ElementCheck[];
   apiCalls?: ApiCallSeen[];
+  // 게임 · Android 앱 항목에서만 — 대상 서버 API 를 부른 도우미 이름도 절차에 적는다(조작 맵 · 앱 조작 맵의 데이터 세팅 줄 — gameFns.ts)
+  맵함수?: true;
   // test.cleanup 으로 건 정리 — 몸통이 끝나면 끝 정리로 한 번 더 돈다 (gameScenario.ts)
   정리?: { title: string; fn: () => Promise<void> }[];
   // 스크린샷과 결과 전달은 Playwright에 닿는 일이라 문맥에는 함수로만 담는다. 이 파일이 Playwright를 몰라야 단위 테스트가 가능하다

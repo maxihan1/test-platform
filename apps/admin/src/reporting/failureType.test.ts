@@ -56,6 +56,14 @@ describe('원인을가른다', () => {
     expect(실패('Error: Can\'t call click on element with selector "id=buy_now_button" because element wasn\'t found')).toBe('notFound');
   });
 
+  it('앱(WebdriverIO)의 기다리기 실패 — 있는지 기다리다 끝난 것은 요소 미검출, 보이기 · 누를 수 있기 · 조건을 기다리다 끝난 것은 타임아웃이다 (APP-F4-09)', () => {
+    expect(실패('element ("~알림") still not existing after 5000ms')).toBe('notFound');
+    expect(실패('element ("~알림") still not displayed after 5000ms')).toBe('timeout');
+    expect(실패('element ("id=buy") still not clickable after 3000ms')).toBe('timeout');
+    expect(실패('element ("~로딩") still displayed after 10000ms')).toBe('timeout');
+    expect(실패('waitUntil condition timed out after 5000ms')).toBe('timeout');
+  });
+
   it('기다리던 요소 이름에 「러너」가 들어 있어도 러너 고장이 아니라 요소 미검출이다', () => {
     expect(
       미실행('Test timeout of 30000ms exceeded.', "locator.click: Test timeout of 30000ms exceeded.\nCall log:\n  - waiting for getByText('러너 상태')"),
