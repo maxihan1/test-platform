@@ -25,6 +25,8 @@ export interface StepScope {
   실패요소?: 짚을요소 | undefined;
   // 게임 · Android 앱 항목에서만 — 이 절차의 게임 동작 · 앱 명령 · 대상 서버 API 호출이 지나던 화면 객체 함수 · 도우미 이름 (gameFns.ts)
   gameFns?: string[];
+  // Android 앱 항목에서만 — 이 절차에서 찾은 요소의 명령이 실패한 화면 파일 함수 이름. 화면 파일이 그 실패를 삼켰어도 지난 함수로 세지 않는다 (gameFns.ts 앱함수를적게건다)
+  앱실패함수?: string[];
   // test.cleanup 의 정리 절차 — 판정(verify) · 절차(test.step)를 부르면 던진다
   정리?: true;
 }
