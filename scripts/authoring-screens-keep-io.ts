@@ -11,7 +11,7 @@ import { 계정섞였나, 덮은파일이름 } from './authoring-reverse.js';
 import { type 목록칸, 날수, 받은저장본, 상태인가, 이번것들 } from './authoring-screens-keep.js';
 
 const 기록상한 = 200_000;
-const 목록상한 = 2_000_000;
+const 목록상한 = 64 * 1024 * 1024; // list.json — 앱 crawl 은 장수 상한 없이 돈다(APP-F4-06)
 const 본목록상한 = 64 * 1024 * 1024; // index.json — 화면마다 입력칸 · 걸러진 링크까지 든다. 앱 crawl 은 상한 없이 돈다(APP-F4-06)
 const 연결파일상한 = 64 * 1024 * 1024; // 화면마다 연결 1,000개까지(크롤러가 자른다) — 앱 crawl 은 장수 상한 없이 돈다(APP-F4-06)
 

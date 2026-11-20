@@ -1,10 +1,10 @@
 // 상한 없는 crawl 을 뒤에 띄우고 나눠 기다리는 명령의 테스트
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 돌기, 실행, 크롤인자, 크롤자리 } from './authoring-app-crawl.js';
+import { 돌기, 실행, 크롤끄기, 크롤인자, 크롤자리 } from './authoring-app-crawl.js';
 
 let 자료: string;
 beforeEach(() => {
@@ -45,12 +45,24 @@ describe('돌기', () => {
     expect(await 돌기(자료, undefined, 판('exit 9', 5_000))).toBe(0);
   });
 
-  it('끝 기록 없이 꺼졌으면 1 이고 자리를 지운다', async () => {
+  it('끝 기록 없이 꺼졌으면 한 번은 저절로 다시 띄우고, 또 꺼지면 1 이고 자리를 지운다', async () => {
     const 자리 = 크롤자리(자료);
+    mkdirSync(자리.폴더);
+    writeFileSync(자리.pid, '999999');
+    expect(await 돌기(자료, undefined, 판('true'))).toBe(0);
+    rmSync(자리.폴더, { recursive: true });
     mkdirSync(자리.폴더);
     writeFileSync(자리.pid, '999999');
     expect(await 돌기(자료, undefined, 판('true'))).toBe(1);
     expect(existsSync(자리.폴더)).toBe(false);
+  });
+
+  it('크롤끄기는 띄운 crawl 을 묶음째 끈다', async () => {
+    expect(await 돌기(자료, undefined, 판('sleep 30', 100))).toBe(3);
+    const pid = Number(readFileSync(크롤자리(자료).pid, 'utf8'));
+    크롤끄기(자료);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(() => process.kill(pid, 0)).toThrow();
   });
 });
 

@@ -57,7 +57,8 @@ export function 목표표읽기(글: string | null): 앱목표표 | string {
 }
 
 /** 탐색 맵 — 받은 맵 글 · crawl 결과 줄 · 이번 작성이 적은 줄(이 차례로 얹는다 — 같은 줄이면 AI 가 적은 것이 이긴다) */
-export interface 탐색맵 { 줄들: 맵줄[]; 크롤화면: Set<string>; 이번화면: Set<string> }
+/** 틀림 — 이번 줄 파일을 못 읽었다(깨진 JSON · 4MB 넘음). 그 줄 없이 본 결과라 「경로 확보」가 다 빠져 보인다 */
+export interface 탐색맵 { 줄들: 맵줄[]; 크롤화면: Set<string>; 이번화면: Set<string>; 틀림: string | null }
 
 export function 탐색맵읽기(자료: string): 탐색맵 | { 못읽음: string } {
   const 받은 = 맵줄읽기(자료);
@@ -79,7 +80,7 @@ export function 탐색맵읽기(자료: string): 탐색맵 | { 못읽음: string
   const 이번줄 = Array.isArray((이번 as { rows?: unknown } | null)?.rows) ? ((이번 as { rows: Record<string, unknown>[] }).rows) : [];
   const 이번화면 = new Set(이번줄.filter((r) => r?.kind === 'MOVE' || r?.kind === 'SETUP').map((r) => r.toKey).filter(글인가));
   const 줄들 = 새줄더하기(새줄더하기(받은?.줄들 ?? [], { rows: 크롤맵줄(색인).줄들 }), 이번 ?? {});
-  return { 줄들, 크롤화면, 이번화면 };
+  return { 줄들, 크롤화면, 이번화면, 틀림: 받은?.틀림 ?? null };
 }
 
 const 자르기 = (글: string, 상한: number) => (글.length > 상한 ? `${글.slice(0, 상한)}…` : 글);
@@ -150,8 +151,10 @@ export async function 앱맵올리기(통로: 화면통로, 자료: string, 비�
 export async function 앱체크포인트돌기(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드: string | undefined): Promise<({ 줄: string } | { 거절: string }) & { 크롤줄: string[] }> {
   const 크롤줄 = await 앱크롤올리기(통로, 자료, 비밀, 빌드, false);
   const 올림 = await 앱맵올리기(통로, 자료, 비밀);
-  // 다시 받은 맵 글에 서버가 합친 줄이 든다. 못 받으면 파일이 없어 crawl · 이번 줄만으로 본다(앱맵받기가 로그를 남긴다)
+  // 다시 받은 맵 글에 서버가 합친 줄이 든다. 못 받으면 앱맵받기가 파일을 지우므로 앞서 받아 둔 글을 되돌린다 — 앞 작성의 맵에만 있는 화면이 빠지지 않게
+  const 앞맵 = 안전히읽기(자료, 'app-route.txt', 64 * 1024 * 1024);
   await 앱맵받기(통로, 통로.번호, 자료);
+  if (앞맵 !== null && !existsSync(join(자료, 'app-route.txt'))) 새로쓰기(join(자료, 'app-route.txt'), 앞맵);
   const 표 = 목표표읽기(안전히읽기(자료, 앱탐색자리.목표, 파일상한));
   const 맵 = 탐색맵읽기(자료);
   const 못지남 = [
@@ -166,6 +169,27 @@ export async function 앱체크포인트돌기(통로: 화면통로, 자료: str
     return { 거절: `${앱탐색자리.지남} 을 자료 폴더에 못 썼다 — ${e instanceof Error ? e.message : String(e)}`, 크롤줄 };
   }
   return { 줄, 크롤줄 };
+}
+
+/**
+ * 에이전트가 Android 앱 작성에 거는 것 — 탐색 세션 갈래(체크포인트)와 작성 끝 PR 머리 줄.
+ * 끝에는 crawl 결과(체크포인트가 올렸으면 그 줄) 다음에 탐색 줄을 다시 올린다 — 같은 줄이면 AI 가 적은 것이 이긴다. 못 올려도 PR 은 간다
+ */
+export function 앱탐색잇기(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드: () => string | undefined, 탐색: boolean, 대조: boolean) {
+  let 크롤줄: string[] | undefined;
+  const 갈래 = !탐색 ? undefined : {
+    지남: 앱탐색자리.지남, 이름: '앱 탐색',
+    체크포인트: async () => {
+      const 판 = await 앱체크포인트돌기(통로, 자료, 비밀, 빌드());
+      크롤줄 = 판.크롤줄;
+      return 판;
+    },
+  };
+  const 끝줄 = async (): Promise<string[]> => {
+    const 크롤 = 크롤줄 ?? (await 앱크롤올리기(통로, 자료, 비밀, 빌드(), 대조));
+    return [...(await 앱탐색끝줄(통로, 자료, 비밀)), ...크롤];
+  };
+  return { 갈래, 끝줄 };
 }
 
 /** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 탐색 줄 다시 올리기(케이스 세션이 채운 함수 이름). 탐색을 안 한 작성도 이번 줄이 있으면 올린다 */
@@ -227,7 +251,7 @@ export function 실행(인자: string[]): number {
     console.error(`[앱 탐색] ${맵.못읽음}`);
     return 2;
   }
-  const 못지남 = 체크포인트(표, 맵);
+  const 못지남 = [...(맵.틀림 === null ? [] : [맵.틀림]), ...체크포인트(표, 맵)];
   for (const 줄 of 못지남) console.log(`못 지남: ${줄}`);
   console.log(못지남.length === 0 ? 앱탐색줄(표, []) : `[앱 탐색] 체크포인트를 못 지났다 — ${String(못지남.length)}건을 고친다`);
   return 못지남.length === 0 ? 0 : 1;

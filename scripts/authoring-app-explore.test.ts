@@ -145,6 +145,14 @@ describe('앱체크포인트돌기', () => {
     expect(올린것).toEqual([1, 2]);
   });
 
+  it('맵을 다시 못 받으면 앞서 받아 둔 맵 글로 본다', async () => {
+    쓰기('app-route.txt', 맵);
+    쓰기('app-explore.json', { 목표: [목표({ 기능: '알림', 화면: 알림, 결과: '길 있음' })], 계정비우기: '함' });
+    서버({ 'GET /app-route': { status: 502 } });
+    expect(await 앱체크포인트돌기(통로, 자료, [], undefined)).toMatchObject({ 줄: '앱 탐색: 목표 1개 — 길 있음 1 · 경로 확보 0 · 진행 불가 0' });
+    expect(readFileSync(join(자료, 'app-route.txt'), 'utf8')).toBe(맵);
+  });
+
   it('못 지나면 거절 까닭과 crawl 줄을 돌려주고 지남 표시를 안 남긴다', async () => {
     쓰기('app-explore.json', { 목표: [목표({ 결과: null })], 계정비우기: '함' });
     서버({ 'GET /app-route': { status: 200, 몸: { text: 맵 } } });
@@ -177,5 +185,8 @@ describe('실행 — 자식이 탐색 세션을 끝내기 전에 스스로 검�
     expect(실행([자료])).toBe(1);
     쓰기('app-route.json', 이번);
     expect(실행([자료])).toBe(0);
+    쓰기('app-route.json', '{"rows":[,]}');
+    expect(실행([자료])).toBe(1);
+    expect(console.log).toHaveBeenCalledWith('못 지남: app-route.json 을 JSON 으로 못 읽었다');
   });
 });

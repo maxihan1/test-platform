@@ -24,14 +24,13 @@ const 기록 = (이름: string, 글: string) => writeFileSync(join(트리, '.app
 const 답 = (status: number) => vi.fn(async (_주소: string, _설정?: RequestInit) => new Response(null, { status }));
 
 describe('잡기한번늘리기', () => {
-  it('잡은 폰마다 팜 hold/extend 를 토큰으로 부르고, 받으면 늘린 때를 적는다', async () => {
+  it('AI 가 잡은 폰만 팜 hold/extend 를 토큰으로 부르고, 받으면 늘린 때를 적는다 — 폰 돌려 보기가 남긴 폰은 안 늘린다', async () => {
     기록('held', 'R58N\n');
     기록('held-PX7', 'PX7');
     const 부름 = 답(200);
     await 잡기한번늘리기(트리, 팜, 'pat_1', 7, '/자료/a', 부름 as unknown as typeof fetch, 1_000);
     expect(부름.mock.calls.map((c) => [c[0], (c[1] as RequestInit).method, (c[1] as RequestInit).headers])).toEqual([
       [`${팜}/api/devices/R58N/hold/extend`, 'POST', { authorization: 'Bearer pat_1' }],
-      [`${팜}/api/devices/PX7/hold/extend`, 'POST', { authorization: 'Bearer pat_1' }],
     ]);
     expect(마지막늘림('/자료/a', 'R58N')).toBe(1_000);
     expect(마지막늘림('/자료/b', 'R58N')).toBe(0);

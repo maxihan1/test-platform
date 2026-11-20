@@ -9,7 +9,8 @@ import { pathToFileURL } from 'node:url';
 /** 띄운 crawl 의 자리 — 결과 폴더(crawl/)는 crawl 이 시작할 때 지난 결과를 지우므로 따로 둔다 */
 export const 크롤자리 = (자료: string) => {
   const 폴더 = join(자료, 'crawl-run');
-  return { 폴더, pid: join(폴더, 'pid'), 끝: join(폴더, 'exit'), 로그: join(폴더, 'log') };
+  // 다시 띄움 표시는 폴더 밖이다 — 꺼져서 폴더를 지운 뒤에도 남아야 한 번만 저절로 다시 띄운다
+  return { 폴더, pid: join(폴더, 'pid'), 끝: join(폴더, 'exit'), 로그: join(폴더, 'log'), 다시띄움: join(자료, 'crawl-run.restarted') };
 };
 
 /** crawl 인자 — 상한 없음(결정 7). 저장본은 에이전트가 받아 두었을 때만 — 없으면 전부 새 화면이다 */
@@ -22,13 +23,13 @@ export function 크롤인자(자료: string, 로그인?: string): string[] {
   ];
 }
 
+// crawl 은 이 명령과 같은 uid 로 뜬다 — EPERM(남의 uid)은 그 번호를 다른 프로세스가 물려받은 것이라 꺼진 것으로 본다
 const 살았나 = (pid: number): boolean => {
   try {
     process.kill(pid, 0);
     return true;
-  } catch (e) {
-    // 남의 uid 것이면 EPERM — 살아 있다
-    return (e as NodeJS.ErrnoException).code === 'EPERM';
+  } catch {
+    return false;
   }
 };
 
@@ -62,7 +63,7 @@ export async function 돌기(자료: string, 로그인: string | undefined, 판:
   };
   const 이미 = 끝봄();
   if (이미 !== null) return 이미;
-  if (!existsSync(자리.pid)) {
+  const 띄우기 = (): boolean => {
     mkdirSync(자리.폴더, { recursive: true });
     const 로그 = openSync(자리.로그, 'w');
     // sh 가 끝 코드를 파일로 남긴다 — 다음 부름은 이 명령의 자식이 아니라 코드를 못 받는다. setsid 로 띄워 이 명령이 끝나도 산다
@@ -73,13 +74,15 @@ export async function 돌기(자료: string, 로그인: string | undefined, 판:
     if (몸.pid === undefined) {
       rmSync(자리.폴더, { recursive: true, force: true });
       console.log('[앱 crawl] crawl 을 못 띄웠다');
-      return 1;
+      return false;
     }
     몸.unref();
     writeFileSync(자리.pid, String(몸.pid));
     console.log(`[앱 crawl] 상한 없이 띄웠다 — 끝날 때까지 폰 · probe 세션을 건드리지 않는다`);
-  }
-  const pid = Number(readFileSync(자리.pid, 'utf8').trim());
+    return true;
+  };
+  if (!existsSync(자리.pid) && !띄우기()) return 1;
+  let pid = Number(readFileSync(자리.pid, 'utf8').trim());
   const 시작 = Date.now();
   while (Date.now() - 시작 < 판.기다림_ms) {
     const 끝 = 끝봄();
@@ -88,14 +91,37 @@ export async function 돌기(자료: string, 로그인: string | undefined, 판:
       // 끝 파일을 쓰기 직전에 꺼졌을 수도 있다 — 한 번 더 본다
       const 다시 = 끝봄();
       if (다시 !== null) return 다시;
-      console.log(`[앱 crawl] crawl 이 도중에 꺼졌다 — 다시 부르면 처음부터 돈다\n${끝줄(자리.로그, 20)}`);
       rmSync(자리.폴더, { recursive: true, force: true });
+      // 크레딧 → 구독으로 세션을 바꿀 때 에이전트가 자식 프로세스를 다 끈다 — 그때 꺼진 crawl 은 실패로 세지 않고 한 번만 저절로 다시 띄운다
+      if (!existsSync(자리.다시띄움)) {
+        writeFileSync(자리.다시띄움, '');
+        console.log('[앱 crawl] crawl 이 도중에 꺼져 처음부터 다시 띄운다(한 번만)');
+        if (!띄우기()) return 1;
+        pid = Number(readFileSync(자리.pid, 'utf8').trim());
+        continue;
+      }
+      console.log(`[앱 crawl] crawl 이 도중에 꺼졌다 — 다시 부르면 처음부터 돈다\n${끝줄(자리.로그, 20)}`);
       return 1;
     }
     await 판.쉬기(2_000);
   }
   console.log(`[앱 crawl] 아직 돈다 — 같은 명령을 다시 부른다. 그동안 폰 · probe 세션을 건드리지 않는다. 마지막 줄: ${끝줄(자리.로그, 1)}`);
   return 3;
+}
+
+/**
+ * 에이전트가 작성 끝에 부른다 — 자식 uid 를 따로 두지 않은 맥(자식거두기가 아무것도 안 끈다)에서 뒤에 띄운 crawl 이 폰을 놓은 뒤에도 누르지 않게.
+ * 서버(자식 uid)에서는 부르지 않는다 — 자식이 쓴 pid 파일로 root 가 남의 프로세스를 끌 수 있다
+ */
+export function 크롤끄기(자료: string): void {
+  const pid = Number((existsSync(크롤자리(자료).pid) ? readFileSync(크롤자리(자료).pid, 'utf8') : '').trim());
+  if (!Number.isInteger(pid) || pid <= 1) return;
+  try {
+    // setsid 로 띄워 pid 가 묶음 번호다 — 묶음째 끈다(sh 와 그 아래 appium-cli)
+    process.kill(-pid, 'SIGKILL');
+  } catch {
+    // 이미 꺼졌다
+  }
 }
 
 export async function 실행(인자: string[]): Promise<number> {
