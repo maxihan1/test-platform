@@ -156,7 +156,7 @@ export async function 조작행넣기(서비스: number, rows: 조작행[], remo
   }
 }
 
-interface 읽은행 {
+export interface 읽은행 {
   kind: 종류; from_key: string; action: string; to_key: string | null; helper: string | null; duration_ms: number | null;
   warning: string | null; fields: Record<string, unknown> | null; status: 상태; reason: string | null; build_no: string | null;
 }
@@ -185,11 +185,16 @@ export async function 맵글(서비스: number): Promise<string> {
        FROM game_route WHERE service_id = $1 ORDER BY from_key COLLATE "C", action COLLATE "C"`,
     [서비스],
   );
+  return 맵글짓기(r.rows);
+}
+
+/** 읽은 행(출발 열쇠 · 동작 차례)을 맵 글로 — 경로 검색 명령(scripts/authoring-game-route.ts) 검사가 이 꼴을 그대로 읽어 본다 */
+export function 맵글짓기(행들: 읽은행[]): string {
   const 묶음 = (Object.keys(행종류) as 종류[]).flatMap((k) => {
-    const 들 = r.rows.filter((x) => x.kind === k);
+    const 들 = 행들.filter((x) => x.kind === k);
     return 들.length === 0 ? [] : [`## ${행종류[k]} (${k}) — ${String(들.length)}행`, ...들.map(행줄), ''];
   });
-  return [`# 조작 맵 — 행 ${String(r.rows.length)}개. 「어떻게 가나」만 담는다 — 기대값의 근거가 아니다`, '', ...묶음].join('\n').trimEnd() + '\n';
+  return [`# 조작 맵 — 행 ${String(행들.length)}개. 「어떻게 가나」만 담는다 — 기대값의 근거가 아니다`, '', ...묶음].join('\n').trimEnd() + '\n';
 }
 
 // 러너 요청 검사와 같은 한도 — 넘으면 러너가 요청을 400 으로 거절해 그 실행의 게임 항목이 다 못 선다 (apps/runner/src/schema.ts 돌발팝업상한)
