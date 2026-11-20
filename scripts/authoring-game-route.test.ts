@@ -35,6 +35,7 @@ const 맵 = 맵글짓기([
   행({ kind: 'POPUP', from_key: 'game:Main/Canvas/Notice', action: '/Canvas/Notice/Close', status: 'RECHECK' }),
 ]);
 const 행들 = 맵읽기(맵);
+const 작은맵 = (rows: 읽은행[]) => 맵읽기(맵글짓기(rows));
 
 describe('맵읽기', () => {
   it('서버가 짓는 맵 글의 행을 종류 · 열쇠 · 상태 · 경고로 읽는다', () => {
@@ -59,7 +60,7 @@ describe('맵읽기', () => {
 
 describe('경로', () => {
   it('상태 설정 → 순간이동 → 이동 차례를 찍고 경고 달린 설정을 먼저 친다', () => {
-    const { 줄들, 다찾음 } = 경로(행들, { 상태: ['레벨=1', '직업=탱커', '인원=1', '몬스터 없음'], 자리: 'zone:Dungeon/ImpRoom' });
+    const { 줄들, 다찾음 } = 경로(행들, { 상태: ['레벨=1', '직업=탱커', '인원=1', '몬스터 없음'], 자리: 'zone:Dungeon/ImpRoom' }, 'game:Main');
     expect(다찾음).toBe(true);
     expect(줄들[0]).toBe('# 경로 검색 — 목표 state:레벨=1,직업=탱커,인원=1,몬스터 없음 zone:Dungeon/ImpRoom · 출발 game:Main — 「확인」 행으로만 길을 낸다 · 기대값의 근거가 아니다');
     expect(줄들.slice(1)).toEqual([
@@ -76,7 +77,7 @@ describe('경로', () => {
   });
 
   it('「재확인 필요」 행을 지나야만 닿는 자리는 길 없음이고 그 길에 낀 행을 붙인다', () => {
-    const { 줄들, 다찾음 } = 경로(행들, { 상태: [], 자리: 'game:Main/Canvas/Shop/Upgrade' });
+    const { 줄들, 다찾음 } = 경로(행들, { 상태: [], 자리: 'game:Main/Canvas/Shop/Upgrade' }, 'game:Main');
     expect(다찾음).toBe(false);
     expect(줄들.slice(1, 3)).toEqual([
       '길 없음: game:Main/Canvas/Shop/Upgrade (목표 자리) — 폰에서 해 볼 목표다',
@@ -86,13 +87,13 @@ describe('경로', () => {
   });
 
   it('진행 불가 목표 행은 까닭과 같이 붙인다', () => {
-    const { 줄들, 다찾음 } = 경로(행들, { 상태: [], 자리: 'zone:Raid' });
+    const { 줄들, 다찾음 } = 경로(행들, { 상태: [], 자리: 'zone:Raid' }, 'game:Main');
     expect(다찾음).toBe(false);
     expect(줄들.slice(1, 3)).toEqual(['길 없음: zone:Raid (목표 자리) — 폰에서 해 볼 목표다', '  진행 불가: zone:Raid → 레이드 들어가기 · 진행 불가 — 두 번째 계정 없음']);
   });
 
   it('상태를 만드는 확인 행이 없으면 그 조각만 길 없음이고 나머지 차례는 찍는다', () => {
-    const { 줄들, 다찾음 } = 경로(행들, { 상태: ['골드=100', '레벨=1'], 자리: null });
+    const { 줄들, 다찾음 } = 경로(행들, { 상태: ['골드=100', '레벨=1'], 자리: null }, 'game:Main');
     expect(다찾음).toBe(false);
     expect(줄들.slice(1, 4)).toEqual([
       '길 없음: state:골드=100 (그 상태를 만드는 상태 설정 행이 없다) — 폰에서 해 볼 목표다',
@@ -101,13 +102,67 @@ describe('경로', () => {
     ]);
   });
 
-  it('--from 을 주면 거기서 출발하고, 장면 첫 화면이 없는 맵은 출발이 없다고 알린다', () => {
+  it('목표 자리의 동작이 확인이 아니면 길이 나도 다시 해 볼 목표로 남긴다', () => {
+    const 맵 = 작은맵([
+      행({ kind: 'MOVE', from_key: 'game:Main', action: '던전 문', to_key: 'zone:Dungeon' }),
+      행({ kind: 'MOVE', from_key: 'zone:Dungeon', action: '적 누르기 후 「공격」 누르기', to_key: '처치', status: 'RECHECK', build_no: '16' }),
+      행({ kind: 'MOVE', from_key: 'zone:Dungeon', action: '줍기', to_key: '아이템' }),
+    ]);
+    const { 줄들, 다찾음 } = 경로(맵, { 상태: [], 자리: 'zone:Dungeon' }, 'game:Main');
+    expect(다찾음).toBe(false);
+    expect(줄들.slice(1)).toEqual([
+      '1. [이동 · 조작] game:Main → 던전 문 → zone:Dungeon · 확인',
+      '확인 안 된 동작: zone:Dungeon → 적 누르기 후 「공격」 누르기 → 처치 · 재확인 필요 · 빌드 16',
+      '그 자리에서 하는 동작: zone:Dungeon → 줍기 → 아이템 · 확인',
+    ]);
+  });
+
+  it('상태 설정을 치는 자리가 지금 자리가 아니면 먼저 그리로 간다', () => {
+    const 맵 = 작은맵([
+      행({ kind: 'SETUP', from_key: 'game:Main', action: '/gm tp Dungeon', to_key: 'zone:Dungeon' }),
+      행({ kind: 'SETUP', from_key: 'zone:Dungeon', action: '/gm spawn imp 3', to_key: 'state:임프=3' }),
+    ]);
+    expect(경로(맵, { 상태: ['임프=3'], 자리: null }, 'game:Main').줄들.slice(1)).toEqual([
+      '1. [상태 설정] game:Main → /gm tp Dungeon → zone:Dungeon · 확인',
+      '2. [상태 설정] zone:Dungeon → /gm spawn imp 3 → state:임프=3 · 확인',
+    ]);
+  });
+
+  it('출발을 주면 거기서 간다', () => {
     expect(경로(행들, { 상태: [], 자리: 'zone:Dungeon/ImpRoom' }, 'zone:Dungeon').줄들[1]).toBe(
       '1. [이동 · 조작] zone:Dungeon → 동쪽 문 지나기 → zone:Dungeon/ImpRoom · 확인 · 도우미 이동',
     );
-    const 맵없음 = 경로(행들.filter((r) => !r.from.startsWith('game:')), { 상태: [], 자리: 'zone:Dungeon' });
-    expect(맵없음.다찾음).toBe(false);
-    expect(맵없음.줄들[0]).toContain('출발 없음(맵에 장면 첫 화면 game:<장면> 열쇠가 없다 — --from 으로 준다)');
+  });
+
+  it('목표 값을 덮어쓰는 조각을 같이 바꾸는 설정은 먼저 쳐서 목표 값이 남게 한다', () => {
+    const 맵 = 작은맵([
+      행({ kind: 'SETUP', from_key: 'game:Main', action: '/gm party 2', to_key: 'state:인원=2' }),
+      행({ kind: 'SETUP', from_key: 'game:Main', action: '/gm solo tank', to_key: 'state:직업=탱커,인원=1' }),
+    ]);
+    const { 줄들, 다찾음 } = 경로(맵, { 상태: ['인원=2', '직업=탱커'], 자리: null }, 'game:Main');
+    expect(다찾음).toBe(true);
+    expect(줄들.slice(1)).toEqual([
+      '1. [상태 설정] game:Main → /gm solo tank → state:직업=탱커,인원=1 · 확인',
+      '2. [상태 설정] game:Main → /gm party 2 → state:인원=2 · 확인',
+    ]);
+  });
+
+  it('서로 덮어써 순서로 못 푸는 설정은 길 없음이다', () => {
+    const 맵 = 작은맵([
+      행({ kind: 'SETUP', from_key: 'game:Main', action: '/gm heal party', to_key: 'state:인원=2,직업=힐러' }),
+      행({ kind: 'SETUP', from_key: 'game:Main', action: '/gm solo tank', to_key: 'state:직업=탱커,인원=1' }),
+    ]);
+    const { 줄들, 다찾음 } = 경로(맵, { 상태: ['직업=탱커', '인원=2'], 자리: null }, 'game:Main');
+    expect(다찾음).toBe(false);
+    expect(줄들).toContain('길 없음: state:직업=탱커 (뒤에 치는 「/gm heal party」 이 직업=힐러 으로 덮어쓴다) — 폰에서 해 볼 목표다');
+  });
+
+  it('맞추는 조각 수가 같으면 목표 밖 상태를 덜 건드리는 설정을 고른다', () => {
+    const 맵 = 작은맵([
+      행({ kind: 'SETUP', from_key: 'game:Main', action: '/gm a-solo tank', to_key: 'state:직업=탱커,인원=1' }),
+      행({ kind: 'SETUP', from_key: 'game:Main', action: '/gm char tank', to_key: 'state:직업=탱커' }),
+    ]);
+    expect(경로(맵, { 상태: ['직업=탱커'], 자리: null }, 'game:Main').줄들.slice(1)).toEqual(['1. [상태 설정] game:Main → /gm char tank → state:직업=탱커 · 확인']);
   });
 });
 
@@ -115,9 +170,34 @@ describe('실행', () => {
   const 폴더 = mkdtempSync(join(tmpdir(), 'game-route-'));
   writeFileSync(join(폴더, 'game-route.txt'), 맵);
   const 빈폴더 = mkdtempSync(join(tmpdir(), 'game-route-none-'));
+  const 두장면 = mkdtempSync(join(tmpdir(), 'game-route-scenes-'));
+  writeFileSync(
+    join(두장면, 'game-route.txt'),
+    맵글짓기([
+      행({ kind: 'MOVE', from_key: 'game:Main', action: '게임 시작', to_key: 'game:Battle' }),
+      행({ kind: 'MOVE', from_key: 'game:Battle', action: '메뉴', to_key: 'game:Battle/Canvas/Menu' }),
+    ]),
+  );
   afterAll(() => {
-    rmSync(폴더, { recursive: true, force: true });
-    rmSync(빈폴더, { recursive: true, force: true });
+    for (const x of [폴더, 빈폴더, 두장면]) rmSync(x, { recursive: true, force: true });
+  });
+
+  it('장면 첫 화면이 여럿이면 장면 이동 걸음을 빼먹지 않게 --from 을 받는다', () => {
+    const 찍음 = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      expect(실행([두장면, 'game:Battle/Canvas/Menu'])).toBe(2);
+      expect(오류.mock.calls.at(-1)?.[0]).toBe('[경로 검색] 장면 첫 화면(game:<장면>)이 여럿이다 — game:Main · game:Battle — 로그인 직후 화면 열쇠를 --from 으로 준다');
+      expect(실행([두장면, 'game:Battle/Canvas/Menu', '--from', 'game:Main'])).toBe(0);
+      expect(찍음.mock.calls.at(-1)?.[0]).toContain('1. [이동 · 조작] game:Main → 게임 시작 → game:Battle');
+      writeFileSync(join(빈폴더, 'game-route.txt'), 맵글짓기([행({ kind: 'MOVE', from_key: 'zone:A', action: '걷기', to_key: 'zone:B' })]));
+      expect(실행([빈폴더, 'zone:B'])).toBe(2);
+      expect(오류.mock.calls.at(-1)?.[0]).toContain('장면 첫 화면(game:<장면>)이 맵에 없다');
+      rmSync(join(빈폴더, 'game-route.txt'));
+    } finally {
+      찍음.mockRestore();
+      오류.mockRestore();
+    }
   });
 
   it('길을 다 찾으면 0, 길 없는 목표가 있으면 1, 부를 수 없으면 2', () => {
@@ -131,6 +211,8 @@ describe('실행', () => {
       expect(실행([폴더])).toBe(2);
       expect(실행([폴더, 'zone:Dungeon', 'zone:Raid'])).toBe(2);
       expect(실행([폴더, 'zone:Dungeon', '--from'])).toBe(2);
+      expect(실행([폴더, 'state:'])).toBe(2);
+      expect(실행([폴더, 'state:레벨=1', 'state:레벨=2'])).toBe(2);
       expect(실행([빈폴더, 'zone:Dungeon'])).toBe(2);
       expect(오류.mock.calls.at(-1)?.[0]).toContain('game-route.txt 이 없다');
     } finally {

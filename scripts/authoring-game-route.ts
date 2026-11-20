@@ -55,8 +55,14 @@ export function 맵읽기(글: string): 맵행[] {
 
 const 상태조각 = (열쇠: string | null): string[] =>
   열쇠?.startsWith('state:') === true ? 열쇠.slice('state:'.length).split(',').map((x) => x.trim()).filter((x) => x !== '') : [];
-/** 로그인 직후 화면 — 창 훑기가 시작 화면을 `game:<장면>` 으로 적는다(authoring-game-crawl.ts 창목록) */
-const 장면첫화면 = /^game:[^/]+$/;
+/** 상태 조각의 이름 — `레벨=1` 은 `레벨`, 값이 없는 조각(`몬스터 없음`)은 그대로 */
+const 이름 = (조각: string): string => 조각.split('=')[0]!;
+
+/**
+ * 맵에 나오는 장면 첫 화면(`game:<장면>`) — 창 훑기가 로그인 직후 시작 화면을 이 꼴로 적는다(authoring-game-crawl.ts 창목록).
+ * 하나뿐일 때만 출발로 쓴다 — 여럿이면 어느 장면이 로그인 직후인지 몰라 「게임 시작」 같은 장면 이동 걸음을 빼먹은 길을 낼 수 있다
+ */
+export const 장면첫화면들 = (행들: 맵행[]): string[] => [...new Set(행들.flatMap((r) => [r.from, r.to ?? '']).filter((k) => /^game:[^/]+$/.test(k)))];
 const 걸음이름 = { MOVE: '이동 · 조작', SETUP: '상태 설정' } as const;
 
 /** 자리에서 자리로 — 이동 · 조작 행과 자리를 바꾸는 상태 설정 행(순간이동). 너비 우선이라 걸음 수가 가장 적은 길 */
@@ -89,14 +95,11 @@ const 확인만 = new Set<맵행['status']>(['OK']);
 const 재확인까지 = new Set<맵행['status']>(['OK', 'RECHECK']);
 
 /** 목표까지 — 상태 설정 차례 → 목표 자리까지 이동 · 조작 차례, 그다음 그 자리에서 하는 동작 · 남는 로그 · 돌발 팝업. 길이 없는 목표는 「길 없음」 줄과 그 목표에 걸린 확인 아닌 행 */
-export function 경로(행들: 맵행[], 목표: 목표, 출발?: string): { 줄들: string[]; 다찾음: boolean } {
-  const 시작 = new Set(출발 !== undefined ? [출발] : 행들.flatMap((r) => [r.from, r.to ?? '']).filter((k) => 장면첫화면.test(k)));
+export function 경로(행들: 맵행[], 목표: 목표, 출발: string): { 줄들: string[]; 다찾음: boolean } {
   const 목표글 = [목표.상태.length > 0 ? `state:${목표.상태.join(',')}` : '', 목표.자리 ?? ''].filter((x) => x !== '').join(' ');
-  const 줄들 = [
-    `# 경로 검색 — 목표 ${목표글} · 출발 ${시작.size > 0 ? [...시작].join(' | ') : '없음(맵에 장면 첫 화면 game:<장면> 열쇠가 없다 — --from 으로 준다)'} — 「확인」 행으로만 길을 낸다 · 기대값의 근거가 아니다`,
-  ];
+  const 줄들 = [`# 경로 검색 — 목표 ${목표글} · 출발 ${출발} — 「확인」 행으로만 길을 낸다 · 기대값의 근거가 아니다`];
   const 지난: 맵행[] = [];
-  let 지금 = 시작;
+  let 지금 = new Set([출발]);
   let 다찾음 = true;
   const 걸음 = (r: 맵행, 이름: string) => 줄들.push(`${String(지난.push(r))}. [${이름}] ${r.line}`);
 
@@ -120,34 +123,53 @@ export function 경로(행들: 맵행[], 목표: 목표, 출발?: string): { 줄
     return true;
   };
 
-  // 상태 조각마다 그것을 만드는 확인 행 — 한 행이 여럿을 맞추면 그 행 하나로
+  // 상태 조각마다 그것을 만드는 확인 행 — 한 행이 여럿을 맞추면 그 행 하나로. 맞추는 수가 같으면 목표 밖 상태를 덜 건드리는 행
   const 설정들 = 행들.filter((r) => r.kind === 'SETUP' && r.status === 'OK');
   const 남은 = new Set(목표.상태);
+  const 못찾음 = new Set<string>();
   const 고른: 맵행[] = [];
   for (const 조각 of 목표.상태) {
     if (!남은.has(조각)) continue;
-    const 후보 = 설정들.filter((r) => 상태조각(r.to).includes(조각));
     const 덮는수 = (r: 맵행) => 상태조각(r.to).filter((x) => 남은.has(x)).length;
-    const 고름 = 후보.reduce<맵행 | null>((a, b) => (a === null || 덮는수(b) > 덮는수(a) ? b : a), null);
+    const 군더더기 = (r: 맵행) => 상태조각(r.to).filter((x) => !목표.상태.includes(x)).length;
+    const 고름 = 설정들
+      .filter((r) => 상태조각(r.to).includes(조각))
+      .reduce<맵행 | null>((a, b) => (a === null || 덮는수(b) > 덮는수(a) || (덮는수(b) === 덮는수(a) && 군더더기(b) < 군더더기(a)) ? b : a), null);
     if (고름 === null) {
       남은.delete(조각);
+      못찾음.add(조각);
       길없음(`state:${조각}`, '그 상태를 만드는 상태 설정 행이 없다');
       continue;
     }
     고른.push(고름);
     for (const x of 상태조각(고름.to)) 남은.delete(x);
   }
-  // 경고(부작용)가 달린 설정을 먼저 친다 — /gm killall 이 경험치를 줘 레벨을 올리듯 다른 상태를 흔드는 명령 뒤에 맞춘 값이 남게(PR #833)
-  for (const r of [...고른.filter((x) => x.warning !== null), ...고른.filter((x) => x.warning === null)]) {
+  // 다른 상태를 흔드는 설정을 먼저 친다 — 경고(부작용)가 달렸거나 목표 조각과 이름이 같고 값이 다른 조각을 같이 바꾸는 행.
+  // /gm killall 이 경험치를 줘 레벨을 올리듯, 흔드는 명령 뒤에 맞춘 값이 남게(PR #833)
+  const 흔듦 = (r: 맵행) => r.warning !== null || 상태조각(r.to).some((x) => !목표.상태.includes(x) && 목표.상태.some((y) => 이름(y) === 이름(x)));
+  const 친것 = new Map<string, { 조각: string; 행: 맵행 }>();
+  for (const r of [...고른.filter(흔듦), ...고른.filter((x) => !흔듦(x))]) {
     if (!지금.has(r.from) && !이동(r.from, `상태 설정 「${r.action}」 을 치는 자리`)) continue;
     지금 = new Set([r.from]);
     걸음(r, '상태 설정');
+    for (const x of 상태조각(r.to)) 친것.set(이름(x), { 조각: x, 행: r });
+  }
+  // 흔드는 행끼리 서로 덮으면 순서로 못 푼다 — 끝에 남는 값이 목표와 다르면 알린다
+  for (const 조각 of 목표.상태) {
+    const 끝 = 친것.get(이름(조각));
+    if (끝 !== undefined && 끝.조각 !== 조각 && !못찾음.has(조각)) 길없음(`state:${조각}`, `뒤에 치는 「${끝.행.action}」 이 ${끝.조각} 으로 덮어쓴다`);
   }
   const 도착함 = 목표.자리 !== null && 이동(목표.자리, '목표 자리');
 
   for (const r of 행들) {
-    if (r.status !== 'OK') continue;
-    if (도착함 && r.kind === 'MOVE' && r.from === 목표.자리) 줄들.push(`그 자리에서 하는 동작: ${r.line}`);
+    if (!도착함 || r.kind !== 'MOVE' || r.from !== 목표.자리) continue;
+    if (r.status === 'OK') {
+      줄들.push(`그 자리에서 하는 동작: ${r.line}`);
+      continue;
+    }
+    // 정식 실행이 실패로 단 동작은 대개 목표 자리의 되풀이 동작이다 — 길이 나도 다시 해 볼 목표로 남긴다(§3.10 차례 2)
+    다찾음 = false;
+    줄들.push(`확인 안 된 동작: ${r.line}`);
   }
   for (const r of 행들) {
     if (r.status !== 'OK' || r.kind !== 'LOG') continue;
@@ -170,7 +192,10 @@ export function 실행(인자: string[]): number {
   const 출발 = 앞 < 0 ? undefined : 나머지[앞 + 1];
   const 열쇠들 = 나머지.filter((_, i) => 앞 < 0 || (i !== 앞 && i !== 앞 + 1));
   const 자리들 = 열쇠들.filter((k) => !k.startsWith('state:'));
-  if (폴더 === undefined || 열쇠들.length === 0 || 자리들.length > 1 || (앞 >= 0 && 출발 === undefined)) {
+  const 상태 = [...new Set(열쇠들.flatMap(상태조각))];
+  // 같은 이름에 값이 둘이면(레벨=1 · 레벨=2) 어느 쪽을 뜻했는지 모른다
+  const 이름겹침 = new Set(상태.map(이름)).size < 상태.length;
+  if (폴더 === undefined || (상태.length === 0 && 자리들.length === 0) || 자리들.length > 1 || 이름겹침 || (앞 >= 0 && 출발 === undefined)) {
     console.error(쓰는법);
     return 2;
   }
@@ -179,7 +204,15 @@ export function 실행(인자: string[]): number {
     console.error(`[경로 검색] ${폴더}/${게임자리.맵} 이 없다 — 에이전트가 조작 맵을 못 받았다. 목표를 폰에서 해 본다`);
     return 2;
   }
-  const { 줄들, 다찾음 } = 경로(맵읽기(글), { 상태: [...new Set(열쇠들.flatMap(상태조각))], 자리: 자리들[0] ?? null }, 출발);
+  const 행들 = 맵읽기(글);
+  const 첫화면들 = 장면첫화면들(행들);
+  if (출발 === undefined && 첫화면들.length !== 1) {
+    console.error(
+      `[경로 검색] 장면 첫 화면(game:<장면>)이 ${첫화면들.length === 0 ? '맵에 없다' : `여럿이다 — ${첫화면들.join(' · ')}`} — 로그인 직후 화면 열쇠를 --from 으로 준다`,
+    );
+    return 2;
+  }
+  const { 줄들, 다찾음 } = 경로(행들, { 상태, 자리: 자리들[0] ?? null }, 출발 ?? 첫화면들[0]!);
   console.log(줄들.join('\n'));
   return 다찾음 ? 0 : 1;
 }
