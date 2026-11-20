@@ -128,6 +128,16 @@ describe('앱맵올리기', () => {
     expect((await 앱맵올리기(통로, 자료, [])).틀림).toBe('app-route.json 을 서버가 거절했다 — 서버 400 (rows.0.kind)');
     expect((await 앱맵올리기(통로, 자료, ['남의글올리기'])).줄).toBe('앱 조작 맵: 탐색 줄에 테스트 계정 비밀번호가 들어 있어 안 올림');
   });
+
+  it('빌드를 받았으면 빌드 없는 「확인」 줄에만 단다 — 진행 불가 · 빌드를 적은 줄은 그대로고 서버가 거절할 빌드 이름은 안 단다 (APP-F4-09)', async () => {
+    서버({ 'PUT /app-route': { status: 204 } });
+    const 막힘 = { kind: 'MOVE', fromKey: 상세, action: '「삭제」 누르기', status: 'BLOCKED', reason: '두 번째 계정 없음' };
+    const 적은 = { kind: 'MOVE', fromKey: 홈, action: '「설정」 누르기', status: 'OK', buildNo: '30' };
+    쓰기('app-route.json', { rows: [...이번.rows, 막힘, 적은] });
+    expect(await 앱맵올리기(통로, 자료, [], '31')).toEqual({ 줄: '앱 조작 맵: 탐색 줄 4개 올림 · 확인 줄 2개에 빌드 31', 틀림: null });
+    expect(JSON.parse((부름.mock.calls[0]![1] as RequestInit).body as string)).toEqual({ rows: [...이번.rows.map((r) => ({ ...r, buildNo: '31' })), 막힘, 적은] });
+    expect(await 앱맵올리기(통로, 자료, [], '빌드 · 31')).toEqual({ 줄: '앱 조작 맵: 탐색 줄 4개 올림', 틀림: null });
+  });
 });
 
 describe('앱체크포인트돌기', () => {
