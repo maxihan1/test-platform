@@ -7,8 +7,8 @@ import { pathToFileURL } from 'node:url';
 import { 올릴빌드 } from './authoring-app-crawl-route.js';
 import { 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
 import { 게임자리, 글받기 } from './authoring-game.js';
-import { type 맵행, 경로, 맵행읽기, 목표풀기, 새행더하기, 출발고르기 } from './authoring-game-route.js';
-import { type 돌린결과, 부른다 } from './authoring-io.js';
+import { type 맵행, 경로, 맵행읽기, 목표풀기, 출발고르기 } from './authoring-game-route.js';
+import { type 돌린결과, type 보고손, 부른다 } from './authoring-io.js';
 import { 끝낼상태 } from './authoring-progress.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -89,26 +89,71 @@ export function 탐색줄(목표들: 탐색목표[], 비밀: readonly string[]):
   return `${머리} — ${까닭들.join(' · ')}${불가.length > 까닭상한 ? ` 외 ${String(불가.length - 까닭상한)}개` : ''}`;
 }
 
+// 끝 보고에 싣는 돌발 팝업 행 상한 — 서버 끝내기 검사 · 실행 요청에 싣는 팝업 상한과 같다
+const 팝업상한 = 100;
+
 /**
- * 이번 작성이 적은 「확인」 돌발 팝업 행(game-route.json) — 서버에 올리지 않고 PR 머리에만 싣는다(아래 맵올리기). 맵에 있던 창을 다시 적은 것도 센다 (§3.10 「돌발 팝업 자동 닫기」)
+ * 이번 작성이 적은 「확인」 돌발 팝업 행(game-route.json) — 체크포인트에서는 안 올리고 끝 보고(result.popupRows)에 실어, 그 PR 이 병합되면 서버가 맵에 올린다.
+ * 줄은 PR 머리에 실린다 — 사람이 병합 전에 보는 목록이다. 맵에 있던 창을 다시 적은 것도 센다 (§3.10 「돌발 팝업 자동 닫기」 · GAME-F5-15)
  */
-export function 팝업추가줄(새글: string | null, 비밀: readonly string[]): string | null {
-  if (새글 === null) return null;
-  let 새행들: 맵행[];
+export function 병합팝업(새글: string | null, 비밀: readonly string[]): { 줄: string | null; 행들: Record<string, unknown>[] } {
+  const 없음 = { 줄: null, 행들: [] };
+  if (새글 === null) return 없음;
+  let 몸: unknown;
   try {
-    새행들 = 새행더하기([], JSON.parse(새글));
+    몸 = JSON.parse(새글);
   } catch {
-    return null;
+    return 없음;
   }
-  const 창들 = 새행들.filter((r) => r.kind === 'POPUP' && r.status === 'OK').map((r) => r.from);
-  if (창들.length === 0) return null;
-  if (계정섞였나(창들, 비밀)) return `올리지 않은 돌발 팝업 행 ${String(창들.length)} — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음`;
-  return `올리지 않은 돌발 팝업 행 ${String(창들.length)} — ${창들.slice(0, 20).join(', ')}${창들.length > 20 ? ` 외 ${String(창들.length - 20)}개` : ''}`;
+  const 줄들 = (몸 as { rows?: unknown } | null)?.rows;
+  const 팝업들 = (Array.isArray(줄들) ? (줄들 as unknown[]) : []).filter(
+    (r): r is Record<string, unknown> => typeof r === 'object' && r !== null && (r as Record<string, unknown>).kind === 'POPUP' && (r as Record<string, unknown>).status === 'OK',
+  );
+  if (팝업들.length === 0) return 없음;
+  // 서버가 행 하나만 틀려도 목록 전부를 거절한다 — 같은 규칙으로 먼저 걸러 PR 머리 목록과 싣는 목록을 맞춘다. 창 주소 · 닫는 법만 싣는다(빌드 · 칸은 병합 뒤 넣기에 쓰지 않는다)
+  const 본것 = new Set<string>();
+  const 행들: { kind: 'POPUP'; fromKey: string; action: string; status: 'OK' }[] = [];
+  for (const r of 팝업들) {
+    if (!팝업글인가(r.fromKey) || !팝업글인가(r.action)) continue;
+    const 열쇠 = JSON.stringify([r.fromKey, r.action]);
+    if (본것.has(열쇠)) continue;
+    본것.add(열쇠);
+    행들.push({ kind: 'POPUP', fromKey: r.fromKey, action: r.action, status: 'OK' });
+  }
+  const 틀림 = 팝업들.length - 행들.length;
+  if (행들.length === 0) return { 줄: `돌발 팝업 행 ${String(팝업들.length)} — 꼴이 틀리거나 겹쳐 병합해도 안 올림`, 행들: [] };
+  if (계정섞였나(행들.flatMap((r) => [r.fromKey, r.action]), 비밀)) return { 줄: `돌발 팝업 행 ${String(행들.length)} — 테스트 계정 비밀번호가 들어 있어 병합해도 안 올림`, 행들: [] };
+  const 실을 = 행들.slice(0, 팝업상한);
+  const 창들 = 실을.map((r) => r.fromKey);
+  const 꼬리 = [
+    행들.length > 팝업상한 ? ` · ${String(팝업상한)}개 넘는 ${String(행들.length - 팝업상한)}개는 안 올림` : '',
+    틀림 > 0 ? ` · 꼴이 틀리거나 겹친 ${String(틀림)}개는 안 올림` : '',
+  ].join('');
+  return { 줄: `병합하면 올릴 돌발 팝업 행 ${String(실을.length)} — ${창들.slice(0, 20).join(', ')}${창들.length > 20 ? ` 외 ${String(창들.length - 20)}개` : ''}${꼬리}`, 행들: 실을 };
+}
+
+// 서버 조작 맵 글 칸 규칙(apps/admin/src/prd/gameRoute.ts 글인가 · 가르개)과 같다 — 경로 검색이 맵 글을 「 · 」 「 → 」로 잘라 읽는다
+const 팝업글인가 = (v: unknown): v is string => typeof v === 'string' && v.trim() === v && v !== '' && v.length <= 200 && !/\n|\r|\u0000| · | → |^[·→]|[·→]$/.test(v);
+
+/** 자료 폴더의 game-route.json 에서 — 탐색끝줄과 끝 보고가 같이 읽는다 */
+export const 병합팝업행 = (자료: string, 비밀: readonly string[]) => 병합팝업(안전히읽기(자료, 게임자리.새맵행, 4_000_000), 비밀);
+
+/** 작성이 DONE 으로 끝날 때 result.popupRows 를 싣는 손 — 행이 없거나 다른 끝이면 그대로다 */
+export function 팝업싣는손(손: 보고손, 행들: () => Record<string, unknown>[]): 보고손 {
+  return {
+    ...손,
+    끝내기: (몸) => {
+      const 들 = 행들();
+      if (몸.status !== 'DONE' || 들.length === 0) return 손.끝내기(몸);
+      const 결과 = typeof 몸.result === 'object' && 몸.result !== null ? (몸.result as Record<string, unknown>) : {};
+      return 손.끝내기({ ...몸, result: { ...결과, popupRows: 들 } });
+    },
+  };
 }
 
 /**
  * 이번 작성이 적은 행(game-route.json)을 올린다. 돌발 팝업 행은 넣지도 지우지도 않는다 — 올리는 순간 다음 정식 실행부터 kit 이 그 창을 닫아,
- * 오류 창을 팝업으로 잘못 적으면 PR 을 보기도 전에 실패가 통과가 된다(2026-11-20 사용자 · 병합 뒤 올리는 길은 진행판 GAME-F5-15). 이 작성의 돌려 보기는 자료 폴더의 행으로 쓴다.
+ * 오류 창을 팝업으로 잘못 적으면 PR 을 보기도 전에 실패가 통과가 된다(2026-11-20 사용자). 팝업 행은 끝 보고에 실려 PR 병합 뒤 서버가 올린다(위 병합팝업 · GAME-F5-15). 이 작성의 돌려 보기는 자료 폴더의 행으로 쓴다.
  * 꼴이 틀려 서버가 거절하면(400) `틀림` 에 자리를 — 체크포인트는 이것으로 멈춘다(고쳐야 다음 작성이 맵을 쓴다).
  * 서버가 안 받는 그 밖의 경우는 줄에만 적고 간다 — 이 작성은 자료 폴더의 행으로 길을 찾는다(경로 검색이 같이 읽는다)
  */
@@ -172,11 +217,11 @@ export async function 체크포인트돌기(통로: 화면통로, 자료: string
   return { 줄 };
 }
 
-/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름 · 테스트 고침이 다시 해 본 행은 빌드까지) · 올리지 않은 돌발 팝업. 탐색을 안 한 작성(미션만)은 빈 목록 */
-export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드?: string): Promise<string[]> {
+/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름 · 테스트 고침이 다시 해 본 행은 빌드까지) · 병합하면 올릴 돌발 팝업(탐색하는 작성만 — 끝 보고에 싣는 것도 그 작성뿐이다). 탐색을 안 한 작성(미션만)은 빈 목록 */
+export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드?: string, 팝업싣나 = true): Promise<string[]> {
   const 지남 = 안전히읽기(자료, 게임자리.탐색지남, 파일상한)?.trim();
   const 올림 = await 맵올리기(통로, 자료, 비밀, 빌드);
-  return [지남, 올림.줄, 팝업추가줄(안전히읽기(자료, 게임자리.새맵행, 4_000_000), 비밀)].filter((x): x is string => x !== null && x !== undefined && x !== '');
+  return [지남, 올림.줄, 팝업싣나 ? 병합팝업행(자료, 비밀).줄 : null].filter((x): x is string => x !== null && x !== undefined && x !== '');
 }
 
 /**

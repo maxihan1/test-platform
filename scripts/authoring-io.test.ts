@@ -302,6 +302,12 @@ describe('거절된보고대신 — 끝났다는 보고가 400 이면 실패로 
     expect(거절된보고대신(400, { error: 'BAD_RESULT', detail: 'testFix' }, 몸)).toEqual({ status: 'DONE', prUrl: 'p', result: { held: [] } });
     expect(거절된보고대신(400, { error: 'BAD_RESULT', detail: 'diffs' }, 몸)).toMatchObject({ status: 'FAILED' });
   });
+  it('병합 뒤 올릴 돌발 팝업 행이 거절되면(BAD_RESULT popupRows) 그 칸만 뺀 같은 몸을 보낸다 — PR 을 잃지 않게', () => {
+    const 몸 = { status: 'DONE', prUrl: 'p', result: { held: [], popupRows: [{ kind: 'POPUP' }] } };
+    expect(거절된보고대신(400, { error: 'BAD_RESULT', detail: 'popupRows' }, 몸)).toEqual({ status: 'DONE', prUrl: 'p', result: { held: [] } });
+    expect(거절된보고대신(400, { error: 'BAD_RESULT', detail: 'popupRows' }, { status: 'DONE', prUrl: 'p' })).toMatchObject({ status: 'FAILED' });
+    expect(거절된보고대신(413, null, { status: 'DONE', prUrl: 'p', result: { popupRows: [{ kind: 'POPUP' }] } })).toEqual({ status: 'DONE', prUrl: 'p' });
+  });
   it('본문 상한(413)에 둘 다 실렸으면 케이스 목록을 먼저 뺀다', () => {
     const 몸 = { status: 'DONE', result: { coverage: { total: 1 }, cases: [{ tcId: 'A-001' }] } };
     expect(거절된보고대신(413, null, 몸)).toEqual({ status: 'DONE', result: { coverage: { total: 1 } } });
