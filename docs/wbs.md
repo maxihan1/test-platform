@@ -1791,7 +1791,8 @@
   - 근거 PR #871 · 2026-11-20 — 시간 상한은 사용자가 뺐다(명세 차례 4 뒤집음) · 단계 표지 「탐색 플레이」
 - [x] `GAME-F5-06` 정식 실행이 맵을 고친다 — 통과 항목이 지난 행에 빌드 · 실패 동작 행은 「재확인 필요」(지난 행을 맞추는 법은 시작 질문)
   - 근거 PR #875 · 2026-11-20 — 행은 함수 이름으로 맞춘다 · 「재확인 필요」는 조작 실패(요소를 찾지 못함 · 타임아웃)만 · 통과는 「재확인 필요」를 못 푼다
-- [ ] `GAME-F5-07` 판정 요청 카드 · 미션 승인 걷기 — 표준 기획서 항목의 현재 동작 칸 · 「요구사항 확인」 탭 카드 · 미션 승인 탭 · MISSIONS · skip-mission · `PUT …/missions` · params.missions 걷기 (시안 먼저)
+- [x] `GAME-F5-07` 판정 요청 카드 · 미션 승인 걷기 — 표준 기획서 항목의 현재 동작 칸 · 「요구사항 확인」 탭 카드 · 미션 승인 탭 · MISSIONS · skip-mission · `PUT …/missions` · params.missions 걷기 (시안 먼저)
+  - 근거 PR #879 · 2026-11-20 (시안 https://claude.ai/artifact/G25GoqrJ4V6vrTVDUg56d7 A안 · 현재 동작 칸 text · proposal · where(EXPLORE | RUN 번호) · build · count — proposal 은 시작 질문에서 더함 · authoring_request.missions 칸은 마이그레이션으로 지움 · 미션 절은 PR 머리 줄로만)
 - [ ] `GAME-F5-08` 게임 작성 지침 — `tpx-author` `game.md`(탐색 플레이 절 · 눌러 보기는 맵에 없는 주소만) · `fanout-game.md`(보조 AI 경로 검색) · `tpx-cases` `game.md` §3(상태 도우미 ↔ 상태 설정 행) · `game-scenario.md`(미션을 맵으로 · 승인 없음 · Boss Room 고유 사실 빼기) · `guide.md` §5.2(「배운 것」은 맵에 못 담는 것만) · `5-stable-game.md`(맵 소요 시간을 기다림 참고값으로) · 게임 입구 결과 요약 줄
 - [ ] `GAME-F5-09` ARG 지식 옮기기 — 서비스 가이드 「테스트할 때 지킬 것」 · 요약 「배운 것」 · PR #833 · #836 의 조작 내용을 ARG 조작 맵 첫 행으로
 - [ ] `GAME-F5-10` 실측 — ARG 를 한 번 다시 작성해 #15309(82분 · 첫 돌려 보기 초록 68% · 폰 54분)와 견준다 (사용자가 시작하라고 할 때만)
