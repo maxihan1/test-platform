@@ -178,6 +178,23 @@ describe.skipIf(연결 === undefined)('앱 조작 맵 에이전트 통로', () =
     ]);
   });
 
+  it('진행 불가였던 줄에 빌드 없는 확인이 오면 막힌 빌드를 「통과한 빌드」로 물려받지 않는다', async () => {
+    const id = await 요청넣기();
+    await 올리기(id, { rows: [{ ...결제, buildNo: '412' }] });
+    await 올리기(id, { rows: [{ ...결제, status: 'OK', reason: undefined }] });
+    const r = await q<{ status: string; build_no: string | null }>('SELECT status, build_no FROM app_route WHERE service_id = $1', [서비스]);
+    expect(r.rows).toEqual([{ status: 'OK', build_no: null }]);
+  });
+
+  it('fields 의 null 값은 빈 칸이라 케이스 작성이 채운 함수 이름을 탐색이 지우지 않는다', async () => {
+    const id = await 요청넣기();
+    await 올리기(id, { rows: [{ ...알림탭, fields: { fn: null } }] });
+    expect((await q<{ fields: unknown }>('SELECT fields FROM app_route WHERE service_id = $1', [서비스])).rows[0]!.fields).toBeNull();
+    await 올리기(id, { rows: [알림탭] });
+    await 올리기(id, { rows: [{ ...알림탭, fields: { fn: null, 누른곳: 'nav' } }] });
+    expect((await q<{ fields: unknown }>('SELECT fields FROM app_route WHERE service_id = $1', [서비스])).rows[0]!.fields).toEqual({ fn: '홈.알림열기()', 누른곳: 'nav' });
+  });
+
   it('맵 글은 종류마다 한 줄씩 — 상태 · 빌드 · 소요 · 도우미 · 함수 · 경고, 나머지 칸은 맨 끝 JSON', async () => {
     const id = await 요청넣기();
     expect(await 맵(id)).toBe('# 앱 조작 맵 — 줄 0개. 「어떻게 가나」만 담는다 — 기대값의 근거가 아니다\n');

@@ -123,10 +123,12 @@ export async function 맵줄넣기(서비스: number, rows: 맵줄[], remove: �
       [서비스, JSON.stringify(remove.map((r) => ({ kind: r.kind, from_key: r.fromKey, action: r.action })))],
     );
     // 빌드 번호를 안 실은 확인 줄은 다시 해 본 것이 아니다 — 「어느 빌드에서 통과」를 지키고, 정식 실행이 단 「다시 확인」도 풀지 않는다.
-    // 까닭은 지키지 않는다 — 진행 불가였던 줄이 확인으로 오면 까닭이 남으면 안 된다. 빌드는 「통과한 빌드」라 진행 불가 줄은 물려받지 않는다
+    // 까닭은 지키지 않는다 — 진행 불가였던 줄이 확인으로 오면 까닭이 남으면 안 된다. 빌드는 「통과한 빌드」라 진행 불가 줄은 물려받지 않고,
+    // 진행 불가였던 줄의 빌드도 확인 줄이 물려받지 않는다(막힌 빌드가 「확인 · 빌드 N」으로 보이면 안 된다).
+    // fields 의 null 값은 빈 칸과 같다 — 탐색이 fn: null 로 다시 올려도 케이스 작성이 채운 함수 이름을 지우지 않는다
     await 손.query(
       `INSERT INTO app_route (service_id, kind, from_key, action, to_key, helper, duration_ms, warning, fields, status, reason, build_no)
-       SELECT $1, x.kind, x.from_key, x.action, x.to_key, x.helper, x.duration_ms, x.warning, x.fields, x.status, x.reason, x.build_no
+       SELECT $1, x.kind, x.from_key, x.action, x.to_key, x.helper, x.duration_ms, x.warning, NULLIF(jsonb_strip_nulls(x.fields), '{}'), x.status, x.reason, x.build_no
          FROM jsonb_to_recordset($2::jsonb) AS x(kind text, from_key text, action text, to_key text, helper text, duration_ms integer,
                                                 warning text, fields jsonb, status text, reason text, build_no text)
        ON CONFLICT (service_id, kind, from_key, action) DO UPDATE
@@ -134,7 +136,7 @@ export async function 맵줄넣기(서비스: number, rows: 맵줄[], remove: �
              duration_ms = COALESCE(EXCLUDED.duration_ms, app_route.duration_ms), warning = COALESCE(EXCLUDED.warning, app_route.warning),
              fields = CASE WHEN EXCLUDED.fields IS NULL THEN app_route.fields ELSE COALESCE(app_route.fields, '{}') || EXCLUDED.fields END,
              status = CASE WHEN EXCLUDED.status = 'OK' AND EXCLUDED.build_no IS NULL AND app_route.status = 'RECHECK' THEN 'RECHECK' ELSE EXCLUDED.status END,
-             reason = EXCLUDED.reason, build_no = CASE WHEN EXCLUDED.status = 'BLOCKED' THEN EXCLUDED.build_no ELSE COALESCE(EXCLUDED.build_no, app_route.build_no) END,
+             reason = EXCLUDED.reason, build_no = CASE WHEN EXCLUDED.status = 'BLOCKED' OR app_route.status = 'BLOCKED' THEN EXCLUDED.build_no ELSE COALESCE(EXCLUDED.build_no, app_route.build_no) END,
              updated_at = now()`,
       [
         서비스,

@@ -95,6 +95,21 @@ describe('앱맵받기 — 앱 조작 맵 글 (도메인/작성 §3.6 「★ 앱
 
     expect(existsSync(앱맵파일(자료))).toBe(false);
   });
+
+  it('그 이름에 폴더가 심겨 있어도 작성은 간다', async () => {
+    mkdirSync(앱맵파일(자료));
+    서버가({ text: '# 앱 조작 맵 — 줄 0개\n' });
+
+    await expect(앱맵받기(서버, 7, 자료)).resolves.toBeUndefined();
+
+    expect(readFileSync(앱맵파일(자료), 'utf8')).toBe('# 앱 조작 맵 — 줄 0개\n');
+  });
+
+  it('토큰 거절(401)은 삼키지 않고 던진다 — 줄 돌기가 보고 멈춘다', async () => {
+    서버가({ error: 'UNAUTHORIZED' }, 401);
+
+    await expect(앱맵받기(서버, 7, 자료)).rejects.toThrow('(401)');
+  });
 });
 
 describe('앱 링크 갈아 끼우기 — 서명 링크는 2시간이라 작성 동안 다시 받는다 (도메인/작성 §3.6 「앱 화면」 「링크 갈아 끼우기」)', () => {

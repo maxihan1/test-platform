@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { 부른다, 인증헤더 } from './authoring-io.js';
 import { 비밀번호꼴가리기 } from './authoring-prd.js';
+import { 거절말고 } from './authoring-prd-io.js';
 
 /**
  * 탐색 — 작성 AI 가 appium-cli 로 팜 폰을 눌러 가며 읽을 주소 (§3.6 「앱 화면」 「눌러 가며 읽기」). 첫 화면을 못 읽었어도 붙는다.
@@ -65,15 +66,17 @@ export const 앱맵파일 = (자료: string): string => join(자료, 'app-route.
  * 못 받아도 작성은 간다(맵이 빈 것과 같아 길을 폰에서 찾는다). 앞 실행이 남긴 것은 먼저 지운다 — 이어받은 폴더에 낡은 맵이 보이면 안 된다
  */
 export async function 앱맵받기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string): Promise<void> {
-  rmSync(앱맵파일(자료), { force: true });
   const 못받음 = (왜: string) => console.error(`[작성] ${String(번호)}번 — 앱 조작 맵을 못 받았다(작성은 간다): ${왜}`);
   try {
+    // 앞 자식이 그 이름으로 폴더를 심어 두었어도 작성이 서지 않게 — 지우기도 try 안에서 폴더째
+    rmSync(앱맵파일(자료), { force: true, recursive: true });
     const 답 = await 부른다(서버.주소기지, 서버.토큰, `/authoring/requests/${String(번호)}/app-route`);
     const 글 = (답.몸 as { text?: unknown } | null)?.text;
-    if (답.status === 200 && typeof 글 === 'string') writeFileSync(앱맵파일(자료), 글, { mode: 0o644 });
+    if (답.status === 200 && typeof 글 === 'string') writeFileSync(앱맵파일(자료), 글, { mode: 0o644, flag: 'wx' });
     else 못받음(`서버 ${String(답.status)}`);
   } catch (e) {
-    못받음(e instanceof Error ? e.message : String(e));
+    // 토큰 거절(401 · 403)은 다시 던진다 — 줄 돌기가 그걸 보고 멈춘다
+    못받음(거절말고(e));
   }
 }
 
