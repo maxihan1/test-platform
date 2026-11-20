@@ -1,4 +1,4 @@
-// 게임 항목이 지나던 화면 객체 함수 · 도우미 이름을 절차 기록에 남긴다 — 정식 실행이 조작 맵 행을 이 이름으로 맞춘다 (도메인/게임 §3.10 「정식 실행이 맵을 고친다」)
+// 게임 · Android 앱 항목이 지나던 화면 객체 함수 · 도우미 이름을 절차 기록에 남긴다 — 정식 실행이 조작 맵 · 앱 조작 맵 줄을 이 이름으로 맞춘다 (도메인/게임 §3.10 「정식 실행이 맵을 고친다」 · 도메인/작성 §3.6 「★ 앱 탐색」 결정 10)
 // 행의 동작 칸은 「적 누르기 후 「공격」 누르기」 같은 문장이라 오브젝트 주소로는 못 맞춘다. 케이스가 그 동작을 부르는 함수 이름이 유일한 열쇠다
 
 import { readFileSync } from 'node:fs';
@@ -85,6 +85,35 @@ export function 실패함수들(err: unknown): string[] {
 
 /** 케이스가 부르는 게임 동작 — 오류 목록(errors) · 패드 읽기(pad)는 동작이 아니라 뺀다 */
 export const 적을동작 = ['find', 'click', 'drag', 'type', 'text', 'get', 'waitFor', 'waitForValue', 'layout', 'touchDown', 'touchUp', 'key', 'keyDown', 'keyUp'] as const;
+
+/** 화면 파일 함수가 부르는 Appium 드라이버 명령 — 요소 명령(click · getText)은 늘 $ · $$ 로 찾은 요소에 부르니 찾기에서 잡힌다 */
+export const 적을앱명령 = ['$', '$$', 'execute', 'url', 'back', 'keys', 'action', 'actions', 'performActions', 'waitUntil', 'switchContext', 'activateApp', 'terminateApp', 'hideKeyboard', 'pressKeyCode'] as const;
+const 앱건것 = new WeakSet<object>();
+
+/**
+ * Android 앱 항목의 드라이버 명령마다 부른 자리의 함수 이름을 적는다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 10 · APP-F4-09).
+ * WebdriverIO 는 명령 이벤트에 부른 쪽 스택을 남기지 않아(안에서 끊긴다) 케이스가 부르는 바로 그 순간에 읽는다. 실패 쪽은 WebdriverIO 오류 스택에 화면 파일 함수가 남아 실패함수들이 읽는다.
+ * ponytail: 찾는 순간에 「지났다」고 적는다 — 화면 파일이 실패를 삼키면(없으면 넘어가기) 그 함수도 지난 것으로 센다. 요소 명령마다 끝을 기다려 적으려면 요소를 감싸야 하는데 overwriteCommand(…, true) 는 모든 앱 케이스를 깬다(highlight.ts)
+ */
+export function 앱함수를적게건다(드라이버: object): void {
+  if (앱건것.has(드라이버)) return;
+  앱건것.add(드라이버);
+  const 칸 = 드라이버 as Record<string, unknown>;
+  for (const 이름 of 적을앱명령) {
+    const 원래 = 칸[이름];
+    if (typeof 원래 !== 'function') continue;
+    const 묶은 = (원래 as (...인자: unknown[]) => unknown).bind(드라이버);
+    // Browser 의 명령은 읽기 전용 속성이라 그 연결에만 다시 정의한다 — $ 가 돌려주는 사슬(await $().click())은 그대로 넘긴다
+    Object.defineProperty(드라이버, 이름, {
+      configurable: true,
+      writable: true,
+      value: (...인자: unknown[]): unknown => {
+        지났다고적는다(부른자리());
+        return 묶은(...인자);
+      },
+    });
+  }
+}
 
 /** 게임 드라이버의 동작마다 부른 자리의 함수 이름을 적고, 던진 오류에 그 이름을 달아 둔다. 다른 감싸기(돌발 팝업 닫기)보다 바깥에 건다 — 케이스가 부른 바로 그 순간의 스택을 읽는다 */
 export function 함수를적게건다(드라이버: object): void {

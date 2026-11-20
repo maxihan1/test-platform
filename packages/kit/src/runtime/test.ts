@@ -11,6 +11,7 @@ import { saveShot } from './artifacts.js';
 import { runScope, type RunScope, type 짚을요소 } from './context.js';
 import { keepsAppData, 선언했나, 실어켤값, type CaseHandle } from './defineCase.js';
 import { captureGame, 게임증적을남긴다, isGame, type GameDriver } from './game.js';
+import { 앱함수를적게건다 } from './gameFns.js';
 import { cleanup, 게임시나리오인가, 끝정리 } from './gameScenario.js';
 import { 앱을지켜본다, 웹사진, 웹을지켜본다 } from './highlight.js';
 import { traced } from './http.js';
@@ -226,6 +227,9 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     끝정리를건다?: (끝: () => Promise<void>) => void,
   ): Promise<void> => {
     const 게임 = isGame(process.env);
+    // Android 앱 항목도 지난 화면 파일 함수를 적는다 — 정식 실행이 앱 조작 맵 줄을 이 이름으로 맞춘다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 10)
+    const 앱 = !게임 && 'driver' in side;
+    if (앱) 앱함수를적게건다(side.driver);
     const run: RunScope = {
       seq: 0,
       failed: false,
@@ -233,6 +237,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
       capture: captureStep,
       emit: (result) => emit(testInfo, result),
       ...(게임 && { elementChecks: [], apiCalls: [] }),
+      ...((게임 || 앱) && { 맵함수: true as const }),
     };
     끝정리를건다?.(() => 끝정리(run));
 
