@@ -85,7 +85,7 @@ export async function 앱서버확인(트리: string, env: NodeJS.ProcessEnv, �
     return 0;
   }
   console.log(
-    `${머리} 폰 ${폰} 이 ${어디} 에 못 닿는다 — 케이스를 쓰지 않는다. \`close\` → \`release\` 로 폰을 놓고, 결과 요약 「못 읽은 자료」 줄에 \`앱 서버 — 폰에서 ${어디} 에 못 닿음\` 을 적고 끝낸다` +
+    `${머리} 폰 ${폰} 이 ${어디} 에 못 닿는다 — 케이스를 쓰지 않는다. \`close\` 하고(Android 앱 작성은 release 하지 않는다 — 웹 · 게임 작성에 딸린 앱 케이스만 \`release\` 까지, app.md 「폰은 언제 놓나」), 결과 요약 「못 읽은 자료」 줄에 \`앱 서버 — 폰에서 ${어디} 에 못 닿음\` 을 적고 끝낸다` +
       ' (맥의 서버면 디바이스 팜을 그 포트의 DF_REVERSE_PORTS 로 띄웠는지 사람이 본다)',
   );
   return 1;
