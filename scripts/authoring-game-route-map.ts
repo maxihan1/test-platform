@@ -16,7 +16,7 @@ export interface 맵행 {
   to: string | null;
   status: 'OK' | 'RECHECK' | 'BLOCKED';
   warning: string | null;
-  /** 그 행을 하는 계정 역할(칸 `계정`) — 로그인 행이면 로그인하는 계정. 없으면 계정을 가리지 않는다 */
+  /** 그 행을 하는 계정 역할(칸 `계정`) — 로그인 행이면 로그인하는 계정. 없으면 이동 · 조작 행은 계정을 가리지 않고 상태 설정 행은 첫 「일반 회원」이다 */
   account: string | null;
   /** 맵 글의 그 줄(「- 」 뒤) — 결과에 그대로 찍어 빌드 · 소요 · 도우미 · 함수 · 칸을 다시 만들지 않는다 */
   line: string;

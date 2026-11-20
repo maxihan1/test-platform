@@ -88,8 +88,8 @@ describe('이름에 「 · 」 「 → 」가 든 글 칸', () => {
 describe('계정이 정해진 상태 설정 행', () => {
   const 로그인 = (계정: string, action: string) => 행({ kind: 'MOVE', from_key: 'game:Login', action, to_key: 'game:Lobby', fields: { 계정 } });
   const 기본 = [
-    로그인('일반 회원', '일반 회원 로그인'),
     로그인('두 번째 플레이어', '두 번째 플레이어 로그인'),
+    로그인('일반 회원', '일반 회원 로그인'),
     행({ kind: 'SETUP', from_key: 'game:Lobby', action: '파티 초대 받기', to_key: 'state:파티=2', fields: { 계정: '두 번째 플레이어' } }),
     행({ kind: 'SETUP', from_key: 'game:Lobby', action: '/gm level 1', to_key: 'state:레벨=1' }),
   ];
@@ -103,8 +103,24 @@ describe('계정이 정해진 상태 설정 행', () => {
     ]);
   });
 
-  it('계정이 없는 행은 지금처럼 맨 앞 로그인 걸음을 고른다', () => {
+  it('계정이 없는 상태 설정 행은 맵에서 앞에 있는 다른 계정 로그인 말고 일반 회원 로그인 걸음을 고른다', () => {
     expect(경로(작은맵(기본), { 상태: ['레벨=1'], 자리: null }, 'game:Login').줄들[1]).toContain('일반 회원 로그인');
+  });
+
+  it('다른 계정 행을 먼저 치고, 계정이 없는 행과 목표 자리는 일반 회원으로 다시 들어와 한다', () => {
+    const 로그아웃 = 행({ kind: 'MOVE', from_key: 'game:Lobby', action: '로그아웃', to_key: 'game:Login' });
+    const 상점 = 행({ kind: 'MOVE', from_key: 'game:Lobby', action: '상점 버튼', to_key: 'game:Lobby/Shop' });
+    const { 줄들, 다찾음 } = 경로(작은맵([...기본, 로그아웃, 상점]), { 상태: ['레벨=1', '파티=2'], 자리: 'game:Lobby/Shop' }, 'game:Lobby');
+    expect(다찾음).toBe(true);
+    expect(줄들.slice(1).map((x) => x.replace(/ · 확인.*$/, ''))).toEqual([
+      '1. [이동 · 조작] game:Lobby → 로그아웃 → game:Login',
+      '2. [이동 · 조작] game:Login → 두 번째 플레이어 로그인 → game:Lobby',
+      '3. [상태 설정] game:Lobby → 파티 초대 받기 → state:파티=2',
+      '4. [이동 · 조작] game:Lobby → 로그아웃 → game:Login',
+      '5. [이동 · 조작] game:Login → 일반 회원 로그인 → game:Lobby',
+      '6. [상태 설정] game:Lobby → /gm level 1 → state:레벨=1',
+      '7. [이동 · 조작] game:Lobby → 상점 버튼 → game:Lobby/Shop',
+    ]);
   });
 
   it('일반 회원으로 로비에 있으면 로그아웃해 그 계정으로 다시 들어오고, 그 길이 없으면 길 없음이다', () => {

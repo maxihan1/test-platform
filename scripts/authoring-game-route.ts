@@ -61,8 +61,10 @@ function 길찾기(행들: 맵행[], 출발: Set<string>, 도착: string, 쓸상
   return null;
 }
 
-// 출발(로그인 직후 화면)의 계정 — 에이전트가 앱 줄 계정을 첫 「일반 회원」 줄로 넘기고 자식은 그것으로 로그인한다(tpx-author references/game.md §3)
+// 출발(로그인 직후 화면)의 계정 — 에이전트가 앱 줄 계정을 첫 「일반 회원」 줄로 넘기고 자식은 그것으로 로그인한다(tpx-author references/game.md §3).
+// 계정이 안 적힌 상태 설정 행과 목표 자리도 이 계정으로 한다 — 지침이 다른 계정으로 할 행에만 계정을 적게 한다(§8.3)
 const 처음계정 = '일반 회원';
+const 행계정 = (r: 맵행): string => r.account ?? 처음계정;
 
 const 확인만 = new Set<맵행['status']>(['OK']);
 const 재확인까지 = new Set<맵행['status']>(['OK', 'RECHECK']);
@@ -80,19 +82,23 @@ export function 경로(행들: 맵행[], 목표: 목표, 출발: string): { 줄�
     줄들.push(`${String(지난.push(r))}. [${이름}] ${r.line}`);
   };
 
-  const 길없음 = (대상: string, 왜: string) => {
+  const 길없음 = (대상: string, 왜: string, 계정?: { 이름: string; 이미: boolean }) => {
     다찾음 = false;
     줄들.push(`길 없음: ${대상} (${왜}) — 폰에서 해 볼 목표다`);
     const 조각 = 대상.startsWith('state:') ? 대상.slice('state:'.length) : null;
     const 닿음 = (r: 맵행) => (조각 === null ? r.from === 대상 || r.to === 대상 : [...상태조각(r.from), ...상태조각(r.to)].includes(조각));
     // 「재확인 필요」 행을 지나야만 길이 나는 목표도 다시 해 볼 목표다(§3.10 차례 2) — 그 길에 낀 행까지 붙인다
-    const 재확인길 = 조각 === null ? (길찾기(행들, 지금, 대상, 재확인까지) ?? []) : [];
+    const 재확인길 = 조각 === null ? (길찾기(행들, 지금, 대상, 재확인까지, 계정) ?? []) : [];
     for (const r of 행들) if (r.status !== 'OK' && (닿음(r) || 재확인길.includes(r))) 줄들.push(`  ${r.status === 'BLOCKED' ? '진행 불가' : '재확인 필요'}: ${r.line}`);
   };
-  const 이동 = (도착: string, 왜: string, 계정: string | null = null): boolean => {
-    const 길 = 길찾기(행들, 지금, 도착, 확인만, 계정 === null ? undefined : { 이름: 계정, 이미: 지금계정 === 계정 });
+  /** 그 계정으로 도착까지 — 다른 계정 로그인 걸음은 안 지나고, 지금 계정이 다르면 그 계정 로그인 걸음을 지나 다시 온다 */
+  const 이동 = (도착: string, 왜: string, 계정: string): boolean => {
+    const 조건 = { 이름: 계정, 이미: 지금계정 === 계정 };
+    const 길 = 길찾기(행들, 지금, 도착, 확인만, 조건);
     if (길 === null) {
-      길없음(도착, 계정 === null || 지금계정 === 계정 ? 왜 : `${왜} — 「${계정}」 계정으로 로그인하는 길이 없다`);
+      // 계정을 안 가리면 길이 나는 경우만 로그인 걸음 탓이다
+      const 로그인탓 = !조건.이미 && 길찾기(행들, 지금, 도착, 확인만) !== null;
+      길없음(도착, 로그인탓 ? `${왜} — 「${계정}」 계정으로 로그인하는 길이 없다` : 왜, 조건);
       return false;
     }
     for (const r of 길) 걸음(r, 걸음이름[r.kind as keyof typeof 걸음이름]);
@@ -125,10 +131,11 @@ export function 경로(행들: 맵행[], 목표: 목표, 출발: string): { 줄�
   // /gm killall 이 경험치를 줘 레벨을 올리듯, 흔드는 명령 뒤에 맞춘 값이 남게(PR #833)
   const 흔듦 = (r: 맵행) => r.warning !== null || 상태조각(r.to).some((x) => !목표.상태.includes(x) && 목표.상태.some((y) => 이름(y) === 이름(x)));
   const 친것 = new Map<string, { 조각: string; 행: 맵행 }>();
-  for (const r of [...고른.filter(흔듦), ...고른.filter((x) => !흔듦(x))]) {
-    // 계정이 적힌 행은 그 계정으로 친다 — 자리에 있어도 계정이 다르면 그 계정 로그인 걸음을 지나 다시 온다
-    const 계정맞음 = r.account === null || r.account === 지금계정;
-    if ((!지금.has(r.from) || !계정맞음) && !이동(r.from, `상태 설정 「${r.action}」 을 치는 자리`, r.account)) continue;
+  // 다른 계정으로 칠 행을 먼저 친다 — 일반 회원 행 · 목표 자리는 그 뒤라 로그인을 한 번만 바꿔 돌아온다. 같은 계정 안에서는 흔드는 행이 먼저다(sort 는 차례를 지킨다)
+  const 일반회원행 = (r: 맵행) => (행계정(r) === 처음계정 ? 1 : 0);
+  const 차례 = [...고른.filter(흔듦), ...고른.filter((x) => !흔듦(x))].sort((a, b) => 일반회원행(a) - 일반회원행(b) || 행계정(a).localeCompare(행계정(b)));
+  for (const r of 차례) {
+    if ((!지금.has(r.from) || 행계정(r) !== 지금계정) && !이동(r.from, `상태 설정 「${r.action}」 을 치는 자리`, 행계정(r))) continue;
     지금 = new Set([r.from]);
     걸음(r, '상태 설정');
     for (const x of 상태조각(r.to)) 친것.set(이름(x), { 조각: x, 행: r });
@@ -138,7 +145,7 @@ export function 경로(행들: 맵행[], 목표: 목표, 출발: string): { 줄�
     const 끝 = 친것.get(이름(조각));
     if (끝 !== undefined && 끝.조각 !== 조각 && !못찾음.has(조각)) 길없음(`state:${조각}`, `뒤에 치는 「${끝.행.action}」 이 ${끝.조각} 으로 덮어쓴다`);
   }
-  const 도착함 = 목표.자리 !== null && 이동(목표.자리, '목표 자리');
+  const 도착함 = 목표.자리 !== null && 이동(목표.자리, '목표 자리', 처음계정);
 
   for (const r of 행들) {
     if (!도착함 || r.kind !== 'MOVE' || r.from !== 목표.자리) continue;
