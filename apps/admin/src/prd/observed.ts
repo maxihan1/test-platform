@@ -7,7 +7,7 @@ const 글상한 = 1000;
 const 빌드상한 = 200;
 const 횟수상한 = 9999;
 
-// 실행 번호가 아닌 곳 — 게임 탐색 플레이 · 앱 탐색(빈 곳 해 보기) · 앱 문구(APK 문자열 표) · 앱 작성 중 폰 돌려 보기 (도메인/작성 §3.6 「★ 앱 탐색」 결정 9)
+// 실행 번호가 아닌 곳 — 게임 탐색 플레이 · 앱 탐색(빈 곳 해 보기) · 앱 문구(APK 문자열 표) · 앱 작성 중 디바이스 실행(폰 돌려 보기) (도메인/작성 §3.6 「★ 앱 탐색」 결정 9)
 const 작성에서본곳: ReadonlySet<unknown> = new Set(['EXPLORE', 'APP_EXPLORE', 'APP_STRINGS', 'APP_TRIAL']);
 
 const 글자 = (값: unknown, 최대: number): string | null => (typeof 값 === 'string' && 값.trim() !== '' && 값.length <= 최대 ? 값 : null);

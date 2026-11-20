@@ -117,7 +117,7 @@ export const 결정말: Record<string, string> = {
   '탐색 플레이': 'Exploration play',
   '앱 탐색': 'App exploration',
   '앱 문구': 'App strings',
-  '폰 돌려 보기': 'Phone trial run',
+  '작성 중 디바이스 실행': 'Device run while authoring',
   '{수}번 확인': 'Seen {수} times',
   '현재 동작으로 수정': 'Edit to current behavior',
   '기획서대로 확정': 'Confirm the spec',
