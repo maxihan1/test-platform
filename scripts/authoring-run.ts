@@ -27,7 +27,8 @@ import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 앱크롤올리기 } from './authoring-app-crawl-route.js';
-import { PC게임못함, 게임화면받기, 받은빌드이름, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 잡기늘리기 } from './authoring-app-hold.js';
+import { PC게임못함, 게임화면받기, 받은빌드이름, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 잡은폰토큰, 탐색환경, 팜주소 } from './authoring-app-screen.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
@@ -274,15 +275,18 @@ async function 사본에서(
   // 크레딧 키가 있으면 크레딧으로 먼저 — 일하다 떨어지면 같은 작업 폴더에서 구독으로 이어 띄운다 (authoring-billing).
   // 이어받은 실행이면 앞 까닭(올리기 거절 글 등)을 그대로 넘긴다 — 자식이 그것부터 고쳐야 한다
   const 링크끄기 = 앱링크갈기({ 주소기지, 토큰 }, 것.id, 자리.자료, 앱화면); // 서명 링크는 2시간이다 — 자식이 도는 동안 갈아 끼운다 (§3.6 「앱 화면」)
+  // Android 앱은 폰을 작성이 끝날 때까지 쥔다 — 늘리고, 세션 사이 · 크레딧→구독 이어 띄울 때는 안 놓는다 (§3.6 「★ 앱 탐색」 결정 7)
+  const 쥔다 = 설정.종류 === 'APP' && 앱화면?.탐색 !== undefined && 앱화면.게임 !== true;
+  const 늘리기끄기 = 쥔다 ? 잡기늘리기(자리.트리, 팜주소(앱화면.탐색!), () => 잡은폰토큰(앱화면, 자리.자료), 것.id, 자리.자료) : () => undefined;
   const 알린다 = (글: string) => console.log(`[작성] ${것.id}번 ${사유거르기(글, 비밀번호들(것))}`);
-  const 거두기 = async () => (await 자식거두기(자식)) && (await 잡은폰놓기(자리.트리, 앱화면, 것.id, fetch, Date.now(), 자리.자료), true);
+  const 거두기 = async () => (await 자식거두기(자식)) && (쥔다 || (await 잡은폰놓기(자리.트리, 앱화면, 것.id, fetch, Date.now(), 자리.자료), true));
   const 한번 = (이어하기: typeof 방.이어하기, 탐색?: 탐색단계) => 크레딧먼저(process.env[크레딧키이름] || undefined, (키) => 띄운다(키, 이어하기, undefined, 탐색), 알린다, {
     멈추라했다: 박동.멈추라했다, 거두기, 띄운다: () => 띄운다(undefined, 이어하기?.이유 === 'EXPLORED' || 이어하기 === undefined ? { 번호: 것.id, 이유: 'CREDIT', 까닭: null } : 이어하기, undefined, 탐색),
   });
   // 게임은 탐색 플레이 세션 → 체크포인트 → 케이스 작성 세션으로 나눠 띄운다. 케이스를 새로 쓰지 않는 작성은 빼고 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
   const { 돌린것, 크레딧으로, 앞낸것, 거절: 탐색거절 } = await 세션띄우기({
     탐색: 탐색하나(것, 게임화면 !== undefined, 미션 !== null), 통로: { 주소기지, 토큰, 번호: 것.id }, 자료: 자리.자료, 비밀: 비밀번호들(것), 이어하기: 방.이어하기, 한번, 거두기, 멈추라했다: 박동.멈추라했다, 알린다,
-  }).finally(링크끄기);
+  }).finally(() => (링크끄기(), 늘리기끄기()));
   const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
   console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`);
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
