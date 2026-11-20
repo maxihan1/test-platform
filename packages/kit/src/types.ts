@@ -58,6 +58,8 @@ export interface StepResult {
   shapeChecks?: ShapeCheck[];   // 그 절차에서 보낸 요청의 응답 모양 확인. FAIL 이어도 절차 status 는 확인 문장이 정한다 (도메인/API §3.8)
   error?: { message: string; stack?: string };
   skipped?: true;               // 사람이 체크를 풀어 건너뛴 「만들기」 절차. 판정 없이 PASS 로 적는다 (E2E 시나리오)
+  gameFns?: string[];           // 게임 항목만. 그 절차의 게임 동작 · 대상 서버 API 호출이 지나던 화면 객체 함수('던전화면.공격') · 도우미('GM골드') 이름 — 겹침 없이 200개까지. 정식 실행이 조작 맵 행(fields.fn · helper)을 이 이름으로 맞춘다. DB 에는 안 남긴다 (도메인/게임 §3.10 「정식 실행이 맵을 고친다」 · GAME-F5-06)
+  gameFailedFns?: string[];     // 게임 항목만. 그 절차를 멈춘 오류가 지나던 함수 이름. 조작 실패(요소를 찾지 못함 · 타임아웃)면 그 행이 「재확인 필요」가 된다
 }
 
 export interface ExecuteRequest {

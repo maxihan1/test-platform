@@ -23,6 +23,8 @@ export interface StepScope {
   마지막요소?: 짚을요소 | undefined;
   // 처음 실패한 순간의 마지막요소. blocker 가 아닌 실패 뒤에도 절차는 돌아 다른 요소를 다루므로 그때 굳힌다
   실패요소?: 짚을요소 | undefined;
+  // 게임 항목에서만 — 이 절차의 게임 동작 · 대상 서버 API 호출이 지나던 화면 객체 함수 · 도우미 이름 (gameFns.ts)
+  gameFns?: string[];
   // test.cleanup 의 정리 절차 — 판정(verify) · 절차(test.step)를 부르면 던진다
   정리?: true;
 }
