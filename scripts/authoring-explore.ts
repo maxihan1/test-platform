@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { 올릴빌드 } from './authoring-app-crawl-route.js';
 import { 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
 import { 게임자리, 글받기 } from './authoring-game.js';
 import { type 맵행, 경로, 맵행읽기, 목표풀기, 새행더하기, 출발고르기 } from './authoring-game-route.js';
@@ -111,7 +112,11 @@ export function 팝업추가줄(새글: string | null, 비밀: readonly string[]
  * 꼴이 틀려 서버가 거절하면(400) `틀림` 에 자리를 — 체크포인트는 이것으로 멈춘다(고쳐야 다음 작성이 맵을 쓴다).
  * 서버가 안 받는 그 밖의 경우는 줄에만 적고 간다 — 이 작성은 자료 폴더의 행으로 길을 찾는다(경로 검색이 같이 읽는다)
  */
-export async function 맵올리기(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<{ 줄: string | null; 틀림: string | null }> {
+/**
+ * 테스트 고침은 다시 해 본 행에 그 작성이 깐 빌드를 단다 — 빌드를 실은 행만 「재확인 필요」를 푼다(도메인/게임 §3.10 「실패 자동 수정」 3 의 3 · §7 「조작 맵」).
+ * 빌드 칸이 빈 「확인」 · 「진행 불가」 행에만 단다. 빌드가 없으면(빌드 없이 앱 파일 경로로 깔았다) 그대로다
+ */
+export async function 맵올리기(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드?: string): Promise<{ 줄: string | null; 틀림: string | null }> {
   const 글 = 안전히읽기(자료, 게임자리.새맵행, 4_000_000);
   if (글 === null && existsSync(join(자료, 게임자리.새맵행))) return { 줄: `조작 맵: ${게임자리.새맵행} 이 4MB 를 넘거나 일반 파일이 아니라 안 올림`, 틀림: `${게임자리.새맵행} 이 4MB 를 넘거나 일반 파일이 아니다` };
   if (글 === null) return { 줄: null, 틀림: null };
@@ -122,14 +127,21 @@ export async function 맵올리기(통로: 화면통로, 자료: string, 비밀:
     return { 줄: `조작 맵: ${게임자리.새맵행} 을 JSON 으로 못 읽어 안 올림`, 틀림: `${게임자리.새맵행} 을 JSON 으로 못 읽었다` };
   }
   const 팝업빼기 = (v: unknown) => (Array.isArray(v) ? v.filter((x) => (x as { kind?: unknown } | null)?.kind !== 'POPUP') : v);
-  const 보낼 = { ...몸, rows: 팝업빼기(몸.rows), ...(몸.remove === undefined ? {} : { remove: 팝업빼기(몸.remove) }) };
+  const 쓸빌드 = 올릴빌드(빌드);
+  const 빌드없는행 = (r: unknown): r is Record<string, unknown> => {
+    const 행 = typeof r === 'object' && r !== null ? (r as Record<string, unknown>) : null;
+    return 행 !== null && (행.status === 'OK' || 행.status === 'BLOCKED') && (typeof 행.buildNo !== 'string' || 행.buildNo.trim() === '');
+  };
+  const 행들 = 팝업빼기(몸.rows);
+  const 단수 = 쓸빌드 === undefined || !Array.isArray(행들) ? 0 : 행들.filter(빌드없는행).length;
+  const 보낼 = { ...몸, rows: 단수 > 0 ? (행들 as unknown[]).map((r) => (빌드없는행(r) ? { ...r, buildNo: 쓸빌드 } : r)) : 행들, ...(몸.remove === undefined ? {} : { remove: 팝업빼기(몸.remove) }) };
   // 원문이 아니라 나가는 값을 본다 — 게임 지도 올리기(authoring-game 요소올리기)와 같다
   const 글자들 = (v: unknown): string[] => (typeof v === 'string' ? [v] : typeof v === 'object' && v !== null ? Object.entries(v).flatMap(([k, x]) => [k, ...글자들(x)]) : []);
   if (계정섞였나(글자들(보낼), 비밀)) return { 줄: '조작 맵: 테스트 계정 비밀번호가 들어 있어 안 올림', 틀림: `${게임자리.새맵행} 에 테스트 계정 비밀번호가 들어 있다` };
   try {
     const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/game-route`, { method: 'PUT', body: 보낼 });
     const 수 = (v: unknown) => (Array.isArray(v) ? v.length : 0);
-    if (답.status === 204) return { 줄: `조작 맵: 행 ${String(수(보낼.rows))}개 올림${수(보낼.remove) > 0 ? ` · ${String(수(보낼.remove))}개 지움` : ''}`, 틀림: null };
+    if (답.status === 204) return { 줄: `조작 맵: 행 ${String(수(보낼.rows))}개 올림${수(보낼.remove) > 0 ? ` · ${String(수(보낼.remove))}개 지움` : ''}${단수 > 0 ? ` · 행 ${String(단수)}개에 빌드 ${쓸빌드 ?? ''}` : ''}`, 틀림: null };
     const 자리 = (답.몸 as { detail?: unknown } | null)?.detail;
     const 왜 = `서버 ${String(답.status)}${typeof 자리 === 'string' ? ` (${자리.slice(0, 100)})` : ''}`;
     return { 줄: `조작 맵: 못 올림 — ${왜}`, 틀림: 답.status === 400 ? `${게임자리.새맵행} 을 서버가 거절했다 — ${왜}` : null };
@@ -160,10 +172,10 @@ export async function 체크포인트돌기(통로: 화면통로, 자료: string
   return { 줄 };
 }
 
-/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름) · 올리지 않은 돌발 팝업. 탐색을 안 한 작성(미션만)은 빈 목록 */
-export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<string[]> {
+/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름 · 테스트 고침이 다시 해 본 행은 빌드까지) · 올리지 않은 돌발 팝업. 탐색을 안 한 작성(미션만)은 빈 목록 */
+export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드?: string): Promise<string[]> {
   const 지남 = 안전히읽기(자료, 게임자리.탐색지남, 파일상한)?.trim();
-  const 올림 = await 맵올리기(통로, 자료, 비밀);
+  const 올림 = await 맵올리기(통로, 자료, 비밀, 빌드);
   return [지남, 올림.줄, 팝업추가줄(안전히읽기(자료, 게임자리.새맵행, 4_000_000), 비밀)].filter((x): x is string => x !== null && x !== undefined && x !== '');
 }
 

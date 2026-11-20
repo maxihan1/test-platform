@@ -102,13 +102,17 @@ export function 커밋메시지(번호: number, 서비스: string): string {
 }
 
 /**
- * PR 제목 — 「테스트 수정」 고침(params.testFix)이면 이슈 키 · 고친 tcId 가 보이게 (도메인/BTS 「테스트 수정 바퀴」 2). 그 밖은 커밋 메시지와 같다.
+ * PR 제목 — 「테스트 수정」 고침(params.testFix)이면 이슈 키(게임 자동 수정은 실행 번호) · 고친 tcId 가 보이게 (도메인/BTS 「테스트 수정 바퀴」 2). 그 밖은 커밋 메시지와 같다.
  * 커밋 메시지는 덮어써도 되나 판정(덮어쓸수없는까닭)이 읽어 그대로 둔다
  */
 export function PR제목(번호: number, 서비스: string, params: unknown): string {
-  const 고침 = (params as { testFix?: { issueKey?: unknown; cases?: unknown } } | null | undefined)?.testFix;
-  const tcIds = Array.isArray(고침?.cases) ? (고침.cases as { tcId?: unknown }[]).flatMap((c) => (typeof c?.tcId === 'string' ? [c.tcId] : [])) : [];
-  return typeof 고침?.issueKey === 'string' && tcIds.length > 0 ? `[Test Commander] 테스트 수정 · ${고침.issueKey} · ${tcIds.join(', ')}` : 커밋메시지(번호, 서비스);
+  const 고침 = (params as { testFix?: { issueKey?: unknown; auto?: unknown; cases?: unknown } } | null | undefined)?.testFix;
+  const 건들 = Array.isArray(고침?.cases) ? (고침.cases as { tcId?: unknown; runId?: unknown }[]).filter((c) => typeof c?.tcId === 'string') : [];
+  const tcIds = 건들.map((c) => c.tcId as string);
+  if (tcIds.length === 0) return 커밋메시지(번호, 서비스);
+  // 게임 실패 자동 수정은 이슈가 없다 — 처음 실행 번호를 보인다 (도메인/게임 §3.10 「실패 자동 수정」)
+  if (고침?.auto === true) return `[Test Commander] 게임 자동 수정 · RUN ${[...new Set(건들.map((c) => String(c.runId)))].join(', ')} · ${tcIds.join(', ')}`;
+  return typeof 고침?.issueKey === 'string' ? `[Test Commander] 테스트 수정 · ${고침.issueKey} · ${tcIds.join(', ')}` : 커밋메시지(번호, 서비스);
 }
 
 export function PR만들기인자(번호: number, 제목: string, 본문: string): string[] {

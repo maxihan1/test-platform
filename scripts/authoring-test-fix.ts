@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import ts from 'typescript';
 
+import { type 케이스끝, 케이스끝틀 } from '../apps/admin/src/bts/gameFixShared.js';
 import { 테스트고침읽기 } from './authoring-apply.js';
 import { 바뀐것 } from './authoring-base-list.js';
 import { type 돌린판, 끝기록꼴, 돌린기록들, 판들읽기 } from './authoring-gate3.js';
@@ -22,16 +23,24 @@ export interface 다시돌림 {
   기기: [string, number][];
 }
 
-/** 고친 케이스 파일(`<폴더>/<tcId>.spec.ts`)이 마지막 전체 돌려 보기에서 기기마다 몇 번 돌았나 — 기기마다 가장 늦은 기록으로 센다 */
+/** 게임 돌려 보기 기록(`authoring:run -- 게임` — authoring-run3-game 게임 갈래) */
+const 게임기록꼴 = /^gate3-game-.*\.json$/;
+const 센기록꼴 = new RegExp(`${끝기록꼴.source}|${게임기록꼴.source}`);
+
+/**
+ * 고친 케이스 파일(`<폴더>/<tcId>.spec.ts`)이 기기마다 몇 번 돌았나 — 웹은 마지막 전체 돌려 보기(가장 늦은 기록), 게임은 돌려 보기 기록을 다 더한다.
+ * 게임 돌려 보기는 부를 때마다 케이스를 1번씩 돌아 가장 늦은 기록 하나로 세면 늘 1 이다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 5)
+ */
 export function 다시돌림세기(결과폴더: string, tcIds: readonly string[]): 다시돌림 {
   const 이름들 = new Set(tcIds.map((t) => `${t}.spec.ts`));
-  const 판들 = 판들읽기(돌린기록들(결과폴더, 끝기록꼴), true)?.판들 ?? new Map<string, 돌린판[]>();
+  const 판들 = 판들읽기(돌린기록들(결과폴더, 센기록꼴), true)?.판들 ?? new Map<string, 돌린판[]>();
   const 기기 = new Map<string, number>();
   for (const [열쇠, 판목록] of 판들) {
     const [파일, 이름] = 열쇠.split('\0') as [string, string];
     if (!이름들.has(파일.split('/').pop() ?? '') || 판목록.length === 0) continue;
-    const 늦은 = 판목록.reduce((a, b) => (b.시작 > a.시작 ? b : a));
-    기기.set(이름, Math.min(기기.get(이름) ?? Infinity, 늦은.상태들.length));
+    const 끝판 = 판목록.filter((p) => p.끝);
+    const 횟수 = 끝판.length > 0 ? 끝판.reduce((a, b) => (b.시작 > a.시작 ? b : a)).상태들.length : 판목록.reduce((n, p) => n + p.상태들.length, 0);
+    기기.set(이름, Math.min(기기.get(이름) ?? Infinity, 횟수));
   }
   const 줄 = [...기기].sort(([a], [b]) => a.localeCompare(b));
   return { 횟수: 줄.length === 0 ? 0 : Math.min(...줄.map(([, n]) => n)), 기기: 줄 };
@@ -45,9 +54,12 @@ export function 다시돌림글(돌림: 다시돌림): string {
 
 const 요약상한 = 500;
 
-/** 자식 결과 요약의 `테스트 고침: BTS <키> · … · 고친 곳 <한 줄>` 들에서 고친 곳만 — 이슈 댓글에 실린다(tpx-author apply.md §7). 목록 기호 · 들여쓰기로 적어도 읽는다 */
+/**
+ * 자식 결과 요약의 `테스트 고침: BTS <키> · … · 고친 곳 <한 줄>`(게임 자동 수정은 `테스트 고침: 게임 · …`) 들에서 고친 곳만 — 이슈 댓글 · 자동 수정 기록에 실린다(tpx-author apply.md §7).
+ * 목록 기호 · 들여쓰기로 적어도 읽는다
+ */
 export function 고친곳읽기(자식출력: string): string {
-  const 곳들 = [...자식출력.matchAll(/^[\s>*-]*테스트 고침: BTS .*?· 고친 곳:?\s*(.+)$/gm)].map((m) => m[1]!.trim()).filter((t) => t !== '');
+  const 곳들 = [...자식출력.matchAll(/^[\s>*-]*테스트 고침: (?:BTS|게임) .*?· 고친 곳:?\s*(.+)$/gm)].map((m) => m[1]!.trim()).filter((t) => t !== '');
   return 곳들.join(' · ').slice(0, 요약상한);
 }
 
@@ -79,8 +91,28 @@ function 견주는값들(n: ts.Node | undefined, sf: ts.SourceFile): string[] {
   return 값;
 }
 
+/** 부르기 이름 — `waitFor(…)` · `game.waitFor(…)` 둘 다 */
+const 부른이름 = (e: ts.Expression): string | undefined => (ts.isIdentifier(e) ? e.text : ts.isPropertyAccessExpression(e) ? e.name.text : undefined);
+
+/** 옵션 객체 인자의 칸 하나 — 객체가 아니거나 칸이 없으면 undefined */
+function 옵션칸(n: ts.Node | undefined, 이름: string): ts.Expression | undefined {
+  if (n === undefined || !ts.isObjectLiteralExpression(n)) return undefined;
+  const 칸 = n.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === 이름);
+  return 칸?.initializer;
+}
+
 /**
- * 케이스 파일의 판정 — verify 문장 수와 기대값 칸들(verify 셋째 · verify.element 넷째 · verify.rates 셋째와 허용 오차, 그리고 실제 값 칸 안의 견주는 값), defineCase 의 expected.
+ * 게임 케이스의 기다리는 값 — `waitFor` 의 text · `waitForValue` 의 값 · `repeatUntil` 의 goal. 그 값이 될 때까지 기다리는 문장이 확인 노릇을 해서 기대값처럼 잰다.
+ * 얼마나 기다리나(timeoutMs · stallMs)와 무엇을 기다리나(주소)는 고쳐도 된다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 4 · 4)
+ */
+function 기다리는값(n: ts.CallExpression, sf: ts.SourceFile): string | undefined {
+  const 이름 = 부른이름(n.expression);
+  const 값 = 이름 === 'waitFor' ? 옵션칸(n.arguments[1], 'text') : 이름 === 'waitForValue' ? n.arguments[2] : 이름 === 'repeatUntil' ? 옵션칸(n.arguments[1], 'goal') : undefined;
+  return 값 === undefined ? undefined : `기다림 ${이름 ?? ''} ${꼴풀기(값, sf)}`;
+}
+
+/**
+ * 케이스 파일의 판정 — verify 문장 수와 기대값 칸들(verify 셋째 · verify.element 넷째 · verify.rates 셋째와 허용 오차, 그리고 실제 값 칸 안의 견주는 값), 게임 케이스의 기다리는 값, defineCase 의 expected.
  * defineCase 가 없으면 못 읽은 것이다
  */
 export function 판정읽기(글: string): { 수: number; 기대값: string[]; expected: string } | null {
@@ -90,6 +122,8 @@ export function 판정읽기(글: string): { 수: number; 기대값: string[]; e
   const 기대값: string[] = [];
   const 훑기 = (n: ts.Node): void => {
     if (ts.isCallExpression(n)) {
+      const 기다림 = 기다리는값(n, sf);
+      if (기다림 !== undefined) 기대값.push(기다림);
       const e = n.expression;
       const 칸 = ts.isIdentifier(e) && e.text === 'verify' ? [2] : ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'verify' ? { element: [3], rates: [2, 3], log: [2] }[e.name.text] : undefined;
       if (칸 !== undefined) {
@@ -112,6 +146,25 @@ export function 고장줄읽기(자식출력: string, tcId: string): { 고장: n
   let 찾은: { 고장: number; 빨강: number } | undefined;
   for (const m of 자식출력.matchAll(/^[\s>*-]*테스트 고침 고장 내 보기:\s*(\S+)\s*·\s*고장\s*(\d+)\s*·\s*그 자리 빨강\s*(\d+)/gm)) if (m[1] === tcId) 찾은 = { 고장: Number(m[2]), 빨강: Number(m[3]) };
   return 찾은;
+}
+
+const 끝들 = ['FIXED', 'FLAKY', 'NOT_FOUND'] as const;
+
+/**
+ * 게임 자동 수정 자식 결과 요약의 `테스트 고침 끝: <tcId> · FIXED|FLAKY|NOT_FOUND · <본 것 한 줄>` — 맡은 케이스만, 같은 케이스가 여럿이면 마지막 줄(tpx-author apply.md §7 게임 갈래).
+ * 본 것은 자식이 쓴 글이라 계정 비밀번호가 섞였으면 뺀다. 꼴의 정본은 서버의 케이스끝틀(apps/admin/src/bts/gameFixShared.ts)
+ */
+export function 케이스끝들읽기(자식출력: string, tcIds: readonly string[], 비밀: readonly string[] = []): 케이스끝[] {
+  const 끝 = new Map<string, 케이스끝>();
+  const 맡은 = new Set(tcIds);
+  for (const m of 자식출력.matchAll(/^[\s>*-]*테스트 고침 끝:\s*(\S+)\s*·\s*([A-Z_]+)(?:\s*·\s*(.+))?$/gm)) {
+    const outcome = 끝들.find((x) => x === m[2]);
+    if (!맡은.has(m[1]!) || outcome === undefined) continue;
+    const 본것 = (m[3] ?? '').trim().slice(0, 300);
+    const note = 본것 === '' || 사유거르기(본것, 비밀) !== 본것 ? undefined : 본것;
+    끝.set(m[1]!, { tcId: m[1]!, outcome, ...(note === undefined ? {} : { note }) });
+  }
+  return 케이스끝틀.parse([...끝.values()]);
 }
 
 /**
@@ -187,9 +240,12 @@ export function 테스트고침싣는손(
       const summary = 사유거르기(곳, 비밀) === 곳 ? 곳 : '';
       const 결과 = typeof 몸.result === 'object' && 몸.result !== null ? (몸.result as Record<string, unknown>) : {};
       const tcIds = [...new Set(고침.cases.map((x) => x.tcId))];
-      const reruns = 다시돌림세기(결과폴더, tcIds).횟수;
-      const held = 자동병합재기(tcIds.map((tcId) => ({ tcId, ...파일(tcId) })), 자식출력, 바뀐());
-      return 손.끝내기({ ...몸, result: { ...결과, testFix: { summary, reruns, autoMerge: held.length === 0, held } } });
+      // 게임 자동 수정은 케이스마다 끝이 있다 — 고친(FIXED) 케이스만 PR 에 들어 반영을 기다리니 그것만 잰다. 끝 줄이 하나도 없으면 다 고친 것으로 잰다(사람에게 가는 쪽)
+      const cases = 고침.auto === true ? 케이스끝들읽기(자식출력, tcIds, 비밀) : undefined;
+      const 잴것 = cases === undefined || cases.length === 0 ? tcIds : cases.filter((x) => x.outcome === 'FIXED').map((x) => x.tcId);
+      const reruns = 다시돌림세기(결과폴더, 잴것).횟수;
+      const held = 자동병합재기(잴것.map((tcId) => ({ tcId, ...파일(tcId) })), 자식출력, 바뀐());
+      return 손.끝내기({ ...몸, result: { ...결과, testFix: { summary, reruns, autoMerge: held.length === 0, held, ...(cases === undefined ? {} : { cases }) } } });
     },
   };
 }
@@ -204,10 +260,11 @@ export function 되묻기인자(인자: readonly string[], 세션: string): stri
   return [...인자.slice(0, 자리), '--resume', 세션, '--disallowedTools', ...되묻기막을것, ...인자.slice(자리 + 1)];
 }
 
-/** 빠진 케이스를 짚어 결과 요약만 다시 달라는 말 — 다시 하지 말고 이미 한 일로 적게 한다. 안 했으면 고장 0 이라 「못 잡은 고장」으로 사람에게 간다 */
-export function 되묻기글(빠진: readonly string[]): string {
+/** 빠진 케이스를 짚어 결과 요약만 다시 달라는 말 — 다시 하지 말고 이미 한 일로 적게 한다. 안 했으면 고장 0 이라 「못 잡은 고장」으로 사람에게 간다. 게임 자동 수정은 끝 줄도 짚는다 */
+export function 되묻기글(빠진: readonly string[], 게임 = false): string {
   return [
-    '결과 요약 없이 끝났거나 `테스트 고침 고장 내 보기` 줄이 빠졌어요. 파일을 고치거나 명령을 다시 돌리지 말고, 이미 한 일로 결과 요약만 처음부터 다시 적어 주세요.',
+    `결과 요약 없이 끝났거나 \`테스트 고침 고장 내 보기\`${게임 ? ' · `테스트 고침 끝`' : ''} 줄이 빠졌어요. 파일을 고치거나 명령을 다시 돌리지 말고, 이미 한 일로 결과 요약만 처음부터 다시 적어 주세요.`,
+    ...(게임 ? ['맡은 케이스마다 `테스트 고침 끝: <tcId> · FIXED|FLAKY|NOT_FOUND · <본 것 한 줄>` 한 줄을 꼭 넣어요(고쳤으면 FIXED · 그대로 돌리니 통과했으면 FLAKY · 고칠 곳을 못 찾았으면 NOT_FOUND).'] : []),
     `고친 케이스마다 \`테스트 고침 고장 내 보기: <tcId> · 고장 <N> · 그 자리 빨강 <M>\` 한 줄을 꼭 넣어요(빠진 케이스: ${빠진.join(' · ')}). 고장 내 보기를 하지 않았으면 고장 0 으로 적어요.`,
   ].join('\n');
 }
@@ -227,7 +284,10 @@ export async function 요약되받기(
 ): Promise<string> {
   const 고침 = 테스트고침읽기(것);
   if (고침 === null || 고침 === undefined || 세션 === undefined || !고장단계) return '';
-  const 빠진 = [...new Set(고침.cases.map((x) => x.tcId))].filter((tcId) => 고장줄읽기(자식글, tcId) === undefined);
+  const tcIds = [...new Set(고침.cases.map((x) => x.tcId))];
+  // 게임 자동 수정은 끝 줄이 없는 케이스와, 고쳤다면서(FIXED) 고장 줄이 없는 케이스를 짚는다 — 다시 돌리니 통과 · 고칠 곳 없음은 고장 내 보기가 없다
+  const 끝 = 고침.auto === true ? new Map(케이스끝들읽기(자식글, tcIds).map((x) => [x.tcId, x.outcome])) : undefined;
+  const 빠진 = tcIds.filter((tcId) => (끝 !== undefined && !끝.has(tcId)) || ((끝?.get(tcId) ?? 'FIXED') === 'FIXED' && 고장줄읽기(자식글, tcId) === undefined));
   if (빠진.length === 0) return '';
-  return 흐름풀기(await 부르기((인자) => 되묻기인자(인자, 세션), 되묻기글(빠진))).글;
+  return 흐름풀기(await 부르기((인자) => 되묻기인자(인자, 세션), 되묻기글(빠진, 끝 !== undefined))).글;
 }

@@ -14,7 +14,7 @@ import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기 } from './authoring-ledger-io.js';
 import { type 옮긴것, 보낼항목, 옛번호지도, 표준원장 } from './authoring-prd.js';
 import { type 서버, type 앞판, 거절말고, 결과읽기, 지금판읽기, 통로 } from './authoring-prd-io.js';
-import { type 반영입력, 반영뒤줄, 실패trace자리, 테스트고침읽기, 테스트고침줄, 화면이맞음읽기, 화면이맞음줄 } from './authoring-apply.js';
+import { type 반영입력, 게임실패자리, 반영뒤줄, 실패trace자리, 테스트고침읽기, 테스트고침줄, 화면이맞음읽기, 화면이맞음줄 } from './authoring-apply.js';
 import { 다시돌림글, 다시돌림세기 } from './authoring-test-fix.js';
 
 // authoring-run.ts 가 300줄이라 가져오는 줄을 늘리지 않으려고 여기서 다시 내보낸다
@@ -22,7 +22,8 @@ export { 반영요청인가, 테스트고침읽기, 화면이맞음읽기 } from
 export { 테스트고침싣는손, 요약되받기 } from './authoring-test-fix.js';
 
 /**
- * 자식을 띄우기 전 — 화면이 맞음 · 테스트 고침(BTS 테스트 수정) 건마다 그 실행의 실패 trace 요약(서버가 가린 몇 줄)을 자료 폴더 traces/ 로 받는다. 받은 개수를 돌려준다.
+ * 자식을 띄우기 전 — 화면이 맞음 · 테스트 고침(BTS 테스트 수정 · 게임 실패 자동 수정) 건마다 그 실행의 실패 trace 요약(서버가 가린 몇 줄)을 자료 폴더 traces/ 로 받는다. 받은 개수를 돌려준다.
+ * 게임 항목은 trace 대신 실패 자료가 오고(실패한 절차 · 오류가 요약 줄이다) 실패 순간 오브젝트 목록 · 게임 오류 로그를 요약 옆 파일로 둔다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 2).
  * 가리지 않은 zip 은 받지 않는다 — 자료 폴더는 자식이 셸로 연다. 못 받아도 작성은 간다 — 자식은 그 케이스를 다시 돌려 본다 (§3.6 「관문이 빨개지면」)
  */
 export async function 실패trace받기(서버: 서버, 것: { id: number; params?: unknown }, 자료: string): Promise<number> {
@@ -32,7 +33,7 @@ export async function 실패trace받기(서버: 서버, 것: { id: number; param
     const 못받음 = (까닭: string) => console.error(`[작성] ${String(것.id)}번 — RUN ${String(x.runId)} ${x.tcId} 의 실패 trace 를 못 받았다: ${까닭}`);
     try {
       const 답 = await 부른다(서버.주소기지, 서버.토큰, 길);
-      const 몸 = 답.몸 as { summary?: unknown; error?: unknown; detail?: unknown } | null;
+      const 몸 = 답.몸 as { summary?: unknown; error?: unknown; detail?: unknown; game?: { tree?: unknown; errors?: unknown } } | null;
       if (답.status !== 200 || !Array.isArray(몸?.summary)) {
         못받음(`서버 ${String(답.status)} ${[몸?.error, 몸?.detail].filter((v) => typeof v === 'string').join(' ')}`.trim());
         continue;
@@ -40,6 +41,10 @@ export async function 실패trace받기(서버: 서버, 것: { id: number; param
       const 파일 = 실패trace자리(자료, x.runId, x.tcId);
       mkdirSync(dirname(파일), { recursive: true, mode: 0o755 });
       writeFileSync(파일, `${몸.summary.filter((l): l is string => typeof l === 'string').join('\n')}\n`);
+      for (const 무엇 of ['tree', 'errors'] as const) {
+        const 글 = 몸.game?.[무엇];
+        if (typeof 글 === 'string') writeFileSync(게임실패자리(파일, 무엇), 글);
+      }
       받음 += 1;
     } catch (e) {
       못받음(e instanceof Error ? e.message : String(e));
