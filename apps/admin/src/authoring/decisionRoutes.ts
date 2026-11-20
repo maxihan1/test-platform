@@ -7,7 +7,6 @@ import { 화면제외바꾸기 } from '../prd/found.js';
 import { 누가 } from '../prd/routes.js';
 import { 결정진행 } from './decisionRun.js';
 import { 결정목록읽기, type 부른이 } from './decisions.js';
-import { 미션제외바꾸기 } from './missions.js';
 import { 서비스번호 } from './routes.js';
 
 type 질의 = { Querystring: { service?: string } };
@@ -42,20 +41,6 @@ export default async function decisionRoutes(app: FastifyInstance): Promise<void
     const { url, skip } = (req.body ?? {}) as { url?: unknown; skip?: unknown };
     if (typeof url !== 'string' || url === '' || url.length > 2000 || typeof skip !== 'boolean') return reply.code(400).send({ error: 'INVALID_REQUEST' });
     const 결과 = await 화면제외바꾸기(서비스, url, skip);
-    if (결과 !== 'OK') return reply.code(400).send({ error: 결과 });
-    return { ok: true };
-  });
-
-  // 미션 [제외] · [되돌리기] — 확인 창을 거쳐 적용 없이 곧바로. 그 서비스가 올린 목록의 미션만 (도메인/작성 §3.6 「★ 결정 목록」 「미션 승인」)
-  app.post<질의 & { Body: unknown }>('/authoring/decisions/skip-mission', async (req, reply) => {
-    const 서비스 = await 서비스번호(req, reply);
-    if (서비스 === null) return reply;
-    const { requestId, id, skip } = (req.body ?? {}) as { requestId?: unknown; id?: unknown; skip?: unknown };
-    if (typeof requestId !== 'number' || !Number.isSafeInteger(requestId) || requestId <= 0 || typeof id !== 'string' || id.length > 10 || typeof skip !== 'boolean') {
-      return reply.code(400).send({ error: 'INVALID_REQUEST' });
-    }
-    const 결과 = await 미션제외바꾸기(서비스, requestId, id, skip);
-    if (결과 === 'STALE') return reply.code(409).send({ error: 'DECISIONS_STALE' });
     if (결과 !== 'OK') return reply.code(400).send({ error: 결과 });
     return { ok: true };
   });

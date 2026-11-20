@@ -254,6 +254,21 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     expect(판.items[0]).toMatchObject({ text: '5만원 이상 무료', status: 'CONFIRMED', byPerson: true });
   });
 
+  it('판정 요청 카드 — 실행에서 본 현재 동작은 실행을 못 보는 사람에게 안 싣고, 현재 동작으로 수정하면 확정되며 칸이 떨어진다', async () => {
+    const 본것 = { text: '혼자 레벨 1 탱커가 임프에게 받은 피해 6', proposal: '혼자면 임프 피해는 6 이다', where: 412, build: '23', count: 2 };
+    await 판저장(0, [{ feature: '피해', text: '혼자면 피해가 줄어든다', basis: [근거('화면', '피해')], status: 'NEEDS_CHECK', observed: 본것 }]);
+    expect((await 목록()).items.find((x) => x.kind === 'CHECK')).toMatchObject({ basis: 'OBSERVED', picks: ['SAME', 'EDIT'], observed: 본것 });
+
+    사람 = { role: 'member', 권한: { cases: 'read', runs: 'none', authoring: 'write' } };
+    expect((await 목록()).items.find((x) => x.kind === 'CHECK')).toMatchObject({ basis: 'SCREEN', observed: null });
+
+    사람 = { role: 'admin', 권한: 쓰기 };
+    expect((await 진행({ prdVersion: 1, picks: [{ key: 'check:XWX-REQ-001', pick: 'EDIT', text: 본것.proposal }] })).statusCode).toBe(201);
+    const 판 = (await app.inject({ method: 'GET', url: `/api/prd?service=${접두사}` })).json() as { items: Record<string, unknown>[] };
+    expect(판.items[0]).toMatchObject({ text: 본것.proposal, status: 'CONFIRMED' });
+    expect(판.items[0]).not.toHaveProperty('observed');
+  });
+
   it('실패 판정 — 실행 read 가 없으면 항목이 없고 403, 실행 write 가 없으면 버그를 못 고른다. 버그를 남기면 목록에서 빠지고 화면이 맞음으로 바꿀 수 있다', async () => {
     await 케이스넣기();
     const runId = await 실행넣기();
@@ -371,11 +386,6 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
       method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'AUTHOR', params: { decision: { after: [1], count: 1 } } },
     });
     expect([만들기.statusCode, 만들기.json()]).toEqual([400, { error: 'BAD_DECISION' }]);
-    // 승인된 미션 칸도 결정 진행만 싣는다 — 사람 통로로 실으면 「미션 승인」 없이 게임 시나리오 작성이 서고 그 미션이 「쓴 미션」으로 목록에서 빠진다
-    for (const kind of ['AUTHOR', 'RERUN']) {
-      const r = await app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind, sourceId: 1, params: { missions: { from: 1, items: [] } } } });
-      expect([r.statusCode, r.json()]).toEqual([400, { error: 'BAD_DECISION', detail: 'params.missions' }]);
-    }
     // BTS 가 세우는 칸도 사람 통로로는 못 싣는다 — 판정 없이 테스트 고침 요청이 서고 남의 이슈에 댓글이 간다
     for (const 칸 of ['testFix', 'issueKey', 'repo', 'draft']) {
       const r = await app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'AUTHOR', params: { [칸]: { issueKey: 'DM-1' } } } });

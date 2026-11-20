@@ -73,7 +73,7 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
       }
       const 열린 = await 열린작성(서비스, 손);
       // 요청을 세우는 진행은 열린 작성이 고를 때와 같아야 한다 — 두 번 누르면 둘째가 첫째가 세운 요청을 못 본 채 같은 요청을 또 세운다
-      const 세우나 = 준.반영.length + 준.화면.length + (준.요구다시 === null ? 0 : 1) + (준.API === null ? 0 : 1) + (준.보완 === null ? 0 : 1) + (준.미션 === null ? 0 : 1) > 0 || 판?.문장바뀜 === true;
+      const 세우나 = 준.반영.length + 준.화면.length + (준.요구다시 === null ? 0 : 1) + (준.API === null ? 0 : 1) + (준.보완 === null ? 0 : 1) > 0 || 판?.문장바뀜 === true;
       if (세우나 && 열린.join() !== 준.열린.join()) throw new 되돌림(낡음);
       const steps: 진행단계[] = [];
       for (const b of 준.버그) {
@@ -122,11 +122,6 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
         );
         앞것.push(id);
         steps.push({ step: 5, key: 준.보완.key, requestId: id, version: null });
-      }
-      if (준.미션 !== null) {
-        const 값 = { missions: { from: 준.미션.from, items: 준.미션.items }, ...결정() };
-        const id = await 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: null, 값, 누가: 사람.username, 이름: 사람.displayName }, 손);
-        steps.push({ step: 7, key: 준.미션.key, requestId: id, version: null });
       }
       for (const x of 준.초안끝) {
         if (x.pick === 'RETRY') {

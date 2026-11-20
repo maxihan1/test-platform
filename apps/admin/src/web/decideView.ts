@@ -13,8 +13,6 @@ export interface 고른값 {
   rows?: number[];
   /** 테스트가 확인하지 않은 화면에서 체크한 틀 */
   screens?: string[];
-  /** 미션 승인 카드에서 체크한 미션 번호 */
-  missions?: string[];
 }
 
 export type 고른표 = ReadonlyMap<string, 고른값>;
@@ -22,20 +20,19 @@ export type 고른표 = ReadonlyMap<string, 고른값>;
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
 type 초안항목 = 항목of<'PRD_DRAFT'>;
 
-export type 탭 = 'approve' | 'mission' | 'fail' | 'check' | 'update';
+export type 탭 = 'approve' | 'fail' | 'check' | 'update';
 
 /** 주소의 글자가 탭 이름이면 그것, 아니면 null. 손으로 고친 주소가 없는 탭을 고르지 않게 한다 */
 export function 탭읽기(글: string | null): 탭 | null {
-  return (['approve', 'mission', 'fail', 'check', 'update'] as const).find((x) => x === 글) ?? null;
+  return (['approve', 'fail', 'check', 'update'] as const).find((x) => x === 글) ?? null;
 }
 
 /**
- * 항목이 드는 탭 — 승인 대기 · 미션 승인 · 결함 판정 · 요구사항 확인 · 테스트 업데이트(2026-11-04 사용자 · §3.6 「★ 결정 목록」 「탭」).
+ * 항목이 드는 탭 — 승인 대기 · 결함 판정 · 요구사항 확인 · 테스트 업데이트(2026-11-04 사용자 · §3.6 「★ 결정 목록」 「탭」).
  * 서버 묶음(group)은 셋이라 ② 를 실패 · 설명 안 되는 줄과 그 밖으로 가른다
  */
 export function 탭of(x: 결정항목): 탭 {
   if (x.kind === 'APPLY' || x.kind === 'FIX') return 'approve';
-  if (x.kind === 'MISSIONS') return 'mission';
   if (x.kind === 'FAIL' || x.kind === 'NOTE') return 'fail';
   if (x.kind === 'CHECK' || x.kind === 'PRD_DRAFT') return 'check';
   return 'update';
@@ -89,12 +86,6 @@ export function 보낼것(items: readonly 결정항목[], 고른: 고른표): �
       if ((값.screens ?? []).length === 0 || (x.env === null && (값.env ?? '') === '')) return [];
       return [{ key: x.key, pick: 값.pick, screens: 값.screens!, ...(x.env === null ? { env: 값.env! } : {}) }];
     }
-    if (x.kind === 'MISSIONS') {
-      // 지금 목록에 있는 미션만, 목록 차례대로 — 체크한 뒤 제외돼 사라진 번호가 새지 않게 한다
-      const 체크 = new Set(값.missions ?? []);
-      const 고른것 = x.missions.filter((m) => 체크.has(m.id)).map((m) => m.id);
-      return 고른것.length === 0 ? [] : [{ key: x.key, pick: 'WRITE', missions: 고른것 }];
-    }
     return [{ key: x.key, pick: 값.pick }];
   });
 }
@@ -114,8 +105,7 @@ export type 차례줄 =
   | { 곳: 'TEST'; 종류: 'apply' | 'reject'; keys: string[]; rootId: number }
   | { 곳: 'TEST'; 종류: 'fix'; keys: string[]; 화면: number; 문장: number; 바뀐요구: boolean; 바뀐요구수: number | null; 같이: boolean; 초안: number }
   | { 곳: 'TEST'; 종류: 'api'; keys: string[]; 수: number | null }
-  | { 곳: 'TEST'; 종류: 'screens'; keys: string[]; 수: number | null }
-  | { 곳: 'TEST'; 종류: 'missions'; keys: string[]; 수: number };
+  | { 곳: 'TEST'; 종류: 'screens'; keys: string[]; 수: number | null };
 
 /** 바뀐 요구 묶음의 번호 수. 열린 작성이 있으면 서버가 null 로 준다 */
 export function 바뀐요구수(x: 항목of<'PRD_CHANGED'>): number | null {
@@ -199,14 +189,12 @@ export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVer
     const 대상 = 고른항목.filter((x): x is 초안항목 => x.kind === 'PRD_DRAFT' && 보냄.get(x.key)!.pick === (종류 === 'draftDrop' ? 'DROP' : 'RETRY'));
     if (대상.length > 0) 줄.push({ 곳: 'PRD', 종류, keys: 대상.map((x) => x.key), 이슈: 대상.flatMap((x) => x.issues.map((i) => i.key)) });
   }
-  const 미션 = 고른항목.find((x): x is 항목of<'MISSIONS'> => x.kind === 'MISSIONS');
-  if (미션 !== undefined) 줄.push({ 곳: 'TEST', 종류: 'missions', keys: [미션.key], 수: 보냄.get(미션.key)!.missions?.length ?? 0 });
   return 줄;
 }
 
 /** 진행 뒤 차례 줄마다 서버가 세운 요청 번호 — 기획서 · 버그는 요청이 없다. 문장 변경만으로 세운 고치기는 key 가 null 이다 */
 export function 줄요청(줄: 차례줄, steps: readonly { step: number; key: string | null; requestId: number | null }[]): number | null {
-  const 단계 = { bug: 1, prd: 2, apply: 3, reject: 3, fix: 4, api: 4, screens: 5, draftDrop: 6, draftRetry: 6, missions: 7 }[줄.종류];
+  const 단계 = { bug: 1, prd: 2, apply: 3, reject: 3, fix: 4, api: 4, screens: 5, draftDrop: 6, draftRetry: 6 }[줄.종류];
   const 맞음 = steps.find((s) => s.step === 단계 && s.requestId !== null && (s.key === null ? 줄.종류 === 'fix' : 줄.keys.includes(s.key)));
   return 맞음?.requestId ?? null;
 }
