@@ -24,10 +24,12 @@ describe('대상점검 — Android 앱', () => {
 describe('앱역방향절 — 웹 크롤러 대신 appium-cli crawl', () => {
   const 절 = (화면만: boolean) => 앱역방향절({ 화면만, 산출물폴더: '/w/9/자료/out', 요청번호: 9 }).join('\n');
 
-  it('crawl 명령은 저장본 · 크롤 자리를 싣고 8분으로 돈다 — 웹 크롤러 · 훑기 보조 · 시작 주소는 안 쓴다', () => {
+  it('crawl 은 상한 없이 나눠 기다리는 명령으로 돌고 저장본 · 크롤 자리를 싣는다 — 웹 크롤러 · 훑기 보조 · 시작 주소는 안 쓴다', () => {
     for (const 화면만 of [false, true]) {
       const 글 = 절(화면만);
-      expect(글).toContain('npx appium-cli -s=probe crawl --max 100 --minutes 8 --out /w/9/자료/crawl --keep /w/9/자료/kept/index.json');
+      expect(글).toContain('npx tsx scripts/authoring-app-crawl.ts /w/9/자료');
+      expect(글).toContain('/w/9/자료/crawl/list.json');
+      expect(글).toContain('/w/9/자료/kept/index.json');
       expect(글).toContain('references/app.md §6');
       expect(글).not.toContain('authoring-crawl.ts');
       expect(글).not.toContain('TARGET_START_URL');
@@ -44,7 +46,7 @@ describe('앱역방향절 — 웹 크롤러 대신 appium-cli crawl', () => {
   it('줄프롬프트는 앱 표시가 있을 때만 이 절을 싣고 계정 값은 싣지 않는다', () => {
     const 것 = { id: 9, kind: 'AUTHOR' as const, target: { ...앱줄, loginId: 'tester', loginPassword: 'Qa-pw-7731' } };
     const 앱 = 줄프롬프트(것, 'SHOP', [], undefined, { 화면만: true, 산출물폴더: '/w/9/자료/out', 앱: true });
-    expect(앱).toContain('appium-cli -s=probe crawl');
+    expect(앱).toContain('scripts/authoring-app-crawl.ts');
     expect(앱).not.toContain('authoring-crawl.ts');
     expect(앱).not.toContain('Qa-pw-7731');
     expect(앱).not.toContain('tester');

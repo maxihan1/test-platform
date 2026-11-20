@@ -173,10 +173,10 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
     try {
       await 줄들([['dev', 'https://builds/dev.apk', false], ['qa', null, false], ['qa2', null, false], ['prod', null, true]]);
       const 아무줄 = await 요청넣기('RUNNING');
-      expect(await 받기(아무줄, 'app-link')).toEqual({ app: null });
+      expect(await 받기(아무줄, 'app-link')).toEqual({ app: null, buildNo: null });
 
       await 빌드올리기('prod', 'xgf-prod', '3 hour');
-      expect(await 받기(아무줄, 'app-link')).toEqual({ app: null });
+      expect(await 받기(아무줄, 'app-link')).toEqual({ app: null, buildNo: null });
 
       await 빌드올리기('qa', 'xgf-1', '2 hour');
       const 큐에이새것 = await 빌드올리기('qa', 'xgf-2', '1 hour');
@@ -187,7 +187,7 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
       expect((await 받기(짚음, 'app-link')).app).toContain(`/api/builds/${큐에이투}/`);
 
       const 빌드없는줄 = await 요청넣기('RUNNING', 'dev');
-      expect(await 받기(빌드없는줄, 'app-link')).toEqual({ app: null });
+      expect(await 받기(빌드없는줄, 'app-link')).toEqual({ app: null, buildNo: null });
     } finally {
       vi.unstubAllEnvs();
       vi.mocked(서버팜토큰).mockClear();

@@ -84,12 +84,12 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
 
   it('app-link 는 폰을 잡지 않고 앱 줄의 링크만 준다 — 앱이 없으면 null, 올린 빌드는 부를 때 새로 만든 서명 링크다', async () => {
     await 줄들([['dev', null, false]]);
-    expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null });
+    expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null, buildNo: null });
 
     await 치우기();
     await 줄들([['dev', null, false], ['qa', 'https://builds/qa.apk', false]]);
     const id = await 요청넣기();
-    expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk' });
+    expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk', buildNo: null });
 
     vi.stubEnv('PLATFORM_PUBLIC_URL', 'https://qahub.xgs.test');
     vi.stubEnv('SESSION_SECRET', 'xgs-session-secret');
@@ -97,7 +97,8 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
       const 올리기 = async (번호: string, 언제: string) =>
         Number((await q<{ id: string }>(`INSERT INTO app_build (service_id, env, build_no, file_path, uploaded_by, uploaded_at) VALUES ($1, 'qa', $2, '/tmp/xgs.apk', 'xgs', now() - $3::interval) RETURNING id`, [서비스, 번호, 언제])).rows[0]!.id);
       const 첫빌드 = await 올리기('xgs-1', '1 hour');
-      const { app: 링크 } = (await 받기(id, 'app-link')) as { app: string };
+      const { app: 링크, buildNo } = (await 받기(id, 'app-link')) as { app: string; buildNo: string };
+      expect(buildNo).toBe('xgs-1');
       expect(링크).toMatch(new RegExp(`^https://qahub\\.xgs\\.test/api/builds/${첫빌드}/apk\\?exp=\\d+&sig=`));
       expect(Number(/exp=(\d+)/.exec(링크)?.[1]) * 1000).toBeGreaterThan(Date.now() + 60 * 60_000);
 
@@ -106,6 +107,9 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
       expect((await 받기(id, `app-link?build=${첫빌드}`)).app).toContain(`/api/builds/${첫빌드}/apk?`);
       expect((await 받기(id, 'app-link')).app).toContain(`/api/builds/${새빌드}/apk?`);
       expect((await 받기(id, 'app-link?build=999999999')).app).toContain(`/api/builds/${새빌드}/apk?`);
+      // 빌드 번호는 그 링크가 까는 빌드의 것이다 — 앱 조작 맵 줄이 「어느 빌드에서 통과」로 단다 (APP-F4-05)
+      expect((await 받기(id, `app-link?build=${첫빌드}`)).buildNo).toBe('xgs-1');
+      expect((await 받기(id, 'app-link?build=999999999')).buildNo).toBe('xgs-2');
     } finally {
       vi.unstubAllEnvs();
     }
@@ -115,19 +119,19 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     await 줄들([['qa', 'https://builds/qa.apk', false]]);
     const id = await 요청넣기();
     vi.mocked(서버팜토큰).mockClear();
-    expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk' });
+    expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk', buildNo: null });
     expect(서버팜토큰).not.toHaveBeenCalled();
 
     vi.stubEnv('DEVICE_FARM_URL', 'http://farm.xgs.test');
     try {
       vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_xgs_new');
-      expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk', token: 'pat_xgs_new' });
-      expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk' });
+      expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk', buildNo: null, token: 'pat_xgs_new' });
+      expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk', buildNo: null });
 
       await 치우기();
       await 줄들([['qa', null, false]]);
       vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_xgs_late');
-      expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null, token: 'pat_xgs_late' });
+      expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null, buildNo: null, token: 'pat_xgs_late' });
     } finally {
       vi.unstubAllEnvs();
       vi.mocked(서버팜토큰).mockClear();

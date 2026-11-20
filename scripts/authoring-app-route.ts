@@ -97,7 +97,7 @@ export function 맵읽기(글: string): 맵줄[] {
 
 // 서버 올리기 검사(appRoute.ts 글인가)와 같은 꼴 — 서버가 거절할 글은 길로 쓰지 않는다
 const 가르개 = /\n|\r|\u0000| · | → |^[·→]|[·→]$/;
-const 글칸 = (v: unknown): string | null => (typeof v === 'string' && v !== '' && v.trim() === v && !가르개.test(v) ? v : null);
+export const 글칸 = (v: unknown): string | null => (typeof v === 'string' && v !== '' && v.trim() === v && !가르개.test(v) ? v : null);
 const 빈칸 = (v: unknown) => v === undefined || v === null;
 
 /**

@@ -1,10 +1,11 @@
 // 앱 · 게임 첫 화면을 자료 폴더에 받아 둔다 — AI 가 러너에 닿지 않고 요소 주소를 고르게 (도메인/작성 §3.6 「앱 화면」 · §7 「앱 화면 통로」 · 도메인/게임 §7 「게임 첫 화면」)
 // 기대값의 근거가 아니다 — 자식 지침(tpx-author references/app.md · game.md)이 그렇게 읽는다
 
-import { existsSync, lstatSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { 기록읽기, 늘림잊기, 마지막늘림, 잡은기록들 } from './authoring-app-hold.js';
 import { 부른다, 인증헤더 } from './authoring-io.js';
 import { 비밀번호꼴가리기 } from './authoring-prd.js';
 import { 거절말고 } from './authoring-prd-io.js';
@@ -50,6 +51,12 @@ export const 받은팜토큰 = new Set<string>();
 const 받은팜토큰_상한 = 50;
 /** 작성(자료 폴더)마다 마지막으로 갈아 끼운 토큰 — 남긴 폰 놓기가 쓴다. 자식이 바꿀 수 있는 파일은 다시 읽지 않는다 */
 const 최신팜토큰 = new Map<string, string>();
+/**
+ * 작성(자료 폴더)마다 app-link 가 처음 알려 준 빌드 이름 — crawl 결과를 앱 조작 맵에 올릴 때 단다 (§3.6 「★ 앱 탐색」 「crawl 결과 → 맵 줄」).
+ * 따로 부르지 않는다 — app-link 는 부를 때마다 서버가 팜 토큰을 챙겨 Auth 대신 PAT 한도를 쓴다. 처음 것을 지킨다 — crawl 은 작성 앞머리에 돈다
+ */
+const 빌드이름 = new Map<string, string>();
+export const 받은빌드이름 = (자료: string): string | undefined => 빌드이름.get(자료);
 
 /**
  * 자식을 띄우기 전에 부른다. 앱이 없는 서비스(경로가 없음)는 undefined — 프롬프트에 아무 절도 안 더한다.
@@ -95,6 +102,7 @@ async function 화면받기(서버: { 주소기지: string; 토큰: string }, �
   rmSync(앱링크파일(자료), { force: true });
   rmSync(팜토큰파일(자료), { force: true });
   최신팜토큰.delete(자료);
+  빌드이름.delete(자료);
   try {
     const 답 = await fetch(`${서버.주소기지}/api/authoring/requests/${String(번호)}/${곳.길}`, {
       headers: 인증헤더(서버.토큰),
@@ -168,9 +176,11 @@ async function 링크받아쓰기(주소: string, 토큰: string, 번호: number
   let 까닭: string;
   try {
     const 답 = await fetch(주소, { headers: 인증헤더(토큰), signal: AbortSignal.timeout(30_000) });
-    const 몸 = (await 답.json().catch(() => null)) as { app?: unknown; token?: unknown } | null;
+    const 몸 = (await 답.json().catch(() => null)) as { app?: unknown; token?: unknown; buildNo?: unknown } | null;
     // 토큰은 링크와 따로 갈아 끼운다 — 앱 줄이 바뀌어 링크를 못 받아도 잡은 폰은 놓아야 한다
     if (토큰도 && 답.ok && typeof 몸?.token === 'string' && 몸.token !== '') 토큰쓰기(번호, 자료, 몸.token);
+    // 시작 링크가 빌드일 때만(?build=) — 빌드 없이 앱 파일 경로로 깔았으면 서버가 주는 최신 빌드 이름은 crawl 이 깐 앱이 아니다
+    if (답.ok && 주소.includes('?build=') && typeof 몸?.buildNo === 'string' && !빌드이름.has(자료)) 빌드이름.set(자료, 몸.buildNo);
     if (답.ok && 몸?.app === null) 까닭 = '앱 줄에 앱이 없어졌다(설정 › 대상 서버의 앱 파일 경로 · 빌드)';
     else if (!답.ok || typeof 몸?.app !== 'string' || 몸.app === '') 까닭 = `서버 ${답.status}`;
     else if (링크쓰기(앱링크파일(자료), 몸.app)) return;
@@ -206,9 +216,15 @@ function 링크쓰기(파일: string, 링크: string): boolean {
 }
 
 // 지침이 잡는 시간으로 정한 30분(references/app.md §5 · game.md 「폰 잡기」). 그보다 오래된 기록의 잡기는 팜이 이미 풀었다 —
-// 그 폰을 지금 다른 실행이 잡았을 수 있고 인증 없는 팜은 누구의 잡기든 놓아 준다
+// 그 폰을 지금 다른 실행이 잡았을 수 있고 인증 없는 팜은 누구의 잡기든 놓아 준다. 에이전트가 늘린 잡기(앱)는 늘린 때부터 센다
 const 잡기_수명_ms = 30 * 60_000;
-const 폰번호꼴 = /^[A-Za-z0-9._:-]{1,64}$/;
+
+/** 잡은 폰을 놓거나 늘릴 팜 토큰 — AI 는 자식 환경의 PLATFORM_APPIUM_TOKEN(서버가 준 토큰 — 갈아 끼운 파일 것, 없으면 이 컨테이너 것)으로 잡았다. 잡은 계정과 같아야 팜이 받는다 */
+export const 잡은폰토큰 = (앱: 앱화면 | undefined, 자료?: string): string | undefined =>
+  (자료 === undefined ? undefined : 최신팜토큰.get(자료)) ?? 앱?.탐색?.token ?? process.env.PLATFORM_APPIUM_TOKEN;
+
+/** 탐색 주소(…/wd/hub)에서 팜 주소 */
+export const 팜주소 = (탐색: 앱탐색): string => 탐색.url.replace(/\/wd\/hub\/?$/, '');
 
 /**
  * **자식을 거둔 뒤** 부른다 — 살아남은 자식이 놓은 뒤에 다시 잡지 않게. appium-cli 는 잡은 폰 번호를 작업 폴더의 `.appium-cli/held` 에, 게임의 control-cli 는 `.control-cli/held` 에 적는다(폰 돌려 보기가 더 잡은 폰은 `held-<번호>`) —
@@ -219,37 +235,26 @@ const 폰번호꼴 = /^[A-Za-z0-9._:-]{1,64}$/;
 export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined, 번호: number, 부르기: typeof fetch = fetch, 지금 = Date.now(), 자료?: string): Promise<void> {
   if (앱?.탐색 === undefined) return;
   const 폴더 = join(트리, 앱.게임 === true ? '.control-cli' : '.appium-cli');
-  let 이름들: string[];
-  try {
-    if (!lstatSync(폴더).isDirectory()) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록 폴더가 보통 폴더가 아니라 놓지 않는다`);
-    // held 는 AI 가 잡은 폰, held-<번호> 는 폰 돌려 보기가 나눠 돌리려고 더 잡은 폰이다(작성 §3.6 「폰 여러 대로 나눠 돌린다」 — 그 명령이 죽으면 남는다)
-    이름들 = readdirSync(폴더).filter((n) => n === 'held' || /^held-[A-Za-z0-9._:-]{1,64}$/.test(n));
-  } catch {
-    return;
-  }
-  const 팜 = 앱.탐색.url.replace(/\/wd\/hub\/?$/, '');
+  // held 는 AI 가 잡은 폰, held-<번호> 는 폰 돌려 보기가 나눠 돌리려고 더 잡은 폰이다(작성 §3.6 「폰 여러 대로 나눠 돌린다」 — 그 명령이 죽으면 남는다)
+  const 이름들 = 잡은기록들(폴더);
+  if (이름들 === null) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록 폴더가 보통 폴더가 아니라 놓지 않는다`);
+  const 팜 = 팜주소(앱.탐색);
   const 누가 = (이름: string) => (이름 === 'held' ? 'AI 가' : '폰 돌려 보기 명령이(도중에 죽어)');
-  // AI 는 자식 환경의 PLATFORM_APPIUM_TOKEN(서버가 준 토큰 — 갈아 끼운 파일 것, 없으면 이 컨테이너 것)으로 잡았다. 잡은 계정과 같아야 팜이 놓아 준다
-  const 토큰 = (자료 === undefined ? undefined : 최신팜토큰.get(자료)) ?? 앱.탐색.token ?? process.env.PLATFORM_APPIUM_TOKEN;
+  const 토큰 = 잡은폰토큰(앱, 자료);
   for (const 이름 of 이름들) {
-    const 기록 = join(폴더, 이름);
-    let serial: string;
-    try {
-      const 정보 = lstatSync(기록);
-      if (!정보.isFile() || 정보.size > 100) {
-        console.error(`[작성] ${번호}번 — 잡은 폰 기록이 보통 파일이 아니라 놓지 않는다`);
-        continue;
-      }
-      serial = readFileSync(기록, 'utf8').trim();
-      rmSync(기록, { force: true });
-      if (지금 - 정보.mtimeMs > 잡기_수명_ms) continue;
-    } catch {
+    const 기록 = 기록읽기(join(폴더, 이름));
+    if (기록 === null) continue;
+    if ('까닭' in 기록) {
+      console.error(`[작성] ${번호}번 — 잡은 폰 기록이 ${기록.까닭} 놓지 않는다`);
+      // 폰 번호 꼴이 아닌 보통 파일은 지운다 — 이어하기가 같은 폴더를 쓴다
+      if (기록.까닭 === '폰 번호 꼴이 아니라') rmSync(join(폴더, 이름), { force: true });
       continue;
     }
-    if (!폰번호꼴.test(serial)) {
-      console.error(`[작성] ${번호}번 — 잡은 폰 기록이 폰 번호 꼴이 아니라 놓지 않는다`);
-      continue;
-    }
+    const serial = 기록.serial;
+    rmSync(join(폴더, 이름), { force: true });
+    const 늘림 = 마지막늘림(자료, serial);
+    늘림잊기(자료, serial);
+    if (지금 - Math.max(기록.mtimeMs, 늘림) > 잡기_수명_ms) continue;
     try {
       const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
         method: 'DELETE',
