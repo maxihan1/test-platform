@@ -33,7 +33,9 @@ export function 거절된보고대신(
             ? 'cases'
             : 실렸나('coverage')
               ? 'coverage'
-              : null
+              : 실렸나('popupRows')
+                ? 'popupRows'
+                : null
           : null;
   if (뺄것 !== null) {
     const { [뺄것]: _뺀것, ...남은결과 } = 결과 as Record<string, unknown>;

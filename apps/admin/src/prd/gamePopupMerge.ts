@@ -6,10 +6,14 @@ import { type 읽는손, 고침이팝업을올렸나, 조작행검사, 행넣기
 // 실행 요청에 싣는 돌발 팝업 상한(gameRoute.ts 팝업상한 · 러너 돌발팝업상한)과 같다 — 넘게 올려도 정식 실행이 다 싣지 못한다
 const 상한 = 100;
 
-/** 끝 보고의 result.popupRows 가 맞나 — 작성(AUTHOR · RERUN)의 DONE 만, 테스트 고침이 아닌 요청만, 「확인」 POPUP 행만 */
+/**
+ * 끝 보고의 result.popupRows 가 맞나 — 작성(AUTHOR · RERUN)의 DONE 만, 「확인」 POPUP 행만.
+ * 탐색하지 않는 작성(테스트 고침 · 화면이 맞음)은 못 싣는다 — 팝업은 탐색 플레이가 찾는 것이라 케이스를 고치는 자식이 적은 행이 정식 실행으로 새지 않게
+ */
 export function 끝내기팝업맞나(kind: string, status: string, params: unknown, v: unknown): boolean {
   if (v === undefined) return true;
   if (status !== 'DONE' || (kind !== 'AUTHOR' && kind !== 'RERUN')) return false;
+  if ((params as { screenRight?: unknown } | null)?.screenRight !== undefined) return false;
   if (!Array.isArray(v) || v.length === 0 || v.length > 상한) return false;
   const 읽음 = 조작행검사({ rows: v });
   if ('error' in 읽음) return false;
@@ -35,7 +39,8 @@ export async function 병합뒤팝업올리기(손: 읽는손, 원본: number | 
     console.warn(`[admin] ${String(원본)}번 작성의 돌발 팝업 행을 못 읽어 맵에 안 올린다 — ${읽음.detail}`);
     return 0;
   }
-  const 팝업 = 읽음.rows.filter((x) => x.kind === 'POPUP' && x.status === 'OK');
+  // 빌드는 비운다 — 폰에서 다시 해 본 빌드가 아니라서 정식 실행이 단 「재확인 필요」를 풀지 않는다(PUT 의 빌드 없는 확인과 같다)
+  const 팝업 = 읽음.rows.filter((x) => x.kind === 'POPUP' && x.status === 'OK').map((x) => ({ ...x, buildNo: null }));
   await 행넣기(손, 줄.service_id, 팝업, []);
   return 팝업.length;
 }

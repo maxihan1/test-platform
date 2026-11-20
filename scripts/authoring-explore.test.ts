@@ -128,6 +128,12 @@ describe('병합팝업', () => {
     expect(병합팝업(JSON.stringify({ rows: [상점행] }), [])).toEqual({ 줄: null, 행들: [] });
   });
 
+  it('서버가 목록째 거절하지 않게 같은 규칙으로 먼저 거른다 — 겹친 행 · 꼴이 틀린 행은 빼고 따로 세며, 창 주소 · 닫는 법만 싣는다', () => {
+    const 글 = JSON.stringify({ rows: [{ ...초대, buildNo: '15309', fields: { 메모: '초대' } }, 초대, { ...공지, action: '닫기 · 확인' }, { ...공지, fromKey: ' game:Main/Canvas/Event' }] });
+    expect(병합팝업(글, [])).toEqual({ 줄: '병합하면 올릴 돌발 팝업 행 1 — game:Main/Canvas/Invite · 꼴이 틀리거나 겹친 3개는 안 올림', 행들: [초대] });
+    expect(병합팝업(JSON.stringify({ rows: [{ ...초대, action: '' }] }), [])).toEqual({ 줄: '돌발 팝업 행 1 — 꼴이 틀리거나 겹쳐 병합해도 안 올림', 행들: [] });
+  });
+
   it('창 주소나 닫는 법에 계정 비밀번호가 섞이면 싣지 않고 안 올린다고만 적는다', () => {
     expect(병합팝업(새글, ['/Canvas/Event/Close'])).toEqual({ 줄: '돌발 팝업 행 2 — 테스트 계정 비밀번호가 들어 있어 병합해도 안 올림', 행들: [] });
   });

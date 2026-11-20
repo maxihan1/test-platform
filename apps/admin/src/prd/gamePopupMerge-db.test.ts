@@ -25,6 +25,7 @@ describe('끝 보고의 돌발 팝업 행 검사', () => {
     expect(끝내기팝업맞나('MERGE', 'DONE', {}, [초대])).toBe(false);
     expect(끝내기팝업맞나('AUTHOR', 'FAILED', {}, [초대])).toBe(false);
     expect(끝내기팝업맞나('AUTHOR', 'DONE', { testFix: { auto: true } }, [초대])).toBe(false);
+    expect(끝내기팝업맞나('AUTHOR', 'DONE', { prdApply: true, screenRight: [] }, [초대])).toBe(false);
     expect(끝내기팝업맞나('AUTHOR', 'DONE', {}, [{ ...초대, kind: 'MOVE' }])).toBe(false);
     expect(끝내기팝업맞나('AUTHOR', 'DONE', {}, [{ ...초대, status: 'BLOCKED', reason: '닫기 단추 없음' }])).toBe(false);
     expect(끝내기팝업맞나('AUTHOR', 'DONE', {}, [])).toBe(false);
@@ -51,7 +52,7 @@ describe.skipIf(연결 === undefined)('돌발 팝업 행 — 병합 뒤 조작 �
     return Number(r.rows[0]!.id);
   };
   const 도는작성 = (params: object = {}) =>
-    행넣기({ status: 'RUNNING', claimed_by: 에이전트, started_at: new Date(), params: JSON.stringify(params) });
+    행넣기({ kind: 'AUTHOR', status: 'RUNNING', claimed_by: 에이전트, started_at: new Date(), params: JSON.stringify(params) });
   const 도는머지 = (원본: number) => 행넣기({ kind: 'MERGE', source_id: 원본, status: 'RUNNING', claimed_by: 에이전트, started_at: new Date() });
   const 끝내기 = (id: number, 본문: object) => app.inject({ method: 'POST', url: `/api/authoring/requests/${String(id)}/finish`, payload: 본문 });
   const 맵팝업 = async () =>
@@ -119,10 +120,31 @@ describe.skipIf(연결 === undefined)('돌발 팝업 행 — 병합 뒤 조작 �
     expect([g.statusCode, g.json()]).toEqual([400, { error: 'BAD_RESULT', detail: 'popupRows' }]);
   });
 
-  it('맵에 이미 있는 「재확인 필요」 팝업은 빌드 없는 병합으로 풀지 않는다', async () => {
+  it('반영의 원본 실행이 실은 행만 오른다 — 같은 사슬의 앞 실행이 실은 행은 안 오른다', async () => {
+    const 앞 = await 도는작성();
+    await 끝내기(앞, { status: 'DONE', result: { popupRows: [초대] } });
+    const 다시 = await 행넣기({ kind: 'RERUN', source_id: 앞, status: 'RUNNING', claimed_by: 에이전트, started_at: new Date() });
+    expect((await 끝내기(다시, { status: 'DONE', result: { popupRows: [출석] } })).statusCode).toBe(200);
+    await 끝내기(await 도는머지(다시), { status: 'DONE', result: { pulled: true } });
+    expect((await 맵팝업()).map((x) => x.from_key)).toEqual([출석.fromKey]);
+  });
+
+  it('게임이 아닌 애플리케이션이면 반영이 끝나도 맵에 넣지 않는다', async () => {
+    const 작성 = await 도는작성();
+    await 끝내기(작성, { status: 'DONE', result: { popupRows: [초대] } });
+    await q(`UPDATE service SET kind = 'APP', game_platform = NULL WHERE id = $1`, [서비스]);
+    try {
+      expect((await 끝내기(await 도는머지(작성), { status: 'DONE', result: { pulled: true } })).statusCode).toBe(200);
+      expect(await 맵팝업()).toEqual([]);
+    } finally {
+      await q(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [서비스]);
+    }
+  });
+
+  it('맵에 이미 있는 「재확인 필요」 팝업은 빌드 없는 병합으로 풀지 않는다 — 빌드를 실어 와도 비우고 넣는다', async () => {
     await q(`INSERT INTO game_route (service_id, kind, from_key, action, status) VALUES ($1, 'POPUP', $2, $3, 'RECHECK')`, [서비스, 초대.fromKey, 초대.action]);
     const 작성 = await 도는작성();
-    await 끝내기(작성, { status: 'DONE', result: { popupRows: [초대, 출석] } });
+    await 끝내기(작성, { status: 'DONE', result: { popupRows: [{ ...초대, buildNo: '15309' }, 출석] } });
     await 끝내기(await 도는머지(작성), { status: 'DONE', result: { pulled: true } });
     expect((await 맵팝업()).map((x) => x.status)).toEqual(['OK', 'RECHECK']);
   });
