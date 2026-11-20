@@ -24,6 +24,15 @@ export class 홈화면 {
     await this.driver.$('~없음').click();
   }
 
+  async 팝업있으면닫기(): Promise<void> {
+    const 팝업 = this.driver.$('~없음');
+    if (await 팝업.isExisting()) await 팝업.click();
+  }
+
+  async 열릴때까지(): Promise<void> {
+    await this.driver.waitUntil(async () => false, { timeout: 100, interval: 20, timeoutMsg: '홈 화면이 그려지지 않았다' });
+  }
+
   async 없는것기다리기(): Promise<void> {
     await this.driver.$('~없음').waitForDisplayed({ timeout: 200 });
   }

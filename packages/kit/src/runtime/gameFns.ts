@@ -91,9 +91,10 @@ export const 적을앱명령 = ['$', '$$', 'execute', 'url', 'back', 'keys', 'ac
 const 앱건것 = new WeakSet<object>();
 
 /**
- * Android 앱 항목의 드라이버 명령마다 부른 자리의 함수 이름을 적는다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 10 · APP-F4-09).
+ * Android 앱 항목의 드라이버 명령마다 부른 자리의 함수 이름을 읽어 두고, 명령이 된 뒤에 「지났다」고 적는다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 10 · APP-F4-09).
  * WebdriverIO 는 명령 이벤트에 부른 쪽 스택을 남기지 않아(안에서 끊긴다) 케이스가 부르는 바로 그 순간에 읽는다. 실패 쪽은 WebdriverIO 오류 스택에 화면 파일 함수가 남아 실패함수들이 읽는다.
- * ponytail: 찾는 순간에 「지났다」고 적는다 — 화면 파일이 실패를 삼키면(없으면 넘어가기) 그 함수도 지난 것으로 센다. 요소 명령마다 끝을 기다려 적으려면 요소를 감싸야 하는데 overwriteCommand(…, true) 는 모든 앱 케이스를 깬다(highlight.ts)
+ * $ 는 요소를 찾았을 때만 적는다 — 없으면 넘어가는 화면 파일(isExisting)이 그 함수를 지난 것으로 세지 않게.
+ * ponytail: 찾은 요소의 누르기 · 읽기가 실패했는데 화면 파일이 삼켰으면 지난 것으로 센다. 요소 명령마다 끝을 보려면 요소를 감싸야 하는데 overwriteCommand(…, true) 는 모든 앱 케이스를 깬다(highlight.ts)
  */
 export function 앱함수를적게건다(드라이버: object): void {
   if (앱건것.has(드라이버)) return;
@@ -108,11 +109,43 @@ export function 앱함수를적게건다(드라이버: object): void {
       configurable: true,
       writable: true,
       value: (...인자: unknown[]): unknown => {
-        지났다고적는다(부른자리());
-        return 묶은(...인자);
+        const 자리 = 부른자리();
+        const 결과 = 묶은(...인자);
+        if (자리 === null || !(결과 instanceof Object) || typeof (결과 as { then?: unknown }).then !== 'function') return 결과;
+        // $ · $$ 사슬은 그대로 돌려준다(await $().click()). 부르는 순간 찾기가 나가 곁가지가 기다려도 한 번 더 찾지 않는다.
+        // 찾았을 때만 적는다 — isExisting 처럼 WebdriverIO 가 안에서 부르는 $$ 도 여기를 지나므로 빈 목록은 지난 것이 아니다. 실패는 케이스가 받으니 곁가지는 삼킨다
+        if (이름 === '$' || 이름 === '$$') {
+          void (결과 as Promise<unknown>).then(
+            (값) => {
+              if (Array.isArray(값) ? 값.length > 0 : (값 as { error?: unknown } | null)?.error === undefined) 지났다고적는다(자리);
+            },
+            () => undefined,
+          );
+          return 결과;
+        }
+        return (결과 as Promise<unknown>).then(
+          (값) => {
+            지났다고적는다(자리);
+            return 값;
+          },
+          (err: unknown) => {
+            // waitUntil 의 시간 넘김은 WebdriverIO 안에서 만든 오류라 스택에 화면 파일 함수가 없다 — 부른 순간의 이름을 달아 둔다
+            if (자리.들.length > 0 && typeof err === 'object' && err !== null && !부른함수.has(err)) 부른함수.set(err, 자리.들);
+            if (이름 === 'waitUntil') 시간넘김으로(err);
+            throw err;
+          },
+        );
       },
     });
   }
+}
+
+/**
+ * waitUntil 에 timeoutMsg 를 주면 시간이 넘었다는 글이 통째로 그 문구로 바뀌어 실패 유형이 「그 밖」이 된다 — 그러면 정식 실행이 그 줄을 「다시 확인」으로 못 바꾼다.
+ * 조건이 던진 실패(「waitUntil condition failed with …」)가 아니면 머리에 「waitUntil condition timed out — 」을 붙인다 (reporting/failureType.ts 시간초과)
+ */
+function 시간넘김으로(err: unknown): void {
+  if (err instanceof Error && !err.message.startsWith('waitUntil condition')) err.message = `waitUntil condition timed out — ${err.message}`;
 }
 
 /** 게임 드라이버의 동작마다 부른 자리의 함수 이름을 적고, 던진 오류에 그 이름을 달아 둔다. 다른 감싸기(돌발 팝업 닫기)보다 바깥에 건다 — 케이스가 부른 바로 그 순간의 스택을 읽는다 */

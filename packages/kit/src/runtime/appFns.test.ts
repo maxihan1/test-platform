@@ -84,6 +84,22 @@ describe('앱 명령마다 함수 이름을 적는다', () => {
     expect(emitted[1]!.error?.message).toContain('still not displayed after');
   });
 
+  it('없으면 넘어가는 화면 파일 함수는 요소를 못 찾았으면 지난 것으로 세지 않는다 — 깨진 줄에 새 빌드가 적히지 않게', async () => {
+    const driver = await 폰();
+    const { run, emitted } = makeRun();
+    await runStep(run, '팝업이 있으면 닫는다', () => new 홈화면(driver).팝업있으면닫기());
+    expect(emitted[0]).toMatchObject({ status: 'PASS' });
+    expect(emitted[0]).not.toHaveProperty('gameFns');
+  });
+
+  it('waitUntil 에 문구를 줬어도 시간이 넘었으면 오류 머리에 「waitUntil condition timed out」이 붙는다 — 실패 유형이 타임아웃이 되게', async () => {
+    const driver = await 폰();
+    const { run, emitted } = makeRun();
+    await runStep(run, '홈이 열린다', () => new 홈화면(driver).열릴때까지());
+    expect(emitted[0]).toMatchObject({ status: 'FAIL', gameFailedFns: ['홈화면.열릴때까지'] });
+    expect(emitted[0]!.error?.message).toBe('waitUntil condition timed out — 홈 화면이 그려지지 않았다');
+  });
+
   it('걸지 않은 드라이버(웹 · 게임 항목)는 두 칸 다 없고, 두 번 걸어도 한 번만 적는다', async () => {
     const 안건 = await 폰(false);
     const { run, emitted } = makeRun();
