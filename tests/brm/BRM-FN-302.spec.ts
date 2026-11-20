@@ -1,0 +1,61 @@
+import { defineCase, test, verify } from '@platform/kit';
+import { z } from 'zod';
+
+import { 공통HUD } from './components/hud.component.js';
+import { 사기, 상점줄, 퀘스트줄 } from './helpers/items-tools.helper.js';
+import { 로비로 } from './helpers/game-enter.helper.js';
+import { 계정꺼내기, 계정되돌리기, 골드맞추기, 봇모두끄기, 퀘스트처음으로 } from './helpers/game-state.helper.js';
+import { 퀘스트창 } from './pages/quest.page.js';
+import { 상점창 } from './pages/shop.page.js';
+
+export const spec = defineCase({
+  tcId: 'BRM-FN-302',
+  name: '골드 29 로 30 골드짜리 체력 물약을 사려 하면 「상점에서 물건 구매」 진행이 「0/1」 그대로다',
+  platforms: ['android'],
+  precondition: ['일반 회원이 골드 29 로 로비에 있다', '일반 회원이 골드 30 으로 로비에 있다'],
+  techniques: ['경계값 분석'],
+  elements: ['quest:상점에서 물건 구매', 'flow:골드-상점 구매', 'item:체력 물약', 'shop:체력 물약', 'flow:골드-상점 구매'],
+  params: z.object({
+    loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
+    loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
+  }),
+  expected: null,
+});
+
+test(spec, async ({ game, driver, admin, params }) => {
+  const 나 = 계정꺼내기(params.loginId, params.loginPassword);
+  await test.cleanup('켜 둔 봇 끄기 · 일반 회원 기준 상태로 되돌리기', async () => {
+    await 봇모두끄기(admin);
+    await 계정되돌리기(admin, 나);
+  });
+  const hud = new 공통HUD(game);
+  await test.step('일반 회원으로 로비에 들어간다', async () => {
+    await 로비로(game, driver, 나);
+    await verify('상단 바에 「Lv.1」이 보인다', (await hud.레벨글()).startsWith('Lv.1 '), true, { blocker: true });
+  });
+  await test.step('일반 회원의 골드를 29 로 맞춘다', async () => {
+    await 골드맞추기(game, 29);
+    await verify('상단 바 골드가 「29 G」다', await hud.골드글(), '29 G', { blocker: true });
+  });
+  await test.step('「/gm quest reset」 뒤 체력 물약 「구매」를 누른다', async () => {
+    await 퀘스트처음으로(game);
+    const 상점 = await 상점창.열기(game);
+    await 상점.구매누르기(await 상점줄(상점, '체력 물약'));
+    await hud.알림뜸('골드가 부족합니다');
+    const 퀘스트 = await 퀘스트창.열기(game);
+    const 줄 = await 퀘스트줄(퀘스트, '상점에서 물건 구매');
+    await verify('골드 29 로 30 골드짜리 체력 물약을 사려 하면 「상점에서 물건 구매」 진행이 「0/1」 그대로다', await 퀘스트.줄진행(줄), '0/1');
+  });
+  await test.step('일반 회원의 골드를 30 으로 맞춘다', async () => {
+    await 골드맞추기(game, 30);
+    await verify('상단 바 골드가 「30 G」다', await hud.골드글(), '30 G', { blocker: true });
+  });
+  await test.step('「/gm quest reset」 뒤 골드 30 으로 체력 물약 「구매」를 누른다', async () => {
+    await 퀘스트처음으로(game);
+    await 사기(game, '체력 물약');
+    const 퀘스트 = await 퀘스트창.열기(game);
+    const 줄 = await 퀘스트줄(퀘스트, '상점에서 물건 구매');
+    await 퀘스트.줄진행이될때까지(줄, '1/1');
+    await verify('「상점에서 물건 구매」 진행이 「1/1」이 된다', await 퀘스트.줄진행(줄), '1/1');
+  });
+});
