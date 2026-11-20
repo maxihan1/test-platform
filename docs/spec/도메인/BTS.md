@@ -158,7 +158,7 @@
 #### 테스트 수정 바퀴 (BTS-F10 · 2026-11-11 사용자)
 
 결정 23 · 24 · 25. 2026-11-11 실측(MQA-168 · DMW-FN-378 — 실제 폰 Chrome 에서만 `browser.newContext` 로 실패)에서 앞 판의 구멍 넷이 나왔다. 고침 전에 이슈가 닫힌다 · 휴대폰 흉내로만 확인한다 · PR 제목에 이슈 키가 없다 · PR 본문 「다시 돌림」 숫자가 위 「3번 돌려 보기」와 어긋난다. 이 바퀴가 넷을 다 메운다. 정리본은 `~/.claude/plans/bunker-test-fix.md`(저장소 밖) · 시안 2판 https://claude.ai/artifact/QBAENb3p67tz91ZwtRhpdG
-**BTS 를 잇지 않은 게임 프로젝트는 사람이 옮기지 않아도 조작 실패에서 이 바퀴의 고침(아래 2) · 반영 조건(3) · 다시 실행(4 · 5)을 쓴다**(2026-11-20 — [게임.md](게임.md) §3.10 「실패 자동 수정」 · 결정 36. 무엇이 같고 다른지는 그 절이 정본이고 진행판 GAME-F5-12 · 13 이 반영하기 전까지는 없다). 이슈가 없어 아래의 댓글 · 상태 옮기기 · 이슈 다시 읽기는 그 길에 없다. 그 절이 더하는 게임 고침 지침(조작 맵 행 다시 해 보기 · 돌발 팝업 행 안 더함)과 기다리는 값 재기는 이 바퀴가 게임 케이스를 고칠 때도 걸린다 — 자식 지침과 재는 코드가 하나다
+**BTS 를 잇지 않은 게임 프로젝트는 사람이 옮기지 않아도 조작 실패에서 이 바퀴의 고침(아래 2) · 반영 조건(3) · 다시 실행(4 · 5)을 쓴다**(2026-11-20 — [게임.md](게임.md) §3.10 「실패 자동 수정」 · 결정 36. 무엇이 같고 다른지는 그 절이 정본이다. 서버 쪽은 GAME-F5-12 가 반영했고 자식의 게임 고침 지침은 GAME-F5-13). 이슈가 없어 아래의 댓글 · 상태 옮기기 · 이슈 다시 읽기는 그 길에 없다. 그 절이 더하는 게임 고침 지침(조작 맵 행 다시 해 보기 · 돌발 팝업 행 안 더함)과 기다리는 값 재기는 이 바퀴가 게임 케이스를 고칠 때도 걸린다 — 자식 지침과 재는 코드가 하나다
 
 1. **시작 — 「테스트 수정」으로 옮긴다.** QA 가 Test Commander 가 올린 이슈(`bts_issue_case` 짝이 있는 이슈)를 상태 「테스트 수정」(연결 짝 `status_map.TEST_FIX`)으로 옮긴다. 무엇이 틀렸는지는 댓글로 적는다 — 고침 자료(`note`)에 든다. 받는 길은 지금 BTS 알림(`issue.transitioned` 의 `toState` 가 그 짝)이다 — 새 웹훅 · 새 규칙이 없다
    - 받으면 이슈를 다시 읽어 지금 상태가 그 짝일 때만 맡는다. 옮긴 사람은 이슈 변경 기록(BTS `GET /api/v1/issues/<키>/changelog` 에서 그 상태로 옮긴 가장 늦은 줄의 `actorId` · `actorName`)에서 찾는다 — 알림 몸에 없다. 변경 기록 · 이슈 글(아래 2)을 BTS 가 바빠 못 읽으면(5xx · 408 · 429 · 끊김) 503 — BTS 가 다시 보낸다. 권한 · 없음 같은 4xx 는 서버 기록을 남기고 옮긴 사람 · 글 없이 간다
@@ -577,16 +577,21 @@ POST /mcp
 #   — 알림 받기 줄과 이 칸의 summary · reruns · BAD_RESULT 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · inbound.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-04). autoMerge · held 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · testFixMerge.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-05)
 # 기능 테스트 목록 GET /api/catalog/cases 의 items[] 에 칸 하나 (F10-07 · 카탈로그.md §7)
 #   autoFix: { issueKey, state, at } | null — 그 케이스의 가장 늦은 bts_test_fix 줄(대상 서버 상관없이 · at 은 그 줄이 마지막으로 바뀐 때). 화면은 state 가 PASSED 일 때만 「자동 수정」 표시를 단다
-#   응답 최상위 autoFixCount — 가장 늦은 줄이 PASSED 인 케이스 수(탭 「자동 수정 N」 · last · autoFix 를 뺀 조건으로 센다) · 거르기 ?autoFix=1 도 같은 기준이다(표시 · 탭 · 거르기가 어긋나지 않게). 엑셀 GET /api/catalog/export 도 ?autoFix=1 을 받는다. BTS 연결이 없는 프로젝트는 칸이 늘 null · 0 이다. 그 서비스의 (실행, read) 가 없으면 칸 · 셈 · 거르기도 last 처럼 무시한다(null · 0 · 안 거름) — 통과 여부도 판정이다(카탈로그 §7 `?last=`)
+#   응답 최상위 autoFixCount — 가장 늦은 줄이 PASSED 인 케이스 수(탭 「자동 수정 N」 · last · autoFix 를 뺀 조건으로 센다) · 거르기 ?autoFix=1 도 같은 기준이다(표시 · 탭 · 거르기가 어긋나지 않게). 엑셀 GET /api/catalog/export 도 ?autoFix=1 을 받는다. BTS 연결이 없는 프로젝트는 칸이 늘 null · 0 이다 — 게임 실패 자동 수정 줄(issue_key 가 빈 줄)만 예외로 선다(2026-11-20 GAME-F5-12 · 게임.md §3.10 「실패 자동 수정」). 그 줄은 issueKey 가 null 이다. 그 서비스의 (실행, read) 가 없으면 칸 · 셈 · 거르기도 last 처럼 무시한다(null · 0 · 안 거름) — 통과 여부도 판정이다(카탈로그 §7 `?last=`)
 # 케이스 상세 GET /api/catalog/cases/:tcId?autoFix=1 에 칸 하나 (F10-07 — ?autoFix=1 일 때만 싣는다. 실행 창 · 시나리오가 케이스마다 부르는데 쓰지 않는다. (실행, read) 가 없으면 null)
 #   autoFix: { issueKey, issueUrl, movedBy, summary, merge: 'AUTO' | 'PERSON' | null, prUrl, rerunId, state, reason, at, rerunPage, needsPerson, devices: [{ platform, status }] } | null — 가장 늦은 줄 하나
 #   — rerunId 는 사람이 화면에서 찾는 실행이다(붙은 한 건이면 붙은 실행 · 새 RERUN 실행이면 그 실행 — 이슈 댓글 「RUN N」 과 같다 · 위 「테스트 수정 바퀴」 5). rerunPage 는 그 실행에 결과 화면이 있나(붙을 곳이 없던 한 건은 false — 서랍이 번호만 보인다). devices 는 bts_test_fix.rerun_id(한 건 실행 자신) 의 그 케이스 항목
 #   — needsPerson 은 병합을 기다리는 줄에 「사람 확인이 필요해요 — …」 댓글(다음 줄이 그 PR 주소)을 넣었나다 — 자동 병합에 걸렸거나 자동 반영이 실패했다. 서랍 상태 줄이 이것으로 갈린다
+#   — 게임 실패 자동 수정 줄(2026-11-20 GAME-F5-12)은 칸 넷이 더 찬다 — failedRun(처음 실패 실행) · failure(notFound | timeout) · requestId(고침 작성) · personWhy(사람 확인 까닭 글 — bts_test_fix.person_why). issueKey · issueUrl · movedBy 는 null 이고
+#     needsPerson 은 병합을 기다리는 줄의 personWhy 가 비지 않았나다(댓글이 없다). state 에 FLAKY(「다시 돌리니 통과」)가 는다. Issue Bunker 줄은 failedRun · failure · requestId 가 null · personWhy 가 [] 다
 #   서랍 「실행 기록」 줄을 주는 응답(GET /api/cases/:tcId/history)의 줄마다 afterFix: boolean — 그 실행(한 건 실행 자신의 번호 · 이력은 바꿔 끼우지 않는다)이 그 케이스 bts_test_fix 줄의 rerun_id 면 true(BTS 연결이 없으면 늘 false)
 #   — 위 F10-07 줄들(목록 · 상세 · 이력)은 반영 완료 (2026-11-11, apps/admin/src/bts/testFixView.ts · catalog/store.ts · catalog/routes.ts · execution/history.ts · web/CaseAutoFix.tsx — BTS-F10-07)
 # 실행 기록 실패 카드 GET /api/runs/:runId/failures 의 items[] 에 칸 하나 (F10-08 · 리포팅.md §7)
 #   autoFix: { issueKey, issueUrl, movedBy, prUrl, merge, rerunId, rerunPage, at, devices: [{ platform, status }] } | null — 그 카드(실행 · tcId · 대상 서버)를 `failed_run`(카드가 서는 실행 — 한 건 실행으로 올린 이슈는 붙는 실행인 부모)으로 가진 PASSED 줄(케이스마다 가장 늦은 것)
 #   — rerunId · rerunPage · devices 는 상세(위 F10-07)와 같은 뜻이다. movedBy 는 카드 한 줄의 「옮긴 사람」(2026-11-11 F10-08 — 처음 꼴에 없어 더했다)
+#   — requestId(2026-11-20 GAME-F5-12) — 게임 실패 자동 수정 줄의 고침 작성. 그 줄은 issueKey · issueUrl · movedBy 가 null 이다
+#   autoFixing: { state, requestId, prUrl, needsPerson, personWhy, rerunId, rerunPage, reason, at } | null — 게임 실패 자동 수정만(2026-11-20 GAME-F5-12). 그 카드를 failed_run 으로 가진 게임 줄 가운데
+#     PASSED 가 아닌 가장 늦은 것. 도는 동안(FIXING · WAIT_MERGE · RERUNNING)은 카드에 「자동 수정 중」 · 끝나면(FAILED · GAVE_UP · FLAKY) 「자동 수정 실패」와 원래 판정 줄 — 게임.md §3.10 「실패 자동 수정」 7
 #   — 카드는 자동 수정의 다시 실행을 빼고 본 결과로 선다. 붙은 한 건이 통과로 바꿔 끼우면 실패 카드가 사라지므로 고치기 전 실패로 「수정 후 통과」 카드를 세운다(BTS 연결이 없으면 빼지 않는다 — 카드도 없다)
 #   응답 최상위 autoFixCount(?autoFix 를 뺀 조건의 자동 수정 카드 수) · 거르기 ?autoFix=1(1 이 아닌 값은 조용히 버린다). 「판정 안 한 카드」 셈과 「실패 N건 다시 실행」 대상에서 그 카드를 뺀다(화면 몫)
 # 실행 기록 목록 GET /api/runs 줄에 autoFixed: number · 실행 상세 GET /api/runs/:runId 에 autoFixedCases: string[] — 그 실행을 처음 실패로 가진 PASSED 줄의 케이스(대상 서버도 같은 것 · 같은 케이스를 두 번 고쳐도 카드처럼 하나 · 0 이면 화면이 안 그린다). 상세 칸은 [실패 N건 다시 실행]에서 뺄 케이스다 (F10-08)
@@ -687,7 +692,7 @@ POST /mcp
 - 마지막 결과 탭 줄 끝에 「자동 수정 N」 탭(`autoFixCount` · 0 이면 안 그린다). 누르면 그 케이스만 거른다(`?autoFix=1` — 주소에 남는다)
 - 서랍 맨 위(요구사항 위)에 「자동 수정 기록」 상자 — 요청(옮긴 사람 · 이슈 고리) · 수정(`summary`) · 반영(「자동 반영」 또는 「사람이 반영」 · PR 고리) · 확인(디바이스마다 통과 · 실행 고리 — 디바이스 이름은 목록과 같은 PC · 모바일 · Android 앱이다. 실제 폰 Chrome 인지는 실행 화면에서 본다). PASSED 가 아닌 가장 늦은 줄이면 같은 자리에 지금 상태 한 줄 — 「테스트를 수정하는 중」 · 「반영을 기다리는 중」(`merge` 가 `AUTO` 면 「자동 반영하는 중」 · 「사람 확인이 필요해요」 댓글을 단 줄(`needsPerson`)이면 「반영을 기다리는 중 — 사람 확인이 필요해요」) · 「다시 실행하는 중」 · 「수정 후에도 실패했어요 · RUN N」 · 「그만뒀어요 · <까닭>」
 - 서랍 실행 기록 줄 가운데 다시 실행(`afterFix`) 줄에 「수정 후」 표시
-- BTS 연결이 없는 프로젝트는 표시 · 탭 · 상자가 없다(지킬 것 1). 게임의 실패 자동 수정이 반영되면 BTS 없는 게임 프로젝트에도 이 표시들이 선다 — 「요청」 줄처럼 사람 · 이슈를 적던 자리의 꼴은 그 반영 줄의 시안이 정한다([게임.md](게임.md) §3.10 「실패 자동 수정」 7 · 진행판 GAME-F5-12)
+- BTS 연결이 없는 프로젝트는 표시 · 탭 · 상자가 없다(지킬 것 1). 예외로 BTS 없는 게임 프로젝트에도 게임 실패 자동 수정 줄의 표시들이 선다(2026-11-20 GAME-F5-12) — 「요청」 줄처럼 사람 · 이슈를 적던 자리의 꼴과 고침이 도는 동안 · 실패로 끝난 뒤의 표시는 [게임.md](게임.md) §3.10 「실패 자동 수정」 7 이 정본이다
 
 **B · 실행 기록 › 기능 테스트 실패 카드** (F10-08 · `web/RunFailJudge.tsx` 언저리 — [실행.md](실행.md) §8.3 · [리포팅.md](리포팅.md) 「판정」)
 
