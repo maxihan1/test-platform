@@ -1,5 +1,5 @@
 // 앱 조작 맵 경로 검색 검사 — 서버가 짓는 맵 글을 그대로 읽어 데이터 세팅 · 이동 차례 · 돌발 팝업 · 길 없음을 찍는다 (도메인/작성 §3.6 「★ 앱 탐색」)
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -96,6 +96,9 @@ describe('출발고르기', () => {
     expect(출발고르기(줄들)).toMatchObject({ 까닭: expect.stringContaining('맵에 없다') });
     const 한줄 = 맵읽기(앱맵글짓기([줄({ kind: 'MOVE', from_key: 홈, action: '누르기', to_key: 알림 })]));
     expect(출발고르기(한줄)).toEqual({ 출발: 홈 });
+    // 「다시 확인」 이동으로만 닿는 화면도 들어오는 이동이 있는 화면이다
+    const 다시확인 = 맵읽기(앱맵글짓기([줄({ kind: 'MOVE', from_key: 홈, action: '누르기', to_key: 알림 }), 줄({ kind: 'MOVE', from_key: 알림, action: '누르기', to_key: 상세, status: 'RECHECK' }), 줄({ kind: 'MOVE', from_key: 상세, action: '누르기', to_key: 프로필 })]));
+    expect(출발고르기(다시확인)).toEqual({ 출발: 홈 });
     const 둘 = 맵읽기(앱맵글짓기([줄({ kind: 'MOVE', from_key: 홈, action: '누르기', to_key: 알림 }), 줄({ kind: 'MOVE', from_key: 상세, action: '누르기', to_key: 알림 })]));
     expect(출발고르기(둘)).toMatchObject({ 까닭: expect.stringContaining(`여럿이다 — ${홈} · ${상세}`) });
   });
@@ -122,6 +125,8 @@ describe('실행', () => {
       expect(실행([폴더])).toBe(2);
       expect(실행([폴더, 상세, 알림, '--from', 홈])).toBe(2);
       expect(실행([폴더, 상세, '--from'])).toBe(2);
+      expect(실행([폴더, 상세, '--from', 'app:.MainActivity/home'])).toBe(2);
+      expect(오류.mock.calls.at(-1)?.[0]).toContain('출발 화면 app:.MainActivity/home 이 맵의 이동 줄에 없다');
       expect(실행([빈폴더, 상세, '--from', 홈])).toBe(2);
       expect(오류.mock.calls.at(-1)?.[0]).toContain('app-route.txt 이 없다');
     } finally {
@@ -142,12 +147,45 @@ describe('새줄더하기 — 이번 작성이 적은 줄(app-route.json)을 맵
       remove: [{ kind: 'TERM', fromKey: '툿', action: '게시' }],
     });
     expect(얹은).toHaveLength(줄들.length - 1);
-    expect(얹은.find((r) => r.action === '글쓴이 누르기')).toEqual({
+    expect(얹은.find((r) => r.action === '글쓴이 누르기')).toMatchObject({
       kind: 'MOVE', from: 상세, action: '글쓴이 누르기', to: 프로필, status: 'OK',
       line: `${상세} → 글쓴이 누르기 → ${프로필} · 확인 · 빌드 24 · 소요 800ms · 함수 상세.글쓴이() · 칸 {"메모":"없음"}`,
     });
     expect(얹은.some((r) => r.kind === 'TERM')).toBe(false);
     expect(새줄더하기(줄들, null)).toEqual(줄들);
+  });
+
+  it('서버 올리기처럼 안 실은 칸은 지난 값을 지키고 fields 는 열쇠마다 덮는다 — 함수 이름만 채워 다시 적어도 길이 안 끊긴다', () => {
+    const 얹은 = 새줄더하기(줄들, {
+      rows: [
+        { kind: 'MOVE', fromKey: 홈, action: '첫 글 누르기', status: 'OK', buildNo: '24', fields: { fn: '홈.첫글2()', 메모: null } },
+        { kind: 'SETUP', fromKey: '다른 계정이 API 로 글 올리기', action: '타임라인에 남의 글 있음', status: 'OK' },
+      ],
+    });
+    expect(얹은.find((r) => r.action === '첫 글 누르기')?.line).toBe(`${홈} → 첫 글 누르기 → ${상세} · 확인 · 빌드 24 · 함수 홈.첫글2() · 칸 {"메모":"목록 · ⚠ 가짜 경고"}`);
+    expect(얹은.find((r) => r.kind === 'SETUP' && r.action === '타임라인에 남의 글 있음')?.line).toBe(
+      `다른 계정이 API 로 글 올리기 → 타임라인에 남의 글 있음 → ${상세} · 확인 · 도우미 남의글올리기 · ⚠ 그 계정을 먼저 팔로우해야 보인다`,
+    );
+    expect(경로(얹은, 상세, 홈).다찾음).toBe(true);
+  });
+
+  it('진행 불가로 오거나 진행 불가였던 줄은 실린 빌드만 남고 까닭은 지키지 않는다', () => {
+    const 첫글 = (x: Record<string, unknown>) => 새줄더하기(줄들, { rows: [{ kind: 'MOVE', fromKey: 홈, action: '첫 글 누르기', ...x }] }).find((r) => r.action === '첫 글 누르기');
+    const 막힘 = { kind: 'MOVE', fromKey: 'app:.ListsActivity/목록', action: '목록 열기' };
+    expect(첫글({ status: 'BLOCKED', reason: '글이 없다' })).toMatchObject({ status: 'BLOCKED', build: null, reason: '글이 없다' });
+    expect(새줄더하기(줄들, { rows: [{ ...막힘, status: 'OK' }] }).find((r) => r.action === '목록 열기')).toMatchObject({ status: 'OK', reason: null, build: null });
+  });
+
+  it('한 본문에 같은 줄이 둘이면 뒤엣것, 서버가 거절할 글(「 · 」 「 → 」)이 든 줄은 건너뛴다', () => {
+    const 얹은 = 새줄더하기([], {
+      rows: [
+        { kind: 'MOVE', fromKey: 홈, action: '가기', toKey: 알림, status: 'OK' },
+        { kind: 'MOVE', fromKey: 홈, action: '가기', toKey: 상세, status: 'OK' },
+        { kind: 'MOVE', fromKey: 홈, action: '탭 · 누르기', toKey: 프로필, status: 'OK' },
+        { kind: 'MOVE', fromKey: 홈, action: '누르기', toKey: '알림 → 상세', status: 'OK' },
+      ],
+    });
+    expect(얹은.map((r) => r.to)).toEqual([상세]);
   });
 
   it('빌드를 안 실은 확인 줄은 「다시 확인」 줄을 풀지 않는다 — 빌드를 실으면 푼다', () => {
@@ -171,6 +209,10 @@ describe('새줄더하기 — 이번 작성이 적은 줄(app-route.json)을 맵
       expect(실행([폴더, 프로필, '--from', 홈])).toBe(1);
       expect(오류.mock.calls.some(([x]) => String(x).includes('app-route.json 을 JSON 으로 못 읽었다'))).toBe(true);
       rmSync(join(폴더, 'app-route.txt'));
+      mkdirSync(join(폴더, 'app-route.txt'));
+      expect(실행([폴더, 알림, '--from', 홈])).toBe(2);
+      expect(오류.mock.calls.at(-1)?.[0]).toContain('app-route.txt 이 64MB 를 넘거나 일반 파일이 아니다');
+      rmSync(join(폴더, 'app-route.txt'), { recursive: true });
       writeFileSync(join(폴더, 'app-route.json'), JSON.stringify({ rows: [{ kind: 'MOVE', fromKey: 홈, action: '가기', toKey: 알림, status: 'OK' }] }));
       expect(실행([폴더, 알림])).toBe(0);
     } finally {
