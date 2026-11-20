@@ -57,7 +57,10 @@ describe('현재 동작 칸', () => {
   it('맞는 칸은 받고, 어디서 · 횟수 · 글이 틀리면 그 자리를 짚어 거절한다', () => {
     expect(항목검사([확인({ observed: { ...본것, where: 412 } })], 'MKT')).toMatchObject({ items: [{ observed: { ...본것, where: 412 } }] });
     expect(항목검사([확인({ observed: { ...본것, build: null } })], 'MKT')).toMatchObject({ items: [{ observed: { build: null } }] });
-    for (const 틀림 of [{ where: 0 }, { where: 'RUN' }, { count: 0 }, { proposal: '' }, { text: '가'.repeat(1001) }, { build: '' }]) {
+    for (const where of ['APP_EXPLORE', 'APP_STRINGS', 'APP_TRIAL'] as const) {
+      expect(항목검사([확인({ observed: { ...본것, where } })], 'MKT')).toMatchObject({ items: [{ observed: { where } }] });
+    }
+    for (const 틀림 of [{ where: 0 }, { where: 'RUN' }, { where: 'APP' }, { count: 0 }, { proposal: '' }, { text: '가'.repeat(1001) }, { build: '' }]) {
       expect(항목검사([{ ...확인(), observed: { ...본것, ...틀림 } }], 'MKT')).toEqual({ error: 'BAD_PRD', detail: '0.observed' });
     }
   });
@@ -78,10 +81,11 @@ describe('현재 동작 칸', () => {
     expect('error' in 뺌 ? null : 뺌.items[0]).not.toHaveProperty('observed');
   });
 
-  it('실행에서 본 현재 동작은 실행을 못 보는 사람에게 가린다 — 탐색 플레이에서 본 것은 그대로', () => {
-    const 판 = [확인({ observed: { ...본것, where: 412 } }), 항목('MKT-REQ-002', { status: 'NEEDS_CHECK', observed: 본것 })];
+  it('실행에서 본 현재 동작은 실행을 못 보는 사람에게 가린다 — 탐색 플레이 · 앱 작성에서 본 것은 그대로', () => {
+    const 앱 = { ...본것, where: 'APP_STRINGS' as const };
+    const 판 = [확인({ observed: { ...본것, where: 412 } }), 항목('MKT-REQ-002', { status: 'NEEDS_CHECK', observed: 본것 }), 항목('MKT-REQ-003', { status: 'NEEDS_CHECK', observed: 앱 })];
     expect(실행본것가리기(판, true)).toBe(판);
-    expect(실행본것가리기(판, false).map((x) => x.observed)).toEqual([undefined, 본것]);
+    expect(실행본것가리기(판, false).map((x) => x.observed)).toEqual([undefined, 본것, 앱]);
   });
 
   it('옮기기가 보낸 새 현재 동작은 앞 것을 덮는다', () => {

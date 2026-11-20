@@ -7,6 +7,9 @@ const 글상한 = 1000;
 const 빌드상한 = 200;
 const 횟수상한 = 9999;
 
+// 실행 번호가 아닌 곳 — 게임 탐색 플레이 · 앱 탐색(빈 곳 해 보기) · 앱 문구(APK 문자열 표) · 앱 작성 중 폰 돌려 보기 (도메인/작성 §3.6 「★ 앱 탐색」 결정 9)
+const 작성에서본곳: ReadonlySet<unknown> = new Set(['EXPLORE', 'APP_EXPLORE', 'APP_STRINGS', 'APP_TRIAL']);
+
 const 글자 = (값: unknown, 최대: number): string | null => (typeof 값 === 'string' && 값.trim() !== '' && 값.length <= 최대 ? 값 : null);
 
 /** 틀리면 null. 확정 항목에 와도 받는다 — 떼는 것은 판을 지을 때다(rules.ts 표시달기). 사람이 확정으로 바꾼 판을 이 칸 하나로 거절하지 않게 */
@@ -15,7 +18,7 @@ export function 본것읽기(값: unknown): PrdObserved | null {
   const o = 값 as Record<string, unknown>;
   const text = 글자(o.text, 글상한);
   const proposal = 글자(o.proposal, 글상한);
-  const where = o.where === 'EXPLORE' || (typeof o.where === 'number' && Number.isSafeInteger(o.where) && o.where > 0) ? o.where : null;
+  const where = 작성에서본곳.has(o.where) || (typeof o.where === 'number' && Number.isSafeInteger(o.where) && o.where > 0) ? (o.where as PrdObserved['where']) : null;
   const 빌드없음 = o.build === undefined || o.build === null;
   const build = 빌드없음 ? null : 글자(o.build, 빌드상한);
   const count = o.count;

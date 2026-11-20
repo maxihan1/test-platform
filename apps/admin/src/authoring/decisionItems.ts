@@ -58,7 +58,7 @@ export interface 결정목록 {
  * 실행(RUN)에서 온 현재 동작은 실행을 못 보는 사람에게 싣지 않는다 — 실패 판정을 거르는 것과 같은 까닭(도메인/인증 §7 「결정 목록 보기」)
  */
 export function 확인갈래(x: PrdItem, 실행읽기: boolean): { basis: 'SCREEN' | 'DOCS' | 'OBSERVED' | 'OTHER'; options: { asset: string; quote: string }[]; observed: PrdObserved | null } {
-  const 본것 = x.observed !== undefined && (x.observed.where === 'EXPLORE' || 실행읽기) ? x.observed : null;
+  const 본것 = x.observed !== undefined && (typeof x.observed.where !== 'number' || 실행읽기) ? x.observed : null;
   if (본것 !== null) return { basis: 'OBSERVED', options: [], observed: 본것 };
   return { ...확인갈래몸(x), observed: null };
 }

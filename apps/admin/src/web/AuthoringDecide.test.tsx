@@ -274,15 +274,16 @@ describe('결정 목록', () => {
   });
 
   it('판정 요청 카드는 불일치 다음에 현재 동작과 본 곳을 보이고, [현재 동작으로 수정]은 AI 문장으로 칸을 열어 저장해야 · [기획서대로 확정]은 바로 들어간다', async () => {
-    const 카드 = (reqId: string, where: 'EXPLORE' | number): 결정항목 => ({
+    const 카드 = (reqId: string, where: 'EXPLORE' | 'APP_STRINGS' | number): 결정항목 => ({
       ...화면확인(reqId), basis: 'OBSERVED',
       observed: { text: `${reqId} 받은 피해 6`, proposal: `${reqId} 혼자면 피해 0.5배`, where, build: '23', count: 3 },
     });
-    const { container } = render(<AuthoringDecide service="ARG" 목록={목록([카드('ARG-REQ-350', 'EXPLORE'), 카드('ARG-REQ-412', 15402), 문구(), 화면확인('ARG-REQ-118')])} envs={[]} 다시읽기={() => {}} />);
+    const { container } = render(<AuthoringDecide service="ARG" 목록={목록([카드('ARG-REQ-350', 'EXPLORE'), 카드('ARG-REQ-412', 15402), 카드('ARG-REQ-413', 'APP_STRINGS'), 문구(), 화면확인('ARG-REQ-118')])} envs={[]} 다시읽기={() => {}} />);
     const 질문들 = [...container.querySelectorAll('.decide-q')].map((x) => (x.textContent ?? '').slice(0, 8));
     expect(질문들).toEqual(['기획서에 없어서', '기획서 2개가 ', '기획서가 정하지']);
     expect(screen.getByText('· 탐색 플레이 · 빌드 23 · 3번 확인')).toBeTruthy();
     expect(screen.getByText('· RUN 15402 · 빌드 23 · 3번 확인')).toBeTruthy();
+    expect(screen.getByText('· 앱 문구 · 빌드 23 · 3번 확인')).toBeTruthy();
 
     fireEvent.click(screen.getAllByRole('button', { name: '현재 동작으로 수정' })[0]!);
     const 칸 = screen.getByRole('textbox', { name: /수정할 요구사항/ }) as HTMLTextAreaElement;

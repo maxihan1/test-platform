@@ -33,6 +33,10 @@ describe('확인갈래', () => {
     expect(확인갈래({ ...항목('ARG-REQ-349', '인원 보정', [['화면', '피해']]), observed: 탐색 }, false)).toEqual({ basis: 'OBSERVED', options: [], observed: 탐색 });
     expect(확인갈래({ ...항목('ARG-REQ-349', '인원 보정', [['기획.docx', '피해']]), observed: 실행 }, true)).toEqual({ basis: 'OBSERVED', options: [], observed: 실행 });
     expect(확인갈래({ ...항목('ARG-REQ-349', '인원 보정', [['화면', '피해']]), observed: 실행 }, false)).toEqual({ basis: 'SCREEN', options: [], observed: null });
+    for (const where of ['APP_EXPLORE', 'APP_STRINGS', 'APP_TRIAL'] as const) {
+      const 앱 = { ...탐색, where };
+      expect(확인갈래({ ...항목('MTA-REQ-041', '글 시각', [['기획.docx', '5 분 전']]), observed: 앱 }, false)).toEqual({ basis: 'OBSERVED', options: [], observed: 앱 });
+    }
   });
 });
 
