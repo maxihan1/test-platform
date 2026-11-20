@@ -129,9 +129,11 @@ describe('병합팝업', () => {
   });
 
   it('서버가 목록째 거절하지 않게 같은 규칙으로 먼저 거른다 — 겹친 행 · 꼴이 틀린 행은 빼고 따로 세며, 창 주소 · 닫는 법만 싣는다', () => {
-    const 글 = JSON.stringify({ rows: [{ ...초대, buildNo: '15309', fields: { 메모: '초대' } }, 초대, { ...공지, action: '닫기 · 확인' }, { ...공지, fromKey: ' game:Main/Canvas/Event' }] });
+    const 글 = JSON.stringify({ rows: [{ ...초대, buildNo: '15309', fields: { 메모: '초대' } }, 초대, { ...공지, action: '닫기\n확인' }, { ...공지, fromKey: ' game:Main/Canvas/Event' }] });
     expect(병합팝업(글, [])).toEqual({ 줄: '병합하면 올릴 돌발 팝업 행 1 — game:Main/Canvas/Invite · 꼴이 틀리거나 겹친 3개는 안 올림', 행들: [초대] });
     expect(병합팝업(JSON.stringify({ rows: [{ ...초대, action: '' }] }), [])).toEqual({ 줄: '돌발 팝업 행 1 — 꼴이 틀리거나 겹쳐 병합해도 안 올림', 행들: [] });
+    const 친구창 = { ...초대, fromKey: 'game:Main/Canvas/Window 친구 · 파티', action: '/Canvas/Window 친구 · 파티/Close' };
+    expect(병합팝업(JSON.stringify({ rows: [친구창] }), []).행들).toEqual([친구창]);
   });
 
   it('창 주소나 닫는 법에 계정 비밀번호가 섞이면 싣지 않고 안 올린다고만 적는다', () => {
