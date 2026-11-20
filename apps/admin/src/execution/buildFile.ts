@@ -180,10 +180,17 @@ async function 깔빌드(serviceId: number, env: string, 고정?: number): Promi
   return 최신빌드(pool, serviceId, env);
 }
 
-/** 깔앱파일이 까는 빌드의 번호 — 빌드 없이 app_path 로 가면 null. 앱 조작 맵 줄이 「어느 빌드에서 통과」로 단다 (도메인/작성 §3.6 「★ 앱 탐색」 · APP-F4-05) */
-export async function 깔빌드번호(serviceId: number, env: string, 고정?: number): Promise<string | null> {
+/**
+ * 깔 앱과 그 빌드의 이름을 한 번에 — 빌드를 두 번 고르면 사이에 새 빌드가 올라와 링크와 이름이 어긋난다. 빌드 없이 app_path 로 가면 이름은 null.
+ * 이름은 앱 조작 맵 줄이 「어느 빌드에서 통과」로 단다 (도메인/작성 §3.6 「★ 앱 탐색」 · APP-F4-05)
+ */
+export async function 깔앱(serviceId: number, env: string, appPath: string | null, 고정?: number): Promise<{ 링크: string | null; buildNo: string | null }> {
   const 빌드 = await 깔빌드(serviceId, env, 고정);
-  return 빌드 !== null && (빌드.appUrl !== null || 빌드.hasFile) ? 빌드.buildNo : null;
+  if (빌드?.appUrl != null) return { 링크: 빌드.appUrl, buildNo: 빌드.buildNo };
+  if (빌드?.hasFile !== true) return { 링크: appPath, buildNo: null };
+  const 주소 = 서명주소(빌드.id);
+  if (주소 === null) throw new Error(`${env} 줄의 최신 빌드 ${빌드.buildNo} 를 받을 주소를 못 만들었다 — PLATFORM_PUBLIC_URL 을 채운다`);
+  return { 링크: 주소, buildNo: 빌드.buildNo };
 }
 
 /**
@@ -191,12 +198,7 @@ export async function 깔빌드번호(serviceId: number, env: string, 고정?: n
  * 서명 주소를 못 만들면(바깥 주소가 비었다) 던진다 — 옛 app_path 로 물러서면 정식 실행(미실행으로 닫힘)과 다른 빌드로 케이스를 쓰고 아무도 모른다
  */
 export async function 깔앱파일(serviceId: number, env: string, appPath: string | null, 고정?: number): Promise<string | null> {
-  const 빌드 = await 깔빌드(serviceId, env, 고정);
-  if (빌드?.appUrl != null) return 빌드.appUrl;
-  if (빌드?.hasFile !== true) return appPath;
-  const 주소 = 서명주소(빌드.id);
-  if (주소 === null) throw new Error(`${env} 줄의 최신 빌드 ${빌드.buildNo} 를 받을 주소를 못 만들었다 — PLATFORM_PUBLIC_URL 을 채운다`);
-  return 주소;
+  return (await 깔앱(serviceId, env, appPath, 고정)).링크;
 }
 
 /** 케이스 테스트 실행이 실을 앞 빌드 — 그 줄 최신 빌드의 바로 앞 빌드 주소. 없거나 주소를 못 만들면 null(옛판에서올리기 가 「앞 빌드가 없다」로 던진다) */

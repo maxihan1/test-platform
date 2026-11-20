@@ -3,7 +3,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { 깔빌드번호, 깔앱파일, 최신빌드 } from '../execution/buildFile.js';
+import { 깔앱, 깔앱파일, 최신빌드 } from '../execution/buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
@@ -148,9 +148,8 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     if (행 === null) return reply;
     const 고정 = /^\d{1,12}$/.test(req.query.build ?? '') ? Number(req.query.build) : undefined;
     const 줄 = await 작성앱줄(행);
-    const 링크 = 줄 === null ? null : await 깔앱파일(행.serviceId, 줄.env, 줄.appPath, 고정);
-    // 링크가 까는 빌드의 번호 — 에이전트가 crawl 결과를 앱 조작 맵에 올릴 때 「어느 빌드에서 통과」로 단다. 빌드 없이 app_path 면 null (§3.6 「★ 앱 탐색」 · APP-F4-05)
-    const buildNo = 줄 === null ? null : await 깔빌드번호(행.serviceId, 줄.env, 고정);
+    // buildNo 는 링크가 까는 빌드의 이름 — 에이전트가 crawl 결과를 앱 조작 맵에 올릴 때 「어느 빌드에서 통과」로 단다. 빌드 없이 app_path 면 null (§3.6 「★ 앱 탐색」 · APP-F4-05)
+    const { 링크, buildNo } = 줄 === null ? { 링크: null, buildNo: null } : await 깔앱(행.serviceId, 줄.env, 줄.appPath, 고정);
     // 링크가 없어도(도중에 앱 줄이 바뀜) 준다 — 잡은 폰은 그 토큰으로 놓아야 한다
     const 토큰 = 팜주소() === undefined ? undefined : await 서버팜토큰();
     return { app: 링크, buildNo, ...(토큰 !== undefined && { token: 토큰 }) };

@@ -27,7 +27,7 @@ import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 앱크롤올리기 } from './authoring-app-crawl-route.js';
-import { PC게임못함, 게임화면받기, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { PC게임못함, 게임화면받기, 받은빌드이름, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
@@ -313,7 +313,7 @@ async function 사본에서(
     return void (await 손.끝내기(거절로(사유거르기(옮김.거절, 비밀번호들(것)))));
   }
   const 게임줄 = 게임화면 === undefined ? [] : [...(await 게임올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...(await 탐색끝줄({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...안다룬요소줄(자리.자료, join(자리.트리, 'tests', 케이스자리), 비밀번호들(것)), ...(미션 === null ? await 미션올리기({ 주소기지, 토큰, 번호: 것.id }, { 트리: 자리.트리, 서비스, 케이스폴더: join(자리.트리, 'tests', 케이스자리), 원장값: 옮김.원장, 기준: 옮김.기준, 비밀: 비밀번호들(것) }) : [])]; // 훑은 창 · 게임 지도 · 탐색 플레이 · 조작 맵 · 안 다룬 요소 · 미션 절(승인 전 첫 작성만) — 못 올려도 PR 은 간다
-  const 앱줄 = 설정.종류 === 'APP' ? await 앱크롤올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것), 앱화면?.탐색?.app, 역방향 !== undefined) : []; // crawl 결과 → 앱 조작 맵 · 화면 기록 (§3.6 「★ 앱 탐색」 · APP-F4-05) — 못 올려도 PR 은 간다
+  const 앱줄 = 설정.종류 === 'APP' ? await 앱크롤올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것), 받은빌드이름(자리.자료), 역방향 !== undefined) : []; // crawl 결과 → 앱 조작 맵 · 화면 기록 (§3.6 「★ 앱 탐색」 · APP-F4-05) — 못 올려도 PR 은 간다
   // 테스트 고침 자식이 요약을 빠뜨렸으면 같은 세션을 한 번 되묻는다 — 고장 내 보기 단계에 들어간 자식만(안 했으면 숫자를 지어 적는다). 멈춤 · 거절 · 거두기 실패는 위처럼 끝낸다.
   // ponytail: 되물은 몫 토큰은 안 센다(서버가 사용량을 한 번만 받는다) — 세려면 사용량보고 앞으로 옮긴다
   let 되물음: 돌린결과 | undefined;

@@ -50,6 +50,12 @@ export const 받은팜토큰 = new Set<string>();
 const 받은팜토큰_상한 = 50;
 /** 작성(자료 폴더)마다 마지막으로 갈아 끼운 토큰 — 남긴 폰 놓기가 쓴다. 자식이 바꿀 수 있는 파일은 다시 읽지 않는다 */
 const 최신팜토큰 = new Map<string, string>();
+/**
+ * 작성(자료 폴더)마다 app-link 가 처음 알려 준 빌드 이름 — crawl 결과를 앱 조작 맵에 올릴 때 단다 (§3.6 「★ 앱 탐색」 「crawl 결과 → 맵 줄」).
+ * 따로 부르지 않는다 — app-link 는 부를 때마다 서버가 팜 토큰을 챙겨 Auth 대신 PAT 한도를 쓴다. 처음 것을 지킨다 — crawl 은 작성 앞머리에 돈다
+ */
+const 빌드이름 = new Map<string, string>();
+export const 받은빌드이름 = (자료: string): string | undefined => 빌드이름.get(자료);
 
 /**
  * 자식을 띄우기 전에 부른다. 앱이 없는 서비스(경로가 없음)는 undefined — 프롬프트에 아무 절도 안 더한다.
@@ -95,6 +101,7 @@ async function 화면받기(서버: { 주소기지: string; 토큰: string }, �
   rmSync(앱링크파일(자료), { force: true });
   rmSync(팜토큰파일(자료), { force: true });
   최신팜토큰.delete(자료);
+  빌드이름.delete(자료);
   try {
     const 답 = await fetch(`${서버.주소기지}/api/authoring/requests/${String(번호)}/${곳.길}`, {
       headers: 인증헤더(서버.토큰),
@@ -168,9 +175,11 @@ async function 링크받아쓰기(주소: string, 토큰: string, 번호: number
   let 까닭: string;
   try {
     const 답 = await fetch(주소, { headers: 인증헤더(토큰), signal: AbortSignal.timeout(30_000) });
-    const 몸 = (await 답.json().catch(() => null)) as { app?: unknown; token?: unknown } | null;
+    const 몸 = (await 답.json().catch(() => null)) as { app?: unknown; token?: unknown; buildNo?: unknown } | null;
     // 토큰은 링크와 따로 갈아 끼운다 — 앱 줄이 바뀌어 링크를 못 받아도 잡은 폰은 놓아야 한다
     if (토큰도 && 답.ok && typeof 몸?.token === 'string' && 몸.token !== '') 토큰쓰기(번호, 자료, 몸.token);
+    // 시작 링크가 빌드일 때만(?build=) — 빌드 없이 앱 파일 경로로 깔았으면 서버가 주는 최신 빌드 이름은 crawl 이 깐 앱이 아니다
+    if (답.ok && 주소.includes('?build=') && typeof 몸?.buildNo === 'string' && !빌드이름.has(자료)) 빌드이름.set(자료, 몸.buildNo);
     if (답.ok && 몸?.app === null) 까닭 = '앱 줄에 앱이 없어졌다(설정 › 대상 서버의 앱 파일 경로 · 빌드)';
     else if (!답.ok || typeof 몸?.app !== 'string' || 몸.app === '') 까닭 = `서버 ${답.status}`;
     else if (링크쓰기(앱링크파일(자료), 몸.app)) return;
