@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { 앱크롤올리기, 크롤맵줄, 크롤색인상한 } from './authoring-app-crawl-route.js';
+import { 앱크롤올리기, 올릴빌드, 크롤맵줄, 크롤색인상한 } from './authoring-app-crawl-route.js';
 import { type 맵줄, 경로, 맵줄읽기, 새맵줄이름, 새줄더하기, 출발고르기 } from './authoring-app-route.js';
 import { 앱맵받기 } from './authoring-app-screen.js';
 import type { 탐색단계 } from './authoring-explore.js';
@@ -119,8 +119,12 @@ export function 앱탐색줄(표: 앱목표표, 비밀: readonly string[]): stri
   return `${머리}${불가.length === 0 ? '' : ` — ${까닭들.join(' · ')}${불가.length > 까닭상한 ? ` 외 ${String(불가.length - 까닭상한)}개` : ''}`}${못비움}`;
 }
 
-/** 이번 작성이 적은 줄(app-route.json — PUT app-route 본문)을 올린다. 꼴이 틀려 서버가 거절하면(400) `틀림` — 체크포인트가 그것으로 멈춘다 */
-export async function 앱맵올리기(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<{ 줄: string | null; 틀림: string | null }> {
+/**
+ * 이번 작성이 적은 줄(app-route.json — PUT app-route 본문)을 올린다. 꼴이 틀려 서버가 거절하면(400) `틀림` — 체크포인트가 그것으로 멈춘다.
+ * 빌드를 안 단 「확인」 줄에는 이 작성이 깐 빌드를 단다 — 이 파일의 줄은 이 작성이 폰에서 해 봤거나(탐색 · 테스트 수정) 케이스를 폰에서 돌려 본 길이다.
+ * 빌드 없는 확인은 정식 실행이 단 「다시 확인」을 못 풀어서, 달지 않으면 한 번 「다시 확인」이 된 줄이 영영 안 풀린다 (작성 §3.6 「★ 앱 탐색」 결정 10 · 2026-11-20 APP-F4-09 시작 질문)
+ */
+export async function 앱맵올리기(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드?: string): Promise<{ 줄: string | null; 틀림: string | null }> {
   const 글 = 안전히읽기(자료, 새맵줄이름, 4 * 1024 * 1024);
   if (글 === null && existsSync(join(자료, 새맵줄이름))) return { 줄: `앱 조작 맵: ${새맵줄이름} 이 4MB 를 넘거나 일반 파일이 아니라 안 올림`, 틀림: `${새맵줄이름} 이 4MB 를 넘거나 일반 파일이 아니다` };
   if (글 === null) return { 줄: null, 틀림: null };
@@ -133,9 +137,17 @@ export async function 앱맵올리기(통로: 화면통로, 자료: string, 비�
   const 글자들 = (v: unknown): string[] => (typeof v === 'string' ? [v] : typeof v === 'object' && v !== null ? Object.entries(v).flatMap(([k, x]) => [k, ...글자들(x)]) : []);
   if (계정섞였나(글자들(몸), 비밀)) return { 줄: '앱 조작 맵: 탐색 줄에 테스트 계정 비밀번호가 들어 있어 안 올림', 틀림: `${새맵줄이름} 에 테스트 계정 비밀번호가 들어 있다` };
   const 수 = (v: unknown) => (Array.isArray(v) ? v.length : 0);
+  const 쓸빌드 = 올릴빌드(빌드);
+  // 빈 글 빌드는 서버가 빈칸으로 읽어 「다시 확인」을 못 푼다 — 없는 것으로 친다
+  const 빌드없는확인 = (r: unknown): r is Record<string, unknown> => {
+    const 줄 = typeof r === 'object' && r !== null ? (r as Record<string, unknown>) : null;
+    return 줄 !== null && 줄.status === 'OK' && (typeof 줄.buildNo !== 'string' || 줄.buildNo.trim() === '');
+  };
+  const 단수 = 쓸빌드 === undefined || !Array.isArray(몸.rows) ? 0 : 몸.rows.filter(빌드없는확인).length;
+  if (단수 > 0) 몸 = { ...몸, rows: (몸.rows as unknown[]).map((r) => (빌드없는확인(r) ? { ...r, buildNo: 쓸빌드 } : r)) };
   try {
     const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${String(통로.번호)}/app-route`, { method: 'PUT', body: 몸 });
-    if (답.status === 204) return { 줄: `앱 조작 맵: 탐색 줄 ${String(수(몸.rows))}개 올림${수(몸.remove) > 0 ? ` · ${String(수(몸.remove))}개 지움` : ''}`, 틀림: null };
+    if (답.status === 204) return { 줄: `앱 조작 맵: 탐색 줄 ${String(수(몸.rows))}개 올림${수(몸.remove) > 0 ? ` · ${String(수(몸.remove))}개 지움` : ''}${단수 > 0 ? ` · 확인 줄 ${String(단수)}개에 빌드 ${쓸빌드 ?? ''}` : ''}`, 틀림: null };
     const 자리 = (답.몸 as { detail?: unknown } | null)?.detail;
     const 왜 = `서버 ${String(답.status)}${typeof 자리 === 'string' ? ` (${자리.slice(0, 100)})` : ''}`;
     return { 줄: `앱 조작 맵: 탐색 줄 못 올림 — ${왜}`, 틀림: 답.status === 400 ? `${새맵줄이름} 을 서버가 거절했다 — ${왜}` : null };
@@ -150,7 +162,7 @@ export async function 앱맵올리기(통로: 화면통로, 자료: string, 비�
  */
 export async function 앱체크포인트돌기(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드: string | undefined): Promise<({ 줄: string } | { 거절: string }) & { 크롤줄: string[] }> {
   const 크롤줄 = await 앱크롤올리기(통로, 자료, 비밀, 빌드, false);
-  const 올림 = await 앱맵올리기(통로, 자료, 비밀);
+  const 올림 = await 앱맵올리기(통로, 자료, 비밀, 빌드);
   // 다시 받은 맵 글에 서버가 합친 줄이 든다. 못 받으면 앱맵받기가 파일을 지우므로 앞서 받아 둔 글을 되돌린다 — 앞 작성의 맵에만 있는 화면이 빠지지 않게
   const 앞맵 = 안전히읽기(자료, 'app-route.txt', 64 * 1024 * 1024);
   await 앱맵받기(통로, 통로.번호, 자료);
@@ -187,15 +199,15 @@ export function 앱탐색잇기(통로: 화면통로, 자료: string, 비밀: re
   };
   const 끝줄 = async (): Promise<string[]> => {
     const 크롤 = 크롤줄 ?? (await 앱크롤올리기(통로, 자료, 비밀, 빌드(), 대조));
-    return [...(await 앱탐색끝줄(통로, 자료, 비밀)), ...크롤];
+    return [...(await 앱탐색끝줄(통로, 자료, 비밀, 빌드())), ...크롤];
   };
   return { 갈래, 끝줄 };
 }
 
 /** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 탐색 줄 다시 올리기(케이스 세션이 채운 함수 이름). 탐색을 안 한 작성도 이번 줄이 있으면 올린다 */
-export async function 앱탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<string[]> {
+export async function 앱탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[], 빌드?: string): Promise<string[]> {
   const 지남 = 안전히읽기(자료, 앱탐색자리.지남, 파일상한)?.trim();
-  const 올림 = await 앱맵올리기(통로, 자료, 비밀);
+  const 올림 = await 앱맵올리기(통로, 자료, 비밀, 빌드);
   return [지남, 올림.줄].filter((x): x is string => x !== null && x !== undefined && x !== '');
 }
 

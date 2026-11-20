@@ -26,6 +26,8 @@ const 칸 = (v: unknown, 상한 = 200): string | null => {
   const 글 = 글칸(v);
   return 글 !== null && 글.length <= 상한 ? 글 : null;
 };
+/** 서버가 받는 빌드 이름만 — 가르개가 들거나 100자를 넘으면 빌드 없이 올린다 */
+export const 올릴빌드 = (빌드: string | undefined): string | undefined => 칸(빌드, 100) ?? undefined;
 const 목록 = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v : []).filter((x): x is Record<string, unknown> => typeof x === 'object' && x !== null);
 
 /**
@@ -99,7 +101,7 @@ export async function 크롤맵올리기(통로: { 주소기지: string; 토큰:
     // 깨진 색인은 못 읽은 것과 같다 — 아래 줄로 알린다
   }
   if (색인 === null) return ['앱 조작 맵: crawl 결과(index.json)를 못 읽어 안 올림'];
-  const 쓸빌드 = 칸(빌드, 100) ?? undefined;
+  const 쓸빌드 = 올릴빌드(빌드);
   const { 줄들, 뺀수 } = 크롤맵줄(색인, 쓸빌드);
   if (줄들.length === 0) return [];
   if (계정섞였나(줄들.flatMap((x) => [x.fromKey, x.action, x.toKey ?? '']), 비밀)) return ['앱 조작 맵: 올릴 줄에 테스트 계정 비밀번호가 들어 있어 안 올림'];

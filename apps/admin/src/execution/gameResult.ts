@@ -1,10 +1,12 @@
-// 게임 항목 결과의 곁가지 — 서버 값 대조는 게임 지도 칸에, 부른 API 는 서비스 지도의 케이스 줄에, 지난 함수는 조작 맵 행에 적는다 (도메인/게임 「실행 결과」 · GAME-F1-09 · GAME-F5-06)
+// 게임 항목 결과의 곁가지 — 서버 값 대조는 게임 지도 칸에, 부른 API 는 서비스 지도의 케이스 줄에, 지난 함수는 조작 맵 행에 적는다 (도메인/게임 「실행 결과」 · GAME-F1-09 · GAME-F5-06).
+// Android 앱 항목도 지난 함수를 앱 조작 맵 줄에 적는다 — 지도 칸은 게임만이다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 10 · APP-F4-09)
 
 import type { ExecuteResponse } from '@platform/kit';
 
 import type { PoolClient } from 'pg';
 
 import { 지도줄들, 케이스지도를넣는다 } from '../prd/apiMap.js';
+import { 실행이앱맵을고친다 } from '../prd/appRoute.js';
 import { 실행이맵을고친다 } from '../prd/gameRoute.js';
 import { 원인을가른다 } from '../reporting/failureType.js';
 
@@ -30,12 +32,18 @@ async function 조작맵을고친다(client: PoolClient, historyId: number, resu
   await client.query('SAVEPOINT game_route_result');
   try {
     const 자리 = (
-      await client.query<{ service_id: string | null; build_no: string | null }>(
-        'SELECT r.service_id, r.build_no FROM run_item i JOIN test_run r ON r.run_id = i.run_id WHERE i.history_id = $1',
+      await client.query<{ service_id: string | null; build_no: string | null; kind: string | null }>(
+        'SELECT r.service_id, r.build_no, s.kind FROM run_item i JOIN test_run r ON r.run_id = i.run_id LEFT JOIN service s ON s.id = r.service_id WHERE i.history_id = $1',
         [historyId],
       )
     ).rows[0];
-    if (자리?.service_id != null) {
+    // Android 앱은 앱 조작 맵(app_route)을 고친다 — 표 · 코드는 게임과 따로다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 6 · 10 · APP-F4-09)
+    if (자리?.service_id != null && 자리.kind === 'APP') {
+      const 고침 = await 실행이앱맵을고친다(client, Number(자리.service_id), 자리.build_no, 맵.지난, 맵.실패);
+      if (고침.빌드적음 + 고침.다시확인 > 0) {
+        console.log(`[execution] 항목 ${historyId} — 앱 조작 맵을 고쳤다: 빌드 ${자리.build_no ?? '없음'} 적은 줄 ${고침.빌드적음}개 · 「다시 확인」으로 바꾼 줄 ${고침.다시확인}개`);
+      }
+    } else if (자리?.service_id != null && 자리.kind === 'GAME') {
       const 고침 = await 실행이맵을고친다(client, Number(자리.service_id), 자리.build_no, 맵.지난, 맵.실패);
       if (고침.빌드적음 + 고침.재확인 > 0) {
         console.log(`[execution] 항목 ${historyId} — 조작 맵을 고쳤다: 빌드 ${자리.build_no ?? '없음'} 적은 행 ${고침.빌드적음}개 · 「재확인 필요」로 바꾼 행 ${고침.재확인}개`);

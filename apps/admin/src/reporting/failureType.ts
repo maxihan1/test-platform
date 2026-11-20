@@ -22,7 +22,8 @@ export const 색코드 = /\u001b\[[0-9;]*m/g;
 // net::ERR_ABORTED 는 앱이 스스로 이동을 끊은 것이라 뺀다
 const 연결끊김 = /net::ERR_(?!ABORTED)|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|socket hang up|fetch failed/;
 // 「element wasn't found」 는 앱 케이스(WebdriverIO · Appium)가 요소를 못 찾아 누르지 못했을 때다 (2026-11-05 WEB-F9-10 — DMA-FN-046 이 「그 밖」으로 갈렸다)
-const 요소대기 = /waiting for (locator|getBy|selector)|element\(s\) not found|element wasn't found|no such element|could not be located/i;
+// 「still not existing after」 는 앱 케이스가 요소가 생기기를 기다리다 끝난 것이다 — 보이기 · 누를 수 있기를 기다린 것(아래 앱기다림)과 달리 못 찾음이다 (2026-11-20 APP-F4-09)
+const 요소대기 = /waiting for (locator|getBy|selector)|element\(s\) not found|element wasn't found|no such element|could not be located|still not existing after/i;
 // 서버가 미실행에 넣는 러너 사유(execution/runner.ts · farm.ts — 러너에 닿지 못함 · 러너가 거절 · 디바이스 팜 없음 · 팜이 폰을 못 내줌).
 // 「로컬 러너」는 2026-10-20 APP-F1-10 전 기록에 남은 글이다. 글 머리만 본다 —
 // 어디든 「러너」가 들어 있나로 보면 「러너 상태」 같은 요소를 기다린 케이스까지 러너 고장이 된다
@@ -30,7 +31,8 @@ const 요소대기 = /waiting for (locator|getBy|selector)|element\(s\) not foun
 const 러너사유 = /^(러너에 닿지 못했습니다|러너가 |이 서버에는 .*(로컬 러너|디바이스 팜|Device VISION)|디바이스 팜|Device VISION)/;
 // 기다리던 요소를 찾고 나서(보이지 않음 · 누를 수 없음) 시간이 다 된 것은 「못 찾음」이 아니다
 const 요소찾음 = /resolved to/;
-const 시간초과 = /^TIMEOUT\b|Timeout \d+ms exceeded|Test timeout of/;
+// 앱(WebdriverIO) 기다리기 — waitForDisplayed · waitForClickable 류와 waitUntil 이 끝난 글. 그 밖으로 빠지면 앱 조작 맵의 「다시 확인」을 놓친다 (2026-11-20 APP-F4-09)
+const 시간초과 = /^TIMEOUT\b|Timeout \d+ms exceeded|Test timeout of|still (not )?(displayed|existing|clickable|enabled|selected) after \d+ ?ms|waitUntil condition timed out/;
 // 게임 드라이버 오류 문구(control_cli SDK · kit 게임 몸통 — 도메인/게임 「실행 결과」). 연결이 끊긴 것이 먼저다 —
 // 「게임이 120초 안에 답하지 않았습니다 — 게임 포트 13100 에 붙지 못했습니다」(켜지기 기다림 실패)는 시간 초과가 아니라 환경이다
 const 게임연결끊김 = /게임 포트 \d+ 에 붙지 못했습니다|게임이 답 없이 연결을 닫았습니다|(디바이스 팜이|Device VISION 이) 게임 명령을 HTTP \d+ 로 거절했습니다/;
