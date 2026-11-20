@@ -8,14 +8,14 @@ import { spawn } from 'node:child_process';
 import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type 돌린판, 돌린기록들, 판들읽기 } from './authoring-gate3.js';
+import { type 돌린판, 돌린기록들, 케이스파일읽기, 판들읽기 } from './authoring-gate3.js';
 import { 바뀐것 } from './authoring-base-list.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { type 팜, 끊겼나, 덤폰놓기, 덤폰잡기, 빈폰질의, 폰목록, 폰이름 } from './authoring-phone-farm.js';
 import {
   type 일, type 판정, 계정번호들, 끈묶음읽기, 끈묶음적기, 다음기록번호, 덤폰수, 묶음계정글, 묶음기록이름, 묶음짜기, 초록유지말, 판정말들, 폰고르기, 표본말, 혼자도나,
 } from './authoring-phone-split.js';
-import { type 폰갈래, PC환경, 돌발팝업값, 앱줄주소, 윈도우값들, 차례짜기, 패드자리이름, 폰판정들, 폰환경 } from './authoring-run3-env.js';
+import { type 폰갈래, PC환경, 고칠케이스더하기, 고칠케이스환경, 돌발팝업값, 앱줄주소, 윈도우값들, 차례짜기, 패드자리이름, 폰판정들, 폰환경 } from './authoring-run3-env.js';
 
 export type { 폰갈래 } from './authoring-run3-env.js';
 export { 앱줄주소, 폰판정들 } from './authoring-run3-env.js';
@@ -165,7 +165,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     console.error(`바뀐 파일을 못 읽었다: ${목록.까닭}`);
     return 2;
   }
-  const { 대상, 뺀기존, 초록유지 } = 폰고르기(트리, 폴더, 목록, 폰판들(결과폴더, 갈래));
+  const { 대상, 뺀기존, 초록유지 } = 폰고르기(트리, 폴더, 고칠케이스더하기(목록, env[고칠케이스환경], () => 케이스파일읽기(트리, 폴더).map((f) => f.경로)), 폰판들(결과폴더, 갈래));
   if (뺀기존.length > 0) console.log(`${머리} ${표본말(뺀기존.length, Object.keys(대상).length - 초록유지.length, 갈래).slice(3)}`);
   if (초록유지.length > 0) console.log(`${머리} ${초록유지말(초록유지.length, 갈래).slice(3)}`);
   if (Object.keys(대상).length === 0) {

@@ -33,6 +33,7 @@ import { 잡기늘리기 } from './authoring-app-hold.js';
 import { PC게임못함, 게임화면받기, 받은빌드이름, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 잡은폰토큰, 탐색환경, 팜주소 } from './authoring-app-screen.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
+import { 고칠케이스환경 } from './authoring-run3-env.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
 import { 미션줄 } from './authoring-missions.js';
 import { type 탐색단계, 세션띄우기, 탐색끝줄, 탐색하나 } from './authoring-explore.js';
@@ -249,6 +250,7 @@ async function 사본에서(
     ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면, 자리.자료),
     ...(것.api === undefined ? {} : API환경(것.api, 자리.자료)), // API 대상 서버 · 인증 · 판 파일도 환경 변수로만 (도메인/API §3.8 「API 인증」)
     ...(설정.게임 === true ? { [게임자료환경]: 자리.자료 } : {}), // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 4)
+    ...(테스트고침읽기(것) == null ? {} : { [고칠케이스환경]: 테스트고침읽기(것)!.cases.map((x) => x.tcId).join(',') }), // 폰 돌려 보기가 고치기 전 케이스도 「그대로 한 번」 돌게 (도메인/게임 §3.10 「실패 자동 수정」 3 의 1)
     ...(PC !== undefined ? { [PC게임환경]: 'windows' } : {}), // 빠른 검사의 platforms 기준 · 돌려 보기 명령의 PC 갈래 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외, 앱: 설정.종류 === 'APP', 게임: 설정.게임 === true };

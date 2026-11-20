@@ -89,3 +89,14 @@ export function 폰판정들(대상: Record<string, number>, 판들: Map<string,
     })
     .sort(([a], [b]) => a.localeCompare(b));
 }
+
+/** 테스트 고침이 맡긴 케이스(tcId 를 쉼표로) — 에이전트가 넘긴다. 고치기 전에 「그대로 한 번」 돌려 보려면 안 바뀐 케이스도 돌아야 한다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 1) */
+export const 고칠케이스환경 = 'AUTHORING_FIX_CASES';
+
+/** 바뀐 파일 목록에 맡긴 케이스 파일(`tests/<폴더 안 경로>`)을 더한다 — 폰고르기가 바뀐 케이스처럼 고른다. 값이 없으면 목록 그대로고 케이스 파일도 안 읽는다 */
+export function 고칠케이스더하기(바뀐: readonly string[], 값: string | undefined, 케이스경로들: () => readonly string[]): string[] {
+  const tcIds = new Set((값 ?? '').split(',').map((x) => x.trim()).filter((x) => x !== ''));
+  if (tcIds.size === 0) return [...바뀐];
+  const 더할 = 케이스경로들().filter((p) => p.endsWith('.spec.ts') && tcIds.has(p.split('/').pop()!.slice(0, -'.spec.ts'.length))).map((p) => `tests/${p}`);
+  return [...new Set([...바뀐, ...더할])];
+}

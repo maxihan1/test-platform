@@ -9,6 +9,7 @@ import { 반영계획만들기, 반영절, 테스트고침읽기, 테스트고�
 import { PR제목 } from './authoring-chain.js';
 import { 맵올리기 } from './authoring-explore.js';
 import type { 보고손 } from './authoring-io.js';
+import { 고칠케이스더하기 } from './authoring-run3-env.js';
 import { 실패trace받기 } from './authoring-screen-right.js';
 import { 고친곳읽기, 다시돌림글, 다시돌림세기, 되묻기인자, 요약되받기, 자동병합재기, 케이스끝들읽기, 테스트고침싣는손 } from './authoring-test-fix.js';
 
@@ -105,6 +106,17 @@ describe('게임 돌려 보기 횟수', () => {
     writeFileSync(join(폴더, 'gate3-game-2~폰1~1.json'), 기록('2026-11-20T02:00:00Z', 'arg/ARG-FN-031.spec.ts', 'android'));
     writeFileSync(join(폴더, 'gate3-game-3~폰1~1.json'), 기록('2026-11-20T03:00:00Z', 'arg/ARG-FN-040.spec.ts', 'android'));
     expect(다시돌림글(다시돌림세기(폴더, ['ARG-FN-031']))).toBe('다시 돌림 2번(폰 2)');
+  });
+});
+
+describe('맡긴 케이스를 그대로 한 번', () => {
+  it('바뀐 파일 목록에 맡긴 케이스 파일을 더해 폰 돌려 보기가 고치기 전에도 돌린다 — 값이 없으면 케이스 파일을 안 읽는다', () => {
+    const 경로들 = vi.fn(() => ['arg/ARG-FN-031.spec.ts', 'arg/sub/ARG-FN-040.spec.ts', 'arg/ARG-FN-0310.spec.ts', 'arg/pages/상점.page.ts']);
+    expect(고칠케이스더하기(['tests/arg/pages/던전.page.ts'], 'ARG-FN-031, ARG-FN-040', 경로들)).toEqual(['tests/arg/pages/던전.page.ts', 'tests/arg/ARG-FN-031.spec.ts', 'tests/arg/sub/ARG-FN-040.spec.ts']);
+    expect(고칠케이스더하기(['tests/arg/ARG-FN-031.spec.ts'], 'ARG-FN-031', 경로들)).toEqual(['tests/arg/ARG-FN-031.spec.ts']);
+    경로들.mockClear();
+    expect(고칠케이스더하기(['a'], undefined, 경로들)).toEqual(['a']);
+    expect(경로들).not.toHaveBeenCalled();
   });
 });
 
