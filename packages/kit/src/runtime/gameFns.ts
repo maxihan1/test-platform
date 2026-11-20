@@ -71,7 +71,8 @@ export function 부른자리(): { scope: StepScope; 들: string[] } | null {
 export function 지났다고적는다(자리: { scope: StepScope; 들: string[] } | null): void {
   if (자리 === null) return;
   const 모음 = (자리.scope.gameFns ??= []);
-  for (const f of 자리.들) if (모음.length < 함수상한 && !모음.includes(f)) 모음.push(f);
+  const 뺄것 = 자리.scope.앱실패함수 ?? [];
+  for (const f of 자리.들) if (모음.length < 함수상한 && !모음.includes(f) && !뺄것.includes(f)) 모음.push(f);
 }
 
 // 동작을 부른 순간의 함수 이름 — 오류가 만들어진 자리(소켓 이벤트 · 타이머)의 스택에는 부른 쪽이 안 남을 수 있다
@@ -94,11 +95,15 @@ const 앱건것 = new WeakSet<object>();
  * Android 앱 항목의 드라이버 명령마다 부른 자리의 함수 이름을 읽어 두고, 명령이 된 뒤에 「지났다」고 적는다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 10 · APP-F4-09).
  * WebdriverIO 는 명령 이벤트에 부른 쪽 스택을 남기지 않아(안에서 끊긴다) 케이스가 부르는 바로 그 순간에 읽는다. 실패 쪽은 WebdriverIO 오류 스택에 화면 파일 함수가 남아 실패함수들이 읽는다.
  * $ 는 요소를 찾았을 때만 적는다 — 없으면 넘어가는 화면 파일(isExisting)이 그 함수를 지난 것으로 세지 않게.
- * ponytail: 찾은 요소의 누르기 · 읽기가 실패했는데 화면 파일이 삼켰으면 지난 것으로 센다. 요소 명령마다 끝을 보려면 요소를 감싸야 하는데 overwriteCommand(…, true) 는 모든 앱 케이스를 깬다(highlight.ts)
+ * 찾은 요소의 누르기 · 읽기가 실패하면 그 요소를 찾은 함수를 그 절차의 지난 함수에서 뺀다 — 화면 파일이 실패를 삼켜도 깨진 줄에 새 빌드가 적히지 않게.
+ * 요소를 감싸지 않고(overwriteCommand(…, true) 는 모든 앱 케이스를 깬다 — highlight.ts) 찾을 때 「요소 번호 → 함수 이름」을 적어 두고 WebdriverIO 의 명령 실패 소식(result)과 맞춘다.
+ * WebdriverIO 가 스스로 다시 해서 결국 된 명령도 빠진다 — 빌드가 안 붙을 뿐 깨진 줄에 붙지는 않는 쪽이다
  */
 export function 앱함수를적게건다(드라이버: object): void {
   if (앱건것.has(드라이버)) return;
   앱건것.add(드라이버);
+  const 찾은요소 = new Map<string, string[]>();
+  삼킨실패를뺀다(드라이버, 찾은요소);
   const 칸 = 드라이버 as Record<string, unknown>;
   for (const 이름 of 적을앱명령) {
     const 원래 = 칸[이름];
@@ -117,7 +122,10 @@ export function 앱함수를적게건다(드라이버: object): void {
         if (이름 === '$' || 이름 === '$$') {
           void (결과 as Promise<unknown>).then(
             (값) => {
-              if (Array.isArray(값) ? 값.length > 0 : (값 as { error?: unknown } | null)?.error === undefined) 지났다고적는다(자리);
+              const 요소들 = (Array.isArray(값) ? 값 : [값]) as ({ error?: unknown; elementId?: unknown } | null)[];
+              if (요소들.length === 0 || 요소들.some((e) => e?.error !== undefined)) return;
+              for (const e of 요소들) if (typeof e?.elementId === 'string') 찾은요소.set(e.elementId, 자리.들);
+              지났다고적는다(자리);
             },
             () => undefined,
           );
@@ -138,6 +146,36 @@ export function 앱함수를적게건다(드라이버: object): void {
       },
     });
   }
+}
+
+interface 명령결과 {
+  command: string;
+  endpoint?: string;
+  body?: { args?: unknown[] };
+  result?: { error?: unknown };
+}
+const 요소주소 = /\/element\/([^/]+)\//;
+
+/**
+ * 찾은 요소에 보낸 명령이 실패하면 그 요소를 찾은 함수를 이 절차의 지난 함수에서 빼고, 뒤에 다시 적히지도 않게 남긴다.
+ * 찾기 실패(findElement — 하위 요소를 못 찾은 isExisting 도 부모 요소 주소로 온다)는 빼지 않는다 — 그건 위 $ 가 이미 「못 찾음」으로 거른다
+ */
+function 삼킨실패를뺀다(드라이버: object, 찾은요소: Map<string, string[]>): void {
+  const 폰 = 드라이버 as { on?: (event: string, fn: (e: 명령결과) => void) => void };
+  if (typeof 폰.on !== 'function') return;
+  폰.on('result', (e) => {
+    if (e.result?.error === undefined || e.command.startsWith('findElement')) return;
+    const 주소번호 = 요소주소.exec(e.endpoint ?? '')?.[1];
+    // 요소 번호를 실어 보내는 손짓 명령(driver.execute('mobile: clickGesture', { elementId }))도 그 요소에 보낸 명령이다
+    const 번호 = 주소번호 === undefined ? (e.body?.args?.[0] as { elementId?: unknown } | undefined)?.elementId : decodeURIComponent(주소번호);
+    const 들 = typeof 번호 === 'string' ? 찾은요소.get(번호) : undefined;
+    const scope = stepScope.getStore();
+    if (들 === undefined || scope === undefined) return;
+    const 뺄것 = (scope.앱실패함수 ??= []);
+    for (const f of 들) if (!뺄것.includes(f)) 뺄것.push(f);
+    const 모음 = scope.gameFns ?? [];
+    for (let i = 모음.length - 1; i >= 0; i--) if (들.includes(모음[i]!)) 모음.splice(i, 1);
+  });
 }
 
 /**

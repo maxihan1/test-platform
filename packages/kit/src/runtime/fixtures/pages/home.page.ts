@@ -29,6 +29,11 @@ export class 홈화면 {
     if (await 팝업.isExisting()) await 팝업.click();
   }
 
+  async 가려진것삼키고닫기(): Promise<void> {
+    await this.driver.$('~가려진').click().catch(() => undefined);
+    await this.driver.$('~닫기').click();
+  }
+
   async 열릴때까지(): Promise<void> {
     await this.driver.waitUntil(async () => false, { timeout: 100, interval: 20, timeoutMsg: '홈 화면이 그려지지 않았다' });
   }

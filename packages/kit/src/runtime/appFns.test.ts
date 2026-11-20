@@ -18,7 +18,7 @@ let 서버: Server;
 let 주소 = 0;
 
 beforeAll(async () => {
-  // 「~없음」만 못 찾는 가짜 Appium
+  // 「~없음」만 못 찾고 「~가려진」 요소(e2)는 찾아도 누르기가 실패하는 가짜 Appium
   서버 = createServer((req, res) => {
     let 몸 = '';
     req.on('data', (c: Buffer) => (몸 += c.toString()));
@@ -30,10 +30,15 @@ beforeAll(async () => {
         res.end(JSON.stringify({ value: { error: 'no such element', message: '없음', stacktrace: '' } }));
         return;
       }
+      if (url.endsWith('/element/e2/click')) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ value: { error: 'element click intercepted', message: '다른 창에 가려졌다', stacktrace: '' } }));
+        return;
+      }
       const value =
         url === '/session' ? { sessionId: 's1', capabilities: { platformName: 'Android' } }
         : url.endsWith('/elements') ? []
-        : url.endsWith('/element') ? { [W3C요소]: 'e1' }
+        : url.endsWith('/element') ? { [W3C요소]: 몸.includes('가려진') ? 'e2' : 'e1' }
         : url.endsWith('/text') ? '알림 3'
         : null;
       res.end(JSON.stringify({ value }));
@@ -90,6 +95,16 @@ describe('앱 명령마다 함수 이름을 적는다', () => {
     await runStep(run, '팝업이 있으면 닫는다', () => new 홈화면(driver).팝업있으면닫기());
     expect(emitted[0]).toMatchObject({ status: 'PASS' });
     expect(emitted[0]).not.toHaveProperty('gameFns');
+  });
+
+  it('찾은 요소의 누르기가 실패했는데 화면 파일이 삼켰으면 그 함수는 지난 것으로 세지 않고, 뒤에 다른 요소를 눌러도 다시 안 적힌다', async () => {
+    const driver = await 폰();
+    const { run, emitted } = makeRun();
+    await runStep(run, '가려진 버튼을 눌러 본다', async () => {
+      await 홈화면.열기(driver);
+      await new 홈화면(driver).가려진것삼키고닫기();
+    });
+    expect(emitted[0]).toMatchObject({ status: 'PASS', gameFns: ['홈화면.열기'] });
   });
 
   it('waitUntil 에 문구를 줬어도 시간이 넘었으면 오류 머리에 「waitUntil condition timed out」이 붙는다 — 실패 유형이 타임아웃이 되게', async () => {
