@@ -6,6 +6,7 @@ import type { ShapeCheck } from '../types.js';
 
 import { 모양확인 } from './apiShape.js';
 import { runScope, stepScope } from './context.js';
+import { 지난함수를적는다 } from './gameFns.js';
 
 const 가림 = '********';
 const TRACED_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'fetch']);
@@ -143,6 +144,8 @@ export function traced(request: APIRequestContext, 비밀: ReadonlySet<string>, 
       }
       const call = (original as ApiCall).bind(target);
       return async (url: string, options?: Record<string, unknown>): Promise<APIResponse> => {
+        // 게임 항목(apiCalls 가 있는 실행)의 어드민 API 도우미도 조작 맵의 상태 설정 행이다 — 부른 함수 이름을 적는다 (gameFns.ts)
+        if (runScope.getStore()?.apiCalls !== undefined) 지난함수를적는다();
         let response: APIResponse;
         try {
           response = await call(url, options);
