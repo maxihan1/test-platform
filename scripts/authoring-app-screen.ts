@@ -5,8 +5,9 @@ import { existsSync, lstatSync, readdirSync, readFileSync, renameSync, rmSync, w
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { 인증헤더 } from './authoring-io.js';
+import { 부른다, 인증헤더 } from './authoring-io.js';
 import { 비밀번호꼴가리기 } from './authoring-prd.js';
+import { 거절말고 } from './authoring-prd-io.js';
 
 /**
  * 탐색 — 작성 AI 가 appium-cli 로 팜 폰을 눌러 가며 읽을 주소 (§3.6 「앱 화면」 「눌러 가며 읽기」). 첫 화면을 못 읽었어도 붙는다.
@@ -56,6 +57,28 @@ const 최신팜토큰 = new Map<string, string>();
  * 러너가 앱을 띄우는 일이라 다시 걸지 않는다 — 한 번 더 걸면 앱이 두 번 켜진다
  */
 export const 앱화면받기 = (서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string): Promise<앱화면 | undefined> => 화면받기(서버, 번호, 자료, 앱곳);
+
+/** 앱 조작 맵 글 — 경로 검색 명령(APP-F4-04)이 읽는다 */
+export const 앱맵파일 = (자료: string): string => join(자료, 'app-route.txt');
+
+/**
+ * Android 앱 작성만 자식을 띄우기 전에 부른다 — 앱 조작 맵 글을 받아 둔다 (§3.6 「★ 앱 탐색」 · §7 「앱 조작 맵 통로」).
+ * 못 받아도 작성은 간다(맵이 빈 것과 같아 길을 폰에서 찾는다). 앞 실행이 남긴 것은 먼저 지운다 — 이어받은 폴더에 낡은 맵이 보이면 안 된다
+ */
+export async function 앱맵받기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string): Promise<void> {
+  const 못받음 = (왜: string) => console.error(`[작성] ${String(번호)}번 — 앱 조작 맵을 못 받았다(작성은 간다): ${왜}`);
+  try {
+    // 앞 자식이 그 이름으로 폴더를 심어 두었어도 작성이 서지 않게 — 지우기도 try 안에서 폴더째
+    rmSync(앱맵파일(자료), { force: true, recursive: true });
+    const 답 = await 부른다(서버.주소기지, 서버.토큰, `/authoring/requests/${String(번호)}/app-route`);
+    const 글 = (답.몸 as { text?: unknown } | null)?.text;
+    if (답.status === 200 && typeof 글 === 'string') writeFileSync(앱맵파일(자료), 글, { mode: 0o644, flag: 'wx' });
+    else 못받음(`서버 ${String(답.status)}`);
+  } catch (e) {
+    // 토큰 거절(401 · 403)은 다시 던진다 — 줄 돌기가 그걸 보고 멈춘다
+    못받음(거절말고(e));
+  }
+}
 
 /**
  * 게임 애플리케이션(`/api/auth/me` 의 종류)만 부른다 — 게임 첫 화면 (도메인/게임 §7 「게임 첫 화면」). 늘 게임 표시가 붙은 값을 돌려준다:
