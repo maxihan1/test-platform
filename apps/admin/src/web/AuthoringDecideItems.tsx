@@ -3,7 +3,7 @@
 import { Fragment } from 'react';
 
 import { 무슨테스트, 올릴테스트수 } from './authoringSummary.js';
-import type { 결정항목, 고르기, 막힘 } from './decideApi.js';
+import type { 결정항목, 고르기, 막힘, 판정자동수정 } from './decideApi.js';
 import type { 고른값 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
 import { 실행기록주소 } from './route.js';
@@ -140,6 +140,46 @@ export function 상세할일({ x }: { x: 항목of<'FIX'> }) {
   );
 }
 
+const 고치는중 = (f: 판정자동수정 | null | undefined): boolean => f != null && (f.state === 'FIXING' || f.state === 'WAIT_MERGE' || f.state === 'RERUNNING');
+
+/** 실패 판정 항목의 자동 수정 한 줄 — 게임 실패 자동 수정의 가장 늦은 줄 (도메인/게임 §3.10 「실패 자동 수정」 7) */
+function 자동수정글({ fix }: { fix: 판정자동수정 }) {
+  const t = use말();
+  const pr번호 = fix.prUrl?.match(/\/pull\/(\d+)/)?.[1];
+  const pr =
+    fix.prUrl === null ? null : (
+      <>
+        {' · '}
+        <a href={fix.prUrl} target="_blank" rel="noreferrer">
+          {pr번호 === undefined ? t('변경 내용 보기') : `PR #${pr번호}`}
+        </a>
+      </>
+    );
+  const 실행 =
+    fix.rerunId === null ? null : (
+      <>
+        {' · '}
+        {fix.rerunPage ? <a href={`#/runs/${fix.rerunId}`}>RUN {fix.rerunId}</a> : `RUN ${fix.rerunId}`}
+      </>
+    );
+  if (fix.state === 'FAILED')
+    return (
+      <>
+        {t('수정했지만 다시 실행에서도 실패했어요')}
+        {pr}
+        {실행}
+      </>
+    );
+  if (fix.state === 'FLAKY') return <>{t('다시 실행하니 통과해서 수정하지 않았어요')}</>;
+  if (fix.state === 'GAVE_UP') return <>{fix.reason === null ? t('그만뒀어요') : t('그만뒀어요 · {까닭}', { 까닭: fix.reason })}</>;
+  return (
+    <>
+      {t('에이전트가 테스트를 수정하는 중이에요')}
+      {pr}
+    </>
+  );
+}
+
 export function 실패판정({ x, 고른, on고름 }: { x: 항목of<'FAIL'>; 고른: 고른값 | undefined; on고름: 고름하기 }) {
   const t = use말();
   return (
@@ -170,7 +210,18 @@ export function 실패판정({ x, 고른, on고름 }: { x: 항목of<'FAIL'>; 고
         <span>
           <span className="prd-id">{x.tcId}</span> · RUN {x.runId} · <a href={실행기록주소(x.tcId, x.runId, true)}>{t('실패 화면 보기')}</a>
         </span>
+        {x.autoFix == null ? null : (
+          <>
+            <span className="hint">{t('자동 수정')}</span>
+            <span>
+              <자동수정글 fix={x.autoFix} />
+            </span>
+          </>
+        )}
       </div>
+      {고치는중(x.autoFix) ? (
+        <p className="hint">{t('에이전트가 수정하는 중이에요 — 완료되면 선택할 수 있어요')}</p>
+      ) : (
       <고르개
         x={x}
         고른={고른}
@@ -180,6 +231,7 @@ export function 실패판정({ x, 고른, on고름 }: { x: 항목of<'FAIL'>; 고
           ['SCREEN', t('PRD 수정')],
         ]}
       />
+      )}
       {x.picks.length > 0 && x.blockedBy !== 'NO_RUN_WRITE' ? null : <막힘줄 까닭={x.blockedBy} open={[]} />}
     </div>
   );

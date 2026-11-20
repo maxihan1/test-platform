@@ -4,7 +4,7 @@ import type { 결정목록, 고르기 } from '../authoring/decisionItems.js';
 import type { 진행단계 } from '../authoring/decisionPrep.js';
 import { call, json } from './api.js';
 
-export type { 결정목록, 결정항목, 고르기, 막힘 } from '../authoring/decisionItems.js';
+export type { 결정목록, 결정항목, 고르기, 막힘, 판정자동수정 } from '../authoring/decisionItems.js';
 export type { 진행단계 } from '../authoring/decisionPrep.js';
 
 /** 진행 본문의 고른 것 하나. 「나중에」는 보내지 않는다 */

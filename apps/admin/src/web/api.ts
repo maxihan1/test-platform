@@ -67,17 +67,25 @@ export interface CaseRow {
   autoFix?: 자동수정줄 | null;
 }
 
-export type 바퀴상태 = 'FIXING' | 'WAIT_MERGE' | 'RERUNNING' | 'PASSED' | 'FAILED' | 'GAVE_UP';
+// FLAKY 는 게임 실패 자동 수정의 「다시 돌리니 통과」 — 고칠 곳이 없어 고치지 않고 끝났다 (도메인/게임 §3.10 「실패 자동 수정」 3)
+export type 바퀴상태 = 'FIXING' | 'WAIT_MERGE' | 'RERUNNING' | 'PASSED' | 'FAILED' | 'GAVE_UP' | 'FLAKY';
 
 export interface 자동수정줄 {
-  issueKey: string;
+  /** null 이면 게임 실패 자동 수정 — 이슈 없이 서버가 조작 실패로 세웠다 (도메인/게임 §3.10 「실패 자동 수정」 7) */
+  issueKey: string | null;
   state: 바퀴상태;
   at: string;
 }
 
 /** 서랍 「자동 수정 기록」 — 서버 bts/testFixView.ts 와 같은 꼴 (도메인/BTS §7) */
 export interface 자동수정상세 extends 자동수정줄 {
-  issueUrl: string;
+  issueUrl: string | null;
+  /** 게임 실패 자동 수정만 — 그 조작 실패가 난 실행 · 실패 유형 · 고침 작성. Issue Bunker 줄은 null */
+  failedRun: number | null;
+  failure: 'notFound' | 'timeout' | null;
+  requestId: number | null;
+  /** 사람 확인이 필요한 까닭 — 게임 실패 자동 수정은 이슈 댓글이 없어 화면에 싣는다 */
+  personWhy: string[];
   movedBy: string | null;
   summary: string | null;
   merge: 'AUTO' | 'PERSON' | null;
@@ -503,12 +511,28 @@ export interface FailureCase {
   bts?: FailureBts | null;
   /** Issue Bunker 「테스트 수정」으로 고쳐 다시 실행에서 통과한 카드 — 「수정 후 통과」 (도메인/BTS §7 · §8.15 B). 앞 판 서버는 칸이 없다 */
   autoFix?: 카드자동수정 | null;
+  /** 게임 실패 자동 수정이 아직 돌거나 통과 못 하고 끝난 카드 — 카드는 실패 그대로이고 판정 줄 위에 한 줄을 더한다 (도메인/게임 §3.10 「실패 자동 수정」 7) */
+  autoFixing?: 카드자동수정중 | null;
+}
+
+export interface 카드자동수정중 {
+  state: Exclude<바퀴상태, 'PASSED'>;
+  requestId: number | null;
+  prUrl: string | null;
+  needsPerson: boolean;
+  personWhy: string[];
+  rerunId: number | null;
+  rerunPage: boolean;
+  reason: string | null;
+  at: string;
 }
 
 /** 실패 카드의 자동 수정 칸 — rerunId 는 사람이 화면에서 찾는 실행, devices 는 다시 실행의 디바이스마다 결과 */
 export interface 카드자동수정 {
-  issueKey: string;
-  issueUrl: string;
+  issueKey: string | null;
+  issueUrl: string | null;
+  /** 게임 실패 자동 수정의 고침 작성 — Issue Bunker 줄은 null */
+  requestId: number | null;
   movedBy: string | null;
   prUrl: string | null;
   merge: 'AUTO' | 'PERSON' | null;

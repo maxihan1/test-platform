@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import type { FailureBts, RunListRow, 카드자동수정 } from './api.js';
+import type { FailureBts, RunListRow, 카드자동수정, 카드자동수정중 } from './api.js';
 import { 실패다시실행 } from './RerunFailed.js';
 import { 실행 } from './RunResult.fixture.js';
 import { RUN_ID, 그리기, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
@@ -19,6 +19,7 @@ afterEach(() => {
 const 고침: 카드자동수정 = {
   issueKey: 'MQA-168',
   issueUrl: 'https://bts.example.com/issues/MQA-168',
+  requestId: null,
   movedBy: 'QA 맥시',
   prUrl: 'https://github.com/o/r/pull/713',
   merge: 'AUTO',
@@ -102,5 +103,45 @@ describe('실행 기록 줄', () => {
     cleanup();
     render(<실행줄 run={{ ...실행, autoFixed: 0 } as RunListRow} 고름={false} on고르기={() => undefined} />);
     expect(screen.queryByText(/자동 수정/)).toBeNull();
+  });
+});
+
+describe('게임 실패 자동 수정 — 도는 중 · 통과 못 하고 끝남', () => {
+  const 중 = (더: Partial<카드자동수정중> = {}): 카드자동수정중 => ({
+    state: 'FIXING', requestId: 8801, prUrl: null, needsPerson: false, personWhy: [], rerunId: null, rerunPage: false, reason: null, at: '2026-11-20T03:00:00.000Z', ...더,
+  });
+  const 카드그리기 = (autoFixing: 카드자동수정중) => {
+    그리기(쪽([케이스('ZZI-0001', '던전 입장', [장치('mobile', 2)], { autoFixing })]), [줄(2, 'ZZI-0001', 'mobile', 'FAIL')]);
+    return screen.findByText('던전 입장');
+  };
+  const 이름표 = () => [...document.querySelectorAll('.fc-card .fc-cause-label')].map((e) => e.textContent);
+
+  it('도는 중이면 머리에 「자동 수정 중」 · 자동 수정 줄만 서고 판정 줄은 없다', async () => {
+    await 카드그리기(중());
+    expect(document.querySelector('.fc-card .fc-head .fix-tag')?.textContent).toBe('자동 수정 중');
+    expect(이름표()).toEqual(['자동 수정']);
+    expect(document.querySelector('.fc-body')?.textContent).toContain('에이전트가 테스트를 수정하는 중이에요 — 작성 요청 #8801');
+    expect(screen.getByRole('link', { name: '작성 요청 #8801' }).getAttribute('href')).toBe('#/authoring/8801');
+  });
+
+  it('사람 확인을 기다리면 까닭과 반영하러 가는 고리를 보인다', async () => {
+    await 카드그리기(중({ state: 'WAIT_MERGE', needsPerson: true, personWhy: ['확인 문장이 줄었어요'], prUrl: 'https://github.com/o/r/pull/9' }));
+    expect(document.querySelector('.fc-body')?.textContent).toContain('수정한 테스트를 사람이 반영해야 해요 — 확인 문장이 줄었어요 → PR #9');
+    expect(screen.getByRole('link', { name: '테스트 작성 › 결정 필요에서 반영' }).getAttribute('href')).toBe('#/authoring?todo=1');
+    expect(이름표()).toEqual(['자동 수정']);
+  });
+
+  it('수정했지만 다시 실행에서도 실패하면 머리는 「자동 수정 실패」 · 자동 수정 줄 아래에 판정 줄이 선다', async () => {
+    await 카드그리기(중({ state: 'FAILED', prUrl: 'https://github.com/o/r/pull/10', rerunId: 21200, rerunPage: true }));
+    expect(document.querySelector('.fc-card .fc-head .fix-tag')?.textContent).toBe('자동 수정 실패');
+    expect(이름표()).toEqual(['자동 수정', '판정']);
+    expect(document.querySelector('.fc-body')?.textContent).toContain('수정했지만 다시 실행에서도 실패했어요 → PR #10 · RUN 21200');
+  });
+
+  it('다시 실행하니 통과한 줄은 꼬리표 없이 한 줄만 달고 판정 줄도 선다', async () => {
+    await 카드그리기(중({ state: 'FLAKY' }));
+    expect(document.querySelector('.fc-card .fc-head .fix-tag')).toBeNull();
+    expect(이름표()).toEqual(['자동 수정', '판정']);
+    expect(document.querySelector('.fc-body')?.textContent).toContain('다시 실행하니 통과해서 수정하지 않았어요');
   });
 });

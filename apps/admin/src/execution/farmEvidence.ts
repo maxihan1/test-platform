@@ -7,6 +7,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 
 import fastifyStatic from '@fastify/static';
 import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, runDir } from '@platform/kit';
+import type { GAME_TREE_FILE } from '@platform/kit/protocol';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
@@ -84,6 +85,16 @@ export async function 게임오류읽기(runId: number, historyId: number): Prom
     throw new Error(`게임 오류 파일이 있는지 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
   return (await 볼륨파일읽기(곳)).toString('utf8');
+}
+
+/** 실패한 게임 항목의 실패 순간 오브젝트 목록 · 게임 오류 로그 — 작성 에이전트의 실패 자료 통로가 읽는다. 없는 파일은 null */
+export async function 게임실패파일읽기(runId: number, historyId: number, 이름: typeof GAME_TREE_FILE | typeof GAME_ERRORS_FILE): Promise<string | null> {
+  try {
+    return (await 볼륨파일읽기(join(폴더(runId, historyId), 이름))).toString('utf8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new Error(`게임 실패 파일 ${이름} 을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 /**

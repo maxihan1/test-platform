@@ -13,16 +13,23 @@ async function db(): Promise<Pool> {
 /** 사람 확인 댓글의 머리말 — 꼴은 `<머리말> — <까닭>` 다음 줄에 PR 주소(testFixMerge.ts 가 단다). needsPerson 이 이 꼴로 찾는다 */
 export const 사람확인글 = '사람 확인이 필요해요';
 
-export type 바퀴상태 = 'FIXING' | 'WAIT_MERGE' | 'RERUNNING' | 'PASSED' | 'FAILED' | 'GAVE_UP';
+export type 바퀴상태 = 'FIXING' | 'WAIT_MERGE' | 'RERUNNING' | 'PASSED' | 'FAILED' | 'GAVE_UP' | 'FLAKY';
 
 export interface 자동수정줄 {
-  issueKey: string;
+  /** null 이면 게임 실패 자동 수정 — 이슈 없이 서버가 조작 실패로 세웠다(도메인/게임 §3.10 「실패 자동 수정」 7) */
+  issueKey: string | null;
   state: 바퀴상태;
   at: string;
 }
 
 export interface 자동수정상세 extends 자동수정줄 {
-  issueUrl: string;
+  issueUrl: string | null;
+  /** 게임 줄만 — 그 조작 실패가 난 실행 · 실패 유형 · 고침 작성. 이슈 줄은 null */
+  failedRun: number | null;
+  failure: 'notFound' | 'timeout' | null;
+  requestId: number | null;
+  /** 사람 확인이 필요한 까닭 — 게임 줄은 이슈 댓글이 없어 여기 싣는다 */
+  personWhy: string[];
   movedBy: string | null;
   summary: string | null;
   merge: 'AUTO' | 'PERSON' | null;
@@ -37,30 +44,40 @@ export interface 자동수정상세 extends 자동수정줄 {
   devices: { platform: Platform; status: ItemStatus }[];
 }
 
-// BTS 를 이은 프로젝트만 — 연결을 끊으면 표시도 사라진다(§8.15 지킬 것 1). 대상 서버는 가리지 않는다
+/**
+ * 이슈 줄은 BTS 를 이은 프로젝트만 — 연결을 끊으면 표시도 사라진다(§8.15 지킬 것 1). 게임 줄(issue_key 없음)은 연결 없이도 선다.
+ * 대상 서버는 가리지 않는다. 게임 줄의 base_url 은 NULL 이다
+ */
+export const 수정줄원본 = `bts_test_fix f JOIN service s ON s.id = f.service_id
+    AND (f.issue_key IS NULL OR EXISTS (SELECT 1 FROM bts_link x WHERE x.project_id = s.project_id))
+    LEFT JOIN bts_link l ON l.project_id = s.project_id`;
 const 가장늦은 = `
   SELECT DISTINCT ON (f.tc_id) f.*, l.base_url
-    FROM bts_test_fix f JOIN service s ON s.id = f.service_id JOIN bts_link l ON l.project_id = s.project_id`;
+    FROM ${수정줄원본}`;
 const 차례 = 'ORDER BY f.tc_id, f.created_at DESC, f.id DESC';
 
 /** 그 애플리케이션 케이스마다 가장 늦은 줄. 목록의 표시 · 탭 · 거르기가 모두 이것을 본다 */
 export async function 자동수정목록(서비스접두사: string): Promise<Map<string, 자동수정줄>> {
-  const rows = await (await db()).query<{ tc_id: string; issue_key: string; state: 바퀴상태; updated_at: Date }>(
+  const rows = await (await db()).query<{ tc_id: string; issue_key: string | null; state: 바퀴상태; updated_at: Date }>(
     `${가장늦은} WHERE s.prefix = $1 ${차례}`,
     [서비스접두사],
   );
   return new Map(rows.rows.map((r) => [r.tc_id, { issueKey: r.issue_key, state: r.state, at: r.updated_at.toISOString() }]));
 }
 
-/** 서랍 「자동 수정 기록」 — 가장 늦은 줄 하나. 없거나 BTS 연결이 없으면 null */
+/** 서랍 「자동 수정 기록」 — 가장 늦은 줄 하나. 없거나 이슈 줄인데 BTS 연결이 없으면 null */
 export async function 자동수정상세읽기(tcId: string): Promise<자동수정상세 | null> {
   const pool = await db();
   const 줄 = (
     await pool.query<{
-      issue_key: string;
+      issue_key: string | null;
       state: 바퀴상태;
       updated_at: Date;
-      base_url: string;
+      base_url: string | null;
+      failed_run: string | null;
+      failure: 'notFound' | 'timeout' | null;
+      request_id: string | null;
+      person_why: string[];
       moved_by: string | null;
       summary: string | null;
       merge: 'AUTO' | 'PERSON' | null;
@@ -73,10 +90,11 @@ export async function 자동수정상세읽기(tcId: string): Promise<자동수�
     }>(
       `SELECT g.*, CASE WHEN r.origin = 'SINGLE' THEN COALESCE(r.rerun_of, r.run_id) ELSE r.run_id END AS shown_run,
               NOT (r.origin = 'SINGLE' AND r.rerun_of IS NULL) AS has_page,
-              (g.state = 'WAIT_MERGE' AND g.pr_url IS NOT NULL AND EXISTS (
+              CASE WHEN g.issue_key IS NULL THEN g.state = 'WAIT_MERGE' AND cardinality(g.person_why) > 0
+              ELSE (g.state = 'WAIT_MERGE' AND g.pr_url IS NOT NULL AND EXISTS (
                 SELECT 1 FROM bts_outbox o
                  WHERE o.project_id = g.project_id AND o.kind = 'COMMENT' AND o.issue_key = g.issue_key
-                   AND starts_with(o.payload->>'body', $2) AND right(o.payload->>'body', length(g.pr_url) + 1) = E'\\n' || g.pr_url)) AS needs_person
+                   AND starts_with(o.payload->>'body', $2) AND right(o.payload->>'body', length(g.pr_url) + 1) = E'\\n' || g.pr_url)) END AS needs_person
          FROM (${가장늦은} WHERE f.tc_id = $1 ${차례}) g
          LEFT JOIN test_run r ON r.run_id = g.rerun_id`,
       [tcId, 사람확인글],
@@ -94,7 +112,11 @@ export async function 자동수정상세읽기(tcId: string): Promise<자동수�
         ).rows;
   return {
     issueKey: 줄.issue_key,
-    issueUrl: `${줄.base_url.replace(/\/+$/, '')}/issues/${encodeURIComponent(줄.issue_key)}`,
+    issueUrl: 이슈주소(줄.base_url, 줄.issue_key),
+    failedRun: 줄.failed_run === null ? null : Number(줄.failed_run),
+    failure: 줄.failure,
+    requestId: 줄.request_id === null ? null : Number(줄.request_id),
+    personWhy: 줄.person_why,
     state: 줄.state,
     at: 줄.updated_at.toISOString(),
     movedBy: 줄.moved_by,
@@ -111,8 +133,12 @@ export async function 자동수정상세읽기(tcId: string): Promise<자동수�
 
 // ── 실행 기록 B (F10-08) — 실패 카드 · 실행 목록 줄 ──
 
-// BTS 를 이은 프로젝트의 통과한 줄만 — 연결을 끊으면 표시도 사라진다(§8.15 지킬 것 1)
-const 통과줄 = `bts_test_fix f JOIN service s ON s.id = f.service_id JOIN bts_link l ON l.project_id = s.project_id`;
+// 이슈 줄은 BTS 를 이은 프로젝트만 — 연결을 끊으면 표시도 사라진다(§8.15 지킬 것 1). 게임 줄은 연결 없이도 선다
+const 통과줄 = 수정줄원본;
+
+export function 이슈주소(baseUrl: string | null, issueKey: string | null): string | null {
+  return baseUrl === null || issueKey === null ? null : `${baseUrl.replace(/\/+$/, '')}/issues/${encodeURIComponent(issueKey)}`;
+}
 
 /**
  * 끼울 한 건 실행 `sr` 에 더하는 조건 — 자동 수정으로 통과한 다시 실행은 빼고 고치기 전 결과를 본다.
@@ -122,8 +148,10 @@ const 통과줄 = `bts_test_fix f JOIN service s ON s.id = f.service_id JOIN bts
 export const 자동수정실행빼기 = ` AND NOT EXISTS (SELECT 1 FROM ${통과줄} WHERE f.state = 'PASSED' AND f.rerun_id = sr.run_id)`;
 
 export interface 카드자동수정 {
-  issueKey: string;
-  issueUrl: string;
+  issueKey: string | null;
+  issueUrl: string | null;
+  /** 게임 줄의 고침 작성 — 이슈 줄은 null */
+  requestId: number | null;
   /** 「테스트 수정」으로 옮긴 BTS 사람 이름 */
   movedBy: string | null;
   prUrl: string | null;
@@ -142,7 +170,8 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
   const 줄들 = (
     await pool.query<{
       tc_id: string;
-      issue_key: string;
+      issue_key: string | null;
+      request_id: string | null;
       moved_by: string | null;
       pr_url: string | null;
       merge: 'AUTO' | 'PERSON' | null;
@@ -150,9 +179,9 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
       shown_run: string | null;
       has_page: boolean;
       updated_at: Date;
-      base_url: string;
+      base_url: string | null;
     }>(
-      `SELECT DISTINCT ON (f.tc_id) f.tc_id, f.issue_key, f.moved_by, f.pr_url, f.merge, f.rerun_id, f.updated_at, l.base_url,
+      `SELECT DISTINCT ON (f.tc_id) f.tc_id, f.issue_key, f.request_id, f.moved_by, f.pr_url, f.merge, f.rerun_id, f.updated_at, l.base_url,
               CASE WHEN r.origin = 'SINGLE' THEN COALESCE(r.rerun_of, r.run_id) ELSE r.run_id END AS shown_run,
               NOT (r.origin = 'SINGLE' AND r.rerun_of IS NULL) AS has_page
          FROM ${통과줄} LEFT JOIN test_run r ON r.run_id = f.rerun_id
@@ -176,7 +205,8 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
       x.tc_id,
       {
         issueKey: x.issue_key,
-        issueUrl: `${x.base_url.replace(/\/+$/, '')}/issues/${encodeURIComponent(x.issue_key)}`,
+        issueUrl: 이슈주소(x.base_url, x.issue_key),
+        requestId: x.request_id === null ? null : Number(x.request_id),
         movedBy: x.moved_by,
         prUrl: x.pr_url,
         merge: x.merge,

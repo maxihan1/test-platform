@@ -155,9 +155,9 @@ async function 요구사항(pool: Pool, serviceId: number, 앞때: Date, 이번�
 async function 까닭들(pool: Pool, serviceId: number, tcIds: string[], 부터: Date, 까지: Date): Promise<Map<string, 까닭>> {
   if (tcIds.length === 0) return new Map();
   const 목록 = (칸: string) => `jsonb_array_elements(CASE WHEN jsonb_typeof(${칸}) = 'array' THEN ${칸} ELSE '[]'::jsonb END)`;
-  const r = await pool.query<{ tc_id: string; root_id: string; kind: string; prd_apply: boolean; issue_key: string | null; pr_url: string | null }>(
+  const r = await pool.query<{ tc_id: string; root_id: string; kind: string; prd_apply: boolean; issue_key: string | null; test_fix: boolean; pr_url: string | null }>(
     `SELECT DISTINCT ON (c.tc_id) c.tc_id, root.id AS root_id, root.kind, root.params->>'prdApply' IS NOT DISTINCT FROM 'true' AS prd_apply,
-            tf.issue_key, COALESCE(s.pr_url, root.pr_url) AS pr_url
+            tf.issue_key, tf.id IS NOT NULL AS test_fix, COALESCE(s.pr_url, root.pr_url) AS pr_url
        FROM unnest($2::text[]) AS c(tc_id)
        JOIN authoring_request m ON m.service_id = $1 AND m.kind = 'MERGE' AND m.status = 'DONE' AND m.finished_at > $3 AND m.finished_at <= $4
        JOIN authoring_request s ON s.id = m.source_id
@@ -173,7 +173,7 @@ async function 까닭들(pool: Pool, serviceId: number, tcIds: string[], 부터:
     r.rows.map((x) => [
       x.tc_id,
       {
-        kind: x.issue_key !== null ? 'TEST_FIX' : x.kind === 'EDIT' ? 'EDIT' : x.prd_apply ? 'PRD_APPLY' : 'AUTHOR',
+        kind: x.test_fix ? 'TEST_FIX' : x.kind === 'EDIT' ? 'EDIT' : x.prd_apply ? 'PRD_APPLY' : 'AUTHOR',
         requestId: Number(x.root_id),
         issueKey: x.issue_key,
         prUrl: x.pr_url,

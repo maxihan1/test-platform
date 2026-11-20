@@ -40,6 +40,10 @@ function 탭그리기(수: number) {
 const 상세 = (더: Partial<자동수정상세> = {}): 자동수정상세 => ({
   issueKey: 'MQA-168',
   issueUrl: 'https://bts.example.com/issues/MQA-168',
+  failedRun: null,
+  failure: null,
+  requestId: null,
+  personWhy: [],
   state: 'PASSED',
   at: '2026-11-11T03:00:00Z',
   movedBy: 'QA 맥시',
@@ -99,6 +103,27 @@ describe('서랍 「자동 수정 기록」', () => {
     render(<상자 tcId="DMW-FN-378" />);
     expect(await screen.findByText('반영을 기다리는 중 — 사람 확인이 필요해요')).toBeTruthy();
     expect(screen.queryByText('확인')).toBeNull();
+  });
+
+  it('게임 실패 자동 수정 줄 — 이슈 대신 Agent · 실패 실행 · 조작 실패 · 작성 요청이 「요청」 줄에 선다', async () => {
+    vi.spyOn(api, 'caseFix').mockResolvedValue({
+      autoFix: 상세({ issueKey: null, issueUrl: null, failedRun: 21154, failure: 'notFound', requestId: 8801, movedBy: null, summary: null, state: 'FIXING', merge: null, prUrl: null, rerunId: null, devices: [] }),
+    });
+    render(<상자 tcId="ARG-FN-012" />);
+    const 요청 = (await screen.findByText('요청')).nextElementSibling!;
+    expect(요청.textContent).toBe('Agent · RUN 21154 조작 실패 (요소를 찾지 못함) · 작성 요청 #8801');
+    expect(screen.getByRole('link', { name: 'RUN 21154' }).getAttribute('href')).toBe('#/runs/21154');
+    expect(screen.getByRole('link', { name: '작성 요청 #8801' }).getAttribute('href')).toBe('#/authoring/8801');
+    expect(screen.queryByText(/Issue Bunker/)).toBeNull();
+    expect(screen.getByText('테스트를 수정하는 중')).toBeTruthy();
+  });
+
+  it('게임 줄이 사람 확인을 기다리면 까닭을 상태 줄에 싣는다', async () => {
+    vi.spyOn(api, 'caseFix').mockResolvedValue({
+      autoFix: 상세({ issueKey: null, issueUrl: null, failedRun: 21154, failure: 'timeout', state: 'WAIT_MERGE', merge: null, needsPerson: true, personWhy: ['확인 문장이 줄었어요'], rerunId: null, devices: [] }),
+    });
+    render(<상자 tcId="ARG-FN-012" />);
+    expect(await screen.findByText('반영을 기다리는 중 — 사람 확인이 필요해요 · 확인 문장이 줄었어요')).toBeTruthy();
   });
 
   it('그만둔 줄은 까닭을 붙인다', async () => {

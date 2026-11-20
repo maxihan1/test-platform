@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import type { FailureBts, FailureCase, FailureJudgment } from './api.js';
 import { BTS이름 } from './btsName.js';
-import { RunFailFix } from './RunFailFix.js';
+import { RunFailFix, RunFailFixing } from './RunFailFix.js';
 import { decideApi } from './decideApi.js';
 import { use말, use언어 } from './i18n.js';
 import { show } from './ItemSteps.js';
@@ -75,6 +75,9 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
   // BTS 를 이은 프로젝트는 판정을 BTS 에서만 한다 — 판정 줄은 그 이슈 고리이고 「화면이 맞음으로 바꾸기」가 없다 (도메인/BTS §8.15)
   // 자동 수정으로 통과한 카드는 판정 줄 대신 자동 수정 한 줄이다 — 이미 고쳐 통과해 판정할 것이 없다 (도메인/BTS §8.15 B)
   if (c.autoFix != null) return <RunFailFix fix={c.autoFix} />;
+  // 게임 실패 자동 수정이 도는 동안은 판정할 것이 아직 없다 — 결정 필요에도 안 선다. 끝난 뒤에는 그 줄 아래 판정 줄이 선다 (도메인/게임 §3.10 「실패 자동 수정」 7)
+  const 고치는중 = c.autoFixing != null && (c.autoFixing.state === 'FIXING' || c.autoFixing.state === 'WAIT_MERGE' || c.autoFixing.state === 'RERUNNING');
+  if (고치는중) return <RunFailFixing fix={c.autoFixing!} />;
   if (c.bts !== undefined) return <BTS판정 칸={c.bts} />;
 
   async function 화면이맞음() {
@@ -95,6 +98,8 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
   }
 
   return (
+    <>
+    {c.autoFixing == null ? null : <RunFailFixing fix={c.autoFixing} />}
     <div className="fc-cause">
       <span className="fc-cause-label">{t('판정')}</span>
       {지금 === null ? (
@@ -151,5 +156,6 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
         </span>
       )}
     </div>
+    </>
   );
 }
