@@ -1,5 +1,5 @@
 // 게임 실패 자동 수정의 에이전트 쪽 — 이슈 없는 testFix 읽기 · 프롬프트 · PR 머리 줄 · 제목 · 케이스 끝 · 기다리는 값 재기 · 게임 돌려 보기 횟수 · 실패 자료 파일 · 맵 행 빌드 (도메인/게임 §3.10 「실패 자동 수정」)
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -55,6 +55,7 @@ const 끝줄 = (tcId: string, 끝: string, 본것 = '') => `테스트 고침 끝
 
 describe('케이스 끝', () => {
   it('맡은 케이스의 마지막 줄만 읽고 모르는 끝 · 비밀번호가 섞인 본 것은 버린다', () => {
+    expect(케이스끝들읽기('테스트 고침 끝: `ARG-FN-031` · FIXED', ['ARG-FN-031'])).toEqual([{ tcId: 'ARG-FN-031', outcome: 'FIXED' }]);
     const 출력 = [끝줄('ARG-FN-031', 'NOT_FOUND', '상점 버튼이 없음'), 끝줄('ARG-FN-031', 'FIXED'), '- ' + 끝줄('ARG-FN-040', 'FLAKY', 'pw-1234 로 들어감'), 끝줄('ARG-FN-099', 'FIXED'), 끝줄('ARG-FN-040', 'DONE')].join('\n');
     expect(케이스끝들읽기(출력, ['ARG-FN-031', 'ARG-FN-040'], ['pw-1234'])).toEqual([{ tcId: 'ARG-FN-031', outcome: 'FIXED' }, { tcId: 'ARG-FN-040', outcome: 'FLAKY' }]);
     expect(고친곳읽기('테스트 고침: 게임 · RUN 21154 · ARG-FN-031 · 고친 곳: 상점 버튼 주소를 바꿨어요')).toBe('상점 버튼 주소를 바꿨어요');
@@ -67,6 +68,16 @@ describe('케이스 끝', () => {
     const 재료 = () => ({ 자식출력: 출력, 결과폴더: 폴더, 비밀: [], 파일: () => ({ 앞: 게임케이스(), 뒤: 게임케이스() }), 바뀐: () => ['tests/arg/ARG-FN-031.spec.ts'] });
     await 테스트고침싣는손(손, { params: { testFix: 고침 } }, 재료).끝내기({ status: 'DONE', prUrl: 'p' });
     expect(받은).toEqual([{ status: 'DONE', prUrl: 'p', result: { testFix: { summary: '', reruns: 0, autoMerge: true, held: [], cases: [{ tcId: 'ARG-FN-031', outcome: 'FIXED' }, { tcId: 'ARG-FN-040', outcome: 'FLAKY', note: '그대로 통과' }] } } }]);
+  });
+
+  it('끝 줄이 하나도 없으면 칸을 안 싣고 다 고친 것으로 잰다 · 고친 케이스가 없으면 자동 반영하지 않는다', async () => {
+    const 받은: Record<string, unknown>[] = [];
+    const 손: 보고손 = { 단계: async () => undefined, 끝내기: async (몸) => 받은.push(몸) };
+    const 재료 = (출력: string) => () => ({ 자식출력: 출력, 결과폴더: 폴더, 비밀: [], 파일: () => ({ 앞: 게임케이스(), 뒤: 게임케이스() }), 바뀐: () => [] });
+    await 테스트고침싣는손(손, { params: { testFix: 고침 } }, 재료('요약 없음')).끝내기({ status: 'DONE', prUrl: 'p' });
+    await 테스트고침싣는손(손, { params: { testFix: 고침 } }, 재료([끝줄('ARG-FN-031', 'FLAKY'), 끝줄('ARG-FN-040', 'NOT_FOUND', '창이 안 열림')].join('\n'))).끝내기({ status: 'DONE', prUrl: 'p' });
+    expect((받은[0]!.result as { testFix: Record<string, unknown> }).testFix).toEqual({ summary: '', reruns: 0, autoMerge: false, held: ['NOT_MEASURED'] });
+    expect((받은[1]!.result as { testFix: Record<string, unknown> }).testFix).toMatchObject({ autoMerge: false, held: ['NOT_MEASURED'], cases: [{ tcId: 'ARG-FN-031', outcome: 'FLAKY' }, { tcId: 'ARG-FN-040', outcome: 'NOT_FOUND', note: '창이 안 열림' }] });
   });
 
   it('끝 줄이 없는 케이스와 고쳤는데 고장 줄이 없는 케이스만 되묻는다', async () => {
@@ -106,6 +117,13 @@ describe('게임 돌려 보기 횟수', () => {
     writeFileSync(join(폴더, 'gate3-game-2~폰1~1.json'), 기록('2026-11-20T02:00:00Z', 'arg/ARG-FN-031.spec.ts', 'android'));
     writeFileSync(join(폴더, 'gate3-game-3~폰1~1.json'), 기록('2026-11-20T03:00:00Z', 'arg/ARG-FN-040.spec.ts', 'android'));
     expect(다시돌림글(다시돌림세기(폴더, ['ARG-FN-031']))).toBe('다시 돌림 2번(폰 2)');
+    // 케이스를 1시 반에 고쳤으면 그 앞(고치기 전 그대로 한 번 · 고장 내 보기) 기록은 안 센다
+    const 트리 = join(폴더, '트리');
+    mkdirSync(join(트리, 'tests', 'arg'), { recursive: true });
+    writeFileSync(join(트리, 'tests', 'arg', 'ARG-FN-031.spec.ts'), '');
+    const 고친때 = new Date('2026-11-20T01:30:00Z');
+    utimesSync(join(트리, 'tests', 'arg', 'ARG-FN-031.spec.ts'), 고친때, 고친때);
+    expect(다시돌림글(다시돌림세기(폴더, ['ARG-FN-031'], 트리))).toBe('다시 돌림 1번(폰 1)');
   });
 });
 

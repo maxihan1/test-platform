@@ -1,7 +1,7 @@
 // BTS 「테스트 수정」 작성의 다시 돌린 횟수 · 고친 곳 한 줄 · 자동 병합 판정 · 끝내기 result.testFix 를 만든다 (도메인/BTS §3.12 「테스트 수정 바퀴」 2 · 3 · §7)
 // 앞 판은 자식이 적은 종료 코드(EXIT 0)를 횟수로 읽어 「다시 돌림 0」이 「3번 돌려 보기」와 어긋났다(2026-11-11 실측 PR #713) — 횟수는 기록에서 센다
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import ts from 'typescript';
@@ -27,11 +27,21 @@ export interface 다시돌림 {
 const 게임기록꼴 = /^gate3-game-.*\.json$/;
 const 센기록꼴 = new RegExp(`${끝기록꼴.source}|${게임기록꼴.source}`);
 
+/** 케이스 파일을 마지막으로 고친 때 — 못 읽으면 처음부터 센다 */
+function 고친때(트리: string | undefined, 파일: string): number {
+  if (트리 === undefined) return -Infinity;
+  try {
+    return statSync(join(트리, 'tests', 파일)).mtimeMs;
+  } catch {
+    return -Infinity;
+  }
+}
+
 /**
- * 고친 케이스 파일(`<폴더>/<tcId>.spec.ts`)이 기기마다 몇 번 돌았나 — 웹은 마지막 전체 돌려 보기(가장 늦은 기록), 게임은 돌려 보기 기록을 다 더한다.
- * 게임 돌려 보기는 부를 때마다 케이스를 1번씩 돌아 가장 늦은 기록 하나로 세면 늘 1 이다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 5)
+ * 고친 케이스 파일(`<폴더>/<tcId>.spec.ts`)이 기기마다 몇 번 돌았나 — 웹은 마지막 전체 돌려 보기(가장 늦은 기록), 게임은 케이스 파일을 마지막으로 고친 뒤의 돌려 보기 기록을 다 더한다.
+ * 게임 돌려 보기는 부를 때마다 케이스를 1번씩 돌아 가장 늦은 기록 하나로 세면 늘 1 이다. 고치기 전 「그대로 한 번」 · 고장 내 보기는 그 뒤에 파일을 되돌려 고쳐서 안 센다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 5)
  */
-export function 다시돌림세기(결과폴더: string, tcIds: readonly string[]): 다시돌림 {
+export function 다시돌림세기(결과폴더: string, tcIds: readonly string[], 트리?: string): 다시돌림 {
   const 이름들 = new Set(tcIds.map((t) => `${t}.spec.ts`));
   const 판들 = 판들읽기(돌린기록들(결과폴더, 센기록꼴), true)?.판들 ?? new Map<string, 돌린판[]>();
   const 기기 = new Map<string, number>();
@@ -39,7 +49,8 @@ export function 다시돌림세기(결과폴더: string, tcIds: readonly string[
     const [파일, 이름] = 열쇠.split('\0') as [string, string];
     if (!이름들.has(파일.split('/').pop() ?? '') || 판목록.length === 0) continue;
     const 끝판 = 판목록.filter((p) => p.끝);
-    const 횟수 = 끝판.length > 0 ? 끝판.reduce((a, b) => (b.시작 > a.시작 ? b : a)).상태들.length : 판목록.reduce((n, p) => n + p.상태들.length, 0);
+    const 이후 = 고친때(트리, 파일);
+    const 횟수 = 끝판.length > 0 ? 끝판.reduce((a, b) => (b.시작 > a.시작 ? b : a)).상태들.length : 판목록.filter((p) => p.시작 >= 이후).reduce((n, p) => n + p.상태들.length, 0);
     기기.set(이름, Math.min(기기.get(이름) ?? Infinity, 횟수));
   }
   const 줄 = [...기기].sort(([a], [b]) => a.localeCompare(b));
@@ -159,10 +170,11 @@ export function 케이스끝들읽기(자식출력: string, tcIds: readonly stri
   const 맡은 = new Set(tcIds);
   for (const m of 자식출력.matchAll(/^[\s>*-]*테스트 고침 끝:\s*(\S+)\s*·\s*([A-Z_]+)(?:\s*·\s*(.+))?$/gm)) {
     const outcome = 끝들.find((x) => x === m[2]);
-    if (!맡은.has(m[1]!) || outcome === undefined) continue;
+    const tcId = m[1]!.replace(/^[`*]+|[`*]+$/g, ''); // 자식이 `ARG-FN-031` · **ARG-FN-031** 로 감싸 적기도 한다
+    if (!맡은.has(tcId) || outcome === undefined) continue;
     const 본것 = (m[3] ?? '').trim().slice(0, 300);
     const note = 본것 === '' || 사유거르기(본것, 비밀) !== 본것 ? undefined : 본것;
-    끝.set(m[1]!, { tcId: m[1]!, outcome, ...(note === undefined ? {} : { note }) });
+    끝.set(tcId, { tcId, outcome, ...(note === undefined ? {} : { note }) });
   }
   return 케이스끝틀.parse([...끝.values()]);
 }
@@ -226,6 +238,8 @@ export function 테스트고침싣는손(
     자식출력: string;
     결과폴더: string;
     비밀: readonly string[];
+    /** 작업 트리 — 게임 돌려 보기 횟수를 케이스를 고친 뒤 것만 센다 */
+    트리?: string;
     파일: (tcId: string) => { 앞: string | null; 뒤: string | null };
     바뀐: () => readonly string[] | null;
   },
@@ -235,16 +249,19 @@ export function 테스트고침싣는손(
     끝내기: (몸) => {
       const 고침 = 테스트고침읽기(것);
       if (몸.status !== 'DONE' || 고침 === null || 고침 === undefined) return 손.끝내기(몸);
-      const { 자식출력, 결과폴더, 비밀, 파일, 바뀐 } = 재료();
+      const { 자식출력, 결과폴더, 비밀, 파일, 바뀐, 트리 } = 재료();
       const 곳 = 고친곳읽기(자식출력);
       const summary = 사유거르기(곳, 비밀) === 곳 ? 곳 : '';
       const 결과 = typeof 몸.result === 'object' && 몸.result !== null ? (몸.result as Record<string, unknown>) : {};
       const tcIds = [...new Set(고침.cases.map((x) => x.tcId))];
-      // 게임 자동 수정은 케이스마다 끝이 있다 — 고친(FIXED) 케이스만 PR 에 들어 반영을 기다리니 그것만 잰다. 끝 줄이 하나도 없으면 다 고친 것으로 잰다(사람에게 가는 쪽)
-      const cases = 고침.auto === true ? 케이스끝들읽기(자식출력, tcIds, 비밀) : undefined;
-      const 잴것 = cases === undefined || cases.length === 0 ? tcIds : cases.filter((x) => x.outcome === 'FIXED').map((x) => x.tcId);
-      const reruns = 다시돌림세기(결과폴더, 잴것).횟수;
-      const held = 자동병합재기(잴것.map((tcId) => ({ tcId, ...파일(tcId) })), 자식출력, 바뀐());
+      // 게임 자동 수정은 케이스마다 끝이 있다 — 고친(FIXED) 케이스만 PR 에 들어 반영을 기다리니 그것만 잰다.
+      // 끝 줄이 하나도 없으면 칸을 안 싣는다 — 빈 목록이면 서버가 모든 케이스를 「결과에 없음」으로 그만두고 연 PR 째 폐기한다. 칸이 없으면 PR 이 연 고침을 다 반영 대기로 둔다(gameFix.ts)
+      const 끝들 = 고침.auto === true ? 케이스끝들읽기(자식출력, tcIds, 비밀) : [];
+      const cases = 끝들.length > 0 ? 끝들 : undefined;
+      const 잴것 = cases === undefined ? tcIds : cases.filter((x) => x.outcome === 'FIXED').map((x) => x.tcId);
+      const reruns = 다시돌림세기(결과폴더, 잴것, 트리).횟수;
+      // 고친 케이스가 없으면 잴 것이 없다 — 빈 판정이 「자동 반영」으로 읽히지 않게 「재지 못함」
+      const held = 잴것.length === 0 ? (['NOT_MEASURED'] as 걸린까닭[]) : 자동병합재기(잴것.map((tcId) => ({ tcId, ...파일(tcId) })), 자식출력, 바뀐());
       return 손.끝내기({ ...몸, result: { ...결과, testFix: { summary, reruns, autoMerge: held.length === 0, held, ...(cases === undefined ? {} : { cases }) } } });
     },
   };
