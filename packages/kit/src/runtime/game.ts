@@ -8,6 +8,7 @@ import { isDeepStrictEqual } from 'node:util';
 import type { Game, Link, WaitOptions } from 'control-cli';
 
 import { runDir, saveShot } from './artifacts.js';
+import { 함수를적게건다 } from './gameFns.js';
 import { 돌발팝업읽기, 돌발팝업을건다 } from './gamePopups.js';
 import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.js';
 
@@ -208,6 +209,7 @@ export async function openGame(
     await 패드(패드값 as PadKind);
   }
   돌발팝업을건다(드라이버, 팝업들, (err) => typeof err === 'object' && err !== null && 끊김.has(err));
+  함수를적게건다(드라이버);
   return 드라이버;
 }
 

@@ -1,16 +1,59 @@
-// 게임 항목 결과의 곁가지 — 서버 값 대조는 게임 지도 칸에, 부른 API 는 서비스 지도의 케이스 줄에 적는다 (도메인/게임 「실행 결과」 · GAME-F1-09)
+// 게임 항목 결과의 곁가지 — 서버 값 대조는 게임 지도 칸에, 부른 API 는 서비스 지도의 케이스 줄에, 지난 함수는 조작 맵 행에 적는다 (도메인/게임 「실행 결과」 · GAME-F1-09 · GAME-F5-06)
 
 import type { ExecuteResponse } from '@platform/kit';
 
 import type { PoolClient } from 'pg';
 
 import { 지도줄들, 케이스지도를넣는다 } from '../prd/apiMap.js';
+import { 실행이맵을고친다 } from '../prd/gameRoute.js';
+import { 원인을가른다 } from '../reporting/failureType.js';
+
+/**
+ * 항목 하나가 조작 맵에 남길 것 — 통과한 항목이면 지난 함수 이름, 조작이 실패한 절차가 있으면 그 동작이 지나던 함수 이름 (도메인/게임 §3.10 「정식 실행이 맵을 고친다」).
+ * 조작 실패는 「요소를 찾지 못함」 · 「타임아웃」뿐이다 — 기대값이 다른 실패 · 연결 문제는 길이 틀린 것이 아니라 행을 안 건드린다 (2026-11-20 GAME-F5-06 시작 질문)
+ */
+export function 맵재료(result: Pick<ExecuteResponse, 'status' | 'steps'>): { 지난: string[]; 실패: string[] } | null {
+  const 지난 = result.status === 'PASS' ? [...new Set(result.steps.flatMap((s) => s.gameFns ?? []))] : [];
+  const 조작실패 = result.steps.filter((s) => {
+    if (s.gameFailedFns === undefined || s.error === undefined) return false;
+    const 원인 = 원인을가른다({ status: 'FAIL', assertFailed: false, itemMessage: '', stepMessage: s.error.message });
+    return 원인 === 'notFound' || 원인 === 'timeout';
+  });
+  const 실패 = [...new Set(조작실패.flatMap((s) => s.gameFailedFns ?? []))];
+  return 지난.length === 0 && 실패.length === 0 ? null : { 지난, 실패 };
+}
+
+/** 맵 고침은 지도 채우기와 따로 되돌린다 — 지도 한 줄이 깨져도 그 실행 몫의 맵 고침은 남고, 맵을 못 고쳐도 판정과 지도는 남는다 */
+async function 조작맵을고친다(client: PoolClient, historyId: number, result: ExecuteResponse): Promise<void> {
+  const 맵 = 맵재료(result);
+  if (맵 === null) return;
+  await client.query('SAVEPOINT game_route_result');
+  try {
+    const 자리 = (
+      await client.query<{ service_id: string | null; build_no: string | null }>(
+        'SELECT r.service_id, r.build_no FROM run_item i JOIN test_run r ON r.run_id = i.run_id WHERE i.history_id = $1',
+        [historyId],
+      )
+    ).rows[0];
+    if (자리?.service_id != null) {
+      const 고침 = await 실행이맵을고친다(client, Number(자리.service_id), 자리.build_no, 맵.지난, 맵.실패);
+      if (고침.빌드적음 + 고침.재확인 > 0) {
+        console.log(`[execution] 항목 ${historyId} — 조작 맵을 고쳤다: 빌드 ${자리.build_no ?? '없음'} 적은 행 ${고침.빌드적음}개 · 「재확인 필요」로 바꾼 행 ${고침.재확인}개`);
+      }
+    }
+    await client.query('RELEASE SAVEPOINT game_route_result');
+  } catch (err) {
+    await client.query('ROLLBACK TO SAVEPOINT game_route_result');
+    console.error(`[execution] 항목 ${historyId} 의 조작 맵을 못 고쳤다(판정은 남긴다): ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
 
 /**
  * 판정을 넣은 트랜잭션 안에서 부른다. 지도는 힌트라 깨져도 판정은 남긴다 — SAVEPOINT 로 지도만 되돌리고 알린다 (execution/traceIngest.ts 와 같은 꼴).
  * android 게임은 trace 가 없어 서비스 지도의 케이스 줄을 러너가 본 호출(apiCalls)로 채운다
  */
 export async function 게임결과를넣는다(client: PoolClient, historyId: number, result: ExecuteResponse): Promise<void> {
+  await 조작맵을고친다(client, historyId, result);
   if (result.elementChecks === undefined && result.apiCalls === undefined) return;
   await client.query('SAVEPOINT game_result');
   try {

@@ -1,5 +1,6 @@
-// 게임 항목 결과가 게임 지도의 서버 값과 서비스 지도의 케이스 줄을 채우고, 지도가 깨져도 판정은 남기는지 본다 (GAME-F1-09 — DATABASE_URL 이 있을 때만)
+// 게임 항목 결과가 게임 지도의 서버 값과 서비스 지도의 케이스 줄을 채우고 조작 맵 행을 고치며, 지도가 깨져도 판정은 남기는지 본다 (GAME-F1-09 · GAME-F5-06 — DATABASE_URL 이 있을 때만)
 
+import type { StepResult } from '@platform/kit';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -15,6 +16,7 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
   async function 치운다(): Promise<void> {
     await pool.query(`DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
     await pool.query(`DELETE FROM game_element WHERE service_id = ${서비스번호}`);
+    await pool.query(`DELETE FROM game_route WHERE service_id = ${서비스번호}`);
     await pool.query(`DELETE FROM service_api WHERE service_id = ${서비스번호}`);
     await pool.query(`DELETE FROM test_run WHERE service_id = ${서비스번호}`);
     await pool.query('DELETE FROM test_case WHERE tc_id = $1', [번호]);
@@ -151,6 +153,79 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
     const 끊김 = await 시작();
     await finishItem(끊김.historyId, { historyId: 끊김.historyId, status: 'NA', durationMs: 1, steps: [], apiCalls: [{ method: 'GET', path: '/half', status: 200 }] });
     expect(await 경로들()).toEqual(['/new']);
+  });
+
+  describe('정식 실행이 조작 맵을 고친다 (GAME-F5-06)', () => {
+    const 행들 = async (): Promise<Record<string, string>> =>
+      Object.fromEntries(
+        (
+          await pool.query<{ action: string; status: string; build_no: string | null }>(`SELECT action, status, build_no FROM game_route WHERE service_id = ${서비스번호}`)
+        ).rows.map((r) => [r.action, `${r.status} ${r.build_no ?? '-'}`]),
+      );
+    const 그대로 = { 공격: 'OK 15', '/gm gold': 'OK 15', '문 지나기': 'OK 15', '함수 없는 행': 'OK 15', '보스 방': 'BLOCKED -' };
+    const 맵을차린다 = async (): Promise<void> => {
+      await pool.query(`DELETE FROM game_route WHERE service_id = ${서비스번호}`);
+      await pool.query(
+        `INSERT INTO game_route (service_id, kind, from_key, action, helper, fields, status, reason, build_no) VALUES
+           (${서비스번호}, 'MOVE', 'zone:Dungeon', '공격', NULL, '{"fn":"던전화면.공격()"}', 'OK', NULL, '15'),
+           (${서비스번호}, 'SETUP', 'game:Main', '/gm gold', 'GM골드', NULL, 'OK', NULL, '15'),
+           (${서비스번호}, 'MOVE', 'zone:Dungeon', '문 지나기', NULL, '{"fn":"던전화면.문지나기"}', 'OK', NULL, '15'),
+           (${서비스번호}, 'MOVE', 'zone:Dungeon', '함수 없는 행', NULL, NULL, 'OK', NULL, '15'),
+           (${서비스번호}, 'MOVE', 'zone:Boss', '보스 방', NULL, '{"fn":"던전화면.공격"}', 'BLOCKED', '두 번째 계정 없음', NULL)`,
+      );
+    };
+    const 빌드로시작 = async (빌드: string | null): Promise<number> => {
+      const { runId, historyId } = await 시작();
+      await pool.query('UPDATE test_run SET build_no = $2 WHERE run_id = $1', [runId, 빌드]);
+      return historyId;
+    };
+    const 절차 = (x: Partial<StepResult>): StepResult => ({ seq: 1, title: '임프를 공격한다', status: 'PASS', durationMs: 1, assertions: [], ...x });
+    const 실패절차 = (message: string): StepResult => 절차({ status: 'FAIL', error: { message }, gameFns: ['GM골드', '던전화면.공격'], gameFailedFns: ['던전화면.공격'] });
+
+    it('통과한 항목이 지난 「확인」 행에 그 실행의 빌드를 적는다 — 함수 칸(괄호 앞까지) · 도우미 칸으로 맞추고 이름이 없는 행 · 진행 불가 행은 그대로다', async () => {
+      await 맵을차린다();
+      const historyId = await 빌드로시작('16');
+      await finishItem(historyId, { historyId, status: 'PASS', durationMs: 1, steps: [절차({ gameFns: ['던전화면.공격'] }), 절차({ seq: 2, gameFns: ['GM골드', '던전화면.공격'] })] });
+      expect(await 행들()).toEqual({ ...그대로, 공격: 'OK 16', '/gm gold': 'OK 16' });
+    });
+
+    it('빌드 번호가 없는 실행은 통과해도 적을 것이 없다', async () => {
+      await 맵을차린다();
+      const historyId = await 빌드로시작(null);
+      await finishItem(historyId, { historyId, status: 'PASS', durationMs: 1, steps: [절차({ gameFns: ['던전화면.공격'] })] });
+      expect(await 행들()).toEqual(그대로);
+    });
+
+    it('조작이 실패한 동작의 행은 「재확인 필요」가 되고, 뒤에 온 통과는 그 행을 풀지도 빌드를 적지도 못한다', async () => {
+      await 맵을차린다();
+      const 실패 = await 빌드로시작('16');
+      await finishItem(실패, { historyId: 실패, status: 'FAIL', durationMs: 1, steps: [실패절차('켜진 오브젝트 중에 /Hud/Attack 이 없습니다')] });
+      expect(await 행들()).toEqual({ ...그대로, 공격: 'RECHECK 15' });
+
+      const 통과 = await 빌드로시작('16');
+      await finishItem(통과, { historyId: 통과, status: 'PASS', durationMs: 1, steps: [절차({ gameFns: ['던전화면.공격', '던전화면.문지나기'] })] });
+      expect(await 행들()).toEqual({ ...그대로, 공격: 'RECHECK 15', '문 지나기': 'OK 16' });
+    });
+
+    it('기다림 시간 초과도 조작 실패다. 연결 문제 · 그 밖의 오류 · 기대값이 다른 실패는 행을 건드리지 않는다', async () => {
+      await 맵을차린다();
+      for (const 글 of ['게임 포트 13100 에 붙지 못했습니다', '공격 뒤에 피해 숫자가 뜨지 않았다']) {
+        const historyId = await 빌드로시작('16');
+        await finishItem(historyId, { historyId, status: 'FAIL', durationMs: 1, steps: [실패절차(글)] });
+      }
+      const 다름 = await 빌드로시작('16');
+      await finishItem(다름, {
+        historyId: 다름,
+        status: 'FAIL',
+        durationMs: 1,
+        steps: [절차({ status: 'FAIL', gameFns: ['던전화면.공격'], assertions: [{ statement: '피해가 30 이다', status: 'FAIL', actual: 20, expected: 30 }] })],
+      });
+      expect(await 행들()).toEqual(그대로);
+
+      const 초과 = await 빌드로시작('16');
+      await finishItem(초과, { historyId: 초과, status: 'FAIL', durationMs: 1, steps: [실패절차('/Hud/Attack 이 20초 안에 뜨지 않았습니다')] });
+      expect(await 행들()).toEqual({ ...그대로, 공격: 'RECHECK 15' });
+    });
   });
 
   it('지도를 못 채워도 판정과 절차는 남기고 알린다', async () => {
