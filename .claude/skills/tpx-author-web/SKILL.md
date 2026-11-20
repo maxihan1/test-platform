@@ -39,7 +39,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 다른 종류의 뗀 파일이다. 앱 뗀 파일은 위 「앱 화면 절이 붙으면 더 여는 파일」 표대로다.
 
-- `tpx-cases/references/5-stable-game.md` · `tpx-cases/references/test-design-game.md` · `tpx-author/references/fanout-game.md` · `tpx-author/references/prd-game.md`
+- `tpx-cases/references/5-stable-game.md` · `tpx-cases/references/test-design-game.md` · `tpx-author/references/fanout-game.md` · `tpx-author/references/prd-game.md` · `tpx-author/references/apply-game.md`
 
 ## 보조 AI 에게 넘길 읽기 목록
 
