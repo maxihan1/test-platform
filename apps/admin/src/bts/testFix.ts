@@ -9,7 +9,7 @@ import { 잠그고 } from '../prd/store.js';
 import { BTS부르기, type BTS이슈, type BTS자리, type 부르기함수 } from './client.js';
 import { 반영요청세우기, 실패한실행, 이슈글읽기, type 닫기결과, type 닫기연결 } from './close.js';
 import { 게임PR열림 } from './gameFix.js';
-import { 게임고침인가 } from './gameFixShared.js';
+import { 게임고침인가, 케이스끝틀 } from './gameFixShared.js';
 import { BTS이은프로젝트 } from './link.js';
 import { 보낼줄넣기 } from './outbox.js';
 import { 다시받을, 도는상태, 되돌림넣기 } from './testFixIssue.js';
@@ -206,10 +206,13 @@ export function 걸린까닭읽기(결과: unknown): 걸린까닭[] {
 
 /**
  * 「테스트 수정」 고침 줄(params.testFix — 재실행 · 이어서 작성은 원본 것을 물려받는다)이고 꼴이 맞을 때만.
- * 게임 실패 자동 수정 줄은 꼴을 막지 않는다 — 케이스마다의 끝(cases)은 읽는 쪽이 못 읽으면 칸이 없는 것으로 친다(gameFixShared.ts)
+ * 게임 실패 자동 수정 줄은 cases 칸이 없으면 받고(앞 판 에이전트), 있으면 케이스 끝 꼴일 때만 받는다 — 틀린 줄을 받으면 읽는 쪽이 칸 전체를 못 읽어 모든 줄이 고쳐진 것으로 나뉜다(gameFixShared.ts)
  */
 export function 테스트수정결과맞나(params: unknown, 값: unknown): boolean {
-  if (게임고침인가(params)) return true;
+  if (게임고침인가(params)) {
+    const 칸 = (값 as { cases?: unknown } | null)?.cases;
+    return 칸 === undefined || 케이스끝틀.safeParse(칸).success;
+  }
   const 고침 = (params as { testFix?: { issueKey?: unknown } } | null)?.testFix;
   return typeof 고침?.issueKey === 'string' && 결과틀.safeParse(값).success;
 }

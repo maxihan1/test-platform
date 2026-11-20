@@ -138,6 +138,17 @@ describe('게임 실패 자동 수정 — 도는 중 · 통과 못 하고 끝남
     expect(document.querySelector('.fc-body')?.textContent).toContain('수정했지만 다시 실행에서도 실패했어요 → PR #10 · RUN 21200');
   });
 
+  it('그만둔 줄도 머리는 「자동 수정 실패」 이다', async () => {
+    await 카드그리기(중({ state: 'GAVE_UP', reason: '고칠 곳을 찾지 못했어요' }));
+    expect(document.querySelector('.fc-card .fc-head .fix-tag')?.textContent).toBe('자동 수정 실패');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('그만뒀어요 · 고칠 곳을 찾지 못했어요');
+  });
+
+  it('다시 실행 번호가 아직 없으면 PR 뒤에 구분점이 매달리지 않는다', async () => {
+    await 카드그리기(중({ state: 'RERUNNING', prUrl: 'https://github.com/o/r/pull/12', rerunId: null }));
+    expect(document.querySelector('.fc-body')?.textContent).toContain('수정한 테스트를 다시 실행하는 중이에요 → PR #12 (');
+  });
+
   it('다시 실행하니 통과한 줄은 꼬리표 없이 한 줄만 달고 판정 줄도 선다', async () => {
     await 카드그리기(중({ state: 'FLAKY' }));
     expect(document.querySelector('.fc-card .fc-head .fix-tag')).toBeNull();

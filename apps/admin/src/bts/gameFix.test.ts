@@ -1,14 +1,10 @@
-// 게임 실패 자동 수정 — 실행 끝에서 조작 실패로 세우기 · 거르기 · PR 열림 줄 나누기 · 반영 판정 · 다시 실행 · 끝 (도메인/게임 §3.10 「실패 자동 수정」)
+// 게임 실패 자동 수정 앞 절반 — 실행 끝에서 조작 실패로 세우기 · 거르기 (도메인/게임 §3.10 「실패 자동 수정」 1 · 2). PR · 반영 · 다시 실행 쪽은 gameFixPr.test.ts
 // DATABASE_URL 이 있을 때만 돈다. 분배는 가짜로 바꿔 러너를 부르지 않는다
 
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 게임자동수정실행뒤 } from './gameFix.js';
-import { 테스트수정PR열림 } from './testFix.js';
-import { 반영한사람적기, 자동반영실패, 테스트수정병합판정 } from './testFixMerge.js';
-import { 테스트수정반영뒤, 테스트수정실행뒤 } from './testFixRerun.js';
-import { 테스트수정점검 } from './testFixSweep.js';
 
 vi.mock('../execution/dispatcher.js', () => ({ dispatch: vi.fn(async () => undefined) }));
 
@@ -81,11 +77,6 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     const 번호 = await 게임자동수정실행뒤(runId);
     return { runId, 번호: 번호! };
   };
-  const PR = async (번호: number, 주소: string, 결과: Record<string, unknown>) => {
-    await pool.query(`UPDATE authoring_request SET status = 'DONE', pr_url = $2, result = $3 WHERE id = $1`, [번호, 주소, 결과]);
-    return 테스트수정PR열림({ serviceId: 서비스, params: (await 요청(번호)).params }, 번호, 주소, 결과);
-  };
-
   const 비운다 = async () => {
     await pool.query('DELETE FROM bts_test_fix WHERE service_id = ANY($1)', [[서비스, 이은서비스, 웹서비스]]);
     await pool.query(`DELETE FROM authoring_request WHERE service_id = $1 AND kind = 'MERGE'`, [서비스]);
@@ -231,138 +222,4 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     expect(await 게임자동수정실행뒤(await 실행([{ tcId: 'XQZ-FN-001', error: 찾지못함 }]))).not.toBeNull();
   });
 
-  it('PR 이 열리면 케이스 끝대로 줄을 나눈다 — 고침은 병합 기다림, 흔들림은 FLAKY, 못 찾음은 까닭과 함께 그만둠', async () => {
-    const { 번호 } = await 세운다([케이스들[0]!, 케이스들[1]!, 케이스들[2]!]);
-    const 주소 = 'https://github.com/o/r/pull/401';
-    const 결과 = {
-      testFix: {
-        summary: '조작 이름을 바꿔요',
-        reruns: 2,
-        cases: [
-          { tcId: 'XQZ-FN-001', outcome: 'FIXED' },
-          { tcId: 'XQZ-FN-002', outcome: 'FLAKY' },
-          { tcId: 'XQZ-FN-003', outcome: 'NOT_FOUND', note: '버튼이 없어졌어요' },
-        ],
-      },
-    };
-    expect(await PR(번호, 주소, 결과)).toBe(false);
-    expect(await 줄들()).toEqual([
-      expect.objectContaining({ tc_id: 'XQZ-FN-001', state: 'WAIT_MERGE', pr_url: 주소 }),
-      expect.objectContaining({ tc_id: 'XQZ-FN-002', state: 'FLAKY' }),
-      expect.objectContaining({ tc_id: 'XQZ-FN-003', state: 'GAVE_UP', reason: '고칠 곳을 찾지 못했어요 — 버튼이 없어졌어요' }),
-    ]);
-    await 테스트수정PR열림({ serviceId: 서비스, params: (await 요청(번호)).params }, 번호, 주소, 결과);
-    expect((await 줄들()).map((r) => r.state)).toEqual(['WAIT_MERGE', 'FLAKY', 'GAVE_UP']);
-  });
-
-  it('케이스 끝 칸이 없으면 고치는 줄 전부가 병합 기다림이다', async () => {
-    const { 번호 } = await 세운다();
-    await PR(번호, 'https://github.com/o/r/pull/402', { testFix: { summary: '', reruns: 1 } });
-    expect((await 줄들()).map((r) => r.state)).toEqual(['WAIT_MERGE', 'WAIT_MERGE']);
-  });
-
-  it('PR 없이 끝난 요청은 줄을 FLAKY · 그만둠으로 끝내고 서버가 폐기해 다음 자동 수정을 막지 않는다', async () => {
-    const { 번호 } = await 세운다();
-    await pool.query(`UPDATE authoring_request SET status = 'DONE', result = $2 WHERE id = $1`, [
-      번호,
-      { testFix: { cases: [{ tcId: 'XQZ-FN-001', outcome: 'FLAKY' }, { tcId: 'XQZ-FN-002', outcome: 'NOT_FOUND', note: '창이 안 열려요' }] } },
-    ]);
-    await 테스트수정점검();
-    expect(await 줄들()).toEqual([
-      expect.objectContaining({ tc_id: 'XQZ-FN-001', state: 'FLAKY' }),
-      expect.objectContaining({ tc_id: 'XQZ-FN-002', state: 'GAVE_UP', reason: '고칠 곳을 찾지 못했어요 — 창이 안 열려요' }),
-    ]);
-    expect((await 요청(번호)).discarded_at).not.toBeNull();
-    expect(await 게임자동수정실행뒤(await 실행([{ tcId: 'XQZ-FN-005', error: 찾지못함 }]))).not.toBeNull();
-  });
-
-  it('작성이 실패하거나 멈추면 줄을 FAILED 로 끝내고 폐기한다 · 칸 없이 PR 없이 끝나면 모두 고칠 곳을 못 찾음이다', async () => {
-    const 실패 = await 세운다([케이스들[0]!]);
-    await pool.query(`UPDATE authoring_request SET status = 'FAILED' WHERE id = $1`, [실패.번호]);
-    await 테스트수정점검();
-    expect(await 줄들()).toEqual([expect.objectContaining({ state: 'FAILED', reason: '테스트 수정 작성이 실패했어요' })]);
-    expect((await 요청(실패.번호)).discarded_at).not.toBeNull();
-
-    const 칸없음 = await 세운다([케이스들[1]!]);
-    await pool.query(`UPDATE authoring_request SET status = 'DONE', result = '{}' WHERE id = $1`, [칸없음.번호]);
-    await 테스트수정점검();
-    expect((await 줄들()).map((r) => [r.tc_id, r.state, r.reason])).toEqual([
-      ['XQZ-FN-001', 'FAILED', '테스트 수정 작성이 실패했어요'],
-      ['XQZ-FN-002', 'GAVE_UP', '고칠 곳을 찾지 못했어요'],
-    ]);
-    expect((await 요청(칸없음.번호)).discarded_at).not.toBeNull();
-  });
-
-  it('반영 판정이 사람 확인을 부르면 까닭을 줄에 적고(같은 글은 한 번), 자동 반영이 실패하면 그 글도 더한다 — 반영을 세우지 않는다', async () => {
-    const { 번호 } = await 세운다([케이스들[0]!]);
-    const 주소 = 'https://github.com/o/r/pull/403';
-    const 결과 = { testFix: { summary: '고쳤어요', reruns: 1, autoMerge: false, held: ['EXPECTED_CHANGED', 'MUTATION_MISSED'] } };
-    await PR(번호, 주소, 결과);
-    expect(await 테스트수정병합판정(번호, 서비스, 번호, 주소, 결과)).toBe('PERSON');
-    expect(await 테스트수정병합판정(번호, 서비스, 번호, 주소, 결과)).toBe('PERSON');
-    expect((await 줄들())[0]!.person_why).toEqual(['기대값이 바뀌었어요', '일부러 고장 내 보기에서 못 잡은 고장이 있어요']);
-    expect((await pool.query(`SELECT 1 FROM authoring_request WHERE kind = 'MERGE' AND service_id = $1`, [서비스])).rowCount).toBe(0);
-    await pool.query(`UPDATE bts_test_fix SET merge = 'AUTO' WHERE service_id = $1`, [서비스]);
-    await 자동반영실패(번호);
-    await 자동반영실패(번호);
-    expect((await 줄들())[0]!.person_why.slice(2)).toEqual(['자동 반영이 실패했어요']);
-    const 손 = await pool.connect();
-    try {
-      await 반영한사람적기(손, 번호, 'xqz-admin');
-      expect((await 줄들())[0]!.merge).toBe('PERSON');
-      await 반영한사람적기(손, 번호, 'agent');
-      expect((await 줄들())[0]!.merge).toBe('AUTO');
-    } finally {
-      손.release();
-    }
-  });
-
-  it('조건이 다 맞으면 반영을 agent 로 세워 AUTO 를 적고, 반영이 끝나면 고친 케이스 전부를 실행 하나로 다시 돌려 끝에서 PASSED · FAILED 로 나눈다', async () => {
-    const { runId, 번호 } = await 세운다();
-    const 주소 = 'https://github.com/o/r/pull/404';
-    const 결과 = { testFix: { summary: '고쳤어요', reruns: 1, autoMerge: true, held: [] } };
-    await PR(번호, 주소, 결과);
-    expect(await 테스트수정병합판정(번호, 서비스, 번호, 주소, 결과)).toBe('AUTO');
-    expect((await pool.query(`SELECT requested_by, requested_by_name FROM authoring_request WHERE kind = 'MERGE' AND source_id = $1`, [번호])).rows).toEqual([
-      { requested_by: 'agent', requested_by_name: 'Agent' },
-    ]);
-    expect((await 줄들()).map((r) => r.merge)).toEqual(['AUTO', 'AUTO']);
-
-    await 테스트수정반영뒤(번호);
-    expect((await 줄들()).map((r) => r.state)).toEqual(['WAIT_MERGE', 'WAIT_MERGE']);
-
-    await pool.query(`UPDATE authoring_request SET status = 'DONE' WHERE kind = 'MERGE' AND source_id = $1`, [번호]);
-    await 테스트수정반영뒤(번호);
-    await 테스트수정반영뒤(번호);
-    const 걸린 = await 줄들();
-    expect(걸린.map((r) => r.state)).toEqual(['RERUNNING', 'RERUNNING']);
-    const 다시 = Number(걸린[0]!.rerun_id);
-    expect(걸린[1]!.rerun_id).toBe(String(다시));
-    expect((await pool.query('SELECT 1 FROM test_run WHERE rerun_of = $1', [runId])).rowCount).toBe(1);
-    expect((await pool.query('SELECT origin, rerun_of, triggered_by, triggered_by_name FROM test_run WHERE run_id = $1', [다시])).rows[0]).toEqual({
-      origin: 'RERUN',
-      rerun_of: String(runId),
-      triggered_by: 'agent',
-      triggered_by_name: 'Agent',
-    });
-    expect((await pool.query('SELECT tc_id FROM run_item WHERE run_id = $1 ORDER BY tc_id', [다시])).rows.map((r) => r.tc_id)).toEqual(['XQZ-FN-001', 'XQZ-FN-002']);
-
-    await pool.query(`UPDATE run_item SET status = CASE WHEN tc_id = 'XQZ-FN-001' THEN 'PASS' ELSE 'FAIL' END, finished_at = now() WHERE run_id = $1`, [다시]);
-    await pool.query(`UPDATE test_run SET status = 'FINISHED' WHERE run_id = $1`, [다시]);
-    await 테스트수정실행뒤(다시);
-    expect((await 줄들()).map((r) => [r.tc_id, r.state, r.reason])).toEqual([
-      ['XQZ-FN-001', 'PASSED', null],
-      ['XQZ-FN-002', 'FAILED', `Android 앱 에서 통과하지 못했어요 · RUN ${String(다시)}`],
-    ]);
-    expect(await 게임자동수정실행뒤(다시)).toBeNull();
-  });
-
-  it('디바이스 팜이 없으면 다시 실행을 걸지 않고 줄을 실패로 끝낸다', async () => {
-    const { 번호 } = await 세운다([케이스들[0]!]);
-    await PR(번호, 'https://github.com/o/r/pull/405', { testFix: { summary: '', reruns: 1 } });
-    await pool.query(`INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, requested_by_name, status) VALUES ($1, 'MERGE', $2, '{}', 'agent', 'Agent', 'DONE')`, [서비스, 번호]);
-    delete process.env.DEVICE_FARM_URL;
-    await 테스트수정반영뒤(번호);
-    expect(await 줄들()).toEqual([expect.objectContaining({ state: 'FAILED', reason: '실제 폰을 못 잡아 확인하지 못했어요' })]);
-  });
 });

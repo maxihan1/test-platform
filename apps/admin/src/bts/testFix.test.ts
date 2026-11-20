@@ -17,6 +17,14 @@ describe('테스트 수정 끝내기 결과 꼴', () => {
     expect(테스트수정결과맞나(고침줄, { reruns: 3 })).toBe(false);
   });
 
+  it('게임 실패 자동 수정 요청은 cases 칸이 없으면 받고, 있으면 케이스 끝 꼴일 때만 받는다 — 틀린 줄이 하나라도 있으면 끝내기를 거절한다', () => {
+    const 게임줄 = { prdApply: true, testFix: { auto: true, cases: [{ runId: 1, tcId: 'XQ-FN-001', env: 'qa', failure: 'notFound' }], note: '' } };
+    expect(테스트수정결과맞나(게임줄, { summary: '', reruns: 1 })).toBe(true);
+    expect(테스트수정결과맞나(게임줄, { cases: [{ tcId: 'XQ-FN-001', outcome: 'FIXED' }, { tcId: 'XQ-FN-002', outcome: 'NOT_FOUND', note: '없어요' }] })).toBe(true);
+    expect(테스트수정결과맞나(게임줄, { cases: [{ tcId: 'XQ-FN-001', outcome: 'FIXED' }, { tcId: 'XQ-FN-002', outcome: 'DONE' }] })).toBe(false);
+    expect(테스트수정결과맞나(게임줄, { cases: 'FIXED' })).toBe(false);
+  });
+
   it('자동 병합 판정은 둘이 같이 오고 autoMerge 는 걸린 까닭이 빌 때만 true — 판정 칸이 없거나 틀리면 「재지 못함」', () => {
     const 고침줄 = { testFix: { issueKey: 'DM-1', cases: [], note: '' } };
     const 몸 = { summary: '기다리기를 고쳤어요', reruns: 3 };

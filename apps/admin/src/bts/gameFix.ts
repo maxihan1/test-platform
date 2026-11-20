@@ -147,7 +147,7 @@ function 끝나눔(x: 케이스끝 | undefined): { 끝: 'FIXED' | 'FLAKY' } | { 
 /**
  * 게임 고침 작성이 PR 을 열었다 — 결과의 케이스마다 끝(result.testFix.cases)대로 줄을 나눈다.
  * FIXED 는 병합 기다림(PR · 요약), FLAKY 는 그대로 돌려 보니 통과, NOT_FOUND 는 그만둠. 결과에 없는 케이스는 고쳤다는 말이 없어 그만둔다.
- * 칸이 없으면(앞 판 에이전트) 요청의 고치는 줄 전부가 병합 기다림이다. 같은 PR 로 또 끝나도 한 번이다. BTS 로 보내는 것이 없어 늘 false
+ * 칸이 없으면(앞 판 에이전트) 요청의 고치는 줄 전부가 병합 기다림이다. 같은 PR 로 또 끝나도 한 번이다. 고친 케이스가 하나도 없으면 요청을 폐기한다. BTS 로 보내는 것이 없어 늘 false
  */
 export async function 게임PR열림(뿌리번호: number, prUrl: string, 요약: string, 결과: unknown): Promise<boolean> {
   const 끝들 = 케이스끝읽기(결과);
@@ -163,14 +163,24 @@ export async function 게임PR열림(뿌리번호: number, prUrl: string, 요약
   for (const 줄 of 줄들) {
     const 이것 = 끝들 === null ? ({ 끝: 'FIXED' } as const) : 끝나눔(끝.get(줄.tc_id));
     if (이것.끝 === 'FIXED') {
-      await pool.query(`UPDATE bts_test_fix SET pr_url = $2, summary = $3, state = 'WAIT_MERGE', updated_at = now() WHERE id = $1`, [줄.id, prUrl, 요약 === '' ? null : 요약]);
-    } else if (줄.state === 'FIXING') {
+      // PR 이 바뀌면 앞 PR 의 사람 확인 까닭 · 걸림을 비운다 — 남으면 60초 점검(판정다시)이 까닭이 찬 줄을 건너뛰어 새 PR 을 판정하지 않는다
+      await pool.query(
+        `UPDATE bts_test_fix SET person_why = CASE WHEN pr_url IS DISTINCT FROM $2 THEN '{}' ELSE person_why END, held = CASE WHEN pr_url IS DISTINCT FROM $2 THEN '{}' ELSE held END,
+                pr_url = $2, summary = $3, state = 'WAIT_MERGE', updated_at = now() WHERE id = $1`,
+        [줄.id, prUrl, 요약 === '' ? null : 요약],
+      );
+    } else {
+      // 앞 PR 로 병합 기다림이던 줄도 새 결과대로 끝낸다
       await 게임줄끝내기([줄.id], 이것.끝 === 'FLAKY' ? 'FLAKY' : 'GAVE_UP', 이것.끝 === 'GAVE_UP' ? 이것.까닭 : null);
     }
   }
+  // 고친 케이스가 하나도 없으면 PR 없이 끝난 때처럼 요청을 폐기한다 — 안 하면 열린 작성으로 남아 그 앱의 다음 작성 · 자동 수정을 막는다
+  if (줄들.length > 0 && ((await pool.query('SELECT 1 FROM bts_test_fix WHERE request_id = $1 AND issue_key IS NULL AND state = ANY($2) LIMIT 1', [뿌리번호, 도는상태])).rowCount ?? 0) === 0) {
+    const 최신 = (await pool.query<{ id: string }>(`WITH RECURSIVE ${사슬식('id = $1')} SELECT a.id FROM authoring_request a WHERE a.id = ${최신식('사슬')}`, [뿌리번호])).rows[0];
+    if (최신 === undefined || !(await 버리기(Number(최신.id)))) console.error(`[game-fix] 요청 ${String(뿌리번호)} 를 폐기하지 못했다 — 열린 작성으로 남아 다음 작성을 막을 수 있다`);
+  }
   return false;
 }
-
 
 /**
  * 게임 고침 작성이 PR 없이 끝났거나 실패 · 멈춤 · 폐기됐는지 보고 줄을 끝낸다 — 끝났으면 true.

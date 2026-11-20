@@ -1,5 +1,7 @@
 // 실패 카드 판정 줄 자리의 자동 수정 한 줄 — 옮긴 사람 · 이슈 · PR · 다시 실행 · 날짜 (도메인/BTS §8.15 「자동 수정 표시」 B)
 
+import { Fragment, type ReactNode } from 'react';
+
 import type { 카드자동수정, 카드자동수정중 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { PLATFORM_LABEL, 월일 } from './ui.js';
@@ -54,6 +56,23 @@ export function RunFailFix({ fix }: { fix: 카드자동수정 }) {
   );
 }
 
+/** 있는 것만 ` → A · B` 로 잇는다 — 없는 자리에 화살표나 구분점이 매달리지 않게 */
+function 이음(...것: (ReactNode | null)[]): ReactNode {
+  const 있음 = 것.filter((x) => x !== null);
+  if (있음.length === 0) return null;
+  return (
+    <>
+      {' → '}
+      {있음.map((x, i) => (
+        <Fragment key={i}>
+          {i === 0 ? null : ' · '}
+          {x}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
 /** 게임 실패 자동 수정이 도는 중이거나 통과 못 하고 끝난 카드의 한 줄 — 판정 줄 위에 선다 (도메인/게임 §3.10 「실패 자동 수정」 7) */
 export function RunFailFixing({ fix }: { fix: 카드자동수정중 }) {
   const t = use말();
@@ -77,17 +96,18 @@ export function RunFailFixing({ fix }: { fix: 카드자동수정중 }) {
       글 = fix.needsPerson ? (
         <>
           {t('수정한 테스트를 사람이 반영해야 해요')}
-          {fix.personWhy.length === 0 ? null : ` — ${fix.personWhy.join(' · ')}`} → {pr} · <a href="#/authoring?todo=1">{t('테스트 작성 › 결정 필요에서 반영')}</a>
+          {fix.personWhy.length === 0 ? null : ` — ${fix.personWhy.join(' · ')}`}
+          {이음(pr, <a href="#/authoring?todo=1">{t('테스트 작성 › 결정 필요에서 반영')}</a>)}
         </>
       ) : (
-        <>{t('수정한 테스트를 반영하는 중이에요')} → {pr}</>
+        <>{t('수정한 테스트를 반영하는 중이에요')}{이음(pr)}</>
       );
       break;
     case 'RERUNNING':
-      글 = <>{t('수정한 테스트를 다시 실행하는 중이에요')} → {pr} · {실행}</>;
+      글 = <>{t('수정한 테스트를 다시 실행하는 중이에요')}{이음(pr, 실행)}</>;
       break;
     case 'FAILED':
-      글 = <>{t('수정했지만 다시 실행에서도 실패했어요')} → {pr} · {실행}</>;
+      글 = <>{t('수정했지만 다시 실행에서도 실패했어요')}{이음(pr, 실행)}</>;
       break;
     case 'FLAKY':
       글 = t('다시 실행하니 통과해서 수정하지 않았어요');

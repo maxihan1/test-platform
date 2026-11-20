@@ -157,6 +157,5 @@ export const 결정말: Record<string, string> = {
   '미션 테스트에 설명 안 되는 줄이 있습니다. 어떻게 처리할까요?': 'A mission test logged lines the spec does not explain. How should we handle them?',
   '설명 안 되는 줄': 'Unexplained lines',
   '실행 결과 보기': 'View run result',
-  '에이전트가 수정하는 중이에요 — 완료되면 선택할 수 있어요': 'The agent is fixing it — you can choose once it finishes',
   '{번호} 설명 안 되는 줄을 결함으로 기록합니다': 'Record the {번호} unexplained lines as a defect',
 };

@@ -28,12 +28,13 @@ export async function 게임실패자료(
   tcId: string,
 ): Promise<{ summary: string[]; game: 게임실패 } | { error: 'NO_TRACE'; detail: string }> {
   const { pool } = await import('../db/index.js');
+  // 세우는 쪽(gameFix.ts)은 시간 초과로 미실행(NA)이 된 케이스도 맡는다 — FAIL 항목이 있으면 그것을, 없으면 끝난 NA 항목을 읽는다
   const 행 = (
     await pool.query<{ history_id: string; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }>(
       `SELECT i.history_id, i.params, i.expected, i.param_schema, i.expected_schema
          FROM run_item i JOIN test_run r ON r.run_id = i.run_id
-        WHERE i.run_id = $1 AND i.tc_id = $2 AND i.status = 'FAIL' AND r.service_id = $3
-        ORDER BY i.history_id LIMIT 1`,
+        WHERE i.run_id = $1 AND i.tc_id = $2 AND r.service_id = $3 AND (i.status = 'FAIL' OR (i.status = 'NA' AND i.finished_at IS NOT NULL))
+        ORDER BY (i.status = 'FAIL') DESC, i.history_id LIMIT 1`,
       [runId, tcId, 서비스],
     )
   ).rows[0];

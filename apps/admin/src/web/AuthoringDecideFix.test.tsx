@@ -28,7 +28,6 @@ describe('실패 판정 항목의 자동 수정 줄', () => {
     expect(줄.textContent).toBe('수정했지만 다시 실행에서도 실패했어요 · PR #10 · RUN 21200');
     expect(screen.getByRole('link', { name: 'PR #10' }).getAttribute('href')).toBe('https://github.com/o/r/pull/10');
     expect(screen.getByRole('link', { name: 'RUN 21200' }).getAttribute('href')).toBe('#/runs/21200');
-    expect(screen.queryByText(/완료되면 선택할 수 있어요/)).toBeNull();
   });
 
   it('다시 실행하니 통과한 줄 · 그만둔 줄은 한 줄 설명만 단다', () => {
@@ -37,10 +36,5 @@ describe('실패 판정 항목의 자동 수정 줄', () => {
     cleanup();
     그리기({ state: 'GAVE_UP', prUrl: null, rerunId: null, rerunPage: false, reason: '고칠 곳을 찾지 못했어요' });
     expect(screen.getByText('그만뒀어요 · 고칠 곳을 찾지 못했어요')).toBeTruthy();
-  });
-
-  it('도는 중인 줄이 오면 고르개 대신 안내만 보인다', () => {
-    그리기({ state: 'FIXING', prUrl: null, rerunId: null, rerunPage: false, reason: null });
-    expect(screen.getByText('에이전트가 수정하는 중이에요 — 완료되면 선택할 수 있어요')).toBeTruthy();
   });
 });

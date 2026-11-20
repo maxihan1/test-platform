@@ -67,35 +67,36 @@ export async function 카드자동수정중들(runId: number): Promise<Map<strin
 }
 
 /**
- * 결정 목록 「결함 판정」 재료 — 케이스마다 가장 늦은 게임 줄. 키는 `실행번호:tcId`.
+ * 결정 목록 「결함 판정」 재료 — (처음 실패한 실행, 케이스)마다 가장 늦은 게임 줄. 키는 `실행번호:tcId` 이고 다시 실행 번호로도 같은 줄을 가리킨다.
  * 숨김은 아직 판정할 것이 없다는 뜻이다(도는 중 · 통과). 끝난 줄(FAILED · FLAKY · GAVE_UP)은 autoFix 로 달고 선다
  */
 export async function 판정자동수정들(서비스: number): Promise<Map<string, { 숨김: boolean; autoFix: 판정자동수정 | null }>> {
-  const rows = await (await db()).query<줄원본>(
-    `SELECT DISTINCT ON (f.tc_id) f.tc_id, f.failed_run, f.state, f.request_id, f.pr_url, f.person_why, f.reason, f.updated_at, ${다시실행칸}
+  // 같은 케이스의 뒤 실행 줄이 앞 실행 항목의 표시를 지우지 않게 (처음 실패한 실행, 케이스)마다 가장 늦은 줄을 본다
+  const rows = await (await db()).query<줄원본 & { rerun_id: string | null }>(
+    `SELECT DISTINCT ON (f.failed_run, f.tc_id) f.tc_id, f.failed_run, f.rerun_id, f.state, f.request_id, f.pr_url, f.person_why, f.reason, f.updated_at, ${다시실행칸}
        FROM bts_test_fix f LEFT JOIN test_run r ON r.run_id = f.rerun_id
       WHERE f.issue_key IS NULL AND f.service_id = $1 AND f.failed_run IS NOT NULL
-      ORDER BY f.tc_id, f.created_at DESC, f.id DESC`,
+      ORDER BY f.failed_run, f.tc_id, f.created_at DESC, f.id DESC`,
     [서비스],
   );
-  return new Map(
-    rows.rows.map((x) => {
-      const 끝남 = x.state === 'FAILED' || x.state === 'FLAKY' || x.state === 'GAVE_UP';
-      return [
-        `${x.failed_run}:${x.tc_id}`,
-        {
-          숨김: !끝남,
-          autoFix: 끝남
-            ? {
-                state: x.state as 판정자동수정['state'],
-                prUrl: x.pr_url,
-                rerunId: x.shown_run === null ? null : Number(x.shown_run),
-                rerunPage: x.has_page === true,
-                reason: x.reason,
-              }
-            : null,
-        },
-      ];
-    }),
-  );
+  const 값 = (x: 줄원본) => {
+    const 끝남 = x.state === 'FAILED' || x.state === 'FLAKY' || x.state === 'GAVE_UP';
+    return {
+      숨김: !끝남,
+      autoFix: 끝남
+        ? {
+            state: x.state as 판정자동수정['state'],
+            prUrl: x.pr_url,
+            rerunId: x.shown_run === null ? null : Number(x.shown_run),
+            rerunPage: x.has_page === true,
+            reason: x.reason,
+          }
+        : null,
+    };
+  };
+  const 맵 = new Map<string, { 숨김: boolean; autoFix: 판정자동수정 | null }>();
+  // 다시 실행(붙지 않는 새 실행)에서 또 실패한 항목은 결정 목록에서 runId 가 그 다시 실행 번호다 — 줄의 rerun_id 로도 같은 줄을 가리킨다. 처음 실행 키가 이긴다
+  for (const x of rows.rows) if (x.rerun_id !== null) 맵.set(`${x.rerun_id}:${x.tc_id}`, 값(x));
+  for (const x of rows.rows) 맵.set(`${x.failed_run}:${x.tc_id}`, 값(x));
+  return 맵;
 }
