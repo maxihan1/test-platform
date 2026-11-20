@@ -1,4 +1,4 @@
-// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 · 조작 맵 (도메인/작성 §7 「표준 기획서 통로」 · 도메인/게임 §7)
+// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 · 조작 맵 · 앱 조작 맵 (도메인/작성 §7 「표준 기획서 통로」 · 「앱 조작 맵 통로」 · 도메인/게임 §7)
 // 서비스 경계는 문이 요청 번호로 봤다. 여기서는 맥 계정 · 집은 쪽 · 도는 중인지를 본다(authoring/agentRoutes.ts 와 같은 문턱)
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -9,6 +9,7 @@ import { 대상줄들읽기, 앱줄고르기, 폰앱인가 } from '../authoring/
 import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
 import { 맵글, 조작행검사, 조작행넣기 } from './gameRoute.js';
+import { 맵줄검사, 맵줄넣기, 앱맵글, 앱서비스인가 } from './appRoute.js';
 import { 미션검사, 미션넣기 } from '../authoring/missions.js';
 import type { 앱요청 } from '../authoring/store.js';
 import { TCID } from '../catalog/rules.js';
@@ -21,6 +22,7 @@ import { 기준판, 서비스접두사, 옮기기, 읽은판, 지금판, 판하�
 type 경로 = { Params: { id: string } };
 const 서버없음 = { error: 'BAD_SCREEN', detail: 'env' } as const;
 const 게임아님 = { error: 'NOT_GAME_SERVICE' } as const;
+const 앱아님 = { error: 'NOT_APP_SERVICE' } as const;
 
 /**
  * 화면 기록을 둘 대상 서버 줄 — 요청의 것이다. Android 앱 · 게임은 앱 줄(앱 · 게임 첫 화면을 읽는 줄 — 요청 env 가 먼저고 운영 줄은 건너뛴다)에 둔다.
@@ -164,6 +166,24 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     if (행 === null) return reply;
     if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
     return { text: await 맵글(행.serviceId) };
+  });
+
+  // 앱 조작 맵 — Android 앱만. 앱 탐색이 배운 길 · 데이터 세팅 · API 를 줄로 올리고 다음 작성의 경로 검색이 맵 글을 읽는다 (도메인/작성 §3.6 「★ 앱 탐색」)
+  app.put<경로 & { Body: unknown }>('/authoring/requests/:id/app-route', { bodyLimit: 본문상한 }, async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 앱서비스인가(행.serviceId))) return reply.code(400).send(앱아님);
+    const 읽음 = 맵줄검사(req.body);
+    if ('error' in 읽음) return reply.code(400).send(읽음);
+    await 맵줄넣기(행.serviceId, 읽음.rows, 읽음.remove);
+    return reply.code(204).send();
+  });
+
+  app.get<경로>('/authoring/requests/:id/app-route', async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 앱서비스인가(행.serviceId))) return reply.code(400).send(앱아님);
+    return { text: await 앱맵글(행.serviceId) };
   });
 
   // seen 5,000개에 화면 크기 차이(화면 하나 최대 13KB)까지 실려 기본 1MiB 를 넘을 수 있다 (PRD-F10-07)
