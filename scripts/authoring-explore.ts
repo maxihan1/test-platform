@@ -1,0 +1,223 @@
+// 게임 작성의 탐색 플레이 — 목표 파일 검사(체크포인트) · 결과 줄 · 조작 맵 올리기 · 탐색 세션과 케이스 작성 세션 나눠 띄우기 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
+// 쓰는 법(자식이 끝내기 전에 스스로 검사): npx tsx scripts/authoring-explore.ts <자료 폴더> — 0 지남 · 1 못 지남 · 2 부를 수 없음
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+import { 게임자리, 글받기 } from './authoring-game.js';
+import { type 맵행, 경로, 맵읽기, 맵행읽기, 목표풀기, 새행더하기, 출발고르기 } from './authoring-game-route.js';
+import { type 돌린결과, 부른다 } from './authoring-io.js';
+import { 끝낼상태 } from './authoring-progress.js';
+import { 계정섞였나 } from './authoring-reverse.js';
+import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
+
+export interface 탐색목표 {
+  /** 표준 기획서의 기능 단위 — 「강화」 「사냥 샘플 플레이」 */
+  기능: string;
+  /** 경로 검색 명령에 주는 목표 열쇠 — `state:…` 묶음과 창 · 구역 열쇠 하나 */
+  열쇠: string[];
+  /** 장면 첫 화면이 여럿일 때만 — 경로 검색 `--from` */
+  출발?: string;
+  결과: '경로 확보' | '진행 불가' | null;
+  까닭?: string;
+}
+
+/** 자식 프롬프트의 탐색 플레이 절 — 첫 세션은 탐색 플레이까지, 체크포인트를 지난 뒤 세션은 결과 줄을 받는다 */
+export type 탐색단계 = { 까지: true } | { 끝: string };
+
+const 파일상한 = 1_000_000;
+const 결과들 = ['경로 확보', '진행 불가', null] as const;
+
+/** 목표 파일(game-explore.json `{ 목표: [...] }`)을 읽는다. 꼴이 틀리면 까닭 글 */
+export function 목표들읽기(글: string | null): 탐색목표[] | string {
+  if (글 === null) return `${게임자리.탐색} 이 없다 — 탐색 플레이를 시작할 때 목표부터 적는다`;
+  let 몸: unknown;
+  try {
+    몸 = JSON.parse(글);
+  } catch {
+    return `${게임자리.탐색} 을 JSON 으로 못 읽었다`;
+  }
+  const 목표 = (몸 as { 목표?: unknown } | null)?.목표;
+  if (!Array.isArray(목표)) return `${게임자리.탐색} 에 「목표」 배열이 없다`;
+  const 들: 탐색목표[] = [];
+  for (const [i, x] of (목표 as Record<string, unknown>[]).entries()) {
+    const 글인가 = (v: unknown) => typeof v === 'string' && v.trim() !== '';
+    const 결과 = x?.결과 ?? null;
+    if (!글인가(x?.기능) || !Array.isArray(x.열쇠) || x.열쇠.length === 0 || !x.열쇠.every(글인가) || !(결과들 as readonly unknown[]).includes(결과) ||
+      (x.출발 !== undefined && !글인가(x.출발)) || (x.까닭 !== undefined && typeof x.까닭 !== 'string')) {
+      return `${게임자리.탐색} 목표 ${String(i + 1)} 의 꼴이 틀렸다 — 기능 · 열쇠(글 배열) · 결과(「경로 확보」 · 「진행 불가」 · null) · 까닭 · 출발`;
+    }
+    들.push({ 기능: x.기능 as string, 열쇠: x.열쇠 as string[], ...(x.출발 === undefined ? {} : { 출발: x.출발 as string }), 결과: 결과 as 탐색목표['결과'], ...(x.까닭 === undefined ? {} : { 까닭: x.까닭 as string }) });
+  }
+  return 들;
+}
+
+/**
+ * 체크포인트 — 목표마다 결과가 하나 있나, 진행 불가에 까닭이 있나, 「경로 확보」면 경로 검색이 「확인」 행만으로 길을 다 내나(폰에서 정말 통과한 행인가).
+ * 못 지난 까닭 줄들 — 비면 지났다. 진행 불가 목표가 있어도 지난다(그 기능 단위의 케이스는 보류 줄이 된다)
+ */
+export function 체크포인트(목표들: 탐색목표[], 행들: 맵행[] | null): string[] {
+  return 목표들.flatMap((g): string[] => {
+    const 이름 = `「${g.기능}」`;
+    if (g.결과 === null) return [`${이름} — 결과가 없다(「경로 확보」 또는 「진행 불가」와 까닭)`];
+    if (g.결과 === '진행 불가') return g.까닭?.trim() ? [] : [`${이름} — 진행 불가 까닭이 없다`];
+    const 목표 = 목표풀기(g.열쇠);
+    if (목표 === null) return [`${이름} — 열쇠가 틀렸다(비었거나 자리가 둘 이상이거나 같은 상태 이름에 값이 둘)`];
+    if (행들 === null) return [`${이름} — 조작 맵이 없어 길을 볼 수 없다`];
+    const 출발 = 출발고르기(행들, g.출발);
+    if ('까닭' in 출발) return [`${이름} — ${출발.까닭.replace('출발로 준다', '목표의 「출발」 칸에 적는다')}`];
+    return 경로(행들, 목표, 출발.출발).다찾음 ? [] : [`${이름} — 경로 검색이 「확인」 행만으로 길을 다 못 낸다 — 폰에서 통과한 동작을 ${게임자리.새맵행} 에 적었나 본다`];
+  });
+}
+
+const 까닭상한 = 5;
+const 줄자르기 = (글: string, 상한: number) => (글.length > 상한 ? `${글.slice(0, 상한)}…` : 글);
+
+/** 결과 줄 — 작성 결과 요약과 PR 머리에 같은 줄이 실린다. 공개 저장소의 PR 이라 계정 비밀번호가 섞였으면 진행 불가 까닭을 적지 않는다 */
+export function 탐색줄(목표들: 탐색목표[], 비밀: readonly string[]): string {
+  const 확보 = 목표들.filter((g) => g.결과 === '경로 확보').length;
+  const 불가 = 목표들.filter((g) => g.결과 === '진행 불가');
+  const 머리 = `탐색 플레이: 목표 ${String(목표들.length)}개 — 경로 확보 ${String(확보)} · 진행 불가 ${String(불가.length)}`;
+  if (불가.length === 0) return 머리;
+  const 까닭들 = 불가.slice(0, 까닭상한).map((g) => `${줄자르기(g.기능, 40)}(${줄자르기(g.까닭 ?? '', 80)})`);
+  if (계정섞였나(까닭들, 비밀)) return `${머리} — 까닭에 테스트 계정 비밀번호가 들어 있어 안 적음`;
+  return `${머리} — ${까닭들.join(' · ')}${불가.length > 까닭상한 ? ` 외 ${String(불가.length - 까닭상한)}개` : ''}`;
+}
+
+/** 이번 작성이 더한 돌발 팝업 행 — 오류 창을 팝업으로 잘못 올리면 실패가 통과가 되므로 사람이 PR 에서 본다 (§3.10 「돌발 팝업 자동 닫기」) */
+export function 팝업추가줄(앞글: string | null, 새글: string | null, 비밀: readonly string[]): string | null {
+  if (새글 === null) return null;
+  let 새행들: 맵행[];
+  try {
+    새행들 = 새행더하기([], JSON.parse(새글));
+  } catch {
+    return null;
+  }
+  const 팝업 = (r: 맵행) => r.kind === 'POPUP' && r.status === 'OK';
+  const 있던 = new Set(맵읽기(앞글 ?? '').filter(팝업).map((r) => `${r.from}\n${r.action}`));
+  const 더한 = 새행들.filter((r) => 팝업(r) && !있던.has(`${r.from}\n${r.action}`)).map((r) => r.from);
+  if (더한.length === 0) return null;
+  if (계정섞였나(더한, 비밀)) return `돌발 팝업 행 추가 ${String(더한.length)} — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음`;
+  return `돌발 팝업 행 추가 ${String(더한.length)} — ${더한.slice(0, 20).join(', ')}${더한.length > 20 ? ` 외 ${String(더한.length - 20)}개` : ''}`;
+}
+
+/**
+ * 이번 작성이 적은 행(game-route.json)을 올린다. 꼴이 틀려 서버가 거절하면(400) `틀림` 에 자리를 — 체크포인트는 이것으로 멈춘다(고쳐야 다음 작성이 맵을 쓴다).
+ * 서버가 안 받는 그 밖의 경우는 줄에만 적고 간다 — 이 작성은 자료 폴더의 행으로 길을 찾는다(경로 검색이 같이 읽는다)
+ */
+export async function 맵올리기(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<{ 줄: string | null; 틀림: string | null }> {
+  const 글 = 안전히읽기(자료, 게임자리.새맵행, 4_000_000);
+  if (글 === null) return { 줄: null, 틀림: null };
+  let 몸: { rows?: unknown; remove?: unknown };
+  try {
+    몸 = JSON.parse(글) as typeof 몸;
+  } catch {
+    return { 줄: `조작 맵: ${게임자리.새맵행} 을 JSON 으로 못 읽어 안 올림`, 틀림: `${게임자리.새맵행} 을 JSON 으로 못 읽었다` };
+  }
+  // 원문이 아니라 나가는 값을 본다 — 게임 지도 올리기(authoring-game 요소올리기)와 같다
+  const 글자들 = (v: unknown): string[] => (typeof v === 'string' ? [v] : typeof v === 'object' && v !== null ? Object.entries(v).flatMap(([k, x]) => [k, ...글자들(x)]) : []);
+  if (계정섞였나(글자들(몸), 비밀)) return { 줄: '조작 맵: 테스트 계정 비밀번호가 들어 있어 안 올림', 틀림: `${게임자리.새맵행} 에 테스트 계정 비밀번호가 들어 있다` };
+  try {
+    const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/game-route`, { method: 'PUT', body: 몸 });
+    const 수 = (v: unknown) => (Array.isArray(v) ? v.length : 0);
+    if (답.status === 204) return { 줄: `조작 맵: 행 ${String(수(몸.rows))}개 올림${수(몸.remove) > 0 ? ` · ${String(수(몸.remove))}개 지움` : ''}`, 틀림: null };
+    const 자리 = (답.몸 as { detail?: unknown } | null)?.detail;
+    const 왜 = `서버 ${String(답.status)}${typeof 자리 === 'string' ? ` (${자리.slice(0, 100)})` : ''}`;
+    return { 줄: `조작 맵: 못 올림 — ${왜}`, 틀림: 답.status === 400 ? `${게임자리.새맵행} 을 서버가 거절했다 — ${왜}` : null };
+  } catch (e) {
+    return { 줄: `조작 맵: 못 올림 — ${e instanceof Error ? e.message : String(e)}`, 틀림: null };
+  }
+}
+
+/** 체크포인트를 돈다 — 맵 행을 올리고 맵 글을 다시 받은 뒤 목표를 본다. 지나면 결과 줄을 남겨(이어받은 실행이 탐색을 건너뛴다) 돌려준다 */
+export async function 체크포인트돌기(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<{ 줄: string } | { 거절: string }> {
+  const 목표들 = 목표들읽기(안전히읽기(자료, 게임자리.탐색, 파일상한));
+  const 올림 = await 맵올리기(통로, 자료, 비밀);
+  // 다시 받은 맵 글에 서버가 합친 행이 든다. 못 받으면 앞 글에 자료 폴더의 행을 얹어 본다(경로 검색과 같다)
+  const 왜 = await 글받기(통로, 자료, 'game-route', 게임자리.맵);
+  if (왜 !== null) console.error(`[작성] ${String(통로.번호)}번 — 체크포인트 앞에 조작 맵을 다시 못 받았다(자료 폴더의 행으로 본다): ${왜}`);
+  const 맵 = 맵행읽기(자료);
+  const 못지남 = [
+    ...(typeof 목표들 === 'string' ? [목표들] : 체크포인트(목표들, 맵?.행들 ?? null)),
+    ...(올림.틀림 === null ? [] : [올림.틀림]),
+  ];
+  if (못지남.length > 0) return { 거절: `탐색 플레이 체크포인트를 못 지났다 — ${못지남.slice(0, 10).join(' / ')}${못지남.length > 10 ? ` 외 ${String(못지남.length - 10)}개` : ''}` };
+  const 줄 = 탐색줄(목표들 as 탐색목표[], 비밀);
+  try {
+    새로쓰기(join(자료, 게임자리.탐색지남), 줄);
+  } catch (e) {
+    return { 거절: `${게임자리.탐색지남} 을 자료 폴더에 못 썼다 — ${e instanceof Error ? e.message : String(e)}` };
+  }
+  return { 줄 };
+}
+
+/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름) · 더한 돌발 팝업. 탐색을 안 한 작성(미션만)은 빈 목록 */
+export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[], 앞맵글: string | null): Promise<string[]> {
+  const 지남 = 안전히읽기(자료, 게임자리.탐색지남, 파일상한)?.trim();
+  const 올림 = await 맵올리기(통로, 자료, 비밀);
+  return [지남, 올림.줄, 팝업추가줄(앞맵글, 안전히읽기(자료, 게임자리.새맵행, 4_000_000), 비밀)].filter((x): x is string => x !== null && x !== undefined && x !== '');
+}
+
+export interface 띄운결과 {
+  돌린것: 돌린결과;
+  크레딧으로: boolean;
+  /** 앞서 띄운 자식들의 출력 — 토큰을 다 더해 알린다(크레딧 자식 · 탐색 세션) */
+  앞낸것: string[];
+  /** 체크포인트를 못 지났다 — 올리기 거절처럼 멈춘다 */
+  거절?: string;
+}
+type 이어하기 = { 번호: number; 이유: string | null; 까닭: string | null };
+type 한번결과 = { 돌린것: 돌린결과; 크레딧으로: boolean; 앞낸것: string | null };
+
+/**
+ * 자식을 띄운다. 게임 작성(탐색)은 둘로 나눈다 — 첫 세션은 탐색 플레이까지, 체크포인트를 지나면 케이스 작성은 새 세션(이어하기 절 「탐색 플레이를 마침」)이 맵과 파일만 받아 쓴다.
+ * 시간 상한은 없다(2026-11-20 사용자 — 전체 상한을 뺀 2026-10-03 과 같은 까닭). 이미 지난 폴더(이어받음)면 첫 세션을 건너뛴다
+ */
+export async function 세션띄우기(o: {
+  탐색: boolean;
+  통로: 화면통로;
+  자료: string;
+  비밀: readonly string[];
+  이어하기?: 이어하기;
+  한번: (이어하기: 이어하기 | undefined, 탐색?: 탐색단계) => Promise<한번결과>;
+  거두기: () => Promise<boolean>;
+  멈추라했다: () => boolean;
+  알린다: (글: string) => void;
+}): Promise<띄운결과> {
+  const 펴기 = (r: 한번결과, 앞: string[] = []): 띄운결과 => ({ ...r, 앞낸것: [...앞, ...(r.앞낸것 === null ? [] : [r.앞낸것])] });
+  if (!o.탐색) return 펴기(await o.한번(o.이어하기));
+  const 지난줄 = 안전히읽기(o.자료, 게임자리.탐색지남, 파일상한)?.trim();
+  if (지난줄) return 펴기(await o.한번(o.이어하기, { 끝: 지난줄 }));
+  const 첫 = await o.한번(o.이어하기, { 까지: true });
+  // 멈춤 · 시간초과 · 끊김 · 못 띄움은 지금처럼 끝낸다 — 폴더가 남아 이어하기가 탐색부터 잇는다
+  if (첫.돌린것.코드 === null || 끝낼상태(첫.돌린것, false) !== null) return 펴기(첫);
+  if (!(await o.거두기())) return 펴기(첫);
+  const 판 = await 체크포인트돌기(o.통로, o.자료, o.비밀);
+  if ('거절' in 판) return { ...펴기(첫), 거절: 판.거절 };
+  if (o.멈추라했다()) return 펴기({ ...첫, 돌린것: { ...첫.돌린것, 멈춤으로죽음: true } });
+  o.알린다(`탐색 플레이 체크포인트를 지났다(${판.줄}) — 케이스 작성은 새 세션으로 띄운다`);
+  const 둘 = await o.한번({ 번호: o.통로.번호, 이유: 'EXPLORED', 까닭: null }, { 끝: 판.줄 });
+  return 펴기(둘, [...(첫.앞낸것 === null ? [] : [첫.앞낸것]), 첫.돌린것.낸것]);
+}
+
+/** 0 지남 · 1 못 지남 · 2 부를 수 없음 — 자식이 첫 세션을 끝내기 전에 부른다. 맵은 올리지 않고 자료 폴더의 행으로 본다 */
+export function 실행(인자: string[]): number {
+  const [자료] = 인자;
+  if (자료 === undefined) {
+    console.error('쓰는 법: npx tsx scripts/authoring-explore.ts <자료 폴더>');
+    return 2;
+  }
+  const 목표들 = 목표들읽기(안전히읽기(자료, 게임자리.탐색, 파일상한));
+  if (typeof 목표들 === 'string') {
+    console.error(`[탐색 플레이] ${목표들}`);
+    return 1;
+  }
+  const 맵 = 맵행읽기(자료);
+  const 못지남 = [...체크포인트(목표들, 맵?.행들 ?? null), ...(맵?.틀림 ? [맵.틀림] : [])];
+  for (const 줄 of 못지남) console.log(`못 지남: ${줄}`);
+  console.log(못지남.length === 0 ? 탐색줄(목표들, []) : `[탐색 플레이] 체크포인트를 못 지났다 — ${String(못지남.length)}건을 고친다`);
+  return 못지남.length === 0 ? 0 : 1;
+}
+
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  process.exitCode = 실행(process.argv.slice(2));
+}

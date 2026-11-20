@@ -1,4 +1,4 @@
-// 게임 작성의 앞뒤 — 창 기록 저장본 · 게임 지도 · 조작 맵 받기, 훑은 창 중 바뀐 것만 올리기 · 못 본 창은 안 지우기 · 비밀번호 든 기록 막기, 게임 지도 요소 올리기, 화면만이 찾은 창이 다 덮였나 · 바뀐 창
+// 게임 작성의 앞뒤 — 창 기록 저장본 · 게임 지도 · 조작 맵 받기(받은 맵 글을 돌려준다), 훑은 창 중 바뀐 것만 올리기 · 못 본 창은 안 지우기 · 비밀번호 든 기록 막기, 게임 지도 요소 올리기, 화면만이 찾은 창이 다 덮였나 · 바뀐 창
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -45,8 +45,9 @@ describe('게임준비', () => {
       'GET /game-route': { status: 200, 몸: { text: '# 조작 맵 — 행 1개\n\n## 상태 설정 (SETUP) — 1행\n- zone:Town → /gm killall → state:몬스터 없음 · 확인\n' } },
     });
 
-    await 게임준비(통로, 자료);
+    const 받은맵 = await 게임준비(통로, 자료);
 
+    expect(받은맵).toContain('- zone:Town → /gm killall → state:몬스터 없음 · 확인');
     expect(JSON.parse(readFileSync(join(자료, 'game-kept', 'index.json'), 'utf8'))).toEqual([
       { 상태: '로그아웃', 키: 'game:Login', 지문: 'aa01', 글자지문: 'bb01', 훑은날: '2026-10-20', 기록: '001.yml' },
     ]);
@@ -62,7 +63,7 @@ describe('게임준비', () => {
     writeFileSync(join(자료, 'game-route.txt'), '옛 맵');
     서버({});
 
-    await expect(게임준비(통로, 자료)).resolves.toBeUndefined();
+    await expect(게임준비(통로, 자료)).resolves.toBeNull();
 
     expect(existsSync(join(자료, 'game-kept'))).toBe(false);
     expect(existsSync(join(자료, 'game-map.txt'))).toBe(false);

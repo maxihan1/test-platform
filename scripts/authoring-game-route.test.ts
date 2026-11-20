@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import { type 읽은행, 맵글짓기 } from '../apps/admin/src/prd/gameRoute.js';
-import { 경로, 맵읽기, 실행 } from './authoring-game-route.js';
+import { 경로, 맵읽기, 목표풀기, 새행더하기, 실행 } from './authoring-game-route.js';
 
 const 행 = (x: Partial<읽은행> & Pick<읽은행, 'kind' | 'from_key' | 'action'>): 읽은행 => ({
   to_key: null, helper: null, duration_ms: null, warning: null, fields: null, status: 'OK', reason: null, build_no: null, ...x,
@@ -219,5 +219,59 @@ describe('실행', () => {
       찍음.mockRestore();
       오류.mockRestore();
     }
+  });
+});
+
+describe('새행더하기 — 이번 작성이 적은 행(game-route.json)을 맵에 얹는다', () => {
+  it('같은 행은 새 행이 이기고 remove 는 빼고 꼴이 틀린 행은 건너뛴다 — 새 행 줄은 서버 맵 글과 같은 꼴이다', () => {
+    const 얹은 = 새행더하기(행들, {
+      rows: [
+        { kind: 'MOVE', fromKey: 'game:Main', action: '상점 버튼', toKey: 'game:Main/Canvas/Shop', status: 'OK', buildNo: '16', durationMs: 800, fields: { fn: '상점.열기()', 진행값: '없음' } },
+        { kind: 'MOVE', fromKey: 'zone:Raid', action: '레이드 들어가기', status: 'BLOCKED', reason: '두 번째 계정 없음' },
+        { kind: 'NOPE', fromKey: 'game:Main', action: 'x', status: 'OK' },
+        { kind: 'MOVE', fromKey: 'game:Main', action: 'y', status: 'RECHECK' },
+      ],
+      remove: [{ kind: 'TERM', fromKey: '대장장이', action: '대장장이 브론' }],
+    });
+    expect(얹은).toHaveLength(행들.length - 1);
+    expect(얹은.find((r) => r.action === '상점 버튼')).toEqual({
+      kind: 'MOVE', from: 'game:Main', action: '상점 버튼', to: 'game:Main/Canvas/Shop', status: 'OK', warning: null,
+      line: 'game:Main → 상점 버튼 → game:Main/Canvas/Shop · 확인 · 빌드 16 · 소요 800ms · 함수 상점.열기() · 칸 {"진행값":"없음"}',
+    });
+    expect(얹은.find((r) => r.from === 'zone:Raid')?.line).toBe('zone:Raid → 레이드 들어가기 · 진행 불가 — 두 번째 계정 없음');
+    expect(얹은.some((r) => r.kind === 'TERM')).toBe(false);
+    expect(새행더하기(행들, null)).toEqual(행들);
+  });
+
+  it('경로 검색 명령이 자료 폴더의 새 행으로 길을 낸다 — JSON 이 깨졌으면 알리고 받은 맵만 쓴다', () => {
+    const 폴더 = mkdtempSync(join(tmpdir(), 'game-route-new-'));
+    const 찍음 = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      writeFileSync(join(폴더, 'game-route.txt'), 맵);
+      expect(실행([폴더, 'game:Main/Canvas/Shop/Upgrade'])).toBe(1);
+      writeFileSync(join(폴더, 'game-route.json'), JSON.stringify({ rows: [{ kind: 'MOVE', fromKey: 'game:Main', action: '상점 버튼', toKey: 'game:Main/Canvas/Shop', status: 'OK' }] }));
+      expect(실행([폴더, 'game:Main/Canvas/Shop/Upgrade'])).toBe(0);
+      expect(찍음.mock.calls.at(-1)?.[0]).toContain('1. [이동 · 조작] game:Main → 상점 버튼 → game:Main/Canvas/Shop · 확인');
+      writeFileSync(join(폴더, 'game-route.json'), '{');
+      expect(실행([폴더, 'game:Main/Canvas/Shop/Upgrade'])).toBe(1);
+      expect(오류.mock.calls.some(([x]) => String(x).includes('game-route.json 을 JSON 으로 못 읽었다'))).toBe(true);
+      rmSync(join(폴더, 'game-route.txt'));
+      writeFileSync(join(폴더, 'game-route.json'), JSON.stringify({ rows: [{ kind: 'MOVE', fromKey: 'game:Main', action: '가기', toKey: 'zone:A', status: 'OK' }] }));
+      expect(실행([폴더, 'zone:A'])).toBe(0);
+    } finally {
+      찍음.mockRestore();
+      오류.mockRestore();
+      rmSync(폴더, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('목표풀기', () => {
+  it('상태 묶음을 합치고 자리는 하나만 — 비었거나 자리가 둘이거나 같은 이름에 값이 둘이면 null', () => {
+    expect(목표풀기(['state:레벨=1,몬스터 없음', 'state:직업=탱커', 'zone:Dungeon'])).toEqual({ 상태: ['레벨=1', '몬스터 없음', '직업=탱커'], 자리: 'zone:Dungeon' });
+    expect(목표풀기([])).toBeNull();
+    expect(목표풀기(['zone:A', 'zone:B'])).toBeNull();
+    expect(목표풀기(['state:레벨=1', 'state:레벨=2'])).toBeNull();
   });
 });

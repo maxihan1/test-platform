@@ -204,3 +204,34 @@ describe('줄프롬프트 — 서비스 지도 절 (§3.6 「서비스 지도」
     }
   });
 });
+
+describe('줄프롬프트 — 탐색 플레이 (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」 · GAME-F5-05)', () => {
+  const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
+  const 게임 = { 글: '/w/자료/game-screen.txt', 게임: true as const };
+  const 부르기 = (탐색?: { 까지: true } | { 끝: string }, 이어하기?: { 번호: number; 이유: string | null; 까닭: string | null }) =>
+    줄프롬프트(것, 'ASH', [], undefined, undefined, 이어하기, undefined, undefined, undefined, undefined, undefined, undefined, 게임, '/w/자료', undefined, 탐색);
+
+  it('첫 세션은 탐색 플레이까지만 — 목표 파일을 먼저 적고 경로 검색 · 맵 행 · 스스로 검사 뒤 케이스 없이 끝내라고 싣는다', () => {
+    const 절 = 부르기({ 까지: true }).split('--- 탐색 플레이 ---')[1] ?? '';
+    expect(절).toContain('`[단계] 탐색 플레이`');
+    expect(절).toContain('요구별 케이스 목록 · 케이스는 쓰지 마라');
+    expect(절).toContain('`/w/자료/game-explore.json` 에 먼저 적는다');
+    expect(절).toContain('`npx tsx scripts/authoring-game-route.ts /w/자료 <열쇠…>`');
+    expect(절).toContain('`/w/자료/game-route.json` 에 행을 적는다');
+    expect(절).toContain('`npx tsx scripts/authoring-explore.ts /w/자료` 가 0 으로 끝날 때까지');
+    expect(절).toContain('시간 상한은 없다');
+  });
+
+  it('체크포인트를 지난 세션은 탐색을 다시 하지 않고 케이스 목록부터 — 결과 줄을 결과 요약에 그대로 넣으라고 싣는다', () => {
+    const 글 = 부르기({ 끝: '탐색 플레이: 목표 2개 — 경로 확보 2 · 진행 불가 0' }, { 번호: 1, 이유: 'EXPLORED', 까닭: null });
+    expect(글).toContain('멈춘 까닭: 탐색 플레이를 마침');
+    const 절 = 글.split('--- 탐색 플레이 ---')[1] ?? '';
+    expect(절).toContain('창 훑기 · 탐색 플레이를 다시 하지 말고 「요구별 케이스 목록 쓰기」부터');
+    expect(절).toContain('fields.fn');
+    expect(절).toContain('결과 요약에 이 줄을 그대로 넣어라: 탐색 플레이: 목표 2개 — 경로 확보 2 · 진행 불가 0');
+  });
+
+  it('탐색을 안 하는 작성에는 절이 없다', () => {
+    expect(부르기()).not.toContain('--- 탐색 플레이 ---');
+  });
+});

@@ -1,8 +1,9 @@
-// 돌려 보기 폰 갈래가 케이스에 넘기는 환경값 — 갈 서버 · 폰 · PC 게임 이름 · 패드, 그리고 PC 게임 케이스를 윈도우 값마다 나누는 규칙 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
+// 돌려 보기 폰 갈래가 케이스에 넘기는 환경값 — 갈 서버 · 폰 · 돌발 팝업 · PC 게임 이름 · 패드, 그리고 PC 게임 케이스를 윈도우 값마다 나누는 규칙 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
 
 import { PC_PLATFORMS, PC항목인가 } from '@platform/kit/types';
 
 import type { 돌린판 } from './authoring-gate3.js';
+import { type 맵행, 맵행읽기 } from './authoring-game-route.js';
 import { type 판정, 판정하기, 한판들 } from './authoring-phone-split.js';
 
 /** 폰에서 도는 두 갈래 — 게임은 control-cli, 앱은 appium-cli 로 AI 가 폰을 잡는다 */
@@ -27,6 +28,25 @@ export function 앱줄주소(env: NodeJS.ProcessEnv, 계정먼저 = false): stri
 /** kit 이 팜 폰에 붙는 환경값 — 정식 실행의 러너(execute.ts gameEnv)와 같다. 앱도 셋 다 적는다 — 셸의 게임 값을 물려받으면 kit 이 게임 설정으로 붙는다 */
 export const 게임환경 = (폰: string): Record<string, string> => ({ PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm', PLATFORM_DEVICE_UDID: 폰 });
 export const 폰환경 = (갈래: 폰갈래, 폰: string): Record<string, string> => (갈래 === '게임' ? 게임환경(폰) : { PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_DEVICE_UDID: 폰 });
+
+/** 맵의 「확인」 돌발 팝업 행을 실행 요청 꼴로 — 창 열쇠의 장면 머리를 떼고(서버 돌발팝업들과 같다) 제어 문자 · 200자 넘는 행은 빼고 100개까지 (GAME-F5-03 · 05) */
+export function 맵돌발팝업(행들: readonly 맵행[]): { window: string; close: string }[] {
+  const 실을주소 = (v: string): boolean => v.length <= 200 && ![...v].some((c) => c < ' ');
+  return 행들
+    .filter((r) => r.kind === 'POPUP' && r.status === 'OK')
+    .map((r) => ({ window: /^game:[^/]*(\/.+)$/.exec(r.from)?.[1] ?? r.from, close: r.action }))
+    .filter((p) => 실을주소(p.window) && 실을주소(p.close))
+    .slice(0, 100);
+}
+
+/**
+ * 작성 돌려 보기에 넘길 돌발 팝업(PLATFORM_GAME_POPUPS) — 정식 실행처럼 kit 이 막힌 동작에서 닫게 한다. 자료 폴더의 조작 맵 글과 이번 작성이 적은 행의 「확인」 팝업.
+ * 없으면 빈 값 — 앱 갈래도 빈 값을 넘겨 셸의 게임 값을 덮는다 (도메인/게임 §3.10 「돌발 팝업 자동 닫기」 · GAME-F5-05)
+ */
+export function 돌발팝업값(자료: string | undefined): string {
+  const 들 = 자료 ? 맵돌발팝업(맵행읽기(자료)?.행들 ?? []) : [];
+  return 들.length === 0 ? '' : JSON.stringify(들);
+}
 
 /** PC 게임은 kit 이 VISION 에 게임을 켜고 패드를 정한다 — 정식 실행의 러너(itemEnv gameEnv)와 같은 값 */
 export const PC환경 = (값: string, 게임: string): Record<string, string> => ({ PLATFORM_PC_GAME: 게임, PLATFORM_PAD: 값 === 'windows' ? '' : 값.slice('windows-'.length) });
