@@ -116,7 +116,7 @@ describe('탐색줄', () => {
 });
 
 describe('팝업추가줄', () => {
-  it('이번 작성이 적은 「확인」 팝업을 다 센다 — 맵에 있던 창을 다시 적었어도 사람이 보게 싣는다', () => {
+  it('이번 작성이 적은 「확인」 팝업을 다 센다 — 올리지 않은 행이라 맵에 있던 창을 다시 적었어도 싣는다', () => {
     const 새글 = JSON.stringify({
       rows: [
         { kind: 'POPUP', fromKey: 'game:Main/Canvas/Invite', action: '/Canvas/Invite/Decline', status: 'OK' },
@@ -124,8 +124,8 @@ describe('팝업추가줄', () => {
         { kind: 'POPUP', fromKey: 'game:Main/Canvas/Error', action: '/Canvas/Error/Ok', status: 'BLOCKED', reason: '닫는 버튼 없음' },
       ],
     });
-    expect(팝업추가줄(새글, [])).toBe('돌발 팝업 행 추가 2 — game:Main/Canvas/Invite, game:Main/Canvas/Event');
-    expect(팝업추가줄(새글, ['/Canvas/Event'])).toBe('돌발 팝업 행 추가 2 — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음');
+    expect(팝업추가줄(새글, [])).toBe('올리지 않은 돌발 팝업 행 2 — game:Main/Canvas/Invite, game:Main/Canvas/Event');
+    expect(팝업추가줄(새글, ['/Canvas/Event'])).toBe('올리지 않은 돌발 팝업 행 2 — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음');
     expect(팝업추가줄(null, [])).toBeNull();
     expect(팝업추가줄('{', [])).toBeNull();
     expect(팝업추가줄(JSON.stringify({ rows: [상점행] }), [])).toBeNull();
@@ -144,6 +144,14 @@ describe('맵올리기', () => {
     쓰기('game-route.json', { rows: [상점행], remove: [{ kind: 'MOVE', fromKey: 'game:Main', action: '옛 버튼' }] });
     expect(await 맵올리기(통로, 자료, [])).toEqual({ 줄: '조작 맵: 행 1개 올림 · 1개 지움', 틀림: null });
     expect(JSON.parse((부름.mock.calls[0] as [string, RequestInit])[1].body as string)).toMatchObject({ rows: [상점행] });
+  });
+
+  it('돌발 팝업 행은 넣지도 지우지도 않는다 — PR 을 보기 전에 정식 실행이 그 창을 닫지 않게', async () => {
+    서버({ 'PUT /game-route': { status: 204 } });
+    const 팝업 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Error', action: '/Canvas/Error/Ok', status: 'OK' };
+    쓰기('game-route.json', { rows: [상점행, 팝업], remove: [{ kind: 'POPUP', fromKey: 'game:Main/Canvas/Invite', action: '/Canvas/Invite/Decline' }] });
+    expect(await 맵올리기(통로, 자료, [])).toEqual({ 줄: '조작 맵: 행 1개 올림', 틀림: null });
+    expect(JSON.parse((부름.mock.calls[0] as [string, RequestInit])[1].body as string)).toEqual({ rows: [상점행], remove: [] });
   });
 
   it('서버가 꼴로 거절하면(400) 체크포인트를 멈출 틀림을, 그 밖의 실패는 줄만 남긴다', async () => {

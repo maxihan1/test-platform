@@ -89,8 +89,7 @@ export function 탐색줄(목표들: 탐색목표[], 비밀: readonly string[]):
 }
 
 /**
- * 이번 작성이 적은 「확인」 돌발 팝업 행(game-route.json) — 오류 창을 팝업으로 잘못 올리면 실패가 통과가 되므로 사람이 PR 에서 본다 (§3.10 「돌발 팝업 자동 닫기」).
- * 맵에 있던 창을 다시 적은 것도 센다 — 받은 맵과 견주면 체크포인트에서 이미 올린 뒤 이어받은 실행이 그 창을 못 센다
+ * 이번 작성이 적은 「확인」 돌발 팝업 행(game-route.json) — 서버에 올리지 않고 PR 머리에만 싣는다(아래 맵올리기). 맵에 있던 창을 다시 적은 것도 센다 (§3.10 「돌발 팝업 자동 닫기」)
  */
 export function 팝업추가줄(새글: string | null, 비밀: readonly string[]): string | null {
   if (새글 === null) return null;
@@ -102,12 +101,14 @@ export function 팝업추가줄(새글: string | null, 비밀: readonly string[]
   }
   const 창들 = 새행들.filter((r) => r.kind === 'POPUP' && r.status === 'OK').map((r) => r.from);
   if (창들.length === 0) return null;
-  if (계정섞였나(창들, 비밀)) return `돌발 팝업 행 추가 ${String(창들.length)} — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음`;
-  return `돌발 팝업 행 추가 ${String(창들.length)} — ${창들.slice(0, 20).join(', ')}${창들.length > 20 ? ` 외 ${String(창들.length - 20)}개` : ''}`;
+  if (계정섞였나(창들, 비밀)) return `올리지 않은 돌발 팝업 행 ${String(창들.length)} — 창 주소에 테스트 계정 비밀번호가 들어 있어 안 적음`;
+  return `올리지 않은 돌발 팝업 행 ${String(창들.length)} — ${창들.slice(0, 20).join(', ')}${창들.length > 20 ? ` 외 ${String(창들.length - 20)}개` : ''}`;
 }
 
 /**
- * 이번 작성이 적은 행(game-route.json)을 올린다. 꼴이 틀려 서버가 거절하면(400) `틀림` 에 자리를 — 체크포인트는 이것으로 멈춘다(고쳐야 다음 작성이 맵을 쓴다).
+ * 이번 작성이 적은 행(game-route.json)을 올린다. 돌발 팝업 행은 넣지도 지우지도 않는다 — 올리는 순간 다음 정식 실행부터 kit 이 그 창을 닫아,
+ * 오류 창을 팝업으로 잘못 적으면 PR 을 보기도 전에 실패가 통과가 된다(2026-11-20 사용자 · 병합 뒤 올리는 길은 진행판 GAME-F5-15). 이 작성의 돌려 보기는 자료 폴더의 행으로 쓴다.
+ * 꼴이 틀려 서버가 거절하면(400) `틀림` 에 자리를 — 체크포인트는 이것으로 멈춘다(고쳐야 다음 작성이 맵을 쓴다).
  * 서버가 안 받는 그 밖의 경우는 줄에만 적고 간다 — 이 작성은 자료 폴더의 행으로 길을 찾는다(경로 검색이 같이 읽는다)
  */
 export async function 맵올리기(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<{ 줄: string | null; 틀림: string | null }> {
@@ -120,13 +121,15 @@ export async function 맵올리기(통로: 화면통로, 자료: string, 비밀:
   } catch {
     return { 줄: `조작 맵: ${게임자리.새맵행} 을 JSON 으로 못 읽어 안 올림`, 틀림: `${게임자리.새맵행} 을 JSON 으로 못 읽었다` };
   }
+  const 팝업빼기 = (v: unknown) => (Array.isArray(v) ? v.filter((x) => (x as { kind?: unknown } | null)?.kind !== 'POPUP') : v);
+  const 보낼 = { ...몸, rows: 팝업빼기(몸.rows), ...(몸.remove === undefined ? {} : { remove: 팝업빼기(몸.remove) }) };
   // 원문이 아니라 나가는 값을 본다 — 게임 지도 올리기(authoring-game 요소올리기)와 같다
   const 글자들 = (v: unknown): string[] => (typeof v === 'string' ? [v] : typeof v === 'object' && v !== null ? Object.entries(v).flatMap(([k, x]) => [k, ...글자들(x)]) : []);
-  if (계정섞였나(글자들(몸), 비밀)) return { 줄: '조작 맵: 테스트 계정 비밀번호가 들어 있어 안 올림', 틀림: `${게임자리.새맵행} 에 테스트 계정 비밀번호가 들어 있다` };
+  if (계정섞였나(글자들(보낼), 비밀)) return { 줄: '조작 맵: 테스트 계정 비밀번호가 들어 있어 안 올림', 틀림: `${게임자리.새맵행} 에 테스트 계정 비밀번호가 들어 있다` };
   try {
-    const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/game-route`, { method: 'PUT', body: 몸 });
+    const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/game-route`, { method: 'PUT', body: 보낼 });
     const 수 = (v: unknown) => (Array.isArray(v) ? v.length : 0);
-    if (답.status === 204) return { 줄: `조작 맵: 행 ${String(수(몸.rows))}개 올림${수(몸.remove) > 0 ? ` · ${String(수(몸.remove))}개 지움` : ''}`, 틀림: null };
+    if (답.status === 204) return { 줄: `조작 맵: 행 ${String(수(보낼.rows))}개 올림${수(보낼.remove) > 0 ? ` · ${String(수(보낼.remove))}개 지움` : ''}`, 틀림: null };
     const 자리 = (답.몸 as { detail?: unknown } | null)?.detail;
     const 왜 = `서버 ${String(답.status)}${typeof 자리 === 'string' ? ` (${자리.slice(0, 100)})` : ''}`;
     return { 줄: `조작 맵: 못 올림 — ${왜}`, 틀림: 답.status === 400 ? `${게임자리.새맵행} 을 서버가 거절했다 — ${왜}` : null };
@@ -157,7 +160,7 @@ export async function 체크포인트돌기(통로: 화면통로, 자료: string
   return { 줄 };
 }
 
-/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름) · 적은 돌발 팝업. 탐색을 안 한 작성(미션만)은 빈 목록 */
+/** 작성 끝에 PR 머리에 싣는 줄 — 결과 줄 · 맵 다시 올리기(케이스 작성이 채운 함수 이름) · 올리지 않은 돌발 팝업. 탐색을 안 한 작성(미션만)은 빈 목록 */
 export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<string[]> {
   const 지남 = 안전히읽기(자료, 게임자리.탐색지남, 파일상한)?.trim();
   const 올림 = await 맵올리기(통로, 자료, 비밀);
