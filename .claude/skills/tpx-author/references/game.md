@@ -41,6 +41,7 @@ npx control-cli -s=g snapshot            # 줄인 트리 파일 + 스크린샷
 npx control-cli -s=g click LoginButton   # Ran: await game.click('LoginButton') + 새 화면 파일
 npx control-cli -s=g touch-down Skill1   # 손가락을 눌러 둔다 → Ran: await game.touchDown('Skill1') + 「손가락 <번호>」. 눌러 둔 채 snapshot 으로 말풍선을 읽고 touch-up <그 번호> 로 뗀다(주소로만 — 좌표로 부르면 Ran 줄이 안 나온다).
                                          # touch-up 의 Ran 줄(번호가 박힌 꼴)은 케이스에 옮기지 않는다 — 케이스는 touchDown 이 돌려준 값을 받아 finally 에서 뗀다(`tpx-cases` `references/game.md` §1)
+npx control-cli -s=g mouse-move Skill1   # PC — 가짜 마우스를 올린다 → Ran: await game.mouseMove('Skill1'). 오른쪽 클릭은 이 뒤 key Mouse1, 휠은 scroll <주소> <칸> → Ran: await game.scroll(<칸>, { at: '<주소>' })(`tpx-cases` `references/game.md` §8)
 npx control-cli -s=g close
 npx control-cli release                  # 반드시 — 놓아야 팜이 깐 게임 · 데이터를 지우고 정식 실행이 폰을 잡는다
 ```
