@@ -10,6 +10,7 @@ import { 친구파티창 } from '../pages/friend.page.js';
 import { 길드창 } from '../pages/guild.page.js';
 
 import { 게임다시켜기, 로비로 } from './game-enter.helper.js';
+import { 회색인가 as 색값회색인가 } from './login-tools.helper.js';
 import type { 앱제어 } from './game-enter.helper.js';
 import { 봇기록, 봇기록기다리기, 봇끄기, 봇시키기, 봇줄글, 봇켜기, 접속자 } from './game-state.helper.js';
 import type { 계정 } from './game-state.helper.js';
@@ -271,7 +272,7 @@ export function 초록인가(색: string | null): boolean {
 
 export function 회색인가(색: string | null): boolean {
   const 값 = 채널값(색);
-  return 값 !== null && Math.max(...값) - Math.min(...값) <= 40;
+  return 값 !== null && 색값회색인가({ r: 값[0] / 255, g: 값[1] / 255, b: 값[2] / 255, a: 1 });
 }
 
 export function 금색인가(색: string | null): boolean {

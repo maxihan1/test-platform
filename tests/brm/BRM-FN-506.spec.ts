@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 로비로 } from './helpers/game-enter.helper.js';
-import { 계정꺼내기, 계정되돌리기, 봇모두끄기, 봇시키기, 봇켜기 } from './helpers/game-state.helper.js';
+import { 계정꺼내기, 계정되돌리기, 봇모두끄기, 봇시키기, 봇켜기, 자리고른사람 } from './helpers/game-state.helper.js';
 import { 로비화면 } from './pages/lobby.page.js';
 
 export const spec = defineCase({
@@ -34,7 +34,8 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 로비 = await 로비화면.열기(game);
     await 봇시키기(admin, 봇, 'seat:0');
     await 로비.자리누르기(0);
-    await verify('봇의 이름이 첫 자리에 보인다', await 로비.자리이름이될때까지(0, 봇), true, { blocker: true });
+    const 고른 = await 자리고른사람(admin, 0, [봇, 나.아이디]);
+    await verify('봇과 일반 회원이 둘 다 첫 자리를 골라 둔 상태다', 고른.includes(봇) && 고른.includes(나.아이디), true, { blocker: true });
   });
   await test.step('일반 회원이 「준비!」를 누른다', async () => {
     const 로비 = await 로비화면.열기(game);

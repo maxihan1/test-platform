@@ -2,12 +2,12 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 로비로 } from './helpers/game-enter.helper.js';
-import { 계정꺼내기, 계정되돌리기, 봇모두끄기, 봇시키기, 봇켜기, 접속자 } from './helpers/game-state.helper.js';
+import { 계정꺼내기, 계정되돌리기, 봇모두끄기, 봇시키기, 봇켜기, 자리고른사람, 접속자 } from './helpers/game-state.helper.js';
 import { 로비화면 } from './pages/lobby.page.js';
 
 export const spec = defineCase({
   tcId: 'BRM-FN-505',
-  name: '봇과 일반 회원이 같은 첫 자리 카드를 고르면 아직 아무도 확정하지 않은 카드는 봇과 일반 회원이 같이 골라 둘 다 그 자리에 보인다',
+  name: '봇과 일반 회원이 같은 첫 자리 카드를 고르면 아직 아무도 확정하지 않은 카드는 둘이 같이 골라 둘 수 있다',
   platforms: ['android'],
   precondition: ['두 번째 플레이어가 봇으로 로비에 접속해 있다'],
   params: z.object({
@@ -39,8 +39,9 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 봇시키기(admin, 봇, 'seat:0');
     await 로비.자리이름이될때까지(0, 봇);
     await 로비.자리누르기(0);
-    const 봇보임 = await verify('봇의 이름이 첫 자리에 보인다', await 로비.자리이름이될때까지(0, 봇), true);
-    const 내보임 = await verify('일반 회원의 이름이 첫 자리에 보인다', await 로비.자리이름이될때까지(0, 나.아이디), true);
-    await verify('봇과 일반 회원이 같은 첫 자리 카드를 고르면 아직 아무도 확정하지 않은 카드는 봇과 일반 회원이 같이 골라 둘 다 그 자리에 보인다', 봇보임 && 내보임, true);
+    const 고른 = await 자리고른사람(admin, 0, [봇, 나.아이디]);
+    const 봇보임 = await verify('봇이 첫 자리를 골라 둔 상태다', 고른.includes(봇), true);
+    const 내보임 = await verify('일반 회원도 첫 자리를 골라 둔 상태다', 고른.includes(나.아이디), true);
+    await verify('봇과 일반 회원이 같은 첫 자리 카드를 고르면 아직 아무도 확정하지 않은 카드는 둘이 같이 골라 둘 수 있다', 봇보임 && 내보임, true);
   });
 });

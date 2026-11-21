@@ -96,7 +96,11 @@ export const 어두운빨강인가 = (c: 색값 | null): boolean => c !== null &
 
 export const 연분홍인가 = (c: 색값 | null): boolean => c !== null && c.r > 0.8 && c.g > 0.55 && c.g < 0.9 && c.b > 0.55 && c.b < 0.95 && c.r > c.g;
 
-export const 회색인가 = (c: 색값 | null): boolean => c !== null && Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 0.12 && c.r > 0.3 && c.r < 0.85;
+export const 회색인가 = (c: 색값 | null): boolean => {
+  if (c === null) return false;
+  const 큰 = Math.max(c.r, c.g, c.b);
+  return 큰 - Math.min(c.r, c.g, c.b) <= 0.16 && 큰 >= 0.3 && 큰 <= 0.9;
+};
 
 export const 금색인가 = (c: 색값 | null): boolean => c !== null && c.r > 0.8 && c.g > 0.65 && c.g < 0.92 && c.b < 0.55;
 

@@ -9,7 +9,8 @@ import { 퀘스트창 } from '../pages/quest.page.js';
 import { 상점창 } from '../pages/shop.page.js';
 
 import { 게임다시켜기, 던전으로, 로비로 } from './game-enter.helper.js';
-import { 토스트글들 } from './login-tools.helper.js';
+import { 토스트글들, 회색인가 as 색값회색인가, 글자색 as 화면글자색 } from './login-tools.helper.js';
+import type { 색값 } from './login-tools.helper.js';
 import type { 앱제어 } from './game-enter.helper.js';
 import { GM자료, 불러내기, 봇기록, 봇기록기다리기, 봇시키기, 봇줄글, 봇켜기, 적모두처치, 접속끊기, 지급이력, 열린창닫기, 우편보내기, 캐릭터 } from './game-state.helper.js';
 import type { 계정 } from './game-state.helper.js';
@@ -184,6 +185,7 @@ export async function 장착하기(game: GameDriver, 이름: string): Promise<vo
   await 가방.줄버튼누르기(await 가방줄(가방, 이름), '장착');
   if (!(await new 공통HUD(game).알림뜸(`${이름} 장착`))) throw new Error(`${이름} 장착 알림이 뜨지 않았습니다`);
   if (!(await 알림사라질때까지(game, `${이름} 장착`))) throw new Error(`${이름} 장착 알림이 사라지지 않았습니다`);
+  await 열린창닫기(game);
 }
 
 export async function 사기(game: GameDriver, 이름: string): Promise<void> {
@@ -212,17 +214,23 @@ export function 글자색(원문: string): string | null {
   return 맞음 === null ? null : (맞음[1] ?? '').toUpperCase();
 }
 
+function 색값이름(c: 색값): string {
+  if (색값회색인가(c)) return '회색';
+  if (c.r > 0.59 && c.g < 0.51 && c.b < 0.51) return '빨강';
+  if (c.g > c.r && c.g > c.b) return '초록';
+  if (c.r > 0.78 && c.g > 0.59 && c.b < 0.51 && c.r >= c.g) return '금색';
+  return '그 밖의 색';
+}
+
 export function 색이름(원문: string): string {
   const 색 = 글자색(원문);
   if (색 === null) return '색 없음';
-  const r = parseInt(색.slice(1, 3), 16);
-  const g = parseInt(색.slice(3, 5), 16);
-  const b = parseInt(색.slice(5, 7), 16);
-  if (Math.max(r, g, b) - Math.min(r, g, b) <= 40) return '회색';
-  if (r > 150 && g < 130 && b < 130) return '빨강';
-  if (g > r && g > b) return '초록';
-  if (r > 200 && g > 150 && b < 130 && r >= g) return '금색';
-  return '그 밖의 색';
+  return 색값이름({ r: parseInt(색.slice(1, 3), 16) / 255, g: parseInt(색.slice(3, 5), 16) / 255, b: parseInt(색.slice(5, 7), 16) / 255, a: 1 });
+}
+
+export async function 글자색이름(game: GameDriver, 주소: string): Promise<string> {
+  const 색 = await 화면글자색(game, 주소);
+  return 색 === null ? '색 없음' : 색값이름(색);
 }
 
 export function 표줄풀기(글: string): 표줄 {

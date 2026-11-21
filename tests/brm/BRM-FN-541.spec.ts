@@ -2,13 +2,14 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 색이름, 우편보내고우편함열기 } from './helpers/items-tools.helper.js';
+import { 글자색이름, 우편보내고우편함열기 } from './helpers/items-tools.helper.js';
+import { 우편함창 } from './pages/mail.page.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 
 export const spec = defineCase({
   tcId: 'BRM-FN-541',
-  name: '첨부가 있으면 금색 「첨부: 체력 물약 x1, 10 골드」, 없으면 회색 「첨부 없음」이 보인다',
+  name: '첨부가 있으면 금색 「첨부: 체력 물약, 10 골드」, 없으면 회색 「첨부 없음」이 보인다',
   platforms: ['android'],
   precondition: ['두 번째 플레이어로 로비에 들어와 있다'],
   elements: ['item:체력 물약'],
@@ -40,10 +41,10 @@ test(spec, async ({ game, driver, admin, params }) => {
     await verify('골드를 받아 「QA 우편 541 없음」 줄이 「첨부 없음」이 된다', await 함.줄첨부가될때까지(비울줄, '첨부 없음'), true, { blocker: true });
     const 있음줄 = (await 함.줄찾기('QA 우편 541 첨부')) ?? 0;
     const 없음줄 = (await 함.줄찾기('QA 우편 541 없음')) ?? 0;
-    const 있음글 = await verify('첨부 줄이 「첨부: 체력 물약 x1, 10 골드」다', await 함.줄첨부(있음줄), '첨부: 체력 물약 x1, 10 골드');
-    const 있음색 = await verify('첨부 줄이 금색이다', 색이름((await 함.줄첨부원문(있음줄)) ?? ''), '금색');
+    const 있음글 = await verify('첨부 줄이 「첨부: 체력 물약, 10 골드」다', await 함.줄첨부(있음줄), '첨부: 체력 물약, 10 골드');
+    const 있음색 = await verify('첨부 줄이 금색이다', await 글자색이름(game, `${우편함창.줄주소(있음줄)}/Label[2]/Text`), '금색');
     const 없음글 = await verify('첨부 없는 우편 줄이 「첨부 없음」이다', await 함.줄첨부(없음줄), '첨부 없음');
-    const 없음색 = await verify('「첨부 없음」이 회색이다', 색이름((await 함.줄첨부원문(없음줄)) ?? ''), '회색');
-    await verify('첨부가 있으면 금색 「첨부: 체력 물약 x1, 10 골드」, 없으면 회색 「첨부 없음」이 보인다', 있음글 && 있음색 && 없음글 && 없음색, true);
+    const 없음색 = await verify('「첨부 없음」이 회색이다', await 글자색이름(game, `${우편함창.줄주소(없음줄)}/Label[2]/Text`), '회색');
+    await verify('첨부가 있으면 금색 「첨부: 체력 물약, 10 골드」, 없으면 회색 「첨부 없음」이 보인다', 있음글 && 있음색 && 없음글 && 없음색, true);
   });
 });

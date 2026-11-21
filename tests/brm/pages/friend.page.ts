@@ -1,6 +1,6 @@
 import type { GameDriver } from '@platform/kit';
 
-import { 공통HUD, 색뗀글 } from '../components/hud.component.js';
+import { 공통HUD, 색뗀글, 줄글될때까지, 줄글원문 } from '../components/hud.component.js';
 
 export class 친구파티창 {
   static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 친구 · 파티';
@@ -84,12 +84,12 @@ export class 친구파티창 {
   }
 
   async 글있는줄(글: string): Promise<string | null> {
-    return this.칸글(`${친구파티창.줄}//*[contains(@text,${글})][-1]`);
+    const 원문 = await 줄글원문(this.game, 친구파티창.줄, [글]);
+    return 원문 === null ? null : 색뗀글(원문);
   }
 
   async 글있는줄원문(글: string): Promise<string | null> {
-    const 찾음 = await this.game.find(`${친구파티창.줄}//*[contains(@text,${글})][-1]`);
-    return 찾음 === null ? null : (찾음.text ?? '');
+    return 줄글원문(this.game, 친구파티창.줄, [글]);
   }
 
   async 파티머리줄(): Promise<string | null> {
@@ -131,44 +131,27 @@ export class 친구파티창 {
   }
 
   async 글줄뜸(글: string, 한도ms = 10_000): Promise<boolean> {
-    return this.game.waitFor(`${친구파티창.줄}//*[contains(@text,${글})][-1]`, { timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    return 줄글될때까지(this.game, 친구파티창.줄, [글], (원문) => 원문 !== null, 한도ms);
   }
 
   async 글줄사라질때까지(글: string, 한도ms = 10_000): Promise<boolean> {
-    return this.game.waitFor(`${친구파티창.줄}//*[contains(@text,${글})][-1]`, { gone: true, timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    return 줄글될때까지(this.game, 친구파티창.줄, [글], (원문) => 원문 === null, 한도ms);
   }
 
   async 파티인원머리(한도ms = 10_000): Promise<string | null> {
-    const 주소 = `${친구파티창.줄}//*[contains(@text,파티 )][contains(@text,·)][-1]`;
-    const 떴다 = await this.game.waitFor(주소, { timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
-    return 떴다 ? this.칸글(주소) : null;
+    const 떴다 = await 줄글될때까지(this.game, 친구파티창.줄, ['파티 ', '·'], (원문) => 원문 !== null, 한도ms);
+    const 원문 = 떴다 ? await 줄글원문(this.game, 친구파티창.줄, ['파티 ', '·']) : null;
+    return 원문 === null ? null : 색뗀글(원문);
   }
 
   async 파티머리가될때까지(글: string, 한도ms = 10_000): Promise<boolean> {
-    return this.game
-      .waitFor(`${친구파티창.줄}//*[contains(@text,파티 )][contains(@text,·)][-1]`, { text: 글, timeoutMs: 한도ms })
-      .then(
-        () => true,
-        () => false,
-      );
+    return 줄글될때까지(this.game, 친구파티창.줄, ['파티 ', '·'], (원문) => 원문?.includes(글) ?? false, 한도ms);
   }
 
   async 파티없음머리(한도ms = 10_000): Promise<string | null> {
-    const 주소 = `${친구파티창.줄}//*[contains(@text,파티 없음)][-1]`;
-    const 떴다 = await this.game.waitFor(주소, { timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
-    return 떴다 ? this.칸글(주소) : null;
+    const 떴다 = await 줄글될때까지(this.game, 친구파티창.줄, ['파티 없음'], (원문) => 원문 !== null, 한도ms);
+    const 원문 = 떴다 ? await 줄글원문(this.game, 친구파티창.줄, ['파티 없음']) : null;
+    return 원문 === null ? null : 색뗀글(원문);
   }
 
   async 줄원문(번호: number): Promise<string | null> {
@@ -177,10 +160,7 @@ export class 친구파티창 {
   }
 
   async 줄글이될때까지(이름: string, 글: string, 한도ms = 10_000): Promise<boolean> {
-    return this.game.waitFor(`${친구파티창.줄}//*[contains(@text,${이름})][-1]`, { text: 글, timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    return 줄글될때까지(this.game, 친구파티창.줄, [이름], (원문) => 원문?.includes(글) ?? false, 한도ms);
   }
 
   async 받은신청줄수(최대 = 40): Promise<number> {
