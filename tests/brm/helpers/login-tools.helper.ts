@@ -90,7 +90,7 @@ export async function 그림색(game: GameDriver, 주소: string): Promise<색�
   return 색풀기(await game.get(주소, 'Image.color'));
 }
 
-export const 빨강인가 = (c: 색값 | null): boolean => c !== null && c.r > 0.6 && c.g < 0.45 && c.b < 0.45;
+export const 빨강인가 = (c: 색값 | null): boolean => c !== null && c.r > 0.2 && c.r > 2 * Math.max(c.g, c.b);
 
 export const 어두운빨강인가 = (c: 색값 | null): boolean => c !== null && c.r > 0.2 && c.r < 0.7 && c.g < 0.25 && c.b < 0.25 && c.r > 2 * Math.max(c.g, c.b);
 
