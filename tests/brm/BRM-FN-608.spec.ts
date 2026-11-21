@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
 import { 가방줄, 상점줄, 서버개수가될때까지 } from './helpers/items-tools.helper.js';
-import { 로비로 } from './helpers/game-enter.helper.js';
+import { 다시연결될때까지, 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
 import { 상점창 } from './pages/shop.page.js';
@@ -38,6 +38,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 상점 = await 상점창.열기(game);
     await 상점.구매누르기(await 상점줄(상점, '체력 물약'));
     await 폰상태에서(driver, { 네트워크: '끊김' }, async () => undefined);
+    await verify('다시 연결돼 안내 창이 걷히고 상단 바가 다시 보인다', await 다시연결될때까지(game), true, { blocker: true });
     await verify('다시 연결된 뒤 상단 바 골드가 「170 G」가 된다', await hud.골드가될때까지('170 G', 60_000), true, { blocker: true });
     const 서버 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 4개다', await 서버개수가될때까지(admin, 나, '체력 물약', 4), 4);
     const 가방 = await 가방창.열기(game);

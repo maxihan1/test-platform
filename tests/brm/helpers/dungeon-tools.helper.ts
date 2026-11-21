@@ -369,9 +369,9 @@ export function 수치들(조각: string | null, 이름들: string[]): number[] 
   if (조각 === null) return [];
   const 값: number[] = [];
   for (const 이름 of 이름들) {
-    for (const 맞음 of 조각.matchAll(new RegExp(`${이름}\\s*[=:]?\\s*[(\\[]?\\s*(\\d+(?:\\.\\d+)?|없음|-)`, 'g'))) {
+    for (const 맞음 of 조각.matchAll(new RegExp(`${이름}\\s*[=:]?\\s*[(\\[]?\\s*(-?\\d+(?:\\.\\d+)?|없음|-)`, 'g'))) {
       const 글 = 맞음[1] ?? '';
-      값.push(/^\d/.test(글) ? Number(글) : 0);
+      값.push(/^-?\d/.test(글) ? Number(글) : 0);
     }
     if (값.length > 0) break;
   }

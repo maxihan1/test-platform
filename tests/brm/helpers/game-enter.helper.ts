@@ -43,6 +43,16 @@ export async function 안내창닫기(game: GameDriver): Promise<void> {
   }
 }
 
+export async function 다시연결될때까지(game: GameDriver, 한도ms = 90_000): Promise<boolean> {
+  const 끝 = Date.now() + 한도ms;
+  do {
+    const 안내 = await game.find('/PopupPanelsCanvas/PopupPanelManager/PopupPanel(Clone)');
+    const 상단바 = await game.find('/Showcase HUD/PlayerBar');
+    if (안내 === null && 상단바 !== null) return true;
+  } while (Date.now() < 끝);
+  return false;
+}
+
 export async function 로그인칸채우고시작(game: GameDriver, 아이디: string, 비밀번호: string): Promise<void> {
   await 안내창닫기(game);
   await game.type(`${로그인창}/Input 아이디`, 아이디);
