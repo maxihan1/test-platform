@@ -43,6 +43,7 @@ export interface AssertionResult {
   actual: unknown;
   expected: unknown;
   blocker?: boolean;            // true면 이 실패로 실행을 중단했다 (SPEC §4 verify 실패 규칙)
+  notice?: string;              // 글이 글자까지 같지 않은데 통과한 문장의 알림. PASS 에만 붙는다 (공통/2 §4 「글 비교」)
 }
 
 export interface StepResult {

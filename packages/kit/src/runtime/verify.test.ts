@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
-import { BlockerStop, verify } from './verify.js';
+import { BlockerStop, verify, 낱말이차례로있다 } from './verify.js';
 
 function scope(): StepScope {
   return { assertions: [] };
@@ -140,5 +140,78 @@ describe('verify.rates', () => {
     await expect(stepScope.run(scope(), () => verify.rates('a', { 성공: 1 }, { 성공: 1 }, 0))).rejects.toThrow('허용 오차는 0 과 1 사이');
     await expect(stepScope.run(scope(), () => verify.rates('a', { 성공: 1 }, { 성공: 55 }, 0.03))).rejects.toThrow('기대 확률 성공');
     await expect(stepScope.run(scope(), () => verify.rates('a', { 성공: 1.5 }, { 성공: 1 }, 0.03))).rejects.toThrow('횟수 성공');
+  });
+});
+
+describe('verify 글 비교 — 통과 · 알림 (공통/2 §4 「글 비교」)', () => {
+  it.each([
+    ['보스 처치! 보스의 왕관 조각 획득', '보스 처치! 획득'],
+    ['환영합니다, P1!', '환영합니다, P!'],
+    ['Lv.1 · 골드 200', 'Lv. · 골드 '],
+    ['첨부: 체력 물약, 10 골드', '첨부 체력물약 10골드'],
+    ['골드 1,100개', '골드 1,100'],
+    ['1 2', '1  2'],
+  ])('기대 낱말이 화면에 차례대로 다 있으면 통과 — 화면 「%s」 · 기대 「%s」', (actual, expected) => {
+    expect(낱말이차례로있다(actual, expected)).toBe(true);
+  });
+
+  it.each([
+    ['환영합니다, P2!', '환영합니다, P1!'],
+    ['골드 1100', '골드 100'],
+    ['P12', 'P1'],
+    ['골드 100', '-100'],
+    ['50', '50%'],
+    ['골드 1,100', '골드 100'],
+    ['골드 -100', '골드 100'],
+    ['할인 50%', '할인 50'],
+    ['1.5배', '1배'],
+    ['획득 보스 처치', '보스 처치 획득'],
+    ['마나 물약', '체력 물약'],
+    ['아무 글', ''],
+    ['아무 글', ' !? '],
+  ])('숫자 · 이름 · 차례가 다르거나 낱말이 없으면 실패 — 화면 「%s」 · 기대 「%s」', (actual, expected) => {
+    expect(낱말이차례로있다(actual, expected)).toBe(false);
+  });
+
+  it('글자가 다르지만 낱말이 맞으면 PASS 에 알림을 남긴다', async () => {
+    const s = scope();
+    const passed = await stepScope.run(s, () => verify('보스 처치 알림이 뜬다', '보스 처치! 보스의 왕관 조각 획득', '보스 처치! 획득'));
+
+    expect(passed).toBe(true);
+    expect(s.assertions[0]).toEqual({
+      statement: '보스 처치 알림이 뜬다',
+      status: 'PASS',
+      actual: '보스 처치! 보스의 왕관 조각 획득',
+      expected: '보스 처치! 획득',
+      notice: '기획서 문장과 글자가 다름(기대 보스 처치! 획득 / 화면 보스 처치! 보스의 왕관 조각 획득)',
+    });
+  });
+
+  it('글자까지 같으면 알림이 없고, 낱말이 안 맞으면 알림 없이 FAIL 이다', async () => {
+    const s = scope();
+    await stepScope.run(s, async () => {
+      await verify('같은 글', '환영합니다, P1!', '환영합니다, P1!');
+      await verify('다른 이름', '환영합니다, P2!', '환영합니다, P1!');
+    });
+
+    expect(s.assertions.map((a) => [a.status, 'notice' in a])).toEqual([
+      ['PASS', false],
+      ['FAIL', false],
+    ]);
+  });
+
+  it('글이 아닌 값은 글자 규칙을 쓰지 않는다', async () => {
+    const s = scope();
+    await stepScope.run(s, () => verify('숫자는 그대로 견준다', 1100, '100'));
+
+    expect(s.assertions[0]!.status).toBe('FAIL');
+  });
+
+  it('긴 글은 알림에서 200자로 자른다', async () => {
+    const s = scope();
+    const 긴화면 = `보스 처치 ${'가'.repeat(300)}`;
+    await stepScope.run(s, () => verify('긴 알림', 긴화면, '보스 처치'));
+
+    expect(s.assertions[0]!.notice).toBe(`기획서 문장과 글자가 다름(기대 보스 처치 / 화면 ${긴화면.slice(0, 200)}…)`);
   });
 });
