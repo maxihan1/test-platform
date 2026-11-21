@@ -4,13 +4,13 @@ import { z } from 'zod';
 import { 가방에서끼기, 사기, 함께던전으로 } from './helpers/dungeon-tools.helper.js';
 import { 로비로, 지금화면 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 골드맞추기, 봇모두끄기 } from './helpers/game-state.helper.js';
-import { type 로그줄, 맞을때까지기다리기, 미션로그, 반올림, 받은피해, 설명안되는줄, 임프있게하기, 적치우고레벨맞추기 } from './helpers/mission-log.helper.js';
+import { type 로그줄, 맞을때까지기다리기, 미션로그, 반올림, 받은피해, 설명안되는줄, 임프있게하기, 봇들쓰러뜨리기, 적치우고레벨맞추기 } from './helpers/mission-log.helper.js';
 
 export const spec = defineCase({
   tcId: 'BRM-GS-005',
   name: '레벨 5 탱커가 「사슬 갑옷」을 끼고 3명 던전에서 임프에게 맞은 피해가 기획서 공식 값이다',
   platforms: ['android'],
-  precondition: ['탱커 · 레벨 5 · 「사슬 갑옷」 · 던전 3명(두 번째 · 세 번째 플레이어 봇)'],
+  precondition: ['탱커 · 레벨 5 · 「사슬 갑옷」 · 던전 3명(두 번째 · 세 번째 플레이어 봇 · 쓰러져 있음)'],
   elements: ['monster:임프', 'item:사슬 갑옷', 'state:레벨=5', 'state:갑옷=사슬 갑옷', 'state:던전 인원=3', 'state:직업=탱커'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
@@ -38,9 +38,10 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 골드맞추기(game, 5000);
     await 사기(game, '사슬 갑옷');
     await verify('「사슬 갑옷」을 갑옷 칸에 낀다', await 가방에서끼기(game, '사슬 갑옷', '갑옷'), true, { blocker: true });
-    await 함께던전으로(game, driver, admin, 나, [{ 계정: 두번째, 자리: 2 }, { 계정: 세번째, 자리: 4 }], 0);
+    const 봇들 = await 함께던전으로(game, driver, admin, 나, [{ 계정: 두번째, 자리: 2 }, { 계정: 세번째, 자리: 4 }], 0);
     await verify('던전 화면이 보인다', await 지금화면(game), '던전', { blocker: true });
     await 적치우고레벨맞추기(game, 5);
+    await verify('두 봇을 쓰러뜨려 임프가 살아 있는 나만 노린다', await 봇들쓰러뜨리기(game, admin, 봇들), true, { blocker: true });
   });
   const 로그 = await gameLog(미션로그(admin));
   await test.step('「사슬 갑옷」을 끼고 불러낸 임프 곁에서 임프에게 3번 맞는다', async () => {

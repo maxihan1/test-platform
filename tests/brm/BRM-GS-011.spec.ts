@@ -4,14 +4,14 @@ import { z } from 'zod';
 import { 함께던전으로 } from './helpers/dungeon-tools.helper.js';
 import { 지금화면 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
-import { type 로그줄, 맞을때까지기다리기, 미션로그, 받은피해, 설명안되는줄, 임프있게하기, 적치우고레벨맞추기 } from './helpers/mission-log.helper.js';
+import { type 로그줄, 맞을때까지기다리기, 미션로그, 받은피해, 설명안되는줄, 임프있게하기, 봇들쓰러뜨리기, 적치우고레벨맞추기 } from './helpers/mission-log.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
 export const spec = defineCase({
   tcId: 'BRM-GS-011',
   name: 'BRM-REQ-103 레벨 1 탱커가 「방패 오라」를 켜고 3명 던전에서 임프에게 맞은 피해는 15 에 배율 1 − (0.5 + 충전률² ÷ 2)를 곱해 소수점 아래를 버린 값이다',
   platforms: ['android'],
-  precondition: ['탱커 · 레벨 1 · 장비 없음 · 던전 3명(두 번째 · 세 번째 플레이어 봇)'],
+  precondition: ['탱커 · 레벨 1 · 장비 없음 · 던전 3명(두 번째 · 세 번째 플레이어 봇 · 쓰러져 있음)'],
   elements: ['monster:임프', 'skill:방패 오라', 'state:레벨=1', 'state:던전 인원=3', 'state:직업=탱커'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
@@ -35,9 +35,10 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 계정되돌리기(admin, 세번째);
   });
   await test.step('탱커로 두 번째 · 세 번째 플레이어 봇과 3명이 던전에 들어가 적을 치우고 레벨 1 로 맞춘다', async () => {
-    await 함께던전으로(game, driver, admin, 나, [{ 계정: 두번째, 자리: 2 }, { 계정: 세번째, 자리: 4 }], 0);
+    const 봇들 = await 함께던전으로(game, driver, admin, 나, [{ 계정: 두번째, 자리: 2 }, { 계정: 세번째, 자리: 4 }], 0);
     await verify('던전 화면이 보인다', await 지금화면(game), '던전', { blocker: true });
     await 적치우고레벨맞추기(game, 1);
+    await verify('두 봇을 쓰러뜨려 임프가 살아 있는 나만 노린다', await 봇들쓰러뜨리기(game, admin, 봇들), true, { blocker: true });
   });
   const 로그 = await gameLog(미션로그(admin));
   await test.step('불러낸 임프 곁에서 「방패 오라」(스킬 1)를 누르자마자 떼기를 되풀이하며 임프에게 3번 맞는다', async () => {

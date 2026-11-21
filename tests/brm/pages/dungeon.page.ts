@@ -286,8 +286,9 @@ export class 던전화면 {
   }
 
   async 질주공격으로임프치기(): Promise<boolean> {
-    await this.누르기('스킬 1');
     await this.임프누르기();
+    await this.고르기표시뜸(5_000);
+    await this.누르기('스킬 1');
     return this.임프다사라질때까지(5_000);
   }
 
