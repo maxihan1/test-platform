@@ -120,6 +120,60 @@ describe('openGame', () => {
     ]);
   });
 
+  it('mouseMove · scroll 은 주소로 가짜 마우스를 옮기고 굴리며, 정리 단계가 가짜 마우스를 한 번 거둔다', async () => {
+    const { game, 보낸 } = await 손가락게임();
+    const 케이스: GameDriver = game;
+    await 케이스.mouseMove('/BossRoomHudCanvas/Hero Action Bar/Button1', { duration: 0.2 });
+    await 케이스.key('Mouse1');
+    await 케이스.scroll(-3, { at: '/Showcase HUD' });
+    await game.입력을거둔다();
+    await game.입력을거둔다();
+    expect(보낸).toEqual([
+      { cmd: 'mouse-move', target: '/BossRoomHudCanvas/Hero Action Bar/Button1', duration: 0.2 },
+      { cmd: 'key', key: 'Mouse1' },
+      { cmd: 'scroll', dy: -3, target: '/Showcase HUD' },
+      { cmd: 'input-reset' },
+    ]);
+  });
+
+  it('mouseMove · scroll 에 좌표나 모르는 옵션을 넘기면 보내기 전에 던진다 — 케이스는 좌표를 쓰지 않는다', async () => {
+    const { game, 보낸 } = await 손가락게임();
+    await expect(game.mouseMove({ x: 1, y: 2 } as unknown as string)).rejects.toThrow('오브젝트 주소만 받는다');
+    await expect(game.mouseMove('Skill1', { camera: 'Main' } as never)).rejects.toThrow('주소와 duration 만 받는다');
+    await expect(game.scroll(1, { at: { x: 1, y: 2 } } as never)).rejects.toThrow('오브젝트 주소만 받는다');
+    await expect(game.scroll(1, { dx: 2 } as never)).rejects.toThrow('at · duration 만 받는다');
+    await game.입력을거둔다();
+    expect(보낸).toEqual([]);
+  });
+
+  it('restart 는 넘겨받은 끄고 켜기를 부른 뒤 게임이 답할 때까지 기다리고 패드를 다시 정한다 — 그 전 입력은 거두지 않는다', async () => {
+    const 차례: string[] = [];
+    let 꺼짐 = false;
+    const link: Link = async (cmd) => {
+      차례.push(String(cmd.cmd));
+      if (cmd.cmd === 'ping' && 꺼짐) {
+        꺼짐 = false;
+        throw new Error('게임 포트 13100 에 붙지 못했습니다');
+      }
+      if (cmd.cmd === 'ping') return { ok: true, app: 'BossRoom', version: '0.12.0' };
+      return cmd.cmd === 'touch-down' ? { ok: true, finger: 10, x: 1, y: 2 } : { ok: true, pad: { type: 'xbox' } };
+    };
+    const game = await openGame({ PLATFORM_PAD: 'xbox' }, link, 안쉼, async () => {
+      차례.push('끄고켜기');
+      꺼짐 = true;
+    });
+    await game.touchDown('Skill1');
+    await game.restart();
+    await game.입력을거둔다();
+    expect(차례).toEqual(['ping', 'pad', 'touch-down', '끄고켜기', 'ping', 'ping', 'pad']);
+  });
+
+  it('끄고 켜기를 못 받은 연결의 restart 는 던진다', async () => {
+    const { game, 보낸 } = await 손가락게임();
+    await expect(game.restart()).rejects.toThrow('게임을 다시 켤 길이 없다');
+    expect(보낸).toEqual([]);
+  });
+
   it('kit 이 덮은 pad · keyDown 은 남는 인자를 버리지 않고 던진다', async () => {
     const { game, 보낸 } = await 손가락게임();
     await expect(game.pad('xbox' as never)).rejects.toThrow('읽기만 한다');

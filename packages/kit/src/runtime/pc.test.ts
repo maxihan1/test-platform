@@ -66,6 +66,14 @@ describe('윈도우 PC 항목', () => {
     expect(받은것.at(-1)!.본문).toEqual({ cmd: 'pad' });
   });
 
+  it('케이스 도중 restart 는 처음 열 때와 같은 차례로 끄고 켠 뒤 ping · 패드를 다시 한다', async () => {
+    const { game } = await PC를연다(환경({ PLATFORM_PAD: 'switch' }));
+    받은것 = [];
+    await game.restart();
+    expect(차례()).toEqual(['/api/devices/pc-pc1/stop', '/api/devices/pc-pc1/launch', 'game:ping', 'game:pad']);
+    expect(받은것[1]!.본문).toEqual({ game: 'BossRoom' });
+  });
+
   it('패드 없음이면 패드를 건드리지 않는다', async () => {
     await PC를연다(환경());
     expect(차례()).toEqual(['/api/devices/pc-pc1/stop', '/api/devices/pc-pc1/launch', 'game:ping']);

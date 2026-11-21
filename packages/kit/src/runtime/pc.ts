@@ -22,10 +22,14 @@ export async function PC를연다(env: Env): Promise<{ game: KitGame; device: De
   if (!게임이름) throw new Error('윈도우 PC 항목인데 켤 게임 이름(PLATFORM_PC_GAME)이 없다');
   const { farm, serial } = PC자리(env);
   const { pcLaunch, pcStop } = await import('control-cli');
-  await pcStop(farm, serial);
-  await pcLaunch(farm, serial, 게임이름);
+  // 케이스 도중 game.restart() 도 같은 차례로 껐다 켠다
+  const 끄고켜기 = async (): Promise<void> => {
+    await pcStop(farm, serial);
+    await pcLaunch(farm, serial, 게임이름);
+  };
+  await 끄고켜기();
   try {
-    const game = await openGame(env);
+    const game = await openGame(env, undefined, undefined, 끄고켜기);
     return { game, device: { model: serial, osVersion: 'Windows', appVersion: null, appBuild: null } };
   } catch (err) {
     // 몸통이 못 돌았어도 켠 게임은 끈다 — 정리 단계는 연 것이 없으면 아무것도 안 한다

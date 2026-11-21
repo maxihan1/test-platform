@@ -4,6 +4,7 @@ import type { DeviceInfo } from '../types.js';
 
 import { closeApp, openApp, readDevice, type AppDriver, type AppOpenOptions } from './app.js';
 import { isGame, openGame, type KitGame } from './game.js';
+import { 시험앱 } from './lifecycleParts.js';
 
 /**
  * 앱을 깔고 켜고(Appium) 게임이면 게임 SDK 에도 붙는다. 단독 항목 fixture 와 E2E 시나리오의 폰 연결이 같이 쓴다 (도메인/시나리오 §3.7 결정 16).
@@ -18,8 +19,14 @@ export async function 폰을연다(env: Record<string, string | undefined>, opti
     console.error(`[kit] 기기 정보를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
   if (!isGame(env)) return { driver, ...(device && { device }) };
+  // 케이스 도중 game.restart() — 데이터는 두고 시험 대상 앱만 껐다 켠다(앱다시켜기 와 같다)
+  const 끄고켜기 = async (): Promise<void> => {
+    const 꾸러미 = 시험앱(driver, 'game.restart');
+    await driver.terminateApp(꾸러미);
+    await driver.activateApp(꾸러미);
+  };
   try {
-    return { driver, game: await openGame(env), ...(device && { device }) };
+    return { driver, game: await openGame(env, undefined, undefined, 끄고켜기), ...(device && { device }) };
   } catch (err) {
     await closeApp(driver).catch((e: unknown) => console.error(`[kit] Appium 연결을 닫지 못했다: ${e instanceof Error ? e.message : String(e)}`));
     throw err;

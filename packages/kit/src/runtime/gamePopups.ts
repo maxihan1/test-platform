@@ -9,10 +9,10 @@ import { stepScope } from './context.js';
 type Env = Record<string, string | undefined>;
 
 /** 다시 해 보는 동작 — 누르기 · 끌기 · 글자 넣기 · 손가락 누르기 · 기다리기. 읽기(text · get)는 창에 가려도 읽혀 막히지 않는다 */
-export const 다시할동작 = ['click', 'drag', 'type', 'touchDown', 'waitFor', 'waitForValue'] as const;
+export const 다시할동작 = ['click', 'drag', 'type', 'touchDown', 'mouseMove', 'waitFor', 'waitForValue'] as const;
 type 동작 = (typeof 다시할동작)[number];
 // 오브젝트 주소인 인자 자리 — drag 만 둘째(to)도 주소다
-const 주소자리: Record<동작, number> = { click: 1, drag: 2, type: 1, touchDown: 1, waitFor: 1, waitForValue: 1 };
+const 주소자리: Record<동작, number> = { click: 1, drag: 2, type: 1, touchDown: 1, mouseMove: 1, waitFor: 1, waitForValue: 1 };
 
 /** 러너가 넘긴 PLATFORM_GAME_POPUPS(JSON 배열)를 읽는다. 비면 빈 목록. 꼴이 틀리면 던진다 — 조용히 버리면 닫아야 할 창이 실패로 남는다 */
 export function 돌발팝업읽기(env: Env): GamePopup[] {
