@@ -171,7 +171,7 @@ describe('openApp 켜기', () => {
     remote.mockResolvedValue(앱);
     await openApp(ENV);
     expect(앱.execute).toHaveBeenCalledWith('mobile: activateApp', { appId: 'com.shop' });
-    expect(앱.execute.mock.calls.slice(0, 2).map(([s]) => s)).toEqual(['mobile: clearApp', 'mobile: activateApp']);
+    expect(앱.execute.mock.calls.map(([s]) => s).filter((s) => s !== 'mobile: shell').slice(0, 2)).toEqual(['mobile: clearApp', 'mobile: activateApp']);
     expect(앱.execute).not.toHaveBeenCalledWith('mobile: terminateApp', expect.anything());
     const 남김 = 연결();
     remote.mockResolvedValue(남김);
@@ -193,6 +193,24 @@ describe('openApp 켜기', () => {
     remote.mockResolvedValue(앱);
     await expect(openApp(ENV)).rejects.toThrow('앱을 켜지 못했다: 앱이 없다');
     expect(앱.deleteSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('폰에 판 번호가 같은 옛 앱이 남아 있으면 지우고 넘긴 APK 를 깐 뒤 켠다 — Appium 은 판이 같으면 안 깐다 (2026-11-21 BRM 정식 실행 21177)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const 부름: string[] = [];
+    const execute = vi.fn(async (script: string, args: Record<string, unknown> = {}) => {
+      부름.push(script);
+      if (script === 'mobile: getCurrentPackage') return 'com.shop';
+      if (script !== 'mobile: shell') return true;
+      if (args.command === 'dumpsys') return '    versionCode=1 minSdk=24\n    lastUpdateTime=2026-11-01 10:00:00\n';
+      if (args.command === 'date') return '2026-11-21T15:00:00\n';
+      return '';
+    });
+    remote.mockResolvedValue({ ...연결(), execute });
+    await openApp({ ...ENV, PLATFORM_ENGINE: 'GAME' });
+    expect(execute).toHaveBeenCalledWith('mobile: removeApp', { appId: 'com.shop' });
+    expect(execute).toHaveBeenCalledWith('mobile: installApp', { appPath: '/tmp/a.apk' });
+    expect(부름.indexOf('mobile: installApp')).toBeLessThan(부름.indexOf('mobile: activateApp'));
   });
 
   it('APK 인데 연결 응답에 꾸러미 이름이 없으면 연결을 닫고 던진다', async () => {

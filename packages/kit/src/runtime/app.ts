@@ -7,6 +7,7 @@ import type { Browser } from 'webdriverio';
 
 import type { DeviceInfo } from '../types.js';
 
+import { 빌드맞추기 } from './appBuild.js';
 import { runDir, saveShot } from './artifacts.js';
 import { 앱사진 } from './highlight.js';
 import { 키보드창기다리기 } from './keyboardWindow.js';
@@ -83,6 +84,7 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
   // 브라우저 케이스가 쓰지도 않는 부품을 싣지 않으려고 쓸 때 불러온다
   const { remote } = await import('webdriverio');
   const token = env.PLATFORM_APPIUM_TOKEN;
+  const 연결시작 = Date.now();
   // 디바이스 팜이 https · 인증을 써도 같은 값으로 붙게 URL 의 조각을 전부 넘긴다
   const driver = await remote({
     protocol: url.protocol.replace(':', ''),
@@ -103,8 +105,13 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
   await writeSessionFile(driver.sessionId);
   try {
     키보드창기다리기(driver);
-    const 꾸러미 = 연결꾸러미(driver.capabilities, required(env, 'PLATFORM_APP'));
-    const 앞 = await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, 켜기전에(capabilities, env.PLATFORM_ENGINE === 'GAME'), { 값: options.intent });
+    const 앱 = required(env, 'PLATFORM_APP');
+    const 꾸러미 = 연결꾸러미(driver.capabilities, 앱);
+    const 실행: 실행기 = (script, args) => driver.execute(script, args);
+    // Appium 은 깔린 판 번호가 같거나 높으면 넘긴 APK 를 안 깐다 — 빌드마다 판 번호를 안 올리는 QA 빌드는 옛 앱으로 돈다(2026-11-21 BRM 21177).
+    // 스토어 앱은 깔 파일이 없다
+    if (!패키지이름인가(앱)) await 빌드맞추기(실행, 꾸러미, 앱, Date.now() - 연결시작);
+    const 앞 = await 앱을켠다(실행, 꾸러미, 켜기전에(capabilities, env.PLATFORM_ENGINE === 'GAME'), { 값: options.intent });
     // 케이스는 그대로 돈다 — 첫 단계가 실패하면 이 줄이 「앱이 안 떴다」를 알려 준다(런처 · 앱이 죽은 창)
     if (앞 !== null) console.error(`[kit] 앱이 20초 안에 앞에 뜨지 않았다 — 앞 화면: ${앞}`);
   } catch (err) {
