@@ -34,8 +34,8 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 적모두처치(game);
     await 보스방가기(game);
     await 보내고시각재기(game, '/gm killboss');
-    await 던전.hud.알림뜸('보스 처치', 20_000);
-    const 알림글 = (await 던전.hud.알림글들()).find((글) => 글.includes('보스 처치')) ?? null;
+    await 던전.hud.알림뜸('보스 처치!', 20_000);
+    const 알림글 = (await 던전.hud.알림글들()).find((글) => 글.startsWith('보스 처치!')) ?? null;
     await verify('보스를 잡으면 「보스 처치! 획득」 알림이 뜬다', 알림글, '보스 처치! 획득');
   });
 });

@@ -122,3 +122,21 @@ export class 공통HUD {
     return 색뗀글(await this.game.text(공통HUD.물약글));
   }
 }
+
+export async function 줄글원문(game: GameDriver, 줄: string, 글들: string[], 최대 = 40): Promise<string | null> {
+  const 조건 = 글들.map((글) => `[contains(@text,${글})]`).join('');
+  for (let 뒤 = 1; 뒤 <= 최대; 뒤 += 1) {
+    if ((await game.find(`${줄}[-${String(뒤)}]`)) === null) return null;
+    const 찾음 = await game.find(`${줄}[-${String(뒤)}]//*${조건}`);
+    if (찾음 !== null) return 찾음.text ?? '';
+  }
+  return null;
+}
+
+export async function 줄글될때까지(game: GameDriver, 줄: string, 글들: string[], 맞나: (원문: string | null) => boolean, 한도ms = 10_000): Promise<boolean> {
+  const 끝 = Date.now() + 한도ms;
+  do {
+    if (맞나(await 줄글원문(game, 줄, 글들))) return true;
+  } while (Date.now() < 끝);
+  return false;
+}

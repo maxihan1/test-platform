@@ -1,6 +1,6 @@
 import type { GameDriver } from '@platform/kit';
 
-import { 공통HUD, 색뗀글 } from '../components/hud.component.js';
+import { 공통HUD, 색뗀글, 줄글될때까지 } from '../components/hud.component.js';
 
 export class 가방창 {
   static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 가방';
@@ -157,17 +157,11 @@ export class 가방창 {
   }
 
   async 줄이름뜰때까지(이름: string, 한도ms = 10_000): Promise<boolean> {
-    return this.game.waitFor(`${가방창.줄}//*[contains(@text,${이름})][-1]`, { timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    return 줄글될때까지(this.game, 가방창.줄, [이름], (원문) => 원문 !== null, 한도ms);
   }
 
   async 줄이름사라질때까지(이름: string, 한도ms = 10_000): Promise<boolean> {
-    return this.game.waitFor(`${가방창.줄}//*[contains(@text,${이름})][-1]`, { gone: true, timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    return 줄글될때까지(this.game, 가방창.줄, [이름], (원문) => 원문 === null, 한도ms);
   }
 
   async 칸판매버튼있나(이름: '무기' | '갑옷' | '장신구'): Promise<boolean> {
