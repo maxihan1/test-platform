@@ -40,6 +40,45 @@ async function 보내기(admin: APIRequestContext, 방법: 'GET' | 'POST' | 'PUT
   return 값;
 }
 
+export interface 로그사람 {
+  user: string;
+  level: number;
+  job: string;
+  weapon: string;
+  armor: string;
+  accessory: string;
+}
+
+export interface 로그적 {
+  npc: string;
+}
+
+export interface 로그줄 {
+  seq: number;
+  kind: 'hit' | 'heal' | 'kill' | 'item' | 'levelup';
+  players: number;
+  from?: 로그사람 | 로그적;
+  to?: 로그사람 | 로그적;
+  by?: 로그사람 | 로그적;
+  skill?: string;
+  value?: number;
+  hpBefore?: number;
+  npc?: string;
+  gold?: number;
+  exp?: number;
+  party?: number;
+  item?: string;
+  count?: number;
+}
+
+export async function 로그읽기(admin: APIRequestContext, since: number | null): Promise<{ last: number; lines: 로그줄[] }> {
+  const 값 = (await 보내기(admin, 'GET', `/test/log?since=${String(since ?? 999999)}`)) as { last: number; lines?: 로그줄[] };
+  const 줄들 = since === null ? [] : (값.lines ?? []);
+  const 첫번호 = 줄들[0]?.seq;
+  if (since !== null && 첫번호 !== undefined && 첫번호 !== since + 1) throw new Error(`게임 로그 줄이 빠졌습니다 (since ${String(since)} · 첫 줄 ${String(첫번호)})`);
+  return { last: 값.last, lines: 줄들 };
+}
+
 export async function 접속자(admin: APIRequestContext): Promise<{ players: { user: string; name: string; level: number; bot: boolean }[]; bots: string[] }> {
   return (await 보내기(admin, 'GET', '/test/state')) as { players: { user: string; name: string; level: number; bot: boolean }[]; bots: string[] };
 }
