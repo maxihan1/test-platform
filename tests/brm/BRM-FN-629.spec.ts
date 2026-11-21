@@ -35,7 +35,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 길드.머리가될때까지('길드원 1명');
     await 알림이모두사라질때까지(game);
     await 길드.초대누르기();
-    const 알림 = await verify('초대 알림이 뜨지 않는다', await 길드.hud.알림뜸('초대', 3_000), false);
+    const 알림 = await verify('초대 알림이 뜨지 않는다', await 길드.hud.알림뜸('길드에 초대했습니다', 3_000), false);
     const 멈춤 = await verify('게임이 멈추지 않는다', await 길드.제목(), '길드');
     await verify('초대 칸이 빈 채 「초대」를 누르면 초대 알림이 뜨지 않고 게임이 멈추지 않는다', 알림 && 멈춤, true);
   });
