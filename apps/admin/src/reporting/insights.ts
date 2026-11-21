@@ -21,7 +21,21 @@ export interface 비교 {
   실패덩어리들: 실패덩어리[];
   /** 실패 케이스를 유형으로 묶은 것 — 결과 화면 「실패 유형」 칩 줄. 있는 유형만 화면 차례로 */
   실패유형들: { type: 실패유형; count: number; tcIds: string[] }[];
+  /** 글자는 다르지만 낱말이 맞아 통과로 본 확인 문장 — 결과 요약 띠 「통과 · 알림」(공통/2 §4 「글 비교」) */
+  통과알림들: 통과알림[];
 }
+
+export interface 통과알림 {
+  historyId: number;
+  tcId: string;
+  tcName: string;
+  platform: string;
+  statement: string;
+  notice: string;
+}
+
+// 한 실행에 알림이 수천 줄이면 요약 띠가 쪽을 덮는다. 넘치면 앞에서 자른다
+export const 통과알림상한 = 200;
 
 export interface 실패덩어리 {
   대표문장: string;
@@ -196,6 +210,33 @@ async function 유형으로묶는다(pool: Pool, runId: number): Promise<비교[
   });
 }
 
+// 지금 항목(한 건 실행이 붙었으면 바꿔 낀 것)의 확인 문장 가운데 notice 가 붙은 것. 판정은 보지 않는다 — notice 는 PASS 에만 붙는다
+const 알림뽑기 = `
+  SELECT i.history_id, i.tc_id, i.tc_name, i.platform, i.params, i.expected, i.param_schema, i.expected_schema,
+         a.value->>'statement' AS statement, a.value->>'notice' AS notice
+  FROM ${지금항목('o.run_id = $1')} i
+  JOIN run_item_step s ON s.history_id = i.history_id
+  CROSS JOIN LATERAL jsonb_array_elements(s.assertions) WITH ORDINALITY AS a(value, ord)
+  WHERE jsonb_typeof(a.value->'notice') = 'string'
+  ORDER BY i.tc_id, array_position(ARRAY['desktop', 'mobile', 'android']::text[], i.platform::text), i.attempt, s.seq, a.ord
+  LIMIT $2`;
+
+async function 알림을모은다(pool: Pool, runId: number): Promise<통과알림[]> {
+  const { rows } = await pool.query<Omit<사유행, '대표문장'> & { statement: string; notice: string }>(알림뽑기, [runId, 통과알림상한]);
+  // 화면 값을 그대로 옮긴 글이라 입력에 넣은 비밀값이 되비칠 수 있다 — 실패덩어리들과 같이 가린다
+  return rows.map((row) => {
+    const 비밀 = 항목비밀(row);
+    return {
+      historyId: Number(row.history_id),
+      tcId: row.tc_id,
+      tcName: row.tc_name,
+      platform: row.platform,
+      statement: 가린다(row.statement, 비밀) as string,
+      notice: 가린다(row.notice, 비밀) as string,
+    };
+  });
+}
+
 /** 같은 서비스·같은 대상 서버·같은 종류의 바로 앞 실행(스모크 아닌 실행은 스모크를 건너뛴다)을 찾아 케이스마다 무엇이 달라졌는지 낸다 */
 export async function compareWithPrevious(runId: number): Promise<비교> {
   const pool = await db();
@@ -208,7 +249,11 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   const 현재 = 이번.rows[0];
   if (현재 === undefined) throw new Error(`실행 ${runId}을 찾을 수 없다`);
 
-  const [실패덩어리들, 실패유형별] = await Promise.all([사유로묶는다(pool, runId), 유형으로묶는다(pool, runId)]);
+  const [실패덩어리들, 실패유형별, 통과알림들] = await Promise.all([
+    사유로묶는다(pool, runId),
+    유형으로묶는다(pool, runId),
+    알림을모은다(pool, runId),
+  ]);
 
   // service_id 가 없는 옛 행은 견줄 짝을 특정할 수 없다. = 가 아무것도 안 물어 previous 는 null 로 떨어진다
   //
@@ -230,7 +275,7 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   );
   const 직전 = 앞.rows[0];
   if (직전 === undefined) {
-    return { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들, 실패유형들: 실패유형별 };
+    return { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들, 실패유형들: 실패유형별, 통과알림들 };
   }
 
   const [이번접힘, 앞접힘] = await Promise.all([
@@ -246,5 +291,6 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
     케이스들,
     실패덩어리들,
     실패유형들: 실패유형별,
+    통과알림들,
   };
 }

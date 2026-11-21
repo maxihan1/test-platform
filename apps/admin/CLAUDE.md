@@ -18,6 +18,7 @@
   대시보드 작성 현황 `XDH`·`XDHOFF`(`reporting/dashboard-authoring.test.ts`, 2026-09-26 — `authoring_request` 는 그 서비스의 `service_id` 로 ·
   마지막에 `service WHERE prefix IN ('XDH','XDHOFF')` 까지 지운다. 2026-10-11 부터 `test_case` 는 안 만든다) ·
   계약 반영 `XRC`(`db/reverse-columns.test.ts`, 2026-09-25 — 자기 `service_id` 로만 지운다) ·
+  통과 · 알림 모으기 `XDN`(`reporting/insights-notice-db.test.ts`, 2026-11-21 — `prefix = 'XDN'` 의 service_id 로 run_item(절차는 같이 지워진다) → test_run → service 순으로 지운다. `LIKE` 를 안 쓴다) ·
   E2E 시나리오 표 `XSC`(`db/scenario-columns.test.ts`, 2026-09-28 — 부품 → `test_run` → 버전 → 시나리오를 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   시나리오 실행 거르기 `XBK`(`execution/kind.test.ts`, 2026-09-29 — `XSC` 와 같은 순서로 자기 `service_id` 로만 지우고 그 `service` 행까지) ·
   실행 저장값 표 `XCI`(`db/case-input-columns.test.ts`)·저장값 `XSI`(`execution/savedInput.test.ts`)(2026-09-29 — 둘 다 자기 `service_id`·`tc_id` 목록으로 `run_item` → `test_run` → `case_input` → `service_env` → `test_case` → `service` 순으로 지운다) ·
