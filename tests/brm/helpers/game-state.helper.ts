@@ -44,6 +44,17 @@ export async function 접속자(admin: APIRequestContext): Promise<{ players: { 
   return (await 보내기(admin, 'GET', '/test/state')) as { players: { user: string; name: string; level: number; bot: boolean }[]; bots: string[] };
 }
 
+export async function 자리고른사람(admin: APIRequestContext, 자리: number, 이름들: string[], 한도ms = 15_000): Promise<string[]> {
+  const 끝 = Date.now() + 한도ms;
+  let 고른: string[] = [];
+  do {
+    const 값 = (await 보내기(admin, 'GET', '/test/state')) as { seats?: { name: string; seat: number; state: string }[] };
+    고른 = (값.seats ?? []).filter((x) => x.seat === 자리 && x.state === 'Active').map((x) => x.name);
+    if (이름들.every((이름) => 고른.includes(이름))) return 고른;
+  } while (Date.now() < 끝);
+  return 고른;
+}
+
 export async function 봇켜기(admin: APIRequestContext, 봇계정: 계정): Promise<string> {
   await 보내기(admin, 'POST', '/test/bot/start', { user: 봇계정.아이디, pass: 봇계정.비밀번호 });
   return 봇계정.아이디;

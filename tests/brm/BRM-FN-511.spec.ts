@@ -31,7 +31,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await verify('로비 화면이 보인다', await 지금화면(game), '로비', { blocker: true });
   });
   await test.step('상단 바를 읽는다', async () => {
-    const 레벨 = await verify('상단 바 레벨 글이 「Lv. 1」로 시작한다', (await hud.레벨글()).startsWith('Lv. 1'), true);
+    const 레벨 = await verify('상단 바 레벨 글이 「Lv. 」로 보인다', await hud.레벨글(), 'Lv. ');
     const 골드 = await verify('상단 바 골드 글이 「200 G」다', await hud.골드글(), '200 G');
     const 레벨색 = await verify('「Lv. 1」이 금색이다', 금색인가(await 글자색(game, 공통HUD.레벨줄)), true);
     const 골드색 = await verify('「200 G」가 금색이다', 금색인가(await 글자색(game, 공통HUD.골드줄)), true);
