@@ -5,7 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 import type { Game, Link, WaitOptions } from 'control-cli';
 
 import { 함수를적게건다 } from './gameFns.js';
-import { 돌발팝업읽기, 돌발팝업을건다 } from './gamePopups.js';
+import { 돌발팝업읽기, 돌발팝업을건다, 인자오류 } from './gamePopups.js';
 
 // 실패 증적은 따로 둔 파일에 있다 — 가져다 쓰는 곳(test.ts · appFixture.ts)과 테스트 가짜가 game.js 를 보므로 여기서 다시 내보낸다
 export { captureGame, 게임증적을남긴다 } from './gameEvidence.js';
@@ -37,7 +37,9 @@ export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' 
  * 입력을거둔다 — 케이스가 touchUp · keyUp 전에 끝나도(실패 · 제한 시간) 정리 단계가 눌러 둔 손가락 · 키 · 옮긴 가짜 마우스를 거둔다.
  * pad · keyDown · mouseMove · scroll 은 kit 이 덮어 인자를 덜 받는다 — 타입에 Game 의 원래 꼴이 남아 있어 덮은 쪽이 남는 인자를 받으면 던진다
  */
-export type KitGame = Game & Pick<GameDriver, 'waitForValue' | 'pad' | 'restart'> & { 입력을거둔다(): Promise<void> };
+// 다시켜기전오류를꺼낸다 — restart 앞 게임이 남긴 오류(다시 켤 때마다 한 묶음). 실패 증적이 꺼내 합친다 — 새 게임은 오류 번호가 1 부터라 그대로는 사라진다
+export type KitGame = Game & Pick<GameDriver, 'waitForValue' | 'pad' | 'restart'> & { 입력을거둔다(): Promise<void>; 다시켜기전오류를꺼낸다(): 게임오류[][] };
+export type 게임오류 = Awaited<ReturnType<Game['errors']>>['errors'][number];
 
 export const PAD_KINDS = ['ps5', 'ps4', 'switch', 'xbox'] as const;
 export type PadKind = (typeof PAD_KINDS)[number];
@@ -130,6 +132,7 @@ export async function openGame(
   let 모름 = false;
   // 가짜 마우스를 켰다 — 끄는 길은 입력 거두기(input-reset)뿐이다. 안 끄면 E2E 다음 단계의 진짜 · 가짜 입력이 옛 자리에서 시작한다
   let 마우스 = false;
+  const 다시켜기전오류: 게임오류[][] = [];
   const 누르기 = game.touchDown.bind(game);
   const 떼기 = game.touchUp.bind(game);
   const 키누르기 = game.keyDown.bind(game);
@@ -160,7 +163,7 @@ export async function openGame(
     waitForValue,
     touchDown: async (target: string, options?: Parameters<Game['touchDown']>[1]): Promise<number> => {
       // 타입만으로는 캐스트한 좌표가 지나간다 — 케이스는 좌표를 쓰지 않는다 (도메인/게임 결정 4)
-      if (typeof target !== 'string') throw new Error('touchDown 은 오브젝트 주소만 받는다 — 좌표로 누르지 않는다');
+      if (typeof target !== 'string') throw new 인자오류('touchDown 은 오브젝트 주소만 받는다 — 좌표로 누르지 않는다');
       모름 = true;
       const 번호 = await 누르기(target, options);
       모름 = false;
@@ -184,21 +187,30 @@ export async function openGame(
       눌린키.delete(keys);
     },
     mouseMove: async (target: string, ...더: unknown[]): Promise<void> => {
-      if (typeof target !== 'string') throw new Error('mouseMove 는 오브젝트 주소만 받는다 — 좌표로 옮기지 않는다');
-      const 옵션 = 더[0] as Record<string, unknown> | undefined;
-      if (더.length > 1 || (옵션 !== undefined && Object.keys(옵션).some((k) => k !== 'duration'))) throw new Error('mouseMove 는 주소와 duration 만 받는다');
+      if (typeof target !== 'string') throw new 인자오류('mouseMove 는 오브젝트 주소만 받는다 — 좌표로 옮기지 않는다');
+      const 옵션 = (더[0] ?? {}) as Record<string, unknown>;
+      if (더.length > 1 || Object.keys(옵션).some((k) => k !== 'duration')) throw new 인자오류('mouseMove 는 주소와 duration 만 받는다');
       마우스 = true;
-      await 마우스옮기기(target, 옵션 as { duration?: number } | undefined);
+      await 마우스옮기기(target, 옵션 as { duration?: number });
     },
     scroll: async (dy: number, ...더: unknown[]): Promise<void> => {
       const 옵션 = (더[0] ?? {}) as Record<string, unknown>;
-      if (더.length > 1 || Object.keys(옵션).some((k) => k !== 'at' && k !== 'duration')) throw new Error('scroll 은 칸 수와 at · duration 만 받는다');
-      if (옵션.at !== undefined && typeof 옵션.at !== 'string') throw new Error('scroll 의 at 은 오브젝트 주소만 받는다 — 좌표로 옮기지 않는다');
-      마우스 = true;
+      if (typeof dy !== 'number' || !Number.isFinite(dy)) throw new 인자오류(`scroll 의 칸 수는 수다: ${String(dy)}`);
+      if (더.length > 1 || Object.keys(옵션).some((k) => k !== 'at' && k !== 'duration')) throw new 인자오류('scroll 은 칸 수와 at · duration 만 받는다');
+      if (옵션.at !== undefined && typeof 옵션.at !== 'string') throw new 인자오류('scroll 의 at 은 오브젝트 주소만 받는다 — 좌표로 옮기지 않는다');
+      // 가짜 마우스는 자리를 준 휠만 켠다(SDK FakeMouse) — 자리 없는 휠은 거둘 것이 없다
+      if (옵션.at !== undefined) 마우스 = true;
       await 바퀴(dy, 옵션 as { at?: string; duration?: number });
     },
     restart: async (): Promise<void> => {
       if (끄고켜기 === undefined) throw new Error('이 연결은 게임을 다시 켤 길이 없다 — PC · 폰 항목에서만 쓴다');
+      // 끄면 그 게임의 오류 기록도 사라진다 — 못 읽어도 다시 켜기는 한다(증적은 「다시 켜졌다」 머리 줄로 남는다)
+      try {
+        다시켜기전오류.push((await game.errors(0)).errors ?? []);
+      } catch (err) {
+        다시켜기전오류.push([]);
+        console.error(`[kit] 다시 켜기 전 게임 오류를 읽지 못했다: ${글(err)}`);
+      }
       await 끄고켜기();
       // 게임을 다시 켜면 눌린 입력 · 가짜 마우스도 같이 사라진다 — 정리 단계가 없는 손가락을 떼지 않게 비운다
       눌린.clear();
@@ -214,6 +226,7 @@ export async function openGame(
       // kit 은 generic 을 고르지 않는다(PLATFORM_PAD 는 넷 중 하나) — 그 밖의 값은 SDK 가 준 그대로 싣는다
       return { type: pad.type as PadKind | 'off', ...(pad.buttons && { buttons: pad.buttons }) };
     },
+    다시켜기전오류를꺼낸다: (): 게임오류[][] => 다시켜기전오류.splice(0),
     입력을거둔다: async (): Promise<void> => {
       if (눌린.size === 0 && 눌린키.size === 0 && !모름 && !마우스) return;
       try {

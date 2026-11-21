@@ -8,6 +8,9 @@ import { stepScope } from './context.js';
 
 type Env = Record<string, string | undefined>;
 
+/** kit 이 보내기 전에 던진 인자 검사 오류 — 게임에 간 것이 없어 창을 닫고 다시 할 까닭이 없다(닫으면 케이스 상태와 절차 기록만 바뀐다) */
+export class 인자오류 extends Error {}
+
 /** 다시 해 보는 동작 — 누르기 · 끌기 · 글자 넣기 · 손가락 누르기 · 기다리기. 읽기(text · get)는 창에 가려도 읽혀 막히지 않는다 */
 export const 다시할동작 = ['click', 'drag', 'type', 'touchDown', 'mouseMove', 'waitFor', 'waitForValue'] as const;
 type 동작 = (typeof 다시할동작)[number];
@@ -95,7 +98,7 @@ export function 돌발팝업을건다<T extends Pick<Game, 'find' | 'click'> & R
       try {
         return await 원래(...인자);
       } catch (err) {
-        if (끊김인가(err)) throw err;
+        if (끊김인가(err) || err instanceof 인자오류) throw err;
         const 주소들 = 인자.slice(0, 주소자리[이름]).filter((a): a is string => typeof a === 'string');
         if ((await 닫는다(찾기, 누르기, 팝업들, 주소들)).length === 0) throw err;
         return await 원래(...인자);

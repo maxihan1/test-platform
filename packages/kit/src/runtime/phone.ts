@@ -3,6 +3,7 @@
 import type { DeviceInfo } from '../types.js';
 
 import { closeApp, openApp, readDevice, type AppDriver, type AppOpenOptions } from './app.js';
+import { 앱다시켜기 } from './appParts.js';
 import { isGame, openGame, type KitGame } from './game.js';
 import { 시험앱 } from './lifecycleParts.js';
 
@@ -19,12 +20,8 @@ export async function 폰을연다(env: Record<string, string | undefined>, opti
     console.error(`[kit] 기기 정보를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
   if (!isGame(env)) return { driver, ...(device && { device }) };
-  // 케이스 도중 game.restart() — 데이터는 두고 시험 대상 앱만 껐다 켠다(앱다시켜기 와 같다)
-  const 끄고켜기 = async (): Promise<void> => {
-    const 꾸러미 = 시험앱(driver, 'game.restart');
-    await driver.terminateApp(꾸러미);
-    await driver.activateApp(꾸러미);
-  };
+  // 케이스 도중 game.restart() — 데이터는 두고 시험 대상 앱만 껐다 켠다(웹뷰 맥락이면 앱다시켜기 가 먼저 던진다)
+  const 끄고켜기 = (): Promise<void> => 앱다시켜기(driver, 시험앱(driver, 'game.restart'));
   try {
     return { driver, game: await openGame(env, undefined, undefined, 끄고켜기), ...(device && { device }) };
   } catch (err) {
