@@ -415,7 +415,7 @@ POST   /api/settings/projects/:projectId/bts/setup   — BTS 자동 설정 (BTS-
   — 웹훅 { name: 'QA Hub · <키>', url: <공개 주소>/api/bts/events/:projectId, eventFilter: ['issue.created', 'issue.transitioned'], secret: bts_link.webhook_secret, projectKey }
   — 규칙 { triggerType: ISSUE_ASSIGNED | PR_MERGED, actions: [CALL_WEBHOOK { url: <공개 주소>/api/bts/rules, headers: { X-QAHub-Token: btr_… } }] } · 보드 칸 { name: 그 상태 이름, stateKeys: [statusMap.QA_REVIEW] }
 # 애플리케이션 코드 저장소 — 지금 PATCH /api/settings/services/:id 에 칸 하나 · 목록(GET /api/settings/services) 줄에도 실린다 (BTS-F3-01 반영 2026-10-31)
-     { …, codeRepos: [{ name: '화면' | '서버' | string, url: 'https://github.com/…' }] }   — 비어도 된다 · 10줄까지 · url 은 https:// 만. 수정 AI 만 쓴다
+     { …, codeRepos: [{ name: '화면' | '서버' | string, url: 'https://github.com/…' }] }   — 비어도 된다 · 10줄까지 · url 은 https:// 만. 수정 AI 와 게임 작성(2026-11-21 — [작성.md](작성.md) §3.6 「가이드와 게임 코드 맞춰 보기」)이 쓴다
 
 # BTS 등록 다시 보내기 — 실행 결과 실패 카드 (BTS-F3-03 반영 2026-10-31 · apps/admin/src/bts/routes.ts · card.ts). (실행, write)
 POST /api/runs/:runId/bts/resend   { tcId, env }
