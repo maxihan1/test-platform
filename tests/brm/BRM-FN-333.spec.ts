@@ -38,9 +38,10 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 창 = await 친구파티창.열기(game);
     const 초대 = new 초대창(game);
     await 봇시키기(admin, 봇.아이디, `friend_add:${나.아이디}`);
-    await 초대.뜰때까지('친구 신청');
+    await verify('「친구 신청」 창이 뜬다', await 초대.뜰때까지('친구 신청'), true, { blocker: true });
+    const 앞창수 = await 초대.창수();
     await 봇시키기(admin, 봇.아이디, `friend_add:${나.아이디}`);
-    const 다시뜸 = await 초대.뜰때까지('친구 신청');
+    const 다시뜸 = await 초대.창수가될때까지(앞창수 + 1);
     await 창.글줄뜸('받은 친구 신청');
     const 줄수 = await verify('「받은 친구 신청」 줄이 하나다', await 창.받은신청줄수(), 1);
     const 창뜸 = await verify('「친구 신청」 창이 다시 뜬다', 다시뜸, true);
