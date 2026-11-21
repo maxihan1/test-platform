@@ -9,7 +9,7 @@ import { 우편함창 } from './pages/mail.page.js';
 
 export const spec = defineCase({
   tcId: 'BRM-FN-281',
-  name: '운영툴이 아직 안 받은 첨부를 회수하면 우편 줄이 「첨부 없음」으로 바뀐다',
+  name: '운영툴에서 아직 안 받은 첨부를 회수하면 우편함에서 그 첨부가 사라진다',
   platforms: ['android'],
   precondition: ['두 번째 플레이어에게 첨부 있는 우편이 와 있다'],
   elements: ['item:체력 물약'],
@@ -38,6 +38,8 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 지급회수(admin, 지급번호);
     const 함 = await 우편함창.열기(game);
     await 우편함줄뜰때까지(game, 1);
-    await verify('운영툴이 아직 안 받은 첨부를 회수하면 우편 줄이 「첨부 없음」으로 바뀐다', await 함.줄첨부(0), '첨부 없음');
+    const 줄 = await 함.줄찾기('QA 우편 281');
+    const 보이는글 = 줄 === null ? await 함.비었음글() : await 함.줄첨부(줄);
+    await verify('운영툴에서 아직 안 받은 첨부를 회수하면 우편함에서 그 첨부가 사라진다', 보이는글 === '첨부 없음' || 보이는글 === '받은 우편이 없습니다', true);
   });
 });

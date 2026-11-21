@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 서버개수, 팔기 } from './helpers/items-tools.helper.js';
+import { 서버개수가될때까지, 팔기 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 
@@ -32,6 +32,6 @@ test(spec, async ({ game, driver, admin, params }) => {
   });
   await test.step('체력 물약을 판 뒤 운영툴로 캐릭터 아이템을 읽는다', async () => {
     await 팔기(game, '체력 물약', 7);
-    await verify('체력 물약을 팔면 운영툴 캐릭터 아이템에서도 체력 물약이 2개가 된다', await 서버개수(admin, 나, '체력 물약'), 2);
+    await verify('체력 물약을 팔면 운영툴 캐릭터 아이템에서도 체력 물약이 2개가 된다', await 서버개수가될때까지(admin, 나, '체력 물약', 2), 2);
   });
 });

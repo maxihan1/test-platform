@@ -29,7 +29,9 @@ test(spec, async ({ game, driver, admin, params }) => {
   const hud = new 공통HUD(game);
   await test.step('두 번째 플레이어에게 첨부 0건인 우편 한 통만 와 있다', async () => {
     await 로비로(game, driver, 둘째);
-    const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 280' }]);
+    const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 280', 골드: 10 }]);
+    await 함.받기(0);
+    await verify('골드를 받아 우편 줄이 「첨부 없음」이 된다', await 함.줄첨부가될때까지(0, '첨부 없음'), true, { blocker: true });
     await verify('우편 줄에 「받기」 버튼이 없다', await 함.받기버튼있나(0), false, { blocker: true });
   });
   await test.step('그 우편의 「삭제」를 누른다', async () => {

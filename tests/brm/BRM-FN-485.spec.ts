@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 사기, 서버개수, 서버골드 } from './helpers/items-tools.helper.js';
+import { 사기, 서버개수가될때까지, 서버골드가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -38,10 +38,10 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 가방 = await 가방창.열기(game);
     const 화면단검 = await verify('가방 창에 녹슨 단검 줄이 하나 있다', await 가방.이름줄수('녹슨 단검'), 1);
     const 화면갑옷 = await verify('가방 창에 가죽 갑옷 줄이 하나 있다', await 가방.이름줄수('가죽 갑옷'), 1);
-    const 서버단검 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 1개다', await 서버개수(admin, 나, '녹슨 단검'), 1);
-    const 서버갑옷 = await verify('운영툴 캐릭터 아이템에서 가죽 갑옷이 1개다', await 서버개수(admin, 나, '가죽 갑옷'), 1);
+    const 서버단검 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 1개다', await 서버개수가될때까지(admin, 나, '녹슨 단검', 1), 1);
+    const 서버갑옷 = await verify('운영툴 캐릭터 아이템에서 가죽 갑옷이 1개다', await 서버개수가될때까지(admin, 나, '가죽 갑옷', 1), 1);
     const 화면골드 = await verify('상단 바 골드가 「20 G」다', await hud.골드글(), '20 G');
-    const 서버골드값 = await verify('운영툴 캐릭터 골드가 20 이다', await 서버골드(admin, 나), 20);
+    const 서버골드값 = await verify('운영툴 캐릭터 골드가 20 이다', await 서버골드가될때까지(admin, 나, 20), 20);
     await verify('시작 골드 200 으로 녹슨 단검과 가죽 갑옷을 사면 둘 다 가방에 들어오고 골드가 「20 G」가 된다', 화면단검 && 화면갑옷 && 서버단검 && 서버갑옷 && 화면골드 && 서버골드값, true);
   });
 });

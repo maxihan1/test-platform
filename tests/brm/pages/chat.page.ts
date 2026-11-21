@@ -114,19 +114,25 @@ export class 채팅창 {
   }
 
   async 글있는줄(글: string): Promise<string | null> {
-    return this.칸글(`${채팅창.줄}/Text[contains(@text,${글})][-1]`);
+    const 원문 = await this.글있는줄원문(글);
+    return 원문 === null ? null : 색뗀글(원문);
   }
 
-  async 글있는줄원문(글: string): Promise<string | null> {
-    const 찾음 = await this.game.find(`${채팅창.줄}/Text[contains(@text,${글})][-1]`);
-    return 찾음 === null ? null : (찾음.text ?? '');
+  async 글있는줄원문(글: string, 최대 = 60): Promise<string | null> {
+    for (let 뒤 = 1; 뒤 <= 최대; 뒤 += 1) {
+      const 찾음 = await this.game.find(`${채팅창.줄}[-${String(뒤)}]/Text`);
+      if (찾음 === null) return null;
+      if ((찾음.text ?? '').includes(글)) return 찾음.text ?? '';
+    }
+    return null;
   }
 
   async 글줄뜸(글: string, 한도ms = 10_000): Promise<boolean> {
-    return this.game.waitFor(`${채팅창.줄}/Text[contains(@text,${글})][-1]`, { timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    const 끝 = Date.now() + 한도ms;
+    do {
+      if ((await this.글있는줄원문(글)) !== null) return true;
+    } while (Date.now() < 끝);
+    return false;
   }
 
   async 탭글(이름: '전체' | '파티' | '길드'): Promise<string | null> {

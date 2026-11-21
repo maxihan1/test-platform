@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 상점줄, 서버개수, 서버골드 } from './helpers/items-tools.helper.js';
+import { 상점줄, 서버개수가될때까지, 서버골드가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 골드맞추기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -42,8 +42,8 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 상점.구매누르기(await 상점줄(상점, '녹슨 단검'));
     await hud.알림뜸('골드가 부족합니다');
     const 화면골드 = await verify('상단 바 골드가 「79 G」다', await hud.골드글(), '79 G');
-    const 서버골드값 = await verify('운영툴 캐릭터 골드가 79 다', await 서버골드(admin, 나), 79);
-    const 서버단검 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 0개다', await 서버개수(admin, 나, '녹슨 단검'), 0);
+    const 서버골드값 = await verify('운영툴 캐릭터 골드가 79 다', await 서버골드가될때까지(admin, 나, 79), 79);
+    const 서버단검 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 0개다', await 서버개수가될때까지(admin, 나, '녹슨 단검', 0), 0);
     const 가방 = await 가방창.열기(game);
     const 화면단검 = await verify('가방 창에 녹슨 단검 줄이 없다', await 가방.이름줄수('녹슨 단검'), 0);
     await verify('골드 79 로 녹슨 단검 구매가 거절되면 골드와 가방이 그대로다', 화면골드 && 서버골드값 && 서버단검 && 화면단검, true);
@@ -57,8 +57,8 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 상점.구매누르기(await 상점줄(상점, '녹슨 단검'));
     await hud.골드가될때까지('0 G');
     const 화면골드 = await verify('상단 바 골드가 「0 G」다', await hud.골드글(), '0 G');
-    const 서버골드값 = await verify('운영툴 캐릭터 골드가 0 이다', await 서버골드(admin, 나), 0);
-    const 서버단검 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 1개다', await 서버개수(admin, 나, '녹슨 단검'), 1);
+    const 서버골드값 = await verify('운영툴 캐릭터 골드가 0 이다', await 서버골드가될때까지(admin, 나, 0), 0);
+    const 서버단검 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 1개다', await 서버개수가될때까지(admin, 나, '녹슨 단검', 1), 1);
     const 가방 = await 가방창.열기(game);
     const 화면단검 = await verify('가방 창에 녹슨 단검 줄이 하나 있다', await 가방.이름줄수('녹슨 단검'), 1);
     await verify('골드와 가방이 바뀐다', 화면골드 && 서버골드값 && 서버단검 && 화면단검, true);

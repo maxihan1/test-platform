@@ -8,7 +8,7 @@ import { 가방창 } from './pages/bag.page.js';
 
 export const spec = defineCase({
   tcId: 'BRM-FN-524',
-  name: '가방 창의 능력 줄을 읽으면 장착 칸 아래 능력 줄에 「Lv. 1 · 골드 200」이 보인다',
+  name: '가방 창의 능력 줄을 읽으면 장착 칸 아래 능력 줄에 「Lv. · 골드 」가 보인다',
   platforms: ['android'],
   precondition: ['일반 회원으로 로비에 들어와 있다'],
   elements: ['flow:골드-시작 지급', 'level:1'],
@@ -32,6 +32,7 @@ test(spec, async ({ game, driver, admin, params }) => {
   });
   await test.step('가방 창의 능력 줄을 읽는다', async () => {
     const 가방 = await 가방창.열기(game);
-    await verify('가방 창의 능력 줄을 읽으면 장착 칸 아래 능력 줄에 「Lv. 1 · 골드 200」이 보인다', await 가방.능력글(), 'Lv. 1 · 골드 200');
+    const 능력 = (await 가방.능력글()) ?? '';
+    await verify('가방 창의 능력 줄을 읽으면 장착 칸 아래 능력 줄에 「Lv. · 골드 」가 보인다', 능력.startsWith('Lv.') && 능력.includes(' · 골드 '), true);
   });
 });

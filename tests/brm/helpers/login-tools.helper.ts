@@ -83,14 +83,14 @@ export async function 글자색(game: GameDriver, 주소: string): Promise<색�
   const 찾음 = await game.find(주소);
   const 태그 = /<color=(#[0-9a-fA-F]{6,8})>/.exec(찾음?.text ?? '');
   if (태그 !== null) return 색코드풀기(태그[1] ?? '');
-  return 색풀기(await game.get(주소, 'Text.color'));
+  return 색풀기(await game.get(주소, 'TextMeshProUGUI.color'));
 }
 
 export async function 그림색(game: GameDriver, 주소: string): Promise<색값 | null> {
   return 색풀기(await game.get(주소, 'Image.color'));
 }
 
-export const 빨강인가 = (c: 색값 | null): boolean => c !== null && c.r > 0.6 && c.g < 0.45 && c.b < 0.45;
+export const 빨강인가 = (c: 색값 | null): boolean => c !== null && c.r > 0.2 && c.r > 2 * Math.max(c.g, c.b);
 
 export const 어두운빨강인가 = (c: 색값 | null): boolean => c !== null && c.r > 0.2 && c.r < 0.7 && c.g < 0.25 && c.b < 0.25 && c.r > 2 * Math.max(c.g, c.b);
 
@@ -240,7 +240,7 @@ export async function 안내창읽기(game: GameDriver, 한도ms = 30_000): Prom
 }
 
 export async function 상태줄이비길때까지(game: GameDriver, 한도ms = 15_000): Promise<boolean> {
-  return game.waitForValue(로그인화면.상태줄, 'Text.text', '', { timeoutMs: 한도ms }).then(
+  return game.waitForValue(로그인화면.상태줄, 'TextMeshProUGUI.text', '', { timeoutMs: 한도ms }).then(
     () => true,
     () => false,
   );
@@ -364,7 +364,7 @@ export const 레벨표시인가 = (글: string, 레벨: number): boolean => new 
 
 const 허드공지띠 = '/Showcase HUD/NoticeBar';
 
-const 로그인공지띠 = '/Showcase Login/*[contains(@text,공지)][-1]';
+const 로그인공지띠 = '/Showcase Login/NoticeBar//*[contains(@text,공지)][-1]';
 
 export async function 저장대기가풀릴때까지(game: GameDriver, 한도ms: number): Promise<string> {
   const 끝 = Date.now() + 한도ms;
@@ -402,14 +402,14 @@ export async function 허드공지띠자리(game: GameDriver): Promise<자리값
 }
 
 export async function 로그인공지띠에글이뜰때까지(game: GameDriver, 조각: string, 한도ms = 15_000): Promise<boolean> {
-  return game.waitFor(`/Showcase Login/*[contains(@text,${조각})][-1]`, { timeoutMs: 한도ms }).then(
+  return game.waitFor(`/Showcase Login/NoticeBar//*[contains(@text,${조각})][-1]`, { timeoutMs: 한도ms }).then(
     () => true,
     () => false,
   );
 }
 
 export async function 로그인공지띠에글이남는가(game: GameDriver, 조각: string, 한도ms: number): Promise<boolean> {
-  return game.waitFor(`/Showcase Login/*[contains(@text,${조각})][-1]`, { gone: true, timeoutMs: 한도ms }).then(
+  return game.waitFor(`/Showcase Login/NoticeBar//*[contains(@text,${조각})][-1]`, { gone: true, timeoutMs: 한도ms }).then(
     () => false,
     () => true,
   );
@@ -535,38 +535,15 @@ export async function 골드숫자가될때까지(game: GameDriver, 값: number,
   return false;
 }
 
-async function 줄버튼이보이나(game: GameDriver, 줄번호: number): Promise<boolean> {
-  const 버튼 = await game.find(`${상점창.줄주소(줄번호)}/Button 구매`);
-  const 칸 = await game.find(`${상점창.판}/Scroll`);
-  if (버튼?.rect === undefined || 칸?.rect === undefined) return false;
-  const [, 버튼아래, , 버튼높이] = 버튼.rect;
-  const [, 칸아래, , 칸높이] = 칸.rect;
-  return 버튼아래 >= 칸아래 && 버튼아래 + 버튼높이 <= 칸아래 + 칸높이;
-}
-
-async function 보이는끝줄(game: GameDriver, 상점: 상점창): Promise<number> {
-  const 수 = await 상점.줄수();
-  let 끝 = -1;
-  for (let 번 = 0; 번 < 수; 번 += 1) {
-    if (await 줄버튼이보이나(game, 번)) 끝 = 번;
-  }
-  return 끝;
-}
-
 export async function 상점줄구매(game: GameDriver, 상점: 상점창, 글: string, 횟수 = 1): Promise<void> {
   const 줄 = await 상점.줄찾기(글);
   if (줄 === null) throw new Error(`상점에 「${글}」 줄이 없습니다`);
-  for (let 번 = 0; 번 < 8 && !(await 줄버튼이보이나(game, 줄)); 번 += 1) {
-    const 끝 = await 보이는끝줄(game, 상점);
-    if (끝 < 0) throw new Error('상점 창에 보이는 줄이 없습니다');
-    await 상점.끌어서넘기기(끝, Math.max(끝 - 2, 0));
-  }
-  if (!(await 줄버튼이보이나(game, 줄))) throw new Error(`상점의 「${글}」 구매 버튼을 화면 안으로 끌어 올리지 못했습니다`);
+  await 상점.줄보이게하기(줄);
   await game.click(`${상점창.줄주소(줄)}/Button 구매`, { count: 횟수, interval: 0.2 });
 }
 
 export async function 로그인버전글자리(game: GameDriver): Promise<자리값 | null> {
-  return 화면자리(game, '//Showcase Login/*[contains(@text,v0.1)]');
+  return 화면자리(game, '/Showcase Login//*[contains(@text,v0.1)]');
 }
 
 export async function 톱니바퀴자리(game: GameDriver): Promise<자리값 | null> {

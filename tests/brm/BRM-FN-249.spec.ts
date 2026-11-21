@@ -30,8 +30,8 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 로비로(game, driver, 둘째);
     await verify('상단 바에 「Lv.1」이 보인다', (await hud.레벨글()).startsWith('Lv.1 '), true, { blocker: true });
   });
-  await test.step('운영툴로 첨부 없는 우편을 보내고 우편함 창을 열었다 닫는다', async () => {
-    const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 249' }]);
+  await test.step('운영툴로 골드 10 을 단 우편을 보내고 우편함 창을 열었다 닫는다', async () => {
+    const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 249', 골드: 10 }]);
     await 함.닫기();
     await 함.닫힐때까지();
     const 다시 = await 우편함창.열기(game);

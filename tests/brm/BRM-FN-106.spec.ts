@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { 봇과함께던전으로 } from './helpers/dungeon-tools.helper.js';
 import { 지금화면 } from './helpers/game-enter.helper.js';
-import { GM상태, 계정꺼내기, 계정되돌리기, 봇모두끄기, 쓰러뜨리기, 적모두처치 } from './helpers/game-state.helper.js';
+import { GM상태, 계정꺼내기, 계정되돌리기, 봇모두끄기, 불러내기, 쓰러뜨리기, 적모두처치 } from './helpers/game-state.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
 export const spec = defineCase({
@@ -35,7 +35,9 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 적모두처치(game);
     await verify('던전 화면이 보인다', await 지금화면(game), '던전', { blocker: true });
   });
-  await test.step('일반 회원이 쓰러진다', async () => {
+  await test.step('임프를 하나 불러 둔 채 일반 회원이 쓰러진다', async () => {
+    await 불러내기(game, 'imp');
+    await verify('불러낸 임프가 보인다', await game.waitFor(던전화면.첫임프, { timeoutMs: 10_000 }).then(() => true, () => false), true, { blocker: true });
     await 쓰러뜨리기(game);
     const 상태 = await GM상태(game);
     await verify('체력이 0 이다', 상태['체력'], '0/1200', { blocker: true });

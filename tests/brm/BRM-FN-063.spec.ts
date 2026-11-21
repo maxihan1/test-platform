@@ -27,7 +27,7 @@ test(spec, async ({ game, driver, admin, params }) => {
   await test.step('두 번째 플레이어에게 안 읽은 우편 한 통을 보낸다', async () => {
     await 계정되돌리기(admin, 둘째);
     const 대상 = await 캐릭터(admin, 둘째.아이디);
-    const 지급번호 = await 우편보내기(admin, 대상.id, { 제목: '[QA] 안 읽은 우편' });
+    const 지급번호 = await 우편보내기(admin, 대상.id, { 제목: '[QA] 안 읽은 우편', 골드: 10 });
     await verify('두 번째 플레이어에게 안 읽은 우편이 한 통 있다', 지급번호 > 0, true, { blocker: true });
   });
   await test.step('두 번째 플레이어 계정으로 로그인한다', async () => {

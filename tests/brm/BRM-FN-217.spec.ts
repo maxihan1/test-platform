@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 상점줄, 서버골드 } from './helpers/items-tools.helper.js';
+import { 상점줄, 서버골드가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 골드맞추기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 상점창 } from './pages/shop.page.js';
@@ -41,7 +41,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 상점.구매누르기(await 상점줄(상점, '녹슨 단검'));
     await hud.알림뜸('골드가 부족합니다');
     const 화면 = await verify('상단 바 골드가 「79 G」다', await hud.골드글(), '79 G');
-    const 서버 = await verify('운영툴 캐릭터 골드가 79 다', await 서버골드(admin, 나), 79);
+    const 서버 = await verify('운영툴 캐릭터 골드가 79 다', await 서버골드가될때까지(admin, 나, 79), 79);
     await verify('골드 79 로 80 골드짜리 녹슨 단검을 사려 하면 골드가 79 그대로다', 화면 && 서버, true);
   });
   await test.step('일반 회원의 골드를 80 으로 맞춘다', async () => {
@@ -53,7 +53,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 상점.구매누르기(await 상점줄(상점, '녹슨 단검'));
     await hud.골드가될때까지('0 G');
     const 화면 = await verify('상단 바 골드가 「0 G」다', await hud.골드글(), '0 G');
-    const 서버 = await verify('운영툴 캐릭터 골드가 0 이다', await 서버골드(admin, 나), 0);
+    const 서버 = await verify('운영툴 캐릭터 골드가 0 이다', await 서버골드가될때까지(admin, 나, 0), 0);
     await verify('골드가 0 이 된다', 화면 && 서버, true);
   });
 });

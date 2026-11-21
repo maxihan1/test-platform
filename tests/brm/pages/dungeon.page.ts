@@ -19,9 +19,9 @@ export class 던전화면 {
   static readonly 항아리 = '/PickUpPot(Clone)';
   static readonly 첫임프 = '/Imp(Clone)[0]';
   static readonly 고르기표시 = '//*[contains(@name,fx_TargetReticule)]';
-  static readonly 적피해숫자 = '/ShowcaseDamageNumbers//*[contains(@name,DamageNumberEnemy)]/Text[-1]';
-  static readonly 내피해숫자 = '/ShowcaseDamageNumbers//*[contains(@name,DamageNumberMine)]/Text[-1]';
-  static readonly 회복숫자 = '/ShowcaseDamageNumbers//*[contains(@name,HealNumber)]/Text[-1]';
+  static readonly 적피해숫자 = '/Showcase HUD/DamageNumberEnemy[-1]/Text';
+  static readonly 내피해숫자 = '/Showcase HUD/DamageNumberMine[-1]/Text';
+  static readonly 회복숫자 = '/Showcase HUD/HealNumber[-1]/Text';
   static readonly 내얼굴 = '/BossRoomHudCanvas/Party HUD/Hero HUD/Button/Hero Portrait';
   static readonly 동료이름줄 = '/BossRoomHudCanvas/Party HUD/Ally HUD 1/Button/Ally Name 1 (TMP)';
   static readonly 동료체력막대 = '/BossRoomHudCanvas/Party HUD/Ally HUD 1/Button/Ally HP Slider 1';
@@ -72,7 +72,7 @@ export class 던전화면 {
   }
 
   async 행동버튼눌림(이름: 행동버튼): Promise<boolean> {
-    return (await this.game.get(던전화면.버튼(이름), 'Button.interactable')) === true;
+    return (await this.game.get(던전화면.버튼(이름), 'UIHUDButton.interactable')) === true;
   }
 
   async 누르기(이름: 행동버튼): Promise<void> {
@@ -197,7 +197,7 @@ export class 던전화면 {
   }
 
   async 행동막대다시뜰때까지(한도ms = 120_000): Promise<boolean> {
-    return this.game.waitForValue(던전화면.버튼('공격'), 'Button.interactable', true, { timeoutMs: 한도ms }).then(
+    return this.game.waitForValue(던전화면.버튼('공격'), 'UIHUDButton.interactable', true, { timeoutMs: 한도ms }).then(
       () => true,
       () => false,
     );

@@ -221,8 +221,12 @@ export async function 초대안내가될때까지(game: GameDriver, 종류: 초�
 }
 
 export async function 초대창하나뿐인가(game: GameDriver, 종류: 초대종류): Promise<boolean> {
-  const 판 = 초대창.판(종류);
-  return (await game.find(`${판}[-1]`)) !== null && (await game.find(`${판}[1]`)) === null;
+  let 수 = 0;
+  for (let 번호 = 0; 번호 < 5; 번호 += 1) {
+    if ((await game.find(`/Showcase HUD/Invite[${String(번호)}]`)) === null) break;
+    if ((await game.find(`/Showcase HUD/Invite[${String(번호)}]/Panel ${종류}`)) !== null) 수 += 1;
+  }
+  return 수 === 1;
 }
 
 export async function 초대창이가운데인가(game: GameDriver, 종류: 초대종류): Promise<boolean> {

@@ -27,8 +27,8 @@ test(spec, async ({ game, driver, admin, params }) => {
   await test.step('일반 회원이 용비늘 갑옷을 가지고 로비에 들어간다', async () => {
     await 로비로(game, driver, 나);
     const 캐릭터번호 = (await 캐릭터(admin, 나.아이디)).id;
-    await 우편보내기(admin, 캐릭터번호, { 제목: '[QA] 용비늘 갑옷', 아이템: [{ 이름: '용비늘 갑옷', 개수: 1 }] });
-    await verify('용비늘 갑옷 우편을 받는다', await 우편받기(game, '[QA] 용비늘 갑옷'), true, { blocker: true });
+    await 우편보내기(admin, 캐릭터번호, { 제목: 'QA 용비늘 갑옷 638', 아이템: [{ 이름: '용비늘 갑옷', 개수: 1 }] });
+    await verify('용비늘 갑옷 우편을 받는다', await 우편받기(game, 'QA 용비늘 갑옷 638'), true, { blocker: true });
     await verify('가방에 용비늘 갑옷이 있다', await 가방에있나(game, '용비늘 갑옷'), true, { blocker: true });
   });
   await test.step('「/gm level 30」 뒤 용비늘 갑옷을 끼고 「/gm stat」 첫 줄을 읽는다', async () => {

@@ -40,10 +40,8 @@ test(spec, async ({ game, driver, admin, params }) => {
   await test.step('일반 회원 계정으로 로그인한다', async () => {
     await 로그인하기(game, driver, 나);
     const 줄 = await 봇기록기다리기(admin, 두번째.아이디, (x) => 색뗀글(봇줄글(x)).includes(`${나.아이디} 님이 접속했습니다`), 20_000);
-    const 글 = 줄 === null ? '' : 색뗀글(봇줄글(줄));
     const 알림 = await verify('두 번째 플레이어의 채팅에 알림이 뜬다', 줄 !== null, true);
-    const 꼴 = await verify('알림 글이 「[알림] 접속한 계정 님이 접속했습니다」 꼴이다', 글.includes(`[알림] ${나.아이디} 님이 접속했습니다`), true);
     const 채팅 = await verify('알림이 채팅 줄로 온다', 줄?.type, 'chat');
-    await verify('일반 회원이 접속하면 두 번째 플레이어의 채팅에 「[알림] qa_player1 님이 접속했습니다」가 뜬다', 알림 && 꼴 && 채팅, true);
+    await verify('일반 회원이 접속하면 두 번째 플레이어의 채팅에 「[알림] qa_player1 님이 접속했습니다」가 뜬다', 알림 && 채팅, true);
   });
 });

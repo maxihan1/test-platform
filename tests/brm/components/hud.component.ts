@@ -89,11 +89,22 @@ export class 공통HUD {
     return 색뗀글(await this.game.text(공통HUD.채팅띠글));
   }
 
+  async 알림글들(): Promise<string[]> {
+    const 글들: string[] = [];
+    for (let 번호 = 0; 번호 < 5; 번호 += 1) {
+      const 찾음 = await this.game.find(`${공통HUD.알림들}/Toast[${String(번호)}]/Text`);
+      if (찾음 === null) break;
+      글들.push(색뗀글(찾음.text ?? ''));
+    }
+    return 글들;
+  }
+
   async 알림뜸(글: string, 한도ms = 10_000): Promise<boolean> {
-    return this.game.waitFor(공통HUD.알림(글), { timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    const 끝 = Date.now() + 한도ms;
+    do {
+      if ((await this.알림글들()).some((줄) => 줄.includes(글))) return true;
+    } while (Date.now() < 끝);
+    return false;
   }
 
   async 큰알림뜸(글: string, 한도ms = 10_000): Promise<boolean> {

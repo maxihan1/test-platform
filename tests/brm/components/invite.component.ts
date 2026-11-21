@@ -5,8 +5,8 @@ import { 색뗀글 } from './hud.component.js';
 export type 초대종류 = '친구 신청' | '파티 초대' | '길드 초대';
 
 export class 초대창 {
-  static readonly 자리 = '/Showcase HUD/Invite';
-  static readonly 가림막 = '/Showcase HUD/Invite/Shade';
+  static readonly 자리 = '/Showcase HUD/Invite[-1]';
+  static readonly 가림막 = '/Showcase HUD/Invite[-1]/Shade';
 
   constructor(private readonly game: GameDriver) {}
 
@@ -26,6 +26,20 @@ export class 초대창 {
       () => true,
       () => false,
     );
+  }
+
+  async 창수(최대 = 5): Promise<number> {
+    let 수 = 0;
+    while (수 < 최대 && (await this.game.find(`/Showcase HUD/Invite[${String(수)}]`)) !== null) 수 += 1;
+    return 수;
+  }
+
+  async 창수가될때까지(수: number, 한도ms = 15_000): Promise<boolean> {
+    const 끝 = Date.now() + 한도ms;
+    do {
+      if ((await this.창수()) >= 수) return true;
+    } while (Date.now() < 끝);
+    return false;
   }
 
   async 제목(종류: 초대종류): Promise<string> {

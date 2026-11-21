@@ -29,8 +29,10 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 로비로(game, driver, 둘째);
     await verify('상단 바에 「Lv.1」이 보인다', (await hud.레벨글()).startsWith('Lv.1 '), true, { blocker: true });
   });
-  await test.step('첨부 없는 우편 한 통을 받고 우편함 창을 열었다 닫는다', async () => {
-    await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 251' }]);
+  await test.step('골드 10 을 단 우편 한 통을 받아 첨부를 비우고 우편함 창을 닫는다', async () => {
+    const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 251', 골드: 10 }]);
+    await 함.받기(0);
+    await verify('우편 줄이 「첨부 없음」이 된다', await 함.줄첨부가될때까지(0, '첨부 없음'), true, { blocker: true });
     await 열린창닫기(game);
     await 우편숫자없어질때까지(game);
     await verify('안 읽었거나 첨부가 남은 우편이 없으면 메뉴 버튼이 숫자 없이 「우편」이다', await hud.메뉴글('우편'), '우편');

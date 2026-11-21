@@ -27,6 +27,9 @@ test(spec, async ({ game, driver, admin, params }) => {
   });
   await test.step('새 계정 캐릭터 레벨을 31 로 넣는다', async () => {
     await 계정되돌리기(admin, 새, 'new');
+    await 로그인화면준비(game, driver);
+    await 로그인하기(game, driver, 새);
+    await verify('새 계정 캐릭터가 생겨 상단 바에 이름이 보인다', await HUD이름뜰때까지(game, 새.아이디), true, { blocker: true });
     await 캐릭터값넣기(admin, 새, { level: 31 });
     await 로그인화면준비(game, driver);
     await verify('로그인 화면이 보인다', await 지금화면(game), '로그인', { blocker: true });

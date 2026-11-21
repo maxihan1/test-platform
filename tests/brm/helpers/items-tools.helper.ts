@@ -9,6 +9,7 @@ import { 퀘스트창 } from '../pages/quest.page.js';
 import { 상점창 } from '../pages/shop.page.js';
 
 import { 게임다시켜기, 던전으로, 로비로 } from './game-enter.helper.js';
+import { 토스트글들 } from './login-tools.helper.js';
 import type { 앱제어 } from './game-enter.helper.js';
 import { GM자료, 불러내기, 봇기록, 봇기록기다리기, 봇시키기, 봇줄글, 봇켜기, 적모두처치, 접속끊기, 지급이력, 열린창닫기, 우편보내기, 캐릭터 } from './game-state.helper.js';
 import type { 계정 } from './game-state.helper.js';
@@ -31,6 +32,21 @@ export async function 서버골드(admin: APIRequestContext, 누구: 계정): Pr
 
 export async function 서버개수(admin: APIRequestContext, 누구: 계정, 이름: string): Promise<number> {
   return (await 캐릭터(admin, 누구.아이디)).아이템[이름] ?? 0;
+}
+
+async function 서버값이될때까지(읽기: () => Promise<number>, 기대: number, 한도ms: number): Promise<number> {
+  const 끝 = Date.now() + 한도ms;
+  let 값 = await 읽기();
+  while (값 !== 기대 && Date.now() < 끝) 값 = await 읽기();
+  return 값;
+}
+
+export async function 서버골드가될때까지(admin: APIRequestContext, 누구: 계정, 기대: number, 한도ms = 20_000): Promise<number> {
+  return 서버값이될때까지(() => 서버골드(admin, 누구), 기대, 한도ms);
+}
+
+export async function 서버개수가될때까지(admin: APIRequestContext, 누구: 계정, 이름: string, 기대: number, 한도ms = 20_000): Promise<number> {
+  return 서버값이될때까지(() => 서버개수(admin, 누구, 이름), 기대, 한도ms);
 }
 
 export async function 우편지급(admin: APIRequestContext, 누구: 계정, 우편: 보낼우편): Promise<number> {
@@ -119,17 +135,14 @@ export async function 알림글읽기(game: GameDriver, 앞글: string, 한도ms
   return 찾음 === null ? null : 색뗀글(찾음.text ?? '');
 }
 
-export async function 알림수(game: GameDriver, 글: string, 최대 = 10): Promise<number> {
-  let 수 = 0;
-  while (수 < 최대 && (await game.find(`${공통HUD.알림들}/*/Text[contains(@text,${글})][${String(수)}]`)) !== null) 수 += 1;
-  return 수;
-}
-
-export async function 알림수될때까지(game: GameDriver, 글: string, 수: number, 한도ms = 15_000): Promise<boolean> {
-  return game.waitFor(`${공통HUD.알림들}/*/Text[contains(@text,${글})][${String(수 - 1)}]`, { timeoutMs: 한도ms }).then(
-    () => true,
-    () => false,
-  );
+export async function 알림수될때까지(game: GameDriver, 글: string, 수: number, 한도ms = 15_000): Promise<number> {
+  const 끝 = Date.now() + 한도ms;
+  let 가장많이 = 0;
+  do {
+    가장많이 = Math.max(가장많이, (await 토스트글들(game)).filter((줄) => 색뗀글(줄).includes(글)).length);
+    if (가장많이 >= 수) return 가장많이;
+  } while (Date.now() < 끝);
+  return 가장많이;
 }
 
 export async function 확인창떴나(game: GameDriver, 연창: string): Promise<boolean> {
@@ -267,11 +280,14 @@ export async function 오른쪽위인가(game: GameDriver, 주소: string, 판�
   const 칸 = await 화면자리(game, 주소);
   const 판 = await 화면자리(game, 판주소);
   if (칸 === null || 판 === null) return false;
-  const 칸가운데x = (칸.rect[0] ?? 0) + (칸.rect[2] ?? 0) / 2;
+  const 정렬 = String(await game.get(주소, 'TextMeshProUGUI.horizontalAlignment'));
+  const 칸왼쪽 = 칸.rect[0] ?? 0;
+  const 칸폭 = 칸.rect[2] ?? 0;
+  const 글x = 정렬 === 'Right' ? 칸왼쪽 + 칸폭 : 정렬 === 'Left' ? 칸왼쪽 : 칸왼쪽 + 칸폭 / 2;
   const 칸가운데y = (칸.rect[1] ?? 0) + (칸.rect[3] ?? 0) / 2;
   const 판가운데x = (판.rect[0] ?? 0) + (판.rect[2] ?? 0) / 2;
   const 판가운데y = (판.rect[1] ?? 0) + (판.rect[3] ?? 0) / 2;
-  return 칸가운데x > 판가운데x && 칸가운데y > 판가운데y;
+  return 글x > 판가운데x && 칸가운데y > 판가운데y;
 }
 
 export async function 왼쪽아래인가(game: GameDriver, 주소: string, 판주소: string): Promise<boolean> {
@@ -341,10 +357,14 @@ export async function 임프서른마리처치(game: GameDriver): Promise<void> 
   await 적모두처치(game);
 }
 
-export async function 지급상태(admin: APIRequestContext, 지급번호: number): Promise<string> {
-  const 이력 = await 지급이력(admin, 50);
-  const 기록 = 이력.find((줄) => Number(줄['id'] ?? 줄['grantId']) === 지급번호);
-  if (기록 === undefined) return '이력에 없음';
-  const 상태 = String(기록['status'] ?? 기록['state'] ?? 기록['claimStatus'] ?? '');
-  return /claim|receiv|받/i.test(상태) ? '받음' : 상태;
+export async function 지급상태(admin: APIRequestContext, 지급번호: number, 한도ms = 15_000): Promise<string> {
+  const 끝 = Date.now() + 한도ms;
+  let 상태 = '이력에 없음';
+  do {
+    const 기록 = (await 지급이력(admin, 50)).find((줄) => Number(줄['id']) === 지급번호);
+    const 우편들 = (기록?.['mails'] ?? []) as { status?: string }[];
+    if (기록 !== undefined) 상태 = 우편들.map((우편) => 우편.status ?? '').join(',');
+    if (우편들.length > 0 && 우편들.every((우편) => 우편.status === 'TAKEN')) return '받음';
+  } while (Date.now() < 끝);
+  return 상태;
 }

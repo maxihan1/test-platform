@@ -1,7 +1,8 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 봇알림기다리기, 서버골드 } from './helpers/items-tools.helper.js';
+import { 봇GM값 } from './helpers/dungeon-tools.helper.js';
+import { 봇알림기다리기 } from './helpers/items-tools.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇기록, 봇모두끄기, 봇시키기, 봇켜기, 접속자 } from './helpers/game-state.helper.js';
 
 export const spec = defineCase({
@@ -33,10 +34,10 @@ test(spec, async ({ admin, params }) => {
     await 봇기록(admin, 봇, true);
     await 봇시키기(admin, 봇, 'buy:조약돌');
     await 봇알림기다리기(admin, 봇, '조약돌 1개 구매');
-    const 산뒤 = await 서버골드(admin, 둘째);
+    const 산뒤 = Number((await 봇GM값(admin, 봇, 'stat', '골드'))['골드']);
     await 봇시키기(admin, 봇, 'sell:조약돌');
     await 봇알림기다리기(admin, 봇, '조약돌 판매');
-    const 판뒤 = await 서버골드(admin, 둘째);
+    const 판뒤 = Number((await 봇GM값(admin, 봇, 'stat', '골드'))['골드']);
     await verify('3 골드짜리 조약돌을 팔면 판매가가 0 이 아니라 최소 1 골드라 골드가 1 는다', 판뒤 - 산뒤, 1);
   });
 });
