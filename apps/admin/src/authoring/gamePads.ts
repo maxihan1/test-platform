@@ -7,16 +7,19 @@ const 패드값 = ['ps5', 'ps4', 'switch', 'xbox'] as const;
 export interface 게임칸 {
   gamePlatform: 'android' | 'windows';
   gamePads: string[];
+  /** 코드 저장소 — 있을 때만. 작성 AI 가 가이드에 빠진 게임 사실을 코드에서 찾는다 (도메인/작성 §3.6 「가이드와 게임 코드 맞춰 보기」) */
+  codeRepos?: { name: string; url: string }[];
 }
 
-/** 게임 애플리케이션이면 플랫폼 · 지원 패드, 아니면 null */
+/** 게임 애플리케이션이면 플랫폼 · 지원 패드 · 코드 저장소, 아니면 null */
 export async function 게임칸읽기(서비스: number): Promise<게임칸 | null> {
-  const r = await (await db()).query<{ game_platform: 'android' | 'windows' | null; game_pads: string[] }>(
-    'SELECT game_platform, game_pads FROM service WHERE id = $1',
+  const r = await (await db()).query<{ game_platform: 'android' | 'windows' | null; game_pads: string[]; code_repos: { name: string; url: string }[] }>(
+    'SELECT game_platform, game_pads, code_repos FROM service WHERE id = $1',
     [서비스],
   );
   const 줄 = r.rows[0];
-  return 줄?.game_platform == null ? null : { gamePlatform: 줄.game_platform, gamePads: 줄.game_pads };
+  if (줄?.game_platform == null) return null;
+  return { gamePlatform: 줄.game_platform, gamePads: 줄.game_pads, ...(줄.code_repos.length === 0 ? {} : { codeRepos: 줄.code_repos }) };
 }
 
 /**
