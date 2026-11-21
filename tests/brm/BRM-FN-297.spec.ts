@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 사기, 색이름, 퀘스트줄 } from './helpers/items-tools.helper.js';
+import { 글자색이름, 사기, 퀘스트줄 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기, 퀘스트처음으로 } from './helpers/game-state.helper.js';
 import { 퀘스트창 } from './pages/quest.page.js';
@@ -43,7 +43,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 퀘스트.보상받기(줄);
     await hud.알림뜸('보상 받음');
     const 글 = await verify('버튼 자리에 「받음」이 보인다', await 퀘스트.받음글(줄), '받음');
-    const 색 = await verify('「받음」 글자가 초록색이다', 색이름((await 퀘스트.받음원문(줄)) ?? ''), '초록');
+    const 색 = await verify('「받음」 글자가 초록색이다', await 글자색이름(game, `${퀘스트창.줄주소(줄)}//*[contains(@text,받음)]`), '초록');
     await verify('보상을 받으면 버튼 자리에 초록 「받음」이 보인다', 글 && 색, true);
   });
 });
