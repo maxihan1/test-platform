@@ -268,4 +268,23 @@ export class 던전화면 {
       () => false,
     );
   }
+
+  async 첫임프치기(): Promise<boolean> {
+    await this.첫임프누르기();
+    await this.고르기표시뜸(5_000);
+    await this.누르기('공격');
+    return this.임프다사라질때까지(5_000);
+  }
+
+  async 질주공격으로임프치기(): Promise<boolean> {
+    await this.누르기('스킬 1');
+    await this.임프누르기();
+    return this.임프다사라질때까지(5_000);
+  }
+
+  async 동료치유(번호 = 1): Promise<void> {
+    await this.동료고르기(번호);
+    await this.고르기표시뜸(5_000);
+    await this.누르기('스킬 1');
+  }
 }
