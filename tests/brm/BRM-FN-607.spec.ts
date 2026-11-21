@@ -38,7 +38,8 @@ test(spec, async ({ game, driver, admin, params }) => {
   await test.step('상점에서 체력 물약 「구매」를 빠르게 두 번 누른다', async () => {
     const 상점 = await 상점창.열기(game);
     const 줄 = await 상점줄(상점, '체력 물약');
-    await Promise.all([상점.구매누르기(줄), 상점.구매누르기(줄)]);
+    await 상점.줄보이게하기(줄);
+    await game.click(`${상점창.줄주소(줄)}/Button 구매`, { count: 2, interval: 0.2 });
     await hud.골드가될때까지('1,940 G', 20_000);
     const 화면골드 = await verify('상단 바 골드가 「1,940 G」다', await hud.골드글(), '1,940 G');
     const 서버골드값 = await verify('운영툴 캐릭터 골드가 1,940 이다', await 서버골드가될때까지(admin, 나, 1940), 1940);
