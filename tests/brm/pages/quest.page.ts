@@ -35,7 +35,7 @@ export class 퀘스트창 {
   }
 
   async 가림막누르기(): Promise<void> {
-    await this.game.click(퀘스트창.가림막);
+    await this.game.click(퀘스트창.가림막, { at: [0.05, 0.05] });
   }
 
   async 닫힐때까지(한도ms = 5_000): Promise<boolean> {
