@@ -31,6 +31,7 @@ import { 앱탐색잇기 } from './authoring-app-explore.js';
 import { 저장본넣기 } from './authoring-screens-keep-io.js';
 import { 잡기늘리기 } from './authoring-app-hold.js';
 import { PC게임못함, 게임화면받기, 받은빌드이름, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 잡은폰토큰, 탐색환경, 팜주소 } from './authoring-app-screen.js';
+import { 코드자리비우기, 코드저장소받기 } from './authoring-code-repos.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { 고칠케이스환경 } from './authoring-run3-env.js';
@@ -218,8 +219,11 @@ async function 사본에서(
   // 앱 crawl 이 저장본과 견주게 대조 요청이 아니어도 받는다(대조는 작업방준비가 받았다) — 이어받은 폴더면 앞 것을 둔다 (§3.6 「★ 앱 탐색」 · APP-F4-06)
   if (설정.종류 === 'APP' && 것.target === undefined) await 저장본넣기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, true);
   // 대조 · 반영 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호(역할 계정까지)를 먼저 가린다 (§3.6 「★ 역방향」 · 「★ 역할별 계정」)
+  if (게임화면 !== undefined) 코드자리비우기(자리.자료); // 이어받은 폴더의 앞 사본을 가리기가 훑지 않게 (§3.6 「가이드와 게임 코드 맞춰 보기」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 비밀번호들(것));
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
+  // 게임 코드 저장소는 가린 뒤 받는다 — 가리기가 자료 폴더를 다 훑어 큰 저장소에 시간을 쓰지 않게. 못 받아도 간다 · 저장소 사이에 멈춤을 본다 (§3.6 「가이드와 게임 코드 맞춰 보기」)
+  const 코드 = 게임화면 !== undefined && 것.codeRepos !== undefined ? await 코드저장소받기(것.codeRepos, 자리.자료, process.env, () => 박동.멈추라했다()) : undefined;
   // 작성은 표준 기획서만 읽는다 — 지금 판으로 원장을 만든다. 못 받으면 원장이 없어 작성하지 않는다 (§3.6 「작성은 표준 기획서만 읽는다」). 화면이 맞음 건의 실패 trace 도 같이 받는다(못 받아도 간다)
   const [기획서] = await Promise.all([판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 비밀번호들(것)), 실패trace받기({ 주소기지, 토큰 }, 것, 자리.자료)]);
   if ('까닭' in 기획서) return void (await 손.끝내기({ status: 'FAILED', error: 기획서.까닭 }));
@@ -263,7 +267,7 @@ async function 사본에서(
   const 띄운다 = (키: string | undefined, 이어하기 = 방.이어하기, 되묻기?: { 인자: string[]; 글: string }, 탐색?: 탐색단계) => 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? (되묻기?.인자 ?? 인자) : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...(되묻기?.인자 ?? 인자)], {
       cwd: 자리.트리,
-      input: 되묻기?.글 ?? 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들, 입구 }, 역방향, 이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영, { 판: 가이드판, 글: join(가이드폴더(자리.자료), 'guide.md') }, 앱화면 && { ...앱화면, ...(앱문구 !== undefined && { 문구: 앱문구 }) }, 자리.자료, 탐색),
+      input: 되묻기?.글 ?? 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들, 입구 }, 역방향, 이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영, { 판: 가이드판, 글: join(가이드폴더(자리.자료), 'guide.md') }, 앱화면 && { ...앱화면, ...(앱문구 !== undefined && { 문구: 앱문구 }), ...(코드 !== undefined && { 코드 }) }, 자리.자료, 탐색),
       env: 결제환경(환경, 키),
       uid: 자식?.uid,
       gid: 자식?.gid,
