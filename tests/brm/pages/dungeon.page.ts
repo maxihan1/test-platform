@@ -79,6 +79,15 @@ export class 던전화면 {
     await this.game.click(던전화면.버튼(이름));
   }
 
+  async 모으는스킬짧게누르기(이름: 행동버튼): Promise<void> {
+    const 손가락 = await this.game.touchDown(던전화면.버튼(이름));
+    try {
+      await this.game.waitFor('/ChargeUpInput(Clone)', { timeoutMs: 5_000 });
+    } finally {
+      await this.game.touchUp(손가락);
+    }
+  }
+
   async 임프고르고공격(): Promise<void> {
     await this.game.click(던전화면.임프);
     await this.game.click(던전화면.버튼('공격'));
