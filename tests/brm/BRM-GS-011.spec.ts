@@ -9,7 +9,7 @@ import { 던전화면 } from './pages/dungeon.page.js';
 
 export const spec = defineCase({
   tcId: 'BRM-GS-011',
-  name: 'BRM-REQ-103 레벨 1 탱커가 「방패 오라」를 누르자마자 떼고 3명 던전에서 임프에게 맞은 피해는 15 × 0.5 = 7.5 의 소수점 아래를 버린 7 이다',
+  name: 'BRM-REQ-103 레벨 1 탱커가 「방패 오라」를 켜고 3명 던전에서 임프에게 맞은 피해는 15 에 배율 1 − (0.5 + 충전률² ÷ 2)를 곱해 소수점 아래를 버린 값이다',
   platforms: ['android'],
   precondition: ['탱커 · 레벨 1 · 장비 없음 · 던전 3명(두 번째 · 세 번째 플레이어 봇)'],
   elements: ['monster:임프', 'skill:방패 오라', 'state:레벨=1', 'state:던전 인원=3', 'state:직업=탱커'],
@@ -52,7 +52,7 @@ test(spec, async ({ game, driver, admin, params }) => {
           await 맞을때까지기다리기(game, 4_000);
         },
         {
-          progress: async () => 받은피해((줄들 = await 로그.lines()), 나.아이디, 'Imp').length,
+          progress: async () => 받은피해((줄들 = await 로그.lines()), 나.아이디, 'Imp').filter((줄) => 줄.shield !== undefined).length,
           goal: 3,
           stallMs: 60_000,
         },
@@ -60,9 +60,12 @@ test(spec, async ({ game, driver, admin, params }) => {
     } catch (e) {
       멈춤 = e;
     }
-    const 값들 = 받은피해(줄들, 나.아이디, 'Imp').map((줄) => 줄.value);
-    const 반감 = await verify.log('「방패 오라」를 켠 동안 임프가 나를 친 피해 줄이 전부 7 이다', 값들, 7, { least: 3 });
-    await verify('BRM-REQ-103 레벨 1 탱커가 「방패 오라」를 누르자마자 떼고 3명 던전에서 임프에게 맞은 피해는 15 × 0.5 = 7.5 의 소수점 아래를 버린 7 이다', 반감, true);
+    const 방패줄 = 받은피해(줄들, 나.아이디, 'Imp').filter((줄) => 줄.shield !== undefined);
+    const 공식값 = (c: number): number => Math.max(5, Math.trunc(15 * (1 - (0.5 + (c * c) / 2))));
+    const 맞는값 = (c: number): number[] => [공식값(c), 공식값(Math.max(0, c - 0.0005)), 공식값(Math.min(1, c + 0.0005))];
+    for (const 줄 of 방패줄) await verify.note('방패가 켜진 동안 맞은 줄', { 충전률: 줄.shield, 받은피해: 줄.value, 공식값: 공식값(줄.shield ?? 0) });
+    const 차이 = await verify.log('방패가 켜진 동안 임프가 나를 친 피해 줄이 전부 최소 5 · 버림(15 × (1 − (0.5 + 충전률² ÷ 2)))과 같다(로그 충전률의 셋째 자리 반올림 폭 안이면 차이 0)', 방패줄.map((줄) => (맞는값(줄.shield ?? 0).includes(줄.value ?? -1) ? 0 : (줄.value ?? 0) - 공식값(줄.shield ?? 0))), 0, { least: 3 });
+    await verify('BRM-REQ-103 레벨 1 탱커가 「방패 오라」를 켜고 3명 던전에서 임프에게 맞은 피해는 15 에 배율 1 − (0.5 + 충전률² ÷ 2)를 곱해 소수점 아래를 버린 값이다', 차이, true);
     const 조건 = { 레벨: 1, 직업: '탱커', 무기: '-', 갑옷: '-', 인원: 3 };
     for (const 줄 of 설명안되는줄(줄들, 나.아이디, 조건, ['hit']).slice(0, 10)) await verify.note('설명 안 되는 줄', 줄);
     if (멈춤 !== undefined) throw 멈춤;
