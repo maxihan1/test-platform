@@ -2,6 +2,7 @@
 // 데이터는 두고 껐다 켜기는 appParts 의 앱다시켜기 다. 깔기 · 지우기는 팜이 이번 실행에 깐 시험 대상 앱만이다(공통/2-명세선언 「범용 앱」)
 
 import type { AppDriver } from './app.js';
+import { 쪽지쓰기 } from './appBuild.js';
 import { 패키지이름인가 } from './protocol.js';
 import { 네이티브전용 } from './webview.js';
 
@@ -96,6 +97,8 @@ async function 깔기(driver: AppDriver, 파일: string, 무엇: string, 부품:
     const 가린 = 오류글(err).split(파일).join('<앱 파일>').replace(/([?&]sig=)[^&\s'"]+/g, '$1…');
     throw new Error(`${부품} — ${무엇} 못 깔았다 — ${가린}`);
   }
+  // 지금 판을 깔았으면 폰 쪽지를 고친다 — 안 고치면 다음 항목이 「그사이 누가 다시 깔았다」로 보고 데이터째 또 깐다 (appBuild.ts)
+  if (무엇 === '지금 판을') await 쪽지쓰기((script, args) => driver.execute(script, args), 시험앱(driver, 부품), 파일);
 }
 
 /** 시험 대상 앱을 지우고 지금 판을 다시 깐 뒤 켠다 — 처음 깐 상태(첫 실행 안내 · 권한 창)를 보는 케이스 */
