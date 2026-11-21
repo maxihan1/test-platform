@@ -2,10 +2,9 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 사기, 서버골드가될때까지, 임프서른마리처치, 퀘스트줄 } from './helpers/items-tools.helper.js';
-import { 던전으로, 로비로 } from './helpers/game-enter.helper.js';
-import { 계정꺼내기, 계정되돌리기, 레벨맞추기, 보스방가기, 보스처치, 봇모두끄기, 퀘스트처음으로, GM상태 } from './helpers/game-state.helper.js';
-import { 던전화면 } from './pages/dungeon.page.js';
+import { 서버골드가될때까지, 퀘스트줄 } from './helpers/items-tools.helper.js';
+import { 던전으로 } from './helpers/game-enter.helper.js';
+import { 계정꺼내기, 계정되돌리기, 레벨맞추기, 봇모두끄기, 퀘스트다채우기, 퀘스트처음으로, GM상태 } from './helpers/game-state.helper.js';
 import { 퀘스트창 } from './pages/quest.page.js';
 
 export const spec = defineCase({
@@ -34,12 +33,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 던전으로(game, driver, 나, 0);
     await 레벨맞추기(game, 30);
     await 퀘스트처음으로(game);
-    await 임프서른마리처치(game);
-    await 사기(game, '체력 물약');
-    await 보스방가기(game);
-    await 보스처치(game);
-    await new 던전화면(game).결과화면으로넘어갈때까지(60_000);
-    await 로비로(game, driver, 나);
+    await 퀘스트다채우기(game);
     const 퀘스트 = await 퀘스트창.열기(game);
     const 줄 = await 퀘스트줄(퀘스트, '임프 30마리 처치');
     await 퀘스트.줄진행이될때까지(줄, '30/30');

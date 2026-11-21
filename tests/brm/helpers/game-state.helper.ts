@@ -321,6 +321,10 @@ export async function 퀘스트처음으로(game: GameDriver): Promise<void> {
   await GM명령(game, '/gm quest reset', 'quest');
 }
 
+export async function 퀘스트다채우기(game: GameDriver): Promise<void> {
+  await GM명령(game, '/gm quest done', 'quest done');
+}
+
 export async function 적모두처치(game: GameDriver): Promise<void> {
   await GM명령(game, '/gm killall', 'killall');
 }
