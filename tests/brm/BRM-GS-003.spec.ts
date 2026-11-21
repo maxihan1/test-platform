@@ -12,7 +12,6 @@ export const spec = defineCase({
   name: 'BRM-REQ-376 레벨 10 도적이 「룬 새김 도끼」를 끼고 「질주 공격」으로 준 피해는 44 다',
   platforms: ['android'],
   precondition: ['도적 · 레벨 10 · 「룬 새김 도끼」 · 혼자 던전'],
-  held: '보류 — 「질주 공격」이 폰 누르기로 안 나감(행동 버튼 Button1 뒤 /Imp(Clone) 누르기 · 적 뒤 버튼 누르기 · 손가락 눌렀다 떼기 모두 피해 줄이 안 생김)',
   elements: ['monster:임프', 'skill:질주 공격', 'item:룬 새김 도끼', 'state:레벨=10', 'state:무기=룬 새김 도끼', 'state:직업=도적'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
