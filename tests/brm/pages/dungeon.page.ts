@@ -14,7 +14,7 @@ export class 던전화면 {
   static readonly 내이름줄 = '/BossRoomHudCanvas/Party HUD/Hero HUD/Button/Hero Name (TMP)';
   static readonly 내체력막대 = '/BossRoomHudCanvas/Party HUD/Hero HUD/Button/Hero HP Slider';
   static readonly 알림줄 = '/BossRoomHudCanvas/MessageFeed';
-  static readonly 말풍선 = '/BossRoomHudCanvas/CheatsPopupPanel/Tooltip/Text (TMP)';
+  static readonly 말풍선 = '/BossRoomHudCanvas/Tooltip/Text (TMP)';
   static readonly 임프 = '/Imp(Clone)';
   static readonly 항아리 = '/PickUpPot(Clone)';
   static readonly 첫임프 = '/Imp(Clone)[0]';
@@ -218,7 +218,7 @@ export class 던전화면 {
   }
 
   static readonly 감정막대 = '/BossRoomHudCanvas/Hero Emote Bar';
-  static readonly 행동말풍선 = '/BossRoomHudCanvas/CheatsPopupPanel/Tooltip/Text (TMP)';
+  static readonly 행동말풍선 = '/BossRoomHudCanvas/Tooltip/Text (TMP)';
 
   static 조작그림(번호: 1 | 2 | 3): string {
     return `${던전화면.조작안내}/Controls Img ${String(번호)}`;

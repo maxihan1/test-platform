@@ -95,6 +95,13 @@ export class 퀘스트창 {
     await this.game.click(`${퀘스트창.줄주소(번호)}/Button 보상 받기`);
   }
 
+  async 받음이될때까지(번호: number, 한도ms = 10_000): Promise<boolean> {
+    return this.game.waitFor(`${퀘스트창.줄주소(번호)}//*[contains(@text,받음)]`, { timeoutMs: 한도ms }).then(
+      () => true,
+      () => false,
+    );
+  }
+
   async 받음글(번호: number): Promise<string | null> {
     return this.칸글(`${퀘스트창.줄주소(번호)}//*[contains(@text,받음)]`);
   }
