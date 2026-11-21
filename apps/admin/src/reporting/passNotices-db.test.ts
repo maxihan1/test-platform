@@ -98,7 +98,7 @@ describe.skipIf(연결 === undefined)('insights 통과알림들 (도메인/리�
           확인('긴 화면 글', '보스', `보스 ${'가'.repeat(194)}hunter2secret 🎁 끝`),
         ],
       ],
-      { 비밀번호: 'hunter2secret' },
+      { password: 'hunter2secret' },
     );
     await 항목넣는다(많은실행, 'XDN-FN-009', 'PASS', [
       Array.from({ length: 통과알림상한 + 5 }, (_, i) => 확인(`알림 ${String(i)}`, '보스', '보스 처치')),
