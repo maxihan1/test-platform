@@ -33,8 +33,11 @@ test(spec, async ({ game, driver, admin, params }) => {
   await test.step('첨부 있는 우편과 첨부 없는 우편을 받고 우편함 창을 연다', async () => {
     const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [
       { 제목: 'QA 우편 542 첨부', 아이템: [{ 이름: '체력 물약', 개수: 1 }] },
-      { 제목: 'QA 우편 542 없음' },
+      { 제목: 'QA 우편 542 없음', 골드: 10 },
     ]);
+    const 비울줄 = (await 함.줄찾기('QA 우편 542 없음')) ?? 0;
+    await 함.받기(비울줄);
+    await verify('골드를 받아 「QA 우편 542 없음」 줄이 「첨부 없음」이 된다', await 함.줄첨부가될때까지(비울줄, '첨부 없음'), true, { blocker: true });
     const 있음 = await verify('첨부 있는 우편 줄에 「받기」 버튼이 있다', await 함.받기버튼있나((await 함.줄찾기('QA 우편 542 첨부')) ?? 0), true);
     const 없음 = await verify('첨부 없는 우편 줄에 「받기」 버튼이 없다', await 함.받기버튼있나((await 함.줄찾기('QA 우편 542 없음')) ?? 0), false);
     await verify('첨부 있는 우편과 첨부 없는 우편을 받고 우편함 창을 열면 「받기」 버튼은 첨부 있는 우편 줄에만 보인다', 있음 && 없음, true);

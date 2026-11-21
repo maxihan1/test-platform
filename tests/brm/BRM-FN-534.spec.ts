@@ -35,7 +35,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 상점 = await 상점창.열기(game);
     const 마지막 = (await 상점.줄수()) - 1;
     const 처음자리 = (await 화면자리(game, 상점창.줄주소(0)))?.rect ?? null;
-    await 상점.끌어서넘기기(마지막, 0);
+    await 상점.줄보이게하기(마지막);
     const 넘어감 = await verify('목록이 위아래로 넘어간다', await 자리바뀜(game, 상점창.줄주소(0), 처음자리), true);
     const 줄 = await 상점줄(상점, '체력 물약');
     const 보임 = await verify('「체력 물약」 줄이 화면 안에 있다', await 화면안인가(game, 상점창.줄주소(줄)), true);

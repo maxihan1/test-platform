@@ -280,11 +280,14 @@ export async function 오른쪽위인가(game: GameDriver, 주소: string, 판�
   const 칸 = await 화면자리(game, 주소);
   const 판 = await 화면자리(game, 판주소);
   if (칸 === null || 판 === null) return false;
-  const 칸가운데x = (칸.rect[0] ?? 0) + (칸.rect[2] ?? 0) / 2;
+  const 정렬 = String(await game.get(주소, 'TextMeshProUGUI.horizontalAlignment'));
+  const 칸왼쪽 = 칸.rect[0] ?? 0;
+  const 칸폭 = 칸.rect[2] ?? 0;
+  const 글x = 정렬 === 'Right' ? 칸왼쪽 + 칸폭 : 정렬 === 'Left' ? 칸왼쪽 : 칸왼쪽 + 칸폭 / 2;
   const 칸가운데y = (칸.rect[1] ?? 0) + (칸.rect[3] ?? 0) / 2;
   const 판가운데x = (판.rect[0] ?? 0) + (판.rect[2] ?? 0) / 2;
   const 판가운데y = (판.rect[1] ?? 0) + (판.rect[3] ?? 0) / 2;
-  return 칸가운데x > 판가운데x && 칸가운데y > 판가운데y;
+  return 글x > 판가운데x && 칸가운데y > 판가운데y;
 }
 
 export async function 왼쪽아래인가(game: GameDriver, 주소: string, 판주소: string): Promise<boolean> {

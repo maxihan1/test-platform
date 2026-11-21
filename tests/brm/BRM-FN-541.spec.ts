@@ -33,8 +33,11 @@ test(spec, async ({ game, driver, admin, params }) => {
   await test.step('체력 물약 1개 · 골드 10 첨부 우편과 첨부 없는 우편을 받고 우편함 창을 연다', async () => {
     const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [
       { 제목: 'QA 우편 541 첨부', 아이템: [{ 이름: '체력 물약', 개수: 1 }], 골드: 10 },
-      { 제목: 'QA 우편 541 없음' },
+      { 제목: 'QA 우편 541 없음', 골드: 10 },
     ]);
+    const 비울줄 = (await 함.줄찾기('QA 우편 541 없음')) ?? 0;
+    await 함.받기(비울줄);
+    await verify('골드를 받아 「QA 우편 541 없음」 줄이 「첨부 없음」이 된다', await 함.줄첨부가될때까지(비울줄, '첨부 없음'), true, { blocker: true });
     const 있음줄 = (await 함.줄찾기('QA 우편 541 첨부')) ?? 0;
     const 없음줄 = (await 함.줄찾기('QA 우편 541 없음')) ?? 0;
     const 있음글 = await verify('첨부 줄이 「첨부: 체력 물약 x1, 10 골드」다', await 함.줄첨부(있음줄), '첨부: 체력 물약 x1, 10 골드');
