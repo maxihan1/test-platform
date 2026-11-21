@@ -30,6 +30,8 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+const 셸빼고 = (보낸: [string, unknown][]) => 보낸.filter(([명령]) => 명령 !== 'mobile: shell');
+
 describe('뒤로보냈다오기 · 딥링크열기 · 화면껐다켜기', () => {
   it('appium-cli background · deeplink · screen-off-on 과 같은 명령을 보낸다 — 딥 링크에는 시험 대상 앱 꾸러미를 싣는다', async () => {
     const 폰 = 가짜폰();
@@ -88,7 +90,8 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
     vi.stubEnv('PLATFORM_APP', 'https://admin/api/builds/7/apk?exp=1&sig=s');
     const 폰 = 가짜폰();
     await 앱다시깔기(폰.driver);
-    expect(폰.보낸).toEqual([
+    expect(폰.보낸).toContainEqual(['mobile: shell', { command: 'dumpsys', args: ['package', 'com.shop'] }]);
+    expect(셸빼고(폰.보낸)).toEqual([
       ['mobile: removeApp', { appId: 'com.shop' }],
       ['mobile: installApp', { appPath: 'https://admin/api/builds/7/apk?exp=1&sig=s' }],
       ['mobile: clearApp', { appId: 'com.shop' }],
@@ -114,7 +117,7 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
       return 7;
     });
     expect(값).toBe(7);
-    expect(폰.보낸).toEqual([
+    expect(셸빼고(폰.보낸)).toEqual([
       ['mobile: removeApp', { appId: 'com.shop' }],
       ['mobile: installApp', { appPath: '/apk/old.apk' }],
       ['activateApp', 'com.shop'],
@@ -139,7 +142,7 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
     vi.stubEnv('PLATFORM_APP_PREVIOUS', '/apk/old.apk');
     const 폰 = 가짜폰();
     await expect(옛판에서올리기(폰.driver, () => Promise.reject(new Error('로그인 버튼이 없다')))).rejects.toThrow(/^로그인 버튼이 없다$/);
-    expect(폰.보낸.slice(-2)).toEqual([['mobile: installApp', { appPath: 'https://admin/apk?sig=secret' }], ['activateApp', 'com.shop']]);
+    expect(셸빼고(폰.보낸).slice(-2)).toEqual([['mobile: installApp', { appPath: 'https://admin/apk?sig=secret' }], ['activateApp', 'com.shop']]);
 
     const 막힌폰 = 가짜폰(undefined, (명령, 인자) => 명령 === 'mobile: installApp' && (인자 as { appPath: string }).appPath.includes('sig='));
     const 오류 = await 옛판에서올리기(막힌폰.driver, () => Promise.reject(new Error('로그인 버튼이 없다'))).catch((e: unknown) => e as Error);
