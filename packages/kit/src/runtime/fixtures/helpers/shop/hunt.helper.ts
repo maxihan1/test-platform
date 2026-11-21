@@ -15,3 +15,7 @@ export const gm = {
     await game.click('/Chat/Send');
   },
 };
+
+export async function 골드기다리기(game: { waitForValue(target: string, prop: string, value: unknown, options?: { timeoutMs?: number }): Promise<void> }): Promise<void> {
+  await game.waitForValue('/Hud/Gold', 'Text.text', '100', { timeoutMs: 1 });
+}

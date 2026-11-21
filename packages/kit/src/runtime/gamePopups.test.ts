@@ -35,10 +35,13 @@ describe('돌발 팝업 자동 닫기', () => {
     const 절차: StepScope = { assertions: [] };
     await stepScope.run(절차, () => game.click('/Hud/Enhance'));
     expect(보낸.map((c) => [c.cmd, c.target])).toEqual([
+      ['find', '/Hud/Enhance'],
       ['click', '/Hud/Enhance'],
       ['find', '/Hud/Enhance'],
       ['find', '/Canvas/Invite'],
+      ['find', '/Canvas/Invite/Decline'],
       ['click', '/Canvas/Invite/Decline'],
+      ['find', '/Hud/Enhance'],
       ['click', '/Hud/Enhance'],
     ]);
     expect(절차.assertions).toEqual([{ statement: '돌발 팝업 닫음 — /Canvas/Invite', status: 'PASS', actual: '/Canvas/Invite/Decline 누름', expected: null }]);
@@ -61,13 +64,13 @@ describe('돌발 팝업 자동 닫기', () => {
     };
     const game = await openGame({ PLATFORM_GAME_POPUPS: JSON.stringify([초대]) }, link, 안쉼);
     await game.waitFor('/Canvas/Result', { timeoutMs: 1 });
-    expect(보낸.slice(-3)).toEqual(['find /Canvas/Invite', 'click /Canvas/Invite/Decline', 'find /Canvas/Result']);
+    expect(보낸.slice(-4)).toEqual(['find /Canvas/Invite', 'find /Canvas/Invite/Decline', 'click /Canvas/Invite/Decline', 'find /Canvas/Result']);
   });
 
   it('떠 있는 돌발 팝업이 없으면 다시 하지 않고 원래 실패를 낸다', async () => {
     const { game, 보낸 } = await 초대창게임([{ window: '/Canvas/Notice', close: '/Canvas/Notice/Close' }]);
     await expect(game.click('/Hud/Enhance')).rejects.toThrow('/Hud/Enhance 는 가려져 누를 수 없습니다');
-    expect(보낸.map((c) => [c.cmd, c.target])).toEqual([['click', '/Hud/Enhance'], ['find', '/Hud/Enhance'], ['find', '/Canvas/Notice']]);
+    expect(보낸.map((c) => [c.cmd, c.target])).toEqual([['find', '/Hud/Enhance'], ['click', '/Hud/Enhance'], ['find', '/Hud/Enhance'], ['find', '/Canvas/Notice']]);
   });
 
   it('케이스가 그 창 안 오브젝트를 다루는 동작이면 경로로 주든 이름으로 주든 창을 닫지 않는다 — 초대 창을 확인하는 케이스가 버그를 숨기지 않게', async () => {
@@ -87,7 +90,7 @@ describe('돌발 팝업 자동 닫기', () => {
     };
     const game = await openGame({ PLATFORM_GAME_POPUPS: JSON.stringify([초대]) }, link, 안쉼);
     await expect(game.click('/Shop/Buy')).rejects.toThrow('답하지 않았습니다');
-    expect(보낸).toEqual(['click']);
+    expect(보낸).toEqual(['find', 'click']);
   });
 
   it('한 번 더 해도 실패하면 그 실패를 낸다 — 두 번째는 닫지 않는다', async () => {
@@ -101,13 +104,13 @@ describe('돌발 팝업 자동 닫기', () => {
     };
     const game = await openGame({ PLATFORM_GAME_POPUPS: JSON.stringify([초대]) }, link, 안쉼);
     await expect(game.click('/Hud/Enhance')).rejects.toThrow('여전히 막혔습니다');
-    expect(보낸).toEqual(['click', 'find', 'find', 'click', 'click']);
+    expect(보낸).toEqual(['find', 'click', 'find', 'find', 'find', 'click', 'find', 'click']);
   });
 
   it('목록이 비면 감싸지 않는다 — 지금처럼 실패다', async () => {
     const { game, 보낸 } = await 초대창게임(undefined);
     await expect(game.click('/Hud/Enhance')).rejects.toThrow('가려져');
-    expect(보낸.map((c) => c.cmd)).toEqual(['click']);
+    expect(보낸.map((c) => c.cmd)).toEqual(['find', 'click']);
   });
 
   it('PLATFORM_GAME_POPUPS 꼴이 틀리면 게임에 붙기 전에 던진다', () => {

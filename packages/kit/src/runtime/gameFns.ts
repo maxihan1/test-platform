@@ -1,9 +1,13 @@
 // 게임 · Android 앱 항목이 지나던 화면 객체 함수 · 도우미 이름을 절차 기록에 남긴다 — 정식 실행이 조작 맵 · 앱 조작 맵 줄을 이 이름으로 맞춘다 (도메인/게임 §3.10 「정식 실행이 맵을 고친다」 · 도메인/작성 §3.6 「★ 앱 탐색」 결정 10)
 // 행의 동작 칸은 「적 누르기 후 「공격」 누르기」 같은 문장이라 오브젝트 주소로는 못 맞춘다. 케이스가 그 동작을 부르는 함수 이름이 유일한 열쇠다
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { readFileSync } from 'node:fs';
 
 import { stepScope, type StepScope } from './context.js';
+
+/** 감싼 게임 동작 안에서 도는 중인가 — 동작이 부른 동작을 한 번 더 적지 않게 */
+const 동작안 = new AsyncLocalStorage<true>();
 
 // 화면 객체 · 도우미 · 화면 조각 폴더(하위 폴더까지)의 프레임만 본다 — 케이스 파일 · kit · 라이브러리는 행의 함수가 아니다.
 // 이름에 빈칸이 든 프레임(new 던전화면 · get 이름)은 걸리지 않는다 — 행에 적는 함수가 아니다
@@ -227,10 +231,12 @@ export function 함수를적게건다(드라이버: object): void {
   for (const 이름 of 적을동작) {
     const 원래 = 칸[이름]!.bind(드라이버);
     칸[이름] = async (...인자: unknown[]): Promise<unknown> => {
+      // 동작이 안에서 부른 동작은 모두 적지 않는다(control-cli 0.16.4 click · text · waitFor 의 this.find, kit waitForValue 의 get) — 안쪽 읽기가 지나면 바깥 동작이 실패해도 지난 함수로 남는다
+      if (동작안.getStore() === true) return 원래(...인자);
       const 자리 = 부른자리();
       let 값: unknown;
       try {
-        값 = await 원래(...인자);
+        값 = await 동작안.run(true, () => 원래(...인자));
       } catch (err) {
         if (자리 !== null && 자리.들.length > 0 && typeof err === 'object' && err !== null && !부른함수.has(err)) 부른함수.set(err, 자리.들);
         throw err;
