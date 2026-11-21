@@ -62,12 +62,23 @@ function 남긴다(
 
 const 숫자 = /\d/;
 const 구두점 = /\p{P}/u;
+// ASCII - 는 뺀다 — 목록 머리표(- 50 골드) · 범위(3 - 10) · 구분선으로 더 자주 쓴다
+const 부호 = /[+＋−]/;
+
+/** 글 at 자리의 부호가 수의 부호인가 — 이름에 붙었거나(C++ · A+) 앞 수와 셈을 하는(3 + 10) 부호는 아니다 */
+function 홀로선부호(글: string, at: number): boolean {
+  const 바로앞 = 글[at - 1];
+  if (바로앞 !== undefined && !/\s/.test(바로앞) && !구두점.test(바로앞)) return false;
+  return !숫자.test(글.slice(0, at).trimEnd().at(-1) ?? '');
+}
 
 /**
  * 띄어쓰기와 구두점을 걷어 낸다. 끊김[i] 는 걷어 낸 자리가 글[i] 바로 앞에 있었나다 — 숫자 경계를 보려고 남긴다.
- * - 와 % 는 숫자의 뜻을 바꿔(-10 · 50%) 남기고, 숫자 사이 구두점(1,100 · 1.5)도 남긴다
+ * - 와 % 는 숫자의 뜻을 바꿔(-10 · 50%) 남기고, 숫자 사이 구두점(1,100 · 1.5)도 남긴다.
+ * 홀로 선 부호 뒤 띄어쓰기는 지워 부호를 숫자에 붙인다 — 「+ 50」 과 「+50」 은 같은 수다
  */
-function 걷는다(원글: string): { 글: string; 끊김: boolean[] } {
+function 걷는다(받은글: string): { 글: string; 끊김: boolean[] } {
+  const 원글 = 받은글.replace(/[+＋−]\s+(?=\d)/gu, (m, i: number) => (홀로선부호(받은글, i) ? m[0]! : m));
   let 글 = '';
   const 끊김: boolean[] = [];
   let 끊 = false;
@@ -97,7 +108,8 @@ function 맞는자리(화면: { 글: string; 끊김: boolean[] }, at: number, �
   const 끝 = at + 조각.length;
   const 앞 = 화면.끊김[at] ? '' : (화면.글[at - 1] ?? '');
   const 뒤 = 화면.끊김[끝] ? '' : (화면.글[끝] ?? '');
-  if (숫자.test(조각[0]!) && 수가이어진다(앞)) return false;
+  // 부호로 시작하는 조각(+50)도 숫자로 시작하는 조각과 같다 — 1+50 에서 +50 을 찾지 않는다
+  if ((숫자.test(조각[0]!) || (부호.test(조각[0]!) && 숫자.test(조각[1] ?? ''))) && 수가이어진다(앞)) return false;
   if (숫자.test(조각.at(-1)!) && (수가이어진다(뒤) || 수꼬리.test(뒤))) return false;
   // 낱말 가운데서 시작하면 뜻이 뒤집힌다(불가능 안의 가능 · 미완료 안의 완료). 한 글자 조각은 빈칸 뒤에 남은 조사(을 · 의)라 뺀다
   if (조각.length >= 2 && 글자.test(조각[0]!) && 글자.test(앞)) return false;
