@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 가방줄, 가방채우기, 서버골드, 장착하기 } from './helpers/items-tools.helper.js';
+import { 가방줄, 가방채우기, 서버골드가될때까지, 장착하기 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -36,10 +36,10 @@ test(spec, async ({ game, driver, admin, params }) => {
   });
   await test.step('가방 창의 체력 물약 「판매 7G」를 누른다', async () => {
     const 가방 = await 가방창.열기(game);
-    const 전 = await 서버골드(admin, 나);
+    const 전 = await 서버골드가될때까지(admin, 나, await hud.골드값());
     await 가방.줄버튼누르기(await 가방줄(가방, '체력 물약'), '판매');
     await hud.골드가될때까지('207 G');
-    const 서버 = await verify('운영툴 캐릭터 골드가 7 늘었다', (await 서버골드(admin, 나)) - 전, 7);
+    const 서버 = await verify('운영툴 캐릭터 골드가 7 늘었다', (await 서버골드가될때까지(admin, 나, 전 + 7)) - 전, 7);
     const 화면 = await verify('상단 바 골드가 「207 G」다', await hud.골드글(), '207 G');
     await verify('가방 창의 체력 물약 「판매 7G」를 누르면 행운의 반지를 끼고 체력 물약을 팔아도 골드는 7 만 는다', 서버 && 화면, true);
   });
