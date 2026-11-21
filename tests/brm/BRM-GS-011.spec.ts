@@ -48,7 +48,7 @@ test(spec, async ({ game, driver, admin, params }) => {
       await repeatUntil(
         async () => {
           await 임프있게하기(game);
-          await 던전.누르기('스킬 1');
+          await 던전.모으는스킬짧게누르기('스킬 1');
           await 맞을때까지기다리기(game, 4_000);
         },
         {
