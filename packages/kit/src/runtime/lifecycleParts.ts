@@ -17,7 +17,7 @@ function 연결설정(driver: AppDriver, 키: string): unknown {
 }
 
 // 시험 대상 앱의 것만 — 앞에 온 다른 앱을 건드리지 않게 지금 화면의 꾸러미를 쓰지 않는다
-function 시험앱(driver: AppDriver, 부품: string): string {
+export function 시험앱(driver: AppDriver, 부품: string): string {
   const 꾸러미 = 연결설정(driver, 'appPackage');
   if (typeof 꾸러미 !== 'string' || 꾸러미 === '') throw new Error(`${부품} — 연결 설정에 시험 대상 앱 꾸러미(appPackage)가 없다`);
   return 꾸러미;

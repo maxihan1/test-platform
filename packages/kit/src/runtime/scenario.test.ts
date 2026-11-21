@@ -233,6 +233,7 @@ describe('시나리오 모드', () => {
           return since === undefined ? { last: 5, errors: [] } : { last: 6, errors: [{ seq: 6, time: 't', type: 'Exception', message: '강화 실패', stack: '' }] };
         },
         tree: async () => Promise.reject(new Error('트리 없음')),
+        다시켜기전오류를꺼낸다: () => [],
         입력을거둔다: async () => {
           거둔 += 1;
         },

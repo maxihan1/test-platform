@@ -107,6 +107,14 @@ describe('돌발 팝업 자동 닫기', () => {
     expect(보낸).toEqual(['find', 'click', 'find', 'find', 'find', 'click', 'find', 'click']);
   });
 
+  it('kit 이 보내기 전에 던진 인자 오류에는 창을 닫지 않는다 — 게임에 간 것이 없다', async () => {
+    const { game, 보낸 } = await 초대창게임([초대]);
+    const 절차: StepScope = { assertions: [] };
+    await expect(stepScope.run(절차, () => game.mouseMove('/Hud/Enhance', { camera: 'Main' } as never))).rejects.toThrow('주소와 duration 만 받는다');
+    expect(보낸).toEqual([]);
+    expect(절차.assertions).toEqual([]);
+  });
+
   it('목록이 비면 감싸지 않는다 — 지금처럼 실패다', async () => {
     const { game, 보낸 } = await 초대창게임(undefined);
     await expect(game.click('/Hud/Enhance')).rejects.toThrow('가려져');
