@@ -107,3 +107,12 @@ export async function 회복뜰때까지기다리기(game: GameDriver, 한도ms 
     () => false,
   );
 }
+
+export async function 봇들쓰러뜨리기(game: GameDriver, admin: APIRequestContext, 봇들: string[]): Promise<boolean> {
+  const 던전 = await 던전화면.열기(game);
+  for (const 봇 of 봇들) {
+    await 봇시키기(admin, 봇, 'gm:faint');
+    if (!(await 던전.알림줄뜸(`${봇} 님이 쓰러졌습니다!`, 30_000))) return false;
+  }
+  return true;
+}
