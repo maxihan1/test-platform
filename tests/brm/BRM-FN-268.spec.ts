@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 서버골드, 우편보내고우편함열기 } from './helpers/items-tools.helper.js';
+import { 서버골드가될때까지, 우편보내고우편함열기 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 
@@ -34,7 +34,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 268', 골드: 15 }]);
     await 함.받기(0);
     await hud.골드가될때까지('215 G');
-    const 서버 = await verify('운영툴 캐릭터 골드가 215 다', await 서버골드(admin, 둘째), 215);
+    const 서버 = await verify('운영툴 캐릭터 골드가 215 다', await 서버골드가될때까지(admin, 둘째, 215), 215);
     const 화면 = await verify('상단 바 골드가 「215 G」다', await hud.골드글(), '215 G');
     await verify('운영툴 재화 첨부를 받으면 골드가 15 는다', 서버 && 화면, true);
   });

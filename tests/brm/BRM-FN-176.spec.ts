@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 가방채우기, 서버개수 } from './helpers/items-tools.helper.js';
+import { 가방채우기, 서버개수가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -28,7 +28,7 @@ test(spec, async ({ game, driver, admin, params }) => {
   await test.step('일반 회원이 가방에 녹슨 단검 2개를 갖춘다', async () => {
     await 로비로(game, driver, 나);
     await 가방채우기(game, admin, 나, [{ 이름: '녹슨 단검', 개수: 2 }]);
-    await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 2개다', await 서버개수(admin, 나, '녹슨 단검'), 2, { blocker: true });
+    await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 2개다', await 서버개수가될때까지(admin, 나, '녹슨 단검', 2), 2, { blocker: true });
   });
   await test.step('가방 창을 연다', async () => {
     const 가방 = await 가방창.열기(game);
