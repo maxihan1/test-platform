@@ -386,6 +386,18 @@ export interface RunInsights {
   실패덩어리들: 실패덩어리[];
   /** 실패 케이스를 유형으로 묶은 것 — 결과 화면 「실패 유형」 칩 줄. 있는 유형만 화면 차례로. 선택으로 둔 것은 이 칸을 모르는 기존 가짜 응답을 안 고치려고다 */
   실패유형들?: 실패유형묶음[];
+  /** 글자는 다르지만 낱말이 맞아 통과로 본 확인 문장 — 요약 띠 「통과 · 알림」. 선택인 까닭은 실패유형들과 같다 */
+  통과알림들?: 통과알림[];
+}
+
+/** 확인 문장 하나의 「통과 · 알림」 (공통/2 §4 「글 비교」) */
+export interface 통과알림 {
+  historyId: number;
+  tcId: string;
+  tcName: string;
+  platform: Platform;
+  statement: string;
+  notice: string;
 }
 
 export interface RunItemSummary {

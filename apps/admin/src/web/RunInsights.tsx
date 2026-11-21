@@ -34,3 +34,28 @@ export function 해결목록({ insights, 열림, on토글 }: { insights: 비교 
     </details>
   );
 }
+
+/**
+ * 요약 띠 아래 「통과 · 알림」 — 글자는 다르지만 낱말이 맞아 통과로 본 확인 문장을 모은다 (도메인/실행 §8.3 「통과 · 알림」).
+ * 「로그인」과 「로그인 실패」도 통과로 보는 규칙이라 사람이 훑어볼 자리가 있어야 한다. 0건이면 그리지 않는다
+ */
+export function 통과알림목록({ insights, runId }: { insights: 비교 | null; runId: number }) {
+  const t = use말();
+  const 알림들 = insights?.통과알림들 ?? [];
+  if (알림들.length === 0) return null;
+
+  return (
+    <details className="rr-fold rr-notice">
+      <summary>{t('통과 · 알림 {건수}건', { 건수: 알림들.length })}</summary>
+      {알림들.map((a, i) => (
+        <div className="rr-fixed" key={`${String(a.historyId)}\u0000${String(i)}`}>
+          <a href={`#/runs/${String(runId)}/items/${String(a.historyId)}`}>
+            <span className="mono">{a.tcId}</span> {a.tcName} · {PLATFORM_LABEL[a.platform]}
+          </a>
+          <div>{a.statement}</div>
+          <div className="hint">{a.notice}</div>
+        </div>
+      ))}
+    </details>
+  );
+}

@@ -40,6 +40,21 @@ describe('절차 부품 (항목 상세 · 실패 카드 공용)', () => {
     expect(screen.getByText('기대 3600')).toBeTruthy();
   });
 
+  it('통과 · 알림이 붙은 확인 아래에만 알림 글을 적는다', () => {
+    const 알림 = '기획서 문장과 글자가 다름(기대 환영합니다, P! / 화면 환영합니다, P1!)';
+    그린다({
+      step: {
+        ...절차,
+        assertions: [
+          { statement: '환영 글이 보인다', status: 'PASS', expected: '환영합니다, P!', actual: '환영합니다, P1!', notice: 알림 },
+          ...절차.assertions,
+        ],
+      },
+    });
+    expect(screen.getAllByText(/기획서 문장과 글자가 다름/)).toHaveLength(1);
+    expect(screen.getByText(알림)).toBeTruthy();
+  });
+
   it('절차 소요는 다른 화면처럼 초로 적는다', () => {
     그린다();
     expect(screen.getByText('0.09초')).toBeTruthy();
