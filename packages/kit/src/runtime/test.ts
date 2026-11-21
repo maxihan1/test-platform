@@ -147,7 +147,9 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       await base.info().attach(STEP_ATTACHMENT, { body: JSON.stringify({ seq }), contentType: 'application/json' });
     }
 
-    // 앞 게임 단계의 오류가 이 단계 실패 기록에 섞이지 않게 시작 자리를 받아 둔다. 못 받으면 처음부터 남긴다
+    // 앞 게임 단계의 오류가 이 단계 실패 기록에 섞이지 않게 시작 자리를 받아 둔다. 못 받으면 처음부터 남긴다.
+    // 앞 단계가 game.restart() 로 모아 둔 앞 게임 오류도 그 단계 몫이라 여기서 비운다
+    game?.다시켜기전오류를꺼낸다();
     const 오류시작 = game === undefined ? 0 : await game.errors().then((r) => r.last, () => 0);
     let error: { message: string; stack?: string } | undefined;
     try {

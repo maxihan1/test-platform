@@ -296,6 +296,35 @@ describe('test', () => {
     expect(Object.keys(args)).not.toContain('page');
   });
 
+  it('게임 시나리오 단계는 시작할 때 앞 단계가 restart 로 모아 둔 앞 게임 오류를 비운 뒤 오류 시작 번호를 받는다', async () => {
+    const 차례: string[] = [];
+    process.env.PLATFORM_SCENARIO_MODE = '1';
+    try {
+      test(defineCase({ tcId: 'DEMO-B03', name: '게임 부품', precondition: [], params: null, expected: null, platforms: ['android'] }), vi.fn());
+    } finally {
+      delete process.env.PLATFORM_SCENARIO_MODE;
+    }
+    const 게임 = {
+      다시켜기전오류를꺼낸다: () => void 차례.push('비우기'),
+      errors: async () => {
+        차례.push('시작 번호');
+        return { last: 0, errors: [] };
+      },
+      입력을거둔다: async () => {},
+    };
+    await scenarioCase('DEMO-B03')?.({
+      driver: driver as never,
+      game: 게임 as never,
+      request: {} as never,
+      platform: 'android',
+      params: null,
+      expected: null,
+      skipSteps: [],
+      seq: 0,
+    });
+    expect(차례).toEqual(['비우기', '시작 번호']);
+  });
+
   it('시나리오 부품 본문이 driver 를 꺼내면 던진다', async () => {
     const body = vi.fn();
     process.env.PLATFORM_SCENARIO_MODE = '1';
