@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { StepResult } from '../types.js';
 import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
-import { gm, 사냥한번 } from './fixtures/helpers/shop/hunt.helper.js';
+import { gm, 골드기다리기, 사냥한번 } from './fixtures/helpers/shop/hunt.helper.js';
 import { 던전화면, 로비화면 } from './fixtures/pages/dungeon.page.js';
 import { openGame } from './game.js';
 import { 실패함수들, 지나던함수 } from './gameFns.js';
@@ -89,6 +89,15 @@ describe('게임 동작마다 함수 이름을 적는다', () => {
     expect(emitted[0]).toMatchObject({ status: 'PASS' });
     expect(emitted[0]).not.toHaveProperty('gameFns');
     expect(emitted[0]).not.toHaveProperty('gameFailedFns');
+  });
+
+  it('기다림 안의 읽기가 지나도 기다림이 끝내 실패하면 지난 함수로 세지 않는다', async () => {
+    const link: Link = async (cmd) => (cmd.cmd === 'get' ? { ok: true, value: '90' } : { ok: true, x: 1, y: 2 });
+    const game = await openGame({}, link, 안쉼);
+    const { run, emitted } = makeRun();
+    await runStep(run, '골드가 100 이 된다', () => 골드기다리기(game));
+    expect(emitted[0]).toMatchObject({ status: 'FAIL', gameFailedFns: ['골드기다리기'] });
+    expect(emitted[0]).not.toHaveProperty('gameFns');
   });
 
   it('절차 밖의 동작은 적지 않는다', async () => {

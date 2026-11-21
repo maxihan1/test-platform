@@ -231,7 +231,7 @@ export function 함수를적게건다(드라이버: object): void {
   for (const 이름 of 적을동작) {
     const 원래 = 칸[이름]!.bind(드라이버);
     칸[이름] = async (...인자: unknown[]): Promise<unknown> => {
-      // 동작이 안에서 부른 동작(control-cli 0.16.4 click 이 누르기 전 this.find · text 의 find)은 적지 않는다 — 안쪽 find 가 지나면 바깥 click 이 실패해도 지난 함수로 남는다
+      // 동작이 안에서 부른 동작은 모두 적지 않는다(control-cli 0.16.4 click · text · waitFor 의 this.find, kit waitForValue 의 get) — 안쪽 읽기가 지나면 바깥 동작이 실패해도 지난 함수로 남는다
       if (동작안.getStore() === true) return 원래(...인자);
       const 자리 = 부른자리();
       let 값: unknown;
