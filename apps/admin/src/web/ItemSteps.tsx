@@ -76,6 +76,8 @@ export function Step({ step, tcId, runId, historyId, 코드 = true, 화면 = tru
               {t말('실제')} <b>{show(assertion.actual, 언어)}</b>
             </span>
           </div>
+          {/* 글자는 다르지만 낱말이 맞아 통과로 본 문장 — 요약 띠 「통과 · 알림」과 같은 글 (도메인/실행 §8.3) */}
+          {assertion.notice === undefined ? null : <p className="hint">{assertion.notice}</p>}
           {index === firstFail ? attachments : null}
         </div>
       ))}

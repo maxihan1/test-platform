@@ -6,6 +6,7 @@ import type { api, ItemStatus, Platform, RunInsights as 비교 } from './api.js'
 import { 갈라낸다, type CaseGroup } from './group.js';
 import { use말 } from './i18n.js';
 import { RunFailCards } from './RunFailCards.js';
+import { 통과알림목록 } from './RunInsights.js';
 import { 실패케이스들 } from './RerunFailed.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 결과줄 } from './RunResultRow.js';
@@ -127,6 +128,7 @@ export function 끝난결과(props: Props) {
         device={device}
         on디바이스={on디바이스}
       />
+      <통과알림목록 insights={insights} runId={data.runId} />
       {견줌오류 === null ? null : (
         <p className="hint">
           {t('이전 실행과 비교하지 못했습니다')} {견줌오류}

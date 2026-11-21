@@ -410,6 +410,8 @@ export const 실행말: Record<string, string> = {
   '화면이 맞다고 판정할까요?': 'Mark the screen as correct?',
   '{번호} 가 커버하는 요구사항을 지금 화면에 맞게 수정하는 작성 요청을 바로 만듭니다.': 'This immediately creates an authoring request that updates the requirements {번호} covers to match the current screen.',
   '해결 {건수}': 'Fixed {건수}',
+  '통과 · 알림 {건수}건': '{건수} passed with notes',
+  '앞 {보인}건만 보입니다 — 나머지는 항목 상세에서 확인하세요': 'Only the first {보인} are shown — check the rest in item details',
   '실패 케이스 {수}건': '{수} failed cases',
   '이전 실행 {실행} 대비 · 케이스 수': 'Against previous run {실행} · cases',
   '{번째}/{전체}회차': 'Attempt {번째} of {전체}',

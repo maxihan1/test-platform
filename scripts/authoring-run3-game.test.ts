@@ -114,9 +114,21 @@ describe('잡은폰 — AI 가 잡은 폰 번호(게임 .control-cli/held · 앱
 describe('폰끝검사 · 끝검사줄들 — 게임 · 앱 케이스는 웹 경고 대신 폰 돌려 보기 줄', () => {
   it('이번 작성이 닿은 폰 케이스 가운데 안 돈 것을 갈래 이름으로 알리고, 끝검사줄들은 폰 케이스를 안 본다', () => {
     const { 트리, 결과폴더 } = 트리만들기();
-    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'])).toEqual(['⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 — g/G-FN-001.spec.ts']);
-    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 — g/G-FN-001.spec.ts']);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'])).toEqual(['**⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 / 이번에 닿은 1개** — 정식 실행에서 처음 돈다 · g/G-FN-001.spec.ts']);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['**⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 / 이번에 닿은 1개** — 정식 실행에서 처음 돈다 · g/G-FN-001.spec.ts']);
     expect(끝검사줄들(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts']).join('\n')).not.toMatch(/앱 케이스|게임 케이스/);
+  });
+
+  it('안 돈 케이스가 많으면 수를 굵게 맨 앞에 · 이번에 닿은 수와 같이 싣고 파일 이름은 10개까지만 적는다', () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    const 바뀐 = Array.from({ length: 12 }, (_, i) => `tests/g/G-FN-${String(i + 101)}.spec.ts`);
+    for (const f of 바뀐) writeFileSync(join(트리, f), 게임케이스.replace('G-FN-001', f.slice(8, 16)));
+    writeFileSync(join(결과폴더, 'gate3-game-1.json'), 결과({ 'g/G-FN-101.spec.ts': 'unexpected' }, '2999-01-01T00:00:00.000Z'));
+    const 줄들 = 폰끝검사(결과폴더, 트리, 'g', 바뀐);
+    expect(줄들[0]).toBe(
+      `**⚠️ 폰에서 돌려 보지 않은 게임 케이스 11개 / 이번에 닿은 12개** — 정식 실행에서 처음 돈다 · ${바뀐.slice(1, 11).map((f) => f.slice(6)).join(' · ')} · 외 1개`,
+    );
+    expect(줄들[1]).toBe('⚠️ 폰에서 빨간 게임 케이스 1개 — g/G-FN-101.spec.ts');
   });
 
   it('고친 뒤 빨갛게 돈 케이스를 알리고, 초록이면 줄이 없다', () => {
@@ -130,7 +142,7 @@ describe('폰끝검사 · 끝검사줄들 — 게임 · 앱 케이스는 웹 경
   it('앱 갈래는 gate3-app 기록만 본다 — 게임 기록이 초록이어도 앱은 안 돈 것이다', () => {
     const { 트리, 결과폴더 } = 트리만들기();
     writeFileSync(join(결과폴더, 'gate3-game-1.json'), 결과({ 'g/G-FN-001.spec.ts': 'expected' }, '2999-01-01T00:00:00.000Z'));
-    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 — g/G-FN-001.spec.ts']);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['**⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 / 이번에 닿은 1개** — 정식 실행에서 처음 돈다 · g/G-FN-001.spec.ts']);
     writeFileSync(join(결과폴더, 'gate3-app-1.json'), 결과({ 'g/G-FN-001.spec.ts': 'unexpected' }, '2999-01-01T00:00:00.000Z'));
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['⚠️ 폰에서 빨간 앱 케이스 1개 — g/G-FN-001.spec.ts']);
   });
@@ -143,7 +155,7 @@ describe('폰끝검사 · 끝검사줄들 — 게임 · 앱 케이스는 웹 경
     writeFileSync(join(트리, 'tests', 'g', 'G-FN-001.spec.ts'), 도우미케이스('G-FN-001'));
     writeFileSync(join(트리, 'tests', 'g', 'G-FN-003.spec.ts'), 도우미케이스('G-FN-003'));
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/helpers/login.ts'], '앱')).toEqual([
-      '⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 — g/G-FN-001.spec.ts',
+      '**⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 / 이번에 닿은 2개** — 정식 실행에서 처음 돈다 · g/G-FN-001.spec.ts',
       '⚠️ 도우미가 바뀌었는데 폰에서 안 돈 기존 앱 케이스 1개 — 「바뀐 파일 · 케이스가 바로 쓰는 화면」 짝마다 표본 1개만 돈다(돌릴 것 1개). 정식 실행에서 처음 돈다',
     ]);
   });
@@ -164,13 +176,13 @@ describe('폰끝검사 · 끝검사줄들 — 게임 · 앱 케이스는 웹 경
     // 도우미를 고친다 — 초록이던 001 · 004 는 그대로, 빨갛던 003 만 다시 돌 것이 된다
     utimesSync(자리('helpers/login.ts'), 고친때, 고친때);
     expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual([
-      '⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 — g/G-FN-003.spec.ts',
+      '**⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 / 이번에 닿은 3개** — 정식 실행에서 처음 돈다 · g/G-FN-003.spec.ts',
       '⚠️ 도우미 · 화면 파일을 고친 뒤 폰에서 다시 안 돈 초록 게임 케이스 2개 — 한 번 초록이면 다시 돌리지 않는다. 정식 실행에서 다시 돈다',
     ]);
     // 케이스 파일 자체를 고치면 초록이었어도 다시 돈다
     utimesSync(자리('G-FN-004.spec.ts'), 고친때, 고친때);
     expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual([
-      '⚠️ 폰에서 돌려 보지 않은 게임 케이스 2개 — g/G-FN-003.spec.ts · g/G-FN-004.spec.ts',
+      '**⚠️ 폰에서 돌려 보지 않은 게임 케이스 2개 / 이번에 닿은 3개** — 정식 실행에서 처음 돈다 · g/G-FN-003.spec.ts · g/G-FN-004.spec.ts',
       '⚠️ 도우미 · 화면 파일을 고친 뒤 폰에서 다시 안 돈 초록 게임 케이스 1개 — 한 번 초록이면 다시 돌리지 않는다. 정식 실행에서 다시 돈다',
     ]);
   });
@@ -188,14 +200,14 @@ describe('폰끝검사 · 끝검사줄들 — 게임 · 앱 케이스는 웹 경
     writeFileSync(join(결과폴더, 'gate3-game-1~PHONEA~1.json'), 결과({ 'g/G-FN-001.spec.ts': 'expected' }, '2030-01-02T00:00:00.000Z'));
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/helpers/login.ts'])).toEqual([]);
     utimesSync(자리('helpers/login.ts'), 고친때, 고친때);
-    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/helpers/login.ts'])).toEqual(['⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 — g/G-FN-001.spec.ts']);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/helpers/login.ts'])).toEqual(['**⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 / 이번에 닿은 1개** — 정식 실행에서 처음 돈다 · g/G-FN-001.spec.ts']);
     // 이번 케이스여도 다른 폰에서 빨갰으면(폰 차이) 초록으로 지키지 않는다
     utimesSync(자리('helpers/login.ts'), 쓴때, 쓴때);
     writeFileSync(join(결과폴더, 'gate3-game-2~PHONEB~1.json'), 결과({ 'g/G-FN-001.spec.ts': 'unexpected' }, '2030-01-02T01:00:00.000Z'));
     const 바뀐 = ['tests/g/G-FN-001.spec.ts', 'tests/g/helpers/login.ts'];
     expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual(['⚠️ 폰마다 결과가 다른 게임 케이스 1개 — g/G-FN-001.spec.ts(PHONEB 에서만 빨강)']);
     utimesSync(자리('helpers/login.ts'), 고친때, 고친때);
-    expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual(['⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 — g/G-FN-001.spec.ts']);
+    expect(폰끝검사(결과폴더, 트리, 'g', 바뀐)).toEqual(['**⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 / 이번에 닿은 1개** — 정식 실행에서 처음 돈다 · g/G-FN-001.spec.ts']);
   });
 
   it('이번에 안 닿은 게임 케이스는 안 본다', () => {
@@ -345,7 +357,7 @@ writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: 
     const 찍힌 = 말.mock.calls.map((c) => String(c[0])).join('\n');
     expect(찍힌).toMatch(/폰 한 대로 돈다/);
     expect(찍힌).toMatch(/도중에 끊긴 폰 R3CR10TCVCD — 그 폰 기록은 버렸다/);
-    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 — g/G-FN-001.spec.ts']);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['**⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 / 이번에 닿은 1개** — 정식 실행에서 처음 돈다 · g/G-FN-001.spec.ts']);
   });
 
   it('PC 게임은 잡은 PC 한 대에서 선언한 윈도우 값마다 따로 돌고(패드 값은 PLATFORM_PAD) 덤 폰을 안 잡으며, 패드 하나에서만 빨간 케이스를 가른다', async () => {

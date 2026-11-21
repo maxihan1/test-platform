@@ -13,7 +13,7 @@ import {
   type 변화,
   type 실패덩어리,
 } from './api.js';
-import { 해결목록 } from './RunInsights.js';
+import { 통과알림목록, 해결목록 } from './RunInsights.js';
 import { RunResult } from './RunResult.js';
 import { RunWatch } from './RunWatch.js';
 import { 지켜본다 } from './runWatchStore.js';
@@ -99,6 +99,42 @@ function 비교(덮을것: Partial<비교값> = {}): 비교값 {
 function 그리기(값: 비교값) {
   return render(<해결목록 insights={값} />);
 }
+
+describe('통과 · 알림 (도메인/실행 §8.3)', () => {
+  const 알림 = {
+    historyId: 77,
+    tcId: 'BRM-FN-166',
+    tcName: '보스 처치 알림',
+    platform: 'android' as Platform,
+    statement: '보스를 잡으면 알림이 뜬다',
+    notice: '기획서 문장과 글자가 다름(기대 보스 처치! 획득 / 화면 보스 처치! 보스의 왕관 조각 획득)',
+  };
+
+  it('알림이 있으면 접힌 줄 하나로 세고 펼치면 문장 · 알림 · 항목 상세 주소가 있다', () => {
+    render(<통과알림목록 runId={RUN_ID} insights={비교({ 통과알림들: [알림, { ...알림, historyId: 78 }] })} />);
+
+    expect(screen.getByText('통과 · 알림 2건')).toBeDefined();
+    expect(document.querySelector('details')?.open).toBe(false);
+    expect(screen.getAllByText(알림.notice)).toHaveLength(2);
+    expect(screen.getAllByText(알림.statement)).toHaveLength(2);
+    expect(document.querySelector('a')?.getAttribute('href')).toBe(`#/runs/${String(RUN_ID)}/items/77`);
+  });
+
+  it('서버가 상한에서 잘랐으면 전체 수를 적고 잘렸다고 알린다', () => {
+    render(<통과알림목록 runId={RUN_ID} insights={비교({ 통과알림들: [알림], 통과알림수: 250 })} />);
+
+    expect(screen.getByText('통과 · 알림 250건')).toBeDefined();
+    expect(screen.getByText('앞 1건만 보입니다 — 나머지는 항목 상세에서 확인하세요')).toBeDefined();
+  });
+
+  it('알림이 없거나 칸을 모르는 옛 응답이면 그리지 않는다', () => {
+    const { container } = render(<통과알림목록 runId={RUN_ID} insights={비교()} />);
+    expect(container.innerHTML).toBe('');
+    cleanup();
+    const 없음 = render(<통과알림목록 runId={RUN_ID} insights={null} />);
+    expect(없음.container.innerHTML).toBe('');
+  });
+});
 
 describe('같은 사유로 실패는 해결 목록에 없다 (2026-10-19 ⑫)', () => {
   it('실패덩어리들이 와도 그리지 않는다 — 실패 카드 위 「실패 유형」 칩 줄로 갔다', () => {

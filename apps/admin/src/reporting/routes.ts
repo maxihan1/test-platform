@@ -18,6 +18,7 @@ import { 허용날수 } from './dashboardShape.js';
 import { 실패카드 } from './failures.js';
 import { generate, 형식표 } from './generate.js';
 import { compareWithPrevious } from './insights.js';
+import { 통과알림모으기 } from './passNotices.js';
 import { EvidenceBusyError, claim, findDocument, recoverPending } from './store.js';
 import { 종류조건 } from '../execution/runKind.js';
 
@@ -153,7 +154,9 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     const 상태 = await 실행상태(runId);
     if (상태 === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
     if (상태 === 'SINGLE') return reply.code(404).send({ error: 'SINGLE_RUN', detail: req.params.runId });
-    return compareWithPrevious(runId);
+    // 통과 · 알림은 결과 요약 띠만 읽는다 — compareWithPrevious 에 넣으면 실패 카드 쪽마다 헛되이 돈다
+    const [견줌, 알림] = await Promise.all([compareWithPrevious(runId), 통과알림모으기(runId)]);
+    return { ...견줌, ...알림 };
   });
 
   // 실행 결과 화면의 실패 카드 재료 (도메인/리포팅 §7). insights 처럼 상세 응답과 따로 둔다

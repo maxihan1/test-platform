@@ -481,6 +481,19 @@ describe('게임화면받기 · 게임 폰 놓기 · 게임 화면 절 (도메�
     for (const 자리 of ['/w/자료/game-kept/', '/w/자료/game-map.txt', '/w/자료/game-crawl/<이름>/', '/w/자료/game-elements.json']) expect(글).toContain(자리);
   });
 
+  it('코드 저장소를 받았으면 게임 화면 절에 폴더와 맞춰 보기 지시를, 못 받았으면 못 읽은 자료 줄을 싣는다 · 없으면 둘 다 없다', () => {
+    const 프롬프트 = (코드?: { 주소: string; 폴더: string } | { 주소: string; 까닭: string }) => 줄프롬프트(
+      { id: 1, kind: 'AUTHOR' as const, specText: '본문' }, 'ASH', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      { 글: '/w/자료/game-screen.txt', 탐색, 게임: true, ...(코드 && { 코드: [코드] }) }, '/w/자료',
+    );
+
+    const 받음 = 프롬프트({ 주소: 'https://github.com/a/game', 폴더: '/w/자료/code/1-a__game' });
+    expect(받음).toContain('`/w/자료/code/1-a__game` (https://github.com/a/game)');
+    expect(받음).toContain('「가이드와 게임 코드 맞춰 보기」');
+    expect(프롬프트({ 주소: 'https://gitlab.com/a/game', 까닭: 'github.com 주소가 아니라 받지 않았다' })).toContain('코드 저장소를 받지 못했다: https://gitlab.com/a/game — github.com 주소가 아니라 받지 않았다');
+    expect(프롬프트()).not.toContain('코드 저장소');
+  });
+
   it('PC 게임의 게임 화면 절은 PC 잡기 · zip 받기 · 지원 패드 값을 싣고 「게임 화면 못 읽음」을 시키지 않는다', () => {
     const 프롬프트 = (패드: string[]) => 줄프롬프트(
       { id: 1, kind: 'AUTHOR' as const, specText: '본문' }, 'ASH', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,

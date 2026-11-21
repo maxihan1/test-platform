@@ -5768,6 +5768,11 @@ button.rs-stat:focus-visible {
   margin-bottom: 12px;
 }
 
+/* 「통과 · 알림」 줄은 케이스 · 문장 · 알림 세 줄이라 줄끼리 띄운다 */
+.rr-notice .rr-fixed + .rr-fixed {
+  margin-top: 12px;
+}
+
 /* 설정 「화면 크기」 구획 (PRD-F10-08 시안 B). 판정은 실행 판정이 아니라 대상의 생김새라 통과 · 실패 색을 안 쓴다 */
 .vp,
 .vp-screens {

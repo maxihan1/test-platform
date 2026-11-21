@@ -9,6 +9,7 @@ import { 기록읽기, 늘림잊기, 마지막늘림, 잡은기록들 } from './
 import { 부른다, 인증헤더 } from './authoring-io.js';
 import { 비밀번호꼴가리기 } from './authoring-prd.js';
 import { 거절말고 } from './authoring-prd-io.js';
+import type { 받은저장소 } from './authoring-code-repos.js';
 
 /**
  * 탐색 — 작성 AI 가 appium-cli 로 팜 폰을 눌러 가며 읽을 주소 (§3.6 「앱 화면」 「눌러 가며 읽기」). 첫 화면을 못 읽었어도 붙는다.
@@ -18,7 +19,7 @@ export type 앱탐색 = { url: string; app: string; token?: string };
 /** 게임 — 게임 첫 화면 통로에서 왔다. 프롬프트 절 · 놓을 폰 기록 자리(control-cli)가 다르다 */
 /** 문구 — APK 에서 꺼낸 앱 문구 파일(authoring-apk-strings). 옮기는 작성에만 붙는다 */
 /** PC — PC 게임(집기 응답 gamePlatform 'windows')이다. 탐색의 app 은 Windows 빌드 zip 링크이고 패드는 집기 응답의 지원 패드다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」) */
-export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true; 문구?: string; PC?: { 패드: readonly string[] } };
+export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true; 문구?: string; PC?: { 패드: readonly string[] }; 코드?: 받은저장소[] };
 
 /** 서버가 PC 게임에 주는 까닭 — 이 까닭인데 탐색이 없으면 팜이 안 붙은 것이다(빌드가 없으면 서버가 다른 까닭을 준다) */
 const PC까닭 = 'PC 게임은 작성 AI 가 PC 에서 읽는다';

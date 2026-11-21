@@ -80,6 +80,7 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
   beforeEach(async () => {
     await 치우기();
     await 플랫폼('GAME', 'windows');
+    await q(`UPDATE service SET code_repos = '[]' WHERE id = $1`, [서비스]);
   });
 
   afterAll(async () => {
@@ -140,6 +141,24 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
     const 앱 = await 집기();
     expect(앱).not.toHaveProperty('gamePlatform');
     expect(앱).not.toHaveProperty('gamePads');
+  });
+
+  it('게임 애플리케이션에 코드 저장소가 있으면 집기 응답에 codeRepos 가 실리고, 비었거나 앱이면 칸이 없다', async () => {
+    const 저장소 = [{ name: '게임', url: 'https://github.com/xgf/game' }];
+    await q('UPDATE service SET code_repos = $2::jsonb WHERE id = $1', [서비스, JSON.stringify(저장소)]);
+    await 요청넣기('PENDING');
+    expect(await 집기()).toMatchObject({ gamePlatform: 'windows', codeRepos: 저장소 });
+
+    await 치우기();
+    await 플랫폼('APP', null);
+    await 요청넣기('PENDING');
+    expect(await 집기()).not.toHaveProperty('codeRepos');
+
+    await 치우기();
+    await 플랫폼('GAME', 'android');
+    await q(`UPDATE service SET code_repos = '[]' WHERE id = $1`, [서비스]);
+    await 요청넣기('PENDING');
+    expect(await 집기()).not.toHaveProperty('codeRepos');
   });
 
   it('game-screen 은 PC 게임이면 폰을 안 잡고, 빌드가 없으면 그 까닭 · 있으면 팜 주소와 zip 링크를 주며, 모바일 게임은 지금처럼 앱 파일을 본다', async () => {
