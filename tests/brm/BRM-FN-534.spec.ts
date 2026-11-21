@@ -9,7 +9,7 @@ import { 상점창 } from './pages/shop.page.js';
 
 export const spec = defineCase({
   tcId: 'BRM-FN-534',
-  name: '상점 목록을 끌면 위아래로 넘어가 마지막 「체력 물약」 줄이 화면 안에 보인다',
+  name: '상점 목록을 끌면 위아래로 넘어가 마지막 「조약돌」 줄이 화면 안에 보인다',
   platforms: ['android'],
   precondition: ['일반 회원으로 로비에 들어와 있다'],
   elements: ['shop:체력 물약'],
@@ -37,9 +37,9 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 처음자리 = (await 화면자리(game, 상점창.줄주소(0)))?.rect ?? null;
     await 상점.줄보이게하기(마지막);
     const 넘어감 = await verify('목록이 위아래로 넘어간다', await 자리바뀜(game, 상점창.줄주소(0), 처음자리), true);
-    const 줄 = await 상점줄(상점, '체력 물약');
-    const 보임 = await verify('「체력 물약」 줄이 화면 안에 있다', await 화면안인가(game, 상점창.줄주소(줄)), true);
-    const 끝줄 = await verify('「체력 물약」 줄이 마지막 줄이다', 줄 === 마지막, true);
-    await verify('상점 목록을 끌면 위아래로 넘어가 마지막 「체력 물약」 줄이 화면 안에 보인다', 넘어감 && 보임 && 끝줄, true);
+    const 줄 = await 상점줄(상점, '조약돌');
+    const 보임 = await verify('「조약돌」 줄이 화면 안에 있다', await 화면안인가(game, 상점창.줄주소(줄)), true);
+    const 끝줄 = await verify('「조약돌」 줄이 마지막 줄이다', 줄 === 마지막, true);
+    await verify('상점 목록을 끌면 위아래로 넘어가 마지막 「조약돌」 줄이 화면 안에 보인다', 넘어감 && 보임 && 끝줄, true);
   });
 });
