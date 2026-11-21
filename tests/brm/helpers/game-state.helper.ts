@@ -63,6 +63,7 @@ export interface 로그줄 {
   skill?: string;
   value?: number;
   hpBefore?: number;
+  shield?: number;
   npc?: string;
   gold?: number;
   exp?: number;
