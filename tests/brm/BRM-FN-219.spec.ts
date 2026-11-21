@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 상점줄, 서버개수 } from './helpers/items-tools.helper.js';
+import { 상점줄, 서버개수가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 골드맞추기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -43,7 +43,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await hud.알림뜸('골드가 부족합니다');
     const 가방 = await 가방창.열기(game);
     const 화면 = await verify('가방 창에 녹슨 단검 줄이 없다', await 가방.이름줄수('녹슨 단검'), 0);
-    const 서버 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 0개다', await 서버개수(admin, 나, '녹슨 단검'), 0);
+    const 서버 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 0개다', await 서버개수가될때까지(admin, 나, '녹슨 단검', 0), 0);
     await verify('골드 79 로 녹슨 단검을 사려 하면 가방에 녹슨 단검이 들어오지 않는다', 화면 && 서버, true);
   });
   await test.step('일반 회원의 골드를 80 으로 맞춘다', async () => {
@@ -56,7 +56,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await hud.골드가될때까지('0 G');
     const 가방 = await 가방창.열기(game);
     const 화면 = await verify('가방 창에 녹슨 단검 줄이 하나 있다', await 가방.이름줄수('녹슨 단검'), 1);
-    const 서버 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 1개다', await 서버개수(admin, 나, '녹슨 단검'), 1);
+    const 서버 = await verify('운영툴 캐릭터 아이템에서 녹슨 단검이 1개다', await 서버개수가될때까지(admin, 나, '녹슨 단검', 1), 1);
     await verify('가방에 녹슨 단검이 들어온다', 화면 && 서버, true);
   });
 });

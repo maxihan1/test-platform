@@ -64,7 +64,7 @@ export class 로그인화면 {
   }
 
   async 버전글(): Promise<string> {
-    return 색뗀글(await this.game.text('//Showcase Login/*[contains(@text,v0.1)]'));
+    return 색뗀글(await this.game.text('/Showcase Login//*[contains(@text,v0.1)]'));
   }
 
   async 공지띠글(): Promise<string | null> {
@@ -121,7 +121,7 @@ export class 로그인화면 {
   }
 
   async 공지띠뜸(한도ms = 10_000): Promise<boolean> {
-    const 띠 = '/Showcase Login/*[contains(@text,공지)][-1]';
+    const 띠 = '/Showcase Login/NoticeBar//*[contains(@text,공지)][-1]';
     return this.game.waitFor(띠, { timeoutMs: 한도ms }).then(
       () => true,
       () => false,

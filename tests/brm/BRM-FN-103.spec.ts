@@ -33,6 +33,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 불러내기(game, 'pot');
     await verify('항아리가 떠 있다', await 던전.항아리뜰때까지(), true, { blocker: true });
     await 던전.항아리고르기();
+    await verify('항아리를 고르면 「공격」 버튼 그림이 「들기」로 바뀐다', await 던전.행동버튼그림이될때까지('공격', 던전화면.그림.들기, 10_000), true, { blocker: true });
     await 던전.누르기('공격');
     const 들음 = await verify('탱커가 「들기」로 항아리를 든다', await 던전.행동버튼그림이될때까지('공격', 던전화면.그림.내려놓기, 15_000), true);
     await 던전.누르기('공격');

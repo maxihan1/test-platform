@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 상점줄, 서버개수, 서버골드 } from './helpers/items-tools.helper.js';
+import { 상점줄, 서버개수가될때까지, 서버골드가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 골드맞추기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -40,8 +40,8 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 상점.구매누르기(await 상점줄(상점, '강철 롱소드'));
     await hud.알림뜸('골드가 부족합니다');
     const 화면골드 = await verify('상단 바 골드가 「200 G」다', await hud.골드글(), '200 G');
-    const 서버골드값 = await verify('운영툴 캐릭터 골드가 200 이다', await 서버골드(admin, 나), 200);
-    const 서버롱소드 = await verify('운영툴 캐릭터 아이템에서 강철 롱소드가 0개다', await 서버개수(admin, 나, '강철 롱소드'), 0);
+    const 서버골드값 = await verify('운영툴 캐릭터 골드가 200 이다', await 서버골드가될때까지(admin, 나, 200), 200);
+    const 서버롱소드 = await verify('운영툴 캐릭터 아이템에서 강철 롱소드가 0개다', await 서버개수가될때까지(admin, 나, '강철 롱소드', 0), 0);
     const 가방 = await 가방창.열기(game);
     const 화면롱소드 = await verify('가방 창에 강철 롱소드 줄이 없다', await 가방.이름줄수('강철 롱소드'), 0);
     await verify('골드 200 으로 강철 롱소드 구매가 거절되면 골드 200 과 가방이 그대로다', 화면골드 && 서버골드값 && 서버롱소드 && 화면롱소드, true);

@@ -91,7 +91,33 @@ export class 상점창 {
   }
 
   async 구매누르기(번호: number): Promise<void> {
+    await this.줄보이게하기(번호);
     await this.game.click(`${상점창.줄주소(번호)}/Button 구매`);
+  }
+
+  async 줄보이게하기(번호: number): Promise<void> {
+    type 네모 = [number, number, number, number];
+    const 안에있나 = (안: 네모, 칸: 네모) => 칸[1] >= 안[1] && 칸[1] + 칸[3] <= 안[1] + 안[3];
+    const 겹치나 = (a: 네모, b: 네모) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+    const 줄수 = await this.줄수();
+    for (let 번 = 0; 번 < 6; 번 += 1) {
+      const 목록 = (await this.game.find(`${상점창.판}/Scroll`))?.rect;
+      const 버튼 = (await this.game.find(`${상점창.줄주소(번호)}/Button 구매`))?.rect;
+      const 닫기 = (await this.game.find(상점창.닫기버튼))?.rect;
+      if (목록 === undefined || 버튼 === undefined) throw new Error(`상점 ${String(번호)}번 줄의 자리를 읽지 못했습니다`);
+      if (안에있나(목록, 버튼) && (닫기 === undefined || !겹치나(닫기, 버튼))) return;
+      const 보이는줄: number[] = [];
+      for (let 줄 = 0; 줄 < 줄수; 줄 += 1) {
+        const 자리 = (await this.game.find(상점창.줄주소(줄)))?.rect;
+        if (자리 !== undefined && 안에있나(목록, 자리) && (닫기 === undefined || !겹치나(닫기, 자리))) 보이는줄.push(줄);
+      }
+      const 첫 = 보이는줄[0];
+      const 끝 = 보이는줄[보이는줄.length - 1];
+      if (첫 === undefined || 끝 === undefined || 첫 === 끝) throw new Error(`상점 목록에 끌 수 있는 줄이 둘 이상 보이지 않습니다(보이는 줄 ${보이는줄.join(',')})`);
+      if (버튼[1] < 목록[1] + 목록[3] / 2) await this.끌어서넘기기(끝, 첫);
+      else await this.끌어서넘기기(첫, 끝);
+    }
+    throw new Error(`상점 ${String(번호)}번 줄을 여섯 번 끌어도 화면 안으로 못 올렸습니다`);
   }
 
   async 끌어서넘기기(아래줄: number, 위줄: number): Promise<void> {

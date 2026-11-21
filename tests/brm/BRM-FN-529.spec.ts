@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 가방줄, 서버개수 } from './helpers/items-tools.helper.js';
+import { 가방줄, 서버개수가될때까지 } from './helpers/items-tools.helper.js';
 import { 던전으로, 지금화면 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기, 체력맞추기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -37,7 +37,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 가방.줄버튼누르기(await 가방줄(가방, '체력 물약'), '사용');
     await hud.알림뜸('체력 물약 사용');
     const 화면 = await verify('가방 창에 「체력 물약 x2」가 보인다', await 가방.줄이름(await 가방줄(가방, '체력 물약')), '체력 물약 x2');
-    const 서버 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 2개다', await 서버개수(admin, 나, '체력 물약'), 2);
+    const 서버 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 2개다', await 서버개수가될때까지(admin, 나, '체력 물약', 2), 2);
     await verify('묶음 줄의 「사용」을 누르면 그 묶음 가운데 1개만 쓰여 「체력 물약 x2」가 된다', 화면 && 서버, true);
   });
 });

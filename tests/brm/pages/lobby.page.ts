@@ -46,7 +46,7 @@ export class 로비화면 {
   }
 
   async 준비버튼글(): Promise<string> {
-    return 색뗀글(await this.game.text(`${로비화면.준비버튼}/Text (TMP)`));
+    return 색뗀글(await this.game.text('/CharacterSelectCanvas//Ready Btn/Text (TMP)'));
   }
 
   async 준비버튼글이될때까지(글: string, 한도ms = 10_000): Promise<boolean> {

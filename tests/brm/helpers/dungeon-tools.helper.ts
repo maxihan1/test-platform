@@ -197,7 +197,7 @@ export async function 때리며머리위숫자읽기(game: GameDriver, 던전: �
 export async function 봇GM값(admin: APIRequestContext, 봇: string, 명령: string, 마지막키: string): Promise<Record<string, string>> {
   await 봇기록(admin, 봇, true);
   await 봇시키기(admin, 봇, `gm:${명령}`);
-  const 줄 = await 봇기록기다리기(admin, 봇, (x) => x.type === 'toast' && 봇줄글(x).includes(`${마지막키}=`), 20_000);
+  const 줄 = await 봇기록기다리기(admin, 봇, (x) => x.type === 'chat' && 봇줄글(x).includes(`${마지막키}=`), 20_000);
   if (줄 === null) throw new Error(`봇 ${봇} 에게 「/gm ${명령}」을 시켰지만 ${마지막키}= 줄이 20초 안에 안 왔습니다`);
   return GM값풀기([색뗀글(봇줄글(줄))]);
 }
@@ -207,7 +207,7 @@ export async function 봇이던전에있을때까지(admin: APIRequestContext, �
   do {
     await 봇기록(admin, 봇, true);
     await 봇시키기(admin, 봇, 'gm:stat');
-    const 줄 = await 봇기록기다리기(admin, 봇, (x) => x.type === 'toast' && 봇줄글(x).includes('직업='), 4_000);
+    const 줄 = await 봇기록기다리기(admin, 봇, (x) => x.type === 'chat' && 봇줄글(x).includes('직업='), 4_000);
     if (줄 !== null) return true;
   } while (Date.now() < 끝);
   return false;
@@ -233,13 +233,11 @@ export async function 상단바자리(game: GameDriver): Promise<막대자리> {
   return { rect: 막대?.rect, screen: 막대?.screen };
 }
 
-export async function 경험치막대가득(game: GameDriver): Promise<boolean> {
-  const 막대 = await game.find('/Showcase HUD/PlayerBar/Bar');
-  const 채움 = await game.find('/Showcase HUD/PlayerBar/Bar/Fill');
-  const 전체 = 막대?.rect?.[2];
-  const 찬 = 채움?.rect?.[2];
-  if (전체 === undefined || 찬 === undefined) return false;
-  return Math.abs(전체 - 찬) <= 2;
+export async function 경험치막대가득(game: GameDriver, 한도ms = 10_000): Promise<boolean> {
+  return game.waitForValue('/Showcase HUD/PlayerBar/Bar/Fill', 'Image.fillAmount', 1, { timeoutMs: 한도ms }).then(
+    () => true,
+    () => false,
+  );
 }
 
 export async function 가방줄이생길때까지(가방: 가방창, 글: string, 한도ms = 10_000): Promise<number | null> {

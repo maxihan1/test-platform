@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 가방줄, 사기, 서버개수 } from './helpers/items-tools.helper.js';
+import { 가방줄, 사기, 서버개수가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -35,7 +35,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 사기(game, '체력 물약');
     const 가방 = await 가방창.열기(game);
     const 화면 = await verify('가방 창에 「체력 물약 x4」가 보인다', await 가방.줄이름(await 가방줄(가방, '체력 물약')), '체력 물약 x4');
-    const 서버 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 4개다', await 서버개수(admin, 나, '체력 물약'), 4);
+    const 서버 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 4개다', await 서버개수가될때까지(admin, 나, '체력 물약', 4), 4);
     await verify('「구매」를 한 번 누르면 체력 물약이 1개 늘어 「체력 물약 x4」가 된다', 화면 && 서버, true);
   });
 });

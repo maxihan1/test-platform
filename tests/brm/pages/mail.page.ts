@@ -82,6 +82,13 @@ export class 우편함창 {
     return this.칸글(`${우편함창.줄주소(번호)}/Label[2]/Text`);
   }
 
+  async 줄첨부가될때까지(번호: number, 글: string, 한도ms = 15_000): Promise<boolean> {
+    return this.game.waitFor(`${우편함창.줄주소(번호)}/Label[2]/Text`, { text: 글, timeoutMs: 한도ms }).then(
+      () => true,
+      () => false,
+    );
+  }
+
   async 줄첨부원문(번호: number): Promise<string | null> {
     const 찾음 = await this.game.find(`${우편함창.줄주소(번호)}/Label[2]/Text`);
     return 찾음 === null ? null : (찾음.text ?? '');
