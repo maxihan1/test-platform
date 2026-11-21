@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 서버골드 } from './helpers/items-tools.helper.js';
+import { 서버골드가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 상점창 } from './pages/shop.page.js';
@@ -29,7 +29,7 @@ test(spec, async ({ game, driver, admin, params }) => {
   const hud = new 공통HUD(game);
   await test.step('일반 회원으로 로비에 들어가 골드를 확인한다', async () => {
     await 로비로(game, driver, 나);
-    await verify('운영툴 캐릭터 골드가 200 이다', await 서버골드(admin, 나), 200, { blocker: true });
+    await verify('운영툴 캐릭터 골드가 200 이다', await 서버골드가될때까지(admin, 나, 200), 200, { blocker: true });
   });
   await test.step('상단 바와 상점 창의 골드 표시를 읽는다', async () => {
     const 상점 = await 상점창.열기(game);

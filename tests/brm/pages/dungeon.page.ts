@@ -25,7 +25,7 @@ export class 던전화면 {
   static readonly 내얼굴 = '/BossRoomHudCanvas/Party HUD/Hero HUD/Button/Hero Portrait';
   static readonly 동료이름줄 = '/BossRoomHudCanvas/Party HUD/Ally HUD 1/Button/Ally Name 1 (TMP)';
   static readonly 동료체력막대 = '/BossRoomHudCanvas/Party HUD/Ally HUD 1/Button/Ally HP Slider 1';
-  static readonly 동료얼굴 = '/BossRoomHudCanvas/Party HUD/Ally HUD 1/Button//*[contains(@name,Portrait)]';
+  static readonly 동료직업방패 = '/BossRoomHudCanvas/Party HUD/Ally HUD 1//Ally Symbol 1';
   static readonly 그림 = { 들기: 'ui_action_pickup', 내려놓기: 'ui_action_putdown', 부활: 'ui_revive', 탱커기본: 'ui_tank_atk' } as const;
 
   readonly hud: 공통HUD;

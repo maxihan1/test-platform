@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 가방채우기, 서버개수 } from './helpers/items-tools.helper.js';
+import { 가방채우기, 서버개수가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -34,7 +34,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 가방채우기(game, admin, 둘째, [{ 이름: 'QA 이상한 돌', 개수: 1 }]);
     const 가방 = await 가방창.열기(game);
     const 화면 = await verify('가방 창에 「QA 이상한 돌」 줄이 하나 보인다', await 가방.이름줄수('QA 이상한 돌'), 1);
-    const 서버 = await verify('운영툴 캐릭터 아이템에서 「QA 이상한 돌」이 1개다', await 서버개수(admin, 둘째, 'QA 이상한 돌'), 1);
+    const 서버 = await verify('운영툴 캐릭터 아이템에서 「QA 이상한 돌」이 1개다', await 서버개수가될때까지(admin, 둘째, 'QA 이상한 돌', 1), 1);
     await verify('게임에 없는 이름의 아이템을 우편으로 받으면 가방에 「QA 이상한 돌」이 그 이름 그대로 들어온다', 화면 && 서버, true);
   });
 });

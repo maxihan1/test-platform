@@ -33,6 +33,6 @@ test(spec, async ({ game, driver, admin, params }) => {
   await test.step('가방 창의 능력 줄을 읽는다', async () => {
     const 가방 = await 가방창.열기(game);
     const 능력 = (await 가방.능력글()) ?? '';
-    await verify('가방 창의 능력 줄을 읽으면 장착 칸 아래 능력 줄에 「Lv. · 골드 」가 보인다', 능력.startsWith('Lv.') && 능력.includes(' · 골드 '), true);
+    await verify('가방 창의 능력 줄을 읽으면 장착 칸 아래 능력 줄에 「Lv. · 골드 」가 보인다', 능력, 'Lv. · 골드 ');
   });
 });

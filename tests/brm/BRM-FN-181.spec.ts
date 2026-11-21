@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 봇에게시키고알림보기, 서버개수 } from './helpers/items-tools.helper.js';
+import { 봇에게시키고알림보기, 서버개수가될때까지 } from './helpers/items-tools.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기, 봇켜기, 접속자 } from './helpers/game-state.helper.js';
 
 export const spec = defineCase({
@@ -32,7 +32,7 @@ test(spec, async ({ admin, params }) => {
   await test.step('봇에게 체력 물약 장착을 시킨다', async () => {
     const 왔다 = await 봇에게시키고알림보기(admin, 봇, 'equip:체력 물약', '장착할 수 없는 아이템입니다');
     const 오류 = await verify('「장착할 수 없는 아이템입니다」 오류가 온다', 왔다, true);
-    const 그대로 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 3개 그대로다', await 서버개수(admin, 둘째, '체력 물약'), 3);
+    const 그대로 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 3개 그대로다', await 서버개수가될때까지(admin, 둘째, '체력 물약', 3), 3);
     await verify('체력 물약 장착을 요청하면 장착되지 않고 「장착할 수 없는 아이템입니다」 오류가 온다', 오류 && 그대로, true);
   });
 });

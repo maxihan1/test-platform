@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 가방줄, 가방채우기, 서버골드 } from './helpers/items-tools.helper.js';
+import { 가방줄, 가방채우기, 서버골드가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -35,11 +35,11 @@ test(spec, async ({ game, driver, admin, params }) => {
   });
   await test.step('가방 창의 「QA 이상한 돌」 줄 「판매」를 누른다', async () => {
     const 가방 = await 가방창.열기(game);
-    const 전 = await 서버골드(admin, 둘째);
+    const 전 = await 서버골드가될때까지(admin, 둘째, await hud.골드값());
     await 가방.줄버튼누르기(await 가방줄(가방, 'QA 이상한 돌'), '판매');
     await 가방.줄이름사라질때까지('QA 이상한 돌');
     await hud.골드가될때까지('210 G');
-    const 서버 = await verify('운영툴 캐릭터 골드가 10 늘었다', (await 서버골드(admin, 둘째)) - 전, 10);
+    const 서버 = await verify('운영툴 캐릭터 골드가 10 늘었다', (await 서버골드가될때까지(admin, 둘째, 전 + 10)) - 전, 10);
     const 화면 = await verify('상단 바 골드가 「210 G」다', await hud.골드글(), '210 G');
     await verify('알 수 없는 아이템을 팔면 골드가 10 는다', 서버 && 화면, true);
   });

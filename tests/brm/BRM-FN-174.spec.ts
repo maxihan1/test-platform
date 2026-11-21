@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 가방줄, 가방채우기, 서버개수 } from './helpers/items-tools.helper.js';
+import { 가방줄, 가방채우기, 서버개수가될때까지 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
 import { 가방창 } from './pages/bag.page.js';
@@ -35,7 +35,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await 가방채우기(game, admin, 나, [{ 이름: '체력 물약', 개수: 30 }]);
     const 가방 = await 가방창.열기(game);
     const 화면 = await verify('가방 창에 「체력 물약 x33」이 보인다', await 가방.줄이름(await 가방줄(가방, '체력 물약')), '체력 물약 x33');
-    const 서버 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 33개다', await 서버개수(admin, 나, '체력 물약'), 33);
+    const 서버 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 33개다', await 서버개수가될때까지(admin, 나, '체력 물약', 33), 33);
     await verify('체력 물약 30개를 우편으로 받은 뒤 가방 창을 열면 아이템이 30개 넘게 있어도 가방 창이 모두 받아 「체력 물약 x33」이 보인다', 화면 && 서버, true);
   });
 });

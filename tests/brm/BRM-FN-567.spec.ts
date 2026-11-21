@@ -8,7 +8,7 @@ import { 던전화면 } from './pages/dungeon.page.js';
 
 export const spec = defineCase({
   tcId: 'BRM-FN-567',
-  name: '파티 초상화를 보면 함께 들어온 「qa_player2」의 얼굴과 체력이 파티 초상화로 보인다',
+  name: '함께 던전에 들어온 동료 「qa_player2」는 파티 초상화에 직업 방패 · 이름 · 체력 막대로 보인다',
   platforms: ['android'],
   precondition: ['두 번째 플레이어 봇과 함께 던전에 들어와 있다'],
   params: z.object({
@@ -35,9 +35,9 @@ test(spec, async ({ game, driver, admin, params }) => {
   });
   await test.step('파티 초상화를 본다', async () => {
     const 던전 = await 던전화면.열기(game);
-    const 얼굴 = await verify('「qa_player2」의 얼굴이 보인다', await 던전.보임(던전화면.동료얼굴), true);
+    const 방패 = await verify('「qa_player2」의 직업 방패가 보인다', await 던전.보임(던전화면.동료직업방패), true);
     const 이름 = await verify('파티 초상화에 「qa_player2」가 보인다', await 던전.동료이름(), 봇);
     const 체력 = await verify('「qa_player2」의 체력 막대가 보인다', await 던전.보임(던전화면.동료체력막대), true);
-    await verify('파티 초상화를 보면 함께 들어온 「qa_player2」의 얼굴과 체력이 파티 초상화로 보인다', 얼굴 && 이름 && 체력, true);
+    await verify('함께 던전에 들어온 동료 「qa_player2」는 파티 초상화에 직업 방패 · 이름 · 체력 막대로 보인다', 방패 && 이름 && 체력, true);
   });
 });

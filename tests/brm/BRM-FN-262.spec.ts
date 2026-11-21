@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 서버개수, 서버골드, 알림글읽기, 우편보내고우편함열기 } from './helpers/items-tools.helper.js';
+import { 서버개수가될때까지, 서버골드가될때까지, 알림글읽기, 우편보내고우편함열기 } from './helpers/items-tools.helper.js';
 import { 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 봇모두끄기, 실패걸기 } from './helpers/game-state.helper.js';
 import { 우편함창 } from './pages/mail.page.js';
@@ -40,8 +40,8 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 함 = await 우편함창.열기(game);
     await 함.받기(0);
     const 알림 = await verify('「우편을 받지 못했습니다. 잠시 뒤 다시 시도해 주세요」 오류 알림이 뜬다', await 알림글읽기(game, '우편을 받지 못했습니다'), '우편을 받지 못했습니다. 잠시 뒤 다시 시도해 주세요');
-    const 골드 = await verify('운영툴 캐릭터 골드가 200 그대로다', await 서버골드(admin, 둘째), 200);
-    const 가방 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 3개 그대로다', await 서버개수(admin, 둘째, '체력 물약'), 3);
+    const 골드 = await verify('운영툴 캐릭터 골드가 200 그대로다', await 서버골드가될때까지(admin, 둘째, 200), 200);
+    const 가방 = await verify('운영툴 캐릭터 아이템에서 체력 물약이 3개 그대로다', await 서버개수가될때까지(admin, 둘째, '체력 물약', 3), 3);
     await verify('우편 저장이 실패하면 「우편을 받지 못했습니다. 잠시 뒤 다시 시도해 주세요」 오류 알림이 뜨고 가방과 골드가 그대로다', 알림 && 골드 && 가방, true);
   });
 });
