@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 공통HUD } from './components/hud.component.js';
-import { 사기, 서버골드가될때까지, 알림사라질때까지, 임프서른마리처치, 퀘스트줄 } from './helpers/items-tools.helper.js';
+import { 사기, 서버골드가될때까지, 임프서른마리처치, 퀘스트줄 } from './helpers/items-tools.helper.js';
 import { 던전으로, 로비로 } from './helpers/game-enter.helper.js';
 import { 계정꺼내기, 계정되돌리기, 레벨맞추기, 보스방가기, 보스처치, 봇모두끄기, 퀘스트처음으로, GM상태 } from './helpers/game-state.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
@@ -51,8 +51,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 퀘스트 = await 퀘스트창.열기(game);
     for (const 이름 of ['임프 30마리 처치', '던전 보스 처치', '상점에서 물건 구매']) {
       await 퀘스트.보상받기(await 퀘스트줄(퀘스트, 이름));
-      await hud.알림뜸('보상 받음');
-      await 알림사라질때까지(game, '보상 받음');
+      await verify('보상을 받은 퀘스트 줄이 「받음」이 된다', await 퀘스트.받음이될때까지(await 퀘스트줄(퀘스트, 이름)), true, { blocker: true });
     }
     const 서버 = await verify('운영툴 캐릭터 골드가 500 늘었다', (await 서버골드가될때까지(admin, 나, 전골드 + 500)) - 전골드, 500);
     const 화면 = await verify('상단 바 골드가 500 늘었다', (await hud.골드값()) - 전골드, 500);
