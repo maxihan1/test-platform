@@ -151,6 +151,8 @@ describe('verify 글 비교 — 통과 · 알림 (공통/2 §4 「글 비교」)
     ['첨부: 체력 물약, 10 골드', '첨부 체력물약 10골드'],
     ['골드 1,100개', '골드 1,100'],
     ['1 2', '1  2'],
+    ['보스의 왕관 조각을 획득', '을 획득'],
+    ['보스를 처치했다', '보스 처치'],
   ])('기대 낱말이 화면에 차례대로 다 있으면 통과 — 화면 「%s」 · 기대 「%s」', (actual, expected) => {
     expect(낱말이차례로있다(actual, expected)).toBe(true);
   });
@@ -165,6 +167,10 @@ describe('verify 글 비교 — 통과 · 알림 (공통/2 §4 「글 비교」)
     ['골드 -100', '골드 100'],
     ['할인 50%', '할인 50'],
     ['1.5배', '1배'],
+    ['골드 100만', '골드 100'],
+    ['보상 +100', '보상 100'],
+    ['사용 불가능', '사용 가능'],
+    ['저장 미완료', '저장 완료'],
     ['획득 보스 처치', '보스 처치 획득'],
     ['마나 물약', '체력 물약'],
     ['아무 글', ''],
@@ -183,7 +189,7 @@ describe('verify 글 비교 — 통과 · 알림 (공통/2 §4 「글 비교」)
       status: 'PASS',
       actual: '보스 처치! 보스의 왕관 조각 획득',
       expected: '보스 처치! 획득',
-      notice: '기획서 문장과 글자가 다름(기대 보스 처치! 획득 / 화면 보스 처치! 보스의 왕관 조각 획득)',
+      notice: '기획서 문장과 글자가 다름',
     });
   });
 
@@ -207,11 +213,11 @@ describe('verify 글 비교 — 통과 · 알림 (공통/2 §4 「글 비교」)
     expect(s.assertions[0]!.status).toBe('FAIL');
   });
 
-  it('긴 글은 알림에서 200자로 자른다', async () => {
+  it('데이터 대조(verify.element)는 글자까지 같아야 통과다', async () => {
     const s = scope();
-    const 긴화면 = `보스 처치 ${'가'.repeat(300)}`;
-    await stepScope.run(s, () => verify('긴 알림', 긴화면, '보스 처치'));
+    await stepScope.run(s, () => verify.element('아이템 이름', 'item:crown', '보스의 왕관 조각', '왕관 조각'));
 
-    expect(s.assertions[0]!.notice).toBe(`기획서 문장과 글자가 다름(기대 보스 처치 / 화면 ${긴화면.slice(0, 200)}…)`);
+    expect(s.assertions[0]).toMatchObject({ status: 'FAIL' });
+    expect(s.assertions[0]).not.toHaveProperty('notice');
   });
 });

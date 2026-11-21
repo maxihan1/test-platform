@@ -43,10 +43,13 @@ export function 통과알림목록({ insights, runId }: { insights: 비교 | nul
   const t = use말();
   const 알림들 = insights?.통과알림들 ?? [];
   if (알림들.length === 0) return null;
+  // 서버가 상한에서 잘라 보낸다 — 수는 자르기 전 전체로 적고 잘렸다고 알린다
+  const 전체 = Math.max(insights?.통과알림수 ?? 0, 알림들.length);
 
   return (
     <details className="rr-fold rr-notice">
-      <summary>{t('통과 · 알림 {건수}건', { 건수: 알림들.length })}</summary>
+      <summary>{t('통과 · 알림 {건수}건', { 건수: 전체 })}</summary>
+      {전체 > 알림들.length ? <p className="hint">{t('앞 {보인}건만 보입니다 — 나머지는 항목 상세에서 확인하세요', { 보인: 알림들.length })}</p> : null}
       {알림들.map((a, i) => (
         <div className="rr-fixed" key={`${String(a.historyId)}\u0000${String(i)}`}>
           <a href={`#/runs/${String(runId)}/items/${String(a.historyId)}`}>

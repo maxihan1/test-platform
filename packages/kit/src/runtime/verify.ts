@@ -86,14 +86,28 @@ function 걷는다(원글: string): { 글: string; 끊김: boolean[] } {
   return { 글, 끊김 };
 }
 
-// 걷어 낸 자리 없이 숫자 · 남긴 구두점(1,100 의 , · -100 의 - · 50% 의 %)이 붙어 있으면 다른 수다
-const 붙었다 = (글: string, 끊김: boolean[], 경계: number, 옆: number): boolean =>
-  !끊김[경계] && (숫자.test(글[옆] ?? '') || 구두점.test(글[옆] ?? ''));
+const 기호 = /\p{S}/u;
+const 글자 = /\p{L}/u;
+const 수꼬리 = /[만천억조kKmM]/;
+// 숫자 · 남긴 구두점(1,100 의 , · -100 의 - · 50% 의 %) · 기호(+100 · $100)가 붙어 있으면 다른 수다
+const 수가이어진다 = (c: string): boolean => 숫자.test(c) || 구두점.test(c) || 기호.test(c);
+
+/** 화면 글 at 자리에서 찾은 조각이 낱말로 맞나 — 걷어 낸 자리를 넘어서는 옆 글자로 치지 않는다 */
+function 맞는자리(화면: { 글: string; 끊김: boolean[] }, at: number, 조각: string): boolean {
+  const 끝 = at + 조각.length;
+  const 앞 = 화면.끊김[at] ? '' : (화면.글[at - 1] ?? '');
+  const 뒤 = 화면.끊김[끝] ? '' : (화면.글[끝] ?? '');
+  if (숫자.test(조각[0]!) && 수가이어진다(앞)) return false;
+  if (숫자.test(조각.at(-1)!) && (수가이어진다(뒤) || 수꼬리.test(뒤))) return false;
+  // 낱말 가운데서 시작하면 뜻이 뒤집힌다(불가능 안의 가능 · 미완료 안의 완료). 한 글자 조각은 빈칸 뒤에 남은 조사(을 · 의)라 뺀다
+  if (조각.length >= 2 && 글자.test(조각[0]!) && 글자.test(앞)) return false;
+  return true;
+}
 
 /**
  * 기대 글의 낱말 조각이 화면 글에 차례대로 다 있나 (공통/2 §4 「글 비교」).
  * 띄어쓰기 · 구두점은 양쪽에서 걷어 낸다. 화면 글이 더 길어도 된다 — 기획서에서 빠진 빈칸 자리의 값이다.
- * 숫자로 시작하거나 끝나는 조각은 숫자가 붙은 자리를 건너뛴다(100 ≠ 1100 · 1,100)
+ * 숫자로 시작하거나 끝나는 조각은 수가 이어진 자리를(100 ≠ 1100 · 1,100 · 100만), 글자로 시작하는 조각은 낱말 가운데를 건너뛴다
  */
 export function 낱말이차례로있다(actual: string, expected: string): boolean {
   const 기대 = 걷는다(expected);
@@ -107,34 +121,28 @@ export function 낱말이차례로있다(actual: string, expected: string): bool
   const 화면 = 걷는다(actual);
   let 어디부터 = 0;
   for (const 조각 of 조각들) {
-    const 앞숫자 = 숫자.test(조각[0]!);
-    const 뒤숫자 = 숫자.test(조각.at(-1)!);
-    const 끝 = (at: number): number => at + 조각.length;
     let at = 화면.글.indexOf(조각, 어디부터);
-    while (at !== -1 && ((앞숫자 && 붙었다(화면.글, 화면.끊김, at, at - 1)) || (뒤숫자 && 붙었다(화면.글, 화면.끊김, 끝(at), 끝(at))))) {
-      at = 화면.글.indexOf(조각, at + 1);
-    }
+    while (at !== -1 && !맞는자리(화면, at, 조각)) at = 화면.글.indexOf(조각, at + 1);
     if (at === -1) return false;
-    어디부터 = 끝(at);
+    어디부터 = at + 조각.length;
   }
   return true;
 }
 
-// 알림 한 줄이 결과 화면을 덮지 않게 양쪽 글을 자른다
-const 알림글 = (글: string): string => (글.length > 200 ? `${글.slice(0, 200)}…` : 글);
+// 기대 · 화면 글은 넣지 않는다 — 결과에 actual · expected 가 이미 있고, 비밀값을 가리고 자르는 일은 보여 주는 쪽(admin)이 한다
+const 글자다름 = '기획서 문장과 글자가 다름';
 
 async function 같다(statement: string, actual: unknown, expected: unknown, options?: VerifyOptions): Promise<boolean> {
   if (isDeepStrictEqual(actual, expected)) return 남긴다(statement, true, actual, expected, options, 같다);
   if (typeof actual === 'string' && typeof expected === 'string' && 낱말이차례로있다(actual, expected)) {
-    const notice = `기획서 문장과 글자가 다름(기대 ${알림글(expected)} / 화면 ${알림글(actual)})`;
-    return 남긴다(statement, true, actual, expected, options, 같다, notice);
+    return 남긴다(statement, true, actual, expected, options, 같다, 글자다름);
   }
   return 남긴다(statement, false, actual, expected, options, 같다);
 }
 
 /**
  * 데이터 대조 — 서버가 준 값을 기획서 값과 견주고, 게임 항목이면 그 요소 열쇠의 서버 값을 게임 지도에 남긴다 (공통/3-공유계약 「게임 테스트 타입」 elementChecks).
- * 판정은 verify 와 같다
+ * 판정은 글자까지 같아야 통과다 — verify 의 글 비교 규칙(통과 · 알림)은 서버 값 대조에 안 쓴다
  */
 async function element(statement: string, key: string, serverValue: unknown, expected: unknown, options?: VerifyOptions): Promise<boolean> {
   const passed = isDeepStrictEqual(serverValue, expected);

@@ -120,6 +120,13 @@ describe('통과 · 알림 (도메인/실행 §8.3)', () => {
     expect(document.querySelector('a')?.getAttribute('href')).toBe(`#/runs/${String(RUN_ID)}/items/77`);
   });
 
+  it('서버가 상한에서 잘랐으면 전체 수를 적고 잘렸다고 알린다', () => {
+    render(<통과알림목록 runId={RUN_ID} insights={비교({ 통과알림들: [알림], 통과알림수: 250 })} />);
+
+    expect(screen.getByText('통과 · 알림 250건')).toBeDefined();
+    expect(screen.getByText('앞 1건만 보입니다 — 나머지는 항목 상세에서 확인하세요')).toBeDefined();
+  });
+
   it('알림이 없거나 칸을 모르는 옛 응답이면 그리지 않는다', () => {
     const { container } = render(<통과알림목록 runId={RUN_ID} insights={비교()} />);
     expect(container.innerHTML).toBe('');
