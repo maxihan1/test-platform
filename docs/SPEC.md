@@ -66,16 +66,16 @@
 | **WS-E** 화면 | `spec/공통/1-제품과-구조` · `spec/공통/5-화면공통` · `spec/도메인/카탈로그` · `spec/도메인/실행` · `spec/도메인/리포팅` · `spec/도메인/인증` (§8.6·§8.8) · DESIGN.md | 6122줄 |
 | **WS-F** 인증 | `spec/공통/1-제품과-구조` · `spec/공통/5-화면공통` · `spec/도메인/인증` · `spec/공통/4-데이터모델` | 5418줄 |
 | **contracts** 계약 반영 | `spec/공통/1-제품과-구조` · `spec/공통/3-공유계약` · `spec/공통/4-데이터모델` · `spec/공통/6-인프라` · `spec/도메인/러너` | 5984줄 |
-| **WS-작성** 테스트 작성 | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/도메인/작성` · `spec/도메인/인증` | 8227줄 |
+| **WS-작성** 테스트 작성 | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/도메인/작성` · `spec/도메인/인증` | 8228줄 |
 | **WS-시나리오** E2E 시나리오 (여러 갈래에 걸친다 — `docs/archive/WORKSTREAMS.md` 「📐 E2E 시나리오」) | `spec/공통/1-제품과-구조` · `spec/공통/3-공유계약` · `spec/공통/4-데이터모델` · `spec/도메인/시나리오` · `spec/도메인/러너` · `spec/도메인/실행` · `spec/도메인/인증` | 9913줄 |
 | **WS-성능** 성능 테스트 (여러 갈래에 걸친다 — 정본은 `spec/도메인/성능`) | `spec/공통/1-제품과-구조` · `spec/공통/3-공유계약` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/공통/6-인프라` · `spec/도메인/성능` · `spec/도메인/러너` · `spec/도메인/인증` | 8484줄 |
-| **WS-게임** 게임 테스트 (여러 갈래에 걸친다 — 정본은 `spec/도메인/게임`) | `spec/공통/1-제품과-구조` · `spec/공통/3-공유계약` · `spec/공통/4-데이터모델` · `spec/도메인/게임` · `spec/도메인/러너` · `spec/도메인/작성` | 9683줄 |
-| **WS-BTS** BTS 연동 (여러 갈래에 걸친다 — 정본은 `spec/도메인/BTS`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/도메인/BTS` · `spec/도메인/작성` · `spec/도메인/실행` · `spec/도메인/인증` | 10827줄 |
+| **WS-게임** 게임 테스트 (여러 갈래에 걸친다 — 정본은 `spec/도메인/게임`) | `spec/공통/1-제품과-구조` · `spec/공통/3-공유계약` · `spec/공통/4-데이터모델` · `spec/도메인/게임` · `spec/도메인/러너` · `spec/도메인/작성` | 9684줄 |
+| **WS-BTS** BTS 연동 (여러 갈래에 걸친다 — 정본은 `spec/도메인/BTS`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/도메인/BTS` · `spec/도메인/작성` · `spec/도메인/실행` · `spec/도메인/인증` | 10828줄 |
 | **WS-호환성** 기기 호환성 (여러 갈래에 걸친다 — 정본은 `spec/도메인/호환성`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/도메인/호환성` · `spec/도메인/러너` · `spec/도메인/실행` · `spec/도메인/인증` | 8573줄 |
-| **WS-챗봇** Scout 챗봇 (여러 갈래에 걸친다 — 정본은 `spec/도메인/챗봇`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/도메인/챗봇` · `spec/도메인/BTS` · `spec/도메인/인증` · `spec/도메인/작성` | 9782줄 |
+| **WS-챗봇** Scout 챗봇 (여러 갈래에 걸친다 — 정본은 `spec/도메인/챗봇`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/도메인/챗봇` · `spec/도메인/BTS` · `spec/도메인/인증` · `spec/도메인/작성` | 9783줄 |
 | **WS-안정화** 안정화 지표 (여러 갈래에 걸친다 — 정본은 `spec/도메인/안정화`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/도메인/안정화` · `spec/도메인/실행` · `spec/도메인/러너` · `spec/도메인/인증` · `spec/도메인/성능` · `spec/도메인/BTS` | 9771줄 |
 | **WS-정기실행** 정기 실행 세트 (여러 갈래에 걸친다 — 정본은 `spec/도메인/정기실행`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/공통/6-인프라` · `spec/도메인/정기실행` · `spec/도메인/실행` · `spec/도메인/시나리오` · `spec/도메인/호환성` · `spec/도메인/안정화` · `spec/도메인/인증` | 9957줄 |
-| **WS-0** 골격 · **integration** 통합·병합 | 22장 전부 | 20287줄 |
+| **WS-0** 골격 · **integration** 통합·병합 | 22장 전부 | 20288줄 |
 
 `spec/공통/1-제품과-구조`는 어느 갈래든 읽는다. 용어를 다르게 쓰면 나머지가 전부 어긋난다.
 WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드리므로 색인을 보고 필요한 장을 직접 연다.
@@ -227,7 +227,7 @@ WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드
 | [챗봇](spec/도메인/챗봇.md) | §3.14 Scout 챗봇(결정 · 막는 법 · 대화 수명 · 돌리는 곳) · §7 챗봇 통로 · §8.18 Scout 화면 | 176 |
 | [안정화](spec/도메인/안정화.md) | §3.15 안정화 지표(결정 · 집계 · 무엇을 세나 · 지문 · 상태 · 일별 추이 · AI 실행 요약 · 견본 · Issue Bunker 등록) · §7 안정화 통로 · §8.19 안정화 지표 화면 | 273 |
 | [정기실행](spec/도메인/정기실행.md) | §3.16 정기 실행(결정 · 세트 · 회차 · 실행 만들기 · 안정화 기준 세트 · 옮기기 · 리포트 일정) · §7 정기 실행 통로 · §8.20 정기 실행 화면 | 247 |
-| [작성](spec/도메인/작성.md) | §3.6 · §7 Authoring — 대기줄·작업 단계·머지·자료(파일·피그마)·역방향(화면 대조)·케이스 고치기·반영 때 겹침 검사·테스트 두 갈래·설계 기법·표준 기획서·앱 탐색 | 3469 |
+| [작성](spec/도메인/작성.md) | §3.6 · §7 Authoring — 대기줄·작업 단계·머지·자료(파일·피그마)·역방향(화면 대조)·케이스 고치기·반영 때 겹침 검사·테스트 두 갈래·설계 기법·표준 기획서·앱 탐색 | 3470 |
 
 ---
 
@@ -324,7 +324,7 @@ WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드
 | `perf_agent` · `perf_scenario` · `perf_scenario_version` · `perf_run` · `perf_series` · `perf_host_metric` · `perf_page_metric` · `perf_device_metric` · `perf_event` · `perf_ai_job` · `perf_dummy_client` (2026-10-21 · PERF-F1-03 반영) | 성능 (`perf_ai_job` 은 작성 에이전트가 통로로 집기만 한다. 종류 `SUGGEST_FLOWS` 는 시나리오가 세우고 읽는다 — 2026-10-23 결정 15) | [도메인/성능](spec/도메인/성능.md) |
 | `game_element` · `game_element_case` (2026-10-22 · GAME-F1-07 반영) | 게임 (`game_element` 은 작성이 올리고 실행 저장이 서버 값 칸을 쓴다 · `game_element_case` 는 스캐너가 채우는 사본) | [도메인/게임](spec/도메인/게임.md) |
 | `app_build` · `service_token` (2026-10-24 · GAME-F1-13 반영) | 실행 (빌드마다 돌리기 — `service_token` 은 설정이 발급하고 문이 확인한다 · 모든 종류가 쓴다) | [도메인/실행](spec/도메인/실행.md) |
-| `bts_link` · `bts_deploy` · `bts_claim` · `bts_issue_case` · `bts_outbox` · `project_note` · `project_note_event` (2026-10-31 · BTS-F1-01 — 다 반영 — `bts_deploy` · `bts_claim` 은 BTS-F5-01) | BTS (`service.code_repos` 는 설정이 쓰고 수정 AI 만 읽는다 · `authoring_request` 종류 PRD_DRAFT · NOTE · BUGFIX 는 작성 표다) | [도메인/BTS](spec/도메인/BTS.md) |
+| `bts_link` · `bts_deploy` · `bts_claim` · `bts_issue_case` · `bts_outbox` · `project_note` · `project_note_event` (2026-10-31 · BTS-F1-01 — 다 반영 — `bts_deploy` · `bts_claim` 은 BTS-F5-01) | BTS (`service.code_repos` 는 설정이 쓰고 수정 AI 와 게임 작성이 읽는다 · `authoring_request` 종류 PRD_DRAFT · NOTE · BUGFIX 는 작성 표다) | [도메인/BTS](spec/도메인/BTS.md) |
 | `chat_conversation` · `chat_question` · `chat_chunk` · `chat_usage` (2026-11-11 · SCOUT-F1-01 · SCOUT-F1-03 반영) | 챗봇 (로그아웃 · Auth back-channel 이 대화를 지운다 — 인증이 챗봇 함수를 부른다) | [도메인/챗봇](spec/도메인/챗봇.md) |
 | `stab_run` · `stab_error` · `stab_run_error` · `stab_occurrence` · `stab_sample` (2026-11-12 · STAB-F1-02 반영) | 안정화 (`run_console` · `run_network` · `run_trace` · `run_item` · `req_case` 를 SQL 로 읽기만 한다 · AI 요약은 성능의 `perf_ai_job` 에 종류 `STAB_SUMMARY` 로 세운다) | [도메인/안정화](spec/도메인/안정화.md) |
 | `sched_set` · `sched_set_item` · `sched_set_env` · `sched_occurrence` · `test_run.sched_occurrence_id` (2026-11-13 · SCHED-F1-01 — 반영 SCHED-F1-02) | 정기 실행 (실행 · 시나리오 · 호환성의 실행 만들기를 부른다 · 안정화 집계가 기준 세트 칸을 읽는다) | [도메인/정기실행](spec/도메인/정기실행.md) |

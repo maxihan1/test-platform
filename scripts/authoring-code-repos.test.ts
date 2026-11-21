@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -26,6 +26,18 @@ function 가짜깃(실패할이름: string): { env: NodeJS.ProcessEnv; 자료: s
 }
 
 describe('코드저장소받기 — 게임 코드 저장소를 자료 폴더에 얕게 받는다 (도메인/작성 §3.6 「가이드와 게임 코드 맞춰 보기」)', () => {
+  it('앞 자식이 code 자리를 링크로 바꿔 두어도 링크만 지우고 그 너머에 쓰지 않는다 · 멈추라 하면 다음 저장소를 안 받는다', async () => {
+    const { env, 자료 } = 가짜깃('없음');
+    const 너머 = join(자료, '..', '너머');
+    mkdirSync(너머);
+    symlinkSync(너머, join(자료, 'code'));
+    const 받은것 = await 코드저장소받기([{ name: '게임', url: 'https://github.com/a/game' }], 자료, env);
+    expect(받은것).toEqual([{ 주소: 'https://github.com/a/game', 폴더: join(자료, 'code', '1-a__game') }]);
+    expect(lstatSync(join(자료, 'code')).isSymbolicLink()).toBe(false);
+    expect(readdirSync(너머)).toEqual([]);
+    expect(await 코드저장소받기([{ name: '게임', url: 'https://github.com/a/game' }], 자료, env, () => true)).toEqual([]);
+  });
+
   it('github 주소만 훅 없이 한 판 받고 .git 을 지운다 · 다른 주소와 못 받은 것은 까닭으로 남기고 계속 간다', async () => {
     const { env, 자료, 부른기록 } = 가짜깃('b/missing');
     const 받은것 = await 코드저장소받기(
@@ -49,6 +61,6 @@ describe('코드저장소받기 — 게임 코드 저장소를 자료 폴더에 
     expect(existsSync(join(자료, 'code', '3-b__missing'))).toBe(false);
     const 부름 = readFileSync(부른기록, 'utf8').trim().split('\n');
     expect(부름).toHaveLength(2);
-    expect(부름[0]).toBe(`-c core.hooksPath=/dev/null clone -q --depth 1 --single-branch https://github.com/a/game ${폴더}`);
+    expect(부름[0]).toBe(`-c core.hooksPath=/dev/null -c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false clone -q --depth 1 --single-branch https://github.com/a/game ${폴더}`);
   });
 });

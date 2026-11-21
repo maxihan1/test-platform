@@ -80,6 +80,7 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
   beforeEach(async () => {
     await 치우기();
     await 플랫폼('GAME', 'windows');
+    await q(`UPDATE service SET code_repos = '[]' WHERE id = $1`, [서비스]);
   });
 
   afterAll(async () => {
