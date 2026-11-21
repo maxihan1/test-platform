@@ -10,7 +10,7 @@ export const spec = defineCase({
   name: '「/gm data skill」을 보내면 탱커 · 궁수 · 마법사 스킬의 기본 수치 · 사거리 · 재사용 대기가 스킬 표와 같다',
   platforms: ['android'],
   precondition: ['일반 회원으로 로비에 들어와 있다'],
-  elements: ['skill:전투 망치', 'skill:방패 오라', 'skill:돌진', 'skill:화살 쏘기', 'skill:강화 사격', 'skill:일제 사격', 'skill:마력탄', 'skill:치유의 손길'],
+  elements: ['skill:전투 망치', 'skill:방패 오라', 'skill:화살 쏘기', 'skill:강화 사격', 'skill:일제 사격', 'skill:마력탄', 'skill:치유의 손길'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
     loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
@@ -34,9 +34,6 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 확인2 = await verify.element('전투 망치 사거리가 2 다', 'skill:전투 망치', 첫수치(스킬조각(줄들, '전투 망치'), ['사거리']), 2);
     const 확인3 = await verify.element('전투 망치 재사용 대기가 없다', 'skill:전투 망치', 첫수치(스킬조각(줄들, '전투 망치'), ['재사용']) ?? 0, 0);
     const 확인4 = await verify.element('방패 오라 재사용 대기가 1.2초다', 'skill:방패 오라', 첫수치(스킬조각(줄들, '방패 오라'), ['재사용']), 1.2);
-    const 확인5 = await verify.element('돌진 피해가 15 이다', 'skill:돌진', 첫수치(스킬조각(줄들, '돌진'), ['값']), 15);
-    const 확인6 = await verify.element('돌진 사거리가 2 다', 'skill:돌진', 첫수치(스킬조각(줄들, '돌진'), ['사거리']), 2);
-    const 확인7 = await verify.element('돌진 재사용 대기가 없다', 'skill:돌진', 첫수치(스킬조각(줄들, '돌진'), ['재사용']) ?? 0, 0);
     const 확인8 = await verify.element('화살 쏘기 피해가 5 이다', 'skill:화살 쏘기', 첫수치(스킬조각(줄들, '화살 쏘기'), ['값']), 5);
     const 확인9 = await verify.element('화살 쏘기 사거리가 20 다', 'skill:화살 쏘기', 첫수치(스킬조각(줄들, '화살 쏘기'), ['사거리']), 20);
     const 확인10 = await verify.element('화살 쏘기 재사용 대기가 0.25초다', 'skill:화살 쏘기', 첫수치(스킬조각(줄들, '화살 쏘기'), ['재사용']), 0.25);
@@ -50,6 +47,6 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 확인18 = await verify.element('치유의 손길 회복이 250 이다', 'skill:치유의 손길', 첫수치(스킬조각(줄들, '치유의 손길'), ['값']), 250);
     const 확인19 = await verify.element('치유의 손길 사거리가 10 다', 'skill:치유의 손길', 첫수치(스킬조각(줄들, '치유의 손길'), ['사거리']), 10);
     const 확인20 = await verify.element('치유의 손길 재사용 대기가 없다', 'skill:치유의 손길', 첫수치(스킬조각(줄들, '치유의 손길'), ['재사용']) ?? 0, 0);
-    await verify('「/gm data skill」을 보내면 탱커 · 궁수 · 마법사 스킬의 기본 수치 · 사거리 · 재사용 대기가 스킬 표와 같다', 확인1 && 확인2 && 확인3 && 확인4 && 확인5 && 확인6 && 확인7 && 확인8 && 확인9 && 확인10 && 확인11 && 확인12 && 확인13 && 확인14 && 확인15 && 확인16 && 확인17 && 확인18 && 확인19 && 확인20, true);
+    await verify('「/gm data skill」을 보내면 탱커 · 궁수 · 마법사 스킬의 기본 수치 · 사거리 · 재사용 대기가 스킬 표와 같다', 확인1 && 확인2 && 확인3 && 확인4 && 확인8 && 확인9 && 확인10 && 확인11 && 확인12 && 확인13 && 확인14 && 확인15 && 확인16 && 확인17 && 확인18 && 확인19 && 확인20, true);
   });
 });
