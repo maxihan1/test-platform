@@ -59,9 +59,9 @@ test(spec, async ({ game, driver, admin, params }) => {
     }
     const 값들 = 받은피해(줄들, 나.아이디, 'Imp').map((줄) => 줄.value);
     const 예값 = await verify.log('임프가 나를 친 피해 줄이 전부 15 다', 값들, 15, { least: 3 });
-    const 최소 = await verify.log('임프가 나를 친 피해 줄이 전부 1 이상이다', 값들, { min: 1, max: Number.MAX_SAFE_INTEGER }, { least: 3 });
+    const 최소 = await verify.log('임프가 나를 친 피해 줄이 전부 5 이상이다', 값들, { min: 5, max: Number.MAX_SAFE_INTEGER }, { least: 3 });
     await verify('BRM-REQ-377 레벨 1 장비 없이 임프에게 맞은 피해는 15 다', 예값, true);
-    await verify('BRM-REQ-106 임프에게 맞은 피해는 1 이상이다', 최소, true);
+    await verify('BRM-REQ-106 임프에게 맞은 피해는 5 이상이다', 최소, true);
     const 조건 = { 레벨: 1, 직업: '탱커', 무기: '-', 갑옷: '-', 인원: 3 };
     for (const 줄 of 설명안되는줄(줄들, 나.아이디, 조건, ['hit']).slice(0, 10)) await verify.note('설명 안 되는 줄', 줄);
     if (멈춤 !== undefined) throw 멈춤;
