@@ -14,7 +14,7 @@ export class 로비화면 {
   static readonly 말풍선 = '/CharacterSelectCanvas/Tooltip/Text (TMP)';
   static readonly 정보상자 = '/CharacterSelectCanvas/ClassInfoBox';
   static readonly 스킬묶음 = '/CharacterSelectCanvas/ClassInfoBox/HideAllTheseWhenNoClass';
-  static readonly 불러오는중 = '/LoadingScreenPanel/Title Text (TMP)';
+  static readonly 불러오는중 = '/LoadingScreen/LoadingScreenPanel/Title Text (TMP)';
 
   readonly hud: 공통HUD;
 
@@ -95,10 +95,12 @@ export class 로비화면 {
   }
 
   async 불러오는중뜸(한도ms = 30_000): Promise<boolean> {
-    return this.game.waitFor(로비화면.불러오는중, { text: '불러오는 중…', timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    const 끝 = Date.now() + 한도ms;
+    do {
+      const 글 = await this.game.find(로비화면.불러오는중);
+      if ((글?.text ?? '').includes('불러오는 중…') && Number(await this.game.get('/LoadingScreen', 'CanvasGroup.alpha')) > 0) return true;
+    } while (Date.now() < 끝);
+    return false;
   }
 
   async 자리이름이될때까지(번호: number, 이름: string, 한도ms = 10_000): Promise<boolean> {
