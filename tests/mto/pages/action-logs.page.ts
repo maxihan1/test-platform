@@ -48,6 +48,10 @@ export class 감사로그화면 {
     await this.로그줄.first().or(this.빈화면).waitFor();
   }
 
+  글이든줄(글: string): Locator {
+    return this.로그줄.filter({ hasText: 글 });
+  }
+
   글이없는줄(글: string): Locator {
     return this.로그줄.filter({ hasNotText: 글 });
   }

@@ -40,4 +40,9 @@ test(spec, async ({ page, params }) => {
     const 화면6 = await verify('「업데이트 사용 가능」 화면에 「이 페이지를 표시할 권한이 없습니다.」가 보인다', await 관리.오류.권한없음.isVisible(), true);
     await verify('Moderator 가 「서버 규칙」 · 「역할」 · 「공지사항」 · 「커스텀 에모지」 · 「웹훅」 · 「업데이트 사용 가능」 주소를 열면 화면마다 「이 페이지를 표시할 권한이 없습니다.」가 보인다', 화면1 && 화면2 && 화면3 && 화면4 && 화면5 && 화면6, true);
   });
+  await test.step('Sidekiq · PgHero 주소를 차례로 연다', async () => {
+    const 사이드킥 = await verify('Sidekiq 주소의 응답 코드가 404 이다', await 관리.열어서응답코드('/sidekiq'), 404);
+    const 피지히어로 = await verify('PgHero 주소의 응답 코드가 404 이다', await 관리.열어서응답코드('/pghero'), 404);
+    await verify('Sidekiq · PgHero 주소는 응답 코드 404 화면이다', 사이드킥 && 피지히어로, true);
+  });
 });

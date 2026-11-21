@@ -5,6 +5,8 @@ export class 해시태그목록화면 {
 
   readonly 제목: Locator;
   readonly 관리선택: Locator;
+  readonly 게시물선택: Locator;
+  readonly 게시물항목들: Locator;
   readonly 정렬선택: Locator;
   readonly 정렬항목들: Locator;
   readonly 이름칸: Locator;
@@ -15,6 +17,8 @@ export class 해시태그목록화면 {
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('heading', { name: '해시태그', level: 1 });
     this.관리선택 = page.locator('.filter-subset').filter({ has: page.getByText('관리', { exact: true }) }).locator('select');
+    this.게시물선택 = page.locator('#status');
+    this.게시물항목들 = this.게시물선택.getByRole('option');
     this.정렬선택 = page.locator('#order');
     this.정렬항목들 = this.정렬선택.getByRole('option');
     this.이름칸 = page.getByPlaceholder('이름');

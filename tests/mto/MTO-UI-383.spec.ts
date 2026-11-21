@@ -7,7 +7,7 @@ import { 해시태그목록화면 } from './pages/tags.page.js';
 
 export const spec = defineCase({
   tcId: 'MTO-UI-383',
-  name: '해시태그 목록에 「관리」 선택 · 「정렬」 「최신」 · 「오래된 순」 · 「이름」 칸 · 「검색」 · 「초기화」가 보인다',
+  name: '해시태그 목록에 「게시물」 선택(「모두」 · 「검토함」 · 「검토 요청」 · 「검토되지 않음」 · 「유행에 오를 수 있음」 · 「유행에 오를 수 없음」 · 「사용 가능」 · 「사용 불가」) · 「정렬」 「최신」 · 「오래된 순」 · 「이름」 칸 · 「검색」 · 「초기화」가 보인다',
   precondition: ['Owner(qa_admin) 계정으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('Owner 아이디').optional().meta({ secret: true }),
@@ -27,11 +27,12 @@ test(spec, async ({ page, params }) => {
   });
   await test.step('「해시태그」 화면을 연다', async () => {
     await 목록.열기();
-    const 관리선택 = await verify('「관리」 선택이 보인다', await 목록.관리선택.isVisible(), true);
+    const 게시물 = await verify('「게시물」 선택이 보인다', await 목록.게시물선택.isVisible(), true);
+    const 게시물항목 = await verify('「게시물」 선택에 「모두」 · 「검토함」 · 「검토 요청」 · 「검토되지 않음」 · 「유행에 오를 수 있음」 · 「유행에 오를 수 없음」 · 「사용 가능」 · 「사용 불가」가 보인다', (await 목록.게시물항목들.allInnerTexts()).map((t) => t.trim()).join(', '), '모두, 검토함, 검토 요청, 검토되지 않음, 유행에 오를 수 있음, 유행에 오를 수 없음, 사용 가능, 사용 불가');
     const 정렬 = await verify('「정렬」에 「최신」 · 「오래된 순」이 보인다', (await 목록.정렬항목들.allInnerTexts()).map((t) => t.trim()).join(', '), '최신, 오래된 순');
     const 이름 = await verify('「이름」 칸이 보인다', await 목록.이름칸.isVisible(), true);
     const 검색 = await verify('「검색」이 보인다', await 목록.검색.isVisible(), true);
     const 초기화 = await verify('「초기화」가 보인다', await 목록.초기화.isVisible(), true);
-    await verify('해시태그 목록에 「관리」 선택 · 「정렬」 「최신」 · 「오래된 순」 · 「이름」 칸 · 「검색」 · 「초기화」가 보인다', 관리선택 && 정렬 && 이름 && 검색 && 초기화, true);
+    await verify('해시태그 목록에 「게시물」 선택(「모두」 · 「검토함」 · 「검토 요청」 · 「검토되지 않음」 · 「유행에 오를 수 있음」 · 「유행에 오를 수 없음」 · 「사용 가능」 · 「사용 불가」) · 「정렬」 「최신」 · 「오래된 순」 · 「이름」 칸 · 「검색」 · 「초기화」가 보인다', 게시물 && 게시물항목 && 정렬 && 이름 && 검색 && 초기화, true);
   });
 });

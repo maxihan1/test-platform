@@ -34,6 +34,11 @@ export class 신고상세화면 {
   readonly 참고사항칸: Locator;
   readonly 참고사항추가: Locator;
   readonly 참고사항종결: Locator;
+  readonly 프로필보기: Locator;
+  readonly 계정카드라벨들: Locator;
+  readonly 신고머리라벨들: Locator;
+  readonly 신고처리자라벨: Locator;
+  readonly 첨부미디어: Locator;
 
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('heading', { name: /^신고 #\d+/, level: 1 });
@@ -65,6 +70,11 @@ export class 신고상세화면 {
     this.참고사항칸 = page.getByRole('textbox', { name: '어떤 대응을 했는지 설명 또는 그 밖의 관련된 갱신 사항들' });
     this.참고사항추가 = page.getByRole('button', { name: '참고사항 추가' });
     this.참고사항종결 = page.getByRole('button', { name: '참고사항 기재 및 종결' });
+    this.프로필보기 = page.getByRole('link', { name: '프로필 보기', exact: true });
+    this.계정카드라벨들 = page.locator('.report-header__details--horizontal .report-header__details__item__header strong').filter({ hasText: /^(가입 날짜|최근 활동|이전의 처벌들)$/ });
+    this.신고머리라벨들 = page.locator('.report-header__details:not(.report-header__details--horizontal) .report-header__details__item__header strong').filter({ hasText: /^(신고 시각|신고자|상태|할당된 중재자)$/ });
+    this.신고처리자라벨 = page.getByText('신고 처리자', { exact: true });
+    this.첨부미디어 = page.locator('.media-gallery').first();
   }
 
   async 열기(신고번호: string): Promise<number> {

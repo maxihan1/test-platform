@@ -3,10 +3,11 @@ import type { Page } from '@playwright/test';
 import { 조치화면 } from '../pages/account-action.page.js';
 import { 계정상세화면 } from '../pages/account-detail.page.js';
 import { 계정목록화면 } from '../pages/account-list.page.js';
+import { 서버상세화면 } from '../pages/instance-detail.page.js';
 import { 신고상세화면 } from '../pages/report-detail.page.js';
 import { 서버설정화면 } from '../pages/settings.page.js';
 import { 가입화면 } from '../pages/sign-up.page.js';
-import { 계정번호, 고유이름 } from './api.helper.js';
+import { 계정번호, 고유이름, 토큰 } from './api.helper.js';
 import { 새창 } from './login.helper.js';
 
 export interface 일회용계정 {
@@ -122,4 +123,29 @@ export async function 신고닫기(page: Page, 신고번호: string): Promise<vo
     await 화면.해결로표시.click();
     await page.waitForLoadState('load');
   }
+}
+
+export async function 도메인차단없는리모트계정(page: Page): Promise<string> {
+  const 목록 = new 계정목록화면(page);
+  const 서버 = new 서버상세화면(page);
+  await 목록.열기('origin=remote');
+  await 목록.행들.first().waitFor();
+  const 아이디들 = (await 목록.행아이디들.allInnerTexts()).map((글) => 글.trim().replace(/^@/, ''));
+  for (const 아이디 of 아이디들) {
+    const 도메인 = 아이디.slice(아이디.lastIndexOf('@') + 1).toLowerCase();
+    if ((await 서버.열기(도메인)) !== 200) continue;
+    if ((await 서버.도메인차단수정.isVisible()) || (await 서버.도메인차단취소.isVisible())) continue;
+    return 아이디;
+  }
+  return '';
+}
+
+export async function 공개글고르기(page: Page, 아이디: string): Promise<string> {
+  const 번호 = await 계정번호(page, 아이디);
+  const 응답 = await page.request.get(`/api/v1/accounts/${번호}/statuses?limit=40&exclude_replies=true&exclude_reblogs=true`, {
+    headers: { Authorization: `Bearer ${await 토큰(page)}` },
+  });
+  if (!응답.ok()) throw new Error(`${아이디} 게시물 목록을 읽지 못했다 — ${응답.status()}`);
+  const 글들 = (await 응답.json()) as { id: string; in_reply_to_id: string | null; visibility: string }[];
+  return 글들.find((글) => 글.in_reply_to_id === null && 글.visibility !== 'direct')?.id ?? '';
 }

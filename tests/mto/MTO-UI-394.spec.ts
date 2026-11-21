@@ -7,7 +7,7 @@ import { 이메일뉴스레터화면 } from './pages/email-subscriptions.page.js
 
 export const spec = defineCase({
   tcId: 'MTO-UI-394',
-  name: '기능이 켜진 서버의 이메일 뉴스레터 화면에 「시작하기」가 보인다',
+  name: '기능이 켜진 서버의 이메일 뉴스레터 화면에 기능 설명과 「시작하기」가 보인다',
   precondition: ['Owner(qa_admin) 계정으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('Owner 아이디').optional().meta({ secret: true }),
@@ -28,6 +28,8 @@ test(spec, async ({ page, params }) => {
 
   await test.step('「이메일 뉴스레터」 화면을 연다', async () => {
     await 화면.열기();
-    await verify('기능이 켜진 서버의 이메일 뉴스레터 화면에 「시작하기」가 보인다', await 화면.시작하기.isVisible(), true);
+    const 설명 = await verify('기능 설명이 보인다', await 화면.기능설명.isVisible(), true);
+    const 시작 = await verify('「시작하기」가 보인다', await 화면.시작하기.isVisible(), true);
+    await verify('기능이 켜진 서버의 이메일 뉴스레터 화면에 기능 설명과 「시작하기」가 보인다', 설명 && 시작, true);
   });
 });

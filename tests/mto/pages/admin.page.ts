@@ -31,6 +31,12 @@ export class 관리화면 {
     return 응답?.status() ?? 0;
   }
 
+  async 열어서응답코드(경로: string): Promise<number> {
+    const 응답 = await this.page.goto(경로);
+    await this.오류.없는페이지.or(this.제목).first().waitFor();
+    return 응답?.status() ?? 0;
+  }
+
   async 제목글(): Promise<string> {
     return (await this.제목.innerText()).trim();
   }
