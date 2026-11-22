@@ -130,6 +130,11 @@ describe('게임 돌려 보기 횟수', () => {
     const 고친때 = new Date('2026-11-20T01:30:00Z');
     utimesSync(join(트리, 'tests', 'arg', 'ARG-FN-031.spec.ts'), 고친때, 고친때);
     expect(다시돌림글(다시돌림세기(폴더, ['ARG-FN-031'], 트리))).toBe('다시 돌림 1번(폰 1)');
+    // 내용은 그대로 두고 수정 시각만 올리면(sed -i) 고친 때가 안 바뀌어 같은 횟수다
+    const 건드린때 = new Date('2026-11-20T05:00:00Z');
+    writeFileSync(join(트리, 'tests', 'arg', 'ARG-FN-031.spec.ts'), '');
+    utimesSync(join(트리, 'tests', 'arg', 'ARG-FN-031.spec.ts'), 건드린때, 건드린때);
+    expect(다시돌림글(다시돌림세기(폴더, ['ARG-FN-031'], 트리))).toBe('다시 돌림 1번(폰 1)');
   });
 });
 

@@ -4,6 +4,7 @@ import { lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFil
 import { dirname, join, relative } from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 
+import { 내용때, 내용때표 } from './authoring-file-times.js';
 import { type 파일글, 품질숫자, 품질줄 } from './authoring-quality.js';
 import { 살필케이스 } from './authoring-reach.js';
 
@@ -52,7 +53,7 @@ export function 돌린기록들(결과폴더: string, 꼴 = 돌린기록꼴): �
  */
 export function 기록남기며비우기(임시: string, 비우기: () => void): number {
   const 남길 = [
-    ...이름들(임시).filter((n) => 돌린기록꼴.test(n) || /^gate3-(game|app)-.*\.json$/.test(n) || /^summary-[^/]+\.md$/.test(n)), // 게임 · 앱 폰 기록(authoring-run3-game 게임기록꼴 · 앱기록꼴)도
+    ...이름들(임시).filter((n) => 돌린기록꼴.test(n) || /^gate3-(game|app)-.*\.json$/.test(n) || /^summary-[^/]+\.md$/.test(n) || n === 내용때표), // 게임 · 앱 폰 기록(authoring-run3-game 게임기록꼴 · 앱기록꼴)도
     ...이름들(join(임시, 'glossary'))
       .filter((n) => n.endsWith('.md'))
       .map((n) => join('glossary', n)),
@@ -68,8 +69,11 @@ export function 기록남기며비우기(임시: string, 비우기: () => void):
   return 남길.length;
 }
 
-/** `tests/<폴더>` 아래 .ts 파일과 수정 시각(testDir 기준 경로). 링크 폴더는 lstat 이라 따라가지 않고 깊이도 묶는다 — 아주 깊은 폴더를 두면 재귀가 죽는다 */
-export function 케이스파일읽기(트리: string, 폴더: string): (파일글 & { 때: number })[] {
+/**
+ * `tests/<폴더>` 아래 .ts 파일과 고친 때(testDir 기준 경로). 링크 폴더는 lstat 이라 따라가지 않고 깊이도 묶는다 — 아주 깊은 폴더를 두면 재귀가 죽는다.
+ * `기록폴더`(결과 폴더)를 주면 고친 때는 내용이 바뀐 때다(`내용때`) — 안 주면 수정 시각
+ */
+export function 케이스파일읽기(트리: string, 폴더: string, 기록폴더?: string): (파일글 & { 때: number })[] {
   const 테스트 = join(트리, 'tests');
   const 파일들: (파일글 & { 때: number })[] = [];
   const 훑기 = (자리: string, 깊이: number) => {
@@ -85,7 +89,9 @@ export function 케이스파일읽기(트리: string, 폴더: string): (파일�
     }
   };
   훑기(join(테스트, 폴더), 0);
-  return 파일들;
+  if (기록폴더 === undefined) return 파일들;
+  const 때들 = 내용때(기록폴더, 파일들);
+  return 파일들.map((f) => ({ ...f, 때: 때들.get(f.경로)! }));
 }
 
 /**
@@ -95,7 +101,7 @@ export function 케이스파일읽기(트리: string, 폴더: string): (파일�
  * 부르는 쪽은 예외를 잡아 「끝 검사를 못 했다」로 적는다 — 이 검사로 올리기가 죽으면 안 된다
  */
 export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[]): string[] {
-  const 파일들 = 케이스파일읽기(트리, 폴더);
+  const 파일들 = 케이스파일읽기(트리, 폴더, 결과폴더);
   const 바뀐테스트 = new Set([...바뀐].filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length)));
   // 게임 · 앱 케이스는 잡은 폰에서 1번씩 돈다 — 그 줄은 폰끝검사(authoring-run3-game)가 쓴다
   const { 나머지 } = 앱케이스나누기(파일들, 살필케이스(파일들, 바뀐테스트));

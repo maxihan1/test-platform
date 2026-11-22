@@ -9,6 +9,7 @@ import ts from 'typescript';
 import { type 케이스끝, 케이스끝틀 } from '../apps/admin/src/bts/gameFixShared.js';
 import { 테스트고침읽기 } from './authoring-apply.js';
 import { 바뀐것 } from './authoring-base-list.js';
+import { 내용때 } from './authoring-file-times.js';
 import { type 돌린판, 끝기록꼴, 돌린기록들, 판들읽기 } from './authoring-gate3.js';
 import type { 보고손 } from './authoring-io.js';
 import { 사유거르기 } from './authoring-reverse.js';
@@ -27,11 +28,12 @@ export interface 다시돌림 {
 const 게임기록꼴 = /^gate3-game-.*\.json$/;
 const 센기록꼴 = new RegExp(`${끝기록꼴.source}|${게임기록꼴.source}`);
 
-/** 케이스 파일을 마지막으로 고친 때 — 못 읽으면 처음부터 센다 */
-function 고친때(트리: string | undefined, 파일: string): number {
+/** 케이스 파일을 마지막으로 고친 때 — 돌려 보기와 같이 내용이 바뀐 때다(`내용때`). 못 읽으면 처음부터 센다 */
+function 고친때(결과폴더: string, 트리: string | undefined, 파일: string): number {
   if (트리 === undefined) return -Infinity;
   try {
-    return statSync(join(트리, 'tests', 파일)).mtimeMs;
+    const 길 = join(트리, 'tests', 파일);
+    return 내용때(결과폴더, [{ 경로: 파일, 글: readFileSync(길, 'utf8'), 때: statSync(길).mtimeMs }]).get(파일)!;
   } catch {
     return -Infinity;
   }
@@ -49,7 +51,7 @@ export function 다시돌림세기(결과폴더: string, tcIds: readonly string[
     const [파일, 이름] = 열쇠.split('\0') as [string, string];
     if (!이름들.has(파일.split('/').pop() ?? '') || 판목록.length === 0) continue;
     const 끝판 = 판목록.filter((p) => p.끝);
-    const 이후 = 고친때(트리, 파일);
+    const 이후 = 고친때(결과폴더, 트리, 파일);
     const 횟수 = 끝판.length > 0 ? 끝판.reduce((a, b) => (b.시작 > a.시작 ? b : a)).상태들.length : 판목록.filter((p) => p.시작 >= 이후).reduce((n, p) => n + p.상태들.length, 0);
     기기.set(이름, Math.min(기기.get(이름) ?? Infinity, 횟수));
   }
