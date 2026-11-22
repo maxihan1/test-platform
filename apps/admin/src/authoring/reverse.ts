@@ -170,11 +170,11 @@ export async function PC빌드줄고르기<T extends { env: string; isProd: bool
   return undefined;
 }
 
-/** 계정줄고르기 에 PC 게임을 더한 것 — 집기 · 이어 작성이 부른다. 트랜잭션 안이면 그 연결(q)로만 읽는다 */
+/** 계정줄고르기 + PC 게임(판정은 app-link 처럼 game_platform 만) — 짚은 줄은 빌드가 없어도 그 줄이다(계정은 빌드와 상관없다). 트랜잭션 안이면 q 로만 읽는다 */
 export async function 작성계정줄고르기(서비스: number, kind: string | null | undefined, 줄들: 대상줄[], env: string | null, q?: 묻기): Promise<대상줄 | undefined> {
-  if (kind !== 'GAME') return 계정줄고르기(kind, 줄들, env);
   const r = await (q ?? (await 풀())).query<{ game_platform: string | null }>('SELECT game_platform FROM service WHERE id = $1', [서비스]);
-  return r.rows[0]?.game_platform === 'windows' ? PC빌드줄고르기(서비스, 줄들, env, q) : 계정줄고르기(kind, 줄들, env);
+  if (r.rows[0]?.game_platform !== 'windows') return 계정줄고르기(kind, 줄들, env);
+  return env === null ? PC빌드줄고르기(서비스, 줄들, null, q) : 줄들.find((j) => !j.isProd && j.env === env);
 }
 
 /** 집기 응답 target 한 벌 — 운영 줄이면 계정이 비고 isProd 가 붙는다 */

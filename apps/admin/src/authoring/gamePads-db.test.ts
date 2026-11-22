@@ -7,6 +7,7 @@ import { 서버팜토큰 } from '../execution/farmToken.js';
 
 import authoringAgentRoutes from './agentRoutes.js';
 import appScreenAgentRoutes from './appScreen.js';
+import { 계정줄env } from './continue.js';
 import authoringRoutes from './routes.js';
 
 vi.mock('../execution/farmToken.js', () => ({ 서버팜토큰: vi.fn(async () => undefined) }));
@@ -226,5 +227,10 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
     const r = await 집기();
     expect((r.accounts as { baseUrl: string }[] | undefined)?.[0]?.baseUrl).toBe('https://qa.xgf.example');
     expect(r.adminKey).toMatchObject({ env: 'qa', value: 'qa-xgf-어드민-키-원문' });
+    expect(await 계정줄env(서비스, { 대조env: null, 뿌리env: null }, 'GAME')).toBe('qa');
+
+    await 요청넣기('PENDING', 'dev');
+    expect((await 집기()).adminKey).toMatchObject({ env: 'dev' });
+    expect(await 계정줄env(서비스, { 대조env: null, 뿌리env: 'dev' }, 'GAME')).toBe('dev');
   });
 });
