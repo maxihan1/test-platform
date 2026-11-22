@@ -108,6 +108,13 @@ export class 던전화면 {
     );
   }
 
+  async 새알림줄뜸(글: string, 한도ms = 15_000): Promise<boolean> {
+    return this.game.waitFor(`${던전화면.알림줄}/Mask/MessageFeed/*[-1]//*[contains(@text,${글})]`, { timeoutMs: 한도ms }).then(
+      () => true,
+      () => false,
+    );
+  }
+
   async 결과화면으로넘어갈때까지(한도ms = 60_000): Promise<boolean> {
     return this.game.waitFor('/PostGameUICanvas', { timeoutMs: 한도ms }).then(
       () => true,

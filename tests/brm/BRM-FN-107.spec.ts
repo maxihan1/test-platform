@@ -44,7 +44,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 던전 = await 던전화면.열기(game);
     await 던전.동료고르기(1);
     await 던전.누르기('공격');
-    await verify('동료가 부활한다', await 던전.알림줄뜸(봇 + ' 님이 부활했습니다!', 40_000), true, { blocker: true });
+    await verify('동료가 부활한다', await 던전.새알림줄뜸(봇 + ' 님이 부활했습니다!', 40_000), true, { blocker: true });
     const 봇상태 = await 봇GM값(admin, 봇, 'stat', '직업');
     await verify('쓰러진 동료를 고르고 「부활」을 쓰면 동료가 체력 400 으로 일어난다', 체력앞수(봇상태['체력']), 400);
   });
