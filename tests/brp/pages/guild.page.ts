@@ -49,8 +49,15 @@ export class 길드창 {
     return this.game.text(길드창.제목);
   }
 
-  async 안내글읽기(): Promise<string> {
-    return this.game.text(길드창.안내글);
+  async 안내글읽기(한도ms = 5_000): Promise<string> {
+    const 끝 = Date.now() + 한도ms;
+    for (;;) {
+      try {
+        return await this.game.text(길드창.안내글);
+      } catch (e) {
+        if (!(e instanceof Error && e.message.includes('하나를 고를 수 없습니다')) || Date.now() > 끝) throw e;
+      }
+    }
   }
 
   async 이름칸안내글(): Promise<string> {
