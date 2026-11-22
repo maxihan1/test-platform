@@ -36,21 +36,6 @@ export async function 갈래B큰글읽기(game: GameDriver, 주소: string, 한�
   return { 색: await 글색읽기(game, 주소), 자리: await 화면자리읽기(game, 주소), 글: await game.text(주소) };
 }
 
-export async function 갈래B큰글주소(game: GameDriver, 글: string, 한도ms = 10_000): Promise<string | null> {
-  const 주소들 = ['/Showcase HUD/Label/Text', ...[0, 1, 2, 3].map((i) => `/Showcase HUD/Label[${String(i)}]/Text`)];
-  const 끝 = Date.now() + 한도ms;
-  for (;;) {
-    for (const 주소 of 주소들) {
-      try {
-        if ((await game.find(주소)) !== null && (await game.text(주소)).includes(글)) return 주소;
-      } catch (e) {
-        if (!(e instanceof Error && (e.message.includes('하나를 고를 수 없습니다') || e.message.includes('없습니다')))) throw e;
-      }
-    }
-    if (Date.now() > 끝) return null;
-  }
-}
-
 async function 갈래B찾기(game: GameDriver, 주소: string): Promise<boolean> {
   try {
     return (await game.find(주소)) !== null;
