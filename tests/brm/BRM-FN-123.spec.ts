@@ -44,6 +44,6 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 던전 = await 던전화면.열기(game);
     await 던전.동료고르기(1);
     await 던전.누르기('공격');
-    await verify('플레이어가 부활하면 던전 알림 줄에 「qa_player2 님이 부활했습니다!」가 보인다', await 던전.알림줄뜸(봇 + ' 님이 부활했습니다!', 40_000), true);
+    await verify('플레이어가 부활하면 던전 알림 줄에 「qa_player2 님이 부활했습니다!」가 보인다', await 던전.새알림줄뜸(봇 + ' 님이 부활했습니다!', 40_000), true);
   });
 });
