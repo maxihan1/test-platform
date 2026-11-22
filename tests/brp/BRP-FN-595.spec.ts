@@ -1,7 +1,8 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 소셜정리, 알림글, 파티맺기 } from './helpers/social.helper.js';
+import { 봇이초대하기, 소셜정리, 알림글, 파티맺기 } from './helpers/social.helper.js';
+import { 초대수락 } from './helpers/items.helper.js';
 import { 로그인하기 } from './helpers/game-enter.helper.js';
 import { 봇켜기, 손님봇켜기, 접속상태 } from './helpers/game-state.helper.js';
 import { 친구파티창 } from './pages/friends.page.js';
@@ -12,7 +13,6 @@ export const spec = defineCase({
   platforms: ['windows'],
   precondition: ['일반 회원 파티가 4명으로 가득 찼다'],
   techniques: ['경계값 분석'],
-  held: '보류 — 다섯 번째로 초대할 접속 캐릭터 계정이 없다',
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),
     userPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true, account: '일반 회원' }),
@@ -52,18 +52,20 @@ test(spec, async ({ game, admin, params }) => {
     await verify('네 번째 플레이어 봇이 접속해 있다', 접속봇.includes(넷아이디), true, { blocker: true });
   });
 
-  await test.step('일반 회원이 파티장으로 두 번째 플레이어 · 세 번째 플레이어 · 네 번째 플레이어와 파티가 된 것을 확인한다', async () => {
+  await test.step('손님 봇이 일반 회원을 파티에 초대하고, 일반 회원이 수락한 뒤 두 번째 · 세 번째 플레이어를 초대해 파티가 4명이 된 것을 확인한다', async () => {
+    const 손님 = await 손님봇켜기(admin, 'qaguest1');
+    await 봇이초대하기(admin, 'party', 손님, 내아이디);
+    await 초대수락(game);
     const 창 = await 친구파티창.열기(game);
-    await verify('두 번째 플레이어가 파티에 들어와 있다', await 파티맺기(admin, 창, 둘아이디, 내아이디, 2), true, { blocker: true });
-    await verify('세 번째 플레이어가 파티에 들어와 있다', await 파티맺기(admin, 창, 셋아이디, 내아이디, 3), true, { blocker: true });
-    await verify('네 번째 플레이어가 파티에 들어와 있다', await 파티맺기(admin, 창, 넷아이디, 내아이디, 4), true, { blocker: true });
+    await verify('손님 봇 파티에 일반 회원이 들어와 있다', await 창.머리줄기다리기('파티 2/4'), true, { blocker: true });
+    await verify('두 번째 플레이어가 파티에 들어와 있다', await 파티맺기(admin, 창, 둘아이디, 내아이디, 3), true, { blocker: true });
+    await verify('세 번째 플레이어가 파티에 들어와 있다', await 파티맺기(admin, 창, 셋아이디, 내아이디, 4), true, { blocker: true });
     await 창.닫기();
   });
 
-  await test.step('파티 밖 접속 캐릭터 이름을 넣고 「파티 초대」를 누른다', async () => {
-    await 손님봇켜기(admin, 'qaguest1');
+  await test.step('파티 밖 접속 캐릭터(네 번째 플레이어) 이름을 넣고 「파티 초대」를 누른다', async () => {
     const 창 = await 친구파티창.열기(game);
-    await 창.파티초대('qaguest1');
+    await 창.파티초대(넷아이디);
     await verify('파티가 4명일 때 초대하면 「파티는 최대 4명입니다」가 뜬다', (await 알림글(game, '파티는 최대 4명입니다')) !== null, true);
   });
 });

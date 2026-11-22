@@ -145,6 +145,7 @@ export class 가방창 {
       const 설명주소 = `${주소}/Label[1]/Text`;
       const 설명 = (await this.game.find(설명주소)) === null ? '' : await this.game.text(설명주소);
       const 평문 = 색떼기(이름글);
+      if (평문 === 가방창.비었다는글) continue;
       const 맞음 = /^(.*?) x(\d+)$/.exec(평문);
       결과.push({ 주소, 이름글, 이름: 맞음?.[1] ?? 평문, 개수: Number(맞음?.[2] ?? 1), 설명 });
     }

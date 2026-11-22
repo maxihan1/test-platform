@@ -13,7 +13,6 @@ export const spec = defineCase({
   tcId: 'BRP-FN-287',
   name: '파티 · 장비와 상관없이 임프 1마리를 잡으면 「임프 30마리 처치」 진행이 1 오른다',
   platforms: ['windows'],
-  held: '보류 — 파티에 두 명이 모인 것을 확인하지 못한다(파티 맺기 준비가 안 됨)',
   precondition: ['일반 회원이 「현자의 목걸이」를 끼고 두 번째 플레이어와 파티로 던전에 있고 오늘 퀘스트를 처음으로 돌렸다'],
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),
@@ -46,7 +45,7 @@ test(spec, async ({ game, admin, params }) => {
     const 가방 = await 가방창.열기(game);
     await verify('장신구 칸에 「현자의 목걸이」가 있다', 색글떼기(await 가방.칸글('장신구')).includes('현자의 목걸이'), true, { blocker: true });
     await 가방.닫기();
-    await 봇과파티로던전입장(admin, game, 봇아이디, 봇비밀번호);
+    await 봇과파티로던전입장(admin, game, 봇아이디, 봇비밀번호, 아이디);
     await verify('던전 행동 막대가 보인다', (await game.find(던전화면.행동막대)) !== null, true, { blocker: true });
   });
 

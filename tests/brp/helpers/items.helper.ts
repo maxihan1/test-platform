@@ -147,13 +147,13 @@ export async function 봇과던전입장(admin: APIRequestContext, game: GameDri
   return { 봇, 던전 };
 }
 
-export async function 봇과파티로던전입장(admin: APIRequestContext, game: GameDriver, 아이디: string, 비밀번호: string): Promise<{ 봇: string; 던전: 던전화면 }> {
+export async function 봇과파티로던전입장(admin: APIRequestContext, game: GameDriver, 아이디: string, 비밀번호: string, 내이름: string): Promise<{ 봇: string; 던전: 던전화면 }> {
   const 봇 = await 봇켜기(admin, 아이디, 비밀번호);
   const 창 = await 친구파티창.열기(game);
   await 창.파티초대(봇);
   const 초대 = await 봇기록기다리기(admin, 봇, (줄) => 줄.type === 'invite', 20_000);
   if (초대 === null) throw new Error(`봇 ${봇} 이 파티 초대를 20초 안에 받지 못했습니다`);
-  await 봇시키기(admin, 봇, `party_accept:${아이디}`);
+  await 봇시키기(admin, 봇, `party_accept:${내이름}`);
   if (!(await 창.머리줄기다리기('파티 2/4'))) throw new Error('파티에 두 명이 모인 것을 확인하지 못했습니다');
   await 창.닫기();
   await 봇시키기(admin, 봇, 'seat:2');

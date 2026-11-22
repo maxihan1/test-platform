@@ -183,6 +183,31 @@ export async function 지급이력(admin: APIRequestContext, 크기 = 20): Promi
   return 목록(몸['items']).map((g) => ({ id: Number(g['id']), mails: 목록(g['mails']).map((m) => ({ status: String(m['status'] ?? '') })) }));
 }
 
+const 흐름종류글: Record<string, string> = { GRANTED: '지급', TAKEN: '수령', RECALLED: '회수' };
+
+export interface 아이템흐름줄 {
+  종류: string;
+  아이템: string;
+  수량: number;
+  지급번호: number;
+}
+
+export async function 아이템흐름(admin: APIRequestContext, 지급번호: number): Promise<아이템흐름줄[]> {
+  const 몸 = await 받기(await admin.get(`${운영주소}/logs/items?size=200`), '아이템 흐름 기록 읽기');
+  return 목록(몸['items'])
+    .filter((f) => Number(f['grantId']) === 지급번호)
+    .map((f) => ({ 종류: 흐름종류글[String(f['kind'])] ?? String(f['kind']), 아이템: String(f['itemName'] ?? ''), 수량: Number(f['quantity'] ?? 0), 지급번호 }));
+}
+
+export async function 아이템흐름기다리기(admin: APIRequestContext, 지급번호: number, 종류: string, 한도ms = 20_000): Promise<아이템흐름줄 | null> {
+  const 끝 = Date.now() + 한도ms;
+  for (;;) {
+    const 맞은 = (await 아이템흐름(admin, 지급번호)).find((f) => f.종류 === 종류);
+    if (맞은 !== undefined) return 맞은;
+    if (Date.now() > 끝) return null;
+  }
+}
+
 export async function 제재걸기(admin: APIRequestContext, 계정: number, 종류: 'SUSPEND' | 'CHAT_MUTE', 사유: string, 끝?: string): Promise<number> {
   const 몸 = await 받기(
     await admin.post(`${운영주소}/users/${String(계정)}/sanctions`, { data: 끝 === undefined ? { type: 종류, reason: 사유 } : { type: 종류, reason: 사유, endsAt: 끝 } }),

@@ -12,7 +12,6 @@ export const spec = defineCase({
   name: '받은 친구 신청이 있으면 친구 · 파티 창 맨 위 「받은 친구 신청」에 그 줄이 보인다',
   platforms: ['windows'],
   precondition: ['일반 회원과 두 번째 플레이어 봇이 친구 · 파티 · 길드 없이 접속해 있다'],
-  held: '보류 — 친구 신청 창을 수락 · 거절 없이 닫을 길이 없다',
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),
     userPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true, account: '일반 회원' }),
@@ -35,11 +34,13 @@ test(spec, async ({ game, admin, params }) => {
     await 봇켜기(admin, 둘아이디, 둘비밀번호);
   });
 
-  await test.step('두 번째 플레이어 봇이 친구 신청을 보내고 신청 창을 닫은 뒤 친구 · 파티 창을 연다', async () => {
+  await test.step('두 번째 플레이어 봇이 친구 신청을 보내고, 게임을 다시 켜 신청 창 없이 친구 · 파티 창을 연다', async () => {
     await 봇시키기(admin, 둘아이디, `friend_add:${내아이디}`);
     const 초대 = await 초대창.뜰때까지(game);
     await verify('친구 신청 창이 뜬다', 초대 !== null, true, { blocker: true });
-    await game.key('Escape');
+    const 다시로비 = await 로그인하기(game, 내아이디, 내비밀번호);
+    await verify('게임을 다시 켜 로그인하니 로비 화면이 열린다', 다시로비 !== null, true, { blocker: true });
+    await verify('다시 들어오니 친구 신청 창이 없다', (await 초대창.뜰때까지(game, 3_000)) === null, true, { blocker: true });
     const 창 = await 친구파티창.열기(game);
     await verify('받은 친구 신청이 있으면 친구 · 파티 창 맨 위 「받은 친구 신청」에 그 줄이 보인다', (await 창.머리줄기다리기('받은 친구 신청')) && (await 창.줄기다리기((줄들) => 줄들.some((줄) => 줄.includes(둘아이디)))) !== null, true);
   });
