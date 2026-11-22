@@ -149,45 +149,6 @@ export async function 가방에서팔기(game: GameDriver, 이름: string): Prom
   await 가방닫기(game);
 }
 
-const 상점창 = '/Showcase HUD/Window 상점';
-const 상점줄뿌리 = `${상점창}/Panel 상점/Scroll/Content`;
-
-async function 상점줄글들(game: GameDriver): Promise<string[]> {
-  const 모은: string[] = [];
-  for (let i = 0; i < 30; i += 1) {
-    const 주소 = `${상점줄뿌리}/Row[${String(i)}]/Label[0]/Text`;
-    if ((await game.find(주소)) === null) break;
-    모은.push(색글떼기(await game.text(주소)));
-  }
-  return 모은;
-}
-
-export async function 상점에서사기(game: GameDriver, 이름: string): Promise<void> {
-  await new 공통HUD(game).메뉴누르기('상점');
-  await game.waitFor(`${상점창}/Panel 상점`, { timeoutMs: 10_000 });
-  const 번호 = (await 상점줄글들(game)).findIndex((글) => 글 === 이름);
-  if (번호 < 0) throw new Error(`상점에 「${이름}」 줄이 없습니다`);
-  for (let 시도 = 0; 시도 < 6; 시도 += 1) {
-    const 패널 = await game.find(`${상점창}/Panel 상점`);
-    const 목표 = await game.find(`${상점줄뿌리}/Row[${String(번호)}]`);
-    if (패널?.rect === undefined || 목표?.rect === undefined) break;
-    const 안에있나 = (r: number[]): boolean => (r[1] ?? 0) >= (패널.rect?.[1] ?? 0) && (r[1] ?? 0) + (r[3] ?? 0) <= (패널.rect?.[1] ?? 0) + (패널.rect?.[3] ?? 0);
-    if (안에있나(목표.rect)) break;
-    const 보이는: number[] = [];
-    for (let i = 0; i <= 번호; i += 1) {
-      const 줄 = await game.find(`${상점줄뿌리}/Row[${String(i)}]`);
-      if (줄?.rect !== undefined && 안에있나(줄.rect)) 보이는.push(i);
-    }
-    const 위 = 보이는[0];
-    const 아래 = 보이는[보이는.length - 1];
-    if (위 === undefined || 아래 === undefined || 위 === 아래) break;
-    await game.drag(`${상점줄뿌리}/Row[${String(아래)}]`, `${상점줄뿌리}/Row[${String(위)}]`);
-  }
-  await game.click(`${상점줄뿌리}/Row[${String(번호)}]/Button 구매`);
-  await game.click(`${상점창}/Panel 상점/Button 닫기`);
-  await game.waitFor(상점창, { gone: true, timeoutMs: 10_000 });
-}
-
 export async function 우편함로그인(game: GameDriver, 아이디: string, 비밀번호: string): Promise<{ 접속: boolean; 비었음: boolean }> {
   const 로비 = await 로그인하기(game, 아이디, 비밀번호);
   if (로비 === null) return { 접속: false, 비었음: false };
