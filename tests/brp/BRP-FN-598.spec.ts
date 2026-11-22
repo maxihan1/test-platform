@@ -40,7 +40,7 @@ test(spec, async ({ game, admin, params }) => {
   });
 
   await test.step('길드 저장 요청이 실패하게 걸고 「만들기 · 500G」를 누른다', async () => {
-    await 실패걸기(admin, '/api/saveplayercharacter');
+    await 실패걸기(admin, '/api/createguild');
     const 창 = await 길드창.열기(game);
     await 창.만들기(길드이름);
     const 실패알림 = await verify('「길드를 만들지 못했습니다」 알림이 보인다', (await 알림글(game, '길드를 만들지 못했습니다')) !== null, true);

@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 우편지급하고창열기, 우편함로그인 } from './helpers/mail-notice.helper.js';
-import { 계정되돌리기 } from './helpers/game-state.helper.js';
+import { 계정되돌리기, 아이템흐름기다리기 } from './helpers/game-state.helper.js';
 
 export const spec = defineCase({
   tcId: 'BRP-FN-593',
@@ -13,7 +13,6 @@ export const spec = defineCase({
   params: z.object({
     p2Id: z.string().describe('두 번째 플레이어 아이디').optional().meta({ secret: true, account: '두 번째 플레이어' }),
     p2Password: z.string().describe('두 번째 플레이어 비밀번호').optional().meta({ secret: true, account: '두 번째 플레이어' }),
-    아이템흐름줄: z.string().describe('운영툴 「기록 › 아이템 흐름」에서 읽은 그 우편 줄 글'),
   }),
   expected: null,
 });
@@ -31,11 +30,14 @@ test(spec, async ({ game, admin, params }) => {
 
   await test.step('체력 물약 1개를 단 우편을 지급하고 「받기」를 누른다', async () => {
     const 제목 = '[QA] 수령 기록 우편';
-    const { 창 } = await 우편지급하고창열기(game, admin, 아이디, [{ 제목, 아이템: [{ itemName: '체력 물약', quantity: 1 }] }], 1);
+    const { 창, 번호: 지급번호들 } = await 우편지급하고창열기(game, admin, 아이디, [{ 제목, 아이템: [{ itemName: '체력 물약', quantity: 1 }] }], 1);
     const 번호 = await 창.줄찾기(제목);
     await verify('우편함 창에 지급한 우편 줄이 보인다', 번호 >= 0, true, { blocker: true });
     await 창.받기누르기(번호);
     await verify('받은 우편 줄이 「첨부 없음」으로 바뀐다', await 창.첨부없음이될때까지(번호), true, { blocker: true });
-    await verify('받기가 끝나면 운영툴 「기록 › 아이템 흐름」에 「수령」 줄이 남는다', params.아이템흐름줄.includes('수령'), true);
+    const 지급번호 = 지급번호들[0] ?? 0;
+    await verify('지급 번호를 받았다', 지급번호 > 0, true, { blocker: true });
+    const 수령줄 = await 아이템흐름기다리기(admin, 지급번호, '수령');
+    await verify('받기가 끝나면 운영툴 「기록 › 아이템 흐름」에 「수령」 줄이 남는다', 수령줄 !== null, true);
   });
 });
