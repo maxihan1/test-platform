@@ -7,8 +7,8 @@ export class 초대창 {
   static readonly 가림막 = `${뿌리}/Shade`;
   static readonly 뿌리 = 뿌리;
   static readonly 파티패널 = `${뿌리}/Panel 파티 초대`;
-  static readonly 수락버튼 = 'Button 수락';
-  static readonly 거절버튼 = 'Button 거절';
+  static readonly 수락버튼 = `${뿌리}[-1]//Button 수락`;
+  static readonly 거절버튼 = `${뿌리}[-1]//Button 거절`;
 
   private constructor(private readonly game: GameDriver) {}
 

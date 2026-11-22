@@ -56,6 +56,8 @@ test(spec, async ({ game, admin, params }) => {
     await 봇시키기(admin, 둘아이디, 'friend_add:' + 내아이디);
     const 신청창 = await 초대창.뜰때까지(game, 15_000);
     const 오류없음 = (await 봇오류알림수(admin, 둘아이디)) === 전;
-    await verify('친구를 삭제한 뒤 상대 목록에서도 빠져 상대가 다시 친구 신청을 할 수 있다', 신청창 !== null && 오류없음, true);
+    const 창뜸 = await verify('상대가 다시 친구 신청을 하면 내 화면에 친구 신청 창이 뜬다', 신청창 !== null, true);
+    const 오류 = await verify('상대에게 「이미 친구입니다」 오류가 안 뜬다', 오류없음, true);
+    await verify('친구를 삭제한 뒤 상대 목록에서도 빠져 상대가 다시 친구 신청을 할 수 있다', 창뜸 && 오류, true);
   });
 });
