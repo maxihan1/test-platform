@@ -13,7 +13,7 @@ export class 우편함창 {
   static readonly 제목 = '/Showcase HUD/Window 우편함/Panel 우편함/TitleBar/Text';
   static readonly 닫기버튼 = '/Showcase HUD/Window 우편함/Panel 우편함/Button 닫기';
   static readonly 모두받기버튼 = '/Showcase HUD/Window 우편함/Panel 우편함/Button 모두 받기';
-  static readonly 빈안내 = '/Showcase HUD/Window 우편함/Panel 우편함/Scroll/Content/Row/Label/Text';
+  static readonly 빈안내 = '/Showcase HUD/Window 우편함/Panel 우편함/Scroll/Content/Row[0]/Label[0]/Text';
   static readonly 줄뿌리 = '/Showcase HUD/Window 우편함/Panel 우편함/Scroll/Content';
   static readonly 빈안내글 = '받은 우편이 없습니다';
 
