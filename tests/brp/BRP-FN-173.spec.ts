@@ -9,7 +9,6 @@ export const spec = defineCase({
   tcId: 'BRP-FN-173',
   name: '가방이 비었으면 가방 창에 「가방이 비어 있습니다」가 보인다',
   platforms: ['windows'],
-  held: '보류 — 가방 줄에서 「판매」 버튼 글을 못 찾는다(Row[0] 아래 「판매」 글 없음)',
   precondition: ['일반 회원 가방의 아이템을 모두 팔아 비웠다'],
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),

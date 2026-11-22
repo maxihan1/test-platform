@@ -12,7 +12,6 @@ export const spec = defineCase({
   name: '받은 친구 신청이 있으면 친구 · 파티 창 맨 위 「받은 친구 신청」에 그 줄이 보인다',
   platforms: ['windows'],
   precondition: ['일반 회원과 두 번째 플레이어 봇이 친구 · 파티 · 길드 없이 접속해 있다'],
-  held: '보류 — 친구 신청 창을 수락 · 거절 없이 닫을 길이 없다',
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),
     userPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true, account: '일반 회원' }),

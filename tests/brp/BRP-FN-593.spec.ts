@@ -8,7 +8,6 @@ export const spec = defineCase({
   tcId: 'BRP-FN-593',
   name: '받기가 끝나면 운영툴 「기록 › 아이템 흐름」에 「수령」 줄이 남는다',
   platforms: ['windows'],
-  held: '보류 — 운영툴 아이템 흐름 기록을 읽는 길이 가이드에 없다',
   precondition: ['두 번째 플레이어로 로그인해 로비에 있고 우편함을 기준 상태로 비워 두었다'],
   params: z.object({
     p2Id: z.string().describe('두 번째 플레이어 아이디').optional().meta({ secret: true, account: '두 번째 플레이어' }),

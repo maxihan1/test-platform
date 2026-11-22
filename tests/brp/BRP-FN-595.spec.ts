@@ -13,7 +13,6 @@ export const spec = defineCase({
   platforms: ['windows'],
   precondition: ['일반 회원 파티가 4명으로 가득 찼다'],
   techniques: ['경계값 분석'],
-  held: '보류 — 다섯 번째로 초대할 접속 캐릭터 계정이 없다',
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),
     userPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true, account: '일반 회원' }),

@@ -13,7 +13,6 @@ export const spec = defineCase({
   platforms: ['windows'],
   precondition: ['일반 회원이 길드 없이 골드 5,000 을 가지고 로비에 있다'],
   techniques: ['동등 분할'],
-  held: '보류 — 길드 저장 요청에 실패를 거는 길이 가이드에 없다',
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),
     userPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true, account: '일반 회원' }),

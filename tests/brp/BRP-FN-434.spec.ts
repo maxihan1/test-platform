@@ -12,7 +12,6 @@ export const spec = defineCase({
   tcId: 'BRP-FN-434',
   name: '창이 열린 채 골드가 바뀌면 가방 창 능력 줄 골드가 바로 777 로 다시 그려진다',
   platforms: ['windows'],
-  held: '보류 — 가방 창이 채팅 띠를 덮어 가방 창을 연 채 채팅 창을 열 수 없다',
   precondition: ['일반 회원이 골드 767 에 게임에 없는 이름의 아이템 하나를 가방에 두고 로비에 있다'],
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),
