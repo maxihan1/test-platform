@@ -4,7 +4,7 @@ import { 공통HUD } from '../components/hud.component.js';
 
 const 창뿌리 = '/Showcase HUD/Window 길드';
 const 패널 = `${창뿌리}/Panel 길드`;
-const 내용 = `${패널}/Content`;
+const 내용 = `${패널}/Content[-1]`;
 
 function 글만(글: string): string {
   return 글.replace(/<[^>]+>/g, '').trim();
