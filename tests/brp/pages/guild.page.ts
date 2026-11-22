@@ -94,8 +94,13 @@ export class 길드창 {
   }
 
   async 길드머리글(): Promise<string | null> {
-    if ((await this.game.find(길드창.길드머리)) === null) return null;
-    return 글만(await this.game.text(길드창.길드머리));
+    try {
+      if ((await this.game.find(길드창.길드머리)) === null) return null;
+      return 글만(await this.game.text(길드창.길드머리));
+    } catch (e) {
+      if (e instanceof Error && (e.message.includes('하나를 고를 수 없습니다') || e.message.includes('없습니다'))) return null;
+      throw e;
+    }
   }
 
   async 길드머리기다리기(조각: string, 한도ms = 10_000): Promise<string | null> {

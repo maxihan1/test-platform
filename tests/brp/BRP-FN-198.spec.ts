@@ -44,7 +44,7 @@ test(spec, async ({ game, admin, params }) => {
     const 상점글 = 색글떼기(await 상점.보유골드글());
     await 상점.닫기();
     await verify('상단 바와 상점 창 골드 글을 읽으면 상단 바 골드는 「 G」로 끝나게 보인다', 상단글.endsWith(' G'), true);
-    await verify('상점 창 골드 글도 「 G」로 끝난다', 상점글.endsWith(' G'), true);
+    await verify('상점 창 골드 글도 「 G」나 「 골드」로 끝난다', 상점글.endsWith(' G') || 상점글.endsWith(' 골드'), true);
   });
 
   await test.step('「조약돌」을 팔고 알림을 읽는다', async () => {

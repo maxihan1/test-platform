@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 레벨업글금색인가 } from './helpers/dungeon.helper.js';
-import { 갈래B큰글읽기 } from './helpers/dungeon-wait.helper.js';
+import { 갈래B큰글읽기, 갈래B큰글주소 } from './helpers/dungeon-wait.helper.js';
 import { 로그인하기, 던전입장 } from './helpers/game-enter.helper.js';
 import { 계정되돌리기, 로비로되돌리기 } from './helpers/game-state.helper.js';
 import { GM보스처치, GM보스방가기 } from './helpers/gm.helper.js';
@@ -42,7 +42,8 @@ test(spec, async ({ game, admin, params }) => {
   await test.step('/gm killboss 로 보스를 잡는다', async () => {
     await 채팅창.열기(game);
     await GM보스처치(game);
-    const 큰글 = await 갈래B큰글읽기(game, 던전화면.큰글);
+    const 큰글주소 = await 갈래B큰글주소(game, '보스 처치!');
+    const 큰글 = 큰글주소 === null ? null : await 갈래B큰글읽기(game, 큰글주소);
     const 글 = await verify('큰 글씨 「보스 처치!」가 뜬다', 큰글 !== null && 큰글.글.includes('보스 처치!'), true);
     const 가로 = await verify('큰 글씨가 화면 가로 가운데에 있다', 큰글 !== null && Math.abs(큰글.자리.가로 - 0.5) < 0.1, true);
     const 세로 = await verify('큰 글씨가 화면 세로 가운데에 있다', 큰글 !== null && Math.abs(큰글.자리.세로 - 0.5) < 0.2, true);

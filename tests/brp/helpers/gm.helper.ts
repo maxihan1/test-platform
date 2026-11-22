@@ -32,8 +32,15 @@ export async function GM경험치(game: GameDriver, 경험치: number): Promise<
   await GM보내기(game, `exp ${String(경험치)}`, `exp +${String(경험치)}`);
 }
 
-export async function GM모두처치(game: GameDriver): Promise<void> {
+export async function GM모두처치(game: GameDriver): Promise<number> {
   await GM보내기(game, 'killall');
+  const 알림 = new 알림띠(game);
+  const 끝 = Date.now() + 5_000;
+  let 글: string | undefined;
+  while (글 === undefined && Date.now() < 끝) 글 = (await 알림.글들()).find((줄) => 줄.includes('[GM] killall'));
+  const 수 = 글 === undefined ? undefined : /\[GM\] killall (\d+)/.exec(글)?.[1];
+  if (수 === undefined) throw new Error('「[GM] killall N」 알림에서 잡은 수를 못 읽었습니다');
+  return Number(수);
 }
 
 export async function GM보스처치(game: GameDriver): Promise<void> {
