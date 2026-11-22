@@ -57,7 +57,7 @@ export class 던전화면 {
     await this.game.waitFor(던전화면.안내창, { gone: true, timeoutMs: 10_000 });
   }
 
-  async 대상고르기(주소: string): Promise<void> {
+  async 대상고르기(주소: string, 골랐나: () => Promise<boolean> = () => this.대상표시뜰때까지(1_500)): Promise<void> {
     const 자리들: ([number, number] | null)[] = [null, [0.5, 0.85], [0.5, 0.95], [0.2, 0.7], [0.8, 0.7], [0.5, 0.6]];
     let 덮임: unknown = null;
     let 눌렀나 = false;
@@ -70,7 +70,7 @@ export class 던전화면 {
         덮임 = e;
         continue;
       }
-      if (await this.대상표시뜰때까지(1_500)) return;
+      if (await 골랐나()) return;
     }
     if (!눌렀나) throw 덮임;
   }
