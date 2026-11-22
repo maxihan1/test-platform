@@ -100,15 +100,20 @@ export async function 기획서따라가기(손: { query: Awaited<ReturnType<typ
     );
     const 없는상태 = new Set(뺀.rows.filter((x) => x.key.startsWith('state:')).flatMap((x) => 상태조각(x.key)));
     if (없는상태.size > 0) {
-      const 행 = await 손.query<{ id: string; from_key: string; to_key: string | null }>(
-        `SELECT id, from_key, to_key FROM game_route WHERE service_id = $1 AND (from_key LIKE 'state:%' OR to_key LIKE 'state:%')`,
+      // 남은 상태 요소가 아직 가진 조각은 없어진 것이 아니다(겹친 상태 요소 하나만 빠진 경우)
+      const 남은 = await 손.query<{ key: string }>(`SELECT key FROM game_element WHERE service_id = $1 AND key LIKE 'state:%'`, [서비스]);
+      for (const x of 남은.rows) for (const c of 상태조각(x.key)) 없는상태.delete(c);
+    }
+    if (없는상태.size > 0) {
+      const 행 = await 손.query<{ id: string; kind: string; status: string; from_key: string; to_key: string | null }>(
+        `SELECT id, kind, status, from_key, to_key FROM game_route WHERE service_id = $1 AND (from_key LIKE 'state:%' OR to_key LIKE 'state:%')`,
         [서비스],
       );
-      // 행의 목표 상태 — 상태 설정 행은 도착 칸, 진행 불가 행은 출발 칸에 목표 열쇠가 있다. 조각이 다 없어진 행만 뺀다
+      // 행의 목표 상태 — 진행 불가 행은 출발 칸, 상태 설정 행은 도착 칸에 목표 열쇠가 있다. 그 상태에서 출발하는 이동 · 로그 행은 목표가 아니라 두고, 조각이 다 없어진 행만 뺀다
       const 뺄행 = 행.rows
         .filter((x) => {
-          const 목표 = x.to_key?.startsWith('state:') === true ? x.to_key : x.from_key.startsWith('state:') ? x.from_key : null;
-          const 조각 = 목표 === null ? [] : 상태조각(목표);
+          const 목표 = x.status === 'BLOCKED' ? x.from_key : x.kind === 'SETUP' ? x.to_key : null;
+          const 조각 = 목표?.startsWith('state:') === true ? 상태조각(목표) : [];
           return 조각.length > 0 && 조각.every((c) => 없는상태.has(c));
         })
         .map((x) => x.id);

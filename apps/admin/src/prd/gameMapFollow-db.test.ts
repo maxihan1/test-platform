@@ -62,7 +62,8 @@ describe.skipIf(연결 === undefined)('기획서 새 판이 게임 지도를 끌
          ($1, 'SETUP', 'state:채팅=없음', '채팅 비우기', NULL, 'BLOCKED', '채팅을 비우는 길이 없다'),
          ($1, 'SETUP', 'game:Lobby', 'GM 채팅 끄기', 'state:채팅=없음', 'OK', NULL),
          ($1, 'SETUP', 'game:Lobby', 'GM 채팅 끄고 쓰러뜨리기', 'state:채팅=없음,생존=쓰러짐', 'OK', NULL),
-         ($1, 'MOVE', 'game:Lobby', '상점 열기', 'game:Shop', 'OK', NULL)`,
+         ($1, 'MOVE', 'game:Lobby', '상점 열기', 'game:Shop', 'OK', NULL),
+         ($1, 'LOG', 'state:채팅=없음', '안내 줄', 'state:채팅=없음', 'OK', NULL)`,
       [서비스],
     );
   });
@@ -80,11 +81,19 @@ describe.skipIf(연결 === undefined)('기획서 새 판이 게임 지도를 끌
       { key: 'shop:단검', req_ids: ['XGV-REQ-001'], prd_changed: [] },
       { key: 'state:생존=쓰러짐', req_ids: ['XGV-REQ-003'], prd_changed: [] },
     ]);
-    // 「쓰러짐」은 남은 상태라 두 조각 행은 남는다
+    // 「쓰러짐」은 남은 상태라 두 조각 행은 남고, 목표가 아닌 로그 행도 남는다
     expect(await 행들()).toEqual([
       { from_key: 'game:Lobby', to_key: 'state:채팅=없음,생존=쓰러짐' },
       { from_key: 'game:Lobby', to_key: 'game:Shop' },
+      { from_key: 'state:채팅=없음', to_key: 'state:채팅=없음' },
     ]);
+  });
+
+  it('지운 상태 요소와 조각이 겹치는 다른 상태 요소가 남아 있으면 그 조각으로 가는 행은 남는다', async () => {
+    await 요소넣기(서비스, [{ kind: 'STATE', key: 'state:채팅=없음,레벨=1', name: '채팅 없음 레벨 1', value: null, reqIds: ['XGV-REQ-004'] }], []);
+    await 판저장(판1.filter((x) => x.reqId !== 'XGV-REQ-002'));
+
+    expect((await 행들()).some((x) => x.to_key === 'state:채팅=없음')).toBe(true);
   });
 
   it('문장이 바뀐 요구에 붙은 요소는 「기획서가 바뀜」이 붙고, 지금 판으로 다시 올리면 지워진다', async () => {
@@ -105,6 +114,6 @@ describe.skipIf(연결 === undefined)('기획서 새 판이 게임 지도를 끌
     await 판저장(판1.map((x) => (x.reqId === 'XGV-REQ-004' ? { ...x, status: 'NEEDS_CHECK' as const, basis: [{ from: '화면', quote: '레벨 30' }] } : x)));
 
     expect((await 요소들()).every((x) => x.prd_changed.length === 0)).toBe(true);
-    expect(await 행들()).toHaveLength(4);
+    expect(await 행들()).toHaveLength(5);
   });
 });
