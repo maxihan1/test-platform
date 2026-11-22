@@ -244,6 +244,20 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     expect(읽음.links).toEqual([{ state: '로그아웃', fromUrl: 'game:Login', toUrl: 'game:Login/Canvas/SignupPanel', via: 'SignupButton 「가입」' }]);
   });
 
+  it('PC 게임 요청의 창 기록은 앱 경로가 없어도 빌드가 있는 줄에 둔다 — 집기 계정 · app-link 와 같은 줄', async () => {
+    await 줄들([['dev', null, false], ['qa', null, false]]);
+    await q(`UPDATE service SET game_platform = 'windows' WHERE id = $1`, [서비스]);
+    await q(`INSERT INTO app_build (service_id, env, build_no, file_path, uploaded_by) VALUES ($1, 'qa', 'xgs-pc-1', '/tmp/xgs.zip', 'xgs')`, [서비스]);
+    const id = await 요청넣기();
+    const 창 = { state: '로그아웃', url: 'game:MainMenu', name: '로그인', textFp: 'ab12', structFp: 'cd34', record: '# scene:MainMenu', crawledAt: '2026-11-22T00:00:00Z', links: [] };
+
+    const 올림 = await app.inject({ method: 'PUT', url: `/api/authoring/requests/${id}/screens`, payload: 창 });
+
+    expect(올림.statusCode).toBe(204);
+    const 줄 = await q<{ env: string }>('SELECT env FROM screen_record WHERE service_id = $1', [서비스]);
+    expect(줄.rows.map((r) => r.env)).toEqual(['qa']);
+  });
+
   it('본 창 알리기(done)도 앱 줄의 찾은 창으로 남고, 못 본 창은 complete 가 비면 안 지운다', async () => {
     await 줄들([['dev', null, false], ['qa', 'https://builds/qa.apk', false]]);
     const id = await 요청넣기();

@@ -7,6 +7,7 @@ import { 서버팜토큰 } from '../execution/farmToken.js';
 
 import authoringAgentRoutes from './agentRoutes.js';
 import appScreenAgentRoutes from './appScreen.js';
+import { 계정줄env } from './continue.js';
 import authoringRoutes from './routes.js';
 
 vi.mock('../execution/farmToken.js', () => ({ 서버팜토큰: vi.fn(async () => undefined) }));
@@ -211,5 +212,25 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
       vi.unstubAllEnvs();
       vi.mocked(서버팜토큰).mockClear();
     }
+  });
+
+  it('집기 accounts · adminKey 는 PC 게임이면 app-link 와 같은 줄(빌드가 있는 줄)에서 온다 — 앱 파일 경로가 비어도 실린다', async () => {
+    await 줄들([['dev', null, false], ['qa', null, false], ['prod', null, true]]);
+    await q(
+      `UPDATE service_env SET base_url = 'https://' || env || '.xgf.example', login_id = 'xgf-player', login_password = 'xgf-비밀번호-원문-4a1',
+         admin_key = jsonb_build_object('header', 'X-Admin-Key', 'value', env || '-xgf-어드민-키-원문') WHERE service_id = $1`,
+      [서비스],
+    );
+    await 빌드올리기('prod', 'xgf-prod', '1 hour');
+    await 빌드올리기('qa', 'xgf-1', '1 hour');
+    await 요청넣기('PENDING');
+    const r = await 집기();
+    expect((r.accounts as { baseUrl: string }[] | undefined)?.[0]?.baseUrl).toBe('https://qa.xgf.example');
+    expect(r.adminKey).toMatchObject({ env: 'qa', value: 'qa-xgf-어드민-키-원문' });
+    expect(await 계정줄env(서비스, { 대조env: null, 뿌리env: null }, 'GAME')).toBe('qa');
+
+    await 요청넣기('PENDING', 'dev');
+    expect((await 집기()).adminKey).toMatchObject({ env: 'dev' });
+    expect(await 계정줄env(서비스, { 대조env: null, 뿌리env: 'dev' }, 'GAME')).toBe('dev');
   });
 });

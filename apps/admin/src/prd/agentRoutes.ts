@@ -5,7 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 집은쪽인가 } from '../authoring/agentRoutes.js';
 import { 문서설정읽기 } from '../apidoc/store.js';
-import { 대상줄들읽기, 앱줄고르기, 폰앱인가 } from '../authoring/reverse.js';
+import { 대상줄들읽기, 작성계정줄고르기, 폰앱인가 } from '../authoring/reverse.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
 import { 고침이팝업을올렸나, 맵글, 조작행검사, 조작행넣기 } from './gameRoute.js';
@@ -29,8 +29,10 @@ const 앱아님 = { error: 'NOT_APP_SERVICE' } as const;
  * 게임 정방향은 요청에 줄이 없고, 훑기는 그 줄의 앱 파일로 켠 앱을 본 것이다 (도메인/게임 §3.10 「지도」 · GAME-F1-10 · 작성 §3.6 「앱 · 게임 역방향」 4)
  */
 async function 화면줄(행: 앱요청): Promise<string | null> {
-  if (!폰앱인가((await 문서설정읽기(행.serviceId))?.kind)) return 행.env;
-  return 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env)?.env ?? null;
+  const 종류 = (await 문서설정읽기(행.serviceId))?.kind;
+  if (!폰앱인가(종류)) return 행.env;
+  // PC 게임은 빌드가 있는 줄이다 — 집기 계정 · app-link 와 같은 작성계정줄고르기 (도메인/게임 §3.10 「어느 빌드를 깔까」)
+  return (await 작성계정줄고르기(행.serviceId, 종류, await 대상줄들읽기(행.serviceId), 행.env))?.env ?? null;
 }
 
 /**

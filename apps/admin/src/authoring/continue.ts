@@ -13,7 +13,7 @@ import { 행커버리지 } from './coverage.js';
 import { 사슬식, 뿌리잠그고, 최신식 } from './history.js';
 import { 막고제출, 열린작성 } from './openRoots.js';
 import { 재실행API } from './apiDoc.js';
-import { 계정줄고르기, 대상줄들읽기, 역방향칸판정, 줄로작성하나 } from './reverse.js';
+import { 대상줄들읽기, 역방향칸판정, 작성계정줄고르기, 줄로작성하나 } from './reverse.js';
 import { db, type 요청 } from './store.js';
 
 /**
@@ -102,7 +102,7 @@ export async function 계정줄env(
 ): Promise<string | null> {
   if (뿌리.대조env !== null) return 뿌리.대조env;
   if (!줄로작성하나(종류, 뿌리.뿌리env)) return null;
-  return 계정줄고르기(종류, await 대상줄들읽기(서비스, 손), 뿌리.뿌리env)?.env ?? null;
+  return (await 작성계정줄고르기(서비스, 종류, await 대상줄들읽기(서비스, 손), 뿌리.뿌리env, 손))?.env ?? null;
 }
 
 export async function 보류재료읽기(서비스: number, 손?: PoolClient): Promise<보류재료> {
