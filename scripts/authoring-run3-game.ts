@@ -32,6 +32,8 @@ const 예산 = 7.5 * 60_000;
 /** 앞 기록이 없을 때 한 케이스 어림 — 앱을 깔거나 다시 켜고 상태를 만드는 몫 */
 export const 게임회차 = 60_000;
 const 폰번호꼴 = /^[A-Za-z0-9._:-]{1,64}$/;
+/** 팜이 잡지 않은 폰 · PC 의 명령을 거절한 오류 — kit 게임 명령(「디바이스 팜이 게임 명령을 …」) · PC 명령(「<주소> 이 … 답했습니다」) 둘 다 */
+const 잡기풀림꼴 = /HTTP 409 로 (?:답했|거절했)습니다: 잡은 (?:폰이|기기가) 아닙니다/;
 
 /**
  * 돌릴 차례 — 앱 데이터를 남기는 케이스(`keepAppData: true`)를 앞에 모은다. 지우고 시작하는 케이스가 사이에 끼면 그다음 케이스가 다시 로그인한다
@@ -230,6 +232,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
   let 묶음들: ReturnType<typeof 묶음짜기> = [];
   const 로그들: string[] = [];
   const 끊긴폰들: string[] = [];
+  const 풀린폰들: string[] = [];
   const 빈묶음들: { 폰: string; 계정: number; 로그: string }[] = [];
   // 잡은 뒤로는 무엇이 던져도 놓는다 — 놓기를 놓쳐도 held-<번호> 기록으로 에이전트가 끝에 놓는다
   const 잡은덤 = pc ? [] : await 덤폰잡기(팜, Math.min(덤폰수(미리, 계정들, 주폰), 빈폰들.length), 앱, CLI폴더);
@@ -264,11 +267,15 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     );
     // 도중에 끊긴 폰의 기록은 버린다 — 연결 오류로 빨개진 케이스를 「폰 차이」로 읽지 않게. 그 케이스는 다음 차례에 남은 폰으로 다시 돈다
     const 뒤목록 = 묶음들.length > 0 ? await 폰목록(팜) : null;
-    const 남은기록들 = new Set([...폰판들(결과폴더, 갈래).values()].flat().map((p) => p.기록));
+    const 남은판들 = [...폰판들(결과폴더, 갈래).values()].flat();
+    const 남은기록들 = new Set(남은판들.map((p) => p.기록));
+    // 잡기 30분이 묶음 도중에 끝나면 팜이 409 로 거절한다 — 폰 목록은 멀쩡해 끊김으로 안 보이지만 케이스 탓 빨강이 아니다(BRP #15938 · 33건 중 27건)
+    const 풀린기록들 = new Set(남은판들.filter((p) => 잡기풀림꼴.test(p.오류 ?? '')).map((p) => p.기록));
     for (const b of 묶음들) {
       const 이름들 = 차례들.get(b)!.map((c) => c.이름);
-      if (끊겼나(뒤목록, b.폰)) {
-        끊긴폰들.push(b.폰);
+      const 풀림 = 이름들.some((이름) => 풀린기록들.has(`${이름}.json`));
+      if (풀림 || 끊겼나(뒤목록, b.폰)) {
+        (풀림 ? 풀린폰들 : 끊긴폰들).push(b.폰);
         for (const 이름 of 이름들) if (existsSync(join(결과폴더, `${이름}.json`))) renameSync(join(결과폴더, `${이름}.json`), join(결과폴더, `${이름}.json.끊김`));
       } else if (!이름들.some((이름) => 남은기록들.has(`${이름}.json`))) 빈묶음들.push({ 폰: b.폰, 계정: b.계정, 로그: join(결과폴더, `${이름들[0]}.log`) });
     }
@@ -278,7 +285,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     await 덤폰놓기(팜, 덤, CLI폴더);
   }
   const 뒤판들 = 폰판들(결과폴더, 갈래);
-  const 판정들 = 폰판정들(대상, 뒤판들, 다시볼폰들(폰들.filter((p) => !끊긴폰들.includes(p))), 계정들, PC값들);
+  const 판정들 = 폰판정들(대상, 뒤판들, 다시볼폰들(폰들.filter((p) => !끊긴폰들.includes(p) && !풀린폰들.includes(p))), 계정들, PC값들);
   const 모음 = (...상태들: 판정['상태'][]) => 판정들.filter(([, p]) => 상태들.includes(p.상태));
   const 이번 = 묶음들.reduce((합, b) => 합 + b.파일들.length, 0);
   const 묶음말 = 묶음들.map((b) => `${폰이름(팜목록, b.폰)}(${b.폰}) 계정 ${b.계정} · ${b.파일들.length}건`).join(' / ');
@@ -287,7 +294,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
   if (끊긴폰들.length > 0) console.log(`${머리} 도중에 끊긴 폰 ${끊긴폰들.join(' · ')} — 그 폰 기록은 버렸다. 남은 것은 다음 차례에 다른 폰으로 돈다`);
   const 끈말 = 빈묶음들.filter((b) => b.폰 !== 주폰 || b.계정 !== 1);
   if (끈말.length > 0) console.log(`${머리} 결과를 못 낸 묶음 — ${끈말.map((b) => `${b.폰} 계정 ${b.계정}`).join(' · ')}. 그 덤 폰 · 계정은 이 작성에서 다시 안 쓴다 — 로그: ${끈말.map((b) => b.로그).join(' · ')}`);
-  if (이번 > 0 && 끊긴폰들.length === 0 && 끈말.length === 0 && 판수(뒤판들) === 판수(앞판들)) {
+  if (이번 > 0 && 끊긴폰들.length + 풀린폰들.length === 0 && 끈말.length === 0 && 판수(뒤판들) === 판수(앞판들)) {
     console.log(`돌렸지만 끝난 케이스가 없다 — 로그를 본다: ${로그들.join(' · ')}`);
     return 2;
   }
@@ -296,6 +303,11 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
   const 계정차이 = 모음('계정차이');
   for (const 말 of 판정말들(빨강, 폰차이, 계정차이, (x) => (pc ? 패드자리이름(x) : 폰이름(팜목록, x)))) console.log(말);
   const 남은 = 모음('안돎', '다시').length;
+  // 안 잡고 같은 명령을 다시 부르면 또 다 409 다 — 3(바로 다시)이 아니라 2 로 다시 잡으라고 한다
+  if (풀린폰들.length > 0) {
+    console.error(`${머리} 잡기가 풀린 ${pc ? 'PC' : '폰'} ${풀린폰들.join(' · ')} — 팜이 409 로 거절해 그 묶음 기록은 버렸다. \`npx ${도구} release\` 뒤 \`hold ${pc ? '--pc ' : ''}--minutes 30\` 으로 다시 잡고 같은 명령을 부른다(남은 것 ${남은}건)`);
+    return 2;
+  }
   if (남은 > 0) {
     console.log(`남은 것 ${남은}건(다시 보기 포함) — 같은 명령을 다시 부른다(${갈래 === '앱' ? 'Android 앱 작성은 폰을 놓지 않는다 — 에이전트가 늘린다. 그 밖에는 ' : ''}30분이 지나면 폰을 놓고 다시 잡는다). 폰 연결이 끊긴 것 같으면 로그를 본다: ${로그들.join(' · ') || '이번에 안 돌림'}`);
     return 3;
