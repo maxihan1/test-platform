@@ -111,6 +111,7 @@ npx tsx scripts/authoring-game-crawl.ts <자료 폴더>/game-crawl/login '로그
 ## 5. 게임 지도 — `game-elements.json`
 
 표준 기획서를 옮긴 뒤, 케이스를 쓰기 전에 자료 폴더 `game-elements.json` 을 쓴다 — 빠른 검사가 케이스 `elements` 를 이 파일과 `game-map.txt` 열쇠로 본다(`tpx-cases` `references/game.md` §7). 지난 지도는 `game-map.txt` 에 있다(없으면 처음이다) — 이미 있는 열쇠는 고칠 때만 다시 싣는다.
+**「기획서가 바뀜(<번호>)」이 붙은 줄은 고칠 줄이다** — 그 요구를 지금 판으로 읽어 값 · 이름 · 근거를 다시 싣는다(값이 같아도 싣는다 — 다시 올려야 표시가 지워진다). 지금 판의 데이터 표 줄 · 요구 가운데 지도에 열쇠가 없는 것(새 상품 같은)도 이때 싣는다. 지운 요구의 요소는 서버가 이미 뺐다(`docs/spec/도메인/게임.md` §3.10 「게임에만 있는 지도 넷」 채우는 때).
 에이전트가 서버에 그대로 올린다(본문 꼴의 정본은 `docs/spec/도메인/게임.md` §7 `PUT …/game-elements`). 근거 번호는 옮긴 항목의 임시 번호로 적어도 된다 — 에이전트가 받은 번호로 바꾼다.
 
 ```json
