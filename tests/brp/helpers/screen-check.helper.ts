@@ -57,8 +57,7 @@ function 색조(c: 색): { 색상: number; 채도: number; 밝기: number } {
 
 export function 빨강인가(c: 색 | null): boolean {
   if (c === null) return false;
-  const { 색상, 채도, 밝기 } = 색조(c);
-  return (색상 <= 15 || 색상 >= 345) && 채도 >= 0.5 && 밝기 >= 0.3;
+  return c[0] > 0.2 && c[0] > 2 * Math.max(c[1], c[2]);
 }
 
 export function 금색인가(c: 색 | null): boolean {

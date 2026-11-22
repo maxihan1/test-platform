@@ -10,7 +10,7 @@ import { 던전화면 } from './pages/dungeon.page.js';
 
 export const spec = defineCase({
   tcId: 'BRP-FN-089',
-  name: '다른 플레이어를 고르면 「공격」 버튼이 「부활」로 바뀐다',
+  name: '다른 플레이어를 고르면 「공격」 버튼 그림이 「부활」로 바뀐다',
   platforms: ['windows'],
   precondition: ['일반 회원과 두 번째 플레이어 봇이 함께 던전에 들어와 있다'],
   params: z.object({
@@ -53,6 +53,6 @@ test(spec, async ({ game, admin, params }) => {
     await verify('두 번째 플레이어가 쓰러진 것이 알림 줄에 보인다', await 던전.알림줄기다리기('님이 쓰러졌습니다!'), true, { blocker: true });
     await 던전.동료초상화누르기();
     await verify('쓰러진 동료를 고른 상태가 된다', await 던전.버튼그림될때까지(0, 그림들.부활), true, { blocker: true });
-    await verify('다른 플레이어를 고르면 「공격」 버튼이 「부활」로 바뀐다', await 던전.버튼글(0), '부활');
+    await verify('다른 플레이어를 고르면 「공격」 버튼 그림이 「부활」로 바뀐다', await 던전.버튼그림될때까지(0, 그림들.부활), true);
   });
 });

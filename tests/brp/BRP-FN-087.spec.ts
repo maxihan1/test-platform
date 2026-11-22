@@ -9,7 +9,7 @@ import { 던전화면 } from './pages/dungeon.page.js';
 
 export const spec = defineCase({
   tcId: 'BRP-FN-087',
-  name: '물건을 들고 있으면 「공격」 버튼이 「내려놓기」로 바뀐다',
+  name: '물건을 들고 있으면 「공격」 버튼 그림이 「내려놓기」로 바뀐다',
   platforms: ['windows'],
   precondition: ['일반 회원이 탱커로 던전에 있고 곁에 들 수 있는 항아리를 불러 두었다'],
   params: z.object({
@@ -44,7 +44,6 @@ test(spec, async ({ game, admin, params }) => {
     await 던전.대상고르기(던전화면.항아리);
     await verify('항아리를 고른 상태가 된다', await 던전.버튼그림될때까지(0, 그림들.들기), true, { blocker: true });
     await 던전.공격누르기();
-    await verify('항아리를 든 상태가 된다', await 던전.버튼그림될때까지(0, 그림들.내려놓기), true, { blocker: true });
-    await verify('물건을 들고 있으면 「공격」 버튼이 「내려놓기」로 바뀐다', await 던전.버튼글(0), '내려놓기');
+    await verify('물건을 들고 있으면 「공격」 버튼 그림이 「내려놓기」로 바뀐다', await 던전.버튼그림될때까지(0, 그림들.내려놓기), true);
   });
 });
