@@ -9,13 +9,13 @@ export class 길드창 {
   static readonly 가림막 = '/Showcase HUD/Window 길드/Shade';
   static readonly 닫기버튼 = '/Showcase HUD/Window 길드/Panel 길드/Button 닫기';
   static readonly 제목줄 = '/Showcase HUD/Window 길드/Panel 길드/TitleBar/Text';
-  static readonly 줄 = '/Showcase HUD/Window 길드/Panel 길드/Content/Scroll/Content/Row';
-  static readonly 내용 = '/Showcase HUD/Window 길드/Panel 길드/Content';
-  static readonly 이름칸 = '/Showcase HUD/Window 길드/Panel 길드/Content/Input 길드 이름 (2~12자)';
-  static readonly 만들기버튼 = '/Showcase HUD/Window 길드/Panel 길드/Content/Button 만들기 · 500G';
-  static readonly 초대칸 = '/Showcase HUD/Window 길드/Panel 길드/Content/Input 초대할 캐릭터 이름';
-  static readonly 초대버튼 = '/Showcase HUD/Window 길드/Panel 길드/Content/Button 초대';
-  static readonly 탈퇴버튼 = '/Showcase HUD/Window 길드/Panel 길드/Content/Button 길드 탈퇴';
+  static readonly 줄 = '/Showcase HUD/Window 길드/Panel 길드/Content[-1]/Scroll/Content/Row';
+  static readonly 내용 = '/Showcase HUD/Window 길드/Panel 길드/Content[-1]';
+  static readonly 이름칸 = '/Showcase HUD/Window 길드/Panel 길드/Content[-1]/Input 길드 이름 (2~12자)';
+  static readonly 만들기버튼 = '/Showcase HUD/Window 길드/Panel 길드/Content[-1]/Button 만들기 · 500G';
+  static readonly 초대칸 = '/Showcase HUD/Window 길드/Panel 길드/Content[-1]/Input 초대할 캐릭터 이름';
+  static readonly 초대버튼 = '/Showcase HUD/Window 길드/Panel 길드/Content[-1]/Button 초대';
+  static readonly 탈퇴버튼 = '/Showcase HUD/Window 길드/Panel 길드/Content[-1]/Button 길드 탈퇴';
 
   readonly hud: 공통HUD;
 
