@@ -1,10 +1,11 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 봇오류알림기다리기, 봇오류알림수, 소셜정리, 친구맺기 } from './helpers/social.helper.js';
+import { 봇오류알림수, 소셜정리, 친구맺기 } from './helpers/social.helper.js';
 import { 로그인하기 } from './helpers/game-enter.helper.js';
 import { 봇시키기, 봇켜기, 접속상태 } from './helpers/game-state.helper.js';
 import { 친구파티창 } from './pages/friends.page.js';
+import { 초대창 } from './pages/invite.page.js';
 
 export const spec = defineCase({
   tcId: 'BRP-FN-329',
@@ -50,9 +51,11 @@ test(spec, async ({ game, admin, params }) => {
     await verify('친구 줄의 「삭제」를 누르면 내 친구 목록에서 그 줄이 빠진다', await 창.친구줄사라질때까지(둘아이디), true);
   });
 
-  await test.step('친구 줄의 「삭제」를 누르고 봇이 친구를 다시 지우게 해 봇 기록을 읽는다', async () => {
+  await test.step('친구 줄의 「삭제」를 누른 뒤 봇이 다시 친구 신청을 하게 한다', async () => {
     const 전 = await 봇오류알림수(admin, 둘아이디);
-    await 봇시키기(admin, 둘아이디, 'friend_remove:' + 내아이디);
-    await verify('친구를 삭제한 뒤 상대 목록에서도 빠져 상대가 지우려 할 때 이미 친구가 아니다', await 봇오류알림기다리기(admin, 둘아이디, 전 + 1), true);
+    await 봇시키기(admin, 둘아이디, 'friend_add:' + 내아이디);
+    const 신청창 = await 초대창.뜰때까지(game, 15_000);
+    const 오류없음 = (await 봇오류알림수(admin, 둘아이디)) === 전;
+    await verify('친구를 삭제한 뒤 상대 목록에서도 빠져 상대가 다시 친구 신청을 할 수 있다', 신청창 !== null && 오류없음, true);
   });
 });
