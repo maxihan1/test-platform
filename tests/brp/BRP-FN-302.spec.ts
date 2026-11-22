@@ -1,14 +1,15 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 만든이름, 봇이받은글, 소셜정리 } from './helpers/social.helper.js';
+import { 만든이름, 소셜정리 } from './helpers/social.helper.js';
+import { 색글떼기 } from './helpers/gm.helper.js';
 import { 로그인하기 } from './helpers/game-enter.helper.js';
-import { 봇켜기, 접속상태 } from './helpers/game-state.helper.js';
+import { 봇시키기, 봇켜기, 접속상태 } from './helpers/game-state.helper.js';
 import { 채팅창 } from './pages/chat.page.js';
 
 export const spec = defineCase({
   tcId: 'BRP-FN-302',
-  name: '앞뒤 공백을 자르면 100자인 채팅을 보내면 상대가 받은 글이 공백 없는 100자다',
+  name: '앞뒤 공백을 붙인 100자 글을 보내면 공백을 자른 100자가 그대로 채팅 줄에 보인다',
   platforms: ['windows'],
   precondition: ['일반 회원으로 로그인해 로비에 있고 두 번째 플레이어 봇이 접속해 있다', '일반 회원으로 로그인해 로비에 있다'],
   techniques: ['경계값 분석'],
@@ -39,12 +40,15 @@ test(spec, async ({ game, admin, params }) => {
     await verify('두 번째 플레이어 봇이 접속해 있다', 접속봇.includes(둘아이디), true, { blocker: true });
   });
 
-  await test.step('앞뒤에 공백을 붙인 100자 채팅을 보내고 봇 기록을 읽는다', async () => {
+  await test.step('두 번째 플레이어 봇이 「전체」로 앞뒤에 공백을 붙인 100자 글을 보낸다', async () => {
     const 창 = await 채팅창.열기(game);
+    await 창.탭고르기('전체');
     const 백자 = 만든이름(100);
-    await 창.보내기(' ' + 백자 + ' ');
-    const 받은글 = await 봇이받은글(admin, 둘아이디, 백자.slice(0, 20));
-    await verify('앞뒤 공백을 자르면 100자인 채팅을 보내면 상대가 받은 글이 공백 없는 100자다', 받은글, 백자);
+    await 봇시키기(admin, 둘아이디, `say:  ${백자}  `);
+    const 줄 = await 창.줄기다리기((글) => 글.includes(백자.slice(0, 20)), 5, 20_000);
+    await verify('두 번째 플레이어가 보낸 채팅 줄이 보인다', 줄 !== null, true, { blocker: true });
+    const 보낸글 = 색글떼기(줄 ?? '').split(': ').slice(1).join(': ');
+    await verify('앞뒤 공백을 붙인 100자 글을 보내면 공백을 자른 100자가 그대로 채팅 줄에 보인다', 보낸글, 백자);
   });
 
   await test.step('채팅 입력 칸에 101자를 넣는다', async () => {

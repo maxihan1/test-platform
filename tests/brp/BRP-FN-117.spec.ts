@@ -48,6 +48,7 @@ test(spec, async ({ game, admin, params }) => {
   });
   await test.step('두 번째 플레이어 봇이 쓰러진 것을 확인한다', async () => {
     const 던전 = await 던전화면.열림(game);
+    await 봇시키기(admin, 봇아이디, 'gm:heal');
     await 봇시키기(admin, 봇아이디, 'gm:faint');
     await verify('두 번째 플레이어가 쓰러진 것이 알림 줄에 보인다', await 던전.알림줄기다리기('님이 쓰러졌습니다!'), true, { blocker: true });
     await 던전.동료초상화누르기();

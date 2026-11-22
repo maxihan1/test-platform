@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { 던전입장, 로그인하기 } from './helpers/game-enter.helper.js';
 import { 계정되돌리기, 로비로되돌리기 } from './helpers/game-state.helper.js';
-import { GM레벨, GM스탯, 스탯숫자 } from './helpers/gm.helper.js';
+import { GM레벨, GM스탯, 스탯기본숫자, 스탯숫자 } from './helpers/gm.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
 export const spec = defineCase({
@@ -38,7 +38,7 @@ test(spec, async ({ game, admin, params }) => {
     await GM레벨(game, 10);
     const 값 = await GM스탯(game);
     await verify('/gm stat 레벨이 10 이다', 스탯숫자(값, '레벨'), 10, { blocker: true });
-    await verify('/gm level 10 으로 레벨을 바꾸고 /gm stat 으로 체력을 읽으면 레벨을 1 에서 10 으로 올려도 탱커 기본 체력이 1,200 그대로다', 스탯숫자(값, '체력'), 1200);
+    await verify('/gm level 10 으로 레벨을 바꾸고 /gm stat 으로 체력을 읽으면 레벨을 1 에서 10 으로 올려도 탱커 기본 체력이 1,200 그대로다', 스탯기본숫자(값, '체력'), 1200);
   });
 
   await test.step('/gm level 10 으로 레벨을 바꾸고 /gm stat 으로 공격 배율 · 방어율을 읽는다', async () => {

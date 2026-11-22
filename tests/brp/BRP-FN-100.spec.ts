@@ -41,15 +41,17 @@ test(spec, async ({ game, admin, params }) => {
     const 던전 = await 던전화면.열림(game);
     await 채팅창.열기(game);
     await GM모두처치(game);
+    await 던전.임프사라질때까지();
+    await GM임프불러내기(game);
     await GM기절(game);
     await verify('쓰러졌다는 알림이 알림 줄에 보인다', await 던전.알림줄기다리기('님이 쓰러졌습니다!', 30_000), true, { blocker: true });
     const 창 = await 채팅창.열기(game);
     await 창.닫기();
   });
 
-  await test.step('곁에 임프를 불러 클릭하고 「공격」을 누른다', async () => {
+  await test.step('곁에 불러 둔 임프를 클릭하고 「공격」을 누른다', async () => {
     const 던전 = await 던전화면.열림(game);
-    if (!(await 던전.임프있나())) await GM임프불러내기(game);
+    await verify('불러 둔 임프가 보인다', await 던전.임프있나(), true, { blocker: true });
     await 던전.임프공격();
     await verify('쓰러진 동안 공격하면 공격이 나가지 않아 임프가 그대로 있다', await 던전.임프있나(), true);
   });

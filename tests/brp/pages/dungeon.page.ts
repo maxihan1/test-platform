@@ -58,18 +58,21 @@ export class 던전화면 {
   }
 
   async 대상고르기(주소: string): Promise<void> {
-    const 자리들: ([number, number] | null)[] = [null, [0.5, 0.6], [0.5, 0.75], [0.35, 0.6], [0.65, 0.6]];
-    let 마지막: unknown = null;
+    const 자리들: ([number, number] | null)[] = [null, [0.5, 0.85], [0.5, 0.95], [0.2, 0.7], [0.8, 0.7], [0.5, 0.6]];
+    let 덮임: unknown = null;
+    let 눌렀나 = false;
     for (const 자리 of 자리들) {
       try {
         await (자리 === null ? this.game.click(주소) : this.game.click(주소, { at: 자리 }));
-        return;
+        눌렀나 = true;
       } catch (e) {
         if (!(e instanceof Error && e.message.includes('덮고 있습니다'))) throw e;
-        마지막 = e;
+        덮임 = e;
+        continue;
       }
+      if (await this.대상표시뜰때까지(1_500)) return;
     }
-    throw 마지막;
+    if (!눌렀나) throw 덮임;
   }
 
   async 공격누르기(): Promise<void> {
@@ -90,10 +93,17 @@ export class 던전화면 {
   }
 
   async 알림줄기다리기(글: string, 한도ms = 15_000): Promise<boolean> {
-    return this.game.waitFor(`${던전화면.알림줄}//*[contains(@text,"${글}")]`, { timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    const 주소 = `${던전화면.알림줄}//*[contains(@text,"${글}")]`;
+    const 끝 = Date.now() + 한도ms;
+    for (;;) {
+      try {
+        if ((await this.game.find(주소)) !== null) return true;
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('하나를 고를 수 없습니다')) return true;
+        throw e;
+      }
+      if (Date.now() > 끝) return false;
+    }
   }
 
   async 임프사라질때까지(한도ms = 20_000): Promise<boolean> {

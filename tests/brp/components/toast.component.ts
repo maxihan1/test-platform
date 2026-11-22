@@ -37,9 +37,14 @@ export class 알림띠 {
   async 글들(): Promise<string[]> {
     const 모은 = [];
     for (let i = 0; i < 8; i += 1) {
-      const 칸 = await this.game.find(`${알림띠.뿌리}/Toast[${String(i)}]/Text`);
-      if (칸 === null) break;
-      모은.push(await this.game.text(`${알림띠.뿌리}/Toast[${String(i)}]/Text`));
+      const 주소 = `${알림띠.뿌리}/Toast[${String(i)}]/Text`;
+      if ((await this.game.find(주소)) === null) break;
+      try {
+        모은.push(await this.game.text(주소));
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('없습니다')) break;
+        throw e;
+      }
     }
     return 모은;
   }

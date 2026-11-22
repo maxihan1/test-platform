@@ -31,9 +31,10 @@ test(spec, async ({ game, admin, params }) => {
     const 안내문구 = '[QA] 점검 안내 문구';
     await 점검바꾸기(admin, { enabled: true, message: 안내문구, allowedAccountIds: [] });
     const 창 = new 안내창(game);
-    const 떴다 = await verify('안내 창이 뜬다', await 창.뜰때까지(60_000), true, { blocker: true });
-    const 제목 = await verify('안내 창 제목이 「서버 점검 중」이다', 떴다 ? await 창.제목() : '', '서버 점검 중');
-    const 문구 = await verify('안내 창 본문에 운영툴에 적은 점검 안내 문구가 들어 있다', 떴다 && (await 창.본문()).includes(안내문구), true);
-    await verify('점검으로 내보내지면 「서버 점검 중」 창에 운영툴에 적은 점검 안내 문구가 보인다', 제목 && 문구, true);
+    const 끝 = Date.now() + 60_000;
+    let 제목 = '';
+    while (제목 !== '서버 점검 중' && Date.now() < 끝) 제목 = (await 창.보이나()) ? await 창.제목() : '';
+    await verify('「서버 점검 중」 창이 보인다', 제목, '서버 점검 중', { blocker: true });
+    await verify('점검으로 내보내지면 「서버 점검 중」 창에 운영툴에 적은 점검 안내 문구가 보인다', await 창.본문(), 안내문구);
   });
 });

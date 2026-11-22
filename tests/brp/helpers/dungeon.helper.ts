@@ -220,10 +220,25 @@ export async function GM경험치바로(game: GameDriver, 경험치: number): Pr
   await game.click('Button 보내기');
 }
 
+export async function 큰글주소(game: GameDriver, 글: string, 한도ms = 10_000): Promise<string | null> {
+  const 주소들 = ['/Showcase HUD/Label/Text', ...[0, 1, 2, 3].map((i) => `/Showcase HUD/Label[${String(i)}]/Text`)];
+  const 끝 = Date.now() + 한도ms;
+  for (;;) {
+    for (const 주소 of 주소들) {
+      try {
+        if ((await game.find(주소)) !== null && (await game.text(주소)).includes(글)) return 주소;
+      } catch (e) {
+        if (!(e instanceof Error && (e.message.includes('하나를 고를 수 없습니다') || e.message.includes('없습니다')))) throw e;
+      }
+    }
+    if (Date.now() > 끝) return null;
+  }
+}
+
 export async function 큰글기다리기(game: GameDriver, 글: string, 보임: boolean, 한도ms = 10_000): Promise<boolean> {
   const 끝 = Date.now() + 한도ms;
   for (;;) {
-    const 보인다 = (await game.find('/Showcase HUD/Label/Text')) !== null && (await game.text('/Showcase HUD/Label/Text')).includes(글);
+    const 보인다 = (await 큰글주소(game, 글, 0)) !== null;
     if (보인다 === 보임) return true;
     if (Date.now() > 끝) return false;
   }

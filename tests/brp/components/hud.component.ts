@@ -52,6 +52,7 @@ export class 공통HUD {
   }
 
   async 메뉴누르기(이름: 메뉴이름): Promise<void> {
+    await this.game.waitFor(this.메뉴버튼(이름), { timeoutMs: 20_000 });
     await this.game.click(this.메뉴버튼(이름));
   }
 

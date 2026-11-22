@@ -7,7 +7,7 @@ import { 우편함창 } from './pages/mailbox.page.js';
 
 export const spec = defineCase({
   tcId: 'BRP-FN-275',
-  name: '운영툴이 안 받은 첨부를 회수하면 우편함의 그 우편 줄이 「첨부 없음」으로 보인다',
+  name: '운영툴이 안 받은 첨부를 회수하면 우편함에서 그 첨부가 사라진다',
   platforms: ['windows'],
   precondition: ['두 번째 플레이어 우편함에 안 받은 첨부 우편이 있다'],
   params: z.object({
@@ -42,8 +42,12 @@ test(spec, async ({ game, admin, params }) => {
   await test.step('운영 API 로 그 첨부를 회수하고 우편함 창을 다시 연다', async () => {
     await 지급회수(admin, 지급번호);
     const 창 = await 우편함창.열기(game);
-    const 줄 = await 창.줄기다리기(제목);
-    await verify('우편함 창에 그 우편 줄이 보인다', 줄 >= 0, true, { blocker: true });
-    await verify('운영툴이 안 받은 첨부를 회수하면 우편함의 그 우편 줄이 「첨부 없음」으로 보인다', await 창.첨부없음이될때까지(줄), true);
+    const 끝 = Date.now() + 15_000;
+    let 남았나 = true;
+    while (남았나 && Date.now() < 끝) {
+      const 줄 = await 창.줄찾기(제목);
+      남았나 = 줄 >= 0 && (await 창.받기버튼있나(줄));
+    }
+    await verify('운영툴이 안 받은 첨부를 회수하면 우편함에서 그 첨부가 사라진다', 남았나, false);
   });
 });

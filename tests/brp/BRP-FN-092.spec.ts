@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { 봇과함께던전입장 } from './helpers/dungeon.helper.js';
 import { 갈래B뜰때까지 } from './helpers/dungeon-wait.helper.js';
 import { 로그인하기 } from './helpers/game-enter.helper.js';
-import { 계정되돌리기, 로비로되돌리기 } from './helpers/game-state.helper.js';
+import { 계정되돌리기, 로비로되돌리기, 봇시키기 } from './helpers/game-state.helper.js';
 import { GM모두처치 } from './helpers/gm.helper.js';
 import { 던전화면 } from './pages/dungeon.page.js';
 
@@ -38,6 +38,7 @@ test(spec, async ({ game, admin, params }) => {
     const 로비 = await 로그인하기(game, 아이디, 비밀번호);
     await verify('로비 화면이 열린다', 로비 !== null, true, { blocker: true });
     await 봇과함께던전입장(admin, game, 봇아이디, 봇비밀번호, '탱커');
+    await 봇시키기(admin, 봇아이디, 'gm:god');
     await verify('던전 행동 막대가 보인다', (await game.find(던전화면.행동막대)) !== null, true, { blocker: true });
     await verify('동료 초상화에 두 번째 플레이어가 보인다', await 갈래B뜰때까지(game, 던전화면.동료이름, 20_000), true, { blocker: true });
     await verify('동료 초상화 이름이 두 번째 플레이어다', await game.text(던전화면.동료이름), 봇아이디, { blocker: true });
@@ -48,6 +49,7 @@ test(spec, async ({ game, admin, params }) => {
     await verify('던전에 임프가 하나도 없다', await 던전.임프사라질때까지(), true, { blocker: true });
   });
   await test.step('살아 있는 두 번째 플레이어의 동료 초상화를 클릭해 고른다', async () => {
+    await 봇시키기(admin, 봇아이디, 'gm:heal');
     const 던전 = await 던전화면.열림(game);
     await 던전.동료초상화누르기();
     await verify('살아 있는 동료에 대상 표시가 생긴다', await 던전.대상표시뜰때까지(10_000), true, { blocker: true });

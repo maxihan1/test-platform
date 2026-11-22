@@ -1,7 +1,6 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 갈래B임프수 } from './helpers/dungeon-wait.helper.js';
 import { 로그인하기, 던전입장 } from './helpers/game-enter.helper.js';
 import { 계정되돌리기, 로비로되돌리기 } from './helpers/game-state.helper.js';
 import { GM스탯, 스탯숫자, GM모두처치, GM보스처치, GM보스방가기 } from './helpers/gm.helper.js';
@@ -36,10 +35,9 @@ test(spec, async ({ game, admin, params }) => {
     await verify('던전 행동 막대가 보인다', (await game.find(던전화면.행동막대)) !== null, true, { blocker: true });
   });
   await test.step('/gm stat 으로 처치 수를 읽고 /gm killall 로 적을 모두 처치한 뒤 다시 읽는다', async () => {
-    const 임프수 = await 갈래B임프수(game);
-    await verify('던전에 임프가 있다', 임프수 > 0, true, { blocker: true });
     const 전 = await GM스탯(game);
-    await GM모두처치(game);
+    const 임프수 = await GM모두처치(game);
+    await verify('/gm killall 이 적을 잡았다', 임프수 > 0, true, { blocker: true });
     const 후 = await GM스탯(game);
     const 처치 = await verify('처치 수가 잡은 수만큼 늘었다', 스탯숫자(후, '처치') - 스탯숫자(전, '처치'), 임프수);
     const 보스 = await verify('보스 처치 수가 그대로다', 스탯숫자(후, '보스처치'), 스탯숫자(전, '보스처치'));
