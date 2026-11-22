@@ -87,8 +87,8 @@ export function 옅은금색인가(c: 색 | null): boolean {
 
 export function 회색인가(c: 색 | null): boolean {
   if (c === null) return false;
-  const { 채도, 밝기 } = 색조(c);
-  return 채도 <= 0.15 && 밝기 >= 0.25 && 밝기 <= 0.85;
+  const 큰 = Math.max(c[0], c[1], c[2]);
+  return 큰 - Math.min(c[0], c[1], c[2]) <= 0.16 && 큰 >= 0.3 && 큰 <= 0.9;
 }
 
 export function 검정인가(c: 색 | null): boolean {
