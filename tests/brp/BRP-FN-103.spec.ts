@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 봇과함께던전입장, 그림들 } from './helpers/dungeon.helper.js';
-import { 갈래B뜰때까지, 갈래B알림줄글 } from './helpers/dungeon-wait.helper.js';
+import { 갈래B뜰때까지, 새알림줄글 } from './helpers/dungeon-wait.helper.js';
 import { 로그인하기 } from './helpers/game-enter.helper.js';
 import { 계정되돌리기, 로비로되돌리기, 봇시키기 } from './helpers/game-state.helper.js';
 import { GM모두처치 } from './helpers/gm.helper.js';
@@ -57,7 +57,7 @@ test(spec, async ({ game, admin, params, expected }) => {
     await verify('쓰러진 동료를 고른 상태가 된다', await 던전.버튼그림될때까지(0, 그림들.부활), true, { blocker: true });
     await 던전.공격누르기();
     const 시작 = Date.now();
-    const 일어남 = await verify('동료가 일어났다는 알림이 알림 줄에 보인다', (await 갈래B알림줄글(game, '님이 부활했습니다!', 10_000)) !== null, true);
+    const 일어남 = await verify('동료가 일어났다는 알림이 알림 줄에 보인다', (await 새알림줄글(game, '님이 부활했습니다!', 10_000)) !== null, true);
     const 안 = await verify('걸린 시간이 기대값 안이다', (Date.now() - 시작) / 1000 <= expected.상한초, true);
     await verify('두 번째 플레이어 봇을 쓰러뜨리고 「부활」을 누른 뒤 일어나는 데 걸린 시간을 재면 「부활」은 누른 뒤 1초 안팎(3초 안)에 동료를 일으킨다', 일어남 && 안, true);
   });
