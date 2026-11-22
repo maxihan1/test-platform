@@ -121,6 +121,13 @@ export function 스탯숫자(값: 스탯, 키: string): number {
   return Number(글.split('/')[0]);
 }
 
+export function 스탯기본숫자(값: 스탯, 키: string): number {
+  const 글 = 값[키];
+  const 뒤 = 글?.split('/')[1];
+  if (뒤 === undefined) throw new Error(`GM stat 「${키}」 칸에 「지금/기본」 꼴의 기본 값이 없습니다 — 받은 글: ${String(글)}`);
+  return Number(뒤);
+}
+
 export type 데이터종류 = 'skill' | 'monster' | 'item' | 'bag';
 
 export async function GM데이터(game: GameDriver, 종류: 데이터종류): Promise<string[]> {
