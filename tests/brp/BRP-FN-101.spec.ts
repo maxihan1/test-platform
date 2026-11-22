@@ -55,8 +55,12 @@ test(spec, async ({ game, admin, params }) => {
     await verify('쓰러진 동료를 고른 상태가 된다', await 던전.버튼그림될때까지(0, 그림들.부활), true, { blocker: true });
     await 던전.공격누르기();
     const 일어남 = await verify('동료가 일어났다는 알림이 알림 줄에 보인다', await 던전.알림줄기다리기('님이 부활했습니다!'), true, { blocker: true });
-    await 봇시키기(admin, 봇아이디, 'gm:stat');
-    const 줄 = await 봇기록기다리기(admin, 봇아이디, (기록) => 줄글(기록).includes('체력=400/'), 15_000);
+    const 끝 = Date.now() + 15_000;
+    let 줄 = null;
+    while (줄 === null && Date.now() < 끝) {
+      await 봇시키기(admin, 봇아이디, 'gm:stat');
+      줄 = await 봇기록기다리기(admin, 봇아이디, (기록) => 줄글(기록).includes('체력=400/'), 2_000);
+    }
     const 체력 = await verify('동료 체력이 400 이다', 줄 !== null, true);
     await verify('쓰러진 동료를 고르고 「부활」을 쓰면 그 동료가 체력 400 으로 일어난다', 일어남 && 체력, true);
   });
