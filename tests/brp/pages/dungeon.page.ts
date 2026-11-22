@@ -93,10 +93,17 @@ export class 던전화면 {
   }
 
   async 알림줄기다리기(글: string, 한도ms = 15_000): Promise<boolean> {
-    return this.game.waitFor(`${던전화면.알림줄}//*[contains(@text,"${글}")]`, { timeoutMs: 한도ms }).then(
-      () => true,
-      () => false,
-    );
+    const 주소 = `${던전화면.알림줄}//*[contains(@text,"${글}")]`;
+    const 끝 = Date.now() + 한도ms;
+    for (;;) {
+      try {
+        if ((await this.game.find(주소)) !== null) return true;
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('하나를 고를 수 없습니다')) return true;
+        throw e;
+      }
+      if (Date.now() > 끝) return false;
+    }
   }
 
   async 임프사라질때까지(한도ms = 20_000): Promise<boolean> {
