@@ -425,7 +425,8 @@ writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: 
     writeFileSync(join(가짜, 'npx'), `#!/bin/sh\nfor a; do case "$a" in tests/*) f="\${a#tests/}";; esac; done\nprintf '{"config":{},"stats":{"startTime":"%s"},"suites":[{"file":"%s","specs":[{"tests":[{"projectName":"windows","status":"unexpected","results":[{"duration":1000,"error":{"message":"https://vision.test 이 HTTP 409 로 답했습니다: 잡은 기기가 아닙니다 — 잡은 사람만 게임을 다룹니다"}}]}]}]}]}' "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" "$f" > "$PLAYWRIGHT_JSON_OUTPUT_FILE"\n`, { mode: 0o755 });
     mkdirSync(join(트리, '.control-cli'));
     writeFileSync(join(트리, '.control-cli', 'held'), 'pc-pc1\n');
-    const 팜 = vi.fn(async () => new Response(JSON.stringify({ value: { devices: [{ serial: 'pc-pc1', state: 'IDLE', platform: 'windows' }] } }), { status: 200 }));
+    let 상태 = 'IDLE';
+    const 팜 = vi.fn(async () => new Response(JSON.stringify({ value: { devices: [{ serial: 'pc-pc1', state: 상태, platform: 'windows' }] } }), { status: 200 }));
     const env = {
       PATH: `${가짜}:${process.env.PATH ?? ''}`, AUTHORING_GATE3_DIR: 결과폴더, AUTHORING_BASE_LIST: 기준목록(트리), AUTHORING_GAME_DIR: 트리, AUTHORING_GAME_PLATFORM: 'windows',
       PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APP: '/zip/g.zip', PLATFORM_BASE_URL: 'http://qa.g.test', PLATFORM_PC_GAME: 'BossRoom',
@@ -434,6 +435,12 @@ writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: 
     expect(await 폰실행('게임', 'g', 트리, env, 팜 as unknown as typeof fetch)).toBe(2);
     expect(오류.mock.calls.at(-1)?.[0]).toMatch(/잡기가 풀린 PC pc-pc1[\s\S]*npx control-cli release[\s\S]*hold --pc --minutes 30/);
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'])).toEqual(['**⚠️ 폰에서 돌려 보지 않은 게임 케이스 1개 / 이번에 닿은 1개** — 정식 실행에서 처음 돈다 · g/G-FN-001.spec.ts']);
+
+    상태 = 'OCCUPIED';
+    const 쓴때 = new Date(Date.now() - 60_000);
+    utimesSync(join(트리, 'tests', 'g', 'G-FN-001.spec.ts'), 쓴때, 쓴때);
+    expect(await 폰실행('게임', 'g', 트리, env, 팜 as unknown as typeof fetch)).toBe(1);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'])[0]).toMatch(/빨간 게임 케이스 1개/);
   });
 
   it('이번에 닿은 게임 케이스가 없으면 폰 없이 0', async () => {
