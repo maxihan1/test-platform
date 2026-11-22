@@ -41,7 +41,7 @@ test(spec, async ({ game, admin, params }) => {
   });
   await test.step('항아리를 고르고 「공격」 자리의 「들기」를 누른다', async () => {
     const 던전 = await 던전화면.열림(game);
-    await 던전.대상고르기(던전화면.항아리);
+    await 던전.대상고르기(던전화면.항아리, () => 던전.버튼그림될때까지(0, 그림들.들기, 1_500));
     await verify('항아리를 고른 상태가 된다', await 던전.버튼그림될때까지(0, 그림들.들기), true, { blocker: true });
     await 던전.공격누르기();
     await verify('물건을 들고 있으면 「공격」 버튼 그림이 「내려놓기」로 바뀐다', await 던전.버튼그림될때까지(0, 그림들.내려놓기), true);

@@ -41,7 +41,7 @@ test(spec, async ({ game, admin, params }) => {
   });
   await test.step('항아리를 클릭해 고른다', async () => {
     const 던전 = await 던전화면.열림(game);
-    await 던전.대상고르기(던전화면.항아리);
+    await 던전.대상고르기(던전화면.항아리, () => 던전.버튼그림될때까지(0, 그림들.들기, 1_500));
     await verify('들 수 있는 물건을 고르면 「공격」 버튼 그림이 「들기」로 바뀐다', await 던전.버튼그림될때까지(0, 그림들.들기), true);
   });
 });
