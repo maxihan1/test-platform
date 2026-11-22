@@ -214,7 +214,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 기기들 = 돌릴기기(모드, 휴대폰, 휴대폰만);
   const 맡은 = 나머지.map((f) => 케이스경로(트리, f));
   const 폴더 = 모드 === '마지막' ? 이름 : (맡은[0]?.split('/')[0] ?? '');
-  const 케이스들 = 케이스파일읽기(트리, 폴더);
+  const 케이스들 = 케이스파일읽기(트리, 폴더, 결과폴더);
   const 모름 = 나머지.filter((_, i) => 맡은[i] === null || !케이스들.some((f) => f.경로 === 맡은[i]));
   if (모름.length > 0) {
     console.error(`모르는 케이스 파일(tests/${폴더} 아래가 아니거나 없다): ${모름.join(' · ')}`);
