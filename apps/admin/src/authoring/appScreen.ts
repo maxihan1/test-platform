@@ -3,17 +3,16 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { 깔앱, 깔앱파일, 최신빌드 } from '../execution/buildFile.js';
+import { 깔앱, 깔앱파일 } from '../execution/buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 import { runnerUrl, 러너머리 } from '../execution/runnerAddr.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
 import { 게임서비스인가 } from '../prd/gameMap.js';
-import { db } from '../settings/store.js';
 
 import { 게임칸읽기 } from './gamePads.js';
-import { 대상줄들읽기, 앱줄고르기 } from './reverse.js';
+import { PC빌드줄고르기, 대상줄들읽기, 앱줄고르기 } from './reverse.js';
 
 export type 앱화면답 = { screen: string | null; reason: string | null };
 /**
@@ -105,17 +104,10 @@ async function 작성앱파일(행: { serviceId: number; env: string | null }, �
   return 줄 === null ? null : 깔앱파일(행.serviceId, 줄.env, 줄.appPath, 고정);
 }
 
-/**
- * PC 게임은 「앱 파일 경로가 있는 줄」 대신 「빌드가 있는 줄」을 고른다(짚은 줄, 아니면 운영 아닌 첫 줄) — app_path 로 물러서지 않는다.
- * 빌드가 없으면 null 이다. 그 줄 최신 zip 의 서명 주소를 준다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
- */
+/** PC 게임은 app_path 로 물러서지 않는다 — 빌드가 없으면 null 이다. 그 줄 최신 zip 의 서명 주소를 준다 (집기 계정과 같은 PC빌드줄고르기) */
 async function PC빌드줄(행: { serviceId: number; env: string | null }): Promise<{ env: string; appPath: null } | null> {
-  const 풀 = await db();
-  for (const 줄 of (await 대상줄들읽기(행.serviceId)).filter((j) => !j.isProd && (행.env === null || j.env === 행.env))) {
-    const 빌드 = await 최신빌드(풀, 행.serviceId, 줄.env);
-    if (빌드 !== null && (빌드.hasFile || 빌드.appUrl !== null)) return { env: 줄.env, appPath: null };
-  }
-  return null;
+  const 줄 = await PC빌드줄고르기(행.serviceId, await 대상줄들읽기(행.serviceId), 행.env);
+  return 줄 === undefined ? null : { env: 줄.env, appPath: null };
 }
 
 export default async function appScreenAgentRoutes(app: FastifyInstance): Promise<void> {

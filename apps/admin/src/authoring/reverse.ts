@@ -157,6 +157,26 @@ export function 계정줄고르기(kind: string | null | undefined, 줄들: 대�
   return env === null ? 줄들.find(계정있는줄) : 줄들.find((j) => !j.isProd && j.env === env);
 }
 
+/**
+ * PC 게임의 앱 줄 — 빌드를 zip 으로 올려 받아 app_path 가 비므로 「빌드가 있는 줄」(짚은 줄, 아니면 운영 아닌 첫 줄)이다.
+ * app-link 와 집기 accounts · adminKey · 이어 작성이 이 하나를 봐야 AI 가 까는 빌드와 로그인 계정의 서버가 맞는다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」)
+ */
+export async function PC빌드줄고르기<T extends { env: string; isProd: boolean }>(서비스: number, 줄들: T[], env: string | null, q?: 묻기): Promise<T | undefined> {
+  const 묻는곳 = q ?? (await 풀());
+  for (const 줄 of 줄들.filter((j) => !j.isProd && (env === null || j.env === env))) {
+    const 빌드 = await 최신빌드(묻는곳, 서비스, 줄.env);
+    if (빌드 !== null && (빌드.hasFile || 빌드.appUrl !== null)) return 줄;
+  }
+  return undefined;
+}
+
+/** 계정줄고르기 에 PC 게임을 더한 것 — 집기 · 이어 작성이 부른다. 트랜잭션 안이면 그 연결(q)로만 읽는다 */
+export async function 작성계정줄고르기(서비스: number, kind: string | null | undefined, 줄들: 대상줄[], env: string | null, q?: 묻기): Promise<대상줄 | undefined> {
+  if (kind !== 'GAME') return 계정줄고르기(kind, 줄들, env);
+  const r = await (q ?? (await 풀())).query<{ game_platform: string | null }>('SELECT game_platform FROM service WHERE id = $1', [서비스]);
+  return r.rows[0]?.game_platform === 'windows' ? PC빌드줄고르기(서비스, 줄들, env, q) : 계정줄고르기(kind, 줄들, env);
+}
+
 /** 집기 응답 target 한 벌 — 운영 줄이면 계정이 비고 isProd 가 붙는다 */
 export function 집기대상(env: string, 원줄: 대상줄 | null, startUrl: string | null): 대상 {
   const 줄 = 작성에실을줄(원줄);
@@ -235,7 +255,7 @@ export async function 집기대상칸(
   const 종류 = (await 문서설정읽기(서비스))?.kind;
   // 웹은 작성 · 다시 작성 행에만 — 머지 · 케이스 고치기 · PRD 초안은 위에서 고른 줄만 싣는다. 대조 · 반영 행은 같은 줄이 이미 실려 있어 차례만 바뀐다 (§3.6 「★ 역할별 계정」 표 「작성 · 반영 때」)
   const 웹작성행 = 행.kind === 'AUTHOR' || 행.kind === 'RERUN';
-  const 앞줄 = 줄로작성하나(종류, 행.env) && (종류 !== 'SCREEN' || 웹작성행) ? 계정줄고르기(종류, await 대상줄들읽기(서비스), 행.env) : undefined;
+  const 앞줄 = 줄로작성하나(종류, 행.env) && (종류 !== 'SCREEN' || 웹작성행) ? await 작성계정줄고르기(서비스, 종류, await 대상줄들읽기(서비스), 행.env) : undefined;
   const 줄들 = 앞줄 === undefined ? 그밖 : [앞줄, ...그밖.filter((z) => z.env !== 앞줄.env)];
   const accounts = 실을계정(줄들);
   // 앞줄만 — 계정 · 게임 첫 화면과 같은 서버라야 도우미가 AI 가 로그인한 그 캐릭터를 바꾼다. 앞줄은 「실서비스 서버」가 아니다(앱줄고르기)
