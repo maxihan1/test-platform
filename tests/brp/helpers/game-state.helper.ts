@@ -97,6 +97,7 @@ export async function 접속끊기(admin: APIRequestContext, 아이디: string, 
 }
 
 export async function 계정되돌리기(admin: APIRequestContext, 아이디: string, 비밀번호: string, 방식: 'base' | 'new'): Promise<void> {
+  await 로비로되돌리기(admin);
   await 받기(await admin.post('/test/reset', { data: { user: 아이디, pass: 비밀번호, mode: 방식 }, timeout: 30_000 }), `계정 되돌리기(${아이디} · ${방식})`);
 }
 
