@@ -5,6 +5,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import { 화면변경, type 판변경 } from './changes.js';
 import { 사람판, 옮기기판, 판같나, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
+import { 기획서따라가기 } from './gameMap.js';
 import type { 덮는케이스 } from './trace.js';
 import { 앱노트사건쌓기 } from '../projectNote/events.js';
 
@@ -157,6 +158,8 @@ async function 판넣기(
   );
   // 새 판은 노트 사건 — 같은 트랜잭션이라 판이 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
   await 앱노트사건쌓기(서비스, 'PRD_VERSION', (service) => ({ service, version }), 손);
+  // 누가 저장했든(사람 · 결정 · 롤백 · AI 옮기기) 게임 지도가 새 판을 따라간다 — 판과 같이 되돌려진다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」)
+  await 기획서따라가기(손, 서비스, 앞?.items ?? [], 새.items);
   return version;
 }
 
