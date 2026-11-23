@@ -18,11 +18,16 @@ export interface CaseSteps {
   stepTitles: string[] | null;
   /** 케이스 몸통이 받는 이름(`page` · `game` · `driver` · `request` …) — E2E AI 흐름 후보가 게임 화면을 여는 케이스를 가린다 (도메인/시나리오 §3.7 결정 15) */
   fixtures: string[];
+  /** 절차마다 제목 · 글 안 자리 · 셀 수 있나 — 프로시저 파일은 이 자리로 케이스 구간마다 단계를 가른다 (카탈로그 §3.1 「케이스 구간」) */
+  found: { title: string | undefined; pos: number; counted: boolean }[];
+  /** test.cleanup 제목 — 글자로 못 읽은 것은 undefined */
+  cleanups: (string | undefined)[];
 }
 
 interface Found {
   title: string | undefined;
   line: number;
+  pos: number;
   verifies: number;
   blocker: boolean;
   // 소스만 보고는 이 절차 안에서 무엇이 도는지 다 알 수 없다. 한 제목이 여러 번 돌거나 판정이 다른 곳에 숨었을 수 있다
@@ -33,7 +38,7 @@ interface Found {
   counted: boolean;
 }
 
-function isTestMethod(node: ts.Node, name: 'step' | 'cleanup'): node is ts.CallExpression {
+function isTestMethod(node: ts.Node, name: 'step' | 'cleanup' | 'case'): node is ts.CallExpression {
   if (!ts.isCallExpression(node)) return false;
   const callee = node.expression;
   return ts.isPropertyAccessExpression(callee) && callee.name.text === name && ts.isIdentifier(callee.expression) && callee.expression.text === 'test';
@@ -42,6 +47,8 @@ function isTestMethod(node: ts.Node, name: 'step' | 'cleanup'): node is ts.CallE
 export const isTestStep = (node: ts.Node): node is ts.CallExpression => isTestMethod(node, 'step');
 // 정리 호출 — 시작 · 끝에 도는 정리 절차다. 건너뛸 절차 목록에는 안 세고 단계 제목에만 넣는다. 제목은 K6 · K12 가 본다
 export const isTestCleanup = (node: ts.Node): node is ts.CallExpression => isTestMethod(node, 'cleanup');
+// 케이스 구간 — 프로시저 본문 맨 바깥에서 케이스마다 한 번 부른다 (공통/2 §4 K20)
+export const isTestCase = (node: ts.Node): node is ts.CallExpression => isTestMethod(node, 'case');
 
 function isTestCall(node: ts.Node): node is ts.CallExpression {
   return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'test';
@@ -82,7 +89,8 @@ function wrapped(step: ts.CallExpression): boolean {
     if (ts.isFunctionLike(parent)) {
       const call: ts.Node | undefined = parent.parent;
       if (call !== undefined && isTestCall(call)) return false;
-      if (call === undefined || !isTestStep(call)) return true;
+      // 케이스 구간은 본문 맨 바깥에서 꼭 한 번 돈다 — 그 안의 절차는 감싸인 것이 아니다
+      if (call === undefined || !(isTestStep(call) || isTestCase(call))) return true;
     }
     node = parent;
   }
@@ -279,6 +287,7 @@ export function caseSteps(text: string): CaseSteps {
       const step: Found = {
         title,
         line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
+        pos: node.getStart(sf),
         verifies: 0,
         blocker: false,
         unsure: loose,
@@ -341,5 +350,12 @@ export function caseSteps(text: string): CaseSteps {
     found.every((s) => s.counted) && 정리제목들 !== null
       ? [...정리제목들.map((t) => 정리제목('시작', t)), ...found.map((s) => s.title!), ...정리제목들.map((t) => 정리제목('끝', t))]
       : null;
-  return { steps, r16: steps.some((s) => s.skippable), stepTitles, fixtures: [...fixtureNames] };
+  return {
+    steps,
+    r16: steps.some((s) => s.skippable),
+    stepTitles,
+    fixtures: [...fixtureNames],
+    found: found.map((s) => ({ title: s.title, pos: s.pos, counted: s.counted })),
+    cleanups: 정리들,
+  };
 }

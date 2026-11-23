@@ -4,26 +4,15 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { relative, resolve } from 'node:path';
+import { basename, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
-import {
-  checkRegistration,
-  checkSource,
-  checkSpec,
-  formatViolation,
-  RULES,
-  type ListReport,
-  type Violation,
-} from './rules.js';
+import { checkProcedure, checkSource, checkSpec, formatViolation, RULES, type SourceResult, type Violation } from './rules.js';
 import { checkNonCase, nonCaseFiles } from './pageObject.js';
+import { checkRegistration, k8, type ListReport } from './registration.js';
 import { caseFiles, duplicatesWith, scan, testsRoot } from './scanner.js';
 
 const run = promisify(execFile);
-
-function k8(file: string, what: string): Violation {
-  return { file, line: 1, rule: 'K8', what, why: '문법 오류나 import 실패로 케이스가 등록되지 않는다' };
-}
 
 async function registration(files: string[], filters: string[]): Promise<Violation[]> {
   // 스캔이 PLATFORM_SCAN=1을 켜 두면 자식 playwright도 그대로 물려받아 테스트를 하나도 등록하지 않는다.
@@ -71,13 +60,13 @@ async function main(): Promise<void> {
   const files = scoped ? only.filter((f) => f.endsWith('.spec.ts')) : await caseFiles(root);
 
   const violations: Violation[] = [];
-  const propLines = new Map<string, Map<string, number>>();
+  const 읽은 = new Map<string, SourceResult>();
 
   for (const file of files) {
     const text = await readFile(file, 'utf8');
     const result = checkSource(rel(file), text);
     violations.push(...result.violations);
-    propLines.set(rel(file), result.propLines);
+    읽은.set(rel(file), result);
   }
 
   // 케이스가 아닌 .ts 는 K7 만 진다. registration 쪽에 섞으면 테스트가 없다고 K8 로 잘못 찍힌다
@@ -96,14 +85,27 @@ async function main(): Promise<void> {
     const [first, second] = duplicate.files;
     violations.push({
       file: second,
-      line: propLines.get(second)?.get('tcId') ?? 1,
+      line: (읽은.get(second)?.caseLines.get(duplicate.tcId) ?? 읽은.get(second)?.propLines)?.get('tcId') ?? 1,
       rule: 'K2',
       what: `tcId ${duplicate.tcId}이 ${first}와 겹친다`,
       why: '검색·이력·문서 번호가 깨진다',
     });
   }
+  // 프로시저 파일은 케이스 여럿이 한 파일이다 — 키 줄을 케이스 번호로 찾는다
+  const 프로시저 = new Map<string, string>();
   for (const spec of specs) {
-    violations.push(...checkSpec(spec.filePath, spec, propLines.get(spec.filePath) ?? new Map(), { noHeld }));
+    const 줄 = 읽은.get(spec.filePath);
+    violations.push(...checkSpec(spec.filePath, spec, (spec.procId === undefined ? 줄?.propLines : 줄?.caseLines.get(spec.tcId)) ?? new Map(), { noHeld }));
+    if (spec.procId !== undefined) 프로시저.set(spec.filePath, spec.procId);
+  }
+  // 프로시저 번호가 곧 파일 이름이라 맡은 파일만 볼 때도 같은 이름의 다른 파일로 겹침을 본다
+  const 모든파일 = scoped ? (await caseFiles(root)).map(rel) : files.map(rel);
+  for (const [file, procId] of 프로시저) {
+    const 겹친 = new Set([
+      ...[...프로시저].filter(([f, id]) => f !== file && id === procId).map(([f]) => f),
+      ...모든파일.filter((f) => f !== file && basename(f) === `${procId}.spec.ts`),
+    ]);
+    violations.push(...checkProcedure(file, procId, 읽은.get(file)?.propLines ?? new Map(), [...겹친]));
   }
 
   // 맡은 케이스가 없으면(Page Object 만 맡음) 등록 검사를 건너뛴다 — 거르개 없이 부르면 저장소 전체를 수집한다
@@ -112,7 +114,8 @@ async function main(): Promise<void> {
   if (!scoped || files.length > 0) violations.push(...(await registration(files.map(rel), filters)));
 
   if (violations.length === 0) {
-    console.log(`[check:tests] ${scoped ? `맡은 파일 ${only.length}개 · 케이스` : '케이스'} ${files.length}건 · SPEC §4 규칙 ${RULES[0]}~${RULES[RULES.length - 1]} 통과`);
+    // 프로시저 파일 하나에 케이스가 여럿이라 파일이 아니라 읽은 케이스를 센다
+    console.log(`[check:tests] ${scoped ? `맡은 파일 ${only.length}개 · 케이스` : '케이스'} ${specs.length}건 · SPEC §4 규칙 ${RULES[0]}~${RULES[RULES.length - 1]} 통과`);
     return;
   }
 

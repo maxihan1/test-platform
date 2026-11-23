@@ -9,11 +9,13 @@ import { PC_PLATFORMS } from '@platform/kit/types';
 import { k17, K17_WHY } from './cssLocator.js';
 import { K18_WHY } from './loginHelper.js';
 import { k7, K7_WHY, k15, K15_WHY, k16, K16_WHY } from './pageObject.js';
-import { caseSteps, isTestCleanup, isTestStep, isVerify as 판정호출 } from './steps.js';
+import { 프로시저읽기 } from './procedure.js';
+import { K8_WHY } from './registration.js';
+import { caseSteps, isTestCase, isTestCleanup, isTestStep, isVerify as 판정호출 } from './steps.js';
 import { badTechniques } from './techniques.js';
 import { badTag } from './tags.js';
 
-export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K12' | 'K13' | 'K14' | 'K15' | 'K16' | 'K17' | 'K18';
+export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K12' | 'K13' | 'K14' | 'K15' | 'K16' | 'K17' | 'K18' | 'K19' | 'K20';
 
 export interface Violation {
   file: string;
@@ -25,8 +27,10 @@ export interface Violation {
 
 export interface SourceResult {
   violations: Violation[];
-  // defineCase에 적힌 키가 몇 번째 줄인지. 명세를 import 해서 잡은 위반도 소스 줄을 가리켜야 한다
+  // defineCase에 적힌 키가 몇 번째 줄인지. 명세를 import 해서 잡은 위반도 소스 줄을 가리켜야 한다.
+  // 프로시저 파일이면 defineProcedure 의 키 줄이다 — 케이스마다의 키 줄은 caseLines 에 tcId 로 든다
   propLines: Map<string, number>;
+  caseLines: Map<string, Map<string, number>>;
 }
 
 const WHY: Record<RuleId, string> = {
@@ -37,7 +41,7 @@ const WHY: Record<RuleId, string> = {
   K5: '러너의 --project가 실패한다',
   K6: '절차·판정 칸이 비어 증적이 못 된다',
   K7: K7_WHY,
-  K8: '문법 오류나 import 실패로 케이스가 등록되지 않는다',
+  K8: K8_WHY,
   K9: '비밀번호가 화면과 증적 문서에 평문으로 박힌다',
   K10: '사람이 값을 채워야만 도는 케이스는 정기 실행이 돌리지 못한다',
   K12: '시나리오가 절차를 제목으로 건너뛰므로 하나를 풀면 둘이 건너뛰어진다',
@@ -47,6 +51,9 @@ const WHY: Record<RuleId, string> = {
   K16: K16_WHY,
   K17: K17_WHY,
   K18: K18_WHY,
+  // K21 · K22 와 K19 의 개수 · 겹침 · 미션은 defineProcedure 가 던져 K8 로 찍힌다 — 여기는 글자로 봐야 아는 것만 본다
+  K19: '스캐너가 글자로 케이스 차례와 구간을 못 읽는다',
+  K20: '조건에 따라 도는 케이스는 결과 줄이 생겼다 사라졌다 하고, 마지막 케이스 뒤 코드는 깨져도 어느 케이스 결과에도 안 남는다',
 };
 
 // check.ts 통과 줄이 이 목록에서 범위를 만든다. 손으로 적은 숫자는 규칙이 늘 때 조용히 틀린다
@@ -85,8 +92,13 @@ export function checkSource(file: string, text: string): SourceResult {
   const lineOf = (node: ts.Node): number => lineAt(node.getStart(sf));
 
   const propLines = new Map<string, number>();
+  const caseLines = new Map<string, Map<string, number>>();
+  // 프로시저 파일이면 케이스 선언이 여럿이고 절차 제목은 프로시저 전체에서 서로 달라야 한다
+  const proc = 프로시저읽기(sf);
+  const 어디서 = proc === null ? '이 케이스' : '이 프로시저';
 
   const violations: Violation[] = [...k7(file, sf), ...k15(file, sf), ...k16(file, sf), ...k17(file, sf)];
+  if (proc !== null) violations.push(...proc.어긋남.map((x) => v(file, x.line, x.rule, x.what)));
 
   let declared = 0;
   let literal: ts.ObjectLiteralExpression | undefined;
@@ -119,48 +131,56 @@ export function checkSource(file: string, text: string): SourceResult {
           violations.push(v(file, lineOf(node), 'K6', `${label}이 비어 있다`));
         } else if (isCleanup) {
           const 제목 = (first as ts.StringLiteral).text;
-          if (cleanupTitles.has(제목)) violations.push(v(file, lineOf(node), 'K12', `정리 제목 「${제목}」이 이 케이스 안에서 겹친다`));
+          if (cleanupTitles.has(제목)) violations.push(v(file, lineOf(node), 'K12', `정리 제목 「${제목}」이 ${어디서} 안에서 겹친다`));
           cleanupTitles.add(제목);
         }
       }
+      if (proc === null && isTestCase(node)) violations.push(v(file, lineOf(node), 'K20', 'test.case 는 프로시저 파일(test(procedure, …))에서만 쓴다'));
     }
 
     node.forEachChild(walk);
   };
   walk(sf);
 
-  if (declared !== 1) {
+  // 프로시저 파일의 K1 · 케이스 구간마다의 K6 은 프로시저읽기가 짚는다
+  if (proc === null && declared !== 1) {
     violations.push(v(file, 1, 'K1', `export const spec = defineCase(...) 선언이 ${declared}개다`));
   }
-  if (verifies === 0) {
+  if (proc === null && verifies === 0) {
     violations.push(v(file, 1, 'K6', 'verify가 하나도 없다'));
   }
 
-  if (literal !== undefined) {
-    for (const p of literal.properties) {
-      const key = keyOf(p);
-      if (key !== undefined) propLines.set(key, lineOf(p));
+  const 키줄 = (인자: ts.ObjectLiteralExpression): Map<string, number> =>
+    new Map(인자.properties.flatMap((p) => (keyOf(p) === undefined ? [] : [[keyOf(p)!, lineOf(p)] as const])));
+  for (const [key, line] of proc?.인자 === undefined ? [] : 키줄(proc.인자)) propLines.set(key, line);
+  for (const 선언 of proc === null ? (literal === undefined ? [] : [literal]) : proc.케이스인자) {
+    const 줄들 = 키줄(선언);
+    if (proc === null) for (const [key, line] of 줄들) propLines.set(key, line);
+    else {
+      const 번호 = 선언.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && keyOf(p) === 'tcId')?.initializer;
+      if (번호 !== undefined && ts.isStringLiteralLike(번호)) caseLines.set(번호.text, 줄들);
     }
     for (const key of ['precondition', 'params', 'expected']) {
-      if (propLines.has(key)) continue;
+      if (줄들.has(key)) continue;
       violations.push(
-        v(file, lineOf(literal), 'K4', `${key} 키가 아예 없다. 없으면 없다고 적어야 한다`),
+        v(file, lineOf(선언), 'K4', `${key} 키가 아예 없다. 없으면 없다고 적어야 한다`),
       );
     }
-    const held = badTag(literal, 'held');
+    const held = badTag(선언, 'held');
     if (held !== undefined) violations.push(v(file, lineOf(held.node), 'K13', held.what));
-    for (const bad of badTechniques(literal)) violations.push(v(file, lineOf(bad.node), 'K14', bad.what));
+    for (const bad of badTechniques(선언)) violations.push(v(file, lineOf(bad.node), 'K14', bad.what));
   }
 
-  // 러너가 건너뛸 절차를 제목 글자 그대로 맞춘다 (packages/kit/src/runtime/step.ts)
+  // 러너가 건너뛸 절차를 제목 글자 그대로 맞춘다 (packages/kit/src/runtime/step.ts).
+  // 프로시저는 절차 번호가 케이스 구간을 넘어 이어지고 스캐너가 구간별 단계를 제목으로 가른다
   const seen = new Set<string>();
   for (const step of caseSteps(text).steps) {
-    if (seen.has(step.title)) violations.push(v(file, step.line, 'K12', `절차 제목 「${step.title}」이 이 케이스 안에서 겹친다`));
+    if (seen.has(step.title)) violations.push(v(file, step.line, 'K12', `절차 제목 「${step.title}」이 ${어디서} 안에서 겹친다`));
     seen.add(step.title);
   }
 
   violations.sort((a, b) => a.line - b.line);
-  return { violations, propLines };
+  return { violations, propLines, caseLines };
 }
 
 // 접두사는 자유 형식이다. 플랫폼은 뜻을 모르고 모양과 중복만 본다 (SPEC §2, 2026-09-17).
@@ -171,6 +191,20 @@ export const tcId종류 = (tcId: string): 'UI' | 'FN' => (/-UI-\d{3}$/.test(tcId
 export { 게임시나리오인가 } from '@platform/kit/protocol';
 // FN 과 옛 꼴은 한 번호열이다(MKT-044 = MKT-FN-044) — 글자로 견주면 같은 번호가 두 번 쓰여 실행 이력이 섞인다. UI · GS 는 따로 센다
 export const 번호열쇠 = (tcId: string): string => tcId.replace(/-FN-(\d{3})$/, '-$1');
+// 프로시저 번호는 케이스 번호 꼴이 아니다 — 다시 작성하면 달라질 수 있어 DB · 설정은 케이스 번호로 가리킨다 (공통/2 §4 「테스트 프로시저」)
+export const PROCID = /^[A-Z][A-Z0-9]{0,11}-TP-\d{3}$/;
+
+/** K2 의 프로시저 줄 — 번호 꼴 · 파일 이름 · 겹침. 겹친파일은 같은 번호를 쓴 다른 프로시저 파일이다 */
+export function checkProcedure(file: string, procId: string, propLines: Map<string, number>, 겹친파일: readonly string[]): Violation[] {
+  const line = propLines.get('procId') ?? 1;
+  const 이름 = file.split(/[\\/]/).at(-1) ?? file;
+  const out: Violation[] = [];
+  if (!PROCID.test(procId)) out.push(v(file, line, 'K2', `procId가 ${procId}이다. <접두사>-TP-<3자리> 여야 하고 접두사는 대문자로 시작해 대문자·숫자로 이어지는 1~12자다`));
+  if (이름 !== `${procId}.spec.ts`) out.push(v(file, line, 'K2', `파일 이름이 ${이름}이다. 프로시저 파일 이름은 <procId>.spec.ts 다 — ${procId}.spec.ts`));
+  for (const 남 of 겹친파일) out.push(v(file, line, 'K2', `procId ${procId}이 ${남}와 겹친다`));
+  return out;
+}
+
 // 윈도우 값 다섯은 PC 게임이 적는다 — 보통 케이스는 windows, 버튼 그림 케이스는 패드 값 (공통/2-명세선언 K5).
 // 섞어 적은 선언은 defineCase 가 던져 K8 로 찍힌다
 const PLATFORMS = new Set<string>(['desktop', 'mobile', 'android', ...PC_PLATFORMS]);
@@ -210,57 +244,6 @@ function requiredFields(file: string, line: number, schema: JsonSchema, key: str
   if (!Array.isArray(required) || required.length === 0) return [];
   const names = required.join('·');
   return [v(file, line, 'K10', `${key}의 ${names}에 .default()나 .optional()이 없다`)];
-}
-
-export interface ListSuite {
-  file?: string;
-  specs?: { title?: string }[];
-  suites?: ListSuite[];
-}
-
-export interface ListReport {
-  errors?: { message?: string; location?: { file?: string; line?: number } }[];
-  suites?: ListSuite[];
-}
-
-// 같은 제목이 프로젝트(desktop·mobile) 수만큼 겹쳐 나온다. 제목 가짓수로 세야 파일당 1건이 잡힌다 (LEARNINGS WS-C)
-function titlesIn(suite: ListSuite, into: Set<string>): void {
-  for (const s of suite.specs ?? []) if (s.title !== undefined) into.add(s.title);
-  for (const nested of suite.suites ?? []) titlesIn(nested, into);
-}
-
-export function checkRegistration(report: ListReport, files: string[]): Violation[] {
-  const out: Violation[] = [];
-
-  for (const err of report.errors ?? []) {
-    out.push(
-      v(
-        err.location?.file ?? '(수집)',
-        err.location?.line ?? 1,
-        'K8',
-        `테스트를 수집하지 못했다: ${err.message ?? '사유 없음'}`,
-      ),
-    );
-  }
-
-  const titles = new Map<string, Set<string>>();
-  for (const suite of report.suites ?? []) {
-    if (suite.file === undefined) continue;
-    const bucket = titles.get(suite.file) ?? new Set<string>();
-    titlesIn(suite, bucket);
-    titles.set(suite.file, bucket);
-  }
-
-  for (const file of files) {
-    const found = titles.get(file);
-    if (found === undefined || found.size === 0) {
-      out.push(v(file, 1, 'K8', 'playwright가 이 파일에서 테스트를 하나도 등록하지 않았다'));
-    } else if (found.size !== 1) {
-      out.push(v(file, 1, 'K8', `등록된 테스트가 ${found.size}개다. 파일 1개 = 케이스 1건이어야 한다`));
-    }
-  }
-
-  return out;
 }
 
 export function checkSpec(

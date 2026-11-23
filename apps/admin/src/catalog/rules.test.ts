@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { checkRegistration, checkSource, checkSpec, formatViolation, tcId종류, 번호열쇠, 게임시나리오인가 } from './rules.js';
+import { checkRegistration } from './registration.js';
+import { checkSource, checkSpec, formatViolation, tcId종류, 번호열쇠, 게임시나리오인가 } from './rules.js';
 
 const 정상 = `import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
