@@ -104,6 +104,14 @@ describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
     expect(screen.getByRole('link', { name: 'UI 번호 케이스 보기' }).getAttribute('href')).toBe('#/cases/ui');
   });
 
+  it('게임 기능 테스트도 「PRD 관리」 요구 고리로 왔으면 게임 미션을 빼지 않는다 — 그 건수가 게임 미션까지 센다', async () => {
+    const 스파이 = 모킹(쪽주기);
+    render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 앱종류="GAME" 요구="ZPK-REQ-001" />);
+    await screen.findByText('ZPK-001');
+    expect(스파이.mock.calls[0]![0]).toMatchObject({ kind: 'FN', req: 'ZPK-REQ-001' });
+    expect(스파이.mock.calls[0]![0].mission).toBeUndefined();
+  });
+
   it('게임이 아니면 게임 미션 조건을 보내지 않는다', async () => {
     const 스파이 = 모킹(쪽주기);
     render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 앱종류="SCREEN" />);

@@ -63,8 +63,9 @@ export function use검색조건(service: string, kind: 'UI' | 'FN' | 'GS', 처�
     ...(service === '' ? {} : { service }),
   }, { 쌓는칸: ['case'], 듣기: (조건) => set열린(조건.get('case')) });
 
-  // 게임의 「기능 테스트」는 게임 미션을 뺀다 — 「게임 미션」 메뉴가 따로 보인다 (화면공통 §8 「자리 목록」)
-  const 미션 = kind === 'GS' ? true : kind === 'FN' && 종류키(앱종류) === 'GAME' ? false : undefined;
+  // 게임의 「기능 테스트」는 게임 미션을 뺀다 — 「게임 미션」 메뉴가 따로 보인다 (화면공통 §8 「자리 목록」).
+  // 「PRD 관리」의 「기능 N건」 고리로 왔으면 빼지 않는다 — 그 건수는 게임 미션까지 센다(prd/trace.ts 는 UI · 기능 둘로만 나눈다)
+  const 미션 = kind === 'GS' ? true : kind === 'FN' && 종류키(앱종류) === 'GAME' && 요구 === null ? false : undefined;
   const 조건: CaseQuery = {
     service,
     kind: kind === 'UI' ? 'UI' : 'FN',
