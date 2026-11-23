@@ -1,0 +1,48 @@
+import { defineCase, test, verify } from '@platform/kit';
+import { z } from 'zod';
+
+import { 공통HUD } from './components/hud.component.js';
+import { 우편보내고우편함열기, 우편함줄뜰때까지 } from './helpers/items-tools.helper.js';
+import { 로비로 } from './helpers/game-enter.helper.js';
+import { 계정꺼내기, 계정되돌리기, 봇모두끄기 } from './helpers/game-state.helper.js';
+
+export const spec = defineCase({
+  tcId: 'BRM-FN-640',
+  name: '체력 물약 1개 첨부 우편과 2개 첨부 우편을 받으면 2개짜리 첨부 줄에만 「체력 물약」 뒤에 「x2」가 붙는다',
+  platforms: ['android'],
+  precondition: ['두 번째 플레이어로 로비에 들어와 있다'],
+  techniques: ['경계값 분석'],
+  elements: ['item:체력 물약'],
+  params: z.object({
+    p2Id: z.string().describe('두 번째 플레이어 아이디').optional().meta({ secret: true, account: '두 번째 플레이어' }),
+    p2Password: z.string().describe('두 번째 플레이어 비밀번호').optional().meta({ secret: true, account: '두 번째 플레이어' }),
+  }),
+  expected: null,
+});
+
+test(spec, async ({ game, driver, admin, params }) => {
+  const 둘째 = 계정꺼내기(params.p2Id, params.p2Password, '두 번째 플레이어');
+  await test.cleanup('켜 둔 봇 끄기 · 두 번째 플레이어 기준 상태로 되돌리기', async () => {
+    await 봇모두끄기(admin);
+    await 계정되돌리기(admin, 둘째);
+  });
+  const hud = new 공통HUD(game);
+  await test.step('두 번째 플레이어로 로비에 들어간다', async () => {
+    await 로비로(game, driver, 둘째);
+    await verify('상단 바에 「Lv.1」이 보인다', (await hud.레벨글()).startsWith('Lv.1 '), true, { blocker: true });
+  });
+  await test.step('체력 물약 1개 · 골드 10 첨부 우편을 받고 우편함 창을 연다', async () => {
+    const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 640 하나', 아이템: [{ 이름: '체력 물약', 개수: 1 }], 골드: 10 }]);
+    const 줄 = await 함.줄찾기('QA 우편 640 하나');
+    await verify('「QA 우편 640 하나」 줄이 우편함에 보인다', 줄 !== null, true, { blocker: true });
+    const 글 = (await 함.줄첨부(줄 ?? 0)) ?? '';
+    await verify('첨부 줄의 「체력 물약」 뒤에 「x개수」가 붙지 않는다', 글.startsWith('첨부: ') && 글.includes('체력 물약') && !/체력 물약\s*x\d/.test(글), true);
+  });
+  await test.step('체력 물약 2개 · 골드 10 첨부 우편을 받고 우편함 창을 연다', async () => {
+    const { 함 } = await 우편보내고우편함열기(game, admin, 둘째, [{ 제목: 'QA 우편 640 둘', 아이템: [{ 이름: '체력 물약', 개수: 2 }], 골드: 10 }]);
+    await verify('우편함에 우편 줄 2개가 보인다', await 우편함줄뜰때까지(game, 2), true, { blocker: true });
+    const 줄 = await 함.줄찾기('QA 우편 640 둘');
+    await verify('「QA 우편 640 둘」 줄이 우편함에 보인다', 줄 !== null, true, { blocker: true });
+    await verify('첨부 줄의 「체력 물약」 뒤에 「x2」가 붙는다', /^첨부: .*체력 물약\s*x2\b/.test((await 함.줄첨부(줄 ?? 0)) ?? ''), true);
+  });
+});
