@@ -87,12 +87,13 @@ export function 여는주소들(화면글: string): string[] {
     ts.forEachChild(n, 훑기);
   };
   훑기(sf);
-  // 게임 화면 파일은 주소가 장면(`game:CharSelect`)이고 케이스가 보는 것은 파일 안 요소 주소다. 찾은 화면 열쇠가 둘을 이은 꼴이라 이어 적는다.
+  // 게임 화면 파일은 주소가 장면(`game:CharSelect` — 창 경로가 붙기도 한다)이고 케이스가 보는 것은 장면 뿌리부터 적은 파일 안 요소 주소다.
+  // 찾은 화면 열쇠가 장면과 요소를 이은 꼴이라 장면 몫만 떼어 잇고, 크롤 열쇠처럼 같은 이름 형제 순번(`[0]`)을 뗀다.
   // 장면 주소만으로 그 아래를 다 덮지 않는다 — 로비 케이스 하나가 로비 전체를 덮는다. 계산식 · `/` 한 글자 · `//` 찾기 식은 짐작하지 않고 뺀다 (도메인/작성 §3.6 「세는 방식」)
-  const 장면 = 화면주소(화면글);
-  if (장면?.startsWith('game:') === true) {
+  const 장면 = /^game:[^/]+/.exec(화면주소(화면글) ?? '')?.[0];
+  if (장면 !== undefined) {
     const 요소 = (n: ts.Node): void => {
-      if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && /^\/[^/]/.test(n.text)) 모음.add(장면 + n.text);
+      if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && /^\/[^/]/.test(n.text)) 모음.add(장면 + n.text.replace(/\[\d+\]/g, ''));
       ts.forEachChild(n, 요소);
     };
     요소(sf);

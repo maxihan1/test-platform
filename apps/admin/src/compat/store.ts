@@ -70,10 +70,13 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
 
   const 틀모음 = new Map<string, Set<string>>(번호들.map((t) => [t, new Set<string>()]));
   const 케이스화면이름 = new Map<string, string>();
+  // 게임 화면 파일의 여는 주소는 장면 + 요소 주소다(카탈로그 screenMap.ts 여는주소들) — 크롤이 찾은 창과 같을 때만 화면이고 나머지는 글자 · 버튼이라 세지 않는다
+  const 크롤열쇠 = new Set(기록.rows.map((r) => r.url));
   for (const r of 화면줄.rows) {
     for (const 주소 of [r.screen_url, ...r.open_urls]) {
       const 틀 = 주소 === null ? null : 주소틀(주소);
       if (틀 === null) continue;
+      if (주소 !== r.screen_url && 틀.startsWith('game:') && !크롤열쇠.has(틀)) continue;
       틀모음.get(r.tc_id)?.add(틀);
       if (주소 === r.screen_url && r.name !== null && !케이스화면이름.has(틀)) 케이스화면이름.set(틀, r.name);
     }
