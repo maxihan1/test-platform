@@ -1,7 +1,5 @@
 // 웹 로그인 도우미가 화면으로 로그인하면서 kit 로그인이어쓰기 를 안 부르면 K18 로 막는지, API 로그인 · 앱 도우미 · 다른 파일은 안 건드리는지 검사한다
 
-import { sep } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
 
 import { checkNonCase } from './pageObject.js';
@@ -112,7 +110,40 @@ export async function 로그인하기(driver: AppDriver, 아이디: string, 암�
     expect(k18('new/helpers/login-tools.helper.ts', 화면에글자넣는도우미)).toEqual([]);
   });
 
-  it('경로 구분자가 달라도 같은 파일로 본다', () => {
-    expect(k18(['new', 'helpers', 'login.helper.ts'].join(sep), 화면에글자넣는도우미)).toEqual([5]);
+  it('윈도 경로(역슬래시)도 같은 파일로 본다', () => {
+    expect(k18('new\\helpers\\login.helper.ts', 화면에글자넣는도우미)).toEqual([5]);
+  });
+
+  it('화면 객체를 기본 가져오기 · 통째로 가져오기로 들여와도 화면 로그인으로 본다', () => {
+    const 기본 = 화면객체로로그인하는도우미.replace('import { 로그인화면 } from', 'import 로그인화면 from');
+    const 통째 = 화면객체로로그인하는도우미.replace('import { 로그인화면 } from', 'import * as 화면들 from').replace('new 로그인화면(page)', 'new 화면들.로그인화면(page)');
+    expect(k18(도우미, 기본)).toEqual([3]);
+    expect(k18(도우미, 통째)).toEqual([3]);
+  });
+
+  it('API 로 로그인한 뒤 화면 객체를 돌려주기만 하는 도우미는 안 건다', () => {
+    const 글 = `import type { Page } from '@playwright/test';
+
+import { 홈화면 } from '../pages/home.page.js';
+
+export async function 로그인해홈열기(page: Page, 아이디: string, 암호: string): Promise<홈화면> {
+  const 응답 = await page.request.post('/api/auth/login', { data: { loginId: 아이디, password: 암호 } });
+  if (!응답.ok()) throw new Error('로그인 실패');
+  return new 홈화면(page);
+}
+`;
+    expect(k18(도우미, 글)).toEqual([]);
+  });
+
+  it('기다리지 않는 fill(배열 채우기)은 화면에 글자를 넣는 것으로 안 본다', () => {
+    const 글 = `import type { Page } from '@playwright/test';
+
+export async function 로그인하기(page: Page, 아이디: string): Promise<string> {
+  const 코드 = new Array(6).fill('0').join('');
+  await page.request.post('/api/auth/login', { data: { loginId: 아이디, code: 코드 } });
+  return 코드;
+}
+`;
+    expect(k18(도우미, 글)).toEqual([]);
   });
 });
