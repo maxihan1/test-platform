@@ -50,6 +50,9 @@ const 정본: Record<string, 칸[]> = {
     ['error', 'jsonb', 'YES', false],
     ['started_at', 'timestamp with time zone', 'YES', false],
     ['finished_at', 'timestamp with time zone', 'YES', false],
+    // 프로시저를 통째로 돌릴 때 쓰는 두 칸 — 정본은 공통/4-데이터모델 「테스트 프로시저 표」 (TP-F2-09)
+    ['exec_id', 'bigint', 'YES', false],
+    ['blocked_by', 'text', 'YES', false],
   ],
   compat_screen: [
     ['id', 'bigint', 'NO', true],
@@ -203,7 +206,8 @@ describe.skipIf(연결 === undefined)('호환성 표', () => {
       `SELECT count(*) AS n FROM pg_depend
         WHERE classid = 'pg_attrdef'::regclass AND refobjid = 'run_item_history_id_seq'::regclass`,
     );
-    expect(Number(d.rows[0]!.n)).toBe(2);
+    // run_item · compat_run_case · run_exec(실행 단위 — 공통/4-데이터모델 「테스트 프로시저 표」) 셋이 이 번호 줄을 나눠 쓴다
+    expect(Number(d.rows[0]!.n)).toBe(3);
   });
 
   it('케이스 한 번은 있는 점검 상태에만 · 한 상태에 케이스 하나씩 · 정한 값만 받는다', async () => {
