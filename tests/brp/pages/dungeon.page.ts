@@ -35,6 +35,10 @@ export class 던전화면 {
   static readonly 불러오는화면 = '/LoadingScreen';
   static readonly 불러오는글 = '/LoadingScreen/LoadingScreenPanel/Title Text (TMP)';
   static readonly 마우스치울자리 = '/Showcase HUD/PlayerBar';
+  static readonly 물약버튼 = '/Showcase HUD/Button ';
+  static readonly 패드그림이름: Record<'ps5' | 'xbox', Record<string, string>> = {
+    ps5: { '□': 'ps_square', '△': 'ps_triangle', '○': 'ps_circle', '✕': 'ps_cross', R1: 'ps_r1' },
+    xbox: { X: 'xbox_x', Y: 'xbox_y', B: 'xbox_b', A: 'xbox_a', RB: 'xbox_rb' } };
 
   readonly hud: 공통HUD;
 
@@ -128,6 +132,26 @@ export class 던전화면 {
 
   async 버튼키글(번호: 0 | 1 | 2 | 3): Promise<string> {
     return this.game.text(`${this.버튼주소(번호)}/Text (1)`);
+  }
+
+  async 버튼키글상태(번호: 0 | 1 | 2 | 3): Promise<'보임' | '숨음' | '없음'> {
+    const 찾음 = await this.game.find(`${this.버튼주소(번호)}/Text (1)`, { inactive: true });
+    if (찾음 === null) return '없음';
+    return 찾음.active === false ? '숨음' : '보임';
+  }
+
+  패드그림주소(자리: 0 | 1 | 2 | 3 | '물약'): string {
+    return `${자리 === '물약' ? 던전화면.물약버튼 : this.버튼주소(자리)}/PadGlyph`;
+  }
+
+  async 패드그림뜰때까지(자리: 0 | 1 | 2 | 3 | '물약', 한도ms = 10_000): Promise<boolean> {
+    return this.game.waitFor(this.패드그림주소(자리), { timeoutMs: 한도ms }).then(() => true, () => false);
+  }
+
+  async 패드그림읽기(자리: 0 | 1 | 2 | 3 | '물약'): Promise<string> {
+    const 주소 = this.패드그림주소(자리);
+    if ((await this.game.find(주소)) === null) return '안 보임';
+    return String(await this.game.get(주소, 'Image.sprite.name'));
   }
 
   async 버튼눌림(번호: 0 | 1 | 2 | 3): Promise<boolean> {
