@@ -94,10 +94,25 @@ describe('defineProcedure', () => {
     expect(defineProcedure({ ...머리, cases }).cases.at(-1)?.procSeq).toBe(10);
   });
 
-  it('같은 케이스를 두 번 넣으면 던진다', () => {
+  it('같은 케이스를 두 번 넣으면 던진다 — 번호만 같은 다른 선언도 같다', () => {
     const 하나 = 케이스({ tcId: 'DEMO-FN-201' });
-    expect(() => defineProcedure({ ...머리, cases: [하나, 하나] })).toThrow(
-      'DEMO-TP-001: DEMO-FN-201 는 이미 DEMO-TP-001 에 들어 있다 — 케이스 하나는 프로시저 한 자리에만 든다',
+    const 글 = 'DEMO-TP-001: DEMO-FN-201 를 두 번 넣었다 — 케이스 하나는 프로시저 한 자리에만 든다';
+    expect(() => defineProcedure({ ...머리, cases: [하나, 하나] })).toThrow(글);
+    expect(() => defineProcedure({ ...머리, cases: [하나, 케이스({ tcId: 'DEMO-FN-201' })] })).toThrow(글);
+  });
+
+  it('던지면 앞 케이스에 프로시저 번호를 남기지 않는다', () => {
+    const 앞 = 케이스();
+    expect(() => defineProcedure({ ...머리, cases: [앞, 케이스({ keepAppData: true })] })).toThrow();
+    expect(앞).not.toHaveProperty('procId');
+    expect(defineProcedure({ ...머리, procId: 'DEMO-TP-007', cases: [앞] }).cases[0]?.procSeq).toBe(1);
+  });
+
+  it('다른 파일에서 선언한 케이스를 넣으면 던진다', () => {
+    const 남의것 = 케이스({ tcId: 'DEMO-FN-205' });
+    남의것.filePath = 'DEMO-FN-205.spec.ts';
+    expect(() => defineProcedure({ ...머리, cases: [남의것] })).toThrow(
+      'DEMO-TP-001: DEMO-FN-205 는 다른 파일(DEMO-FN-205.spec.ts)의 케이스다 — 같은 파일에서 선언한 케이스만 넣는다',
     );
   });
 
@@ -134,11 +149,13 @@ describe('defineProcedure', () => {
     );
   });
 
-  it('케이스에 앱 켜기 설정을 적으면 던진다', () => {
-    expect(() => defineProcedure({ ...머리, cases: [케이스({ tcId: 'DEMO-FN-204', keepAppData: true })] })).toThrow(
-      'DEMO-TP-001: DEMO-FN-204 의 keepAppData · launchIntent 는 프로시저에 적는다',
-    );
-  });
+  it.each([[{ keepAppData: true }], [{ launchIntent: () => Promise.resolve({ activity: '.Main', extras: {} }) }]])(
+    '케이스에 앱 켜기 설정을 적으면 던진다',
+    (설정) => {
+      const 적은것 = defineCase({ tcId: 'DEMO-FN-204', name: '케이스', platforms: ['android'], precondition: [], params: null, expected: null, ...설정 });
+      expect(() => defineProcedure({ ...머리, cases: [적은것] })).toThrow('DEMO-TP-001: DEMO-FN-204 의 keepAppData · launchIntent 는 프로시저에 적는다');
+    },
+  );
 
   it('앱 켜기 설정은 프로시저에 적히고 launchIntent 는 첫 케이스의 입력값을 받는다', async () => {
     // 케이스 폴더의 로그인 도우미(tests/mta/helpers/login-inject.helper.ts)와 같은 꼴 — 그 도우미를 그대로 받아야 한다
