@@ -61,15 +61,13 @@ const PC는셋이다글 = '윈도우 PC 항목(windows*)은 engine GAME · udid(
 const 앱값 = (r: { platform: string; app?: string }): boolean => r.app === undefined || (PC항목인가(r.platform) ? r.app.length <= 200 && ![...r.app].some((c) => c < ' ') : 앱파일값인가(r.app));
 const 앱값글 = 'app 은 파일 경로나 http(s) 주소여야 한다(윈도우 PC 항목은 VISION 게임 이름)';
 
-export const executeRequest = z.object({
+// 두 요청 꼴이 같이 쓰는 칸 — 실행 단위에 한 벌이다
+const 실행칸 = {
   runId: z.number(),
   historyId: z.number(),
-  tcId: z.string(),
   platform: z.enum(['desktop', 'mobile', 'android', ...PC_PLATFORMS]),
   filePath: z.string(),
   baseUrl: z.string(),
-  params: z.record(z.string(), z.unknown()),
-  expected: z.record(z.string(), z.unknown()),
   // 0 은 한도 없음 — 게임 시나리오 항목이다 (공통/3-공유계약 「게임 시나리오 도구」)
   timeoutMs: z.number().int().nonnegative().default(300_000),
   app: z.string().min(1).optional(),
@@ -92,7 +90,23 @@ export const executeRequest = z.object({
   recordHar,
   live,
   cdpUrl,
-}).refine(실제폰은모바일만, 실제폰은모바일만글).refine(PC는셋이다, PC는셋이다글).refine(앱값, 앱값글);
+};
+const 케이스값 = z.record(z.string(), z.unknown());
+
+// 새 꼴 — 파일 하나 + 케이스 목록. 케이스가 없거나 같은 번호가 둘이면 거절한다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「거절」)
+const 새꼴 = z.object({
+  ...실행칸,
+  procId: z.string().min(1).optional(),
+  cases: z
+    .array(z.object({ tcId: z.string().min(1), params: 케이스값, expected: 케이스값 }))
+    .min(1)
+    .refine((cases) => new Set(cases.map((c) => c.tcId)).size === cases.length, 'cases 에 같은 tcId 가 둘 이상이다'),
+});
+// 앞 꼴 — 케이스 하나. 옮기는 동안 같이 받고 TP-F6-32 에 걷는다.
+// cases 가 온 요청은 여기로 떨어지지 않는다 — 틀린 케이스 목록을 버리고 앞 꼴로 돌리면 러너가 앞 꼴로 답한다
+const 앞꼴 = z.object({ ...실행칸, tcId: z.string(), params: 케이스값, expected: 케이스값, cases: z.never().optional() });
+
+export const executeRequest = z.union([새꼴, 앞꼴]).refine(실제폰은모바일만, 실제폰은모바일만글).refine(PC는셋이다, PC는셋이다글).refine(앱값, 앱값글);
 
 // farmToken 은 admin 이 그 폰을 잡은 팜 토큰이다 — 연결 열기 · 닫기 · 게임 명령이 같은 주인이어야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
 export const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional(), farmToken: 팜토큰.optional() });

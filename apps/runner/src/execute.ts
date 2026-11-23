@@ -1,13 +1,12 @@
-// 케이스 1건을 자식 프로세스로 돌리고 결과를 구조화해 돌려준다. 러너는 DB를 모른다 (SPEC §3.4)
-// 판정은 커스텀 리포터가 stdout에 뱉은 한 줄에서 온다. exit code는 그 줄이 없을 때의 대비책이다 (SPEC §5.2)
+// 파일 하나를 자식 프로세스로 돌리고 결과를 구조화해 돌려준다. 러너는 DB를 모른다 (SPEC §3.4)
+// 판정은 자식이 stdout에 뱉은 줄에서 온다 — 앞 꼴은 리포터의 결과 한 줄, 새 꼴은 kit 이 케이스마다 흘린 판정 줄이다. 답을 만드는 일은 response.ts 가 한다 (SPEC §5.2)
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import { dirname, join, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
-import { stripVTControlCharacters } from 'node:util';
 
-import { runDir, type ExecuteRequest, type ExecuteResponse, type FpsSample, type ItemStatus, type StepProgress } from '@platform/kit';
+import { runDir, type CasesExecuteRequest, type CasesExecuteResponse, type ExecuteRequest, type ExecuteResponse, type FpsSample, type StepProgress } from '@platform/kit';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
@@ -19,7 +18,10 @@ import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from '.
 import { 녹화폴더, 다음HAR경로 } from './recordHar.js';
 import { createProgressCollector } from './progress.js';
 import { 실제폰인가, 실제폰환경, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
-import { kit경고, kit경고뺌, parseResult, type RunnerResult } from './result.js';
+import { 앞꼴응답, 증적상태, 케이스응답, type KilledBy } from './response.js';
+import { kit경고 } from './result.js';
+
+export { killedResponse, statusFromExit, tail, type KilledBy } from './response.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
 export const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -27,9 +29,6 @@ export const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../.
 const reporterPath = resolve(appRoot, 'packages/kit/src/runtime/reporter.ts');
 
 export const testsDir = process.env.PLATFORM_TESTS_DIR ?? resolve(appRoot, 'tests');
-
-// 왜 죽였는지. 판정은 둘 다 NA지만 사람이 보는 사유가 갈린다 (SPEC §5.2)
-export type KilledBy = 'TIMEOUT' | 'ABORTED';
 
 export interface Running {
   child: ChildProcess;
@@ -77,12 +76,6 @@ export function abort(historyId: number): boolean {
   return true;
 }
 
-export function statusFromExit(code: number | null, timedOut: boolean): ItemStatus {
-  // 타임아웃은 통과도 실패도 아니다. 판정할 근거가 없으므로 NA다 (SPEC §5.2)
-  if (timedOut) return 'NA';
-  return code === 0 ? 'PASS' : 'FAIL';
-}
-
 // filePath는 admin이 HTTP로 넘긴 값이다. 테스트 루트 밖의 파일을 실행시키지 못하게 여기서 막는다
 export function resolveSpecPath(root: string, filePath: string): string | null {
   const base = resolve(root);
@@ -91,56 +84,17 @@ export function resolveSpecPath(root: string, filePath: string): string | null {
   return full;
 }
 
-// 앞을 그냥 잘라 내면 남은 글의 첫 줄이 원문 중간 줄(Received: …)이 되는데, admin 요약 자리는 그 첫 줄을 사유로 쓴다
-// (insights.ts 한줄로자른다). 줄 중간을 자르면 가리기가 못 알아보는 비밀값 조각도 남는다 — 그래서 첫 줄을 지키고 뒤는 줄 경계에서 자른다
-// Playwright 는 오류 글에 색 코드를 섞는데(「\u001b[31m…」) admin 요약은 첫 줄을 그대로 쓰니 여기서 걷는다
-export function tail(text: string): string {
-  const trimmed = stripVTControlCharacters(text).trim();
-  if (trimmed.length <= 2000) return trimmed;
-  const 줄끝 = trimmed.indexOf('\n');
-  // 1000자 넘는 첫 줄은 자르지 않고 통째로 뺀다. 어디를 잘라도 그 자리에 걸친 비밀값이 조각으로 남고,
-  // 줄 가운데를 안 자르니 이모지 반쪽(jsonb 가 받지 않는다)도 생기지 않는다
-  const 첫줄 = 줄끝 === -1 || 줄끝 > 1000 ? '' : trimmed.slice(0, 줄끝);
-  // 한 글자 더 앞에서 떠야 창이 마침 줄 첫머리에서 시작할 때 그 줄을 버리지 않는다.
-  // 창에 줄바꿈이 없으면 창 전체가 한 줄의 조각이라 통째로 버린다
-  const 창 = trimmed.slice(-(2000 - 첫줄.length - 2));
-  const 경계 = 창.indexOf('\n');
-  const 뒤 = 경계 === -1 ? '' : 창.slice(경계 + 1);
-  return [첫줄, '…', 뒤].filter((줄) => 줄 !== '').join('\n');
-}
-
-// 타임아웃으로 프로세스를 죽이면 결과 줄이 잘려 있을 수 있다. 그건 러너 고장이 아니라 중단의 흔적이다
-function parseAfterKill(stdout: string): RunnerResult | null {
-  try {
-    return parseResult(stdout);
-  } catch (err) {
-    console.warn(`[runner] 중단된 실행의 결과 줄을 버린다: ${err instanceof Error ? err.message : String(err)}`);
-    return null;
-  }
-}
-
-// 끊긴 실행은 타임아웃과 같은 모양으로 돌아온다. error.message만 갈린다 —
-// 모양이 같아야 admin의 저장 경로에 새 분기가 생기지 않는다 (SPEC §5.2)
-export function killedResponse(
-  historyId: number,
-  killedBy: KilledBy,
-  durationMs: number,
-  stdout: string,
-): ExecuteResponse {
-  return {
-    historyId,
-    status: 'NA',
-    durationMs,
-    // 부분 결과라도 있으면 그대로 넘긴다. 어디까지 갔는지가 사람에게는 정보다
-    steps: parseAfterKill(stdout)?.steps ?? [],
-    error: { message: killedBy },
-  };
-}
-
 export { gameEnv, traceEnv };
 
-export async function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse> {
+// 요청에 케이스 목록(cases)이 있으면 새 꼴로, 없으면 앞 꼴로 답한다. 앞 꼴은 TP-F6-32 에 걷는다 (SPEC 도메인/러너 §5.2 「프로시저 실행」)
+export function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse>;
+export function execute(req: CasesExecuteRequest, specPath: string): Promise<CasesExecuteResponse>;
+export function execute(req: ExecuteRequest | CasesExecuteRequest, specPath: string): Promise<ExecuteResponse | CasesExecuteResponse>;
+export async function execute(req: ExecuteRequest | CasesExecuteRequest, specPath: string): Promise<ExecuteResponse | CasesExecuteResponse> {
   const startedAt = Date.now();
+  const 케이스들 = 'cases' in req ? req.cases : undefined;
+  // 옛 꼴 파일은 케이스가 하나다 — 그 값을 지금 길(PLATFORM_PARAMS)로 읽는다
+  const 첫 = 'cases' in req ? req.cases[0]! : req;
   const 출력 = 출력폴더이름(req.historyId);
   // 시험 실행은 runId · historyId 가 0 이라 나란히 돌면 겹친다 — 출력 이름(무작위가 붙는다)으로 가른다
   const 판파일 =
@@ -161,7 +115,9 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
       cwd: appRoot,
       env: {
         ...process.env,
-        PLATFORM_PARAMS: JSON.stringify({ params: req.params, expected: req.expected }),
+        PLATFORM_PARAMS: JSON.stringify({ params: 첫.params, expected: 첫.expected }),
+        // 프로시저 파일은 케이스마다 자기 값을 여기서 꺼낸다. 늘 적는다 — 러너를 켠 셸의 값을 물려받지 않게 (도메인/러너 §5.2 「프로시저 실행」 「케이스별 입력」)
+        PLATFORM_CASES: 케이스들 === undefined ? '' : JSON.stringify(케이스들),
         // 러너는 어떤 대상 서버가 있는지 모른다. 주소 하나만 받아 그대로 넘기고
         // playwright.config.ts가 use.baseURL로 받는다 (SPEC §5.2)
         PLATFORM_BASE_URL: req.baseUrl,
@@ -248,7 +204,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   });
   await 출력폴더를지운다(출력);
   // 러너 기록에 옮겨 적는다 — 자식 출력은 응답 사유로만 쓰여 서버 기록에서 안 보였다
-  for (const 줄 of kit경고(stderr)) console.warn(`[runner] ${req.tcId} #${String(req.historyId)} ${줄}`);
+  for (const 줄 of kit경고(stderr)) console.warn(`[runner] ${('cases' in req ? req.procId : undefined) ?? 첫.tcId} #${String(req.historyId)} ${줄}`);
 
   // killedBy 와 상관없이 닫는다 — 정상 종료라도 kit 의 닫기가 실패했으면 번호 파일이 남는다.
   // 답하기 전에 끝내야 admin 이 답을 받았을 때 팜의 디바이스가 이미 풀려 있다
@@ -257,44 +213,10 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   // 하나도 못 읽었으면 칸을 안 싣는다 — 화면이 빈 선을 그리지 않는다
   const fps칸 = fps.some((f) => f.fps !== null) ? { fps } : {};
 
-  const 응답 = 응답을만든다(req, entry, code, startedAt, stdout, stderr, fps칸);
+  const 자식 = { killedBy: entry.killedBy, code, startedAt, stdout, stderr };
+  const 앞답 = 앞꼴응답(req.historyId, 자식, fps칸);
+  const 응답 = 케이스들 === undefined ? 앞답 : 케이스응답(케이스들, 앞답, 자식);
   if (폰기기 === undefined) return 응답;
-  if (폰증적) await 폰증적을둔다(폰폴더, 응답.status);
+  if (폰증적) await 폰증적을둔다(폰폴더, 증적상태(응답));
   return { ...응답, device: await 폰기기(응답.device) };
-}
-
-function 응답을만든다(
-  req: ExecuteRequest, entry: Running, code: number | null, startedAt: number, stdout: string, stderr: string, fps칸: Pick<ExecuteResponse, 'fps'>,
-): ExecuteResponse {
-  if (entry.killedBy !== null) {
-    return { ...killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout), ...fps칸 };
-  }
-
-  const parsed = parseResult(stdout);
-  if (parsed !== null) {
-    return {
-      historyId: req.historyId,
-      status: parsed.status,
-      durationMs: parsed.durationMs,
-      steps: parsed.steps,
-      ...(parsed.error === undefined ? {} : { error: parsed.error }),
-      // 앱 항목의 폰 · 앱 판. 증적 머리에 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
-      ...(parsed.device === undefined ? {} : { device: parsed.device }),
-      // 게임 항목만 — admin 이 게임 지도 · 서비스 지도에 쓴다 (공통/3-공유계약 「게임 테스트 타입」)
-      ...(parsed.elementChecks === undefined ? {} : { elementChecks: parsed.elementChecks }),
-      ...(parsed.apiCalls === undefined ? {} : { apiCalls: parsed.apiCalls }),
-      ...fps칸,
-    };
-  }
-
-  // 리포터가 결과를 못 뱉었다 = 케이스가 아예 안 돌았다(문법 오류·import 실패 등). exit code로만 판정한다
-  const status = statusFromExit(code, false);
-  return {
-    historyId: req.historyId,
-    status,
-    durationMs: Date.now() - startedAt,
-    steps: [],
-    ...(status === 'PASS' ? {} : { error: { message: tail(kit경고뺌(stderr)) || tail(stdout) } }),
-    ...fps칸,
-  };
 }

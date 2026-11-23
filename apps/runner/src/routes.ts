@@ -14,6 +14,7 @@ import { 팜증적받기를줄세운다, 팜토큰을지운다 } from './farmEvi
 import { registerLive, 장면과돌린다 } from './live.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
 import { registerRemote } from './remote.js';
+import { 증적상태 } from './response.js';
 import { executeScenario, 판뺀부품들, 폰단계가있나, 폰시나리오가도는가 } from './scenario.js';
 import { abortScenario, 시나리오진행 } from './scenarioRunning.js';
 import { 폰값이없다 } from './scenarioGate.js';
@@ -27,7 +28,8 @@ export function registerRoutes(app: FastifyInstance): void {
   // 토큰 검사를 맨 먼저 건다 — 뒤에 붙는 통로가 모두 그 아래다
   registerRemote(app);
 
-  app.get('/health', async () => ({ ok: true, playwrightVersion }));
+  // procedure — 새 꼴 요청(파일 하나 + 케이스 목록)을 받는 러너다. admin 은 이 칸이 없는 러너에 프로시저 파일을 보내지 않는다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「능력」)
+  app.get('/health', async () => ({ ok: true, playwrightVersion, procedure: true }));
 
   registerPerfDeviceRoutes(app);
   registerLive(app);
@@ -47,7 +49,7 @@ export function registerRoutes(app: FastifyInstance): void {
     try {
       const res = await 장면과돌린다(req.live, () => execute(req, specPath));
       // 큰 영상을 받느라 답이 늦으면 admin 의 디바이스 줄이 막힌다. 답한 뒤에 받는다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
-      if (req.platform === 'android') 팜증적받기를줄세운다(req.runId, req.historyId, res.status, req.farmToken, req.uiCheck, req.stability);
+      if (req.platform === 'android') 팜증적받기를줄세운다(req.runId, req.historyId, 증적상태(res), req.farmToken, req.uiCheck, req.stability);
       // 실제 폰 Chrome · 윈도우 PC 항목도 팜 토큰을 받는다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」 · 「윈도우 PC 게임 항목」)
       return req.platform === 'android' || PC항목인가(req.platform) || req.cdpUrl !== undefined ? 팜토큰을지운다(res, [req.farmToken, process.env.PLATFORM_APPIUM_TOKEN]) : res;
     } catch (err) {

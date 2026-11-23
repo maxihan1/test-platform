@@ -2,7 +2,7 @@
 
 import { stripVTControlCharacters } from 'node:util';
 
-import { RESULT_MARKER, type ExecuteResponse } from '@platform/kit';
+import { CASE_MARKER, RESULT_MARKER, type CaseResult, type ExecuteResponse } from '@platform/kit';
 
 export type RunnerResult = Pick<ExecuteResponse, 'status' | 'durationMs' | 'steps' | 'error' | 'device' | 'elementChecks' | 'apiCalls'>;
 
@@ -29,6 +29,23 @@ export function parseResult(stdout: string): RunnerResult | null {
  */
 function 오류를다듬는다(error: NonNullable<RunnerResult['error']>): NonNullable<RunnerResult['error']> {
   return { message: stripVTControlCharacters(error.message), ...(error.stack !== undefined && { stack: stripVTControlCharacters(error.stack) }) };
+}
+
+/**
+ * 프로시저가 케이스가 끝나는 대로 흘린 판정 줄 — 나온 차례대로. 같은 케이스가 두 번 올 수 있다(끝 정리 절차를 더한 줄).
+ * 못 읽는 줄은 버린다 — 끊긴 프로세스의 잘린 마지막 줄이다. 그 케이스는 줄이 없는 케이스로 채워진다 (도메인/러너 §5.2 「프로시저 실행」)
+ */
+export function parseCaseResults(stdout: string): CaseResult[] {
+  return stdout.split('\n').flatMap((줄): CaseResult[] => {
+    if (!줄.startsWith(CASE_MARKER)) return [];
+    try {
+      const 판정 = JSON.parse(줄.slice(CASE_MARKER.length)) as CaseResult;
+      return [판정.error === undefined ? 판정 : { ...판정, error: 오류를다듬는다(판정.error) }];
+    } catch (err) {
+      console.warn(`[runner] 케이스 판정 줄을 버린다: ${err instanceof Error ? err.message : String(err)}`);
+      return [];
+    }
+  });
 }
 
 // 자식(케이스)이 남긴 kit 경고 줄 — 장면 · 영상을 못 건 까닭이 여기에만 있다. 같은 줄은 한 번만 (2026-11-05 WEB-F9-11)
