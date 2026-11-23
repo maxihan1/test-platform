@@ -154,7 +154,7 @@ export const 오류영어: Record<string, string> = {
   '게임 플랫폼은 만든 뒤에 변경할 수 없습니다. 다른 플랫폼은 애플리케이션을 따로 만듭니다': 'The game platform cannot be changed after creation. Create a separate application for another platform',
   '테스트 프로시저로 작성한 케이스가 있어 끌 수 없습니다': 'Cannot turn this off while test procedure cases exist',
   '테스트 프로시저는 Android 앱과 게임 애플리케이션에서만 켤 수 있습니다': 'Test procedures can only be turned on for Android app and game applications',
-  '러너가 테스트 프로시저를 실행하지 못하는 버전입니다': 'This runner version cannot run test procedures',
+  '서버 테스트 실행기가 테스트 프로시저를 실행하지 못하는 버전입니다': 'This runner version cannot run test procedures',
   '지원 패드는 PC 게임에만 넣을 수 있습니다': 'Supported gamepads can only be set on PC games',
   '지원 패드는 PS5 · PS4 · Switch · Xbox 중에서 겹치지 않게 선택합니다': 'Pick supported gamepads from PS5 · PS4 · Switch · Xbox without duplicates',
   '어드민 키 칸이 맞지 않습니다. 헤더 이름은 영문 · 숫자 · - 이고 값은 12자 이상이며 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다': 'Admin key is invalid. The header name uses letters, digits and -, and the value needs 12+ characters with at most one space in the middle',
