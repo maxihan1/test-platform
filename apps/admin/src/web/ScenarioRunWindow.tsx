@@ -188,7 +188,10 @@ function 장면없음({ data, 머리끝 }: { data: ScenarioRunResult; 머리끝:
         )}
         {머리끝}
       </div>
-      <p className="live-wait">{빈칸글(data, t)}</p>
+      {/* 장면칸과 같은 그림 자리에 둔다 — 안내 상자가 칸에 남은 높이를 채운다 (trialRunning.css `.live-fit`) */}
+      <div className="live-fit">
+        <p className="live-wait">{빈칸글(data, t)}</p>
+      </div>
     </section>
   );
 }

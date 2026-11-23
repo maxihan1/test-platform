@@ -106,7 +106,9 @@ describe('E2E 정식 실행 창 — 도는 중', () => {
     vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
     그리기();
 
-    expect(await screen.findByText('지금 화면은 Device VISION 에서 볼 수 있습니다')).toBeTruthy();
+    const 안내 = await screen.findByText('지금 화면은 Device VISION 에서 볼 수 있습니다');
+    // 장면 칸과 같은 그림 자리(.live-fit) 안이어야 안내 상자가 칸에 남은 높이를 채운다 (trialRunning.css)
+    expect(안내.parentElement?.className).toBe('live-fit');
     expect(screen.getByText('Pixel 8')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' }).getAttribute('href')).toBe('https://vision.example/#p');
   });

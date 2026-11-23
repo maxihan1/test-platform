@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 
+import { 그림이뜬다, 틀비율 } from './liveFit.fixture.js';
 import { E2E화면카드 } from './ScenarioLiveCard.js';
 import { 장면통로 } from './TrialLive.js';
 
@@ -70,6 +71,9 @@ describe('E2E 화면 카드', () => {
 
     expect(document.querySelector('.live-shot.lc-phone img')).not.toBeNull();
     expect(document.querySelector('.lc-tag')?.textContent).toBe('실제 디바이스');
+
+    그림이뜬다(screen.getByRole('img', { name: '지금 화면' }), 2400, 1080);
+    expect(틀비율(document.querySelector('.lc-scene > .live-shot'))).toBeCloseTo(2400 / 1080);
   });
 
   it('장면 열쇠가 없는 실행(admin 이 다시 뜸)은 Device VISION 링크만 서고 장면을 묻지 않는다', async () => {
