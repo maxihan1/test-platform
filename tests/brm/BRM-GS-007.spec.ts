@@ -61,7 +61,6 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 골드 = await verify.log('보스 처치 줄 골드가 전부 200 이다', 처치.map((줄) => 줄.gold), 200);
     const 개수 = await verify.log('보스 처치마다 아이템 줄이 1줄이다', 전리품.map((x) => x.length), 1);
     const 목록안 = await verify.log('보스 처치 아이템 줄이 기획서 전리품 셋 가운데 하나다', 전리품.flat().map((x) => (보스전리품.includes(x) ? 1 : 0)), 1);
-    await verify.note('보스 처치로 받은 아이템', 전리품);
     await verify('BRM-REQ-124 혼자 장비 없이 잡은 보스 처치 경험치는 300 이다', 경험치, true);
     await verify('BRM-REQ-131 장비 없이 잡은 보스 처치 골드는 200 이다', 골드, true);
     await verify('BRM-REQ-132 보스 처치로 받은 전리품 줄은 1줄이다', 개수, true);
