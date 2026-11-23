@@ -41,7 +41,7 @@ Unity 「Boss Room」(4인 협동 액션 RPG) 포크를 Windows PC 용으로 빌
 - 요령 · 게임 코드 — 로딩 화면도 지우지 않고 CanvasGroup.alpha 로 숨긴다(0.5초 뒤 0.1초 동안 흐려짐) (Packages/com.unity.multiplayer.samples.coop/Utilities/SceneManagement/ClientLoadingScreen.cs)
 - 요령 · 게임 코드 — 키 4 는 행동 4 와 감정표현 띠 켜고 끄기에 같이 묶여 있고, 키 5~8 은 감정표현이다 (Assets/InputSystem/PlayerActions.inputactions)
 - 요령 · 게임 코드 — 원본은 모두 준비하면 3초 뒤 던전, 보스 처치 7초 뒤 · 전원 쓰러짐 2.5초 뒤 결과 화면이다 (Assets/Scripts/Gameplay/GameState/ServerBossRoomState.cs)
-- 요령 · 공용 서버 — 던전에는 처음부터 임프 24마리가 있다. /gm killall 로 먼저 치우면 처치 보상으로 레벨 · 골드가 오르니 레벨 · 골드는 치운 뒤에 맞춘다
+- 요령 · 데이터 — 패드를 붙이면 행동 버튼의 숫자 안내(Button<n>/Text (1))는 꺼지고 PadGlyph 가 켜진다. 숨음은 find 의 inactive 로 「꺼짐」과 「없음」을 가르고, 스킬2 버튼은 궁수 · 도적만 켜지니 그림 케이스는 도적으로 들어간다
 - 요령 · 공용 서버 — 혼자 「준비!」를 누르면 3초 뒤 던전으로 넘어간다. 로비에 머물러야 하면 준비하지 않은 손님 봇을 먼저 둔다
 - 요령 · 공용 서버 — 혼자 쓰러지면 2.5초 안에 결과 화면으로 넘어간다. 쓰러진 뒤를 보려면 살아 있는 봇(gm:god)을 같이 넣는다
 - 요령 · 공용 서버 — 서버 상태 읽기 실패를 걸어 두고 다 안 쓰면 남은 실패가 다음 공지 · 점검 케이스를 흔든다
