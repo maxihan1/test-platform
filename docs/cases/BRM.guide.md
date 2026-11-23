@@ -53,3 +53,4 @@ Unity 「Boss Room」(4인 협동 액션 RPG 샘플) 포크를 Android 로 빌�
 - 요령 · 게임 코드 — 「질주 공격」의 받는 피해 0 은 누른 뒤 준비 시간이 지나 달리기 시작한 때부터다 — 누르자마자 맞으면 배율이 1 이다 (Assets/Scripts/Gameplay/Action/ConcreteActions/DashAttackAction.cs)
 - 요령 · 공용 서버 — 앞 실행이 끊기지 않고 남으면 일반 회원 로그인이 「같은 계정으로 이미 접속 중」 창으로 막힌다 — 로그인 전에 시험 주소 접속 끊기(kick, 사유 없이)를 먼저 부른다
 - 요령 · 게임 코드 — 로비 자리는 확정(준비)하면 빛 · 체크가 같이 켜지고 그 자리 버튼이 눌리지 않으며, 접속자 모두 확정하면 던전을 부르기 전 3초 동안만 로비 안내가 뜬다 (Assets/Scripts/Gameplay/UI/UICharSelectPlayerSeat.cs · Assets/Scripts/Gameplay/GameState/ServerCharSelectState.cs)
+- 요령 · 게임 코드 — 감정 표현 막대는 버튼 하나를 누르면 바로 닫힌다 — 감정 표현을 이어서 누르려면 「감정」 버튼으로 다시 연다 (Assets/Scripts/Gameplay/UI/HeroEmoteBar.cs)
