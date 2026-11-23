@@ -1258,6 +1258,8 @@ export interface CaseQuery {
   last?: ItemStatus;
   /** 스모크만(true) · 스모크 아닌 것만(false). 없으면 안 거른다 (도메인/카탈로그 §7 `?smoke=`) */
   smoke?: boolean;
+  /** 게임 미션(-GS-)만(true) · 뺀 것(false). 없으면 안 거른다 — 게임 메뉴 「게임 미션」 · 「기능 테스트」 (도메인/카탈로그 §7 `?mission=`) */
+  mission?: boolean;
   /** 가장 늦은 테스트 수정 줄이 통과한 케이스만 — 탭 「자동 수정 N」 (도메인/BTS §7 `?autoFix=1`) */
   autoFix?: boolean;
 }
@@ -1278,6 +1280,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
   }
   if (query.last !== undefined) params.set('last', query.last.toLowerCase());
   if (query.smoke !== undefined) params.set('smoke', query.smoke ? '1' : '0');
+  if (query.mission !== undefined) params.set('mission', query.mission ? '1' : '0');
   if (query.autoFix === true) params.set('autoFix', '1');
   return params;
 }

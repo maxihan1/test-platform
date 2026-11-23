@@ -55,6 +55,7 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   const 고른 = user.services.find((서비스) => 서비스.prefix === prefix);
   const 줄 = 종류(고른?.kind);
   const API = 종류키(고른?.kind) === 'API';
+  const 게임 = 종류키(고른?.kind) === 'GAME';
   const 실행 = 기능보나(user, prefix, 'runs');
   // QA 단계 구분선 넷 — 메뉴만 훑어도 품질 현황 → 설계 → 수행 → 결과 분석이 읽힌다 (2026-11-12 사용자 · 시안 LrgxrskjP1hxHEFj3qRjsZ)
   const 현황 = t('품질 현황', 언어);
@@ -82,7 +83,12 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
     // API 애플리케이션은 화면이 없어 UI 테스트가 없다(도메인/API §3.1) — 이름도 「기능 테스트」이고 하위 없이 바로 그 목록이다.
     // 주소는 지금 자리(`지금자리` 의 `#/cases/fn`)와 같아야 밑줄이 간다
     if (API) 목록.push({ 이름: t('기능 테스트', 언어), 해시: '#/cases/fn', 아이콘: 'cases', 단계: 수행 });
-    else {
+    else if (게임) {
+      // 게임은 UI 갈래를 새로 쓰지 않고 게임 시나리오(-GS-)가 따로 돈다 — 둘 다 하위 없는 한 줄이다.
+      // 남은 -UI- 케이스는 「기능 테스트」 화면의 링크로 간다 (도메인/게임 「케이스 꼴」 · 2026-11-23 사용자)
+      목록.push({ 이름: t('기능 테스트', 언어), 해시: '#/cases/fn', 아이콘: 'cases', 단계: 수행 });
+      목록.push({ 이름: t('게임 미션', 언어), 해시: '#/cases/gs', 아이콘: 'game', 단계: 수행 });
+    } else {
       // 묶음을 누르면 기능으로 간다(route.ts — 종류 없는 주소는 기능). 첫 하위가 그 화면이어야 누른 자리와 열린 화면이 맞는다
       const 이름 = t('기능 · UI 테스트', 언어);
       목록.push({ 이름, 해시: '#/cases', 아이콘: 'cases', 단계: 수행, 하위: [하위하나(이름, '기능 테스트', '#/cases/fn', 언어), 하위하나(이름, 'UI 테스트', '#/cases/ui', 언어)] });

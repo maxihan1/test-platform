@@ -198,6 +198,13 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     expect(decodeURIComponent(머리.split("UTF-8''")[1]!)).toMatch(/^XCX-테스트케이스-\d{4}-\d{2}-\d{2}\.xlsx$/);
   });
 
+  it('게임 미션 조건도 파일에 걸린다 — mission=1 은 -GS- 만이라 빈 파일이고 이름에 -GS- 가 붙는다 · mission=0 은 전부', async () => {
+    const 미션 = await 받기('xcx-all', '&kind=fn&mission=1');
+    expect(decodeURIComponent(String(미션.headers['content-disposition']).split("UTF-8''")[1]!)).toMatch(/^XCX-테스트케이스-GS-\d{4}-\d{2}-\d{2}\.xlsx$/);
+    expect(행들(await 책(미션.rawPayload), '테스트 케이스')).toHaveLength(0);
+    expect(행들(await 책((await 받기('xcx-all', '&kind=fn&mission=0')).rawPayload), '테스트 케이스')).toHaveLength(건수);
+  });
+
   it('쪽 없이 전부 싣고 검색 조건은 따른다', async () => {
     expect(행들(await 책((await 받기('xcx-all')).rawPayload), '테스트 케이스')).toHaveLength(건수);
     const 거른 = 행들(await 책((await 받기('xcx-all', '&q=' + encodeURIComponent('장바구니'))).rawPayload), '테스트 케이스');

@@ -10,6 +10,7 @@ import { AuthoringDetail } from './AuthoringDetail.js';
 import { CaseList } from './CaseList.js';
 import { Dashboard } from './Dashboard.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
+import { 종류키 } from './kind.js';
 import { ItemDetail } from './ItemDetail.js';
 import { use이동, 떠나기로했다, 떠나기막기, 버리기전, 주소고치기, 주소덮기 } from './leaveGuard.js';
 import {
@@ -89,12 +90,14 @@ function Screen({
   switch (current.name) {
     case 'dashboard':
       return <Dashboard 서비스열기={on서비스번호} {...대시보드재료(user, service?.prefix ?? null)} />;
-    case 'cases':
+    case 'cases': {
+      // 게임 미션 메뉴는 게임에만 있다 — 다른 종류에서 옛 링크 · 애플리케이션 바꾸기로 `#/cases/gs` 에 와도 기능 목록이다 (화면공통 §8 「자리 목록」)
+      const kind = current.kind === 'GS' && 종류키(service?.kind) !== 'GAME' ? 'FN' : current.kind;
       // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
       return (
         <CaseList
-          key={`${current.kind}:${current.req ?? ''}`}
-          kind={current.kind}
+          key={`${kind}:${current.req ?? ''}`}
+          kind={kind}
           service={prefix}
           할수={할수}
           결과보나={기능보나(user, service?.prefix ?? null, 'runs')}
@@ -103,6 +106,7 @@ function Screen({
           앱종류={service?.kind}
         />
       );
+    }
     case 'setup':
       // 옛 주소 — 한 건짜리 실행 설정 화면은 실행 창으로 합쳤다(2026-10-09). 북마크 · 지난 알림으로 와도 같은 창을 연다
       return <RunWindow tcIds={[current.tcId]} onClose={() => 주소덮기('#/cases')} on걸림={() => undefined} />;
@@ -475,7 +479,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       onLogout={나간다}
       current={(() => {
         const 지금 = route(hash);
-        return 지금자리(지금.name, 집(상태.user, 열린접두사), 'kind' in 지금 ? 지금.kind : undefined);
+        const 게임 = 종류키(열린것?.kind) === 'GAME';
+        const 종류 = 'kind' in 지금 ? (지금.kind === 'GS' && !게임 ? 'FN' : 지금.kind) : undefined;
+        return 지금자리(지금.name, 집(상태.user, 열린접두사), 종류, 게임);
       })()}
     >
       {안내 === null ? null : (

@@ -16,6 +16,7 @@ export function 목록부제({
   scan,
   error,
   모으는중,
+  UI링크 = false,
 }: {
   /** 아직 못 받았으면 null */
   전체: number | null;
@@ -23,6 +24,8 @@ export function 목록부제({
   scan: LastScan | null;
   error: string | null;
   모으는중: boolean;
+  /** 게임 「기능 테스트」 — 게임에는 UI 메뉴가 없어 UI 번호 케이스로 가는 길을 여기 둔다 (화면공통 §8 「자리 목록」) */
+  UI링크?: boolean;
 }) {
   const t = use말();
 
@@ -38,6 +41,13 @@ export function 목록부제({
       )}
       {' · '}
       <ScanInfo scan={scan} error={error} />
+      {/* 섞으면 「모두 실행」이 MIXED_KIND 로 거절돼 기능 목록에 넣지 않는다 (도메인/게임 「케이스 꼴」) */}
+      {!UI링크 ? null : (
+        <span>
+          {' · '}
+          {t('버튼 반응 · 화면 잘림 같은 UI 번호 케이스는 따로 실행합니다')} <a href="#/cases/ui">{t('UI 번호 케이스 보기')}</a>
+        </span>
+      )}
       {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
       {!모으는중 ? null : (
         <span className="scan-text" role="status">

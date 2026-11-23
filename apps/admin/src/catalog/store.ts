@@ -126,6 +126,8 @@ export interface CaseQuery extends 맥락조건 {
   pageSize: number | null;
   // 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 없으면 둘 다 (카탈로그 §7 `?kind=` · PR #132)
   kind?: 'UI' | 'FN';
+  // 게임 미션(-GS-) 만(true) · 뺀 것(false). 없으면 안 거른다 — 게임 메뉴 「게임 미션」 · 「기능 테스트」가 나눠 본다 (카탈로그 §7 `?mission=`)
+  mission?: boolean;
   // 설계 기법. none 은 기법이 안 적힌 것 전부다 (카탈로그 §7 `?technique=` · §8.1)
   technique?: Technique | 'none';
   // 유효 스모크로 거른다. 없으면 안 거른다 (카탈로그 §7 `?smoke=`)
@@ -181,15 +183,17 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
          FROM test_case c
         WHERE tc_id LIKE $1 AND is_active AND ${미확정사유SQL('c')} IS NOT NULL
           -- 종류는 검색 조건이 아니라 사이드바가 고른 범위라 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않게 (PR #132)
-          AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))`,
-      [`${query.service}-%`, query.kind ?? null],
+          AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))
+          AND ($3::boolean IS NULL OR (tc_id ~ '-GS-[0-9]{3}$') = $3)`,
+      [`${query.service}-%`, query.kind ?? null, query.mission ?? null],
     ),
     pool.query<{ has: boolean }>(
       // 종류 · 활성 여부는 따른다 — 그 목록에서 늘 빈 목록만 내는 칩도, 꺼진 앱 케이스를 보는데 숨는 칩도 없게
       `SELECT EXISTS (SELECT 1 FROM test_case
                        WHERE tc_id LIKE $1 AND (NOT $3::boolean OR is_active) AND platforms @> '["android"]'::jsonb
-                         AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))) AS has`,
-      [`${query.service}-%`, query.kind ?? null, query.activeOnly],
+                         AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))
+                         AND ($4::boolean IS NULL OR (tc_id ~ '-GS-[0-9]{3}$') = $4)) AS has`,
+      [`${query.service}-%`, query.kind ?? null, query.activeOnly, query.mission ?? null],
     ),
     query.마지막 === undefined ? new Map<string, 자동수정줄>() : 자동수정목록(query.service),
   ]);
@@ -206,7 +210,9 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
         -- UI 번호 꼴은 catalog/rules.ts tcId종류 와 같은 뜻이다
         AND ($6::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($6 = 'UI'))
         AND ($7::text IS NULL OR ($7 = 'none' AND cardinality(techniques) = 0) OR $7 = ANY(techniques))
-        AND ($9::boolean IS NULL OR COALESCE(smoke_set, smoke) = $9)`,
+        AND ($9::boolean IS NULL OR COALESCE(smoke_set, smoke) = $9)
+        -- 게임 시나리오 번호 꼴은 kit 게임시나리오인가 와 같은 뜻이다
+        AND ($10::boolean IS NULL OR (tc_id ~ '-GS-[0-9]{3}$') = $10)`,
     [
       `${query.service}-%`,
       query.q,
@@ -217,6 +223,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       query.technique ?? null,
       query.q === '' ? [] : 요구로찾기(표, query.q),
       query.smoke ?? null,
+      query.mission ?? null,
     ],
   );
   const 기기 = new Map(맞은번호.rows.map((r) => [r.tc_id, r.platforms]));

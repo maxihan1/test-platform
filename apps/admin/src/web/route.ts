@@ -1,12 +1,17 @@
 // 주소창의 해시를 화면 한 개로 푼다. 서버 라우팅을 건드리지 않으려고 해시를 쓴다
 // app.ts의 정적 서빙은 Phase 0가 고정한 공용 골격이라 history API용 되돌림 규칙을 넣을 수 없다
 
+import { 게임시나리오인가 } from '@platform/kit/protocol';
+
 import type { User } from './api.js';
 import { 기능보나, 케이스서비스, type 기능 } from './role.js';
 
 // 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 종류 없는 옛 주소는 기능이다 — 지금 케이스가 전부 기능이라서 (화면공통 §8 · PR #132)
 export type 케이스종류 = 'UI' | 'FN';
 const 종류글자: Record<string, 케이스종류> = { ui: 'UI', fn: 'FN' };
+// 케이스 목록에는 게임 메뉴 「게임 미션」(-GS-)이 하나 더 있다. 실행 종류로는 기능이라 실행 기록에는 따로 없다 (화면공통 §8 「자리 목록」 · 도메인/게임 「케이스 꼴」)
+export type 목록종류 = 케이스종류 | 'GS';
+const 목록종류글자: Record<string, 목록종류> = { ...종류글자, gs: 'GS' };
 // 실행 기록에만 셋째 하위가 있다 — 케이스 목록에는 시나리오가 없다 (도메인/실행 §8.7)
 export type 실행종류 = 케이스종류 | 'E2E';
 const 실행종류글자: Record<string, 실행종류> = { ...종류글자, e2e: 'E2E' };
@@ -19,7 +24,7 @@ export type Route =
   /** 자리 — 설정 안에서 고른 것. 서비스 접두사 · `users` · `pending` · `new`. 없으면 첫 서비스다 (도메인/인증 §8.8) */
   | { name: 'settings'; 자리?: string }
   /** req — 「PRD 관리」에서 넘어온 요구 번호. 그 요구를 덮는 케이스만 거른다 (도메인/카탈로그 §8.1 「맥락」) */
-  | { name: 'cases'; kind: 케이스종류; req?: string }
+  | { name: 'cases'; kind: 목록종류; req?: string }
   | { name: 'setup'; tcId: string }
   | { name: 'runs'; kind: 실행종류 }
   | { name: 'scenarios' }
@@ -87,7 +92,7 @@ export const 케이스주소 = (tcId: string) => {
   const 번호 = encodeURIComponent(tcId);
   const 접두사 = 케이스서비스(tcId);
   const 앱 = 접두사 === null ? '' : '&service=' + encodeURIComponent(접두사);
-  return `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?q=${번호}&case=${번호}${앱}`;
+  return `#/cases/${UI케이스인가(tcId) ? 'ui' : 게임시나리오인가(tcId) ? 'gs' : 'fn'}?q=${번호}&case=${번호}${앱}`;
 };
 
 /** 「PRD 관리」의 그 항목 주소. 거기서 묶음을 펴고 그 줄로 간다 (도메인/카탈로그 §8.1 「맥락」) */
@@ -130,13 +135,13 @@ export function route(hash: string): Route {
   if (parts.length === 0 || (parts.length === 1 && parts[0] === 'dashboard')) return { name: 'dashboard' };
 
   if (parts[0] === 'cases' && parts.length === 1) return { name: 'cases', kind: 'FN' };
-  if (parts[0] === 'cases' && parts.length === 2 && 종류글자[parts[1]!] !== undefined) {
-    return { name: 'cases', kind: 종류글자[parts[1]!]! };
+  if (parts[0] === 'cases' && parts.length === 2 && 목록종류글자[parts[1]!] !== undefined) {
+    return { name: 'cases', kind: 목록종류글자[parts[1]!]! };
   }
 
-  if (parts[0] === 'cases' && parts.length === 4 && 종류글자[parts[1]!] !== undefined && parts[2] === 'req') {
+  if (parts[0] === 'cases' && parts.length === 4 && 목록종류글자[parts[1]!] !== undefined && parts[2] === 'req') {
     const req = 풀기(parts[3]!);
-    if (req !== null) return { name: 'cases', kind: 종류글자[parts[1]!]!, req };
+    if (req !== null) return { name: 'cases', kind: 목록종류글자[parts[1]!]!, req };
   }
 
   if (parts[0] === 'cases' && parts.length === 3 && parts[2] === 'run') {

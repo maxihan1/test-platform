@@ -4,6 +4,9 @@ export const 케이스말: Record<string, string> = {
   // 화면 머리와 집계 띠
   '불러오는 중입니다': 'Loading…',
   '모두 {건수}건': '{건수} in total',
+  // 게임 「기능 테스트」 부제 — 게임에는 UI 메뉴가 없어 여기서 간다
+  '버튼 반응 · 화면 잘림 같은 UI 번호 케이스는 따로 실행합니다': 'UI-numbered cases such as button responses and clipped screens run separately',
+  'UI 번호 케이스 보기': 'View UI-numbered cases',
   // 머리 실행 단추 — 거른 것이 없으면 전부, 있으면 걸러진 것만 (2026-11-11 시안 B)
   '전체 실행 ({건수})': 'Run all ({건수})',
   '전체 시험 실행 ({건수})': 'Trial run all ({건수})',

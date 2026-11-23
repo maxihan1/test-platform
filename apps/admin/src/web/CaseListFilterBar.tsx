@@ -36,7 +36,7 @@ export interface 필터조건 {
 
 export function use필터조건들(
   검색: 검색,
-  { kind, 앱있음, 앱종류, 서버목록 }: { kind: 'UI' | 'FN'; 앱있음: boolean; 앱종류?: 앱종류; 서버목록: { name: string; count: number }[] },
+  { kind, 앱있음, 앱종류, 서버목록 }: { kind: 'UI' | 'FN' | 'GS'; 앱있음: boolean; 앱종류?: 앱종류; 서버목록: { name: string; count: number }[] },
 ): 필터조건[] {
   const t = use말();
   const 기법말 = use기법말();
