@@ -78,6 +78,8 @@ export async function 엑셀자료(입력: 맥락조건 & {
   last?: ItemStatus;
   // 「스모크만」 — 목록과 같은 조건이라야 버튼 건수와 파일 건수가 같다
   smoke?: boolean;
+  // 게임 메뉴 「게임 미션」 · 「기능 테스트」 — 목록과 같은 조건 (카탈로그 §7 `?mission=`)
+  mission?: boolean;
   // 「자동 수정」 탭 — 목록과 같은 조건 (도메인/BTS §7 `?autoFix=1`)
   autoFix?: boolean;
   canSeeRuns: boolean;
@@ -100,6 +102,7 @@ export async function 엑셀자료(입력: 맥락조건 & {
     kind: 입력.kind,
     technique: 입력.technique,
     smoke: 입력.smoke,
+    mission: 입력.mission,
     autoFix: 입력.autoFix,
     마지막: 입력.canSeeRuns ? { 판정: 판정으로(마지막), last: 입력.last } : undefined,
     page: 1,
