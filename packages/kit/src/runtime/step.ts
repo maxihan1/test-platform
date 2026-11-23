@@ -49,7 +49,7 @@ export async function runStep(
   options?: StepOptions,
 ): Promise<StepOutcome> {
   const seq = ++run.seq;
-  알린다(seq, title);
+  알린다(seq, title, run.proc?.cases[run.proc.at]?.tcId);
   const scope: StepScope = { assertions: [] };
   const startedAt = Date.now();
 

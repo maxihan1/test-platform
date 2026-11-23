@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineCase } from './defineCase.js';
-import { injectedInputs, resolveInputs } from './inputs.js';
+import { injectedCases, injectedInputs, resolveInputs } from './inputs.js';
 
 const withParams = defineCase({
   tcId: 'DEMO-101',
@@ -142,5 +142,26 @@ describe('계정 채우기 — PLATFORM_ACCOUNTS (작성 §3.6 「★ 역할별 
 
   it('params 가 없다고 적은 케이스는 건드리지 않는다', () => {
     expect(resolveInputs(withoutParams, injectedInputs(accountsEnv(qaRows))).params).toEqual({});
+  });
+});
+
+describe('injectedCases — 러너가 프로시저에 넘긴 케이스별 입력', () => {
+  it('PLATFORM_CASES 의 케이스 목록을 도는 차례 그대로 읽는다', () => {
+    const 목록 = [
+      { tcId: 'DEMO-FN-001', params: { loginId: 'qa1' }, expected: {} },
+      { tcId: 'DEMO-FN-002', params: {}, expected: { 남은글자: '-1' } },
+    ];
+    expect(injectedCases({ PLATFORM_CASES: JSON.stringify(목록) })).toEqual(목록);
+  });
+
+  it('없거나 비었으면 undefined 다 — 사람이 손으로 돌리는 것이라 스키마 기본값으로 돈다', () => {
+    expect(injectedCases({})).toBeUndefined();
+    expect(injectedCases({ PLATFORM_CASES: '  ' })).toBeUndefined();
+  });
+
+  it('JSON 이 아니거나 케이스 목록이 아니면 던지되 받은 글은 싣지 않는다 — 케이스 값에 비밀번호가 들 수 있다', () => {
+    expect(() => injectedCases({ PLATFORM_CASES: '[{"tcId":"A","params":{"pw":"s3cret"' })).toThrow(/^PLATFORM_CASES가 JSON이 아니다$/);
+    expect(() => injectedCases({ PLATFORM_CASES: '{"tcId":"A"}' })).toThrow(/^PLATFORM_CASES가 케이스 목록이 아니다$/);
+    expect(() => injectedCases({ PLATFORM_CASES: '[{"params":{}}, null]' })).toThrow(/^PLATFORM_CASES가 케이스 목록이 아니다$/);
   });
 });

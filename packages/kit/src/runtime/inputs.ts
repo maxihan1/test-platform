@@ -4,6 +4,7 @@
 import type { z } from 'zod';
 
 import { 계정채우기, 출처, type 역할계정, type 칸꼬리표 } from '../accounts.js';
+import type { ExecuteCase } from '../types.js';
 import { schemasOf, type CaseHandle, type CaseSchema } from './defineCase.js';
 
 export interface RawInputs {
@@ -57,6 +58,27 @@ export function injectedInputs(env: NodeJS.ProcessEnv = process.env): RawInputs 
 
   const box = (parsed ?? {}) as { params?: unknown; expected?: unknown };
   return { params: box.params ?? {}, expected: box.expected ?? {}, ...withAccounts };
+}
+
+/**
+ * 러너가 프로시저에 넘긴 케이스별 입력(PLATFORM_CASES — JSON `[{ tcId, params, expected }]` · 도는 차례대로).
+ * 없으면 undefined — 사람이 손으로 돌리는 것이라 케이스마다 스키마 기본값으로 돈다 (도메인/러너 §5.2 「프로시저 실행」 「케이스별 입력」)
+ */
+export function injectedCases(env: NodeJS.ProcessEnv = process.env): ExecuteCase[] | undefined {
+  const raw = env.PLATFORM_CASES;
+  if (raw === undefined || raw.trim() === '') return undefined;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // 케이스 값에 비밀번호가 들 수 있다 — JSON.parse 문장은 받은 글의 앞부분을 실으니 버리고 이름만 알린다
+    throw new Error('PLATFORM_CASES가 JSON이 아니다');
+  }
+  if (!Array.isArray(parsed) || parsed.some((c: unknown) => typeof (c as { tcId?: unknown } | null)?.tcId !== 'string')) {
+    throw new Error('PLATFORM_CASES가 케이스 목록이 아니다');
+  }
+  return parsed as ExecuteCase[];
 }
 
 function describeIssues(error: z.ZodError): string {

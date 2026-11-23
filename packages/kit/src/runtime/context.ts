@@ -5,7 +5,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 import type { Locator } from '@playwright/test';
 
-import type { ApiCallSeen, AssertionResult, CaseResult, CaseSpec, ElementCheck, ShapeCheck, StepResult } from '../types.js';
+import type { ApiCallSeen, AssertionResult, CaseResult, CaseSpec, ElementCheck, ExecuteCase, ShapeCheck, StepResult } from '../types.js';
 
 /** 실패 사진에 표시할 요소 — 웹 Locator · 앱 요소 번호 · 웹뷰 구간 안 요소(webview.ts) */
 export type 짚을요소 = Locator | string | { 웹: string; id: string };
@@ -54,6 +54,13 @@ export interface ProcScope {
   // cases 와 같은 차례 — 케이스마다 모은 절차와 난 판정
   steps: StepResult[][];
   results: (CaseResult | undefined)[];
+  // 판정이 났는데 아직 밖으로 안 낸 케이스의 차례. 판정을 정하는 일과 내는 일(첨부 — 기다린다)을 갈라 둔다 —
+  // 내는 사이에 한도가 와도 그 한도는 이미 넘어간 다음 케이스 것이다. 같은 차례를 다시 넣으면 한 번 더 낸다(끝 정리 뒤)
+  안낸: number[];
+  // 판정 한 건을 러너와 Playwright 결과로 낸다. Playwright 에 닿는 일이라 함수로만 담는다
+  낸다(result: CaseResult): Promise<void>;
+  // 러너가 넘긴 케이스별 입력. 사람이 손으로 돌리면 없다 — 케이스마다 스키마 기본값이다
+  받은?: readonly ExecuteCase[];
   // 케이스 한도(ms)와 다음 케이스로 넘어갈 때 그 한도를 다시 거는 손잡이. Playwright 에 닿는 일이라 함수로만 담는다
   한도: number;
   한도를건다(): void;

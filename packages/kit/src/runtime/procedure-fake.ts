@@ -1,8 +1,9 @@
-// 프로시저 테스트 파일들이 같이 쓰는 도우미 — 케이스 · 프로시저를 만들고, 가짜 Playwright 로 본문과 정리 단계를 돌리고, kit 이 정한 판정을 읽는다.
+// 프로시저 테스트 파일들이 같이 쓰는 도우미 — 케이스 · 프로시저를 만들고, 가짜 Playwright 로 본문과 정리 단계를 돌리고, kit 이 정한 판정과 밖으로 낸 판정을 읽는다.
 // vi.mock 은 파일마다 따로 걸어야 해서 가짜 Playwright · Appium 자체는 테스트 파일에 둔다
 
 import { vi } from 'vitest';
 
+import type { CaseResult } from '../types.js';
 import type { ProcedureBody } from './bodyArgs.js';
 import { runScope, type ProcScope } from './context.js';
 import { defineCase, type CaseHandle, type CaseSchema } from './defineCase.js';
@@ -24,7 +25,7 @@ export type 케이스선언 = CaseHandle<unknown, unknown>;
 let 번호 = 0;
 let 잡은: ProcScope | undefined;
 
-/** kit 이 정한 판정은 이 줄에서 kit 밖으로 안 나간다 — 본문에 들어갈 때 잡아 둔 케이스 장부로 읽는다 */
+/** kit 안의 케이스 장부 — 본문에 들어갈 때 잡아 둔다. 밖으로 낸 판정은 낸것 · 낸판정들 로 읽는다 */
 export const 장부 = (): ProcScope | undefined => 잡은;
 export function 장부를잡는다(): void {
   잡은 = runScope.getStore()?.proc;
@@ -121,3 +122,12 @@ export function 절차들(testInfo: ReturnType<typeof 가짜정보>): unknown[][
     .map(([, 첨부]) => JSON.parse((첨부 as { body: string }).body) as { seq: number; title: string; tcId: string; status: string })
     .map((s) => [s.seq, s.title, s.tcId, s.status]);
 }
+
+/** kit 이 밖으로 낸 판정(첨부) — 낸 차례대로. 같은 케이스를 다시 냈으면 두 번 든다 */
+export function 낸것(testInfo: ReturnType<typeof 가짜정보>): CaseResult[] {
+  return testInfo.attach.mock.calls.filter(([이름]) => 이름 === 'platform-case').map(([, 첨부]) => JSON.parse((첨부 as { body: string }).body) as CaseResult);
+}
+
+/** 낸 판정마다 [번호, 판정, 사유, 막은 케이스] — 없는 칸은 뺀다 */
+export const 낸판정들 = (testInfo: ReturnType<typeof 가짜정보>): unknown[][] =>
+  낸것(testInfo).map((r) => [r.tcId, r.status, r.error?.message, r.blockedBy].filter((v) => v !== undefined));
