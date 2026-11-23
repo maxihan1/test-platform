@@ -1,6 +1,6 @@
 // 「PRD 에 없는 화면」 셈 — 찾은 화면 가운데 지도로 닿지 않는 틀 (도메인/작성 §3.6 「★ 결정 목록」 ③ 미검증 화면)
 
-import { 주소틀, 틀닿나 } from '../../../../scripts/authoring-crawl-rules.js';
+import { 주소틀, 틀덮나 } from '../../../../scripts/authoring-crawl-rules.js';
 import { db } from '../settings/store.js';
 
 export interface 없는화면 {
@@ -57,7 +57,7 @@ export async function 찾은화면셈(서비스: number): Promise<찾은화면�
   // 장면은 안 따진다 — 같은 구역이 훑기 시작한 장면마다 다른 줄로 찍힌다
   const 장소덮음 = (url: string) => 들른장소.has(/^game:[^/]+\/(zone:[^/]+)$/.exec(url)?.[1] ?? '');
   return {
-    uncoveredScreens: 찾음.rows.filter((x) => !틀닿나(x.url, 닿는틀) && !장소덮음(x.url) && !뺀것.includes(x.url)),
+    uncoveredScreens: 찾음.rows.filter((x) => !틀덮나(x.url, 닿는틀) && !장소덮음(x.url) && !뺀것.includes(x.url)),
     skippedScreens: 뺀것.map((url) => ({ url, name: 이름.get(url) ?? '' })),
   };
 }

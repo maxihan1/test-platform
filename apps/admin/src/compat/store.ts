@@ -27,8 +27,10 @@ export interface 재료 {
   후보들: (후보 & { 화면수: number })[];
 }
 
-// 장소 열쇠(zone:Town)를 화면 기록 꼴로 — 크롤러가 이미 남긴 장소와 한 번만 센다 (데이터모델 「화면 기록 표의 열쇠 꼴」)
+// 장소 열쇠(zone:Town)를 화면 기록 꼴로 — 크롤러가 남긴 장소가 없을 때만 쓴다 (데이터모델 「화면 기록 표의 열쇠 꼴」)
 const 장소열쇠 = (key: string) => `game:World/${key}`;
+// 크롤러는 장소를 훑기 시작한 장면 아래 둔다(`game:BossRoom/zone:BossArena`) — 구역 이름으로 맞춘다. 미검증 셈(prd/found.ts)과 같다
+const 기록구역 = (url: string): string | undefined => /^game:[^/]+\/(zone:[^/]+)$/.exec(url)?.[1];
 
 /**
  * 고를 수 있는 케이스는 그 애플리케이션의 활성 케이스 가운데 폰에서 도는 것(android · mobile)이다.
@@ -77,17 +79,21 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
     for (const 주소 of [r.screen_url, ...r.open_urls]) {
       const 틀 = 주소 === null ? null : 주소틀(주소);
       if (틀 === null) continue;
-      if (주소 !== r.screen_url && 틀.startsWith('game:')) {
-        for (const k of 닿는찾은화면(틀, 크롤열쇠)) 틀모음.get(r.tc_id)?.add(k);
-        continue;
-      }
+      // 화면 주소도 요소가 든 위 창을 덮는다 — 화면 수가 커버리지(select.ts 틀덮나)와 같은 것을 세게
+      if (틀.startsWith('game:')) for (const k of 닿는찾은화면(틀, 크롤열쇠)) 틀모음.get(r.tc_id)?.add(k);
+      if (주소 !== r.screen_url && 틀.startsWith('game:')) continue;
       틀모음.get(r.tc_id)?.add(틀);
       if (주소 === r.screen_url && r.name !== null && !케이스화면이름.has(틀)) 케이스화면이름.set(틀, r.name);
     }
   }
   // 화면 개수는 장소를 넣기 전에 센다 — 장소는 찍히는 화면이 아니다(찍힌 화면은 창 줄에 든다)
   const 화면수 = new Map([...틀모음].map(([t, s]) => [t, s.size]));
-  for (const r of 장소줄.rows) 틀모음.get(r.tc_id)?.add(장소열쇠(r.key));
+  const 구역기록 = new Map<string, string[]>();
+  for (const r of 기록.rows) {
+    const 구역 = 기록구역(r.url);
+    if (구역 !== undefined) 구역기록.set(구역, [...(구역기록.get(구역) ?? []), r.url]);
+  }
+  for (const r of 장소줄.rows) for (const k of 구역기록.get(r.key) ?? [장소열쇠(r.key)]) 틀모음.get(r.tc_id)?.add(k);
 
   // 크롤 화면 기록이 없으면 케이스가 아는 화면으로 대신한다 — 미커버 화면은 0 이 된다. 장소는 그대로 더한다
   const fallback = 기록.rows.length === 0;
@@ -95,7 +101,7 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
     ? [...new Set([...틀모음.values()].flatMap((s) => [...s]).filter((k) => !k.startsWith('game:World/zone:')))].sort().map((key) => ({ key, name: 케이스화면이름.get(key) ?? key }))
     : 기록.rows.map((r) => ({ key: r.url, name: r.name }));
   const 있는열쇠 = new Set(화면들.map((u) => u.key));
-  const 장소들 = 장소.rows.map((r) => ({ key: 장소열쇠(r.key), name: r.name })).filter((u) => !있는열쇠.has(u.key));
+  const 장소들 = 장소.rows.filter((r) => !구역기록.has(r.key)).map((r) => ({ key: 장소열쇠(r.key), name: r.name })).filter((u) => !있는열쇠.has(u.key));
 
   return {
     전체: [...화면들, ...장소들],

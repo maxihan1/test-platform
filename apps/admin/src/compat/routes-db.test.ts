@@ -83,7 +83,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
     await pool.query(
       `INSERT INTO case_screen (tc_id, file, screen_url, name, open_urls) VALUES
          ('XCP-001', 'tests/xcp/pages/home.page.ts', '/home', '홈화면', '{/cart,/my}'),
-         ('XCP-002', 'tests/xcp/pages/home.page.ts', '/home', '홈화면', '{game:Main/Canvas/Leaf}'),
+         ('XCP-002', 'tests/xcp/pages/home.page.ts', '/home', '홈화면', '{game:Main/Canvas/Panel/Leaf,game:Main/Canvas/Other/Leaf}'),
          ('XCP-002', 'tests/xcp/pages/login.page.ts', '/login', '로그인화면', '{}'),
          ('XCP-003', 'tests/xcp/pages/cart.page.ts', '/cart', '장바구니화면', '{}'),
          ('XCP-004', 'tests/xcp/pages/orphan.page.ts', '/orphan', NULL, '{}'),
@@ -92,7 +92,8 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
     await pool.query(
       `INSERT INTO screen_found (service_id, env, state, url, name) VALUES
          ($1, 'qa', '로그아웃', '/home', '홈'), ($1, 'qa', '로그아웃', '/cart', '장바구니'), ($1, 'dev', '로그인:판매자', '/cart', ''),
-         ($1, 'qa', '로그아웃', '/my', '내 정보'), ($1, 'qa', '로그아웃', '/orphan', '외딴 화면')`,
+         ($1, 'qa', '로그아웃', '/my', '내 정보'), ($1, 'qa', '로그아웃', '/orphan', '외딴 화면'),
+         ($1, 'qa', '로그아웃', 'game:Main/Canvas/Panel', '판'), ($1, 'qa', '로그아웃', 'game:BossRoom/zone:Town', '마을')`,
       [앱],
     );
     await pool.query(
@@ -163,17 +164,17 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
     expect(res.json()).toEqual({
       auto: [
         { tcId: 'XCP-001', name: 'XCP-001 이름', adds: 3 },
-        { tcId: 'XCP-002', name: 'XCP-002 이름', adds: 1 },
+        { tcId: 'XCP-002', name: 'XCP-002 이름', adds: 2 },
         { tcId: 'XCP-003', name: 'XCP-003 이름', adds: 1 },
       ],
-      coverage: { covered: 5, total: 6, fallback: false },
+      coverage: { covered: 6, total: 7, fallback: false },
       uncovered: [{ key: '/orphan', name: '외딴 화면' }],
     });
     expect((await 부르기('xcp-reader', 'POST', '/api/compat-sets/preview', { serviceId: 앱, addedCases: ['XCP-004', 'XCPB-001', 'XCP-999', 'XCP-GS-001'] })).json())
       .toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-004', 'XCPB-001', 'XCP-999', 'XCP-GS-001'] });
   });
 
-  // 두 셈 모두 차림의 게임 요소 열쇠(game:…/Leaf)를 세지 않는다 — 화면 파일 안 요소 주소는 크롤이 찾은 창과 같을 때만 화면이다
+  // 게임 요소 열쇠(game:…/Leaf)는 그 자체가 화면이 아니고 요소가 든 찾은 창(game:Main/Canvas/Panel)을 센다. 장소는 장면 없이 구역 이름으로 찾은 줄(game:BossRoom/zone:Town)에 맞춘다
   it('크롤 화면 기록이 없으면 케이스가 아는 화면으로 세고 그렇게 알린다', async () => {
     const res = await 부르기('xcp-reader', 'POST', '/api/compat-sets/preview', { serviceId: 남의앱, addedCases: [] });
     expect(res.json()).toEqual({
@@ -196,11 +197,11 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       id, name: '주요 폰', onePerModel: true,
       devices: [{ serial: 'R3CR1', model: 'SM-G996N', name: 'Galaxy S21+ 5G' }, { serial: 'FOLD1', model: 'SM-F946N', name: 'SM-F946N' }],
       addedCases: ['XCP-003'],
-      coverage: { covered: 5, total: 6, fallback: false },
+      coverage: { covered: 6, total: 7, fallback: false },
       lastRun: null,
       auto: [
         { tcId: 'XCP-001', name: 'XCP-001 이름', adds: 3 },
-        { tcId: 'XCP-002', name: 'XCP-002 이름', adds: 1 },
+        { tcId: 'XCP-002', name: 'XCP-002 이름', adds: 2 },
         { tcId: 'XCP-003', name: 'XCP-003 이름', adds: 1 },
       ],
       uncovered: [{ key: '/orphan', name: '외딴 화면' }],
@@ -214,7 +215,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       await 팜으로(async () => {
         expect((await 부르기('xcp-writer', 'PUT', `/api/compat-sets/${id}`, { serviceId: 앱, name: '주요 폰', onePerModel: true, devices: [{ serial: 'R3CR1' }, { serial: 'FOLD1' }], addedCases: ['XCP-003'] })).statusCode).toBe(200);
       });
-      expect((await 부르기('xcp-reader', 'GET', `/api/compat-sets/${id}`)).json()).toMatchObject({ addedCases: ['XCP-003'], coverage: { covered: 4, total: 6 } });
+      expect((await 부르기('xcp-reader', 'GET', `/api/compat-sets/${id}`)).json()).toMatchObject({ addedCases: ['XCP-003'], coverage: { covered: 5, total: 7 } });
     } finally {
       await pool.query("UPDATE test_case SET is_active = true WHERE tc_id = 'XCP-003'");
     }

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 틀닿나, 틀케이스 } from './authoring-crawl-rules.js';
+import { 틀닿나, 틀덮나, 틀케이스 } from './authoring-crawl-rules.js';
 import { 여는주소들 } from '../apps/admin/src/catalog/screenMap.js';
 import { 닿는찾은화면 } from './authoring-game-key.js';
 
@@ -55,28 +55,33 @@ describe('게임 화면 열쇠 무늬 — 케이스 주소가 표시한 자리�
     expect(틀닿나('game:BossRoom/Showcase HUD/Window 상점/Panel 상점/Button 팔기', new Set(여는))).toBe(false);
   });
 
-  it('창 안 요소를 읽으면 그 창도 들른 것이다 — 장면 첫 화면 · 장소는 빼고 무늬와 같이 돈다', () => {
+  it('창 안 요소를 읽으면 그 창도 확인한 것이다(틀덮나) — 장면 첫 화면 · 장면 바로 아래 뿌리 · 장소는 빼고 무늬와 같이 돈다', () => {
     const 파일 = new Set([
       'game:CharSelect/CharacterSelectCanvas/ClassInfoBox/HideAllTheseWhenNoClass/CurrentClass (TMP)',
       'game:*/Showcase HUD/Window 상점/Panel 상점/Button 사기',
       'game:BossRoom/PlayerAvatar:n/AvatarGraphics:n/fx_TankAttack1(Clone)',
     ]);
-    expect(틀닿나('game:CharSelect/CharacterSelectCanvas/ClassInfoBox/HideAllTheseWhenNoClass', 파일)).toBe(true);
-    expect(틀닿나('game:CharSelect/CharacterSelectCanvas', 파일)).toBe(true);
-    expect(틀닿나('game:CharSelect', 파일)).toBe(false);
-    expect(틀닿나('game:CharSelect/CharacterSelectCanvas/ClassInfo', 파일)).toBe(false);
-    expect(틀닿나('game:BossRoom/CharacterSelectCanvas/ClassInfoBox', 파일)).toBe(false);
-    expect(틀닿나('game:BossRoom/Showcase HUD/Window 상점/Panel 상점', 파일)).toBe(true);
-    expect(틀닿나('game:Lobby/Showcase HUD/Window 상점', 파일)).toBe(true);
-    expect(틀닿나('game:BossRoom/PlayerAvatar69/AvatarGraphics69', 파일)).toBe(true);
-    expect(틀닿나('game:BossRoom/PlayerAvatar69', 파일)).toBe(true);
-    expect(틀닿나('game:BossRoom/zone:BossArena', new Set(['game:BossRoom/zone:BossArena/Gate']))).toBe(false);
+    expect(틀덮나('game:CharSelect/CharacterSelectCanvas/ClassInfoBox/HideAllTheseWhenNoClass', 파일)).toBe(true);
+    expect(틀덮나('game:CharSelect/CharacterSelectCanvas/ClassInfoBox', 파일)).toBe(true);
+    expect(틀덮나('game:CharSelect/CharacterSelectCanvas', 파일)).toBe(false);
+    expect(틀덮나('game:CharSelect', 파일)).toBe(false);
+    expect(틀덮나('game:CharSelect/CharacterSelectCanvas/ClassInfo', 파일)).toBe(false);
+    expect(틀덮나('game:BossRoom/CharacterSelectCanvas/ClassInfoBox', 파일)).toBe(false);
+    expect(틀덮나('game:BossRoom/Showcase HUD/Window 상점/Panel 상점', 파일)).toBe(true);
+    expect(틀덮나('game:Lobby/Showcase HUD/Window 상점', 파일)).toBe(true);
+    expect(틀덮나('game:Lobby/Showcase HUD', 파일)).toBe(false);
+    expect(틀덮나('game:BossRoom/PlayerAvatar69/AvatarGraphics69', 파일)).toBe(true);
+    expect(틀덮나('game:BossRoom/PlayerAvatar69', 파일)).toBe(false);
+    expect(틀덮나('game:BossRoom/zone:BossArena', new Set(['game:BossRoom/zone:BossArena/Gate']))).toBe(false);
+    expect(틀덮나('game:Lobby/Canvas/Timezone', new Set(['game:Lobby/Canvas/Timezone/Label']))).toBe(true);
   });
 
-  it('틀케이스 — 창 안 요소를 읽는 케이스도 그 창의 케이스다', () => {
+  it('같은 화면을 찾는 곳(틀닿나 · 틀케이스)은 위 창으로 넓히지 않는다 — 위 창이 바뀌어도 그 안 케이스 전부가 바뀐 화면 케이스가 되지 않게', () => {
+    const 파일 = new Set(['game:CharSelect/CharacterSelectCanvas/Tooltip/Text (TMP)']);
+    expect(틀닿나('game:CharSelect/CharacterSelectCanvas/Tooltip', 파일)).toBe(false);
+    expect(틀덮나('game:CharSelect/CharacterSelectCanvas/Tooltip', 파일)).toBe(true);
     const 지도 = new Map([['game:CharSelect/CharacterSelectCanvas/Tooltip/Text (TMP)', ['BRP-FN-011']]]);
-    expect(틀케이스('game:CharSelect/CharacterSelectCanvas/Tooltip', 지도)).toEqual(['BRP-FN-011']);
-    expect(틀케이스('game:CharSelect', 지도)).toBeUndefined();
+    expect(틀케이스('game:CharSelect/CharacterSelectCanvas/Tooltip', 지도)).toBeUndefined();
   });
 
   it('닿는찾은화면 — 호환성이 게임 여는 주소 대신 셀 찾은 화면(같음 · 무늬 · 조상 창)', () => {
