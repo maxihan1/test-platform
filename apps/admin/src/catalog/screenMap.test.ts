@@ -78,7 +78,7 @@ describe('여는주소들 — 화면 파일 안 이동이 여는 주소 틀 (WEB
       "  static readonly 준비버튼 = 'Ready Btn';",
       "  static readonly 인원글 = '/CharacterSelectCanvas/NumPlayersBox/Text (TMP)';",
       "  static readonly 첫탱커모습 = '/AvatarGraphicsParent/PlayerGraphics_Tank_Girl_CharacterSelect(Clone)';",
-      "  static readonly 효과들 = ['/FX/Hit', '//*[contains(@name,Zoom)]'] as const;",
+      "  static readonly 효과들 = ['/FX/Hit', '//*[contains(@name,Zoom)]', '/Chat//*[contains(@text,joined)]'] as const;",
       '  자리주소(자리: number): string { return `/CharacterSelectCanvas/PlayerSeats/PlayerSeat (${String(자리)})`; }',
       "  async 뿌리() { await this.game.click('/'); }",
       '  async 닫기() { await this.game.click(`/CharacterSelectCanvas/Close`); }',
