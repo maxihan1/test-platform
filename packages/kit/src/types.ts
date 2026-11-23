@@ -76,6 +76,7 @@ export interface StepResult {
   gameFailedFns?: string[];     // 게임 · Android 앱 항목만. 그 절차를 멈춘 오류가 지나던 함수 이름. 조작 실패(요소를 찾지 못함 · 타임아웃)면 그 줄이 「재확인 필요」(앱은 「다시 확인」)가 된다
 }
 
+// 앞 꼴 — 케이스 하나. 옮기는 동안 러너가 아래 새 꼴(CasesExecuteRequest)과 같이 받고 TP-F6-32 에 걷는다 (공통/3-공유계약 「테스트 프로시저 타입」)
 export interface ExecuteRequest {
   runId: number;                // 스크린샷 · trace 경로 artifacts/runs/{runId}/{historyId}/ 를 만들 때와 trace 를 켤지(0 이면 끔) 정할 때만 쓴다
   historyId: number;
@@ -139,7 +140,7 @@ export interface ExecuteResponse {
   fps?: FpsSample[];            // 게임 정식 실행 항목만 · 러너가 1초마다 읽은 FPS. 하나도 못 읽었으면 키가 없다. admin 이 run_item.fps 에 쓴다 (WEB-F7-25)
 }
 
-// 프로시저 실행이 주고받는 케이스 한 건씩. 요청 · 응답(ExecuteRequest.cases · ExecuteResponse.results)에 실리는 것은 러너가 새 꼴을 받을 때다 (공통/3-공유계약 「테스트 프로시저 타입」 · 도메인/러너 §5.2 「프로시저 실행」)
+// 프로시저 실행이 주고받는 케이스 한 건씩 (공통/3-공유계약 「테스트 프로시저 타입」 · 도메인/러너 §5.2 「프로시저 실행」)
 export interface ExecuteCase {  // 요청의 케이스 한 건
   tcId: TcId;
   params: Record<string, unknown>;
@@ -157,6 +158,22 @@ export interface CaseResult {   // 응답의 케이스 한 건. kit 이 케이�
   blockedBy?: TcId;             // Blocked 일 때만 · 막은 케이스. 늘 스스로 깨지거나 틀린 케이스를 가리킨다
   elementChecks?: ElementCheck[];  // 게임 항목만 · 그 케이스가 남긴 것
   apiCalls?: ApiCallSeen[];     // 게임 항목만 · 그 케이스(준비 구간 포함)가 부른 것
+}
+
+// 새 꼴 요청 — 파일 하나 + 케이스 목록. 명세의 새 꼴 ExecuteRequest 다. admin 이 앞 꼴을 다 걷을 때까지(TP-F6-32) 이름을 따로 두고 그때 합친다.
+// historyId 는 케이스 줄 번호가 아니라 실행 단위 번호이고, timeoutMs 는 그 실행 단위 케이스 줄 한도의 합이다. 나머지 칸은 앞 꼴과 같다 — 실행 단위에 한 벌
+export interface CasesExecuteRequest extends Omit<ExecuteRequest, 'tcId' | 'params' | 'expected'> {
+  procId?: ProcId;              // 프로시저 파일이면 싣는다. 옛 꼴 파일은 없다
+  cases: ExecuteCase[];         // 도는 차례대로. 프로시저는 그 프로시저의 케이스 전부, 옛 꼴 파일은 1건
+}
+
+export interface CasesExecuteResponse {            // 새 꼴 응답. 묶은 판정은 없다 — 케이스 결과에서 센다
+  historyId: number;            // 요청의 그 번호
+  durationMs: number;
+  results: CaseResult[];        // 요청 cases 와 같은 수 · 같은 차례. 못 간 케이스도 한 건씩 있다
+  error?: { message: string; stack?: string };     // 케이스 판정 밖의 사유 — 프로세스가 통째로 끊겼거나(TIMEOUT · ABORTED) 판정이 다 난 뒤에 실패로 끝났다
+  device?: DeviceInfo;
+  fps?: FpsSample[];            // 게임 정식 실행만. 표본의 seq(절차 번호)로 케이스에 붙인다
 }
 
 export interface FpsSample {

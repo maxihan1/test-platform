@@ -12,6 +12,11 @@ export const RESULT_MARKER = '@@RESULT@@';
 // 러너가 stdout에서 절차 시작 줄을 찾을 때 쓰는 표시자
 export const PROGRESS_MARKER = '@@PROGRESS@@';
 
+// 프로시저의 케이스 판정 한 건(CaseResult)을 흘리는 stdout 줄의 표시자와, 같은 것을 Playwright 결과에 남기는 첨부 이름.
+// 러너는 줄을 읽고 작성의 돌려 보기는 첨부를 읽는다 (도메인/러너 §5.2 「프로시저 실행」)
+export const CASE_MARKER = '@@CASE@@';
+export const CASE_ATTACHMENT = 'platform-case';
+
 // 러너가 stdout에서 E2E 시나리오 부품 결과 줄을 찾을 때 쓰는 표시자. 케이스의 결과 줄과 섞이지 않게 따로 둔다
 export const SCENARIO_PART_MARKER = '@@SCENARIO_PART@@';
 
@@ -69,6 +74,9 @@ export const 창하나글 = '실제 폰 Chrome 은 창을 하나만 쓴다 — �
 
 // Blocked 케이스 결과의 error.message — 판정값이 아니라 미실행(NA)의 사유다. kit 이 정하고 러너 · admin 이 같은 글로 알아본다 (공통/3-공유계약 「테스트 프로시저 타입」)
 export const BLOCKED = 'BLOCKED';
+
+// 실행을 만든 뒤 프로시저의 케이스 목록이 바뀌어 돌지 않은 케이스 결과의 error.message — 판정이 아닌 결과다 (도메인/러너 §5.2 「프로시저 실행」 「케이스별 입력」)
+export const PROCEDURE_CHANGED = 'PROCEDURE_CHANGED';
 
 // 게임 시나리오 번호 — kit 은 이 번호로 전체 한도를 끄고 admin 은 제한 시간 0 을 싣는다. 두 쪽이 같은 꼴을 봐야 한다 (공통/3-공유계약 「게임 시나리오 도구」)
 export const 게임시나리오인가 = (tcId: string): boolean => /-GS-\d{3}$/.test(tcId);
