@@ -10,7 +10,7 @@ export interface 퀘스트줄 {
 }
 
 export class 퀘스트창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 일일 퀘스트';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 일일 퀘스트';
   static readonly 창 = '/Showcase HUD/Window 일일 퀘스트';
   static readonly 패널 = '/Showcase HUD/Window 일일 퀘스트/Panel 일일 퀘스트';
   static readonly 제목 = '/Showcase HUD/Window 일일 퀘스트/Panel 일일 퀘스트/TitleBar/Text';

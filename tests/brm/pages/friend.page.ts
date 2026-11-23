@@ -3,7 +3,7 @@ import type { GameDriver } from '@platform/kit';
 import { 공통HUD, 색뗀글, 줄글될때까지, 줄글원문 } from '../components/hud.component.js';
 
 export class 친구파티창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 친구 · 파티';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 친구 · 파티';
   static readonly 창 = '/Showcase HUD/Window 친구 · 파티';
   static readonly 판 = '/Showcase HUD/Window 친구 · 파티/Panel 친구 · 파티';
   static readonly 가림막 = '/Showcase HUD/Window 친구 · 파티/Shade';

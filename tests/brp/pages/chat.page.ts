@@ -3,7 +3,7 @@ import type { GameDriver } from '@platform/kit';
 export type 채팅탭 = '전체' | '파티' | '길드';
 
 export class 채팅창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 채팅';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 채팅';
   static readonly 창 = '/Showcase HUD/Window 채팅';
   static readonly 입력칸 = 'Input 메시지 입력 (100자)';
   static readonly 보내기버튼 = 'Button 보내기';

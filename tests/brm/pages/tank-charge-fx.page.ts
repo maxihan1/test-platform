@@ -1,7 +1,7 @@
 import type { GameDriver } from '@platform/kit';
 
 export class 탱커모으기효과 {
-  static readonly 주소 = 'game:BossRoom/PlayerAvatar40/AvatarGraphics40/fx_TankSkill1_charging(Clone)';
+  static readonly 주소 = 'game:BossRoom/PlayerAvatar:n/AvatarGraphics:n/fx_TankSkill1_charging(Clone)';
   static readonly 효과 = '//*[contains(@name,fx_TankSkill1_charging)]';
 
   static async 스킬1눌러두고뜸(game: GameDriver, 한도ms = 10_000): Promise<boolean> {

@@ -3,7 +3,7 @@ import type { GameDriver } from '@platform/kit';
 import { 색뗀글 } from '../components/hud.component.js';
 
 export class 설정창 {
-  static readonly 주소 = 'game:MainMenu/SettingsPanelCanvas/SettingsPanel';
+  static readonly 주소 = 'game:*/SettingsPanelCanvas/SettingsPanel';
   static readonly 톱니바퀴 = '/SettingsPanelCanvas/Settings Button';
   static readonly 판 = '/SettingsPanelCanvas/SettingsPanel';
   static readonly 제목줄 = '/SettingsPanelCanvas/SettingsPanel/SettingsLabel';

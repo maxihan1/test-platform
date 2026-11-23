@@ -3,7 +3,7 @@ import type { GameDriver } from '@platform/kit';
 const 뿌리 = '/Showcase HUD/Invite';
 
 export class 초대창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Invite';
+  static readonly 주소 = 'game:*/Showcase HUD/Invite';
   static readonly 가림막 = `${뿌리}/Shade`;
   static readonly 뿌리 = 뿌리;
   static readonly 파티패널 = `${뿌리}/Panel 파티 초대`;

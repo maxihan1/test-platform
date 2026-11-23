@@ -3,7 +3,7 @@ import type { GameDriver } from '@platform/kit';
 import { 공통HUD, 색뗀글 } from '../components/hud.component.js';
 
 export class 상점창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 상점';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 상점';
   static readonly 창 = '/Showcase HUD/Window 상점';
   static readonly 판 = '/Showcase HUD/Window 상점/Panel 상점';
   static readonly 가림막 = '/Showcase HUD/Window 상점/Shade';

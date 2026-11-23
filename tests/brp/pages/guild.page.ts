@@ -11,7 +11,7 @@ function 글만(글: string): string {
 }
 
 export class 길드창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 길드';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 길드';
   static readonly 창 = 창뿌리;
   static readonly 제목 = `${패널}/TitleBar/Text`;
   static readonly 닫기버튼 = `${패널}/Button 닫기`;

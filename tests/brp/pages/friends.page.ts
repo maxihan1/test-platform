@@ -12,7 +12,7 @@ function 글만(글: string): string {
 }
 
 export class 친구파티창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 친구 · 파티';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 친구 · 파티';
   static readonly 창 = 창뿌리;
   static readonly 제목 = `${패널}/TitleBar/Text`;
   static readonly 이름칸 = 'Input 캐릭터 이름';

@@ -22,7 +22,7 @@ function 안에있나(판: number[], 줄: number[]): boolean {
 }
 
 export class 상점창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 상점';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 상점';
   static readonly 창 = '/Showcase HUD/Window 상점';
   static readonly 패널 = '/Showcase HUD/Window 상점/Panel 상점';
   static readonly 제목 = '/Showcase HUD/Window 상점/Panel 상점/TitleBar/Text';

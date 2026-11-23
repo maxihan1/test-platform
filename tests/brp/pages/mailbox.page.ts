@@ -7,7 +7,7 @@ function 색태그떼기(글: string): string {
 }
 
 export class 우편함창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 우편함';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 우편함';
   static readonly 창 = '/Showcase HUD/Window 우편함';
   static readonly 패널 = '/Showcase HUD/Window 우편함/Panel 우편함';
   static readonly 제목 = '/Showcase HUD/Window 우편함/Panel 우편함/TitleBar/Text';
