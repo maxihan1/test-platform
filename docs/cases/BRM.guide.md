@@ -51,3 +51,5 @@ Unity 「Boss Room」(4인 협동 액션 RPG 샘플) 포크를 Android 로 빌�
 - 요령 · 게임 코드 — 로비에서 모두 준비하면 3초 뒤에 던전 장면을 부른다 — 「준비!」 바로 뒤 던전 화면을 찾지 말고 장면이 바뀌기를 기다린다 (Assets/Scripts/Gameplay/GameState/ServerCharSelectState.cs)
 - 요령 · 게임 코드 — 보스를 잡으면 7초 뒤, 모두 쓰러지면 2.5초 뒤 결과 장면(PostGame)으로 넘어간다 (Assets/Scripts/Gameplay/GameState/ServerBossRoomState.cs)
 - 요령 · 게임 코드 — 「질주 공격」의 받는 피해 0 은 누른 뒤 준비 시간이 지나 달리기 시작한 때부터다 — 누르자마자 맞으면 배율이 1 이다 (Assets/Scripts/Gameplay/Action/ConcreteActions/DashAttackAction.cs)
+- 요령 · 공용 서버 — 앞 실행이 끊기지 않고 남으면 일반 회원 로그인이 「같은 계정으로 이미 접속 중」 창으로 막힌다 — 로그인 전에 시험 주소 접속 끊기(kick, 사유 없이)를 먼저 부른다
+- 요령 · 게임 코드 — 로비 자리는 확정(준비)하면 빛 · 체크가 같이 켜지고 그 자리 버튼이 눌리지 않으며, 접속자 모두 확정하면 던전을 부르기 전 3초 동안만 로비 안내가 뜬다 (Assets/Scripts/Gameplay/UI/UICharSelectPlayerSeat.cs · Assets/Scripts/Gameplay/GameState/ServerCharSelectState.cs)
