@@ -49,9 +49,13 @@ export async function 갈래B이름표글있나(game: GameDriver, 글: string): 
   return 갈래B찾기(game, `/BossRoomHudCanvas/UIStateDisplay(Clone)//*[contains(@text,"${글}")]`);
 }
 
-export async function 갈래B알림줄글(game: GameDriver, 글: string, 한도ms = 15_000): Promise<string | null> {
-  const 주소 = `/BossRoomHudCanvas/MessageFeed/Mask/MessageFeed//*[contains(@text,"${글}")]`;
+export async function 갈래B알림줄글(game: GameDriver, 글: string, 한도ms = 15_000, 뿌리 = '/BossRoomHudCanvas/MessageFeed/Mask/MessageFeed'): Promise<string | null> {
+  const 주소 = `${뿌리}//*[contains(@text,"${글}")]`;
   return (await 갈래B값될때까지(() => 갈래B찾기(game, 주소), (있음) => 있음, 한도ms)) ? game.text(주소) : null;
+}
+
+export async function 새알림줄글(game: GameDriver, 글: string, 한도ms = 15_000): Promise<string | null> {
+  return 갈래B알림줄글(game, 글, 한도ms, '/BossRoomHudCanvas/MessageFeed/Mask/MessageFeed/*[-1]');
 }
 
 export async function 갈래B임프수(game: GameDriver): Promise<number> {

@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 봇과함께던전입장, 그림들 } from './helpers/dungeon.helper.js';
-import { 갈래B뜰때까지, 갈래B알림줄글 } from './helpers/dungeon-wait.helper.js';
+import { 갈래B뜰때까지, 새알림줄글 } from './helpers/dungeon-wait.helper.js';
 import { 로그인하기 } from './helpers/game-enter.helper.js';
 import { 계정되돌리기, 로비로되돌리기, 봇시키기 } from './helpers/game-state.helper.js';
 import { GM모두처치 } from './helpers/gm.helper.js';
@@ -57,7 +57,7 @@ test(spec, async ({ game, admin, params }) => {
   await test.step('쓰러진 두 번째 플레이어를 「부활」로 일으킨다', async () => {
     const 던전 = await 던전화면.열림(game);
     await 던전.공격누르기();
-    const 줄 = await 갈래B알림줄글(game, '님이 부활했습니다!');
+    const 줄 = await 새알림줄글(game, '님이 부활했습니다!');
     const 보임 = await verify('「님이 부활했습니다!」가 알림 줄에 보인다', 줄 !== null, true);
     const 이름 = await verify('그 이름이 같이 보인다', (줄 ?? '').includes(봇아이디), true);
     await verify('플레이어가 부활하면 던전 알림 줄에 「님이 부활했습니다!」가 그 이름과 함께 보인다', 보임 && 이름, true);
