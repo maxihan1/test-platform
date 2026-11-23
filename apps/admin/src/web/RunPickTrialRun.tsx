@@ -90,7 +90,9 @@ function 진행({ 시험, 케이스들 }: { 시험: 여러건시험; 케이스�
           ) : (
             <장면칸
               key={지금.trialId}
-              주소={api.trialLive(지금.tcId, 지금.trialId)}
+              // 윈도우 PC 는 장면 사진이 안 온다 — 묻지 않고, PC 를 잡으면 VISION 화면 영상을 그린다 (도메인/게임 §3.10 「증적 · 결과」)
+              주소={PC항목인가(지금.platform) ? null : api.trialLive(지금.tcId, 지금.trialId)}
+              영상주소={PC항목인가(지금.platform) && 지금.vision !== null ? api.trialPcScreen(지금.tcId, 지금.trialId) : null}
               도는중={지금줄?.종류 === 'run'}
               vision={지금.vision}
               부제={부제}

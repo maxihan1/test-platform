@@ -9,6 +9,7 @@ import type { ExecuteRequest, ScenarioExecuteRequest } from '@platform/kit';
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
 import { 항목화면 } from './live.js';
+import { PC화면자리 } from './pcScreen.js';
 import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 보낸다, 시험진행, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
 
@@ -177,14 +178,19 @@ describe('callRunner', () => {
 
   it('윈도우 PC 항목은 디스패처가 잡고 깐 PC 번호와 게임 이름으로만 보낸다 — PC 를 안 잡았으면 보내지 않는다', async () => {
     const 받은것: ExecuteRequest[] = [];
+    const 화면자리: (PC화면자리 | undefined)[] = [];
     await 띄운다((body) => {
       받은것.push(body);
+      화면자리.push(PC화면자리(`item:${String(body.historyId)}`));
       return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
     });
     const PC항목: PendingItem = { ...항목, platform: 'windows-ps5', engine: 'GAME', buildId: 9 };
 
     expect((await callRunner(7, PC항목, () => false, { udid: 'pc-pc1', 토큰: 'pat_kim', 게임: 'BossRoom' })).status).toBe('PASS');
     expect(받은것[0]).toMatchObject({ platform: 'windows-ps5', udid: 'pc-pc1', app: 'BossRoom', engine: 'GAME', farmToken: 'pat_kim' });
+    // 화면 영상 자리는 PC 를 잡고 도는 동안만 있다 (도메인/게임 §3.10 「증적 · 결과」)
+    expect(화면자리).toEqual([{ serial: 'pc-pc1', 토큰: 'pat_kim' }]);
+    expect(PC화면자리('item:42')).toBeUndefined();
 
     expect((await callRunner(7, PC항목)).error?.message).toBe('Windows PC 를 잡지 않은 항목입니다');
     expect(받은것).toHaveLength(1);

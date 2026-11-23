@@ -6,6 +6,7 @@ import { PC항목인가 } from '@platform/kit/types';
 import { api, type 항목진행 } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import type { RunDetail, 도는것 } from './runProgress.js';
+import { PC화면 } from './PcScreen.js';
 import { 시간글자 } from './remainText.js';
 import { use장면 } from './TrialLive.js';
 import { PLATFORM_LABEL } from './ui.js';
@@ -91,6 +92,9 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
   const 꼬리표 = 기기글(것, t);
   // 장면을 찍는 항목인지는 admin 메모리의 열쇠가 정한다 — 디바이스로 짐작하지 않는다 (도메인/실행 §7 progress 의 live)
   const 화면있음 = 절차?.live === true;
+  // 윈도우 PC 는 장면 사진이 안 온다 — PC 를 잡은 동안 VISION 화면 영상을 그린다 (도메인/게임 §3.10 「증적 · 결과」)
+  const PC = PC항목인가(항목.platform);
+  const PC영상 = PC && 절차?.vision !== undefined;
   const 지금단계 = 단계(절차);
   const 시간 = 제한경과글(절차, 언어, t);
 
@@ -105,15 +109,19 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
             Device VISION ↗
           </a>
         )}
-        {화면있음 ? (
+        {화면있음 || PC영상 ? (
           <button type="button" className="btn small ghost lc-zoom" onClick={on크게} aria-pressed={크게}>
             {크게 ? t('작게 보기') : t('크게 보기')}
           </button>
         ) : null}
       </div>
       <div className="lc-scene">
-        {화면있음 ? (
-          <장면 runId={runId} historyId={항목.historyId} 폰={항목.platform === 'mobile' || 항목.platform === 'android'} 앱폰={항목.platform === 'android' || PC항목인가(항목.platform)} 기다림글={첫단계전글(것, t)} />
+        {PC영상 ? (
+          <PC화면 주소={api.itemPcScreen(runId, 항목.historyId)} 기다림글={첫단계전글(것, t)} />
+        ) : PC ? (
+          <p className="live-wait">{첫단계전글(것, t)}</p>
+        ) : 화면있음 ? (
+          <장면 runId={runId} historyId={항목.historyId} 폰={항목.platform === 'mobile' || 항목.platform === 'android'} 앱폰={항목.platform === 'android'} 기다림글={첫단계전글(것, t)} />
         ) : (
           // 장면 열쇠가 없는 항목이다 — admin 이 다시 떠 열쇠를 잃었거나 열쇠를 안 만든 옛 실행이다. 폰을 잡았으면 VISION 링크가 그 화면을 연다.
           // 단계가 이미 도는데 장면이 없을 때 「여는 중」이라 하면 멈춘 것처럼 읽힌다

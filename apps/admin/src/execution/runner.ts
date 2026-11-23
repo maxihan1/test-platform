@@ -18,6 +18,7 @@ import { 서명주소 } from './buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { 항목폰화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
+import { PC화면을단다 } from './pcScreen.js';
 import { runnerUrl, 답하나, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
 
@@ -185,10 +186,13 @@ async function 항목을보낸다(
     const 멈춘 = 멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : null;
     if (멈춘 !== null) return 멈춘;
     항목폰화면(item.historyId, pc.화면, pc.이름);
+    // PC 는 kit 이 장면 사진을 안 찍는다 — 카드가 VISION 화면 영상을 받아 간다 (도메인/게임 §3.10 「증적 · 결과」)
+    PC화면을단다(`item:${String(item.historyId)}`, { serial: pc.udid, 토큰: pc.토큰 });
     try {
       return await 보낸다(item, { ...body, udid: pc.udid, app: pc.게임!, ...(pc.토큰 !== undefined && { farmToken: pc.토큰 }) });
     } finally {
       항목폰화면(item.historyId, undefined);
+      PC화면을단다(`item:${String(item.historyId)}`, undefined);
     }
   }
   if (item.platform !== 'android' && !폰Chrome) return 보낸다(item, body);

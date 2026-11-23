@@ -6,6 +6,7 @@ import { 최신빌드 } from './buildFile.js';
 import { 팜주소 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
 import { PC로 } from './pcFarm.js';
+import { PC화면을단다 } from './pcScreen.js';
 import { na } from './runner.js';
 
 async function 최신PC빌드파일(serviceId: number, env: string): Promise<string | null> {
@@ -35,17 +36,23 @@ export async function PC에서돌린다(
   } catch (err) {
     return na(요청, '누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
   }
-  const 결과 = await PC로(
-    팜,
-    zip,
-    { 기다림ms: 0, 멈췄나, 토큰: async () => 토큰 },
-    async (pc) => {
-      폰화면(pc.화면, pc.serial);
-      return 보내기({ ...요청, udid: pc.serial, app: pc.게임, ...(토큰 !== undefined && { farmToken: 토큰 }) });
-    },
-    (까닭) => na(요청, 까닭),
-  );
-  // PC 를 놓고 돌아왔다 — 결과를 적기 전 틈에 닫힌 링크를 내지 않는다
-  폰화면(undefined);
-  return 결과;
+  // PC 는 kit 이 장면 사진을 안 찍는다 — 칸이 VISION 화면 영상을 받아 간다. 열쇠는 그 시험의 trialId(장면 열쇠)다 (도메인/게임 §3.10 「증적 · 결과」)
+  const 영상열쇠 = `trial:${요청.live ?? ''}`;
+  try {
+    return await PC로(
+      팜,
+      zip,
+      { 기다림ms: 0, 멈췄나, 토큰: async () => 토큰 },
+      async (pc) => {
+        폰화면(pc.화면, pc.serial);
+        PC화면을단다(영상열쇠, { serial: pc.serial, 토큰 });
+        return 보내기({ ...요청, udid: pc.serial, app: pc.게임, ...(토큰 !== undefined && { farmToken: 토큰 }) });
+      },
+      (까닭) => na(요청, 까닭),
+    );
+  } finally {
+    // PC 를 놓고 돌아왔다 — 결과를 적기 전 틈에 닫힌 링크 · 화면을 내지 않는다
+    폰화면(undefined);
+    PC화면을단다(영상열쇠, undefined);
+  }
 }

@@ -7,6 +7,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { Platform, RunItemSummary, 항목진행 } from './api.js';
 import type { RunDetail } from './runProgress.js';
 import { RunProgressModal } from './RunProgressModal.js';
+import { PC화면통로 } from './PcScreen.js';
 import { 장면통로 } from './TrialLive.js';
 
 beforeEach(() => {
@@ -200,7 +201,9 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
   });
 
   it('PC 게임 항목은 가로 틀이고, PC 를 잡기 전 · 뒤 발 글이 「빈 Windows PC 를 기다리는 중」 · 「게임을 여는 중」이다 (도메인/게임 §3.10 「윈도우 PC」)', async () => {
-    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['png'], { type: 'image/png' }) });
+    const 받기 = vi.spyOn(장면통로, '받기');
+    const 영상받기 = vi.spyOn(PC화면통로, '받기').mockReturnValue(new Promise(() => {}));
+    vi.stubGlobal('VideoDecoder', class {});
     const { rerender } = render(
       <RunProgressModal data={실행([항목(4, 'windows-ps5')])} 진행목록={[{ historyId: 4, timeoutMs: 300000, live: true }]} onClose={() => {}} />,
     );
@@ -215,9 +218,13 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     await 흘리기();
 
     expect(카드들()[0]!.querySelector('.lc-foot')?.textContent).toContain('게임을 여는 중');
-    expect(document.querySelector('.live-shot img')).toBeTruthy();
-    expect(document.querySelector('.live-shot.lc-phone')).toBeNull();
+    // 장면 사진은 안 묻고, 잡은 PC 의 화면 영상 통로를 받아 canvas 에 그린다 (2026-11-23)
+    expect(받기).not.toHaveBeenCalled();
+    expect(영상받기).toHaveBeenCalledWith('/api/runs/128/items/4/pc-screen', expect.any(AbortSignal));
+    expect(document.querySelector('.live-shot canvas')).toBeTruthy();
+    expect(document.querySelector('.live-shot img')).toBeNull();
     expect(카드들()[0]!.textContent).toContain('pc-pc1');
+    vi.unstubAllGlobals();
   });
 
   it('장면 열쇠가 없는 항목(옛 실행 · admin 이 다시 뜸)은 장면 대신 안내를 두고 장면 통로를 묻지 않는다', () => {
