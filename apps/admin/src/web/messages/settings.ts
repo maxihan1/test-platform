@@ -54,6 +54,10 @@ export const 설정말: Record<string, string> = {
   '탐색 제외 경로': 'Excluded paths',
   '한 줄에 하나씩 /로 시작하게 적습니다. 실제 화면과 대조해 테스트를 만들 때 이 경로와 하위 화면은 탐색하지 않습니다. 비워 두면 모든 화면을 탐색합니다':
     'One per line, starting with /. When building tests against the live screens, these paths and everything under them are not explored. Leave it empty to explore every screen',
+  '프로시저 작성': 'Procedure authoring',
+  '테스트 프로시저로 작성': 'Author as test procedures',
+  '켜면 사용 흐름 하나에 케이스 여러 건을 묶어 작성하고 UI 테스트와 기능 테스트를 한 번에 실행합니다. 테스트 프로시저로 작성한 케이스가 있으면 끌 수 없습니다':
+    'When on, several cases are authored per user flow and UI tests and functional tests run together. It cannot be turned off while test procedure cases exist',
   'Slack 웹훅': 'Slack webhook',
   '피그마 토큰': 'Figma token',
   '이대로 저장하면 토큰이 삭제되어 피그마 자료를 읽을 수 없게 됩니다':

@@ -45,6 +45,9 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const API종류 = kind === 'API';
   const 어드민키종류 = 어드민키종류인가(kind);
   const [제외, set제외] = useState((row.crawlExclude ?? []).join('\n'));
+  const 프로시저종류 = kind === 'APP' || kind === 'GAME';
+  const 처음프로시저 = row.procedureMode ?? false;
+  const [프로시저, set프로시저] = useState(처음프로시저);
   // 빈 글자와 「안 건드림」은 다르다. null 이면 서버에 아예 안 보낸다 (지금 것을 그대로 둔다)
   const [webhook, setWebhook] = useState<string | null>(null);
   const [figma, setFigma] = useState<string | null>(null);
@@ -52,7 +55,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [비활성확인, set비활성확인] = useState(false);
   // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
-  const 지금칸 = JSON.stringify({ name, testsRepo, testsDir, envs, 제외, webhook, figma, apiDocPath, apiDocEnv });
+  const 지금칸 = JSON.stringify({ name, testsRepo, testsDir, envs, 제외, webhook, figma, apiDocPath, apiDocEnv, 프로시저 });
   const [처음칸] = useState(지금칸);
   // 저장한 칸. 칸이 새로 읽은 값으로 다시 그려지기 전에도(다시 읽기 실패 포함) 저장한 것을 두고는 묻지 않는다
   const [보낸칸, set보낸칸] = useState<string | null>(null);
@@ -81,6 +84,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         ...API칸,
         ...(webhook === null ? {} : { slackWebhook: webhook }),
         ...(figma === null ? {} : { figmaToken: figma }),
+        ...(프로시저종류 && 프로시저 !== 처음프로시저 ? { procedureMode: 프로시저 } : {}),
       });
       set보낸칸(지금칸);
       onDone(row.prefix, true);
@@ -185,6 +189,20 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
           </div>
         </비밀칸>
         <CrawlExcludeField 값={제외} 바꾼다={set제외} />
+        {프로시저종류 ? (
+          <div className="field">
+            <label htmlFor="sf-procedure">{t('프로시저 작성')}</label>
+            <div>
+              <label className="check-inline">
+                <input id="sf-procedure" type="checkbox" checked={프로시저} onChange={(e) => set프로시저(e.target.checked)} />
+                {t('테스트 프로시저로 작성')}
+              </label>
+              <div className="hint">
+                {t('켜면 사용 흐름 하나에 케이스 여러 건을 묶어 작성하고 UI 테스트와 기능 테스트를 한 번에 실행합니다. 테스트 프로시저로 작성한 케이스가 있으면 끌 수 없습니다')}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </구획>
 
       {err === null ? null : <div className="err">{err}</div>}
