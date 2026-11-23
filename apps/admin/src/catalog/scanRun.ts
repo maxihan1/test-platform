@@ -118,9 +118,15 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
 
       // 폴더에 남의 접두사가 섞여 있으면 걸러 낸다. 그 케이스의 주인은 다른 서비스다 (SPEC §9.2)
       const 제것인가 = (tcId: string): boolean => tcId.startsWith(`${service.prefix}-`);
-      const 내것 = found.specs.filter((s) => 제것인가(s.tcId));
+      // 프로시저 파일은 「프로시저 작성」을 켠 애플리케이션에만 둔다 — 꺼져 있으면 올리지 않고 알린다.
+      // 꺼진 채 올리면 -UI- 와 -FN- 을 같이 든 프로시저가 실행 종류에 걸려 영영 못 돈다 (도메인/실행 §3.2 「프로시저 작성 스위치」)
+      const 올릴것인가 = (s: { procId?: string }): boolean => s.procId === undefined || service.procedureMode;
+      const 내것 = found.specs.filter((s) => 제것인가(s.tcId) && 올릴것인가(s));
       for (const 남 of found.specs.filter((s) => !제것인가(s.tcId))) {
         결과.problems.push(`${남.filePath}의 ${남.tcId}은 ${service.prefix} 서비스의 접두사가 아니라 걸러 냈다`);
+      }
+      for (const 파일 of new Set(found.specs.filter((s) => 제것인가(s.tcId) && !올릴것인가(s)).map((s) => s.filePath))) {
+        결과.problems.push(`${파일}은 프로시저 파일인데 ${service.prefix} 애플리케이션은 「프로시저 작성」이 꺼져 있어 올리지 않았다`);
       }
 
       // 중복은 그 서비스의 스캔 실패다. 어느 쪽이 진짜인지 모르는 채로 캐시를 덮어쓰면
