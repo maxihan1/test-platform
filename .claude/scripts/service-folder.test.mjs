@@ -30,6 +30,11 @@ test('서비스폴더인가는 에이전트가 만든 케이스 모양만 참이
     true,
   );
   assert.equal(판정(['MKT-001.spec.ts', 'helpers/login.helper.ts']), true);
+  // 프로시저로 다시 작성한 폴더 — 프로시저 파일뿐이어도, 옛 꼴 파일과 섞여도 서비스 폴더다
+  assert.equal(판정(['MTA-TP-001.spec.ts', 'MTA-TP-002.spec.ts', 'pages/compose.page.ts']), true);
+  assert.equal(판정(['MTA-TP-001.spec.ts', 'MTA-GS-001.spec.ts']), true);
+  assert.equal(판정(['MTA-TP-001.spec.ts', 'PAY-TP-001.spec.ts']), false);
+  assert.equal(판정(['MTA-TP-01.spec.ts']), false);
   assert.equal(판정(['MKT-001.spec.ts', 'helpers/login.page.ts']), false);
   assert.equal(판정(['MKT-001.spec.ts', 'helpers/a/b.helper.ts']), false);
   assert.equal(판정(['PAY-001.spec.ts', 'CARD-001.spec.ts']), false);
