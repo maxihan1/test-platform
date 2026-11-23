@@ -7,12 +7,13 @@ import type { CaseSpec, JsonSchema } from '@platform/kit';
 import { PC_PLATFORMS } from '@platform/kit/types';
 
 import { k17, K17_WHY } from './cssLocator.js';
+import { K18_WHY } from './loginHelper.js';
 import { k7, K7_WHY, k15, K15_WHY, k16, K16_WHY } from './pageObject.js';
 import { caseSteps, isTestCleanup, isTestStep, isVerify as 판정호출 } from './steps.js';
 import { badTechniques } from './techniques.js';
 import { badTag } from './tags.js';
 
-export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K12' | 'K13' | 'K14' | 'K15' | 'K16' | 'K17';
+export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K12' | 'K13' | 'K14' | 'K15' | 'K16' | 'K17' | 'K18';
 
 export interface Violation {
   file: string;
@@ -45,6 +46,7 @@ const WHY: Record<RuleId, string> = {
   K15: K15_WHY,
   K16: K16_WHY,
   K17: K17_WHY,
+  K18: K18_WHY,
 };
 
 // check.ts 통과 줄이 이 목록에서 범위를 만든다. 손으로 적은 숫자는 규칙이 늘 때 조용히 틀린다
