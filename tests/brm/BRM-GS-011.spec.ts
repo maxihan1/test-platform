@@ -64,7 +64,6 @@ test(spec, async ({ game, driver, admin, params }) => {
     const 방패줄 = 받은피해(줄들, 나.아이디, 'Imp').filter((줄) => 줄.shield !== undefined);
     const 배율곱 = (충전률들: number[], 폭: number): number => 충전률들.reduce((곱, c) => 곱 * (1 - (0.5 + Math.min(1, Math.max(0, c + 폭)) ** 2 / 2)), 1);
     const 공식값 = (충전률들: number[], 폭 = 0): number => Math.max(5, Math.trunc(15 * 배율곱(충전률들, 폭)));
-    for (const 줄 of 방패줄) await verify.note('방패가 켜진 동안 맞은 줄', { 충전률: 줄.shield, 받은피해: 줄.value, 공식값: 공식값(줄.shield ?? []) });
     const 차이 = await verify.log(
       '방패가 켜진 동안 임프가 나를 친 피해 줄이 전부 최소 5 · 버림(15 × 켜진 방패마다 (1 − (0.5 + 충전률² ÷ 2))를 곱한 값)과 같다(로그 충전률의 셋째 자리 반올림 폭 안이면 차이 0)',
       방패줄.map((줄) => {
