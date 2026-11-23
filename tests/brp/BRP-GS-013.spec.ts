@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { 던전입장, 로그인하기 } from './helpers/game-enter.helper.js';
 import { type 로그줄, 설명안되는줄, 처치줄 } from './helpers/game-log.helper.js';
 import { 계정되돌리기, 로비로되돌리기 } from './helpers/game-state.helper.js';
-import { GM스탯, 스탯숫자 } from './helpers/gm.helper.js';
+import { GM무적바꾸기, GM스탯, 스탯숫자 } from './helpers/gm.helper.js';
 import { 퀘스트처음으로 } from './helpers/items.helper.js';
 import { 내로그, 던전을비우고레벨맞추기, 알려진줄, 임프몇초치기, 장비갖추기 } from './helpers/mission.helper.js';
 import { 못닿음, 보상받고차이읽기, type 보상결과, 완료알림봄, 퀘스트상태 } from './helpers/quest-flow.helper.js';
@@ -16,7 +16,7 @@ export const spec = defineCase({
   tcId: 'BRP-GS-013',
   name: '레벨 1 탱커가 임프 30마리를 실제로 잡아 「임프 30마리 처치」 퀘스트를 끝내고 보상을 받으면 진행 · 완료 알림 · 보상이 기획서대로다',
   platforms: ['windows'],
-  precondition: ['탱커 · 레벨 1 · 장비 없음 · 파티 없음 · 혼자 · 오늘 퀘스트 처음 상태 · 던전의 임프는 치움'],
+  precondition: ['탱커 · 레벨 1 · 장비 없음 · 파티 없음 · 혼자 · 무적 · 오늘 퀘스트 처음 상태 · 던전의 임프는 치움'],
   params: z.object({
     userId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true, account: '일반 회원' }),
     userPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true, account: '일반 회원' }),
@@ -37,11 +37,12 @@ test(spec, async ({ game, admin, params }) => {
     await verify('로비 화면이 열린다', 로비 !== null, true, { blocker: true });
   });
 
-  await test.step('탱커 · 레벨 1 로 혼자 던전에 들어와 임프를 치우고 오늘 퀘스트를 처음으로 돌린 것을 확인한다', async () => {
+  await test.step('탱커 · 레벨 1 · 무적으로 혼자 던전에 들어와 임프를 치우고 오늘 퀘스트를 처음으로 돌린 것을 확인한다', async () => {
     await 장비갖추기(game, 1, null);
     await 던전입장(game, '탱커');
     await 던전을비우고레벨맞추기(game, 1);
     const 진행 = await 퀘스트처음으로(game);
+    await GM무적바꾸기(game);
     await verify('/gm stat 레벨이 1 이다', 스탯숫자(await GM스탯(game), '레벨'), 1, { blocker: true });
     await verify('일일 퀘스트 진행이 모두 0 이다', 진행.split(' · ').every((칸) => 칸.startsWith('0/')), true, { blocker: true });
   });
