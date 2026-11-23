@@ -2,7 +2,8 @@
 
 export { defineCase, type CaseHandle, type CaseSchema, type DefineCaseInput } from './defineCase.js';
 export { defineProcedure, type DefineProcedureInput } from './defineProcedure.js';
-export { test, type CaseBody, type CaseBodyArgs, type ProcedureBody } from './test.js';
+export { test } from './test.js';
+export type { CaseBody, CaseBodyArgs, ProcedureBody } from './bodyArgs.js';
 export type { GameDriver } from './game.js';
 export { verify, type VerifyOptions } from './verify.js';
 export { gameLog, repeatUntil } from './gameScenario.js';
