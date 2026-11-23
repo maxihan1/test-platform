@@ -117,6 +117,7 @@ export async function execute(req: ExecuteRequest | CasesExecuteRequest, specPat
         ...process.env,
         PLATFORM_PARAMS: JSON.stringify({ params: 첫.params, expected: 첫.expected }),
         // 프로시저 파일은 케이스마다 자기 값을 여기서 꺼낸다. 늘 적는다 — 러너를 켠 셸의 값을 물려받지 않게 (도메인/러너 §5.2 「프로시저 실행」 「케이스별 입력」)
+        // ponytail: 환경값 한 칸은 128KiB 까지다 — 케이스 10개의 값으로는 못 닿는다. 닿으면 자식을 못 띄워 500 이 되고, 그때 파일로 넘긴다(API 문서 판처럼)
         PLATFORM_CASES: 케이스들 === undefined ? '' : JSON.stringify(케이스들),
         // 러너는 어떤 대상 서버가 있는지 모른다. 주소 하나만 받아 그대로 넘기고
         // playwright.config.ts가 use.baseURL로 받는다 (SPEC §5.2)
