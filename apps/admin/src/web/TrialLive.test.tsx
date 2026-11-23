@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 
+import { 그림이뜬다, 틀비율 } from './liveFit.fixture.js';
 import { PC화면통로 } from './PcScreen.js';
 import { 장면칸, 장면통로, type 장면답 } from './TrialLive.js';
 
@@ -205,6 +206,25 @@ describe('장면칸', () => {
     expect(screen.getByText('동작마다 1초 천천히')).toBeTruthy();
     expect(screen.queryByText(/앱 단계/)).toBeNull();
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
+  });
+
+  it('받은 그림의 가로세로 비율을 그림 틀에 싣고 가로로 긴지 알린다 — 케이스 도중 화면이 돌면 다음 그림부터 따라간다 (§8.16 「틀」)', async () => {
+    vi.spyOn(장면통로, '받기').mockImplementation(async () => 그림());
+    const on가로 = vi.fn();
+    const { container } = render(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" 폰만 on가로={on가로} />);
+    await 흘리기();
+    const 틀 = () => container.querySelector('.live-fit > .live-shot');
+
+    expect(틀비율(틀())).toBeNull();
+    expect(on가로).not.toHaveBeenCalled();
+
+    그림이뜬다(screen.getByRole('img'), 2400, 1080);
+    expect(틀비율(틀())).toBeCloseTo(2400 / 1080);
+    expect(on가로).toHaveBeenLastCalledWith(true);
+
+    그림이뜬다(screen.getByRole('img'), 1080, 2400);
+    expect(틀비율(틀())).toBeCloseTo(0.45);
+    expect(on가로).toHaveBeenLastCalledWith(false);
   });
 
   it('윈도우 PC 는 PC 를 잡으면 장면 사진을 안 묻고 화면 영상 흐름을 받아 그린다 (도메인/게임 §3.10 「증적 · 결과」)', async () => {

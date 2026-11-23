@@ -25,7 +25,7 @@
   white-space: nowrap;
 }
 
-/* ③ 왼쪽 대기열 · 단계, 오른쪽 장면. 폰 차례면 장면 칸이 300px 폰 폭이다 (점검표 B14) — 창 크기는 그대로다 */
+/* ③ 왼쪽 대기열 · 단계, 오른쪽 장면. 폰 차례이고 그림이 세로면 장면 칸이 300px 폰 폭이다 (점검표 B14) — 창 크기는 그대로다 */
 .trial-run {
   flex: 1 1 auto;
   min-height: 0;
@@ -206,18 +206,22 @@
   overflow: hidden;
 }
 
-.trial-colR .live-shot,
-.trial-colR .live-wait {
+/* 그림 자리가 칸에 남은 높이를 다 쓰고, 그 안에서 그림 틀이 비율대로 가장 크게 선다 (trialLive.css 「그림 틀」) */
+.trial-colR .live-fit {
   flex: 1 1 0;
+  min-width: 0;
   min-height: 0;
-  aspect-ratio: auto;
+  display: grid;
+  place-items: center;
+  container-type: size;
+  --fit-w: 100cqw;
+  --fit-h: 100cqh;
 }
 
-.trial-colR .live-shot img {
+.trial-colR .live-fit > .live-wait {
   width: 100%;
   height: 100%;
-  max-height: none;
-  object-fit: contain;
+  aspect-ratio: auto;
 }
 
 /* 첫 장면 전 뼈대 (점검표 B1) — 목록을 불러올 때의 뼈대(styles.css .skel-row)와 같은 빛 훑기다. 움직임 줄이기는 styles.css 가 한 번에 끈다 */

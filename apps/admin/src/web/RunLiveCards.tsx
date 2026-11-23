@@ -6,6 +6,7 @@ import { PC항목인가 } from '@platform/kit/types';
 import { api, type 항목진행 } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import type { RunDetail, 도는것 } from './runProgress.js';
+import { use그림비율 } from './liveFit.js';
 import { PC화면 } from './PcScreen.js';
 import { 시간글자 } from './remainText.js';
 import { use장면 } from './TrialLive.js';
@@ -77,10 +78,11 @@ function 장면({ runId, historyId, 폰, 앱폰, 기다림글 }: { runId: number
   const t = use말();
   // 앱 · 게임 항목은 Appium 폰 장면(1초 간격)이라 묻는 간격도 그에 맞춘다
   const { 그림, 못닿음 } = use장면(api.itemLive(runId, historyId), true, 앱폰);
+  const { 틀, 그림에서 } = use그림비율();
   if (그림 === null) return <p className="live-wait">{못닿음 ? t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다') : 기다림글}</p>;
   return (
-    <div className={폰 ? 'live-shot lc-phone' : 'live-shot'}>
-      <img src={그림} alt={t('지금 화면')} />
+    <div className={폰 ? 'live-shot lc-phone' : 'live-shot'} style={틀}>
+      <img src={그림} alt={t('지금 화면')} onLoad={그림에서} />
     </div>
   );
 }

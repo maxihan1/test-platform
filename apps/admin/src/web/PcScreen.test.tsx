@@ -4,6 +4,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { 틀비율 } from './liveFit.fixture.js';
 import { PC화면, PC화면통로 } from './PcScreen.js';
 
 const SPS설정 = [0, 0, 0, 1, 0x67, 0x64, 0x00, 0x1f, 0xac, 0, 0, 1, 0x68, 0xee];
@@ -92,7 +93,7 @@ describe('PC화면', () => {
     ]);
   });
 
-  it('첫 장을 그리면 기다림 글을 걷고 canvas 를 그 장 크기로 맞춘다', async () => {
+  it('첫 장을 그리면 기다림 글을 걷고 canvas 를 그 장 크기로 맞추며 그림 틀에 그 비율을 싣는다', async () => {
     const 그리기 = vi.fn();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: 그리기 } as never);
     vi.spyOn(PC화면통로, '받기').mockResolvedValue(흐름([길이붙인조각(2, SPS설정)]));
@@ -107,6 +108,7 @@ describe('PC화면', () => {
 
     const 판 = document.querySelector('canvas')!;
     expect([판.width, 판.height]).toEqual([1920, 1080]);
+    expect(틀비율(판.parentElement)).toBeCloseTo(1920 / 1080);
     expect(그리기).toHaveBeenCalled();
     expect(닫기).toHaveBeenCalled();
     expect(screen.queryByText('게임을 여는 중')).toBeNull();

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type TrialResult } from './api.js';
+import { 그림이뜬다 } from './liveFit.fixture.js';
 import { 그린다, 서비스, 케이스 } from './runPick.fixture.js';
 import { RunPickModal } from './RunPickModal.js';
 import { 장면통로 } from './TrialLive.js';
@@ -109,6 +110,72 @@ describe('시험 실행 중 — 시안 A ③', () => {
     시험시작();
 
     expect(await screen.findByText('가상 디바이스 · iPhone 14')).toBeTruthy();
+    expect(document.querySelector('.trial-run')?.classList.contains('phone')).toBe(true);
+  });
+
+  it('폰 차례여도 받은 그림이 가로로 길면(가로 전용 게임) 장면 칸을 폰 폭으로 줄이지 않는다 — 세로 그림이 오면 다시 줄인다', async () => {
+    차례대로({});
+    localStorage.clear();
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:1') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['png'], { type: 'image/png' }) });
+    render(<RunPickModal 케이스들={[{ ...케이스, platforms: ['android'] }]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    시험시작();
+    const 폰칸인가 = () => document.querySelector('.trial-run')?.classList.contains('phone');
+
+    const 그림 = await screen.findByRole('img', { name: '디바이스의 지금 화면' });
+    expect(폰칸인가()).toBe(true);
+
+    그림이뜬다(그림, 2400, 1080);
+    expect(폰칸인가()).toBe(false);
+
+    그림이뜬다(그림, 1080, 2400);
+    expect(폰칸인가()).toBe(true);
+  });
+
+  it('앞 폰 차례의 그림이 가로였으면 다음 폰 차례는 첫 그림이 오기 전부터 넓은 칸이다 — 케이스마다 좁게 열렸다 넓어지지 않는다', async () => {
+    localStorage.clear();
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:1') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    vi.spyOn(장면통로, '받기').mockImplementation(async (주소) => (주소.includes('/t-1/') ? { 종류: 'frame', 그림: new Blob(['png'], { type: 'image/png' }) } : { 종류: 'empty' }));
+    let 몇째 = 0;
+    let 첫끝 = false;
+    vi.spyOn(api, 'startTrial').mockImplementation(() => Promise.resolve({ trialId: `t-${++몇째}` }));
+    vi.spyOn(api, 'getTrial').mockImplementation((_tcId, trialId) => Promise.resolve(trialId === 't-1' && 첫끝 ? { status: 'DONE', result: 통과 } : { status: 'RUNNING' }));
+    const 앱케이스 = { ...케이스, platforms: ['android' as const] };
+    render(<RunPickModal 케이스들={[앱케이스, { ...앱케이스, tcId: 'ZRS-002', name: '둘째 케이스' }]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    시험시작();
+
+    그림이뜬다(await screen.findByRole('img', { name: '디바이스의 지금 화면' }), 2400, 1080);
+    첫끝 = true;
+
+    expect(await screen.findByRole('dialog', { name: '시험 실행 · 2 / 2' }, { timeout: 4000 })).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole('img')).toBeNull());
+    expect(document.querySelector('.trial-run')?.classList.contains('phone')).toBe(false);
+  });
+
+  it('PC 차례의 가로 그림은 다음 모바일 차례의 장면 칸을 넓히지 않는다', async () => {
+    localStorage.clear();
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:1') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['jpeg']) });
+    let 몇째 = 0;
+    let PC끝 = false;
+    vi.spyOn(api, 'startTrial').mockImplementation(() => Promise.resolve({ trialId: `t-${++몇째}` }));
+    vi.spyOn(api, 'getTrial').mockImplementation((_tcId, trialId) => Promise.resolve(trialId === 't-1' && PC끝 ? { status: 'DONE', result: 통과 } : { status: 'RUNNING' }));
+    render(<RunPickModal 케이스들={[{ ...케이스, platforms: ['desktop', 'mobile'] }]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    시험시작();
+
+    그림이뜬다(await screen.findByRole('img', { name: '서버 브라우저의 지금 화면' }), 1440, 900);
+    PC끝 = true;
+
+    expect(await screen.findByText('가상 디바이스 · iPhone 14', {}, { timeout: 4000 })).toBeTruthy();
     expect(document.querySelector('.trial-run')?.classList.contains('phone')).toBe(true);
   });
 });
