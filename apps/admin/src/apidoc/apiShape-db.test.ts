@@ -45,6 +45,7 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
     const ids = (await pool.query<{ id: string }>("SELECT id FROM service WHERE prefix IN ('XAS', 'XASS')")).rows.map((r) => r.id);
     await pool.query('DELETE FROM api_call_seen WHERE service_id = ANY($1)', [ids]);
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [ids]);
+    await pool.query('DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [ids]);
     await pool.query('DELETE FROM test_run WHERE service_id = ANY($1)', [ids]);
     await pool.query('DELETE FROM api_doc_version WHERE service_id = ANY($1)', [ids]);
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);

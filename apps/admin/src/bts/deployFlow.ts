@@ -2,7 +2,7 @@
 
 import type { Pool, PoolClient } from 'pg';
 
-import { 빌드실행을건다 } from '../execution/buildRun.js';
+import { 빌드실행을건다, 스모크안통과 } from '../execution/buildRun.js';
 import { 오래된빌드치우기 } from '../execution/buildFile.js';
 
 import { aql글 } from './aql.js';
@@ -202,7 +202,7 @@ export async function 배포판정(deployId: number, 부르기: 부르기함수 
   )).rows[0];
   if (배포?.state !== 'SMOKE') return;
   const 스모크 = (await pool.query<{ status: string; prefix: string; prep_note: string | null; 안통과: boolean }>(
-    `SELECT t.status, s.prefix, t.prep_note, EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.status <> 'PASS') AS "안통과"
+    `SELECT t.status, s.prefix, t.prep_note, ${스모크안통과()} AS "안통과"
        FROM test_run t JOIN service s ON s.id = t.service_id
       WHERE t.run_id = ANY($1::bigint[]) AND t.build_stage = 'SMOKE'`,
     [배포.run_ids],

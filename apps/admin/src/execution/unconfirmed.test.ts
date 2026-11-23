@@ -25,6 +25,7 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
 
   async function 치운다(): Promise<void> {
     await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU'))");
+    await pool.query("DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU'))");
     await pool.query("DELETE FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU')");
     await pool.query("DELETE FROM req_case WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU')");
     await pool.query("DELETE FROM prd_version WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU')");

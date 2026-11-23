@@ -33,6 +33,7 @@ describe.skipIf(연결 === undefined)('실행 때 계정 채우기', () => {
 
   async function 치우기(): Promise<void> {
     await q('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
+    await q('DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
     await q('DELETE FROM test_run WHERE service_id = $1', [서비스]);
     await q('DELETE FROM case_input WHERE tc_id = $1', [케이스]);
   }

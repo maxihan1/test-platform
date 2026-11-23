@@ -31,15 +31,20 @@ export function 종류조건(종류: 목록종류, 별칭 = 'r'): string {
   return 별칭 === '' ? 글자[종류] : `${별칭}.${글자[종류]}`;
 }
 
-/** 실행 하나에 한 종류만 담는다. 섞이면 null — 부르는 쪽이 거절한다 */
-export function 실행종류(tcIds: string[]): 케이스종류 | null {
+/**
+ * 실행 하나에 한 종류만 담는다. 섞이면 null — 부르는 쪽이 거절한다.
+ * 「프로시저 작성」을 켠 애플리케이션(한종류)은 `-UI-` 케이스가 섞여도 기능 하나다 — 한 흐름이 화면 확인과 기능 확인을 같이 지난다 (도메인/실행 §3.2 「실행 종류」)
+ */
+export function 실행종류(tcIds: string[], 한종류 = false): 케이스종류 | null {
+  if (한종류) return 'FN';
   const 종류들 = new Set(tcIds.map(tcId종류));
   if (종류들.size !== 1) return null;
   return 종류들.has('UI') ? 'UI' : 'FN';
 }
 
-/** 정해진 시간 전체 실행을 종류별 실행으로 나눈다. 빈 묶음은 실행을 만들지 않는다 */
-export function 종류별로나눈다<T extends { tcId: string }>(items: T[]): { kind: 케이스종류; items: T[] }[] {
+/** 정해진 시간 전체 실행을 종류별 실행으로 나눈다. 빈 묶음은 실행을 만들지 않는다. 「프로시저 작성」을 켠 애플리케이션(한종류)은 나누지 않고 기능 하나다 */
+export function 종류별로나눈다<T extends { tcId: string }>(items: T[], 한종류 = false): { kind: 케이스종류; items: T[] }[] {
+  if (한종류) return items.length === 0 ? [] : [{ kind: 'FN', items }];
   return (['UI', 'FN'] as const)
     .map((kind) => ({ kind, items: items.filter((i) => tcId종류(i.tcId) === kind) }))
     .filter((m) => m.items.length > 0);

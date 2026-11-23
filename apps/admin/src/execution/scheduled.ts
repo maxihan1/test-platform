@@ -1,6 +1,7 @@
-// 서비스 하나의 활성 케이스를 UI · 기능 실행 둘로 만든다 — 빌드 실행(buildRun.ts)이 쓴다 (도메인/실행 §3.11).
+// 서비스 하나의 활성 케이스를 UI · 기능 실행 둘로(「프로시저 작성」을 켠 애플리케이션은 하나로) 만든다 — 빌드 실행(buildRun.ts)이 쓴다 (도메인/실행 §3.11).
 // 정기 실행 세트의 회차는 sched/runner.ts 가 줄마다 만든다 (도메인/정기실행 §3.16). 이름은 옛 정기 실행에서 왔다
 
+import { findService } from '../catalog/services.js';
 import { listCases } from '../catalog/store.js';
 
 import { dispatch } from './dispatcher.js';
@@ -73,10 +74,12 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
 
   const 만든것: { runId: number; 보낼것: Awaited<ReturnType<typeof createRun>>['items'] }[] = [];
   let 실패 = false;
-  // 실행 하나에 한 종류다 — 한쪽이 실패해도 다른 쪽은 돈다. 아침 Slack 도 둘이다 (SPEC 공통/4-데이터모델 「실행 종류」)
-  for (const 묶음 of 종류별로나눈다(items)) {
+  // 실행 하나에 한 종류다 — 한쪽이 실패해도 다른 쪽은 돈다. 아침 Slack 도 둘이다 (SPEC 공통/4-데이터모델 「실행 종류」).
+  // 「프로시저 작성」을 켠 애플리케이션은 종류가 하나라 스모크도 회귀도 실행 하나다 (도메인/실행 §3.2 「실행 종류」)
+  const 한종류 = (await findService(prefix))?.procedureMode === true;
+  for (const 묶음 of 종류별로나눈다(items, 한종류)) {
     try {
-      const { runId, items: 보낼것 } = await createRun({
+      const { runId, items: 보낼것, procSkipped } = await createRun({
         origin: 'BUILD' as const,
         build: { id: 빌드.id, no: 빌드.buildNo, stage: 빌드.stage },
         triggeredBy: 빌드.username,
@@ -89,6 +92,7 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
         items: 묶음.items,
       });
       만든것.push({ runId, 보낼것 });
+      if (procSkipped > 0) 로그.info(`${꼬리} ${prefix} 프로시저 안 케이스 ${String(procSkipped)}건은 뺐다 — 서버 러너가 테스트 프로시저를 돌리지 못한다`);
       로그.info(`${꼬리} ${prefix} 실행 ${String(runId)}(${이름[묶음.kind]})을 만들었다. 케이스 ${String(묶음.items.length)}건 · 항목 ${String(보낼것.length)}건`);
     } catch (err) {
       // 지원 패드를 풀어 버튼 그림 케이스만 있던 종류가 비면 그 종류만 안 선다 — 빌드를 지우고 CI 가 영영 다시 부르게 하지 않는다 (도메인/게임 §3.10 「펼친 항목이 없는 케이스는 빠진다」)

@@ -16,6 +16,7 @@ describe.skipIf(연결 === undefined)('증적 자료 — 한 건 실행이 붙�
 
   async function 치운다(): Promise<void> {
     await pool.query(`DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
+    await pool.query(`DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
     await pool.query(`DELETE FROM test_run WHERE service_id = ${서비스번호}`);
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1::text[])', [케이스들]);
     await pool.query(`DELETE FROM service_env WHERE service_id = ${서비스번호}`);

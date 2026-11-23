@@ -114,7 +114,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     } catch (err) {
       if (err instanceof RunInputError) {
         // 배정받지 않은 서비스는 403이다. 404로 감추지 않는다 (SPEC §3.5)
-        const code = err.code === 'CASE_NOT_FOUND' ? 404 : err.code === 'SERVICE_FORBIDDEN' ? 403 : 400;
+        // 못 도는 러너는 요청이 틀린 것이 아니라 지금 서버 상태라 409 다 — FARM_OFF 와 같은 자리 (도메인/실행 §3.2 「러너 능력」)
+        const code = err.code === 'CASE_NOT_FOUND' ? 404 : err.code === 'SERVICE_FORBIDDEN' ? 403 : err.code === 'RUNNER_NO_PROCEDURE' ? 409 : 400;
         // 상한을 넘겼을 때는 화면이 숫자를 그대로 보여줄 수 있게 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
         if (err.detail !== undefined) {
           return reply.code(code).send({ error: err.code, ...err.detail });

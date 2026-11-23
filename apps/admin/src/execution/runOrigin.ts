@@ -16,7 +16,7 @@ export interface 제목재료 {
   /** 정기 실행 세트가 만든 실행만 — 「정기 · 」 뒤에 세트 이름을 끼운다 (도메인/정기실행 §3.16 「실행 만들기」) */
   setName?: string;
   kind: 케이스종류;
-  /** 담긴 케이스 — 번호 차례, 겹치지 않게 */
+  /** 담긴 케이스 — 번호 차례, 겹치지 않게. 프로시저로 펼쳐서 든 케이스는 안 센다 — 고른 것만이다 */
   케이스들: { tcId: string; name: string }[];
   /** 그 종류의 활성 케이스를 전부 담았나 */
   전체: boolean;
@@ -41,16 +41,17 @@ export function 자동제목(재료: 제목재료): string {
 /** 그 종류의 활성 케이스를 전부 담았고 꺼진 케이스가 섞이지 않았으면 「전체」다 */
 export async function 제목을짓는다(
   client: Pick<PoolClient, 'query'>,
-  재료: Omit<제목재료, '전체'> & { prefix: string },
+  // 한종류 — 「프로시저 작성」을 켠 애플리케이션. 종류가 하나라 「전체」를 UI · 기능으로 가르지 않고 활성 케이스 전부로 본다
+  재료: Omit<제목재료, '전체'> & { prefix: string; 한종류?: boolean },
 ): Promise<string> {
   const r = await client.query<{ 빠진: number; 꺼진: number }>(
     `SELECT count(*) FILTER (WHERE is_active AND NOT (tc_id = ANY($3::text[])))::int AS "빠진",
             count(*) FILTER (WHERE NOT is_active AND tc_id = ANY($3::text[]))::int AS "꺼진"
        FROM test_case
-      WHERE tc_id LIKE $1 AND (tc_id ~ '-UI-[0-9]{3}$') = $2`,
-    [`${재료.prefix}-%`, 재료.kind === 'UI', 재료.케이스들.map((c) => c.tcId)],
+      WHERE tc_id LIKE $1 AND ($4 OR (tc_id ~ '-UI-[0-9]{3}$') = $2)`,
+    [`${재료.prefix}-%`, 재료.kind === 'UI', 재료.케이스들.map((c) => c.tcId), 재료.한종류 === true],
   );
-  const { prefix: _prefix, ...나머지 } = 재료;
+  const { prefix: _prefix, 한종류: _한종류, ...나머지 } = 재료;
   return 자동제목({ ...나머지, 전체: r.rows[0]!.빠진 === 0 && r.rows[0]!.꺼진 === 0 });
 }
 

@@ -7,13 +7,13 @@ import { PC항목인가, type ApiAuth, type GamePopup, type Platform } from '@pl
 import type { Pool } from 'pg';
 
 import { 돌발팝업칸 } from '../prd/gameRoute.js';
-import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { API인증읽기, type 어드민키, 어드민키읽기 } from '../settings/envs.js';
 
 import { 실행빌드, 앞빌드, 앱칸 } from './buildFile.js';
 import { 엔진칸 } from './engineField.js';
-import { 선언밖디바이스, 윈도우를펼친다, 플랫폼밖인가, 항목제한ms } from './location.js';
+import { 선언밖디바이스, 윈도우를펼친다, 플랫폼밖인가 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
+import { 케이스를읽는다, 프로시저로펼친다, 실행단위를넣는다 } from './runExec.js';
 import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 import { 시작방식정하기 } from './single.js';
@@ -35,7 +35,9 @@ export class RunInputError extends Error {
       | 'SERVICE_FORBIDDEN'
       | 'TOO_MANY_ITEMS'
       | 'BAD_RERUN'
-      // 정기 · 빌드 · 배포 신호 실행에서 플랫폼 밖 값 · 지원 패드 밖 패드를 빼고 나니 돌 항목이 없다 — 실패가 아니다(그 종류 실행만 안 선다)
+      // 러너가 프로시저를 못 돈다 — 사람이 건 실행만 거절한다(자동 실행은 프로시저 안 케이스만 뺀다). 도메인/실행 §3.2 「러너 능력」
+      | 'RUNNER_NO_PROCEDURE'
+      // 정기 · 빌드 · 배포 신호 실행에서 플랫폼 밖 값 · 지원 패드 밖 패드 · 못 보내는 프로시저 케이스를 빼고 나니 돌 항목이 없다 — 실패가 아니다(그 종류 실행만 안 선다)
       | 'NO_ITEMS',
     message: string,
     // TOO_MANY_ITEMS 는 응답에 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
@@ -130,6 +132,7 @@ interface ServiceRow {
   admin_key: unknown;
   game_platform: 'android' | 'windows' | null;
   game_pads: string[];
+  procedure_mode: boolean;
 }
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
@@ -138,26 +141,15 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-interface CaseRow {
-  tc_id: string;
-  name: string;
-  precondition: string[];
-  file_path: string;
-  param_schema: Record<string, unknown>;
-  expected_schema: Record<string, unknown>;
-  unconfirmed: string | null;
-  platforms: string[];
-}
+// dispatcher 가 새 꼴 요청으로 보내는 것은 TP-F2-11 이다 — 그 전에는 러너가 돌 수 있어도 정식 실행이 프로시저를 못 보낸다.
+// 11 이 이 기본값을 runnerAddr.ts 의 프로시저못도는러너인가 로 바꾼다
+const 아직못보낸다 = async (): Promise<boolean> => true;
 
-// 라벨·제한 시간·파일 경로도 실행 시점 값으로 박제한다. 카탈로그는 스캔 때마다 덮어쓰는 캐시라
-// 나중에 읽으면 그날 무엇으로 돌렸는지가 달라진다 (SPEC §3.3 · §6)
-const INSERT_ITEM = `
-  INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status,
-                        file_path, param_schema, expected_schema, timeout_ms, attempt, unconfirmed, tests_commit, case_sha256)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13, $14, $15)
-  RETURNING history_id`;
-
-export async function createRun(요청: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
+/** @param 못보내나 프로시저 안 케이스가 든 실행을 만들 때만 묻는다 — 러너가 프로시저를 못 도나 (도메인/실행 §3.2 「러너 능력」) */
+export async function createRun(
+  요청: CreateRunInput,
+  못보내나: () => Promise<boolean> = 아직못보낸다,
+): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[]; procSkipped: number }> {
   let input = 요청;
   if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
 
@@ -180,9 +172,6 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
     throw new RunInputError('MIXED_SERVICE', `한 실행에 서비스가 섞여 있다: ${prefixes.join(', ')}`);
   }
   const prefix = prefixes[0] ?? '';
-  // 한 실행은 한 종류다 — 실행 기록 · 증적 · 견주기가 종류별로 갈린다 (SPEC 공통/4-데이터모델 「실행 종류」)
-  const kind = 실행종류(input.items.map((i) => i.tcId));
-  if (kind === null) throw new RunInputError('MIXED_KIND', '한 실행에 UI 테스트와 기능 테스트가 섞여 있다');
   if (input.env.trim() === '') throw new RunInputError('INVALID_REQUEST', '대상 서버를 고르지 않았다');
 
   const repeat = input.repeat ?? 1;
@@ -208,7 +197,7 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
 
     // 서비스와 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (SPEC §6)
     const service = await client.query<ServiceRow>(
-      `SELECT s.id, s.name, s.tests_repo, s.kind, s.game_platform, s.game_pads, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths, e.admin_key
+      `SELECT s.id, s.name, s.tests_repo, s.kind, s.game_platform, s.game_pads, s.procedure_mode, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths, e.admin_key
          FROM service s
          LEFT JOIN service_env e ON e.service_id = s.id AND e.env = $2
         WHERE s.prefix = $1 AND s.is_active`,
@@ -218,6 +207,9 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
     if (found서비스 === undefined) {
       throw new RunInputError('SERVICE_FORBIDDEN', `${prefix} 서비스를 찾을 수 없다`);
     }
+    // 한 실행은 한 종류다 — 실행 기록 · 증적 · 견주기가 종류별로 갈린다. 「프로시저 작성」을 켠 애플리케이션은 섞여도 기능 하나다 (SPEC 공통/4-데이터모델 「실행 종류」)
+    const kind = 실행종류(input.items.map((i) => i.tcId), found서비스.procedure_mode);
+    if (kind === null) throw new RunInputError('MIXED_KIND', '한 실행에 UI 테스트와 기능 테스트가 섞여 있다');
     if (found서비스.base_url === null) {
       throw new RunInputError('ENV_NOT_FOUND', `${prefix} 서비스에 ${input.env} 대상 서버가 없다`);
     }
@@ -236,19 +228,23 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
       input = { ...input, items: input.items.map((i) => ({ ...i, platforms: [...new Set(i.platforms.map((p) => (PC항목인가(p) ? 'windows' : p)))] })) };
     }
 
-    // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
-    // 미확정 사유도 여기서 박제한다 — 확인 필요 항목이 나중에 확정돼도 그날 확정이 아니었다는 사실은 남아야 한다 (SPEC 실행 §3.2)
-    const found = await client.query<CaseRow>(
-      `SELECT tc_id, name, precondition, file_path, param_schema, expected_schema, ${미확정사유SQL('c')} AS unconfirmed, platforms
-         FROM test_case c WHERE tc_id = ANY($1::text[])`,
-      [input.items.map((i) => i.tcId)],
-    );
-    const cases = new Map(found.rows.map((r) => [r.tc_id, r]));
+    const cases = await 케이스를읽는다(client, input.items.map((i) => i.tcId));
     const missing = input.items.filter((i) => !cases.has(i.tcId)).map((i) => i.tcId);
     if (missing.length > 0) throw new RunInputError('CASE_NOT_FOUND', `카탈로그에 없는 케이스다: ${missing.join(', ')}`);
     const 밖 = 선언밖디바이스(input.items, cases);
     if (밖) throw new RunInputError('INVALID_REQUEST', `${밖.tcId} 는 ${PLATFORM_LABEL[밖.platform]} 환경을 선언하지 않았다`);
-    input = { ...input, items: 윈도우를펼친다(input.items, cases, found서비스.game_pads, input.rerunOf !== undefined) };
+    // 못 도는 러너에는 프로시저 파일을 보내지 않는다 — 사람이 건 실행은 거절하고 자동 실행은 그 케이스만 뺀다(디바이스가 안 맞는 케이스를 다루는 방식과 같다)
+    const 프로시저안 = (tcId: string): boolean => (cases.get(tcId)?.proc_id ?? null) !== null;
+    let procSkipped = 0;
+    if (input.items.some((i) => 프로시저안(i.tcId)) && (await 못보내나())) {
+      if (input.origin === 'MANUAL') throw new RunInputError('RUNNER_NO_PROCEDURE', '러너가 테스트 프로시저를 돌리지 못한다');
+      procSkipped = input.items.filter((i) => 프로시저안(i.tcId)).length;
+      input = { ...input, items: input.items.filter((i) => !프로시저안(i.tcId)) };
+      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '러너가 테스트 프로시저를 돌리지 못해 돌 케이스가 없다');
+    }
+    // 제목 · 「실패 다시」 검사 · 한 건 판정은 펼치기 전에 고른 케이스로 한다 (도메인/실행 §3.2 「테스트 프로시저 실행」)
+    const tcIds = [...new Set(input.items.map((i) => i.tcId))].sort();
+    input = { ...input, items: 윈도우를펼친다(await 프로시저로펼친다(client, input.items, cases), cases, found서비스.game_pads, input.rerunOf !== undefined) };
     if (input.items.length === 0) {
       throw new RunInputError(input.origin === 'MANUAL' ? 'INVALID_REQUEST' : 'NO_ITEMS', '실행할 케이스가 하나도 없다 — 버튼 그림 케이스의 패드가 지원 패드에 없다');
     }
@@ -257,7 +253,6 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
       throw new RunInputError('TOO_MANY_ITEMS', `한 번에 ${MAX_ITEMS}건까지 만들 수 있는데 ${펼친수}건을 요청했다`, { limit: MAX_ITEMS, requested: 펼친수 });
     }
 
-    const tcIds = [...cases.keys()].sort();
     if (input.rerunOf !== undefined) {
       const 사유 = await 다시실행사유(client, input.rerunOf, { serviceId: found서비스.id, kind, tcIds });
       if (사유 !== null) throw new RunInputError('BAD_RERUN', 사유);
@@ -285,6 +280,7 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
       ...(input.sched === undefined ? {} : { setName: input.sched.setName }),
       prefix,
       kind,
+      한종류: found서비스.procedure_mode,
       케이스들: tcIds.map((tcId) => ({ tcId, name: cases.get(tcId)!.name })),
     });
 
@@ -326,54 +322,28 @@ export async function createRun(요청: CreateRunInput): Promise<{ runId: number
 
     // 게임 애플리케이션만 읽는다 — 항목마다 같은 목록이라 한 번
     const 팝업칸 = found서비스.kind === 'GAME' ? await 돌발팝업칸(Number(found서비스.id), client) : {};
-    const items: PendingItem[] = [];
-    for (const item of 채운항목) {
-      const spec = cases.get(item.tcId)!;
-      const timeoutMs = 항목제한ms(item.tcId, item.timeoutMs);
-      for (const platform of item.platforms) {
-        // 회차는 1부터다. 러너에는 보이지 않는다 — historyId 만 다른 같은 요청을 N번 보낼 뿐이다 (SPEC §5.2)
-        for (let attempt = 1; attempt <= repeat; attempt += 1) {
-          const row = await client.query<{ history_id: string }>(INSERT_ITEM, [
-            runId,
-            item.tcId,
-            platform,
-            spec.name,
-            JSON.stringify(spec.precondition),
-            JSON.stringify(item.params),
-            JSON.stringify(item.expected),
-            spec.file_path,
-            JSON.stringify(spec.param_schema),
-            JSON.stringify(spec.expected_schema),
-            timeoutMs,
-            attempt,
-            spec.unconfirmed,
-            커밋,
-            지문들.get(item.tcId) ?? null,
-          ]);
-          items.push({
-            historyId: Number(row.rows[0]!.history_id),
-            tcId: item.tcId,
-            platform,
-            filePath: spec.file_path,
-            baseUrl: found서비스.base_url,
-            params: item.params,
-            expected: item.expected,
-            timeoutMs,
-            ...(platform === 'android' && 앱칸(빌드, found서비스.app_path, 앞)),
-            ...(인증들.length > 0 && { apiAuths: 인증들 }),
-            ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
-            ...(엔진칸(found서비스.kind, platform).engine === 'GAME' && 팝업칸),
-            ...(platform === 'mobile' && 실제폰 && { 실제폰: true as const }),
-            ...(platform === 'android' && input.sched?.base === true && { stability: true as const }),
-            // PC 게임의 빌드는 늘 올린 zip 이다 — 없으면 디스패처가 「Windows 빌드가 없습니다」로 닫는다
-            ...(PC항목인가(platform) && 빌드?.hasFile === true && { buildId: 빌드.id }),
-          });
-        }
-      }
-    }
+    const items = await 실행단위를넣는다(client, {
+      runId,
+      repeat,
+      items: 채운항목,
+      cases,
+      커밋,
+      지문들,
+      줄칸: (platform) => ({
+        baseUrl: found서비스.base_url!,
+        ...(platform === 'android' && 앱칸(빌드, found서비스.app_path, 앞)),
+        ...(인증들.length > 0 && { apiAuths: 인증들 }),
+        ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
+        ...(엔진칸(found서비스.kind, platform).engine === 'GAME' && 팝업칸),
+        ...(platform === 'mobile' && 실제폰 && { 실제폰: true as const }),
+        ...(platform === 'android' && input.sched?.base === true && { stability: true as const }),
+        // PC 게임의 빌드는 늘 올린 zip 이다 — 없으면 디스패처가 「Windows 빌드가 없습니다」로 닫는다
+        ...(PC항목인가(platform) && 빌드?.hasFile === true && { buildId: 빌드.id }),
+      }),
+    });
 
     await client.query('COMMIT');
-    return { runId, attachedTo, items };
+    return { runId, attachedTo, items, procSkipped };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
