@@ -3,7 +3,7 @@ import type { GameDriver } from '@platform/kit';
 import { 공통HUD, 색뗀글 } from '../components/hud.component.js';
 
 export class 채팅창 {
-  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 채팅';
+  static readonly 주소 = 'game:*/Showcase HUD/Window 채팅';
   static readonly 창 = '/Showcase HUD/Window 채팅';
   static readonly 판 = '/Showcase HUD/Window 채팅/Panel 채팅';
   static readonly 가림막 = '/Showcase HUD/Window 채팅/Shade';

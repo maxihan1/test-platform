@@ -1,7 +1,7 @@
 import type { GameDriver } from '@platform/kit';
 
 export class 고르기표시 {
-  static readonly 주소 = 'game:BossRoom/PlayerAvatar69/AvatarGraphics69/fx_TargetReticule(Clone)';
+  static readonly 주소 = 'game:BossRoom/PlayerAvatar:n/AvatarGraphics:n/fx_TargetReticule(Clone)';
   static readonly 표시 = '//*[contains(@name,fx_TargetReticule)]';
   static readonly 내초상화 = '/BossRoomHudCanvas/Party HUD/Hero HUD/Button';
 

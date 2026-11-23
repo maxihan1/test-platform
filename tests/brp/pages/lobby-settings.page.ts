@@ -1,7 +1,7 @@
 import type { GameDriver } from '@platform/kit';
 
 export class 로비설정창 {
-  static readonly 주소 = 'game:CharSelect/SettingsPanelCanvas/SettingsPanel';
+  static readonly 주소 = 'game:*/SettingsPanelCanvas/SettingsPanel';
   static readonly 창 = '/SettingsPanelCanvas/SettingsPanel';
   static readonly 톱니버튼 = '/SettingsPanelCanvas/Settings Button';
   static readonly 전체소리글 = '/SettingsPanelCanvas/SettingsPanel/MasterVolume/Label';
