@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 
 import { 기본역할, 출처 as 주소출처 } from '@platform/kit/accounts';
 import { 제외경로정리, 제외되나 } from '../apps/admin/src/settings/rules.js';
-import { 게임무늬닿나, 게임무늬케이스 } from './authoring-game-key.js';
+import { 게임무늬닿나, 게임무늬케이스, 게임틀덮나 } from './authoring-game-key.js';
 import { 동시계정번호, 일회용역할 } from './authoring-roles.js';
 import { type 상태, 상태인가 } from './authoring-screens-keep.js';
 
@@ -152,10 +152,10 @@ export function 틀케이스(틀: string, 지도: ReadonlyMap<string, readonly s
   return 모음.length === 0 && !지도.has(틀) ? undefined : [...new Set(모음)].sort();
 }
 
-/** 목록 줄이 테스트가 이미 확인한 화면인가 — 덮은 틀 집합에 `틀닿나` (상태는 안 가른다). 집합이 없으면 늘 아니다 */
-export function 덮음인가(틀: string, 덮은틀: ReadonlySet<string> | null): boolean {
-  return 덮은틀 !== null && 틀닿나(틀, 덮은틀);
-}
+/** 확인했나 — `틀닿나` 에 게임은 요소가 든 위 창까지(작성 §3.6 「창 안 요소 · 장소」). 같은 화면을 찾는 곳(바뀐 화면 케이스 · E2E 추천)은 `틀닿나` 다 */
+export const 틀덮나 = (틀: string, 파일틀: ReadonlySet<string>): boolean => 틀닿나(틀, 파일틀) || 게임틀덮나(틀, 파일틀);
+/** 목록 줄이 테스트가 이미 확인한 화면인가 — 덮은 틀에 `틀덮나`(상태는 안 가른다). 집합이 없으면 늘 아니다 */
+export const 덮음인가 = (틀: string, 덮은틀: ReadonlySet<string> | null): boolean => 덮은틀 !== null && 틀덮나(틀, 덮은틀);
 
 /** 같은 틀 둘째 장을 열어 구조를 견줄까 — 인자의 숫자 값으로 화면을 가르는 틀(`?board_no=1` 공지 · `=4` 문의)만. 경로 숫자(글 상세)는 한 장이면 된다 */
 export function 둘째장볼까(틀: string): boolean {

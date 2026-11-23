@@ -1,6 +1,6 @@
 // 「PRD 에 없는 화면」 셈 — 찾은 화면 가운데 지도로 닿지 않는 틀 (도메인/작성 §3.6 「★ 결정 목록」 ③ 미검증 화면)
 
-import { 주소틀, 틀닿나 } from '../../../../scripts/authoring-crawl-rules.js';
+import { 주소틀, 틀덮나 } from '../../../../scripts/authoring-crawl-rules.js';
 import { db } from '../settings/store.js';
 
 export interface 없는화면 {
@@ -22,7 +22,7 @@ export interface 찾은화면셈 {
  */
 export async function 찾은화면셈(서비스: number): Promise<찾은화면셈> {
   const pool = await db();
-  const [찾음, 틀들, 뺌] = await Promise.all([
+  const [찾음, 틀들, 뺌, 장소] = await Promise.all([
     // 대상 서버는 합친다 — 화면 파일은 서버를 모른다. 이름은 빈 것보다 있는 것 (PRD-F9-29)
     pool.query<{ state: string; url: string; name: string }>(
       `SELECT state, url, max(name) AS name FROM screen_found WHERE service_id = $1
@@ -40,12 +40,24 @@ export async function 찾은화면셈(서비스: number): Promise<찾은화면�
       [서비스],
     ),
     pool.query<{ skip_screens: string[] }>('SELECT skip_screens FROM service WHERE id = $1', [서비스]),
+    // 게임 장소 — 케이스는 순간이동 도우미로 가고 도우미는 지도 ② 에 안 넣는다. 들르는 장소는 케이스 선언 elements 에 있다 (작성 §3.6 「세는 방식」)
+    pool.query<{ zone: string }>(
+      `SELECT DISTINCT e AS zone
+         FROM service s
+         JOIN test_case t ON t.tc_id LIKE s.prefix || '-%' AND t.is_active
+         CROSS JOIN LATERAL unnest(t.elements) AS e
+        WHERE s.id = $1 AND e LIKE 'zone:%'`,
+      [서비스],
+    ),
   ]);
   const 뺀것 = 뺌.rows[0]?.skip_screens ?? [];
   const 이름 = new Map(찾음.rows.map((x) => [x.url, x.name]));
   const 닿는틀 = new Set(틀들.rows.map((x) => 주소틀(x.screen_url)).filter((x): x is string => x !== null));
+  const 들른장소 = new Set(장소.rows.map((x) => x.zone));
+  // 장면은 안 따진다 — 같은 구역이 훑기 시작한 장면마다 다른 줄로 찍힌다
+  const 장소덮음 = (url: string) => 들른장소.has(/^game:[^/]+\/(zone:[^/]+)$/.exec(url)?.[1] ?? '');
   return {
-    uncoveredScreens: 찾음.rows.filter((x) => !틀닿나(x.url, 닿는틀) && !뺀것.includes(x.url)),
+    uncoveredScreens: 찾음.rows.filter((x) => !틀덮나(x.url, 닿는틀) && !장소덮음(x.url) && !뺀것.includes(x.url)),
     skippedScreens: 뺀것.map((url) => ({ url, name: 이름.get(url) ?? '' })),
   };
 }

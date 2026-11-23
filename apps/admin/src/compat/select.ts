@@ -1,6 +1,6 @@
 // 호환성 자동 선택 — 전체 화면 목록을 덮는 작은 케이스 묶음 · 화면 커버리지 · 예상 소요 시간 (도메인/호환성 §3.13 「자동 선택」 · 「디바이스 · 점검 상태」)
 
-import { 틀닿나 } from '../../../../scripts/authoring-crawl-rules.js';
+import { 틀덮나 } from '../../../../scripts/authoring-crawl-rules.js';
 
 export interface 화면 {
   key: string;
@@ -26,10 +26,10 @@ export interface 셈결과 {
   uncovered: 화면[];
 }
 
-/** 그 케이스가 지나는 전체 목록의 화면 — 「PRD 에 없는 화면」 셈과 같은 `틀닿나`(인자 없는 주소는 인자 붙은 틀도 덮는다) */
+/** 그 케이스가 지나는 전체 목록의 화면 — 「PRD 에 없는 화면」 셈과 같은 `틀덮나`(인자 없는 주소는 인자 붙은 틀도 · 게임은 요소가 든 위 창도 덮는다) */
 function 덮는것(전체: readonly 화면[], 틀: readonly string[]): Set<string> {
   const 틀들 = new Set(틀);
-  return new Set(전체.filter((u) => 틀닿나(u.key, 틀들)).map((u) => u.key));
+  return new Set(전체.filter((u) => 틀덮나(u.key, 틀들)).map((u) => u.key));
 }
 
 /**
