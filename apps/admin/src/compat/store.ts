@@ -1,6 +1,7 @@
 // 호환성 세트를 읽고 쓰고, 자동 선택 재료(전체 화면 목록 · 고를 수 있는 케이스 · 최근 소요)를 모은다 (도메인/호환성 §3.13 · 데이터모델 「호환성 표」)
 
-import { 주소틀, 틀닿나 } from '../../../../scripts/authoring-crawl-rules.js';
+import { 주소틀 } from '../../../../scripts/authoring-crawl-rules.js';
+import { 찾은화면에닿나 } from '../../../../scripts/authoring-game-key.js';
 import { db } from '../settings/store.js';
 import type { 화면, 후보 } from './select.js';
 
@@ -76,7 +77,7 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
     for (const 주소 of [r.screen_url, ...r.open_urls]) {
       const 틀 = 주소 === null ? null : 주소틀(주소);
       if (틀 === null) continue;
-      if (주소 !== r.screen_url && 틀.startsWith('game:') && ![...크롤열쇠].some((k) => 틀닿나(k, new Set([틀])))) continue;
+      if (주소 !== r.screen_url && 틀.startsWith('game:') && !찾은화면에닿나(틀, 크롤열쇠)) continue;
       틀모음.get(r.tc_id)?.add(틀);
       if (주소 === r.screen_url && r.name !== null && !케이스화면이름.has(틀)) 케이스화면이름.set(틀, r.name);
     }

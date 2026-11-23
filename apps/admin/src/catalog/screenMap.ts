@@ -93,7 +93,7 @@ export function 여는주소들(화면글: string): string[] {
   const 장면 = /^game:[^/]+/.exec(화면주소(화면글) ?? '')?.[0];
   if (장면 !== undefined) {
     const 요소 = (n: ts.Node): void => {
-      if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && /^\/[^/]/.test(n.text)) 모음.add(장면 + n.text.replace(/\[\d+\]/g, ''));
+      if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && /^\/[^/]/.test(n.text) && !n.text.includes('//')) 모음.add(장면 + n.text.replace(/\[\d+\]/g, ''));
       ts.forEachChild(n, 요소);
     };
     요소(sf);
