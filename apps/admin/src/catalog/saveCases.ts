@@ -2,7 +2,7 @@
 
 import type { Pool } from 'pg';
 
-import type { CaseSpec } from '@platform/kit';
+import type { ScannedSpec } from './scanner.js';
 
 export interface SaveResult {
   added: number;
@@ -20,8 +20,8 @@ async function db(): Promise<Pool> {
 const UPSERT = `
   INSERT INTO test_case
     (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at,
-     techniques, api_doc, elements, smoke, step_titles)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[], $9, $10::text[], $11, $12::text[])
+     techniques, api_doc, elements, smoke, step_titles, proc_id, proc_seq, proc_name)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[], $9, $10::text[], $11, $12::text[], $13, $14, $15)
   ON CONFLICT (tc_id) DO UPDATE SET
     name            = EXCLUDED.name,
     platforms       = EXCLUDED.platforms,
@@ -34,13 +34,16 @@ const UPSERT = `
     elements        = EXCLUDED.elements,
     smoke           = EXCLUDED.smoke,
     step_titles     = EXCLUDED.step_titles,
+    proc_id         = EXCLUDED.proc_id,
+    proc_seq        = EXCLUDED.proc_seq,
+    proc_name       = EXCLUDED.proc_name,
     is_active       = true,
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
 
 /** 제목들 — tcId 마다 케이스 코드에서 읽은 단계 제목(catalog/steps.ts `caseSteps`). 없거나 null 이면 NULL 로 덮는다 (카탈로그 §3.1 「단계 제목」) */
 export async function save(
-  specs: CaseSpec[],
+  specs: ScannedSpec[],
   deactivateMissing: boolean,
   prefix: string,
   제목들: ReadonlyMap<string, string[] | null> = new Map(),
@@ -70,6 +73,10 @@ export async function save(
         spec.smoke === true,
         // 옛 제목이 남으면 고친 케이스의 남은 단계를 틀리게 보인다 — 못 읽었으면 NULL 로 덮는다
         제목들.get(spec.tcId) ?? null,
+        // 프로시저 세 칸은 같이 차거나 같이 빈다 — 옛 꼴로 되돌린 케이스는 NULL 로 덮는다 (공통/4-데이터모델 「테스트 프로시저 표」)
+        spec.procId ?? null,
+        spec.procId === undefined ? null : (spec.procSeq ?? null),
+        spec.procId === undefined ? null : (spec.procName ?? null),
       ]);
       if (upserted.rows[0]?.inserted === true) added += 1;
     }

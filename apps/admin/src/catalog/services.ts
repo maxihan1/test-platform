@@ -19,6 +19,8 @@ export interface ServiceRow {
   gamePlatform: 'android' | 'windows' | null;
   /** PC 게임이 작성 때 체크한 지원 패드('ps5' · 'ps4' · 'switch' · 'xbox'). 그 밖에는 빈 배열 */
   gamePads: string[];
+  /** 「프로시저 작성」 스위치 — 꺼진 애플리케이션 폴더의 프로시저 파일은 스캐너가 올리지 않는다 (도메인/실행 §3.2 「프로시저 작성 스위치」) */
+  procedureMode: boolean;
 }
 
 // 서비스는 지우지 않고 비활성으로 내린다. 내려간 서비스의 케이스는 더 훑지 않는다 (SPEC §8.8)
@@ -32,7 +34,8 @@ export async function activeServices(): Promise<ServiceRow[]> {
     kind: string;
     game_platform: 'android' | 'windows' | null;
     game_pads: string[];
-  }>('SELECT id, prefix, name, tests_dir, kind, game_platform, game_pads FROM service WHERE is_active ORDER BY prefix');
+    procedure_mode: boolean;
+  }>('SELECT id, prefix, name, tests_dir, kind, game_platform, game_pads, procedure_mode FROM service WHERE is_active ORDER BY prefix');
   return rows.rows.map((r) => ({
     id: Number(r.id),
     prefix: r.prefix,
@@ -41,6 +44,7 @@ export async function activeServices(): Promise<ServiceRow[]> {
     kind: r.kind,
     gamePlatform: r.game_platform,
     gamePads: r.game_pads,
+    procedureMode: r.procedure_mode,
   }));
 }
 

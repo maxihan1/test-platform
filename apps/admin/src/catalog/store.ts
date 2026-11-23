@@ -21,8 +21,13 @@ async function db(): Promise<Pool> {
 }
 
 // 명세의 techniques 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null · [] 로 채운다 (카탈로그 §7)
-export type CaseRow = Omit<CaseSpec, 'techniques' | 'smoke'> & {
+export type CaseRow = Omit<CaseSpec, 'techniques' | 'smoke' | 'procId' | 'procSeq'> & {
   techniques: Technique[];
+  // 프로시저 안 케이스만 찬다 — 번호 · 차례(1부터) · 이름 · 그 프로시저의 활성 케이스 수. 옛 꼴 케이스는 넷 다 null (카탈로그 §7)
+  procId: string | null;
+  procSeq: number | null;
+  procName: string | null;
+  procCount: number | null;
   // 실제로 쓰는 값 COALESCE(smoke_set, smoke). smokeSet 은 사람이 고친 값 — null 이면 코드 값을 따른다
   smoke: boolean;
   smokeSet: boolean | null;
@@ -58,6 +63,10 @@ interface RawRow {
   techniques: Technique[];
   smoke: boolean;
   smoke_set: boolean | null;
+  proc_id: string | null;
+  proc_seq: number | null;
+  proc_name: string | null;
+  proc_count: number;
   saved_params: Record<string, unknown> | null;
   saved_expected: Record<string, unknown> | null;
   saved_by: string | null;
@@ -92,12 +101,18 @@ function toCase(row: RawRow): CaseRow {
     techniques: row.techniques,
     smoke: row.smoke,
     smokeSet: row.smoke_set,
+    procId: row.proc_id,
+    procSeq: row.proc_seq,
+    procName: row.proc_name,
+    procCount: row.proc_id === null ? null : row.proc_count,
     savedInput: toSaved(row),
   };
 }
 
 const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
   + `${미확정사유SQL('test_case')} AS unconfirmed, techniques, COALESCE(smoke_set, smoke) AS smoke, smoke_set, `
+  // 화면의 「5건 중 4번째」가 쓴다 — 칸으로 두지 않고 그때 센다(다시 스캔하면 달라진다). ponytail: 줄마다 test_case 를 한 번 더 훑는다 — 케이스 수만 건에서 느려지면 proc_id 색인
+  + 'proc_id, proc_seq, proc_name, (SELECT count(*)::int FROM test_case p WHERE p.proc_id = test_case.proc_id AND p.is_active) AS proc_count, '
   // 사람 눈에는 아이디(maxi)보다 이름(맥시)이다. 계정이 지워졌으면 적힌 아이디를 그대로 둔다
   + 'ci.params AS saved_params, ci.expected AS saved_expected, '
   + 'COALESCE((SELECT u.display_name FROM app_user u WHERE u.username = ci.saved_by), ci.saved_by) AS saved_by, ci.saved_at';

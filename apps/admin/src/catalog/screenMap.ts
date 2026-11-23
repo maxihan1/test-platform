@@ -7,6 +7,8 @@ import type { CaseSpec } from '@platform/kit';
 import type { Pool } from 'pg';
 import ts from 'typescript';
 
+import { 프로시저읽기 } from './procedure.js';
+
 export interface 화면줄 {
   tcId: string;
   file: string;
@@ -29,16 +31,69 @@ function 타입만인가(clause: ts.ImportClause | undefined): boolean {
   return clause.name === undefined && 묶음 !== undefined && ts.isNamedImports(묶음) && 묶음.elements.length > 0 && 묶음.elements.every((e) => e.isTypeOnly);
 }
 
-/** 케이스 파일이 가져오는 화면 파일(케이스 파일 자리 기준 `pages/<이름>.page.ts`). 타입만 가져오면 화면을 건드리지 않는다 */
-export function 가져온화면파일(케이스글: string): string[] {
-  const sf = ts.createSourceFile('case.spec.ts', 케이스글, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
-  const 모음 = new Set<string>();
+// 가져온 이름마다 그 화면 파일(케이스 파일 자리 기준 `pages/<이름>.page.ts`). 타입만 가져오면 화면을 건드리지 않는다
+function 가져온이름(sf: ts.SourceFile): Map<string, string> {
+  const 이름 = new Map<string, string>();
   for (const stmt of sf.statements) {
     if (!ts.isImportDeclaration(stmt) || !ts.isStringLiteral(stmt.moduleSpecifier) || 타입만인가(stmt.importClause)) continue;
     const m = 화면파일.exec(stmt.moduleSpecifier.text);
-    if (m) 모음.add(`${m[1]}.ts`);
+    if (m === null) continue;
+    const 파일 = `${m[1]}.ts`;
+    const 절 = stmt.importClause;
+    const 묶음 = 절?.namedBindings;
+    const 들 = [
+      ...(절?.name === undefined ? [] : [절.name.text]),
+      ...(묶음 === undefined ? [] : ts.isNamedImports(묶음) ? 묶음.elements.filter((e) => !e.isTypeOnly).map((e) => e.name.text) : [묶음.name.text]),
+    ];
+    // 이름 없이 가져온 것(`import './pages/a.page.js'`)도 파일은 센다 — 글에 나올 수 없는 이름으로 넣어 둔다
+    for (const n of 들.length > 0 ? 들 : [`\0${파일}`]) 이름.set(n, 파일);
   }
-  return [...모음];
+  return 이름;
+}
+
+/** 케이스 파일이 가져오는 화면 파일(케이스 파일 자리 기준 `pages/<이름>.page.ts`). 타입만 가져오면 화면을 건드리지 않는다 */
+export function 가져온화면파일(케이스글: string): string[] {
+  return [...new Set(가져온이름(ts.createSourceFile('case.spec.ts', 케이스글, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS)).values())];
+}
+
+/**
+ * 프로시저 파일의 케이스마다(cases 차례대로) 그 케이스 구간(준비 구간 + test.case)에서 쓴 화면 파일 (카탈로그 §3.1 「케이스 구간」).
+ * 파일 단위로 이으면 프로시저의 모든 케이스가 모든 화면에 붙어 호환성의 화면 덮기 고르기가 흐려진다.
+ * `const 글쓰기 = new 글쓰기화면(driver)` 처럼 만들어 두기만 한 줄은 쓴 것이 아니다 — 그 객체를 쓴 구간이 그 화면을 지난다.
+ * 정리(test.cleanup)에서만 쓰는 화면은 어느 케이스에도 안 잇는다. 프로시저 파일이 아니거나 구간을 못 가르면 null
+ */
+export function 구간별화면파일(글: string): string[][] | null {
+  const sf = ts.createSourceFile('case.spec.ts', 글, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const 구간 = 프로시저읽기(sf)?.구간;
+  if (구간 === undefined || 구간 === null) return null;
+  const 이름 = 가져온이름(sf);
+  const 객체 = new Map<string, string>();
+  const 만든줄 = new Set<ts.Node>();
+  const 찾기 = (n: ts.Node): void => {
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer !== undefined && ts.isNewExpression(n.initializer) && ts.isIdentifier(n.initializer.expression)) {
+      const 파일 = 이름.get(n.initializer.expression.text);
+      if (파일 !== undefined) {
+        객체.set(n.name.text, 파일);
+        만든줄.add(n);
+      }
+    }
+    n.forEachChild(찾기);
+  };
+  찾기(sf);
+  return 구간.map((c) => {
+    const 쓴 = new Set<string>();
+    const 훑기 = (n: ts.Node): void => {
+      if (만든줄.has(n)) return;
+      // 점 뒤 이름(`화면.게시`)은 속성이지 가져온 이름이 아니다
+      if (ts.isIdentifier(n) && !(ts.isPropertyAccessExpression(n.parent) && n.parent.name === n)) {
+        const 파일 = 객체.get(n.text) ?? 이름.get(n.text);
+        if (파일 !== undefined) 쓴.add(파일);
+      }
+      n.forEachChild(훑기);
+    };
+    for (const 문 of [...c.준비, c.부름]) 훑기(문);
+    return [...쓴];
+  });
 }
 
 /** 화면 파일 클래스의 `static readonly 주소 = '/cart'` 값. 글자 그대로가 아니면(계산식) 모른다 — 짐작한 주소로 잇느니 비워 둔다 */
@@ -114,9 +169,20 @@ export function 화면이름(화면글: string): string | null {
 export async function 화면지도줄들(root: string, specs: CaseSpec[]): Promise<화면줄[]> {
   const 파일들 = new Map<string, Omit<화면줄, 'tcId' | 'file'>>();
   const 줄들: 화면줄[] = [];
+  // 프로시저 파일은 케이스 여럿이 한 파일이라 한 번만 읽는다 — 케이스마다 자기 구간에서 쓴 화면만 잇고, 구간을 못 가르면 옛 꼴처럼 파일이 가져온 것 전부다
+  const 프로시저 = new Map<string, { 전부: string[]; 구간별: string[][] | null }>();
+  const 가져온 = async (spec: CaseSpec): Promise<string[]> => {
+    if (spec.procSeq === undefined) return 가져온화면파일(await readFile(join(root, spec.filePath), 'utf8'));
+    if (!프로시저.has(spec.filePath)) {
+      const 글 = await readFile(join(root, spec.filePath), 'utf8');
+      프로시저.set(spec.filePath, { 전부: 가져온화면파일(글), 구간별: 구간별화면파일(글) });
+    }
+    const { 전부, 구간별 } = 프로시저.get(spec.filePath)!;
+    return 구간별?.[spec.procSeq - 1] ?? 전부;
+  };
   for (const spec of specs) {
     const 자리 = posix.dirname(spec.filePath.split(sep).join('/'));
-    for (const 상대 of 가져온화면파일(await readFile(join(root, spec.filePath), 'utf8'))) {
+    for (const 상대 of await 가져온(spec)) {
       const 경로 = posix.join(자리, 상대);
       if (!파일들.has(경로)) {
         const 글 = await readFile(join(root, 경로), 'utf8');

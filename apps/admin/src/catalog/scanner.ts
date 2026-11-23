@@ -7,7 +7,7 @@ import { join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
-import type { CaseSpec } from '@platform/kit';
+import type { CaseSpec, ProcedureSpec } from '@platform/kit';
 
 import { 번호열쇠 } from './rules.js';
 
@@ -23,8 +23,11 @@ export interface ScanFailure {
   message: string;
 }
 
+// 프로시저 안 케이스는 프로시저 이름을 같이 든다 — kit 의 CaseSpec 에는 번호(procId)와 차례(procSeq)만 실린다
+export type ScannedSpec = CaseSpec & { procName?: string };
+
 export interface ScanResult {
-  specs: CaseSpec[];
+  specs: ScannedSpec[];
   // 파일 하나가 깨져도 스캔 전체를 버리지 않는다. 그러면 멀쩡한 케이스의 위반까지 함께 묻힌다
   failures: ScanFailure[];
   duplicates: Duplicate[];
@@ -47,9 +50,20 @@ function isCaseSpec(value: unknown): value is CaseSpec {
   return typeof value === 'object' && value !== null && typeof (value as { tcId?: unknown }).tcId === 'string';
 }
 
-async function importSpec(file: string): Promise<unknown> {
+function isProcedure(value: unknown): value is ProcedureSpec {
+  return typeof value === 'object' && value !== null && typeof (value as { procId?: unknown }).procId === 'string' && Array.isArray((value as { cases?: unknown }).cases);
+}
+
+/**
+ * 파일 하나의 케이스들 — 옛 꼴은 `export const spec` 한 건, 프로시저 파일은 `export const procedure` 의 케이스 여럿이다. 둘 다 없으면 null.
+ * 프로시저 번호와 차례는 defineProcedure 가 케이스 선언에 실어 둔 것을 그대로 담는다 — 다시 매기지 않는다.
+ * 프로시저의 사전조건은 케이스 사전조건 앞에 붙인다 — 증적의 사전조건 칸이 지금 길 그대로 읽는다 (공통/2 §4 「테스트 프로시저」)
+ */
+async function importSpecs(file: string): Promise<ScannedSpec[] | null> {
   const mod = (await import(pathToFileURL(file).href)) as Record<string, unknown>;
-  return mod.spec;
+  const p = mod.procedure;
+  if (isProcedure(p)) return p.cases.map((c) => ({ ...c, precondition: [...p.precondition, ...c.precondition], procName: p.name }));
+  return isCaseSpec(mod.spec) ? [mod.spec] : null;
 }
 
 // 한 쌍만 돌려주면 고치고 다시 돌렸을 때 다음 쌍이 또 나온다. 겹친 것을 한 번에 다 보여준다
@@ -67,7 +81,8 @@ export function duplicatesOf(specs: readonly Pick<CaseSpec, 'tcId' | 'filePath'>
 
 // 나머지 케이스는 import 하지 않고 tcId 글자만 읽는다 — 1,112건을 다 import 하면 형식 검사 한 번이 중간값 106초였다 (PRD-F14-04).
 // ponytail: tcId 를 글자로 적은 파일만 견준다. 변수 · 상수 tcId 는 여기서 빠지고 저장소 전체 검사(자식이 합친 뒤)가 잡는다
-const TCID_LITERAL = /\btcId:\s*(['"`])([^'"`]+)\1/;
+// 프로시저 파일은 케이스 선언이 여럿이라 파일의 tcId 를 전부 읽는다
+const TCID_LITERAL = /\btcId:\s*(['"`])([^'"`]+)\1/g;
 
 // 맡은 케이스만 볼 때의 K2 — 맡은 것끼리, 맡은 것과 나머지의 겹침만 돌려준다. 나머지끼리 겹친 것은 이번 일이 아니다
 export async function duplicatesWith(specs: readonly CaseSpec[], root: string = testsRoot()): Promise<Duplicate[]> {
@@ -77,10 +92,9 @@ export async function duplicatesWith(specs: readonly CaseSpec[], root: string = 
     (await caseFiles(root))
       .map((file) => ({ file, filePath: relative(root, file) }))
       .filter(({ filePath }) => !mine.has(filePath))
-      .map(async ({ file, filePath }) => ({ tcId: TCID_LITERAL.exec(await readFile(file, 'utf8'))?.[2], filePath })),
+      .map(async ({ file, filePath }) => [...(await readFile(file, 'utf8')).matchAll(TCID_LITERAL)].map((m) => ({ tcId: m[2]!, filePath }))),
   );
-  const read = others.flatMap(({ tcId, filePath }) => (tcId === undefined ? [] : [{ tcId, filePath }]));
-  return duplicatesOf([...read, ...specs]).filter((d) => mine.has(d.files[1]));
+  return duplicatesOf([...others.flat(), ...specs]).filter((d) => mine.has(d.files[1]));
 }
 
 // only 를 주면 그 파일만 import 한다. 그때 겹침은 duplicates 말고 duplicatesWith 로 본다.
@@ -89,14 +103,14 @@ export async function scan(root: string = testsRoot(), only?: readonly string[])
   // kit의 test() 래퍼가 이 값을 보고 Playwright에 등록하지 않는다. 명세만 읽고 빠져나오기 위한 것이다 (SPEC §3.1)
   process.env.PLATFORM_SCAN = '1';
 
-  const specs: CaseSpec[] = [];
+  const specs: ScannedSpec[] = [];
   const failures: ScanFailure[] = [];
 
   for (const file of only ?? (await caseFiles(root))) {
     const at = relative(root, file);
     try {
-      const loaded = await importSpec(file);
-      if (isCaseSpec(loaded)) specs.push(loaded);
+      const loaded = await importSpecs(file);
+      if (loaded !== null) specs.push(...loaded);
       else failures.push({ file: at, message: 'export const spec이 없다' });
     } catch (err) {
       failures.push({ file: at, message: err instanceof Error ? err.message : String(err) });
