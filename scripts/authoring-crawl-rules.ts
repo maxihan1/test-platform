@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 
 import { 기본역할, 출처 as 주소출처 } from '@platform/kit/accounts';
 import { 제외경로정리, 제외되나 } from '../apps/admin/src/settings/rules.js';
+import { 게임무늬, 게임무늬닿나 } from './authoring-game-key.js';
 import { 동시계정번호, 일회용역할 } from './authoring-roles.js';
 import { type 상태, 상태인가 } from './authoring-screens-keep.js';
 
@@ -137,8 +138,9 @@ const 인자입구 = (경로: string): boolean => /^\/#?!?\/?$/.test(경로) || 
  */
 export function 틀닿나(틀: string, 파일틀: ReadonlySet<string>): boolean {
   if (파일틀.has(틀)) return true;
-  // 앱 화면 이름표에는 물음표가 들 수 있다(「탈퇴하시겠어요?」) — 인자 꼬리로 읽어 다른 화면에 닿게 하지 않는다
-  if (화면열쇠인가(틀)) return false;
+  // 앱 화면 이름표에는 물음표가 들 수 있다(「탈퇴하시겠어요?」) — 인자 꼬리로 읽어 다른 화면에 닿게 하지 않는다.
+  // 게임은 화면 파일 틀이 표시한 무늬(`game:*` · `:n`)만 넓게 본다 (authoring-game-key.ts)
+  if (화면열쇠인가(틀)) return 게임무늬닿나(틀, 파일틀);
   const 경로 = 틀.replace(인자꼬리, '');
   return 경로 !== 틀 && !구조다름.test(틀) && !인자입구(경로) && 파일틀.has(경로);
 }
@@ -147,7 +149,8 @@ export function 틀닿나(틀: string, 파일틀: ReadonlySet<string>): boolean 
 export function 틀케이스(틀: string, 지도: ReadonlyMap<string, readonly string[]> | null): string[] | undefined {
   if (지도 === null) return undefined;
   const 경로 = 틀.replace(인자꼬리, '');
-  const 모음 = [...(지도.get(틀) ?? []), ...(경로 !== 틀 && 틀닿나(틀, new Set([경로])) ? (지도.get(경로) ?? []) : [])];
+  const 무늬케이스 = 화면열쇠인가(틀) ? [...지도].filter(([k]) => k !== 틀 && 게임무늬(k)?.test(틀) === true).flatMap(([, v]) => v) : [];
+  const 모음 = [...(지도.get(틀) ?? []), ...(경로 !== 틀 && 틀닿나(틀, new Set([경로])) ? (지도.get(경로) ?? []) : []), ...무늬케이스];
   return 모음.length === 0 && !지도.has(틀) ? undefined : [...new Set(모음)].sort();
 }
 
