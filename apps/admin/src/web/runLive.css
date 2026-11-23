@@ -125,15 +125,19 @@
   min-height: 0;
 }
 
-.rl-right .lc-scene > .live-shot {
-  max-height: 100%;
+/* 그림은 카드에 남은 자리 안에서 비율을 지키는 가장 큰 크기다 — 창이 줄면 같이 줄고 「크게 보기」면 같이 커진다 (trialLive.css 「그림 틀」).
+   앞 판은 높이를 414px 로 묶어 낮은 창에서 아래가 잘리고 큰 카드에서도 더 안 커졌다 */
+.rl-right .lc-scene,
+.rl-right .lc.big .lc-scene {
+  container-type: size;
+  --fit-w: 100cqw;
+  --fit-h: 100cqh;
 }
 
-.rl-right .lc-scene .live-shot img,
-.rl-right .lc.big .lc-scene .live-shot img,
-.rl-right .lc-scene .live-shot canvas,
-.rl-right .lc.big .lc-scene .live-shot canvas {
-  max-height: calc(744px - 330px);
+/* 첫 그림 전 기다림 상자도 칸을 넘지 않는다 — 16:10 으로 두면 낮은 카드에서 발 글 뒤로 삐져나왔다 */
+.rl-right .lc-scene > .live-wait {
+  height: 100%;
+  aspect-ratio: auto;
 }
 
 /* 「크게 보기」는 카드 머리 오른쪽 끝이다 — 장면 위에 떠 있으면 장면을 가린다 */
@@ -176,15 +180,18 @@
     grid-template-rows: none;
   }
 
-  .rl-right .lc-scene {
+  /* 높이가 안 정해진 칸이다 — 폭은 칸 폭, 높이는 300px 까지 */
+  .rl-right .lc-scene,
+  .rl-right .lc.big .lc-scene {
     flex: none;
+    container-type: normal;
+    --fit-w: 100%;
+    --fit-h: 300px;
   }
 
-  .rl-right .lc-scene .live-shot img,
-  .rl-right .lc.big .lc-scene .live-shot img,
-  .rl-right .lc-scene .live-shot canvas,
-  .rl-right .lc.big .lc-scene .live-shot canvas {
-    max-height: 300px;
+  .rl-right .lc-scene > .live-wait {
+    height: auto;
+    aspect-ratio: 16 / 10;
   }
 
   /* 휴대폰 바닥은 단추가 세로로 선다(phone.css) — 안내 한 줄을 단추 위로 */

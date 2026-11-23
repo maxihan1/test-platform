@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { use말 } from './i18n.js';
+import { use그림비율 } from './liveFit.js';
 import { PC화면 } from './PcScreen.js';
 
 export type 장면답 = { 종류: 'frame'; 그림: Blob } | { 종류: 'empty' } | { 종류: 'gone' } | { 종류: 'unreachable' };
@@ -108,14 +109,21 @@ interface Props {
   머리끝?: ReactNode;
   /** 윈도우 PC 케이스가 PC 를 잡았으면 그 화면 영상 흐름 주소 — 장면 사진 대신 그린다 (도메인/게임 §3.10 「증적 · 결과」) */
   영상주소?: string | null;
+  /** 받은 그림이 가로로 긴지 — 첫 그림과 화면이 돌 때 알린다 */
+  on가로?: (가로: boolean) => void;
 }
 
 /** 시작한 테스트 모드 하나의 칸. 끝나도 마지막 장면을 그대로 둔다. 장면 없이 끝났으면 칸을 그리지 않는다 */
-export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false, 늦춤글 = true, 뼈대 = false, 폰이름 = null, 머리끝, 영상주소 = null }: Props) {
+export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false, 늦춤글 = true, 뼈대 = false, 폰이름 = null, 머리끝, 영상주소 = null, on가로 }: Props) {
   const t = use말();
   const 실제폰웹 = 모바일웹 && vision !== null;
   const { 그림, 폰그림, 비었나, 못닿음 } = use장면(영상주소 === null ? 주소 : null, 도는중, 앱폰);
   const 폰칸 = 앱폰 || 실제폰웹 || 폰그림;
+  const { 비, 틀, 그림에서 } = use그림비율();
+  // 그림이 가로로 긴지 창에 알린다 — 가로 전용 게임이면 폰 차례여도 좁은 폰 칸을 안 쓴다
+  useEffect(() => {
+    if (비 !== null) on가로?.(비 > 1);
+  }, [비, on가로]);
   if (!도는중 && 그림 === null) return null;
   // 섞인 E2E 의 앱 단계를 열고 첫 폰 장면이 오기 전 — 마지막 웹 장면을 흐리게 둔다. E2E 는 창 하나라 웹 장면이 한 번 온 뒤의 「장면 없음」은 폰 단계뿐이다.
   // 폰은 시나리오 내내 잡혀 있어 장면이 오기 전에는 폰 단계인지 첫 웹 단계를 기다리는 중인지 모른다
@@ -135,6 +143,8 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
         )}
         {머리끝}
       </div>
+      {/* 그림 자리 — 칸에 남은 자리를 다 쓰고, 그 안에서 그림 틀이 비율대로 가장 크게 선다 (trialLive.css 「그림 틀」) */}
+      <div className="live-fit">
       {영상주소 !== null && 도는중 ? (
         <PC화면 주소={영상주소} 기다림글={t('게임을 여는 중')} />
       ) : 그림 === null && 뼈대 && !폰칸 && vision === null ? (
@@ -155,11 +165,12 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
                 : t('차례를 기다리는 중')}
         </p>
       ) : (
-        <div className={폰단계 ? 'live-shot dim' : 'live-shot'}>
-          <img src={그림} alt={!도는중 ? t('종료된 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} />
+        <div className={폰단계 ? 'live-shot dim' : 'live-shot'} style={틀}>
+          <img src={그림} alt={!도는중 ? t('종료된 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} onLoad={그림에서} />
           {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 디바이스에서 실행 중입니다')}</p> : null}
         </div>
       )}
+      </div>
       {못닿음 ? (
         <p className="live-note bad">{t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다')}</p>
       ) : 늦춤글 && 도는중 && (!폰칸 || 실제폰웹) ? (

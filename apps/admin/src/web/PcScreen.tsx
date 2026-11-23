@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { use말 } from './i18n.js';
+import { use그림비율 } from './liveFit.js';
 import { 머리를푼다, 잇는다, 조각을가른다, 코덱 } from './pcScreenFrames.js';
 
 // 흐름이 끝나면(PC 를 놓기 직전 · VISION 재시작 · 브라우저가 밀려 끊김) 이만큼 쉬고 다시 붙는다.
@@ -19,6 +20,7 @@ export function PC화면({ 주소, 기다림글 }: { 주소: string; 기다림�
   const t = use말();
   const 그림판 = useRef<HTMLCanvasElement>(null);
   const [그림있음, set그림있음] = useState(false);
+  const { 틀, set비 } = use그림비율();
   // WebCodecs 는 https(또는 localhost)에서만 열린다 — http 설치는 Chrome 이어도 못 푼다
   const 안전한곳 = window.isSecureContext !== false;
   const 풀수있음 = 안전한곳 && typeof VideoDecoder === 'function';
@@ -37,6 +39,7 @@ export function PC화면({ 주소, 기다림글 }: { 주소: string; 기다림�
         if (판.width !== 장.displayWidth || 판.height !== 장.displayHeight) {
           판.width = 장.displayWidth;
           판.height = 장.displayHeight;
+          set비(장.displayWidth / 장.displayHeight);
         }
         판.getContext('2d')?.drawImage(장, 0, 0);
         set그림있음(true);
@@ -104,7 +107,7 @@ export function PC화면({ 주소, 기다림글 }: { 주소: string; 기다림�
     <>
       {그림있음 ? null : <p className="live-wait">{기다림글}</p>}
       {/* 첫 장이 오기 전에도 canvas 는 있어야 그린다 — 숨겨만 둔다 */}
-      <div className="live-shot" hidden={!그림있음}>
+      <div className="live-shot" hidden={!그림있음} style={틀}>
         <canvas ref={그림판} aria-label={t('Windows PC 의 지금 화면')} />
       </div>
     </>

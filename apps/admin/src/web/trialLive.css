@@ -217,31 +217,44 @@
   background: var(--well);
 }
 
-.lc-scene > .live-shot,
 .lc-scene > .live-wait {
   width: 100%;
 }
 
-.lc-scene .live-shot img,
-.lc-scene .live-shot canvas {
-  max-height: 260px;
+/* 그림 틀 — 받은 그림의 가로세로 비율(--ar · liveFit.ts)을 따라, 칸에 남은 자리(--fit-w × --fit-h) 안에서 비율을 지키는 가장 큰 크기로 선다.
+   기기 종류로 세로 · 가로를 짐작하지 않는다 — 가로 전용 게임은 폰이어도 가로 틀이고, 케이스 도중 화면이 돌면 다음 그림부터 따라간다.
+   첫 그림 전에는 16:10 이다. 높이가 정해진 칸(실행 창 — runLive.css · trialRunning.css)은 --fit-* 를 칸 크기로 바꿔 끼운다 */
+.lc-scene {
+  --fit-w: 100%;
+  --fit-h: 260px;
 }
 
-.lc.big .lc-scene .live-shot img,
-.lc.big .lc-scene .live-shot canvas {
-  max-height: 60vh;
+.lc.big .lc-scene {
+  --fit-h: 60vh;
 }
 
-/* 모바일 장면은 세로라 폰 모양 테두리 안에 좁게 세운다 */
+.lc-scene > .live-shot,
+.trial-colR .live-fit > .live-shot {
+  flex: none;
+  width: min(calc(var(--fit-w) - var(--bezel, 0px)), calc((var(--fit-h) - var(--bezel, 0px)) * var(--ar, 1.6)));
+  aspect-ratio: var(--ar, 1.6);
+}
+
+.lc-scene > .live-shot img,
+.lc-scene > .live-shot canvas,
+.trial-colR .live-fit > .live-shot img,
+.trial-colR .live-fit > .live-shot canvas {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
+/* 폰 장면은 폰 모양 테두리를 두른다 — 테두리는 그림 틀을 따라가 가로 게임이면 가로 폰이다. 자리를 안 먹게 그림자로 그리고 그만큼 틀을 줄인다 */
 .lc-scene > .live-shot.lc-phone {
-  width: auto;
-  max-width: 180px;
-  border: 6px solid var(--line-2);
-  border-radius: 20px;
-}
-
-.lc.big .lc-scene > .live-shot.lc-phone {
-  max-width: 320px;
+  --bezel: 14px;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 0 0 6px var(--line-2);
 }
 
 .lc-zoom {

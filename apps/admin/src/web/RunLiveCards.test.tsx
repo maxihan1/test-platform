@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import type { Platform, RunItemSummary, 항목진행 } from './api.js';
+import { 그림이뜬다, 틀비율 } from './liveFit.fixture.js';
 import type { RunDetail } from './runProgress.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { PC화면통로 } from './PcScreen.js';
@@ -198,6 +199,18 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     expect(document.querySelector('.live-shot.lc-phone img')?.getAttribute('src')).toBe('blob:1');
     expect(screen.getByRole('link', { name: 'Device VISION ↗' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '크게 보기' })).toBeTruthy();
+  });
+
+  it('폰 모양 칸은 받은 그림의 비율을 따른다 — 가로 전용 게임이면 가로 틀이다 (§8.16 「틀」)', async () => {
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['png'], { type: 'image/png' }) });
+    render(<RunProgressModal data={실행([항목(3, 'android')])} 진행목록={[절차(3, { live: true })]} onClose={() => {}} />);
+    await 흘리기();
+    const 틀 = () => document.querySelector('.lc-scene > .live-shot.lc-phone');
+    expect(틀비율(틀())).toBeNull();
+
+    그림이뜬다(screen.getByRole('img', { name: '지금 화면' }), 2400, 1080);
+
+    expect(틀비율(틀())).toBeCloseTo(2400 / 1080);
   });
 
   it('PC 게임 항목은 가로 틀이고, PC 를 잡기 전 · 뒤 발 글이 「빈 Windows PC 를 기다리는 중」 · 「게임을 여는 중」이다 (도메인/게임 §3.10 「윈도우 PC」)', async () => {
