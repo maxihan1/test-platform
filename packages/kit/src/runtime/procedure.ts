@@ -78,8 +78,10 @@ function 다음케이스로(run: RunScope, proc: ProcScope): void {
 function 멈춤을가른다(run: RunScope, proc: ProcScope, 까닭: unknown): void {
   if (!proc.열림) return;
   run.stopped = true;
-  // blocker 확인이 틀린 것은 깨진 것이 아니라 판정이 난 것이다
-  if (까닭 instanceof StopTest) {
+  const 절차들 = proc.steps[proc.at]!;
+  // 멈춤 신호는 blocker 확인이 틀렸을 때도, 본문이 삼킨 예외 뒤에 다음 절차를 돌리려 할 때도 온다.
+  // 틀린 blocker 문장이 있을 때만 판정이 난 것이다 — 깨진 것이 아니다. 나머지는 아래에서 깨진 것으로 가른다
+  if (까닭 instanceof StopTest && 절차들.some((s) => s.assertions.some((a) => a.blocker === true))) {
     케이스를닫는다(run, proc, { status: 'FAIL' });
     return;
   }
@@ -94,8 +96,10 @@ function 멈춤을가른다(run: RunScope, proc: ProcScope, 까닭: unknown): vo
     케이스를닫는다(run, proc, { status: 'NA', error: { message: `Test timeout of ${String(proc.한도)}ms exceeded.` } }, true);
     return;
   }
+  // 본문이 삼킨 예외는 멈춤 신호로만 올라온다 — 사유는 그 절차에 남은 오류다
+  const 삼킨 = 까닭 instanceof StopTest ? 절차들.filter((s) => s.status === 'FAIL' && s.error !== undefined).at(-1)?.error : undefined;
   const err = 까닭 instanceof Error ? 까닭 : new Error(String(까닭));
-  케이스를닫는다(run, proc, { status: 'FAIL', error: { message: err.message, ...(err.stack === undefined ? {} : { stack: err.stack }) } });
+  케이스를닫는다(run, proc, { status: 'FAIL', error: 삼킨 ?? { message: err.message, ...(err.stack === undefined ? {} : { stack: err.stack }) } });
 }
 
 /** 판정이 안 난 케이스를 채운다 — 보류는 그 사유로, 흐름이 멈춰 못 간 케이스는 Blocked 로. Blocked 를 정하는 것은 kit 한 곳이다 */
@@ -160,7 +164,8 @@ export function 프로시저를등록한다(procedure: ProcedureSpec, body: Proc
       steps: cases.map(() => []),
       results: cases.map(() => undefined),
       한도,
-      // Playwright 의 한도는 「지금부터」가 아니라 테스트 시작부터 합친 값이라 지난 시간을 더한다. 전체 한도는 걸지 않는다
+      // Playwright 의 한도는 「지금부터」가 아니라 테스트 시작부터 합친 값이라 지난 시간을 더한다. 전체 한도는 걸지 않는다.
+      // 본문보다 먼저 도는 고정물의 준비 시간도 같은 시계에 든다 — 느린 고정물을 더하면 그 고정물에 따로 한도를 준다 (도메인/러너 §5.2 「케이스별 한도」)
       한도를건다: () => {
         if (한도 > 0) testInfo.setTimeout(Date.now() - 본문시작 + 한도);
       },
@@ -221,8 +226,11 @@ export function 프로시저를등록한다(procedure: ProcedureSpec, body: Proc
         if (proc.열림) throw new Error(`${cases[proc.at]!.tcId}: test.case 를 부르지 않고 본문이 끝났다`);
       });
     } catch (thrown) {
+      // 흐름이 다 끝난 뒤에 온 멈춤 신호는 마지막 케이스 뒤에 둔 절차나 한 번 더 부른 test.case 다 — 붙을 케이스가 없어 판정에는 못 남기지만 초록으로 넘기지 않는다 (K20).
+      // 뒤에 보류 케이스가 남았으면 그 케이스의 준비 절차라 그냥 넘긴다
+      const 끝난뒤 = thrown instanceof StopTest && !proc.열림 && !cases.some((c, i) => i > proc.at && 보류인가(c));
       멈춤을가른다(run, proc, thrown);
-      던진것 = thrown;
+      던진것 = 끝난뒤 ? new Error(`${procedure.procId}: 마지막 케이스 뒤에 절차를 두었거나 test.case 를 다시 불렀다 — 그 뒤는 돌지 않았다. 끝 정리는 test.cleanup 으로 쓴다`) : thrown;
     }
     남은케이스를채운다(proc);
 

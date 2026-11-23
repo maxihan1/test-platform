@@ -41,7 +41,12 @@ export const 앱테스트 = () =>
       // 프로시저가 한도에 끊긴 케이스의 판정을 가르는 자리 — 연결을 열기 전이나 여는 도중에 끊겨도 돌아야 해 끝 정리와 따로 둔다 (procedure.ts)
       let 마감: (() => void) | undefined;
       await use({ open: (options) => (opening ??= 열고남긴다(options)), 끝정리를건다: (f) => { 끝 = f; }, 마감을건다: (f) => { 마감 = f; } });
-      마감?.();
+      // 마감이 던져도 아래 연결 닫기까지 가야 한다 — 폰에 세션이 남으면 다음 실행이 그 폰을 못 잡는다
+      try {
+        마감?.();
+      } catch (err) {
+        console.error(`[kit] 케이스 판정을 마감하지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+      }
       if (opening === undefined) return;
       let side: AppSide;
       try {
