@@ -31,11 +31,13 @@ export function 탭제목(service: ServiceRow | null): string {
  * `main.tsx` 안에 두면 그 파일이 `createRoot` 를 모듈 자리에서 불러 **검사할 수가 없다.**
  * 판단은 여기, 그림은 거기 (이 파일 머리 주석과 같은 규칙).
  */
-export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | 'E2E'): string {
+export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | 'E2E' | 'GS', 게임 = false): string {
   // 목록은 종류까지 자리다. 실행 결과 · 항목 상세는 주소에 종류가 없어 묶음을 가리킨다 (PR #132)
   const 꼬리 = 종류 === undefined ? '' : `/${종류.toLowerCase()}`;
   if (name === 'dashboard') return '#/dashboard';
   if (name === 'runs') return `#/runs${꼬리}`;
+  // 게임에는 UI 메뉴가 없다 — UI 번호 목록은 「기능 테스트」 화면의 링크로 들어와 그 메뉴가 지금 자리다 (화면공통 §8 「자리 목록」)
+  if (name === 'cases' && 게임 && 종류 === 'UI') return '#/cases/fn';
   if (name === 'cases') return `#/cases${꼬리}`;
   if (name === 'run' || name === 'item') return '#/runs';
   if (name === 'authoring' || name === 'authoringItem') return '#/authoring';

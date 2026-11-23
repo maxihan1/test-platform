@@ -19,6 +19,8 @@ export const 껍데기말: Record<string, string> = {
   // 테스트 종류 메뉴 (2026-11-12 — 앞 이름 「테스트 실행」 · 「E2E 시나리오」 · 「테스트 실행 › 호환성」)
   '기능 · UI 테스트': 'Functional · UI tests',
   'E2E 테스트': 'E2E tests',
+  // 게임 애플리케이션만 — 게임 시나리오(-GS-) 목록 (2026-11-23 사용자)
+  '게임 미션': 'Game missions',
   '호환성 테스트': 'Compatibility tests',
   // 실행 기록 › 성능 — 성능 테스트 결과 (2026-11-12 성능 테스트 아래에서 옮겨 왔다)
   성능: 'Performance',

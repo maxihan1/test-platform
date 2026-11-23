@@ -1,4 +1,4 @@
-// 케이스 목록 · 엑셀이 종류(UI · 기능)로 거르는지 본다 (SPEC 도메인/카탈로그 §7 `?kind=` · PR #132)
+// 케이스 목록 · 엑셀이 종류(UI · 기능)와 게임 미션으로 거르는지 본다 (SPEC 도메인/카탈로그 §7 `?kind=` · `?mission=` · PR #132)
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -6,7 +6,7 @@ import { 종류읽기 } from './routes.js';
 import { listCases } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
-const 번호들 = ['XCK-001', 'XCK-FN-002', 'XCK-UI-001'];
+const 번호들 = ['XCK-001', 'XCK-FN-002', 'XCK-GS-001', 'XCK-UI-001'];
 
 describe('종류읽기', () => {
   it('ui · fn 만 종류이고 없거나 모르면 거르지 않는다', () => {
@@ -42,10 +42,17 @@ describe.skipIf(연결 === undefined)('케이스 목록의 종류 거르기', ()
   const 목록 = async (kind?: 'UI' | 'FN') =>
     (await listCases({ service: 'XCK', q: '', activeOnly: true, page: 1, pageSize: 50, kind })).items.map((c) => c.tcId);
 
-  it('UI 는 -UI- 번호만 · FN 은 옛 꼴과 -FN- · 없으면 둘 다', async () => {
+  it('UI 는 -UI- 번호만 · FN 은 옛 꼴과 -FN- · -GS- · 없으면 둘 다', async () => {
     expect(await 목록('UI')).toEqual(['XCK-UI-001']);
-    expect(await 목록('FN')).toEqual(['XCK-001', 'XCK-FN-002']);
-    expect(await 목록()).toEqual(['XCK-001', 'XCK-FN-002', 'XCK-UI-001']);
+    expect(await 목록('FN')).toEqual(['XCK-001', 'XCK-FN-002', 'XCK-GS-001']);
+    expect(await 목록()).toEqual(['XCK-001', 'XCK-FN-002', 'XCK-GS-001', 'XCK-UI-001']);
+  });
+
+  it('게임 미션은 -GS- 번호만 · 뺀 기능 목록에는 -GS- 가 없다', async () => {
+    const 미션목록 = async (mission: boolean) =>
+      (await listCases({ service: 'XCK', q: '', activeOnly: true, page: 1, pageSize: 50, kind: 'FN', mission })).items.map((c) => c.tcId);
+    expect(await 미션목록(true)).toEqual(['XCK-GS-001']);
+    expect(await 미션목록(false)).toEqual(['XCK-001', 'XCK-FN-002']);
   });
 
   it('미확정 요약도 종류를 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않는다', async () => {

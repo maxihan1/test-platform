@@ -62,11 +62,13 @@ export interface 시작조건 {
 }
 
 export function 설명안되는줄(줄들: 로그줄[], 아이디: string, 조건: 시작조건, 볼종류: 로그줄['kind'][]): 로그줄[] {
-  return 줄들.filter((줄) => {
+  let 레벨 = 조건.레벨;
+  return [...줄들].sort((앞, 뒤) => 앞.seq - 뒤.seq).filter((줄) => {
     const 나 = [줄.from, 줄.to, 줄.by].find((x) => 사람아이디(x) === 아이디) as 로그사람 | undefined;
     if (나 === undefined) return false;
+    if (줄.kind === 'levelup' && 나.level === 레벨 + 1) 레벨 = 나.level;
     if (!볼종류.includes(줄.kind)) return true;
-    return 줄.players !== 조건.인원 || 나.level !== 조건.레벨 || 나.job !== 조건.직업 || 나.weapon !== 조건.무기 || 나.armor !== 조건.갑옷;
+    return 줄.players !== 조건.인원 || 나.level !== 레벨 || 나.job !== 조건.직업 || 나.weapon !== 조건.무기 || 나.armor !== 조건.갑옷;
   });
 }
 

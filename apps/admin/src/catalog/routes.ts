@@ -69,7 +69,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
   app.get<{ Querystring: { service?: string } }>('/catalog/scan', async (req) => 마지막보기(req.user, req.query.service || undefined));
 
   app.get<{
-    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string; last?: string; smoke?: string; autoFix?: string } & 맥락글;
+    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string; last?: string; smoke?: string; mission?: string; autoFix?: string } & 맥락글;
   }>(
     '/catalog/cases',
     async (req, reply) => {
@@ -101,6 +101,8 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         kind: 종류읽기(req.query.kind),
         technique,
         smoke: 스모크읽기(req.query.smoke),
+        // 스모크와 같은 꼴 — 1 · 0 만 받고 모르는 값은 버린다 (카탈로그 §7 `?mission=`)
+        mission: 스모크읽기(req.query.mission),
         마지막: 결과본다 ? { 판정: 판정으로(await 기기별결과(service)), last } : undefined,
         // 스모크와 같이 1 만 켠다 — 모르는 값은 조용히 버린다 (도메인/BTS §7 `?autoFix=1`)
         autoFix: 스모크읽기(req.query.autoFix) === true,
@@ -110,7 +112,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
     },
   );
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string; last?: string; smoke?: string; autoFix?: string } & 맥락글 }>(
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string; last?: string; smoke?: string; mission?: string; autoFix?: string } & 맥락글 }>(
     '/catalog/export',
     async (req, reply) => {
       const service = req.query.service ?? '';
@@ -140,6 +142,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         technique,
         last,
         smoke: 스모크읽기(req.query.smoke),
+        mission: 스모크읽기(req.query.mission),
         autoFix: 스모크읽기(req.query.autoFix) === true,
         canSeeRuns: 되나('runs'),
         canSeeAuthoring: 되나('authoring'),
@@ -147,7 +150,8 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       const 날짜 = 한국시각(자료.generatedAt).slice(0, 10);
       // UI · 기능을 따로 받으면 이름이 같아 덮어쓴다 — 종류를 이름에 넣는다 (PR #132)
       const 종류 = 종류읽기(req.query.kind);
-      const 꼬리 = 종류 === undefined ? '' : `-${종류}`;
+      // 게임 미션도 종류가 FN 이라 기능 테스트 파일과 이름이 겹친다 — 따로 단다
+      const 꼬리 = 스모크읽기(req.query.mission) === true ? '-GS' : 종류 === undefined ? '' : `-${종류}`;
       // 옛 브라우저용 ASCII 이름을 앞에 두고 한글 이름은 RFC 5987 로 싣는다 (authoring/assets.ts 머리글이름과 같은 인코딩)
       const 한글 = encodeURIComponent(`${service}-테스트케이스${꼬리}-${날짜}.xlsx`).replace(
         /['()*]/g,

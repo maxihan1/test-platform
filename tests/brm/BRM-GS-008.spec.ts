@@ -63,7 +63,7 @@ test(spec, async ({ game, driver, admin, params }) => {
     await verify('BRM-REQ-129 임프 처치에서 「체력 물약」이 나온 비율은 8% 다', 물약비율, true);
     await verify('BRM-REQ-130 임프 처치에서 두 전리품이 같이 나온 비율은 따로 굴린 값 30% × 8% = 2.4% 다', 둘다비율, true);
     const 조건 = { 레벨: 1, 직업: '탱커', 무기: '-', 갑옷: '-', 인원: 1 };
-    for (const 줄 of 설명안되는줄(줄들, 나.아이디, 조건, ['hit', 'kill', 'item', 'levelup']).slice(0, 10)) await verify.note('설명 안 되는 줄', 줄);
+    for (const 줄 of 설명안되는줄(줄들, 나.아이디, 조건, ['hit', 'kill', 'item', 'levelup', 'heal']).slice(0, 10)) await verify.note('설명 안 되는 줄', 줄);
     if (멈춤 !== undefined) throw 멈춤;
   });
 });
