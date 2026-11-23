@@ -501,6 +501,7 @@ export const 실행말: Record<string, string> = {
   // PC 카드의 화면 영상 (PcScreen.tsx)
   '이 브라우저에서는 PC 화면을 볼 수 없습니다. Chrome 이나 Edge 로 여세요': 'This browser cannot show the PC screen. Open it in Chrome or Edge',
   'Windows PC 의 지금 화면': 'Current screen of the Windows PC',
+  'https 주소로 열어야 PC 화면이 보입니다': 'Open this page over https to see the PC screen',
   // PC 게임 디바이스 이름 (ui.tsx — 좁은 자리는 「Windows ·」를 뺀다)
   'Windows · PS5 패드': 'Windows · PS5 pad',
   'Windows · PS4 패드': 'Windows · PS4 pad',

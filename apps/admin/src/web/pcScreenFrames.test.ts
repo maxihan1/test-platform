@@ -37,6 +37,10 @@ describe('조각을가른다', () => {
   it('길이 4바이트도 덜 왔으면 하나도 안 뗀다', () => {
     expect(조각을가른다(new Uint8Array([0, 0])).조각들).toEqual([]);
   });
+
+  it('길이가 상한을 넘으면 기다리지 않고 던진다 — 흐름이 어긋난 것이다', () => {
+    expect(() => 조각을가른다(new Uint8Array([0xff, 0xff, 0xff, 0xff, 1]))).toThrow(RangeError);
+  });
 });
 
 describe('머리를푼다', () => {

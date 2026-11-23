@@ -15,10 +15,18 @@ export interface PC화면자리 {
 
 // PC 를 잡은 동안만 둔다 — 열쇠는 정식 실행 `item:<historyId>` · 테스트 실행 `trial:<trialId>`. 토큰이 있어 밖으로 안 낸다
 const 자리들 = new Map<string, PC화면자리>();
+// 열린 흐름의 끊개 — PC 를 놓으면 서버가 직접 끊는다. VISION 이 보기만 붙은 화면을 놓을 때 끊어 준다는 보장이 없고,
+// 같은 토큰을 쓰는 설치(SSO 끔)에서는 다음 사람이 잡은 PC 화면이 그대로 이어 흐를 수 있다
+const 흐름들 = new Map<string, Set<() => void>>();
 
 export function PC화면을단다(열쇠: string, 자리: PC화면자리 | undefined): void {
-  if (자리 === undefined) 자리들.delete(열쇠);
-  else 자리들.set(열쇠, 자리);
+  if (자리 !== undefined) {
+    자리들.set(열쇠, 자리);
+    return;
+  }
+  자리들.delete(열쇠);
+  for (const 끊기 of [...(흐름들.get(열쇠) ?? [])]) 끊기();
+  흐름들.delete(열쇠);
 }
 
 export const PC화면자리 = (열쇠: string): PC화면자리 | undefined => 자리들.get(열쇠);
@@ -49,23 +57,33 @@ export function 길이를붙인다(조각: Uint8Array): Buffer {
 const 밀림상한 = 4 * 1024 * 1024;
 
 /**
- * 끝나지 않는 응답을 연다. VISION 이 끊거나(놓음 · 인증 · 다른 사람이 잡음) 브라우저가 떠나면 둘 다 닫는다.
- * 브라우저는 흐름이 끝나면 2초 뒤 다시 붙는다 — 그래서 실패를 따로 알리지 않고 기록만 남긴다
+ * 끝나지 않는 응답을 연다. VISION 이 끊거나(놓음 · 인증 · 다른 사람이 잡음) 브라우저가 떠나거나 PC 를 놓으면 셋 다 닫는다.
+ * 브라우저는 흐름이 끝나면 다시 붙는다 — 그래서 끊김을 따로 알리지 않고 기록만 남긴다.
+ * PC 를 안 잡았거나 팜이 없으면 그 통로의 404(없음)다
  */
-export function PC화면을건넨다(reply: FastifyReply, 자리: PC화면자리, 팜 = 팜주소()): FastifyReply {
-  if (팜 === undefined) return reply.code(404).send({ error: 'FARM_OFF', detail: 'DEVICE_FARM_URL 이 비어 있다' });
+export function PC화면을건넨다(reply: FastifyReply, 열쇠: string, 없음: () => FastifyReply, 팜 = 팜주소()): FastifyReply {
+  const 자리 = 자리들.get(열쇠);
+  if (팜 === undefined || 자리 === undefined) return 없음();
+  // 응답을 붙잡기 전에 연다 — 여기서 던지면(주소가 틀림) 붙잡은 응답이 영영 안 닫힌다
+  let 소켓: 화면소켓;
+  try {
+    소켓 = 화면소켓을연다.연다(화면통로주소(팜, 자리.serial));
+  } catch (err) {
+    return reply.code(502).send({ error: 'VISION_UNREACHABLE', detail: `VISION 화면 통로를 열지 못했다: ${err instanceof Error ? err.message : String(err)}` });
+  }
   reply.hijack();
   const 응답 = reply.raw;
   응답.writeHead(200, { 'content-type': 'application/octet-stream', 'cache-control': 'no-store', 'x-accel-buffering': 'no' });
-  const 소켓 = 화면소켓을연다.연다(화면통로주소(팜, 자리.serial));
   소켓.binaryType = 'arraybuffer';
   let 닫힘 = false;
   const 닫는다 = (): void => {
     if (닫힘) return;
     닫힘 = true;
+    흐름들.get(열쇠)?.delete(닫는다);
     소켓.close();
     응답.end();
   };
+  흐름들.set(열쇠, (흐름들.get(열쇠) ?? new Set()).add(닫는다));
   // 보기만(peek) — 같은 사람이 VISION 사이트에서 연 화면을 끊지 않는다. 토큰은 첫 메시지로만 간다(주소에 넣으면 VISION 기록에 남는다)
   소켓.onopen = () => 소켓.send(JSON.stringify({ token: 자리.토큰 ?? process.env.DEVICE_FARM_TOKEN ?? '', peek: true }));
   소켓.onmessage = (e) => {
@@ -90,19 +108,19 @@ export async function PC화면경로(app: FastifyInstance): Promise<void> {
     const historyId = 정수(req.params.historyId);
     if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
     const 없음 = () => reply.code(404).send({ error: 'LIVE_NOT_FOUND', detail: String(historyId) });
-    const 자리 = PC화면자리(`item:${String(historyId)}`);
-    if (자리 === undefined) return 없음();
+    const 열쇠 = `item:${String(historyId)}`;
+    if (PC화면자리(열쇠) === undefined) return 없음();
     // 주소의 runId 로 문이 권한을 봤다 — 남의 실행 항목 화면이 새지 않게 그 실행의 항목인지 본다
     const { pool } = await import('../db/index.js');
     const r = await pool.query('SELECT 1 FROM run_item WHERE run_id = $1 AND history_id = $2', [runId, historyId]);
     if (r.rowCount === 0) return 없음();
-    return PC화면을건넨다(reply, 자리);
+    return PC화면을건넨다(reply, 열쇠, 없음);
   });
 
   app.get<{ Params: { tcId: string; trialId: string } }>('/cases/:tcId/test-run/:trialId/pc-screen', async (req, reply) => {
+    const 없음 = () => reply.code(404).send({ error: 'TRIAL_NOT_FOUND', detail: req.params.trialId });
     const 읽음 = 읽는다(req.user?.username ?? '알 수 없음', req.params.trialId, req.params.tcId);
-    const 자리 = PC화면자리(`trial:${req.params.trialId}`);
-    if (읽음?.status !== 'RUNNING' || 자리 === undefined) return reply.code(404).send({ error: 'TRIAL_NOT_FOUND', detail: req.params.trialId });
-    return PC화면을건넨다(reply, 자리);
+    if (읽음?.status !== 'RUNNING') return 없음();
+    return PC화면을건넨다(reply, `trial:${req.params.trialId}`, 없음);
   });
 }

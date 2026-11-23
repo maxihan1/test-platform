@@ -5,13 +5,17 @@ export type 조각종류 = 'delta' | 'key' | 'config';
 const 종류들: readonly 조각종류[] = ['delta', 'key', 'config'];
 const 머리길이 = 9;
 
-/** 쌓인 바이트에서 다 온 조각만 떼고, 덜 온 끝은 남겨 다음 바이트와 잇는다 */
+// 1920 화면 키프레임도 1MB 를 넘지 않는다 — 이보다 길면 흐름이 어긋난 것이라 기다리지 않고 끊는다(그대로 두면 탭 메모리가 끝없이 찬다)
+export const 조각상한 = 8 * 1024 * 1024;
+
+/** 쌓인 바이트에서 다 온 조각만 떼고, 덜 온 끝은 남겨 다음 바이트와 잇는다. 길이가 상한을 넘으면 던진다 — 부르는 쪽이 끊고 다시 붙는다 */
 export function 조각을가른다(쌓인: Uint8Array): { 조각들: Uint8Array[]; 남은: Uint8Array } {
   const 조각들: Uint8Array[] = [];
   const 보기 = new DataView(쌓인.buffer, 쌓인.byteOffset, 쌓인.byteLength);
   let 자리 = 0;
   while (자리 + 4 <= 쌓인.byteLength) {
     const 길이 = 보기.getUint32(자리);
+    if (길이 > 조각상한) throw new RangeError('pc-screen frame length out of range');
     if (자리 + 4 + 길이 > 쌓인.byteLength) break;
     조각들.push(쌓인.subarray(자리 + 4, 자리 + 4 + 길이));
     자리 += 4 + 길이;

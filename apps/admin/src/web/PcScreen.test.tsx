@@ -112,7 +112,7 @@ describe('PC화면', () => {
     expect(screen.queryByText('게임을 여는 중')).toBeNull();
   });
 
-  it('흐름이 끝나면 2초 뒤 다시 붙고, 칸이 내려가면 받던 것을 끊는다', async () => {
+  it('한 장도 못 그리고 끝나기가 거듭되면 4 · 8초로 늘려 다시 붙고, 칸이 내려가면 받던 것을 끊는다', async () => {
     const 신호들: AbortSignal[] = [];
     const 받기 = vi.spyOn(PC화면통로, '받기').mockImplementation(async (_주소, 신호) => {
       신호들.push(신호);
@@ -121,13 +121,77 @@ describe('PC화면', () => {
     const { unmount } = render(<PC화면 주소="/x" 기다림글="게임을 여는 중" />);
     await 흘리기();
     expect(받기).toHaveBeenCalledTimes(1);
-    await 흘리기(2_000);
+    await 흘리기(3_999);
+    expect(받기).toHaveBeenCalledTimes(1);
+    await 흘리기(1);
     expect(받기).toHaveBeenCalledTimes(2);
+    await 흘리기(8_000);
+    expect(받기).toHaveBeenCalledTimes(3);
 
     unmount();
     expect(신호들.at(-1)!.aborted).toBe(true);
-    await 흘리기(5_000);
+    await 흘리기(60_000);
+    expect(받기).toHaveBeenCalledTimes(3);
+  });
+
+  it('그리던 흐름이 끊기면 멈춘 화면 대신 기다림 글로 돌아가고 2초 뒤 다시 붙는다', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: vi.fn() } as never);
+    let 끝내기 = () => {};
+    const 받기 = vi.spyOn(PC화면통로, '받기').mockImplementation(async () => {
+      let 끝 = false;
+      끝내기 = () => {
+        끝 = true;
+      };
+      let 준설정 = false;
+      return {
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: async () => {
+              if (!준설정) {
+                준설정 = true;
+                return { done: false, value: 길이붙인조각(2, SPS설정) };
+              }
+              while (!끝) await new Promise((r) => setTimeout(r, 10));
+              return { done: true, value: undefined };
+            },
+          }),
+        },
+      } as unknown as Response;
+    });
+    render(<PC화면 주소="/x" 기다림글="게임을 여는 중" />);
+    await 흘리기();
+    await act(async () => {
+      가짜풀개.모두[0]!.콜백.output({ displayWidth: 8, displayHeight: 8, close: () => {} });
+    });
+    expect(screen.queryByText('게임을 여는 중')).toBeNull();
+
+    끝내기();
+    await 흘리기(10);
+    expect(screen.getByText('게임을 여는 중')).toBeTruthy();
+    await 흘리기(2_000);
     expect(받기).toHaveBeenCalledTimes(2);
+  });
+
+  it('흐름의 길이 값이 어긋나면 쌓지 않고 끊었다가 다시 붙는다', async () => {
+    const 받기 = vi.spyOn(PC화면통로, '받기').mockResolvedValue(흐름([new Uint8Array([0xff, 0xff, 0xff, 0xff, 1, 2, 3])]));
+    render(<PC화면 주소="/x" 기다림글="게임을 여는 중" />);
+    await 흘리기();
+    expect(받기).toHaveBeenCalledTimes(1);
+    await 흘리기(4_000);
+    expect(받기).toHaveBeenCalledTimes(2);
+  });
+
+  it('https 가 아닌 주소로 열면 받지 않고 https 로 열라고 안내한다', () => {
+    Object.defineProperty(window, 'isSecureContext', { configurable: true, value: false });
+    try {
+      const 받기 = vi.spyOn(PC화면통로, '받기');
+      render(<PC화면 주소="/x" 기다림글="게임을 여는 중" />);
+      expect(screen.getByText('https 주소로 열어야 PC 화면이 보입니다')).toBeTruthy();
+      expect(받기).not.toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(window, 'isSecureContext');
+    }
   });
 
   it('영상을 못 푸는 브라우저는 받지 않고 다른 브라우저로 열라고 안내한다', () => {
