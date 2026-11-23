@@ -145,31 +145,31 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
       </div>
       {/* 그림 자리 — 칸에 남은 자리를 다 쓰고, 그 안에서 그림 틀이 비율대로 가장 크게 선다 (trialLive.css 「그림 틀」) */}
       <div className="live-fit">
-      {영상주소 !== null && 도는중 ? (
-        <PC화면 주소={영상주소} 기다림글={t('게임을 여는 중')} />
-      ) : 그림 === null && 뼈대 && !폰칸 && vision === null ? (
-        <div className="live-wait live-skel" aria-busy="true">
-          <span className="skel-bar" aria-hidden="true" />
-          <span className="skel-bar short" aria-hidden="true" />
-          <span className="skel-box" aria-hidden="true" />
-          <p>{t('브라우저를 여는 중')}</p>
-        </div>
-      ) : 그림 === null ? (
-        <p className="live-wait">
-          {앱폰 && vision === null
-            ? t('사용할 디바이스를 찾는 중')
-            : 폰칸
-              ? t('디바이스 화면을 기다리고 있습니다')
-              : vision !== null
-                ? t('화면을 기다리고 있습니다')
-                : t('차례를 기다리는 중')}
-        </p>
-      ) : (
-        <div className={폰단계 ? 'live-shot dim' : 'live-shot'} style={틀}>
-          <img src={그림} alt={!도는중 ? t('종료된 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} onLoad={그림에서} />
-          {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 디바이스에서 실행 중입니다')}</p> : null}
-        </div>
-      )}
+        {영상주소 !== null && 도는중 ? (
+          <PC화면 주소={영상주소} 기다림글={t('게임을 여는 중')} />
+        ) : 그림 === null && 뼈대 && !폰칸 && vision === null ? (
+          <div className="live-wait live-skel" aria-busy="true">
+            <span className="skel-bar" aria-hidden="true" />
+            <span className="skel-bar short" aria-hidden="true" />
+            <span className="skel-box" aria-hidden="true" />
+            <p>{t('브라우저를 여는 중')}</p>
+          </div>
+        ) : 그림 === null ? (
+          <p className="live-wait">
+            {앱폰 && vision === null
+              ? t('사용할 디바이스를 찾는 중')
+              : 폰칸
+                ? t('디바이스 화면을 기다리고 있습니다')
+                : vision !== null
+                  ? t('화면을 기다리고 있습니다')
+                  : t('차례를 기다리는 중')}
+          </p>
+        ) : (
+          <div className={폰단계 ? 'live-shot dim' : 'live-shot'} style={틀}>
+            <img src={그림} alt={!도는중 ? t('종료된 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} onLoad={그림에서} />
+            {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 디바이스에서 실행 중입니다')}</p> : null}
+          </div>
+        )}
       </div>
       {못닿음 ? (
         <p className="live-note bad">{t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다')}</p>

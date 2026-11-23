@@ -114,6 +114,8 @@
   margin: 0;
   align-items: stretch;
   grid-template-rows: minmax(0, 1fr);
+  /* 좁은 창(760px 아래)에서 카드 둘이 위아래로 쌓여도 칸 높이를 똑같이 나눈다 — 둘째 줄을 제 키에 맡기면 크기가 묶인 그림 칸이 0 으로 접힌다 */
+  grid-auto-rows: minmax(0, 1fr);
 }
 
 .rl-right .lc {
@@ -178,6 +180,7 @@
   /* 카드가 위아래로 쌓이면 제 키대로 선다 — 칸 높이를 나눠 갖게 두면 앞 카드가 0 으로 접혔다 */
   .rl-right .livecards {
     grid-template-rows: none;
+    grid-auto-rows: auto;
   }
 
   /* 높이가 안 정해진 칸이다 — 폭은 칸 폭, 높이는 300px 까지 */

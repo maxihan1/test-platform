@@ -4,9 +4,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import type { Platform, RunItemSummary, 항목진행 } from './api.js';
 import { 그림이뜬다, 틀비율 } from './liveFit.fixture.js';
-import type { RunDetail } from './runProgress.js';
+import { 실행, 절차, 카드들, 항목 } from './RunLiveCards.fixture.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { PC화면통로 } from './PcScreen.js';
 import { 장면통로 } from './TrialLive.js';
@@ -28,47 +27,6 @@ async function 흘리기() {
     await vi.advanceTimersByTimeAsync(0);
   });
 }
-
-function 항목(n: number, platform: Platform): RunItemSummary {
-  return {
-    historyId: n,
-    tcId: `ZZL-${String(n).padStart(3, '0')}`,
-    tcName: `케이스 ${n}`,
-    platform,
-    attempt: 1,
-    params: {},
-    paramSchema: {},
-    status: 'PASS',
-    durationMs: null,
-    error: null,
-    startedAt: '2026-11-05T00:00:00.000Z',
-    finishedAt: null,
-  };
-}
-
-function 실행(items: RunItemSummary[], 덧: Partial<RunDetail> = {}): RunDetail {
-  return {
-    runId: 128,
-    title: 'ZZL 화면 카드',
-    triggeredBy: 'zzl',
-    triggeredByName: '테스터',
-    env: 'stage',
-    baseUrl: 'https://zzl.example.test',
-    serviceName: 'ZZL',
-    status: 'RUNNING',
-    startedAt: '2026-11-05T00:00:00.000Z',
-    finishedAt: null,
-    counts: { total: items.length, pass: 0, fail: 0, na: 0, running: items.length },
-    items,
-    ...덧,
-  };
-}
-
-function 절차(historyId: number, 덧: Partial<항목진행> = {}): 항목진행 {
-  return { historyId, seq: 6, title: '수량을 3으로 바꾼다', elapsedMs: 12000, timeoutMs: 30000, ...덧 };
-}
-
-const 카드들 = () => [...document.querySelectorAll('.lc')];
 
 describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
   it('맨 위 주황 띠가 끝나면 실행 기록에 RUN 번호로 남는다고 알린다', () => {

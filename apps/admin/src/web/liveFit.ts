@@ -9,7 +9,9 @@ export function use그림비율() {
     /** 가로 ÷ 세로. 첫 그림 전에는 null */
     비,
     set비,
-    틀: 비 === null ? undefined : ({ '--ar': String(비) } as CSSProperties),
+    // 비율을 알기 전에는 틀을 안 보이게 둔다 — 기본 16:10 틀이 한 장 보였다가 세로로 바뀌면 폰 테두리가 누웠다 서는 것처럼 깜빡인다.
+    // 숨기되 자리는 그대로 둔다(visibility 로 숨기면 검사가 그림을 못 찾는다)
+    틀: (비 === null ? { opacity: 0 } : { '--ar': String(비) }) as CSSProperties,
     /** img 의 onLoad 에 건다 */
     그림에서: (e: SyntheticEvent<HTMLImageElement>): void => {
       const { naturalWidth: 가로, naturalHeight: 세로 } = e.currentTarget;
