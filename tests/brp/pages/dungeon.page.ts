@@ -17,6 +17,7 @@ export class 던전화면 {
   static readonly 스킬2버튼 = '/BossRoomHudCanvas/Hero Action Bar/Button2';
   static readonly 감정버튼 = '/BossRoomHudCanvas/Hero Action Bar/Button3';
   static readonly 동료초상화 = '/BossRoomHudCanvas/Party HUD/Ally HUD 1/Button';
+  static readonly 내초상화 = 'Button';
   static readonly 알림줄 = '/BossRoomHudCanvas/MessageFeed/Mask/MessageFeed';
   static readonly 임프 = '/Imp(Clone)[-1]';
   static readonly 항아리 = '/PickUpPot(Clone)';
@@ -211,6 +212,10 @@ export class 던전화면 {
 
   async 동료체력막대있나(): Promise<boolean> {
     return (await this.game.find(던전화면.동료체력막대)) !== null;
+  }
+
+  async 내초상화누르기(): Promise<void> {
+    await this.game.click(던전화면.내초상화);
   }
 
   async 동료초상화누르기(): Promise<void> {

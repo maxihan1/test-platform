@@ -16,6 +16,7 @@ export class 로비화면 {
   static readonly 인사글 = 'Player';
   static readonly 직업안내 = 'Class instr (TMP)';
   static readonly 직업자리: Record<직업, number> = { 탱커: 0, 궁수: 2, 마법사: 4, 도적: 6 };
+  static readonly 첫탱커모습 = '/AvatarGraphicsParent/PlayerGraphics_Tank_Girl_CharacterSelect(Clone)';
 
   readonly hud: 공통HUD;
 
@@ -142,6 +143,22 @@ export class 로비화면 {
   async 자리이름글(자리: number): Promise<string> {
     if ((await this.game.find(this.자리칸(자리, 'PlayerName (TMP)'))) === null) return '';
     return this.game.text(this.자리칸(자리, 'PlayerName (TMP)'));
+  }
+
+  async 첫탱커모습뜰때까지(한도ms = 10_000): Promise<boolean> {
+    return this.game.waitFor(로비화면.첫탱커모습, { timeoutMs: 한도ms }).then(() => true, () => false);
+  }
+
+  async 첫탱커모습있나(): Promise<boolean> {
+    return (await this.game.find(로비화면.첫탱커모습)) !== null;
+  }
+
+  async 자리바탕있나(자리: number): Promise<boolean> {
+    return (await this.game.find(this.자리칸(자리, 'ActiveBkgnd'))) !== null;
+  }
+
+  async 자리바탕켜질때까지(자리: number, 한도ms = 10_000): Promise<boolean> {
+    return this.game.waitFor(this.자리칸(자리, 'ActiveBkgnd'), { timeoutMs: 한도ms }).then(() => true, () => false);
   }
 
   async 자리이름글될때까지(자리: number, 맞나: (글: string) => boolean, 한도ms = 10_000): Promise<string> {
