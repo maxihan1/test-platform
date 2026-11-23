@@ -83,11 +83,11 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
     await pool.query(
       `INSERT INTO case_screen (tc_id, file, screen_url, name, open_urls) VALUES
          ('XCP-001', 'tests/xcp/pages/home.page.ts', '/home', '홈화면', '{/cart,/my}'),
-         ('XCP-002', 'tests/xcp/pages/home.page.ts', '/home', '홈화면', '{}'),
+         ('XCP-002', 'tests/xcp/pages/home.page.ts', '/home', '홈화면', '{game:Main/Canvas/Leaf}'),
          ('XCP-002', 'tests/xcp/pages/login.page.ts', '/login', '로그인화면', '{}'),
          ('XCP-003', 'tests/xcp/pages/cart.page.ts', '/cart', '장바구니화면', '{}'),
          ('XCP-004', 'tests/xcp/pages/orphan.page.ts', '/orphan', NULL, '{}'),
-         ('XCPB-001', 'tests/xcpb/pages/a.page.ts', '/a', 'A화면', '{/b}')`,
+         ('XCPB-001', 'tests/xcpb/pages/a.page.ts', '/a', 'A화면', '{/b,game:A/Canvas/Leaf}')`,
     );
     await pool.query(
       `INSERT INTO screen_found (service_id, env, state, url, name) VALUES
@@ -173,6 +173,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       .toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-004', 'XCPB-001', 'XCP-999', 'XCP-GS-001'] });
   });
 
+  // 두 셈 모두 차림의 게임 요소 열쇠(game:…/Leaf)를 세지 않는다 — 화면 파일 안 요소 주소는 크롤이 찾은 창과 같을 때만 화면이다
   it('크롤 화면 기록이 없으면 케이스가 아는 화면으로 세고 그렇게 알린다', async () => {
     const res = await 부르기('xcp-reader', 'POST', '/api/compat-sets/preview', { serviceId: 남의앱, addedCases: [] });
     expect(res.json()).toEqual({

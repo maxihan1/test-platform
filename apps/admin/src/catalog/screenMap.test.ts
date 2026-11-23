@@ -70,6 +70,46 @@ describe('여는주소들 — 화면 파일 안 이동이 여는 주소 틀 (WEB
     ].join('\n');
     expect(여는주소들(글)).toEqual([]);
   });
+
+  it('게임 화면 파일은 장면 주소에 파일 안 / 로 시작하는 글자 그대로의 요소 주소를 이은 것도 연다 — 계산식 · / 한 글자 · // 찾기 식은 뺀다', () => {
+    const 글 = [
+      'export class 로비화면 {',
+      "  static readonly 주소 = 'game:CharSelect';",
+      "  static readonly 준비버튼 = 'Ready Btn';",
+      "  static readonly 인원글 = '/CharacterSelectCanvas/NumPlayersBox/Text (TMP)';",
+      "  static readonly 첫탱커모습 = '/AvatarGraphicsParent/PlayerGraphics_Tank_Girl_CharacterSelect(Clone)';",
+      "  static readonly 효과들 = ['/FX/Hit', '//*[contains(@name,Zoom)]'] as const;",
+      '  자리주소(자리: number): string { return `/CharacterSelectCanvas/PlayerSeats/PlayerSeat (${String(자리)})`; }',
+      "  async 뿌리() { await this.game.click('/'); }",
+      '  async 닫기() { await this.game.click(`/CharacterSelectCanvas/Close`); }',
+      '}',
+    ].join('\n');
+    expect(여는주소들(글)).toEqual([
+      'game:CharSelect/CharacterSelectCanvas/NumPlayersBox/Text (TMP)',
+      'game:CharSelect/AvatarGraphicsParent/PlayerGraphics_Tank_Girl_CharacterSelect(Clone)',
+      'game:CharSelect/FX/Hit',
+      'game:CharSelect/CharacterSelectCanvas/Close',
+    ]);
+  });
+
+  it('게임 화면 주소에 창 경로가 붙어도 장면 몫에만 잇고, 같은 이름 형제 순번은 크롤 열쇠처럼 뗀다', () => {
+    const 글 = [
+      'export class 채팅창 {',
+      "  static readonly 주소 = 'game:CharSelect/Showcase HUD/Window 채팅';",
+      "  static readonly 닫기 = '/Showcase HUD/Window 채팅/Panel 채팅/Button 닫기';",
+      "  static readonly 첫줄 = '/Showcase HUD/Window 채팅/Panel 채팅/Scroll/Content/Row[0]/Text[1]';",
+      '}',
+    ].join('\n');
+    expect(여는주소들(글)).toEqual([
+      'game:CharSelect/Showcase HUD/Window 채팅/Panel 채팅/Button 닫기',
+      'game:CharSelect/Showcase HUD/Window 채팅/Panel 채팅/Scroll/Content/Row/Text',
+    ]);
+  });
+
+  it('게임이 아닌 화면 파일의 / 글자는 요소 주소로 잇지 않는다 — 웹은 goto 만 본다', () => {
+    const 글 = ['export class A {', "  static readonly 주소 = '/a';", "  static readonly 버튼 = '/b';", '}'].join('\n');
+    expect(여는주소들(글)).toEqual([]);
+  });
 });
 
 describe('화면이름 — 목록에 보일 화면 파일의 클래스 이름 (PRD-F9-18)', () => {
