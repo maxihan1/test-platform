@@ -777,6 +777,7 @@ describe('등급 표', () => {
     'POST /api/cases/:tcId/test-run': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 브라우저를 돌리는 실행이다 (execution/trialRoutes.ts)' },
     'GET /api/cases/:tcId/test-run/:trialId': { 기능: 'runs', 까닭: '테스트 실행 결과 읽기다 (execution/trialRoutes.ts)' },
     'GET /api/cases/:tcId/test-run/:trialId/live': { 기능: 'runs', 까닭: '도는 테스트 실행의 장면이다 (execution/trialRoutes.ts)' },
+    'GET /api/cases/:tcId/test-run/:trialId/pc-screen': { 기능: 'runs', 까닭: '도는 윈도우 PC 테스트 실행의 화면 영상이다 (execution/pcScreen.ts)' },
     'POST /api/cases/:tcId/test-run/:trialId/abort': { 기능: 'runs', 까닭: '도는 테스트 실행을 멈춘다 (execution/trialRoutes.ts)' },
     'GET /api/dashboard': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 돌려주는 것이 실행 결과 집계다 (reporting/routes.ts)' },
     'GET /api/notifications': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 도는 실행과 작성 요청을 함께 주며 작성 쪽은 라우트가 작성 read 로 거른다 (notifications/routes.ts)' },

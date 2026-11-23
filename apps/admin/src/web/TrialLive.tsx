@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { use말 } from './i18n.js';
+import { PC화면 } from './PcScreen.js';
 
 export type 장면답 = { 종류: 'frame'; 그림: Blob } | { 종류: 'empty' } | { 종류: 'gone' } | { 종류: 'unreachable' };
 
@@ -105,13 +106,15 @@ interface Props {
   폰이름?: string | null;
   /** 칸 머리 맨 끝에 더할 것 — E2E 실행 창의 「크게 보기」 */
   머리끝?: ReactNode;
+  /** 윈도우 PC 케이스가 PC 를 잡았으면 그 화면 영상 흐름 주소 — 장면 사진 대신 그린다 (도메인/게임 §3.10 「증적 · 결과」) */
+  영상주소?: string | null;
 }
 
 /** 시작한 테스트 모드 하나의 칸. 끝나도 마지막 장면을 그대로 둔다. 장면 없이 끝났으면 칸을 그리지 않는다 */
-export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false, 늦춤글 = true, 뼈대 = false, 폰이름 = null, 머리끝 }: Props) {
+export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false, 늦춤글 = true, 뼈대 = false, 폰이름 = null, 머리끝, 영상주소 = null }: Props) {
   const t = use말();
   const 실제폰웹 = 모바일웹 && vision !== null;
-  const { 그림, 폰그림, 비었나, 못닿음 } = use장면(주소, 도는중, 앱폰);
+  const { 그림, 폰그림, 비었나, 못닿음 } = use장면(영상주소 === null ? 주소 : null, 도는중, 앱폰);
   const 폰칸 = 앱폰 || 실제폰웹 || 폰그림;
   if (!도는중 && 그림 === null) return null;
   // 섞인 E2E 의 앱 단계를 열고 첫 폰 장면이 오기 전 — 마지막 웹 장면을 흐리게 둔다. E2E 는 창 하나라 웹 장면이 한 번 온 뒤의 「장면 없음」은 폰 단계뿐이다.
@@ -132,7 +135,9 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
         )}
         {머리끝}
       </div>
-      {그림 === null && 뼈대 && !폰칸 && vision === null ? (
+      {영상주소 !== null && 도는중 ? (
+        <PC화면 주소={영상주소} 기다림글={t('게임을 여는 중')} />
+      ) : 그림 === null && 뼈대 && !폰칸 && vision === null ? (
         <div className="live-wait live-skel" aria-busy="true">
           <span className="skel-bar" aria-hidden="true" />
           <span className="skel-bar short" aria-hidden="true" />

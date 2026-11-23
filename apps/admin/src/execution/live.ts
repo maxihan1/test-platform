@@ -6,6 +6,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
 
+import { PC화면경로 } from './pcScreen.js';
 import { runnerUrl, 러너머리 } from './runnerAddr.js';
 
 // 화면은 앞 물음이 끝나야 다음을 묻는다. 잠든 러너에 오래 매달리지 않되, 폰 PNG(수 MB)가 느린 길(터널)로 와도 다 받을 만큼 둔다
@@ -92,6 +93,8 @@ export const 시나리오화면 = 화면칸();
  * historyId 가 그 runId 의 항목인지 DB 로 본다 — 주소의 runId 로 문이 권한을 봤으니 남의 실행 항목 장면이 새지 않게 (도메인/실행 §7)
  */
 export async function 항목장면경로(app: FastifyInstance): Promise<void> {
+  // 윈도우 PC 항목은 장면 사진 대신 화면 영상이다 — 같은 자리라 여기서 같이 붙인다 (routes.ts · trialRoutes.ts 가 300줄을 넘었다)
+  await PC화면경로(app);
   app.get<{ Params: { runId: string; historyId: string } }>('/runs/:runId/items/:historyId/live', async (req, reply) => {
     const runId = 정수(req.params.runId);
     const historyId = 정수(req.params.historyId);
