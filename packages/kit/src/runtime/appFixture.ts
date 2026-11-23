@@ -16,7 +16,7 @@ type 여는값 = AppOpenOptions & { pc?: true };
 
 // 케이스마다 만든다 — 앞 판처럼 defineTest 가 부를 때 extend 한다
 export const 앱테스트 = () =>
-  base.extend<{ appSession: { open(options?: 여는값): Promise<AppSide>; 끝정리를건다(끝: () => Promise<void>): void } }>({
+  base.extend<{ appSession: { open(options?: 여는값): Promise<AppSide>; 끝정리를건다(끝: () => Promise<void>): void; 마감을건다(마감: () => void): void } }>({
     appSession: async ({}, use, testInfo) => {
       // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
       let opening: Promise<AppSide> | undefined;
@@ -38,7 +38,10 @@ export const 앱테스트 = () =>
       };
       // test.cleanup 의 끝 정리 — 실패 증적 뒤 · 연결을 닫기 전에 돈다 (공통/3-공유계약 「게임 시나리오 도구」)
       let 끝: (() => Promise<void>) | undefined;
-      await use({ open: (options) => (opening ??= 열고남긴다(options)), 끝정리를건다: (f) => { 끝 = f; } });
+      // 프로시저가 한도에 끊긴 케이스의 판정을 가르는 자리 — 연결을 열기 전이나 여는 도중에 끊겨도 돌아야 해 끝 정리와 따로 둔다 (procedure.ts)
+      let 마감: (() => void) | undefined;
+      await use({ open: (options) => (opening ??= 열고남긴다(options)), 끝정리를건다: (f) => { 끝 = f; }, 마감을건다: (f) => { 마감 = f; } });
+      마감?.();
       if (opening === undefined) return;
       let side: AppSide;
       try {

@@ -67,6 +67,9 @@ export const 값주입이름 = /^[A-Za-z0-9_가-힣]{1,20}$/;
 // 러너 고정 spec(apps/runner/scenario/realPhone.ts)이 옮겨 적는다
 export const 창하나글 = '실제 폰 Chrome 은 창을 하나만 쓴다 — 케이스가 창을 새로 만들었다(browser.newContext)';
 
+// Blocked 케이스 결과의 error.message — 판정값이 아니라 미실행(NA)의 사유다. kit 이 정하고 러너 · admin 이 같은 글로 알아본다 (공통/3-공유계약 「테스트 프로시저 타입」)
+export const BLOCKED = 'BLOCKED';
+
 // 게임 시나리오 번호 — kit 은 이 번호로 전체 한도를 끄고 admin 은 제한 시간 0 을 싣는다. 두 쪽이 같은 꼴을 봐야 한다 (공통/3-공유계약 「게임 시나리오 도구」)
 export const 게임시나리오인가 = (tcId: string): boolean => /-GS-\d{3}$/.test(tcId);
 

@@ -5,7 +5,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 import type { Locator } from '@playwright/test';
 
-import type { ApiCallSeen, AssertionResult, ElementCheck, ShapeCheck, StepResult } from '../types.js';
+import type { ApiCallSeen, AssertionResult, CaseResult, CaseSpec, ElementCheck, ShapeCheck, StepResult } from '../types.js';
 
 /** 실패 사진에 표시할 요소 — 웹 Locator · 앱 요소 번호 · 웹뷰 구간 안 요소(webview.ts) */
 export type 짚을요소 = Locator | string | { 웹: string; id: string };
@@ -41,6 +41,24 @@ export interface ScenarioPhase {
   judged: boolean;
 }
 
+// 프로시저 하나가 도는 동안의 케이스 장부. test.case 가 구간을 가르고 케이스가 끝나는 대로 판정이 든다 (procedure.ts · SPEC 공통/2 §4 「케이스 판정」)
+export interface ProcScope {
+  cases: readonly CaseSpec[];
+  // 지금 절차가 붙는 케이스의 차례. 케이스 사이 절차는 다음 케이스 것이라 앞 케이스가 끝나면 바로 넘어간다.
+  // 보류 케이스는 건너뛰고, 흐름이 끝나면 마지막으로 돈 케이스에 머문다 — 끝 정리가 거기 붙는다
+  at: number;
+  // at 케이스의 판정이 아직 안 났다
+  열림: boolean;
+  // at 케이스의 시계가 시작한 때(ms) — 앞 케이스가 끝난 때다. 준비 구간과 케이스 구간을 합쳐 잰다
+  시작: number;
+  // cases 와 같은 차례 — 케이스마다 모은 절차와 난 판정
+  steps: StepResult[][];
+  results: (CaseResult | undefined)[];
+  // 케이스 한도(ms)와 다음 케이스로 넘어갈 때 그 한도를 다시 거는 손잡이. Playwright 에 닿는 일이라 함수로만 담는다
+  한도: number;
+  한도를건다(): void;
+}
+
 export interface RunScope {
   seq: number;
   failed: boolean;
@@ -49,8 +67,11 @@ export interface RunScope {
   firstFailure?: string;
   // E2E 시나리오에서 사람이 체크를 풀어 건너뛸 「만들기」 절차 제목. 번호는 runStep 이 매기므로 제목으로 지목한다 (SPEC 도메인/시나리오 §3.7 결정 4)
   skip?: ReadonlySet<string>;
-  // 시나리오 모드에서만 있다. 단독 실행은 가로채기가 없어 읽을 쪽이 없다
+  // 시나리오 모드와 프로시저에만 있다. 옛 꼴 단독 실행은 가로채기가 없어 읽을 쪽이 없다.
+  // 프로시저는 judged 로 케이스의 준비 구간을 가르고 케이스가 바뀔 때 되돌린다
   phase?: ScenarioPhase;
+  // 프로시저에만 있다
+  proc?: ProcScope;
   // 게임 항목에서만 있다 — 결과 줄의 elementChecks · apiCalls 로 간다 (공통/3-공유계약 「게임 테스트 타입」)
   elementChecks?: ElementCheck[];
   apiCalls?: ApiCallSeen[];

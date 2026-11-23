@@ -2,121 +2,32 @@
 
 import { test as base, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
 
-import { PC_PLATFORM_LABEL, PC항목인가, type ApiAuth, type ProcedureSpec, type StepResult } from '../types.js';
-import { api만들기, 어드민도구, 어드민키, 인증목록 } from './apiAuth.js';
+import { PC항목인가, type ProcedureSpec, type StepResult } from '../types.js';
+import { 어드민키, 인증목록 } from './apiAuth.js';
 import { 판읽기 } from './apiShape.js';
-import { captureApp, type AppDriver } from './app.js';
+import { captureApp } from './app.js';
 import { 앱테스트 } from './appFixture.js';
 import { saveShot } from './artifacts.js';
+import { bodyArgs, emit, platformLabel, type CaseBody, type ProcedureBody, type Side } from './bodyArgs.js';
 import { runScope, type RunScope, type 짚을요소 } from './context.js';
 import { keepsAppData, 선언했나, 실어켤값, type CaseHandle } from './defineCase.js';
-import { captureGame, 게임증적을남긴다, isGame, type GameDriver } from './game.js';
+import { captureGame, 게임증적을남긴다, isGame } from './game.js';
 import { 앱함수를적게건다 } from './gameFns.js';
 import { cleanup, 게임시나리오인가, 끝정리 } from './gameScenario.js';
-import { 앱을지켜본다, 웹사진, 웹을지켜본다 } from './highlight.js';
-import { traced } from './http.js';
+import { 웹사진 } from './highlight.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { 장면걸기 } from './live.js';
+import { testCase, 프로시저를등록한다 } from './procedure.js';
 import { GAME_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
 import { 실제폰테스트 } from './realPhone.js';
 import { registerScenarioCase, registerScenarioPhone, type ScenarioCaseRunner } from './scenario.js';
 import { 느린망 } from './slowApi.js';
 import { step, StopTest } from './step.js';
 
-// 브라우저 케이스에는 page, android 앱 케이스에는 driver 만 있다. 윈도우 PC 항목은 game 뿐이다. game 은 게임 애플리케이션 항목에만, admin 은 대상 서버 줄에 어드민 키가 있을 때만. 없는 쪽을 꺼내면 던진다
-export interface CaseBodyArgs<P, E> {
-  page: Page;
-  driver: AppDriver;
-  game: GameDriver;
-  // 대상 서버 줄의 어드민 키를 머리로 붙인 요청 도구 — 게임 케이스의 준비 · 서버 값 읽기 (도메인/게임 §3.10 「케이스 꼴」)
-  admin: APIRequestContext;
-  request: APIRequestContext;
-  // 그 이름 API 인증의 토큰을 붙인 요청 도구. request 는 「인증 없이」다 (도메인/API §3.8 「API 인증」)
-  api: (name: string) => APIRequestContext;
-  params: P;
-  expected: E;
-}
-
-export type CaseBody<P, E> = (args: CaseBodyArgs<P, E>) => Promise<void> | void;
-
-// 프로시저 본문에는 params · expected 가 없다 — 케이스마다 test.case 가 넘긴다. 웹은 프로시저를 쓰지 않아 page 도 없다 (SPEC 공통/2 §4 「테스트 프로시저」)
-export type ProcedureBody = (args: Pick<CaseBodyArgs<never, never>, 'driver' | 'game' | 'admin' | 'request' | 'api'>) => Promise<void> | void;
-
-
 async function capture(page: Page, seq: number, 요소?: 짚을요소): Promise<string | undefined> {
   // 화면을 연 적이 없는 케이스는 찍어봐야 흰 그림만 남는다
   if (page.isClosed() || page.url() === 'about:blank') return undefined;
   return saveShot(seq, (path) => 웹사진(page, path, typeof 요소 === 'object' && !('웹' in 요소) ? 요소 : undefined));
-}
-
-// desktop·mobile은 코드 안에서만 쓰는 값이다. 사람이 읽는 자리에는 PC·모바일로 적는다 (SPEC §8)
-function platformLabel(project: string): string {
-  if (project === 'desktop') return 'PC';
-  if (project === 'mobile') return '모바일';
-  if (project === 'android') return 'Android 앱';
-  if (PC항목인가(project)) return PC_PLATFORM_LABEL[project];
-  return project;
-}
-
-type Side = { page: Page } | { driver: AppDriver; game?: GameDriver } | { game: GameDriver };
-type AdminKey = { header: string; value: string };
-
-// 없는 칸(page / driver / game / admin)은 꺼내면 던진다. 열거되면 `{ ...args }` 나 `({ page, ...rest })` 만 써도 터지므로 숨긴다
-function bodyArgs<P, E>(
-  tcId: string,
-  request: APIRequestContext,
-  inputs: { params: P; expected: E },
-  side: Side,
-  인증들: readonly ApiAuth[],
-  문서: unknown,
-  토큰도구: APIRequestContext = request,
-  키?: AdminKey,
-): CaseBodyArgs<P, E> {
-  const 없는칸: [string, string][] =
-    'page' in side
-      ? [['driver', `${tcId}은 브라우저 케이스라 driver 가 없다`]]
-      : 'driver' in side
-        ? [['page', `${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`]]
-        : [
-            ['page', `${tcId}은 PC 항목이라 page 가 없다 — game 을 쓴다`],
-            ['driver', `${tcId}은 PC 항목이라 driver 가 없다 — game 을 쓴다`],
-          ];
-  if (!('game' in side && side.game !== undefined)) {
-    없는칸.push(['game', `${tcId}은 게임 애플리케이션 항목이 아니라 game 이 없다`]);
-  }
-  if (키 === undefined) {
-    없는칸.push(['admin', `${tcId}의 대상 서버 줄에 어드민 키가 없어 admin 을 쓸 수 없다 — 설정 › 대상 서버 줄의 어드민 키를 채운다`]);
-  }
-  // 비밀값은 처음부터, 받은 토큰은 받는 대로 더해진다. 어드민 키 값도 기록 · 오류 글에서 가린다 (공통/3-공유계약 「게임 테스트 타입」 adminKey).
-  // `Bearer <토큰>` 꼴이면 토큰만 따로 나와도 가리게 칸 뒤 마디도 넣는다 (도메인/인증 §7 adminKey)
-  const 비밀 = new Set([...인증들.map((a) => a.clientSecret), ...(키 === undefined ? [] : [키.value, 키.value.slice(키.value.lastIndexOf(' ') + 1)])]);
-  // 판 원문이 있으면 request · api(…) 의 모든 응답을 그 판과 견준다 (도메인/API §3.8 「응답 모양 확인」)
-  const 감싼 = traced(request, 비밀, 문서);
-  const args = {
-    request: 감싼,
-    api: api만들기(인증들, 감싼, 토큰도구, 비밀),
-    ...(키 === undefined ? {} : { admin: 어드민도구(감싼, 키) }),
-    params: inputs.params,
-    expected: inputs.expected,
-    // 케이스가 다룬 요소를 적는 판으로 넘긴다 — 실패 사진에 그 요소를 표시한다 (highlight.ts)
-    ...('page' in side ? { page: 웹을지켜본다(side.page) } : 'driver' in side ? { ...side, driver: 앱을지켜본다(side.driver) } : side),
-  };
-  for (const [칸, message] of 없는칸) {
-    Object.defineProperty(args, 칸, {
-      get(): never {
-        throw new Error(message);
-      },
-      enumerable: false,
-    });
-  }
-  return args as unknown as CaseBodyArgs<P, E>;
-}
-
-async function emit(testInfo: TestInfo, result: StepResult): Promise<void> {
-  await testInfo.attach(STEP_ATTACHMENT, {
-    body: JSON.stringify(result),
-    contentType: 'application/json',
-  });
 }
 
 function errorOf(thrown: unknown): { message: string; stack?: string } {
@@ -193,11 +104,9 @@ function defineTest<P, E>(target: CaseHandle<P, E> | ProcedureSpec, body: CaseBo
   // 스캐너는 명세만 읽으려고 이 파일을 import 한다. 그때는 Playwright에 등록하지 않는다 (SPEC §3.1)
   if (process.env.PLATFORM_SCAN === '1') return;
 
-  // 안 케이스에도 procId 가 실려 있어 cases 로 가른다.
-  // 프로시저를 돌리는 길(test.case · 케이스 판정)은 아직 없다 — 조용히 넘기면 케이스가 하나도 안 돌고 초록이 된다 (TP-F2-07)
-  if ('cases' in target) throw new Error(`${target.procId}: 이 kit 은 프로시저를 아직 돌리지 못한다`);
-
-  케이스를등록한다(target, body as CaseBody<P, E>);
+  // 안 케이스에도 procId 가 실려 있어 cases 로 가른다
+  if ('cases' in target) 프로시저를등록한다(target, body as ProcedureBody);
+  else 케이스를등록한다(target, body as CaseBody<P, E>);
 }
 
 function 케이스를등록한다<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
@@ -319,4 +228,4 @@ function 케이스를등록한다<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P
   });
 }
 
-export const test = Object.assign(defineTest, { step, cleanup });
+export const test = Object.assign(defineTest, { step, cleanup, case: testCase });
