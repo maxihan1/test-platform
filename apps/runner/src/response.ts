@@ -45,7 +45,7 @@ export function tail(text: string): string {
 }
 
 // 타임아웃으로 프로세스를 죽이면 결과 줄이 잘려 있을 수 있다. 그건 러너 고장이 아니라 중단의 흔적이다.
-// 스스로 끝난 프로세스의 못 읽는 결과 줄은 여기 오기 전에 앞 꼴 답을 만들다 던진다
+// 새 꼴도 이 길로 읽는다 — 판정은 케이스 판정 줄에 있어, 결과 줄 하나를 못 읽는다고 받은 판정까지 버리지 않는다
 function parseAfterKill(stdout: string): RunnerResult | null {
   try {
     return parseResult(stdout);
@@ -73,13 +73,13 @@ export function killedResponse(
   };
 }
 
-/** 앞 꼴 답 — 리포터가 뱉은 결과 한 줄에서 온다. 줄이 없으면 종료 코드로 가른다 */
-export function 앞꼴응답(historyId: number, 자식: 끝난자식, fps칸: Pick<ExecuteResponse, 'fps'>): ExecuteResponse {
+/** 앞 꼴 답 — 리포터가 뱉은 결과 한 줄에서 온다. 줄이 없으면 종료 코드로 가른다. 못 읽는 결과 줄은 러너 고장이라 던진다 */
+export function 앞꼴응답(historyId: number, 자식: 끝난자식, fps칸: Pick<ExecuteResponse, 'fps'>, 줄읽기: (stdout: string) => RunnerResult | null = parseResult): ExecuteResponse {
   if (자식.killedBy !== null) {
     return { ...killedResponse(historyId, 자식.killedBy, Date.now() - 자식.startedAt, 자식.stdout), ...fps칸 };
   }
 
-  const parsed = parseResult(자식.stdout);
+  const parsed = 줄읽기(자식.stdout);
   if (parsed !== null) {
     return {
       historyId,
@@ -117,19 +117,21 @@ const 실패로끝낼판정인가 = (r: CaseResult): boolean =>
 
 /**
  * 새 꼴 답 — 케이스마다 한 건. 받은 판정 줄을 그대로 쓰고 줄이 없는 케이스만 표대로 채운다.
- * Blocked 를 정하는 것은 kit 이라 러너가 채우는 것은 kit 이 줄을 못 낸 때뿐이다 (도메인/러너 §5.2 「프로시저 실행」 「못 간 케이스 채우기」).
- * 앞답 은 같은 자식을 앞 꼴로 읽은 답이다 — 리포터 결과 줄이나 종료 코드에서 온다
+ * Blocked 를 정하는 것은 kit 이라 러너가 채우는 것은 kit 이 줄을 못 낸 때뿐이다 (도메인/러너 §5.2 「프로시저 실행」 「못 간 케이스 채우기」)
  */
-export function 케이스응답(cases: readonly ExecuteCase[], 앞답: ExecuteResponse, 자식: 끝난자식, 지금 = Date.now()): CasesExecuteResponse {
+export function 케이스응답(historyId: number, cases: readonly ExecuteCase[], 자식: 끝난자식, fps칸: Pick<ExecuteResponse, 'fps'>, 지금 = Date.now()): CasesExecuteResponse {
+  // 같은 자식을 앞 꼴로 읽은 답 — 리포터 결과 줄이나 종료 코드에서 온다. 줄이 하나도 없는 케이스(옛 꼴 파일)와 기기 정보 · 프로세스 오류 글이 여기서 온다
+  const 결과줄 = parseAfterKill(자식.stdout);
+  const 앞답 = 앞꼴응답(historyId, 자식, fps칸, () => 결과줄);
   // 같은 케이스의 줄이 다시 오면 뒤 것을 쓴다 — 끝 정리 절차를 더한 줄이다. 요청에 없는 케이스의 줄은 버린다
   const 줄 = new Map(parseCaseResults(자식.stdout).map((r) => [r.tcId, r]));
   const 받은 = cases.map((c) => 줄.get(c.tcId));
   // 리포터 결과 줄의 절차 가운데 그 케이스 것 — 옛 꼴 파일의 절차에는 케이스 번호가 없다
   const 절차 = (c: ExecuteCase) => 앞답.steps.filter((s) => s.tcId === undefined || s.tcId === c.tcId);
-  // 스스로 끝난 프로세스의 오류 글 — 리포터가 남긴 사유가 있으면 그것, 없으면 stderr, 비었으면 stdout 꼬리다. kit 이 흘린 줄(@@…)은 사람이 읽을 글이 아니라 뺀다
+  // 스스로 끝난 프로세스의 오류 글 — 리포터가 남긴 사유가 있으면 그것, 없으면 stderr, 비었으면 stdout 꼬리다. kit 이 흘린 줄(@@…)과 kit 경고 줄은 사람이 읽을 사유가 아니라 뺀다
   const 오류글 = (): string => {
-    const 출력글 = 자식.stdout.split('\n').filter((줄) => !줄.startsWith('@@')).join('\n');
-    return parseAfterKill(자식.stdout)?.error?.message ?? (tail(kit경고뺌(자식.stderr)) || tail(출력글) || 줄없음글);
+    const 출력글 = kit경고뺌(자식.stdout).split('\n').filter((줄) => !줄.startsWith('@@')).join('\n');
+    return 결과줄?.error?.message ?? (tail(kit경고뺌(자식.stderr)) || tail(출력글) || 줄없음글);
   };
   const 머리 = {
     historyId: 앞답.historyId,
@@ -162,7 +164,9 @@ export function 케이스응답(cases: readonly ExecuteCase[], 앞답: ExecuteRe
 
   // 케이스는 차례대로만 돌아 줄이 없는 첫 케이스가 돌던 케이스다. 그 케이스의 시계는 앞 케이스가 끝난 때부터다
   const 돌던 = 받은.findIndex((r) => r === undefined);
-  const 돌던시작 = 받은.flatMap((r) => (r?.finishedAt === undefined ? [] : [Date.parse(r.finishedAt)])).at(-1) ?? 자식.startedAt;
+  // 자식이 쓴 값이라 날짜가 아닐 수 있다 — 못 읽으면 프로세스를 띄운 때로 둔다
+  const 앞끝 = (돌던 === -1 ? [] : 받은.slice(0, 돌던)).map((r) => Date.parse(r?.finishedAt ?? '')).filter(Number.isFinite);
+  const 돌던시작 = 앞끝.at(-1) ?? 자식.startedAt;
   const results = cases.map((c, i): CaseResult => {
     const r = 받은[i];
     if (r !== undefined) return r;

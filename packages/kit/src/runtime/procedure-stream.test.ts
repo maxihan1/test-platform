@@ -33,10 +33,10 @@ const { test } = await import('./test.js');
 const { verify } = await import('./verify.js');
 
 const 쓴 = vi.spyOn(process.stdout, 'write');
-/** kit 이 stdout 에 쓴 줄 가운데 그 표시자로 시작하는 것의 몸통 */
+/** kit 이 stdout 에 쓴 줄 가운데 그 표시자로 시작하는 것의 몸통. 판정 줄은 앞에 줄바꿈을 하나 둔다 */
 function 줄들<T>(표시자: string): T[] {
   return 쓴.mock.calls
-    .map(([글]) => String(글))
+    .map(([글]) => String(글).replace(/^\n/, ''))
     .filter((글) => 글.startsWith(표시자) && 글.endsWith('\n'))
     .map((글) => JSON.parse(글.slice(표시자.length)) as T);
 }
@@ -76,6 +76,9 @@ describe('판정 흘려보내기', () => {
     // 러너가 읽는 줄은 첨부와 같은 것이다 — 절차까지 실려 있다
     expect(줄들<CaseResult>(CASE_MARKER)).toEqual(낸것(정보));
     expect(낸것(정보)[1]?.steps.map((s) => [s.title, s.tcId, s.status])).toEqual([['틀린 확인', b.tcId, 'FAIL']]);
+    // 케이스 코드가 줄바꿈 없이 찍은 글 뒤에 붙어도 표시자가 줄 첫머리에 온다 — 아니면 러너가 그 판정을 놓친다
+    const 판정글 = 쓴.mock.calls.map(([글]) => String(글)).filter((글) => 글.includes(CASE_MARKER));
+    expect(판정글.every((글) => 글.startsWith(`\n${CASE_MARKER}`))).toBe(true);
   });
 
   it('사람이 손으로 돌리면 stdout 줄은 쓰지 않고 첨부만 남긴다 — 읽을 러너가 없다', async () => {
@@ -126,7 +129,7 @@ describe('판정 흘려보내기', () => {
     expect(던짐).toBeUndefined();
   });
 
-  it('케이스가 모두 보류면 케이스마다 보류 줄을 내고 통째로 건너뛴다 — 줄이 없으면 러너가 파일을 못 읽은 것으로 채운다', async () => {
+  it('케이스가 모두 보류면 케이스마다 보류 줄을 내고 통째로 건너뛴다 — 줄이 없으면 케이스마다의 보류 사유가 건너뛴 사유 하나로 뭉개진다', async () => {
     const [a, b] = [케이스({ held: '보류 1' }), 케이스({ held: '판정 불가 — 기획서에 값이 없다' })];
     흐름([a, b], vi.fn());
 
@@ -181,9 +184,10 @@ describe('판정 흘려보내기', () => {
     expect(낸.map((r) => r.status)).toEqual(['PASS', 'PASS', 'PASS']);
   });
 
-  it('진행 줄에 지금 도는 케이스가 실린다 — 케이스 사이 절차는 다음 케이스다', async () => {
+  it('진행 줄에 지금 도는 케이스가 실린다 — 케이스 사이 절차는 다음 케이스이고 정리 절차는 그 절차가 붙는 케이스다', async () => {
     const [a, b] = [케이스(), 케이스()];
     흐름([a, b], async () => {
+      await test.cleanup('올린 글을 지운다', async () => {});
       await test.step('화면을 연다', async () => {});
       await test.case(a, 확인('첫 확인', 1, 1));
       await test.step('다음 준비', async () => {});
@@ -193,10 +197,12 @@ describe('판정 흘려보내기', () => {
     await 돌린다(pw);
 
     expect(줄들<StepProgress>(PROGRESS_MARKER)).toEqual([
-      { historyId: 77, seq: 1, title: '화면을 연다', tcId: a.tcId },
-      { historyId: 77, seq: 2, title: '첫 확인', tcId: a.tcId },
-      { historyId: 77, seq: 3, title: '다음 준비', tcId: b.tcId },
-      { historyId: 77, seq: 4, title: '둘째 확인', tcId: b.tcId },
+      { historyId: 77, seq: 1, title: '시작 정리 — 올린 글을 지운다', tcId: a.tcId },
+      { historyId: 77, seq: 2, title: '화면을 연다', tcId: a.tcId },
+      { historyId: 77, seq: 3, title: '첫 확인', tcId: a.tcId },
+      { historyId: 77, seq: 4, title: '다음 준비', tcId: b.tcId },
+      { historyId: 77, seq: 5, title: '둘째 확인', tcId: b.tcId },
+      { historyId: 77, seq: 6, title: '끝 정리 — 올린 글을 지운다', tcId: b.tcId },
     ]);
   });
 });

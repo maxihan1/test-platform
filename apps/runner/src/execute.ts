@@ -215,8 +215,7 @@ export async function execute(req: ExecuteRequest | CasesExecuteRequest, specPat
   const fps칸 = fps.some((f) => f.fps !== null) ? { fps } : {};
 
   const 자식 = { killedBy: entry.killedBy, code, startedAt, stdout, stderr };
-  const 앞답 = 앞꼴응답(req.historyId, 자식, fps칸);
-  const 응답 = 케이스들 === undefined ? 앞답 : 케이스응답(케이스들, 앞답, 자식);
+  const 응답 = 케이스들 === undefined ? 앞꼴응답(req.historyId, 자식, fps칸) : 케이스응답(req.historyId, 케이스들, 자식, fps칸);
   if (폰기기 === undefined) return 응답;
   if (폰증적) await 폰증적을둔다(폰폴더, 증적상태(응답));
   return { ...응답, device: await 폰기기(응답.device) };

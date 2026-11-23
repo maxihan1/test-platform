@@ -8,8 +8,9 @@ export function 진행줄(p: StepProgress): string {
   return `${PROGRESS_MARKER}${JSON.stringify(p)}\n`;
 }
 
+// 앞에 줄바꿈을 하나 둔다 — 케이스 코드가 줄바꿈 없이 찍은 글 뒤에 붙으면 표시자가 줄 첫머리가 아니게 되어 러너가 그 판정을 놓친다
 export function 판정줄(result: CaseResult): string {
-  return `${CASE_MARKER}${JSON.stringify(result)}\n`;
+  return `\n${CASE_MARKER}${JSON.stringify(result)}\n`;
 }
 
 // 러너가 안 붙인 채로 돌리면 historyId가 없다. 그때는 알릴 곳이 없으므로 아무 일도 안 한다.

@@ -10,7 +10,7 @@ export { 게임시나리오인가 } from './protocol.js';
 // 정리가 실패해도 항목 판정을 바꾸지 않게 NA 로 남긴다. run.failed · stopped · 준비 구간 표시는 건드리지 않는다
 async function 정리절차(run: RunScope, title: string, fn: () => Promise<void>): Promise<void> {
   const seq = ++run.seq;
-  알린다(seq, title);
+  알린다(seq, title, run.proc?.cases[run.proc.at]?.tcId);
   // 정리 안의 admin 호출도 절차 기록에 남게 절차 문맥을 깔아 준다. 정리 표시가 있으면 verify · test.step 이 던진다 — 정리는 판정에 안 든다
   const scope: StepScope = { assertions: [], 정리: true };
   const startedAt = Date.now();

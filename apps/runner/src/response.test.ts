@@ -1,6 +1,6 @@
 // 새 꼴 답 — 받은 케이스 판정 줄로 답을 만들고 줄이 없는 케이스만 표대로 채우는지 검사한다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「못 간 케이스 채우기」)
 
-import type { CaseResult, ExecuteCase, ExecuteResponse, StepResult } from '@platform/kit';
+import { 판정줄, type CaseResult, type ExecuteCase, type ExecuteResponse, type StepResult } from '@platform/kit';
 import { describe, expect, it, vi } from 'vitest';
 
 import { 앞꼴응답, 증적상태, 케이스응답, type 끝난자식 } from './response.js';
@@ -13,12 +13,13 @@ const 절차 = (seq: number, tcId?: string): StepResult => ({ seq, title: `절�
 const 판정 = (tcId: string, status: CaseResult['status'], 덧: Partial<CaseResult> = {}): CaseResult => ({ tcId, status, durationMs: 1000, steps: [], ...덧 });
 const 통과 = (tcId: string, 끝초: number): CaseResult =>
   판정(tcId, 'PASS', { startedAt: new Date(시작).toISOString(), finishedAt: new Date(시작 + 끝초 * 1000).toISOString() });
-const 줄 = (...판정들: CaseResult[]): string => 판정들.map((r) => `@@CASE@@${JSON.stringify(r)}\n`).join('');
+// kit 이 쓰는 줄 그대로다
+const 줄 = (...판정들: CaseResult[]): string => 판정들.map(판정줄).join('');
 const 결과줄 = (r: Partial<ExecuteResponse>): string => `@@RESULT@@${JSON.stringify({ status: 'PASS', durationMs: 5, steps: [], ...r })}\n`;
 
 function 답(cases: ExecuteCase[], 덧: Partial<끝난자식>) {
   const 자식: 끝난자식 = { killedBy: null, code: 0, startedAt: 시작, stdout: '', stderr: '', ...덧 };
-  return 케이스응답(cases, 앞꼴응답(9, 자식, {}), 자식, 지금);
+  return 케이스응답(9, cases, 자식, {}, 지금);
 }
 /** 케이스마다 [번호, 판정, 사유, 막은 케이스] — 없는 칸은 뺀다 */
 const 요약 = (results: CaseResult[]): unknown[][] => results.map((r) => [r.tcId, r.status, r.error?.message, r.blockedBy].filter((v) => v !== undefined));
@@ -49,6 +50,21 @@ describe('케이스응답 — 받은 판정 줄', () => {
     경고.mockRestore();
   });
 
+  it('케이스 코드가 줄바꿈 없이 찍은 글 뒤에 판정 줄이 붙어도 읽는다 — kit 이 줄 앞에 줄바꿈을 둔다', () => {
+    const r = 답(케이스들('A-1', 'A-2'), { stdout: `loading...${줄(통과('A-1', 10))}불러오는 중${줄(통과('A-2', 20))}` });
+
+    expect(요약(r.results)).toEqual([['A-1', 'PASS'], ['A-2', 'PASS']]);
+  });
+
+  it('리포터 결과 줄을 못 읽어도 받은 판정으로 답한다 — 앞 꼴이면 러너 고장으로 던지는 줄이다', () => {
+    const 경고 = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const 자식: 끝난자식 = { killedBy: null, code: 1, startedAt: 시작, stdout: `${줄(통과('A-1', 10), 판정('A-2', 'FAIL'))}@@RESULT@@{"status":"FA\n`, stderr: '' };
+
+    expect(() => 앞꼴응답(9, 자식, {})).toThrow('@@RESULT@@ 줄을 읽지 못했다');
+    expect(요약(케이스응답(9, 케이스들('A-1', 'A-2'), 자식, {}, 지금).results)).toEqual([['A-1', 'PASS'], ['A-2', 'FAIL']]);
+    경고.mockRestore();
+  });
+
   it('Playwright 가 오류 글에 섞은 색 코드를 걷는다', () => {
     const r = 답(케이스들('A-1'), { code: 1, stdout: 줄(판정('A-1', 'FAIL', { error: { message: '\u001b[31m요소를 찾지 못했다\u001b[39m' } })) });
 
@@ -58,7 +74,7 @@ describe('케이스응답 — 받은 판정 줄', () => {
   it('기기 정보와 FPS 는 실행 단위에 한 벌이라 답 맨 위에 싣는다', () => {
     const 기기 = { model: 'SM-G996N', osVersion: '14', appVersion: '1.2.0' };
     const 자식: 끝난자식 = { killedBy: null, code: 0, startedAt: 시작, stdout: 줄(통과('A-1', 10)) + 결과줄({ device: 기기 }), stderr: '' };
-    const r = 케이스응답(케이스들('A-1'), 앞꼴응답(9, 자식, { fps: [{ seq: 1, fps: 60 }] }), 자식, 지금);
+    const r = 케이스응답(9, 케이스들('A-1'), 자식, { fps: [{ seq: 1, fps: 60 }] }, 지금);
 
     expect(r).toMatchObject({ device: 기기, fps: [{ seq: 1, fps: 60 }] });
   });
@@ -75,6 +91,13 @@ describe('케이스응답 — 못 간 케이스 채우기', () => {
     expect(r.results[2]).not.toHaveProperty('finishedAt');
     expect(r.results[3]).toMatchObject({ durationMs: 0 });
     expect(r.results[3]).not.toHaveProperty('startedAt');
+  });
+
+  it('돌던 케이스의 시작은 그 앞 케이스가 끝난 때만 본다 — 자식이 쓴 시각을 못 읽으면 프로세스를 띄운 때다', () => {
+    const 깨진시각 = 판정('A-1', 'PASS', { finishedAt: '날짜가 아니다' });
+    const r = 답(케이스들('A-1', 'A-2'), { killedBy: 'TIMEOUT', code: null, stdout: 줄(깨진시각) });
+
+    expect(r.results[1]).toMatchObject({ status: 'NA', durationMs: 200_000, startedAt: new Date(시작).toISOString() });
   });
 
   it('시작할 때 줄이 나간 보류 케이스는 끊겨도 보류 그대로다 — 돌던 케이스는 그 앞의 줄 없는 케이스다', () => {
@@ -98,7 +121,7 @@ describe('케이스응답 — 못 간 케이스 채우기', () => {
   });
 
   it('프로세스 오류 글은 stderr 가 비었으면 stdout 꼬리다 — kit 경고 줄은 사유로 치지 않는다', () => {
-    const r = 답(케이스들('A-1', 'A-2'), { code: 1, stdout: `${줄(통과('A-1', 10))}Segmentation fault\n`, stderr: '[kit] 장면을 걸지 못했다\n' });
+    const r = 답(케이스들('A-1', 'A-2'), { code: 1, stdout: `${줄(통과('A-1', 10))}[kit] 끼어든 창을 닫았다\nSegmentation fault\n`, stderr: '[kit] 장면을 걸지 못했다\n' });
 
     expect(r.results[1]?.error?.message).toBe('Segmentation fault');
   });
@@ -135,7 +158,7 @@ describe('케이스응답 — 옛 꼴 파일(케이스 1건짜리 목록)', () =
     const 결과 = { status: 'FAIL' as const, durationMs: 4321, steps: [절차(1), 절차(2)], error: { message: '요소를 찾지 못했다' }, elementChecks: [{ key: 'item:sword', serverValue: 3, same: true }], apiCalls: [{ method: 'POST', path: '/gm/gold', status: 200 }] };
     const 자식: 끝난자식 = { killedBy: null, code: 1, startedAt: 시작, stdout: 결과줄(결과), stderr: '' };
     const 앞답 = 앞꼴응답(9, 자식, {});
-    const r = 케이스응답(케이스들('TODO-001'), 앞답, 자식, 지금);
+    const r = 케이스응답(9, 케이스들('TODO-001'), 자식, {}, 지금);
 
     const { historyId: _번호, ...앞꼴한건 } = 앞답;
     expect(r.results).toEqual([{ tcId: 'TODO-001', ...앞꼴한건 }]);
