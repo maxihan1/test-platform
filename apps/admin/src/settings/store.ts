@@ -7,6 +7,7 @@ import type { 코드저장소줄 } from '../bts/link.js';
 
 import { type 대상서버, type 대상서버입력, 대상서버넣기, 대상서버칸식 } from './envs.js';
 import { 설정오류 } from './errors.js';
+import { 프로시저스위치 } from './procedureSwitch.js';
 
 export { 설정오류, type 오류코드 } from './errors.js';
 
@@ -27,6 +28,8 @@ export interface 서비스행 {
   gamePlatform: 게임플랫폼 | null;
   /** 지원 패드 — PC 게임만 채운다. 작성 시작이 갈아 끼운다 */
   gamePads: string[];
+  /** 「프로시저 작성」 스위치 — APP · GAME 만 켤 수 있다 (도메인/실행 「프로시저 작성 스위치」) */
+  procedureMode: boolean;
   apiDocPath: string | null;
   apiDocEnv: string | null;
   isActive: boolean;
@@ -63,7 +66,7 @@ export async function 한묶음<T>(일: (client: PoolClient) => Promise<T>): Pro
 // 케이스 수는 test_case 에 서비스 칸이 없어 접두사로 센다. 그 표에는 서비스 칸이 없고 앞으로도 없다 (SPEC §6)
 const 서비스들 = `
   SELECT s.id, s.prefix, s.name, s.color, s.project_id, p.name AS project_name, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude, s.code_repos,
-         s.kind, s.api_doc_path, s.api_doc_env, s.game_platform, s.game_pads,
+         s.kind, s.api_doc_path, s.api_doc_env, s.game_platform, s.game_pads, s.procedure_mode,
          (s.slack_webhook IS NOT NULL AND s.slack_webhook <> '') AS has_slack_webhook,
          (s.figma_token IS NOT NULL AND s.figma_token <> '') AS has_figma_token,
          (SELECT count(*) FROM test_case tc
@@ -87,6 +90,7 @@ interface 서비스원행 {
   kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
   game_platform: 게임플랫폼 | null;
   game_pads: string[];
+  procedure_mode: boolean;
   api_doc_path: string | null;
   api_doc_env: string | null;
   is_active: boolean;
@@ -114,6 +118,7 @@ export async function 서비스목록(): Promise<서비스행[]> {
     kind: r.kind,
     gamePlatform: r.game_platform,
     gamePads: r.game_pads,
+    procedureMode: r.procedure_mode,
     apiDocPath: r.api_doc_path,
     apiDocEnv: r.api_doc_env,
     isActive: r.is_active,
@@ -200,13 +205,16 @@ export interface 서비스수정 {
   figmaToken?: string;
   crawlExclude?: string[];
   codeRepos?: 코드저장소줄[];
+  procedureMode?: boolean;
   /** 둘 다 안 보내면 그대로, null 이면 비운다 */
   apiDocPath?: string | null;
   apiDocEnv?: string | null;
 }
 
-export async function 서비스고치기(id: number, 수정: 서비스수정): Promise<void> {
-  await 한묶음(async (client) => {
+/** 「프로시저 작성」이 꺼짐에서 켜짐으로 바뀐 저장이면 true — 부른 쪽이 그 애플리케이션을 바로 다시 스캔한다 */
+export async function 서비스고치기(id: number, 수정: 서비스수정): Promise<boolean> {
+  return 한묶음(async (client) => {
+    const 켜졌다 = 수정.procedureMode === undefined ? false : await 프로시저스위치(client, id, 수정.procedureMode);
     if (수정.projectId !== undefined) await 프로젝트확인(client, 수정.projectId);
     const 옛프로젝트 =
       수정.projectId === undefined
@@ -229,7 +237,8 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
               project_id = COALESCE($10, project_id),
               api_doc_path = CASE WHEN $11 THEN $12 ELSE api_doc_path END,
               api_doc_env  = CASE WHEN $13 THEN $14 ELSE api_doc_env END,
-              code_repos   = COALESCE($15::jsonb, code_repos)
+              code_repos   = COALESCE($15::jsonb, code_repos),
+              procedure_mode = COALESCE($16, procedure_mode)
         WHERE id = $1`,
       [
         id,
@@ -247,6 +256,7 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
         수정.apiDocEnv !== undefined,
         수정.apiDocEnv ?? null,
         수정.codeRepos === undefined ? null : JSON.stringify(수정.codeRepos),
+        수정.procedureMode ?? null,
       ],
     );
     if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');
@@ -258,5 +268,6 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
       );
     }
     if (수정.envs !== undefined) await 대상서버넣기(client, id, 수정.envs);
+    return 켜졌다;
   });
 }

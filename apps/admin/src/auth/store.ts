@@ -29,6 +29,8 @@ export interface 배정서비스 {
   gamePlatform: 'android' | 'windows' | null;
   /** 지원 패드 — PC 게임이 아니면 [] */
   gamePads: string[];
+  /** 「프로시저 작성」 스위치 — 작성 에이전트가 종류(kind)와 같은 길로 읽는다. APP · GAME 만 켤 수 있다 (도메인/실행 「프로시저 작성 스위치」) */
+  procedureMode: boolean;
   /** 대상 서버를 안 고른 작성이 PC 에 깔 Windows 빌드 번호(작성의 PC빌드파일 과 같은 규칙). 없거나 PC 게임이 아니면 null — 새 작성이 시작을 막는다 (도메인/게임 §3.10 「윈도우 PC」) */
   latestBuildNo: string | null;
   /**
@@ -92,7 +94,7 @@ const 한사람 = `
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
              'projectId', s.project_id, 'projectName', p.name, 'kind', s.kind,
-             'gamePlatform', s.game_platform, 'gamePads', s.game_pads,
+             'gamePlatform', s.game_platform, 'gamePads', s.game_pads, 'procedureMode', s.procedure_mode,
              -- 대상 서버를 안 고른 작성이 PC 에 깔 빌드다 — 작성의 고르기(authoring/appScreen.ts PC빌드파일)와 같은 규칙:
              -- 운영 줄을 빼고 대상 서버 이름 차례로, 줄마다 최신 빌드가 파일이나 주소를 가진 첫 줄의 최신 빌드. 규칙이 갈리면 화면이 말한 빌드와 깔린 빌드가 다르다
              'latestBuildNo', CASE WHEN s.game_platform = 'windows' THEN (

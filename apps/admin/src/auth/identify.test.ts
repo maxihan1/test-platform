@@ -173,14 +173,16 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
   it('게임 애플리케이션이면 gamePlatform · gamePads 를 싣고 그 밖은 null · [] 이다 (도메인/게임 §3.10 결정 27)', async () => {
     const { pool } = await import('../db/index.js');
     const 읽기 = async () => (await 확인(await 가짜요청('xfu1-live')))?.services.find((s) => s.prefix === 'XFS1B');
-    expect(await 읽기()).toMatchObject({ gamePlatform: null, gamePads: [] });
+    expect(await 읽기()).toMatchObject({ gamePlatform: null, gamePads: [], procedureMode: false });
     try {
       await pool.query(`UPDATE service SET kind = 'GAME', game_platform = 'windows', game_pads = '["ps5","xbox"]' WHERE id = $1`, [웹훅없는서비스id]);
       expect(await 읽기()).toMatchObject({ kind: 'GAME', gamePlatform: 'windows', gamePads: ['ps5', 'xbox'] });
       await pool.query(`UPDATE service SET game_platform = 'android', game_pads = '[]' WHERE id = $1`, [웹훅없는서비스id]);
       expect(await 읽기()).toMatchObject({ gamePlatform: 'android', gamePads: [] });
+      await pool.query('UPDATE service SET procedure_mode = true WHERE id = $1', [웹훅없는서비스id]);
+      expect(await 읽기()).toMatchObject({ procedureMode: true });
     } finally {
-      await pool.query(`UPDATE service SET kind = 'SCREEN', game_platform = NULL, game_pads = '[]' WHERE id = $1`, [웹훅없는서비스id]);
+      await pool.query(`UPDATE service SET kind = 'SCREEN', game_platform = NULL, game_pads = '[]', procedure_mode = false WHERE id = $1`, [웹훅없는서비스id]);
     }
   });
 
