@@ -23,7 +23,7 @@ async function db(): Promise<Pool> {
 // 명세의 techniques 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null · [] 로 채운다 (카탈로그 §7)
 export type CaseRow = Omit<CaseSpec, 'techniques' | 'smoke' | 'procId' | 'procSeq'> & {
   techniques: Technique[];
-  // 프로시저 안 케이스만 찬다 — 번호 · 차례(1부터) · 이름 · 그 프로시저의 활성 케이스 수. 옛 꼴 케이스는 넷 다 null (카탈로그 §7)
+  // 프로시저 안 케이스만 찬다 — 번호 · 차례(1부터) · 이름 · 그 프로시저의 활성 케이스 수. 옛 꼴 케이스는 넷 다 null 이고 비활성 케이스는 케이스 수만 null 이다 (카탈로그 §7)
   procId: string | null;
   procSeq: number | null;
   procName: string | null;
@@ -104,7 +104,8 @@ function toCase(row: RawRow): CaseRow {
     procId: row.proc_id,
     procSeq: row.proc_seq,
     procName: row.proc_name,
-    procCount: row.proc_id === null ? null : row.proc_count,
+    // 내려간 케이스는 지금 그 프로시저의 케이스가 아니다 — 칸에 옛 번호가 남아 있어도 「0건 중 3번째」를 내지 않는다
+    procCount: row.proc_id === null || !row.is_active ? null : row.proc_count,
     savedInput: toSaved(row),
   };
 }

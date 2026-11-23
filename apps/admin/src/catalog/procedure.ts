@@ -80,7 +80,8 @@ export function 프로시저읽기(sf: ts.SourceFile): 읽은프로시저 | null
     for (const d of s.declarationList.declarations) {
       if (!ts.isIdentifier(d.name) || d.initializer === undefined) continue;
       if (부른이름(d.initializer, 'defineProcedure')) 프로시저들.push({ 이름: d.name.text, 문: s, call: d.initializer });
-      else if (부른이름(d.initializer, 'defineCase')) 케이스선언.set(d.name.text, { 문: s, 인자: 객체인자(d.initializer) });
+      // let · var 로 선언한 케이스는 뒤에서 바꿔 담을 수 있어 맨 위 선언으로 치지 않는다 (K19)
+      else if (부른이름(d.initializer, 'defineCase') && (s.declarationList.flags & ts.NodeFlags.Const) !== 0) 케이스선언.set(d.name.text, { 문: s, 인자: 객체인자(d.initializer) });
     }
   }
   if (프로시저들.length === 0) return null;
@@ -184,7 +185,7 @@ export function 프로시저글읽기(text: string): 읽은프로시저 | null {
 export interface 구간지문값 {
   /** 자기 구간 — 그 케이스의 선언 · 준비 구간 · 케이스 구간 */
   seg: string;
-  /** 앞 흐름 — 프로시저 선언(cases 는 빼고) · 정리 선언 · 앞에 도는 케이스들의 자기 구간 */
+  /** 앞 흐름 — 프로시저 선언(cases 는 빼고) · 정리 선언 · 앞에 놓인 케이스들의 자기 구간(보류 케이스도 든다) */
   flow: string;
 }
 

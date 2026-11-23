@@ -49,6 +49,18 @@ describe('프로시저단계제목 — kit 이 절차를 케이스에 붙이는 
     expect(프로시저단계제목(글, 안보류)).toEqual([null, ['본문에 501자를 넣는다'], null]);
   });
 
+  it('정리 선언이 첫 케이스 앞이 아니면 모든 케이스가 null 이다 — kit 은 부른 그때의 케이스에 시작 정리를 붙인다', () => {
+    const 사이 = 구간('본문없음', '하나') + 정리 + 구간('글자수초과', '둘') + 구간('게시확인', '셋');
+    expect(프로시저단계제목(프로시저글(사이), 안보류)).toEqual([null, null, null]);
+    const 안 = 구간('본문없음', '하나', ` await test.cleanup('올린 글을 지운다', async () => {}); await verify('맞다', true, true); `) + 구간('글자수초과', '둘') + 구간('게시확인', '셋');
+    expect(프로시저단계제목(프로시저글(안), 안보류)).toEqual([null, null, null]);
+  });
+
+  it('보류인지 모르는 케이스가 있으면 모든 케이스가 null 이다 — 스캔이 다른 접두사라 걸러 낸 케이스가 섞인 프로시저다', () => {
+    expect(프로시저단계제목(프로시저글(정상본문), [false, undefined, false])).toEqual([null, null, null]);
+    expect(프로시저단계제목(프로시저글(정상본문), [false, false])).toEqual([null, null, null]);
+  });
+
   it('구간을 못 가르는 파일과 옛 꼴 파일은 null 이다', () => {
     expect(프로시저단계제목(프로시저글(구간('본문없음', '하나') + 구간('게시확인', '셋')), 안보류)).toBeNull();
     expect(프로시저단계제목(`export const spec = defineCase({ tcId: 'XQ-001' });\ntest(spec, async () => {});\n`, [])).toBeNull();
@@ -77,6 +89,32 @@ import { 타임라인화면 } from './pages/timeline.page.js';
       [],
       ['pages/compose.page.ts', 'pages/timeline.page.ts', 'components/header.component.ts'],
     ]);
+  });
+
+  it('화면에서 만든 변수와 함수도 그 화면을 가리킨다 — new 가 아닌 꼴로 만든 객체를 쓴 뒤 케이스에서 화면이 빠지지 않는다', () => {
+    const 위 = `import { 글쓰기화면 } from './pages/compose.page.js';
+import { 타임라인화면 } from './pages/timeline.page.js';
+async function 첫글읽기(driver: unknown) {
+  return new 타임라인화면(driver).첫글();
+}
+`;
+    const 흐름 =
+      절차('글쓰기 화면을 연다', ' 글쓰기 = await 글쓰기화면.열기(driver); ') +
+      구간('본문없음', '본문을 비운다', ` await verify('꺼져 있다', await 글쓰기.게시버튼이켜졌나(), false); `) +
+      구간('글자수초과', '본문에 501자를 넣는다', ` const 남은 = await 글쓰기.남은글자(); await verify('음수다', 남은, '-1'); `) +
+      구간('게시확인', '타임라인을 연다', ` await verify('보인다', await 첫글읽기(driver), '안녕'); `);
+    expect(구간별화면파일(프로시저글(`  let 글쓰기;\n${흐름}`, { 가져오기: 위 }))).toEqual([['pages/compose.page.ts'], ['pages/compose.page.ts'], ['pages/timeline.page.ts']]);
+  });
+
+  it('가져온 화면 가운데 쓴 자리를 못 찾은 것이 있으면 null 이다 — 빠뜨리느니 파일이 가져온 것 전부로 잇는다', () => {
+    const 위 = `import { 글쓰기화면 } from './pages/compose.page.js';
+import { 타임라인화면 } from './pages/timeline.page.js';
+class 묶음 {
+  타임라인 = new 타임라인화면(undefined);
+}
+`;
+    const 흐름 = 구간('본문없음', '하나', ` await verify('맞다', await new 글쓰기화면(driver).제목(), new 묶음().타임라인); `) + 구간('글자수초과', '둘') + 구간('게시확인', '셋');
+    expect(구간별화면파일(프로시저글(흐름, { 가져오기: 위 }))).toBeNull();
   });
 
   it('구간을 못 가르는 파일과 옛 꼴 파일은 null 이다 — 부르는 쪽이 파일이 가져온 것 전부로 잇는다', () => {

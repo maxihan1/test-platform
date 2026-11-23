@@ -13,12 +13,19 @@ import { caseSteps } from './steps.js';
  * 프로시저 파일의 케이스마다(cases 차례대로) 단계 제목 — kit 이 돌릴 때 절차를 케이스에 붙이는 규칙 그대로다 (카탈로그 §3.1 「케이스 구간」).
  * 케이스 사이 절차는 다음 케이스, 보류 케이스 앞 절차는 그 뒤의 보류 아닌 케이스, 시작 정리는 처음 도는 케이스, 끝 정리는 마지막으로 도는 케이스 것이다.
  * 보류 케이스는 건너뛰어 단계가 없다. 그래서 케이스 차례대로 이으면 러너가 매기는 단계 번호 차례와 같다.
- * 프로시저 파일이 아니거나 구간을 못 가르면 null, 다 셀 수 없는 케이스는 그 케이스만 null 이다
+ * 프로시저 파일이 아니거나 구간을 못 가르면 null, 다 셀 수 없는 케이스는 그 케이스만 null 이다.
+ * 보류는 케이스마다(cases 차례대로) 보류인가 — 모르는 자리가 있으면 절차의 주인을 장담할 수 없어 모든 케이스가 null 이다
  */
-export function 프로시저단계제목(글: string, 보류: readonly boolean[]): (string[] | null)[] | null {
+export function 프로시저단계제목(글: string, 보류: readonly (boolean | undefined)[]): (string[] | null)[] | null {
   const 읽은 = 프로시저글읽기(글);
   if (읽은 === null || 읽은.구간 === null) return null;
   const { found, cleanups } = caseSteps(글);
+  const 모른다 = 읽은.구간.map(() => null);
+  // 스캔이 다른 애플리케이션 접두사라 걸러 낸 케이스가 섞이면 그 케이스가 보류인지 모른다
+  if (보류.length !== 읽은.구간.length || 읽은.구간.some((_, i) => 보류[i] === undefined)) return 모른다;
+  // kit 은 정리를 부른 그때 차례인 케이스에 시작 정리를 붙인다 — 첫 케이스 앞 본문 맨 바깥이 아닌 자리(케이스 사이 · 케이스 구간 안)에 있으면 글자로 차례를 장담할 수 없다
+  const 첫 = 읽은.구간[0];
+  if (첫 !== undefined && 읽은.정리.filter((문) => 문.end <= 첫.부름.getStart()).length !== cleanups.length) return 모른다;
   type 절차 = (typeof found)[number];
   const 안인가 = (s: { getStart(): number; end: number }, pos: number): boolean => pos >= s.getStart() && pos < s.end;
 
@@ -28,7 +35,7 @@ export function 프로시저단계제목(글: string, 보류: readonly boolean[]
     const 본문 = 읽은.구간.findIndex((c) => 안인가(c.부름, s.pos));
     const 준비 = 본문 >= 0 ? -1 : 읽은.구간.findIndex((c) => c.준비.some((문) => 안인가(문, s.pos)));
     // 어느 구간에도 안 든 절차(정리 안의 절차)가 있으면 번호 차례를 장담할 수 없다
-    if (본문 < 0 && 준비 < 0) return 읽은.구간.map(() => null);
+    if (본문 < 0 && 준비 < 0) return 모른다;
     (본문 >= 0 ? 본문몫[본문]! : 준비몫[준비]!).push(s);
   }
 
@@ -73,7 +80,7 @@ export async function 단계제목들(root: string, specs: readonly CaseSpec[]):
       if (!프로시저.has(s.filePath)) {
         // 못 읽으면 문제 줄은 한 번만 남기고 그 파일의 나머지 케이스는 모른다로 둔다
         프로시저.set(s.filePath, null);
-        const 보류: boolean[] = [];
+        const 보류: (boolean | undefined)[] = [];
         for (const c of specs) if (c.filePath === s.filePath && c.procSeq !== undefined) 보류[c.procSeq - 1] = c.held !== undefined;
         프로시저.set(s.filePath, 프로시저단계제목(await readFile(join(root, s.filePath), 'utf8'), 보류));
       }

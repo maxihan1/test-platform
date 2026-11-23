@@ -63,6 +63,12 @@ describe('K19 — cases 는 맨 위에서 선언한 이름만 든 배열 리터�
     expect(위반(프로시저글(정상본문, { cases: '[본문없음, 글자수초과, 게시확인, 본문없음]' }))).toContain('K19 cases 에 본문없음 를 두 번 넣었다');
   });
 
+  it('let 으로 선언한 케이스는 맨 위 선언으로 치지 않는다', () => {
+    expect(위반(프로시저글(정상본문, { 선언들: 기본선언.replace('const 게시확인', 'let 게시확인') }))).toContain(
+      'K19 cases 의 게시확인 는 이 파일 맨 위에서 const 이름 = defineCase(...) 로 선언한 이름이 아니다',
+    );
+  });
+
   it('맨 위에서 선언하고 cases 에 안 넣은 케이스는 잡는다', () => {
     const 글 = 프로시저글(정상본문, { 선언들: 기본선언 + 선언('남는것', 'XQ-FN-104') });
     expect(위반(글)).toEqual(['K19 케이스 선언 남는것 이 cases 에 없다. 맨 위 defineCase 선언은 모두 cases 에 든다']);

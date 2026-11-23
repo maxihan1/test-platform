@@ -81,8 +81,9 @@ export function duplicatesOf(specs: readonly Pick<CaseSpec, 'tcId' | 'filePath'>
 
 // 나머지 케이스는 import 하지 않고 tcId 글자만 읽는다 — 1,112건을 다 import 하면 형식 검사 한 번이 중간값 106초였다 (PRD-F14-04).
 // ponytail: tcId 를 글자로 적은 파일만 견준다. 변수 · 상수 tcId 는 여기서 빠지고 저장소 전체 검사(자식이 합친 뒤)가 잡는다
-// 프로시저 파일은 케이스 선언이 여럿이라 파일의 tcId 를 전부 읽는다
+// 프로시저 파일은 케이스 선언이 여럿이라 그 파일의 tcId 를 전부 읽는다. 옛 꼴 파일은 전처럼 첫 것 하나다 — 선언 밖에 적힌 tcId 글자를 케이스로 세지 않는다
 const TCID_LITERAL = /\btcId:\s*(['"`])([^'"`]+)\1/g;
+const 적힌번호들 = (글: string): string[] => [...글.matchAll(TCID_LITERAL)].map((m) => m[2]!).slice(0, 글.includes('defineProcedure(') ? undefined : 1);
 
 // 맡은 케이스만 볼 때의 K2 — 맡은 것끼리, 맡은 것과 나머지의 겹침만 돌려준다. 나머지끼리 겹친 것은 이번 일이 아니다
 export async function duplicatesWith(specs: readonly CaseSpec[], root: string = testsRoot()): Promise<Duplicate[]> {
@@ -92,7 +93,7 @@ export async function duplicatesWith(specs: readonly CaseSpec[], root: string = 
     (await caseFiles(root))
       .map((file) => ({ file, filePath: relative(root, file) }))
       .filter(({ filePath }) => !mine.has(filePath))
-      .map(async ({ file, filePath }) => [...(await readFile(file, 'utf8')).matchAll(TCID_LITERAL)].map((m) => ({ tcId: m[2]!, filePath }))),
+      .map(async ({ file, filePath }) => 적힌번호들(await readFile(file, 'utf8')).map((tcId) => ({ tcId, filePath }))),
   );
   return duplicatesOf([...others.flat(), ...specs]).filter((d) => mine.has(d.files[1]));
 }
@@ -111,7 +112,7 @@ export async function scan(root: string = testsRoot(), only?: readonly string[])
     try {
       const loaded = await importSpecs(file);
       if (loaded !== null) specs.push(...loaded);
-      else failures.push({ file: at, message: 'export const spec이 없다' });
+      else failures.push({ file: at, message: 'export const spec 도 export const procedure 도 없다' });
     } catch (err) {
       failures.push({ file: at, message: err instanceof Error ? err.message : String(err) });
     }

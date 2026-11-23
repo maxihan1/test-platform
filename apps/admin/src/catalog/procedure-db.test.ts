@@ -87,9 +87,10 @@ describe.skipIf(연결 === undefined)('프로시저 파일 스캔과 저장', ()
     ]);
   });
 
-  it('케이스 수는 활성 케이스만 센다', async () => {
+  it('케이스 수는 활성 케이스만 세고, 내려간 케이스 자신은 케이스 수가 null 이다', async () => {
     await q("UPDATE test_case SET is_active = false WHERE tc_id = 'XTS-FN-103'");
     expect((await findCase('XTS-FN-101'))?.procCount).toBe(2);
+    expect(await findCase('XTS-FN-103')).toMatchObject({ procId: 'XTS-TP-001', procSeq: 3, procCount: null });
     await q("UPDATE test_case SET is_active = true WHERE tc_id = 'XTS-FN-103'");
   });
 

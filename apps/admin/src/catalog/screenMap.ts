@@ -56,44 +56,53 @@ export function 가져온화면파일(케이스글: string): string[] {
   return [...new Set(가져온이름(ts.createSourceFile('case.spec.ts', 케이스글, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS)).values())];
 }
 
+// 선언이 묶는 이름들 — `const a = …` · `const { a, b } = …` · `const [a] = …`
+function 묶인이름(n: ts.BindingName): string[] {
+  return ts.isIdentifier(n) ? [n.text] : n.elements.flatMap((e) => (ts.isBindingElement(e) ? 묶인이름(e.name) : []));
+}
+
 /**
- * 프로시저 파일의 케이스마다(cases 차례대로) 그 케이스 구간(준비 구간 + test.case)에서 쓴 화면 파일 (카탈로그 §3.1 「케이스 구간」).
+ * 프로시저 파일의 케이스마다(cases 차례대로) 그 케이스의 자기 구간(케이스 앞 문 + test.case)에서 쓴 화면 파일 (카탈로그 §3.1 「케이스 구간」).
  * 파일 단위로 이으면 프로시저의 모든 케이스가 모든 화면에 붙어 호환성의 화면 덮기 고르기가 흐려진다.
+ * 가져온 이름뿐 아니라 그 이름이 든 식으로 만든 변수 · 함수의 이름도 그 화면을 가리킨다(`const 글쓰기 = await 글쓰기화면.열기(driver)` 뒤의 `글쓰기.게시()`).
  * `const 글쓰기 = new 글쓰기화면(driver)` 처럼 만들어 두기만 한 줄은 쓴 것이 아니다 — 그 객체를 쓴 구간이 그 화면을 지난다.
- * 정리(test.cleanup)에서만 쓰는 화면은 어느 케이스에도 안 잇는다. 프로시저 파일이 아니거나 구간을 못 가르면 null
+ * 정리(test.cleanup)에서만 쓰는 화면은 어느 케이스에도 안 잇는다.
+ * 프로시저 파일이 아니거나 구간을 못 가르면 null 이다. 가져온 화면 가운데 쓴 자리를 하나도 못 찾은 것이 있어도 null 이다 —
+ * 이름을 따라가지 못한 것이라 부르는 쪽이 옛 꼴처럼 파일이 가져온 것 전부를 잇는다(빠뜨리느니 넓게 잇는다)
  */
 export function 구간별화면파일(글: string): string[][] | null {
   const sf = ts.createSourceFile('case.spec.ts', 글, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  const 구간 = 프로시저읽기(sf)?.구간;
-  if (구간 === undefined || 구간 === null) return null;
-  const 이름 = 가져온이름(sf);
-  const 객체 = new Map<string, string>();
+  const 읽은 = 프로시저읽기(sf);
+  if (읽은 === null || 읽은.구간 === null) return null;
+  const 가져온 = 가져온이름(sf);
+  const 닿는 = new Map<string, Set<string>>([...가져온].map(([이름, 파일]) => [이름, new Set([파일])]));
   const 만든줄 = new Set<ts.Node>();
-  const 찾기 = (n: ts.Node): void => {
-    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer !== undefined && ts.isNewExpression(n.initializer) && ts.isIdentifier(n.initializer.expression)) {
-      const 파일 = 이름.get(n.initializer.expression.text);
-      if (파일 !== undefined) {
-        객체.set(n.name.text, 파일);
-        만든줄.add(n);
-      }
-    }
-    n.forEachChild(찾기);
+  const 든파일 = (n: ts.Node, 모음 = new Set<string>()): Set<string> => {
+    if (만든줄.has(n)) return 모음;
+    // 점 뒤 이름(`화면.게시`)은 속성이지 가져온 이름이 아니다
+    if (ts.isIdentifier(n) && !(ts.isPropertyAccessExpression(n.parent) && n.parent.name === n)) for (const 파일 of 닿는.get(n.text) ?? []) 모음.add(파일);
+    n.forEachChild((c) => void 든파일(c, 모음));
+    return 모음;
   };
-  찾기(sf);
-  return 구간.map((c) => {
-    const 쓴 = new Set<string>();
-    const 훑기 = (n: ts.Node): void => {
-      if (만든줄.has(n)) return;
-      // 점 뒤 이름(`화면.게시`)은 속성이지 가져온 이름이 아니다
-      if (ts.isIdentifier(n) && !(ts.isPropertyAccessExpression(n.parent) && n.parent.name === n)) {
-        const 파일 = 객체.get(n.text) ?? 이름.get(n.text);
-        if (파일 !== undefined) 쓴.add(파일);
-      }
-      n.forEachChild(훑기);
-    };
-    for (const 문 of [...c.준비, c.부름]) 훑기(문);
-    return [...쓴];
-  });
+  const 번지기 = (n: ts.Node): void => {
+    const [이름들, 값] =
+      ts.isVariableDeclaration(n) && n.initializer !== undefined ? [묶인이름(n.name), n.initializer]
+        : ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left) ? [[n.left.text], n.right]
+          : ts.isFunctionDeclaration(n) && n.name !== undefined && n.body !== undefined ? [[n.name.text], n.body]
+            : [[], undefined];
+    if (값 !== undefined) {
+      const 파일 = 든파일(값);
+      for (const 이름 of 파일.size === 0 ? [] : 이름들) 닿는.set(이름, new Set([...(닿는.get(이름) ?? []), ...파일]));
+      if (ts.isVariableDeclaration(n) && ts.isNewExpression(값) && ts.isIdentifier(값.expression) && 가져온.has(값.expression.text)) 만든줄.add(n);
+    }
+    n.forEachChild(번지기);
+  };
+  // 두 번 돈다 — 뒤에서 선언한 함수가 앞에서 만든 객체를 쓰는 것까지 번지게
+  번지기(sf);
+  번지기(sf);
+  const 구간별 = 읽은.구간.map((c) => [...c.준비, c.부름].reduce((모음, 문) => 든파일(문, 모음), new Set<string>()));
+  const 찾은 = new Set([...구간별.flatMap((쓴) => [...쓴]), ...읽은.정리.flatMap((문) => [...든파일(문)])]);
+  return [...가져온.values()].every((파일) => 찾은.has(파일)) ? 구간별.map((쓴) => [...쓴]) : null;
 }
 
 /** 화면 파일 클래스의 `static readonly 주소 = '/cart'` 값. 글자 그대로가 아니면(계산식) 모른다 — 짐작한 주소로 잇느니 비워 둔다 */

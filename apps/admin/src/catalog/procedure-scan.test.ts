@@ -43,6 +43,7 @@ describe('프로시저 파일 스캔', () => {
     await writeFile(join(뿌리, 'xq', 'XQ-TP-001.spec.ts'), 프로시저글(본문, { 가져오기, 선언들 }));
     await writeFile(join(뿌리, 'xq', 'XQ-001.spec.ts'), 옛꼴('XQ-001', "['android']"));
     await writeFile(join(뿌리, 'xq', 'XQ-002.spec.ts'), 옛꼴('XQ-002', "['android', 'desktop']"));
+    await writeFile(join(뿌리, 'xq', 'XQ-003.spec.ts'), `${옛꼴('XQ-003', "['android']")}export const 남의번호 = { tcId: 'XQ-FN-999' };\n`);
     const 한건 = 구간('본문없음', '하나');
     await writeFile(join(뿌리, 'xq', 'XQ-TP-002.spec.ts'), 프로시저글(한건, { procId: 'XQ-TP-002', 선언들: 선언('본문없음', 'XQ-FN-201', '\n  keepAppData: true,'), cases: '[본문없음]' }));
     await writeFile(join(뿌리, 'xq', 'XQ-TP-003.spec.ts'), 프로시저글(한건, { procId: 'XQ-TP-003', 선언들: 선언('본문없음', 'XQ-FN-301').replace("['android']", "['windows']"), cases: '[본문없음]' }));
@@ -91,6 +92,11 @@ describe('프로시저 파일 스캔', () => {
   it('맡은 파일만 볼 때도 프로시저 파일의 케이스를 전부 견준다 — 첫 케이스만 읽지 않는다', async () => {
     const 내것 = { ...결과.specs.find((s) => s.tcId === 'XQ-001')!, tcId: 'XQ-FN-103', filePath: join('xq', '새.spec.ts') };
     expect(await duplicatesWith([내것], 뿌리)).toEqual([{ tcId: 'XQ-FN-103', files: [join('xq', 'XQ-TP-001.spec.ts'), join('xq', '새.spec.ts')] }]);
+  });
+
+  it('옛 꼴 파일은 전처럼 첫 번호 하나만 견준다 — 선언 밖에 적힌 tcId 글자를 케이스로 세지 않는다', async () => {
+    const 내것 = { ...결과.specs.find((s) => s.tcId === 'XQ-001')!, tcId: 'XQ-FN-999', filePath: join('xq', '새.spec.ts') };
+    expect(await duplicatesWith([내것], 뿌리)).toEqual([]);
   });
 
   it('단계 제목과 화면 연결을 케이스 구간마다 낸다 — 보류 케이스 앞 절차는 그 뒤 케이스 것이다', async () => {
