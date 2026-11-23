@@ -1,7 +1,8 @@
-// 테스트 킷 런타임. 테스트 코드는 이 셋만 import 한다 — defineCase · test · verify (verify.element · verify.rates 포함) (SPEC §4)
+// 테스트 킷 런타임. 테스트 코드는 이 넷만 import 한다 — defineCase · defineProcedure · test · verify (verify.element · verify.rates 포함) (SPEC §4)
 
 export { defineCase, type CaseHandle, type CaseSchema, type DefineCaseInput } from './defineCase.js';
-export { test, type CaseBody, type CaseBodyArgs } from './test.js';
+export { defineProcedure, type DefineProcedureInput } from './defineProcedure.js';
+export { test, type CaseBody, type CaseBodyArgs, type ProcedureBody } from './test.js';
 export type { GameDriver } from './game.js';
 export { verify, type VerifyOptions } from './verify.js';
 export { gameLog, repeatUntil } from './gameScenario.js';

@@ -2,7 +2,7 @@
 
 import { test as base, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
 
-import { PC_PLATFORM_LABEL, PC항목인가, type ApiAuth, type StepResult } from '../types.js';
+import { PC_PLATFORM_LABEL, PC항목인가, type ApiAuth, type ProcedureSpec, type StepResult } from '../types.js';
 import { api만들기, 어드민도구, 어드민키, 인증목록 } from './apiAuth.js';
 import { 판읽기 } from './apiShape.js';
 import { captureApp, type AppDriver } from './app.js';
@@ -38,6 +38,9 @@ export interface CaseBodyArgs<P, E> {
 }
 
 export type CaseBody<P, E> = (args: CaseBodyArgs<P, E>) => Promise<void> | void;
+
+// 프로시저 본문에는 params · expected 가 없다 — 케이스마다 test.case 가 넘긴다. 웹은 프로시저를 쓰지 않아 page 도 없다 (SPEC 공통/2 §4 「테스트 프로시저」)
+export type ProcedureBody = (args: Pick<CaseBodyArgs<never, never>, 'driver' | 'game' | 'admin' | 'request' | 'api'>) => Promise<void> | void;
 
 
 async function capture(page: Page, seq: number, 요소?: 짚을요소): Promise<string | undefined> {
@@ -184,10 +187,20 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
   };
 }
 
-function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
+function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void;
+function defineTest(procedure: ProcedureSpec, body: ProcedureBody): void;
+function defineTest<P, E>(target: CaseHandle<P, E> | ProcedureSpec, body: CaseBody<P, E> | ProcedureBody): void {
   // 스캐너는 명세만 읽으려고 이 파일을 import 한다. 그때는 Playwright에 등록하지 않는다 (SPEC §3.1)
   if (process.env.PLATFORM_SCAN === '1') return;
 
+  // 안 케이스에도 procId 가 실려 있어 cases 로 가른다.
+  // 프로시저를 돌리는 길(test.case · 케이스 판정)은 아직 없다 — 조용히 넘기면 케이스가 하나도 안 돌고 초록이 된다 (TP-F2-07)
+  if ('cases' in target) throw new Error(`${target.procId}: 이 kit 은 프로시저를 아직 돌리지 못한다`);
+
+  케이스를등록한다(target, body as CaseBody<P, E>);
+}
+
+function 케이스를등록한다<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   // 러너 고정 spec 이 조립 목록대로 불러 쓴다. 그때도 Playwright 에 등록하지 않는다 (SPEC 공통/3-공유계약 §5.1)
   if (process.env.PLATFORM_SCENARIO_MODE === '1') {
     registerScenarioCase(spec.tcId, scenarioRunner(spec, body));

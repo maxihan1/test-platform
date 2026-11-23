@@ -5,7 +5,7 @@ import { relative, resolve } from 'node:path';
 import { z } from 'zod';
 
 import { PC항목인가, TECHNIQUES } from '../types.js';
-import type { CaseSpec, JsonSchema, Platform, TcId, Technique } from '../types.js';
+import type { CaseSpec, JsonSchema, Platform, ProcedureSpec, TcId, Technique } from '../types.js';
 import type { AppLaunchIntent } from './app.js';
 import { callerFile } from './callsite.js';
 
@@ -44,28 +44,42 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
 // 명세 객체에 직접 달면 스캐너가 JSON으로 내보낼 때 딸려 나가므로 바깥에 따로 보관한다
 const schemas = new WeakMap<CaseSpec, { params: CaseSchema; expected: CaseSchema }>();
 
-// 연결 설정만 고르는 값이라 명세(스캐너 JSON · DB)에 싣지 않는다 — schemas 와 같은 까닭으로 바깥에 둔다
-const keepers = new WeakSet<CaseSpec>();
+// 연결 설정만 고르는 값이라 명세(스캐너 JSON · DB)에 싣지 않는다 — schemas 와 같은 까닭으로 바깥에 둔다.
+// 프로시저는 폰 연결과 앱 켜기가 한 번이라 케이스 대신 프로시저가 이 자리에 든다 (SPEC 공통/2 §4 「테스트 프로시저」 K22)
+type 켜는단위 = CaseSpec | ProcedureSpec;
+const keepers = new WeakSet<켜는단위>();
 
 /** 그 디바이스(Playwright 프로젝트)를 선언했나 — 패드도 선언이 정한다. windows 케이스는 키보드로만, 버튼 그림 케이스는 적은 패드로만 돈다 (도메인/게임 §3.10 결정 27) */
 export function 선언했나(platforms: readonly Platform[], 디바이스: string): boolean {
   return (platforms as readonly string[]).includes(디바이스);
 }
 
-export function keepsAppData(spec: CaseSpec): boolean {
+export function keepsAppData(spec: 켜는단위): boolean {
   return keepers.has(spec);
 }
 
-const launchers = new WeakMap<CaseSpec, (params: never) => Promise<AppLaunchIntent>>();
+const launchers = new WeakMap<켜는단위, (params: never) => Promise<AppLaunchIntent>>();
+
+export function 켜기설정을적는다(
+  spec: 켜는단위,
+  설정: { keepAppData?: boolean | undefined; launchIntent?: ((params: never) => Promise<AppLaunchIntent>) | undefined },
+): void {
+  if (설정.keepAppData === true) keepers.add(spec);
+  if (설정.launchIntent !== undefined) launchers.set(spec, 설정.launchIntent);
+}
+
+export function 켜기설정을적었나(spec: 켜는단위): boolean {
+  return keepers.has(spec) || launchers.has(spec);
+}
 
 /** 케이스가 고른 「실어 켤 값」. 못 만들면 알리고 undefined — 케이스는 그냥 켠 앱에서 화면으로 로그인한다 */
-export async function 실어켤값(spec: CaseSpec, params: unknown): Promise<AppLaunchIntent | undefined> {
+export async function 실어켤값(spec: 켜는단위, params: unknown): Promise<AppLaunchIntent | undefined> {
   const 만들기 = launchers.get(spec);
   if (만들기 === undefined) return undefined;
   try {
     return await 만들기(params as never);
   } catch (err) {
-    console.error(`[kit] ${spec.tcId}: 실어 켤 값을 만들지 못해 그냥 켠다 — ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[kit] ${'tcId' in spec ? spec.tcId : spec.procId}: 실어 켤 값을 만들지 못해 그냥 켠다 — ${err instanceof Error ? err.message : String(err)}`);
     return undefined;
   }
 }
@@ -81,7 +95,7 @@ function toJsonSchema(schema: CaseSchema): JsonSchema {
   return z.toJSONSchema(schema, { io: 'input' }) as JsonSchema;
 }
 
-function testsRoot(): string {
+export function testsRoot(): string {
   return process.env.PLATFORM_TESTS_DIR ?? resolve(process.cwd(), 'tests');
 }
 
@@ -141,8 +155,7 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   if (input.smoke === true) spec.smoke = true;
 
   schemas.set(spec, { params: input.params, expected: input.expected });
-  if (input.keepAppData === true) keepers.add(spec);
-  if (input.launchIntent !== undefined) launchers.set(spec, input.launchIntent);
+  켜기설정을적는다(spec, input);
 
   return spec;
 }
