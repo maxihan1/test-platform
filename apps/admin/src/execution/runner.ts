@@ -59,7 +59,7 @@ export async function abortRunner(historyId: number): Promise<boolean> {
 export { 러너진행, 시험시나리오진행, 시험진행, 진행, type 러너진행답 } from './runnerProgress.js';
 
 // 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
-function 거절사유(status: number, json: unknown): string {
+export function 거절사유(status: number, json: unknown): string {
   const detail = json as { error?: string; detail?: string } | null;
   return detail === null
     ? `러너가 ${status}로 거절했다`

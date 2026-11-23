@@ -2,7 +2,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import type { ExecuteResponse, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
+import type { CaseResult, ExecuteResponse, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
 import { 계정칸 } from '@platform/kit/accounts';
 
 import type { 부품기록 } from '../scenario/runTrace.js';
@@ -14,7 +14,12 @@ import { 가린값들 } from '../web/mask.js';
  * 지금 단계는 케이스 통로가 러너에서 받아 붙인다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
  */
 export type 도는중 = { status: 'RUNNING'; vision?: { url: string; name?: string }; step?: { seq: number; title: string; elapsedMs: number } };
-export type 시험읽기 = 도는중 | { status: 'DONE'; result: ExecuteResponse };
+/**
+ * 케이스 테스트 실행의 결과 — 누른 케이스 한 건이다. 프로시저 안 케이스는 프로시저가 통째로 돌아 results 에 케이스마다 한 건이 더 실린다
+ * (도메인/실행 §3.2 「테스트 프로시저 실행」 「한 건 · 다시 돌리기 · 시험 실행」)
+ */
+export type 시험결과 = ExecuteResponse & { results?: CaseResult[] };
+export type 시험읽기 = 도는중 | { status: 'DONE'; result: 시험결과 };
 
 export interface 시험명세 {
   paramSchema: unknown;
@@ -180,7 +185,7 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
   };
 }
 
-const 케이스시험 = 시험보관소<ExecuteResponse, 'DONE'>({
+const 케이스시험 = 시험보관소<시험결과, 'DONE'>({
   끝글자: 'DONE',
   바쁨문구: '이미 시험 실행이 진행 중입니다',
   실패로: (사유, 걸린ms) => ({
@@ -192,14 +197,17 @@ const 케이스시험 = 시험보관소<ExecuteResponse, 'DONE'>({
   }),
 });
 
-/** 케이스 「테스트 실행」 — 서버 러너. 서비스 칸에 그 케이스 번호를 둔다 — 읽을 때 주소의 tcId 와 견준다 */
+/**
+ * 케이스 「테스트 실행」 — 서버 러너. 서비스 칸에 그 케이스 번호를 둔다 — 읽을 때 주소의 tcId 와 견준다.
+ * 명세가 여럿이면(프로시저) 모든 케이스의 비밀값을 합쳐 가린다 — 한 케이스의 사유 글에 다른 케이스의 비밀값이 되비칠 수 있다
+ */
 export function 시작한다(
   사람: string,
-  실행: (id: string, 폰화면: (url: string | undefined, 이름?: string) => void) => Promise<ExecuteResponse>,
-  명세: 시험명세,
+  실행: (id: string, 폰화면: (url: string | undefined, 이름?: string) => void) => Promise<시험결과>,
+  명세: 시험명세 | 시험명세[],
   tcId = '',
 ): string {
-  return 케이스시험.시작한다(사람, tcId, 실행, 비밀글자들(명세));
+  return 케이스시험.시작한다(사람, tcId, 실행, [명세].flat().flatMap(비밀글자들));
 }
 
 /** tcId 를 넘기면 그 케이스의 시험만 읽는다 — 문은 주소의 tcId 로 권한을 보니 다른 케이스 주소로 남의 애플리케이션 시험을 못 읽게 */
@@ -209,7 +217,7 @@ export function 읽는다(사람: string, id: string, tcId?: string): 시험읽�
 }
 
 /** 러너에 보내기 전에 중단한 시험을 그 결과로 닫는다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」) */
-export function 닫는다(사람: string, id: string, 결과: ExecuteResponse): boolean {
+export function 닫는다(사람: string, id: string, 결과: 시험결과): boolean {
   return 케이스시험.닫는다(사람, id, 결과);
 }
 

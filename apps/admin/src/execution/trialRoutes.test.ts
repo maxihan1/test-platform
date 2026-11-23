@@ -19,6 +19,9 @@ const 접두사 = 'XTR';
 const 열쇠 = 'xtr-검사용-세션-열쇠-32글자를-넘긴다-넉넉히-됩니다';
 const 케이스 = 'XTR-001';
 const 데스크톱만 = 'XTR-002';
+// 프로시저 XTR-TP-001 의 케이스 — 셋째는 프로시저에서 빠져 내려간 줄이다
+const 프로시저 = 'XTR-TP-001';
+const 프로시저케이스들 = ['XTR-FN-101', 'XTR-FN-102', 'XTR-FN-103'];
 const 계정들 = ['xtr-writer', 'xtr-other', 'xtr-reader'];
 
 const 입력스키마 = {
@@ -50,6 +53,8 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   let 진행물음 = 0;
   const 받은중단: number[] = [];
   let 중단답 = true;
+  // 러너 GET /health 가 procedure 칸을 싣나 — 앞 판 러너는 안 싣는다
+  let 프로시저돈다 = false;
   const 옛환경 = {
     RUNNER_URL: process.env.RUNNER_URL,
     DEVICE_FARM_URL: process.env.DEVICE_FARM_URL,
@@ -103,7 +108,8 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
         진행물음 += 1;
         return void res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ items: 진행답 }));
       }
-      if (req.method === 'GET') return void res.writeHead(req.url === '/health' ? 200 : 404).end('{}');
+      if (req.method === 'GET' && req.url === '/health') return void res.writeHead(200).end(JSON.stringify(프로시저돈다 ? { ok: true, procedure: true } : { ok: true }));
+      if (req.method === 'GET') return void res.writeHead(404).end('{}');
       if (req.url === '/abort') {
         const 조각: Buffer[] = [];
         req.on('data', (c: Buffer) => 조각.push(c));
@@ -149,6 +155,14 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
         [id, 플랫폼들, JSON.stringify(입력스키마), JSON.stringify(기대스키마)],
       );
     }
+    for (const [k, id] of 프로시저케이스들.entries()) {
+      await q(
+        `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, step_titles, is_active, proc_id, proc_seq, proc_name)
+         VALUES ($1, 'XTR 프로시저 케이스', '["android"]', '[]', 'xtr/XTR-TP-001.spec.ts', $2, $3, $4, $5, $6, $7, 'XTR 글쓰기')
+         ON CONFLICT (tc_id) DO UPDATE SET is_active = EXCLUDED.is_active, proc_seq = EXCLUDED.proc_seq`,
+        [id, JSON.stringify(입력스키마), JSON.stringify(기대스키마), [`${id} 준비`, `${id} 확인`], k < 2, 프로시저, k + 1],
+      );
+    }
 
     app = Fastify();
     세션등록(app, 열쇠);
@@ -163,10 +177,10 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   });
 
   afterAll(async () => {
-    await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [[케이스, 데스크톱만]]);
+    await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [[케이스, 데스크톱만, ...프로시저케이스들]]);
     await q('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
-    await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [[케이스, 데스크톱만]]);
+    await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [[케이스, 데스크톱만, ...프로시저케이스들]]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service WHERE id = $1', [서비스]);
     await app.close();
@@ -185,6 +199,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     받은중단.length = 0;
     진행답 = [];
     중단답 = true;
+    프로시저돈다 = false;
     장면.clear();
     process.env.RUNNER_URL = 러너주소;
     delete process.env.DEVICE_FARM_URL;
@@ -626,6 +641,108 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect((await 중단('44444444-4444-4444-8444-444444444444')).json()).toEqual({ error: 'TRIAL_NOT_FOUND', detail: '44444444-4444-4444-8444-444444444444' });
     expect((await 중단(trialId, 'xtr-reader')).statusCode).toBe(403);
     expect(받은중단).toEqual([]);
+  });
+
+  describe('프로시저 안 케이스', () => {
+    const 누름 = { platform: 'android', env: 'qa', params: { loginId: 'u', password: 'p4ss!' }, expected: {} };
+    const 프로시저시작 = (body: unknown = 누름) => 시작(body, 'xtr-writer', 'XTR-FN-102');
+
+    it('러너가 프로시저를 못 도는 판이면 409 RUNNER_NO_PROCEDURE 이고 폰도 러너도 안 쓴다', async () => {
+      process.env.DEVICE_FARM_URL = 러너주소;
+      const res = await 프로시저시작();
+      expect(res.statusCode).toBe(409);
+      expect(res.json()).toEqual({ error: 'RUNNER_NO_PROCEDURE' });
+      expect(받은요청).toHaveLength(0);
+    });
+
+    it('프로시저를 통째로 새 꼴 요청으로 보내고, DONE 에 누른 케이스 한 건과 케이스마다 한 건을 싣는다', async () => {
+      프로시저돈다 = true;
+      process.env.DEVICE_FARM_URL = 러너주소;
+      await q(`INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ('XTR-FN-101', '{"loginId":"저장한 아이디"}', '{}', 'xtr') ON CONFLICT (tc_id) DO UPDATE SET params = EXCLUDED.params`);
+      러너응답 = () => 멈춤;
+      const res = await 프로시저시작();
+      expect(res.statusCode).toBe(202);
+      const { trialId } = res.json<{ trialId: string }>();
+      await 러너에닿을때까지(1);
+
+      const 보낸 = 받은요청[0] as unknown as Record<string, unknown>;
+      // 내려간 줄(XTR-FN-103)은 안 간다. 누른 케이스는 보낸 값, 같이 도는 케이스는 저장값이다. 한도는 케이스 한도의 합이다
+      expect(보낸).toMatchObject({
+        runId: 0,
+        procId: 프로시저,
+        platform: 'android',
+        filePath: 'xtr/XTR-TP-001.spec.ts',
+        udid: 's1',
+        live: trialId,
+        timeoutMs: 600_000,
+        cases: [
+          { tcId: 'XTR-FN-101', params: { loginId: '저장한 아이디' }, expected: {} },
+          { tcId: 'XTR-FN-102', params: { loginId: 'u', password: 'p4ss!' }, expected: {} },
+        ],
+      });
+      expect('tcId' in 보낸 || 'params' in 보낸).toBe(false);
+      // 단계 제목은 프로시저 안 차례대로 이은 것이다 — 러너의 단계 번호 차례와 같다
+      expect((await 읽기(trialId, 'xtr-writer', 'XTR-FN-102')).json()).toMatchObject({
+        status: 'RUNNING',
+        stepTitles: ['XTR-FN-101 준비', 'XTR-FN-101 확인', 'XTR-FN-102 준비', 'XTR-FN-102 확인'],
+      });
+
+      끝낸다({
+        historyId: 보낸.historyId,
+        durationMs: 9,
+        results: [
+          { tcId: 'XTR-FN-101', status: 'FAIL', durationMs: 4, steps: [], error: { message: '본문이 비었는데 게시됐다 (p4ss!)' } },
+          { tcId: 'XTR-FN-102', status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 'XTR-FN-101' },
+        ],
+      });
+      let 끝: Record<string, unknown> = {};
+      for (let i = 0; i < 100 && 끝.status !== 'DONE'; i += 1) {
+        끝 = (await 읽기(trialId, 'xtr-writer', 'XTR-FN-102')).json<Record<string, unknown>>();
+        await new Promise((ok) => setTimeout(ok, 20));
+      }
+      // result 는 누른 케이스 한 건이고 results 는 케이스마다 한 건이다. 다른 케이스의 사유 글에 되비친 비밀값도 가린다
+      expect(끝).toMatchObject({
+        status: 'DONE',
+        result: { status: 'NA', error: { message: 'BLOCKED' }, steps: [] },
+        results: [
+          { tcId: 'XTR-FN-101', status: 'FAIL', error: { message: '본문이 비었는데 게시됐다 (********)' } },
+          { tcId: 'XTR-FN-102', status: 'NA', blockedBy: 'XTR-FN-101' },
+        ],
+      });
+      expect('results' in (끝.result as object)).toBe(false);
+      expect(JSON.stringify(끝)).not.toContain('p4ss!');
+      await q(`DELETE FROM case_input WHERE tc_id = 'XTR-FN-101'`);
+    });
+
+    it('러너에 못 닿으면 막지 않고 보내 보고, 케이스마다 「러너에 닿지 못했습니다」 미실행으로 닫는다', async () => {
+      process.env.DEVICE_FARM_URL = 러너주소;
+      process.env.RUNNER_URL = 'http://127.0.0.1:9';
+      const res = await 프로시저시작();
+      expect(res.statusCode).toBe(202);
+      let 끝: Record<string, unknown> = {};
+      for (let i = 0; i < 300 && 끝.status !== 'DONE'; i += 1) {
+        끝 = (await 읽기(res.json<{ trialId: string }>().trialId, 'xtr-writer', 'XTR-FN-102')).json<Record<string, unknown>>();
+        await new Promise((ok) => setTimeout(ok, 20));
+      }
+      expect(끝).toMatchObject({
+        status: 'DONE',
+        result: { status: 'NA', error: { message: '러너에 닿지 못했습니다' } },
+        results: [
+          { tcId: 'XTR-FN-101', status: 'NA', error: { message: '러너에 닿지 못했습니다' } },
+          { tcId: 'XTR-FN-102', status: 'NA', error: { message: '러너에 닿지 못했습니다' } },
+        ],
+      });
+    });
+
+    it('누른 케이스의 값이 명세에 어긋나면 400 INVALID_PARAMS 이고, 프로시저에서 빠진 케이스는 404 다', async () => {
+      프로시저돈다 = true;
+      process.env.DEVICE_FARM_URL = 러너주소;
+      const 틀림 = await 프로시저시작({ ...누름, params: { loginId: '' } });
+      expect(틀림.statusCode).toBe(400);
+      expect(틀림.json<{ error: string }>().error).toBe('INVALID_PARAMS');
+      expect((await 시작(누름, 'xtr-writer', 'XTR-FN-103')).statusCode).toBe(404);
+      expect(받은요청).toHaveLength(0);
+    });
   });
 
   it('실행 read 만 있는 사람은 시작이 403 이다', async () => {

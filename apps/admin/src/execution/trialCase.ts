@@ -3,11 +3,11 @@
 import { 대상줄들읽기, type 대상줄 } from '../authoring/reverse.js';
 import { prefixOf } from './store.js';
 
-/** step_titles 는 스캔이 저장한 단계 제목 — 못 셌으면 null (카탈로그 §3.1 「단계 제목」) */
-export async function 케이스행(tcId: string): Promise<{ platforms: string[]; file_path: string; step_titles: string[] | null } | null> {
+/** step_titles 는 스캔이 저장한 단계 제목 — 못 셌으면 null (카탈로그 §3.1 「단계 제목」). proc_id 는 그 케이스가 든 프로시저 — 옛 꼴 케이스는 null */
+export async function 케이스행(tcId: string): Promise<{ platforms: string[]; file_path: string; step_titles: string[] | null; proc_id: string | null } | null> {
   const { pool } = await import('../db/index.js');
-  const r = await pool.query<{ platforms: string[]; file_path: string; step_titles: string[] | null }>(
-    'SELECT platforms, file_path, step_titles FROM test_case WHERE tc_id = $1',
+  const r = await pool.query<{ platforms: string[]; file_path: string; step_titles: string[] | null; proc_id: string | null }>(
+    'SELECT platforms, file_path, step_titles, proc_id FROM test_case WHERE tc_id = $1',
     [tcId],
   );
   return r.rows[0] ?? null;
