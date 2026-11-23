@@ -11,7 +11,7 @@ export const spec = defineCase({
   name: '상점을 열면 상품이 「녹슨 단검」 · 「강철 롱소드」 · 「룬 새김 도끼」 · 「가죽 갑옷」 · 「사슬 갑옷」 · 「행운의 반지」 · 「현자의 목걸이」 · 「체력 물약」 · 「조약돌」 9종이다',
   platforms: ['android'],
   precondition: ['일반 회원으로 로비에 들어와 있다'],
-  elements: ['shop:녹슨 단검', 'shop:강철 롱소드', 'shop:룬 새김 도끼', 'shop:가죽 갑옷', 'shop:사슬 갑옷', 'shop:행운의 반지', 'shop:현자의 목걸이', 'shop:체력 물약'],
+  elements: ['shop:녹슨 단검', 'shop:강철 롱소드', 'shop:룬 새김 도끼', 'shop:가죽 갑옷', 'shop:사슬 갑옷', 'shop:행운의 반지', 'shop:현자의 목걸이', 'shop:체력 물약', 'shop:조약돌'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
     loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
