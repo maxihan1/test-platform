@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 
+import { PC화면통로 } from './PcScreen.js';
 import { 장면칸, 장면통로, type 장면답 } from './TrialLive.js';
 
 const 주소 = '/api/scenario-trials/t-1/live';
@@ -204,6 +205,24 @@ describe('장면칸', () => {
     expect(screen.getByText('동작마다 1초 천천히')).toBeTruthy();
     expect(screen.queryByText(/앱 단계/)).toBeNull();
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
+  });
+
+  it('윈도우 PC 는 PC 를 잡으면 장면 사진을 안 묻고 화면 영상 흐름을 받아 그린다 (도메인/게임 §3.10 「증적 · 결과」)', async () => {
+    vi.stubGlobal('VideoDecoder', class {});
+    const 받기 = vi.spyOn(장면통로, '받기');
+    const 영상받기 = vi.spyOn(PC화면통로, '받기').mockReturnValue(new Promise(() => {}));
+    const { rerender } = render(<장면칸 주소={null} 도는중 vision={null} 폰만 />);
+    await 흘리기();
+    expect(screen.getByText('사용할 디바이스를 찾는 중')).toBeTruthy();
+
+    rerender(<장면칸 주소={null} 도는중 vision="https://vision.example/#pc=pc1" 폰만 영상주소="/api/cases/BRP-FN-001/test-run/t-1/pc-screen" />);
+    await 흘리기(1_000);
+
+    expect(받기).not.toHaveBeenCalled();
+    expect(영상받기).toHaveBeenCalledWith('/api/cases/BRP-FN-001/test-run/t-1/pc-screen', expect.any(AbortSignal));
+    expect(screen.getByText('게임을 여는 중')).toBeTruthy();
+    expect(document.querySelector('.live-shot canvas')).toBeTruthy();
+    vi.unstubAllGlobals();
   });
 });
 

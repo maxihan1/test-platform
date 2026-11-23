@@ -44,7 +44,8 @@
   background: var(--panel);
 }
 
-.live-shot img {
+.live-shot img,
+.live-shot canvas {
   display: block;
   width: 100%;
   height: auto;
@@ -221,11 +222,13 @@
   width: 100%;
 }
 
-.lc-scene .live-shot img {
+.lc-scene .live-shot img,
+.lc-scene .live-shot canvas {
   max-height: 260px;
 }
 
-.lc.big .lc-scene .live-shot img {
+.lc.big .lc-scene .live-shot img,
+.lc.big .lc-scene .live-shot canvas {
   max-height: 60vh;
 }
 

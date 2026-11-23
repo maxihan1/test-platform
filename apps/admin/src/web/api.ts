@@ -1375,6 +1375,8 @@ export const api = {
 
   /** 도는 정식 실행 항목의 장면 한 장 주소 — 화면 카드가 되풀이해 받는다 (도메인/실행 §7) */
   itemLive: (runId: number, historyId: number) => `/api/runs/${runId}/items/${historyId}/live`,
+  /** 도는 윈도우 PC 항목의 화면 영상 흐름 주소 — 장면 사진 대신이다 (도메인/게임 §3.10 「증적 · 결과」) */
+  itemPcScreen: (runId: number, historyId: number) => `/api/runs/${runId}/items/${historyId}/pc-screen`,
 
   /** 본문 위 알림 줄과 서랍의 재료. 서비스 고르개와 상관없이 볼 수 있는 서비스 전체다 */
   notifications: () => call<NoticeResponse>('/notifications'),
@@ -1433,6 +1435,7 @@ export const api = {
 
   // 장면은 오른쪽 실시간 칸이 0.25초마다 직접 받는다. 글자만 돌려준다
   trialLive: (tcId: string, trialId: string) => `/api/cases/${encodeURIComponent(tcId)}/test-run/${encodeURIComponent(trialId)}/live`,
+  trialPcScreen: (tcId: string, trialId: string) => `/api/cases/${encodeURIComponent(tcId)}/test-run/${encodeURIComponent(trialId)}/pc-screen`,
 
   paramSets: (tcId: string) => call<{ items: ParamSetRow[] }>(`/cases/${encodeURIComponent(tcId)}/param-sets`),
 

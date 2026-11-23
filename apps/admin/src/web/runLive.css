@@ -130,7 +130,9 @@
 }
 
 .rl-right .lc-scene .live-shot img,
-.rl-right .lc.big .lc-scene .live-shot img {
+.rl-right .lc.big .lc-scene .live-shot img,
+.rl-right .lc-scene .live-shot canvas,
+.rl-right .lc.big .lc-scene .live-shot canvas {
   max-height: calc(744px - 330px);
 }
 
@@ -179,7 +181,9 @@
   }
 
   .rl-right .lc-scene .live-shot img,
-  .rl-right .lc.big .lc-scene .live-shot img {
+  .rl-right .lc.big .lc-scene .live-shot img,
+  .rl-right .lc-scene .live-shot canvas,
+  .rl-right .lc.big .lc-scene .live-shot canvas {
     max-height: 300px;
   }
 
