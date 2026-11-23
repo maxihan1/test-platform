@@ -1,6 +1,7 @@
 // 모든 바운디드 컨텍스트가 주고받는 유일한 타입 계약 (SPEC §5.1). 여기가 흔들리면 병렬 5갈래가 전부 어긋난다
 
 export type TcId = string;                         // 'AUTH-002'
+export type ProcId = string;                       // 'MTA-TP-012'. <접두사>-TP-<3자리>. 케이스 번호가 아니다 — 다시 작성하면 달라질 수 있어 DB · 설정은 케이스 번호로 가리킨다 (공통/2 §4 「테스트 프로시저」)
 export type BrowserPlatform = 'desktop' | 'mobile';   // 브라우저 디바이스. E2E 웹 단계가 도는 창
 // 윈도우 PC 게임 — VISION PC 하나. 보통 케이스는 windows(키보드), 버튼 그림 케이스는 지원 패드 값을 선언하고 선언한 값마다 한 항목이다 (공통/3-공유계약 「윈도우 PC 게임」 · 도메인/게임 §3.10 결정 27)
 export const PC_PLATFORMS = ['windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox'] as const;
@@ -35,6 +36,17 @@ export interface CaseSpec {
   apiDoc?: number;              // API 케이스만 · 케이스가 만들어진 API 문서 판. 없으면 키가 없다 (도메인/API §3.8)
   elements?: string[];          // 게임 케이스만 · 닿는 게임 요소 열쇠(item:sword_short · zone:Town). 비면 키가 없다 (도메인/게임 §3.10 결정 9)
   smoke?: true;                 // 스모크 표시. 웹 · 앱 · 게임 다 쓴다. 없으면 키가 없다 (도메인/게임 §3.10 「빌드마다 돌리기」)
+  procId?: ProcId;              // 프로시저 안 케이스만 · 그 케이스가 든 프로시저. defineProcedure 가 싣는다. 옛 꼴 케이스는 키가 없다 (공통/3-공유계약 「테스트 프로시저 타입」)
+  procSeq?: number;             // 프로시저 안 케이스만 · 프로시저 안 차례(1부터)
+}
+
+export interface ProcedureSpec {                   // 프로시저 파일 하나의 선언 — 스캐너가 export const procedure 로 읽는다
+  procId: ProcId;
+  name: string;
+  platforms: Platform[];        // android 하나이거나 윈도우 값. 안 케이스와 같다 (K21)
+  precondition: string[];
+  filePath: string;
+  cases: CaseSpec[];            // 도는 차례대로. 케이스마다 procId · procSeq 가 실려 있다
 }
 
 export interface AssertionResult {
@@ -48,6 +60,7 @@ export interface AssertionResult {
 
 export interface StepResult {
   seq: number;
+  tcId?: TcId;                  // 프로시저만 · 그 절차가 든 케이스. 케이스 사이 절차는 다음 케이스다(그 케이스의 준비 구간). 옛 꼴 케이스는 키가 없다 (공통/2 §4 「케이스 구간과 준비 구간」)
   title: string;                // '로그인 API를 호출한다'
   status: ItemStatus;
   durationMs: number;
@@ -126,6 +139,26 @@ export interface ExecuteResponse {
   fps?: FpsSample[];            // 게임 정식 실행 항목만 · 러너가 1초마다 읽은 FPS. 하나도 못 읽었으면 키가 없다. admin 이 run_item.fps 에 쓴다 (WEB-F7-25)
 }
 
+// 프로시저 실행이 주고받는 케이스 한 건씩. 요청 · 응답(ExecuteRequest.cases · ExecuteResponse.results)에 실리는 것은 러너가 새 꼴을 받을 때다 (공통/3-공유계약 「테스트 프로시저 타입」 · 도메인/러너 §5.2 「프로시저 실행」)
+export interface ExecuteCase {  // 요청의 케이스 한 건
+  tcId: TcId;
+  params: Record<string, unknown>;
+  expected: Record<string, unknown>;
+}
+
+export interface CaseResult {   // 응답의 케이스 한 건. kit 이 케이스가 끝나는 대로 낸다
+  tcId: TcId;
+  status: ItemStatus;           // 그대로 셋이다. Blocked 는 NA + error.message 'BLOCKED' + blockedBy
+  durationMs: number;
+  startedAt?: string;           // 그 케이스의 시계가 시작한 때(ISO) — 준비 구간 시작. 못 간 케이스는 없다
+  finishedAt?: string;          // 케이스 구간이 끝난 때. 돌다 끊긴 케이스 · 못 간 케이스는 없다
+  steps: StepResult[];
+  error?: { message: string; stack?: string };
+  blockedBy?: TcId;             // Blocked 일 때만 · 막은 케이스. 늘 스스로 깨지거나 틀린 케이스를 가리킨다
+  elementChecks?: ElementCheck[];  // 게임 항목만 · 그 케이스가 남긴 것
+  apiCalls?: ApiCallSeen[];     // 게임 항목만 · 그 케이스(준비 구간 포함)가 부른 것
+}
+
 export interface FpsSample {
   seq: number;                  // 읽은 때 돌던 절차 번호 — 화면이 시간축 단계 칸에 맞춰 그린다
   fps: number | null;           // 그 1초의 FPS. 못 읽은 초는 null
@@ -159,6 +192,7 @@ export interface StepProgress {
   historyId: number;
   seq: number;
   title: string;
+  tcId?: TcId;                  // 프로시저만 · 지금 도는 케이스. 진행 화면이 케이스를 짚는다
 }
 
 // 러너가 GET /progress로 답하는 것. 경과는 킷이 아니라 러너가 자기 시계로 잰다

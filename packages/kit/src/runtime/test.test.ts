@@ -41,6 +41,7 @@ vi.mock('@playwright/test', () => ({
 vi.mock('./app.js', () => app);
 
 const { defineCase } = await import('./defineCase.js');
+const { defineProcedure } = await import('./defineProcedure.js');
 const { test } = await import('./test.js');
 const { scenarioCase } = await import('./scenario.js');
 
@@ -346,5 +347,33 @@ describe('test', () => {
 
     const args = body.mock.calls[0][0] as { driver: unknown };
     expect(() => args.driver).toThrow('DEMO-B02은 브라우저 케이스라 driver 가 없다');
+  });
+
+  it('스캔 때는 프로시저 파일도 Playwright 에 등록하지 않고 본문을 돌리지 않는다', () => {
+    const body = vi.fn();
+    vi.stubEnv('PLATFORM_SCAN', '1');
+    try {
+      test(defineProcedure({ procId: 'DEMO-TP-901', name: '흐름', platforms: ['android'], precondition: [], cases: [androidSpec()] }), body);
+      test(androidSpec(), vi.fn());
+    } finally {
+      vi.unstubAllEnvs();
+    }
+
+    expect(pw.registered).toHaveLength(0);
+    expect(pw.appRegistered).toHaveLength(0);
+    expect(body).not.toHaveBeenCalled();
+  });
+
+  it('프로시저를 돌리려 하면 등록하지 않고 알린다 — 시나리오 부품으로도 안 올린다', () => {
+    const 흐름 = () => defineProcedure({ procId: 'DEMO-TP-902', name: '흐름', platforms: ['android'], precondition: [], cases: [androidSpec()] });
+
+    expect(() => { test(흐름(), vi.fn()); }).toThrow('DEMO-TP-902: 이 kit 은 프로시저를 아직 돌리지 못한다');
+    vi.stubEnv('PLATFORM_SCENARIO_MODE', '1');
+    try {
+      expect(() => { test(흐름(), vi.fn()); }).toThrow('DEMO-TP-902: 이 kit 은 프로시저를 아직 돌리지 못한다');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    expect(pw.appRegistered).toHaveLength(0);
   });
 });

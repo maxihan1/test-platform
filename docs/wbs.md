@@ -87,7 +87,8 @@
 
 ### ② 실행 뼈대
 **무엇** 받는 쪽부터 고친다 — 줄마다 main 은 옛 방식으로 그대로 돈다. 옛 꼴 `test(spec, body)` 는 웹 · API · 미션이 계속 쓴다.
-- [ ] `TP-F2-06` kit ① — 타입 · `defineProcedure` · 스캔 내보내기
+- [x] `TP-F2-06` kit ① — 타입 · `defineProcedure` · 스캔 내보내기
+  - 근거 PR #953 · 2026-11-24 — 타입은 더하기만 했다(`ProcId` · `ProcedureSpec` · `CaseSpec.procId` · `procSeq` · `StepResult.tcId` · `StepProgress.tcId` · `ExecuteCase` · `CaseResult`). `ExecuteRequest` · `ExecuteResponse` 는 러너 · admin 이 같이 바뀌어야 해서 08 몫이다 · 그래서 계약 블록 둘(공통/2 §4 「테스트 프로시저」 · 공통/3 「테스트 프로시저 타입」)을 반영한 몫과 남은 몫으로 갈랐다 · `defineProcedure` 는 케이스 선언 객체에 프로시저 번호와 차례를 바로 싣는다 — 스캐너가 읽는 `procedure.cases` 와 `test.case` 가 받을 선언이 같은 객체라 스키마 원본을 그대로 찾는다 · 선언만 보고 아는 어긋남(케이스 수 · 같은 케이스 두 번 · 미션 케이스 · `platforms` · 케이스에 적은 앱 켜기 설정 · 끝 검사에서 더한 다른 파일의 케이스)은 `defineProcedure` 가 던진다(시작 질문 승인) — 검사기(09)에 남는 것은 글자로 봐야 아는 규칙이다 · 프로시저의 앱 켜기 설정은 케이스와 같은 자리에 적혀 `keepsAppData(procedure)` · `실어켤값(procedure, 첫 케이스 입력값)` 으로 읽는다 · 프로시저 파일을 돌리려 하면 `test()` 가 등록하지 않고 「이 kit 은 프로시저를 아직 돌리지 못한다」로 던진다 — 07 이 그 갈래(`runtime/test.ts` `defineTest` 의 `'cases' in target`)를 채운다. `test.ts` 가 이미 300줄을 넘어 프로시저 실행은 새 파일에 둔다 · 배포하지 않았다
 - [ ] `TP-F2-07` kit ② — `test.case` · 판정 규칙(준비 구간에서 깨졌고 앞 케이스에 통과 아닌 것이 있으면 Blocked) · 케이스 한도 · 프로시저 단위 앱 켜기(`launchIntent` · `keepAppData`) · 게임 기록(`elementChecks` · `apiCalls`)에 케이스 표시
 - [ ] `TP-F2-08` kit ③ + 러너 — 케이스 시작/끝 표시 · 케이스가 끝나는 대로 판정 흘려보내기(첨부 + stdout) · 케이스별 입력 맵 · 러너가 두 요청 꼴을 받고 못 간 케이스를 채운다(시간 초과 · 중단에도 끝난 판정은 남긴다) · `/health` 능력
 - [ ] `TP-F2-09` DB + 스캐너 — 마이그레이션(`run_exec` · `run_item.exec_id` · `blocked_by` · 케이스별 시각 · `test_case.proc_id` · `proc_seq` · 스위치) · 파일 하나에서 케이스 여럿 · K 규칙 · 구간별 단계 제목 / 화면 연결 / 지문(자기 구간 + 앞 흐름) · 코드 보기 · 훅 파일 이름(`cases-only.mjs` · `service-folder.mjs`)
