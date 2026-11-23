@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { TECHNIQUES } from '@platform/kit/types';
 
 import { type CaseQuery, type ItemStatus, type Platform, type 앱종류, type 케이스축, 케이스축들 } from './api.js';
-import { 종류 } from './kind.js';
+import { 종류, 종류키 } from './kind.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 
 /** 설계 기법 고르개의 값 — 전체 · kit 기법 차례 · 기법 없음 (도메인/카탈로그 §8.1 「설계 기법」) */
@@ -22,7 +22,8 @@ function 고른값<T extends string>(글: string | null, 값들: readonly T[], �
 
 // 처음요구 — 「PRD 관리」에서 넘어온 주소의 요구 번호(도메인/카탈로그 §8.1 「맥락」). 화면에 따로 고르는 칸은 없다
 // 앱종류 — Android 앱 애플리케이션은 디바이스 칩 줄이 없다. 웹에서 고른 디바이스 · 주소의 dev 가 보이지 않는 거르기로 남지 않게 없는 것으로 친다
-export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구?: string, 앱종류?: 앱종류) {
+// kind GS — 게임 메뉴 「게임 미션」. 서버에는 기능 종류에 게임 미션만(`mission`)으로 묻는다 (도메인/카탈로그 §7 `?mission=`)
+export function use검색조건(service: string, kind: 'UI' | 'FN' | 'GS', 처음요구?: string, 앱종류?: 앱종류) {
   const [처음] = useState(주소조건);
   const [typed, setTyped] = useState(처음.get('q') ?? '');
   const [q, setQ] = useState(처음.get('q') ?? '');
@@ -46,7 +47,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
   const [열린, set열린] = useState<string | null>(처음.get('case'));
 
   // 기본값인 조건은 적지 않는다. 요구 번호는 주소의 길(`/req/<번호>`)이 든다 — ✕ 로 풀면 길에서도 뺀다 (도메인/카탈로그 §8.1 조건 8)
-  const 종류글자 = kind === 'UI' ? 'ui' : 'fn';
+  const 종류글자 = kind.toLowerCase();
   use주소조건(요구 === null ? `#/cases/${종류글자}` : `#/cases/${종류글자}/req/${encodeURIComponent(요구)}`, {
     ...(q === '' ? {} : { q }),
     ...(디바이스 === 'ALL' ? {} : { dev: 디바이스 }),
@@ -62,9 +63,12 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(service === '' ? {} : { service }),
   }, { 쌓는칸: ['case'], 듣기: (조건) => set열린(조건.get('case')) });
 
+  // 게임의 「기능 테스트」는 게임 미션을 뺀다 — 「게임 미션」 메뉴가 따로 보인다 (화면공통 §8 「자리 목록」)
+  const 미션 = kind === 'GS' ? true : kind === 'FN' && 종류키(앱종류) === 'GAME' ? false : undefined;
   const 조건: CaseQuery = {
     service,
-    kind,
+    kind: kind === 'UI' ? 'UI' : 'FN',
+    ...(미션 === undefined ? {} : { mission: 미션 }),
     q,
     ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
     ...(활성만 ? {} : { active: false }),

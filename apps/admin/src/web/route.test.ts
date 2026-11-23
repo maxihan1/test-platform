@@ -36,6 +36,9 @@ describe('route', () => {
     // 사이드바 하위 메뉴 — 종류가 주소에 남아 새로고침에도 안 풀린다 (화면공통 §8 · PR #132)
     expect(route('#/cases/fn')).toEqual({ name: 'cases', kind: 'FN' });
     expect(route('#/cases/ui')).toEqual({ name: 'cases', kind: 'UI' });
+    // 게임 메뉴 「게임 미션」 (화면공통 §8 「자리 목록」)
+    expect(route('#/cases/gs')).toEqual({ name: 'cases', kind: 'GS' });
+    expect(route('#/cases/gs/req/BRP-REQ-001')).toEqual({ name: 'cases', kind: 'GS', req: 'BRP-REQ-001' });
     expect(route('#/cases/zz')).toMatchObject({ name: 'unknown' });
   });
 
@@ -285,5 +288,6 @@ describe('route', () => {
   it('케이스 주소는 그 번호로 찾은 목록에서 상세 칸을 연다 — 케이스가 첫 쪽(50건) 밖이면 목록 쪽 안에 없어 칸이 안 열렸다', () => {
     expect(케이스주소('MKT-FN-051')).toBe('#/cases/fn?q=MKT-FN-051&case=MKT-FN-051&service=MKT');
     expect(케이스주소('MKT-UI-003')).toBe('#/cases/ui?q=MKT-UI-003&case=MKT-UI-003&service=MKT');
+    expect(케이스주소('BRP-GS-004')).toBe('#/cases/gs?q=BRP-GS-004&case=BRP-GS-004&service=BRP');
   });
 });

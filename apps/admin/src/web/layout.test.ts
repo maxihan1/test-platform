@@ -178,6 +178,12 @@ describe('자리 목록', () => {
     expect(이름들).toContain('실행 기록');
   });
 
+  it('게임의 게임 미션 목록은 #/cases/gs 이고, UI 번호 목록은 들어온 「기능 테스트」가 지금 자리다', () => {
+    expect(지금자리('cases', '#/cases', 'GS', true)).toBe('#/cases/gs');
+    expect(지금자리('cases', '#/cases', 'UI', true)).toBe('#/cases/fn');
+    expect(지금자리('cases', '#/cases', 'UI')).toBe('#/cases/ui');
+  });
+
   it('실행 결과와 항목 상세도 같은 규칙이다', () => {
     expect(지금자리('run', '#/cases')).toBe('#/runs');
     expect(지금자리('item', '#/cases')).toBe('#/runs');

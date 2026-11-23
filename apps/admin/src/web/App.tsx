@@ -475,7 +475,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       onLogout={나간다}
       current={(() => {
         const 지금 = route(hash);
-        return 지금자리(지금.name, 집(상태.user, 열린접두사), 'kind' in 지금 ? 지금.kind : undefined);
+        return 지금자리(지금.name, 집(상태.user, 열린접두사), 'kind' in 지금 ? 지금.kind : undefined, 열린것?.kind === 'GAME');
       })()}
     >
       {안내 === null ? null : (

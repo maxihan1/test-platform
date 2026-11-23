@@ -87,6 +87,29 @@ describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
     expect(스파이).toHaveBeenCalledWith(expect.objectContaining({ service: 'ZPK', kind: 'UI' }));
     expect(screen.getByRole('heading', { level: 1, name: '기능 · UI 테스트 › UI 테스트' })).toBeTruthy();
   });
+
+  it('게임의 게임 미션은 기능 종류에 게임 미션만으로 부르고, 기능 테스트는 게임 미션을 빼고 UI 번호 목록 링크를 단다', async () => {
+    const 스파이 = 모킹(쪽주기);
+    render(<CaseList kind="GS" service="ZPK" 할수={전부된다} 결과보나 앱종류="GAME" />);
+    await screen.findByText('ZPK-001');
+    expect(스파이).toHaveBeenCalledWith(expect.objectContaining({ kind: 'FN', mission: true }));
+    expect(screen.getByRole('heading', { level: 1, name: '게임 미션' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'UI 번호 케이스 보기' })).toBeNull();
+    cleanup();
+
+    render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 앱종류="GAME" />);
+    await screen.findByText('ZPK-001');
+    expect(스파이).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'FN', mission: false }));
+    expect(screen.getByRole('heading', { level: 1, name: '기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'UI 번호 케이스 보기' }).getAttribute('href')).toBe('#/cases/ui');
+  });
+
+  it('게임이 아니면 게임 미션 조건을 보내지 않는다', async () => {
+    const 스파이 = 모킹(쪽주기);
+    render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 앱종류="SCREEN" />);
+    await screen.findByText('ZPK-001');
+    expect(스파이.mock.calls[0]![0].mission).toBeUndefined();
+  });
 });
 
 const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!보이는 케이스 전체).* 선택$/ });
