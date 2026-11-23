@@ -1,10 +1,10 @@
-import type { Page } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 import { 로그인이어쓰기 } from '@platform/kit/parts';
 
 import { 한국어로 } from './page-setup.helper.js';
 
 const 기억 = new WeakMap<Page, string>();
-const 남긴세션을쓴계정 = new Set<string>();
+const 남긴세션을쓰는창 = new Map<string, BrowserContext>();
 
 async function 지금계정(page: Page): Promise<string | null | undefined> {
   if (process.env.PLATFORM_SCENARIO_MODE !== '1') return undefined;
@@ -41,10 +41,11 @@ export async function 로그인하기(page: Page, 아이디: string | undefined,
     await page.getByRole('navigation', { name: '메인' }).waitFor();
     return;
   }
-  if (남긴세션을쓴계정.has(아이디)) {
+  const 쓰는창 = 남긴세션을쓰는창.get(아이디);
+  if (쓰는창 !== undefined && 쓰는창 !== page.context()) {
     await 화면으로로그인(page, 아이디, 암호);
   } else {
-    남긴세션을쓴계정.add(아이디);
+    남긴세션을쓰는창.set(아이디, page.context());
     await 로그인이어쓰기(page, 아이디, 암호, {
       로그인: () => 화면으로로그인(page, 아이디, 암호),
       들어왔나: () => 로그인된채홈열기(page),
