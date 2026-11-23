@@ -30,11 +30,12 @@ export async function 답하나(주소: string): Promise<boolean> {
 
 /**
  * 러너가 답했는데 프로시저를 못 도는 판인가 — `GET /health` 에 `procedure: true` 가 없다 (도메인/러너 §5.2 「프로시저 실행」 「능력」).
- * 못 닿으면 모르는 것이라 false 다 — 막지 않고 보내 보면 지금처럼 「러너에 닿지 못했습니다」로 닫힌다
+ * 못 닿았거나 오류로 답하면(러너 앞 터널 · 프록시의 502 · 503) 모르는 것이라 false 다 — 막지 않고 보내 보면 지금처럼 「러너에 닿지 못했습니다」로 닫힌다
  */
 export async function 프로시저못도는러너인가(주소: string = runnerUrl()): Promise<boolean> {
   try {
     const res = await fetch(`${주소}/health`, { signal: AbortSignal.timeout(2_000) });
+    if (!res.ok) return false;
     return ((await res.json()) as { procedure?: unknown } | null)?.procedure !== true;
   } catch {
     return false;

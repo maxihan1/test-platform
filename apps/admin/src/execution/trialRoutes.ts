@@ -249,7 +249,9 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     if (읽음.status === 'DONE') {
       // 프로시저면 케이스마다 한 건을 result 옆에 싣는다 — result 는 누른 케이스 한 건 그대로다 (도메인/실행 §7 「케이스 테스트 실행」)
       const { results, ...r } = 읽음.result;
-      const failure = 항목실패를가른다({ status: r.status, finished: true, error: r.error, steps: r.steps }, (글) => 글);
+      // 실패 유형은 누른 케이스의 절차로만 가른다 — result.steps 는 프로시저 전체라 다른 케이스의 실패 절차가 섞여 있다
+      const 절차 = results?.find((c) => c.tcId === req.params.tcId)?.steps ?? r.steps;
+      const failure = 항목실패를가른다({ status: r.status, finished: true, error: r.error, steps: 절차 }, (글) => 글);
       return { status: 읽음.status, result: r, ...(results !== undefined && { results }), failure };
     }
     // 러너에 보낸 시험만 지금 단계를 묻는다. 러너가 아직 모르거나 못 닿으면 빈 칸이다 — 오류가 아니다

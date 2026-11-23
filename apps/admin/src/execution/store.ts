@@ -13,7 +13,7 @@ import { 실행빌드, 앞빌드, 앱칸 } from './buildFile.js';
 import { 엔진칸 } from './engineField.js';
 import { 선언밖디바이스, 윈도우를펼친다, 플랫폼밖인가 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
-import { 케이스를읽는다, 프로시저로펼친다, 실행단위를넣는다 } from './runExec.js';
+import { 케이스를읽는다, 프로시저로펼친다, 프로시저에서빠졌나, 실행단위를넣는다 } from './runExec.js';
 import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 import { 시작방식정하기 } from './single.js';
@@ -233,6 +233,13 @@ export async function createRun(
     if (missing.length > 0) throw new RunInputError('CASE_NOT_FOUND', `카탈로그에 없는 케이스다: ${missing.join(', ')}`);
     const 밖 = 선언밖디바이스(input.items, cases);
     if (밖) throw new RunInputError('INVALID_REQUEST', `${밖.tcId} 는 ${PLATFORM_LABEL[밖.platform]} 환경을 선언하지 않았다`);
+    // 프로시저에서 빠진 케이스는 그 프로시저와 같이 돌 수 없다 — 사람이 건 실행은 케이스 테스트 실행처럼 404 로 거절하고 자동 실행은 그 케이스만 뺀다
+    const 빠진 = input.items.filter((i) => 프로시저에서빠졌나(cases.get(i.tcId))).map((i) => i.tcId);
+    if (빠진.length > 0) {
+      if (input.origin === 'MANUAL') throw new RunInputError('CASE_NOT_FOUND', `테스트 프로시저에서 빠진 케이스다: ${빠진.join(', ')}`);
+      input = { ...input, items: input.items.filter((i) => !빠진.includes(i.tcId)) };
+      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '테스트 프로시저에서 빠진 케이스뿐이라 돌 케이스가 없다');
+    }
     // 못 도는 러너에는 프로시저 파일을 보내지 않는다 — 사람이 건 실행은 거절하고 자동 실행은 그 케이스만 뺀다(디바이스가 안 맞는 케이스를 다루는 방식과 같다)
     const 프로시저안 = (tcId: string): boolean => (cases.get(tcId)?.proc_id ?? null) !== null;
     let procSkipped = 0;

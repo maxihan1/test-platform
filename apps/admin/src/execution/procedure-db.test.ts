@@ -179,6 +179,15 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     expect((await q<{ title: string }>('SELECT title FROM test_run WHERE run_id = $1', [runId])).rows[0]!.title).toBe('기능 전체 5건');
   });
 
+  it('프로시저에서 빠져 내려간 케이스를 직접 고르면 사람이 건 실행은 CASE_NOT_FOUND 로 거절하고 자동 실행은 그 케이스만 뺀다', async () => {
+    await expect(createRun(요청([앱항목('XPC-FN-301'), 앱항목('XPC-FN-101')]), 돈다)).rejects.toMatchObject({ code: 'CASE_NOT_FOUND' });
+    expect((await q(`SELECT 1 FROM test_run WHERE service_id IN ${서비스들}`)).rowCount).toBe(0);
+
+    const { runId } = await createRun(요청([앱항목('XPC-FN-301'), 앱항목('XPC-FN-201')], { origin: 'BUILD' }), 돈다);
+    expect((await 케이스줄(runId)).map((r) => r.tc_id)).toEqual(['XPC-FN-201']);
+    await expect(createRun(요청([앱항목('XPC-FN-301')], { origin: 'BUILD' }), 돈다)).rejects.toMatchObject({ code: 'NO_ITEMS' });
+  });
+
   it('러너가 프로시저를 못 돌면 사람이 건 실행은 RUNNER_NO_PROCEDURE 로 거절하고 실행을 만들지 않는다', async () => {
     const err = await createRun(요청([앱항목('XPC-FN-201'), 앱항목('XPC-FN-101')]), 못돈다).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(RunInputError);
@@ -203,7 +212,7 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     try {
       const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { env: 'qa', items: [앱항목('XPC-FN-101')] } });
       expect(res.statusCode).toBe(409);
-      expect(res.json().error).toBe('RUNNER_NO_PROCEDURE');
+      expect(res.json()).toEqual({ error: 'RUNNER_NO_PROCEDURE' });
     } finally {
       await app.close();
       if (팜 === undefined) delete process.env.DEVICE_FARM_URL;

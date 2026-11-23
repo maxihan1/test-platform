@@ -93,7 +93,7 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
       });
       만든것.push({ runId, 보낼것 });
       if (procSkipped > 0) 로그.info(`${꼬리} ${prefix} 프로시저 안 케이스 ${String(procSkipped)}건은 뺐다 — 서버 러너가 테스트 프로시저를 돌리지 못한다`);
-      로그.info(`${꼬리} ${prefix} 실행 ${String(runId)}(${이름[묶음.kind]})을 만들었다. 케이스 ${String(묶음.items.length)}건 · 항목 ${String(보낼것.length)}건`);
+      로그.info(`${꼬리} ${prefix} 실행 ${String(runId)}(${이름[묶음.kind]})을 만들었다. 케이스 ${String(묶음.items.length - procSkipped)}건 · 항목 ${String(보낼것.length)}건`);
     } catch (err) {
       // 지원 패드를 풀어 버튼 그림 케이스만 있던 종류가 비면 그 종류만 안 선다 — 빌드를 지우고 CI 가 영영 다시 부르게 하지 않는다 (도메인/게임 §3.10 「펼친 항목이 없는 케이스는 빠진다」)
       if (err instanceof RunInputError && err.code === 'NO_ITEMS') {

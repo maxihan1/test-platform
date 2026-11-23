@@ -120,6 +120,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
         if (err.detail !== undefined) {
           return reply.code(code).send({ error: err.code, ...err.detail });
         }
+        // detail 을 싣지 않는다 — 화면 문장이 사유를 다 말하고, 같은 말을 실으면 두 번 뜬다(케이스 테스트 실행 통로와 같다)
+        if (err.code === 'RUNNER_NO_PROCEDURE') return reply.code(code).send({ error: err.code });
         return reply.code(code).send({ error: err.code, detail: err.message });
       }
       throw err;

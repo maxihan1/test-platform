@@ -20,6 +20,7 @@ export interface CaseRow {
   expected_schema: Record<string, unknown>;
   unconfirmed: string | null;
   platforms: string[];
+  is_active: boolean;
   proc_id: string | null;
   proc_seq: number | null;
   proc_name: string | null;
@@ -27,12 +28,15 @@ export interface CaseRow {
 
 // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
 // 미확정 사유도 여기서 박제한다 — 확인 필요 항목이 나중에 확정돼도 그날 확정이 아니었다는 사실은 남아야 한다 (SPEC 실행 §3.2)
-const 케이스칸 = `tc_id, name, precondition, file_path, param_schema, expected_schema, ${미확정사유SQL('c')} AS unconfirmed, platforms, proc_id, proc_seq, proc_name`;
+const 케이스칸 = `tc_id, name, precondition, file_path, param_schema, expected_schema, ${미확정사유SQL('c')} AS unconfirmed, platforms, is_active, proc_id, proc_seq, proc_name`;
 
 export async function 케이스를읽는다(client: 질의, tcIds: string[]): Promise<Map<string, CaseRow>> {
   const found = await client.query<CaseRow>(`SELECT ${케이스칸} FROM test_case c WHERE tc_id = ANY($1::text[])`, [tcIds]);
   return new Map(found.rows.map((r) => [r.tc_id, r]));
 }
+
+/** 프로시저에서 빠져 내려간 케이스 — 비활성 줄에 옛 프로시저 번호가 남아 있다. 그 프로시저의 케이스가 아니라 펼칠 수도 혼자 돌릴 수도 없다 */
+export const 프로시저에서빠졌나 = (c: CaseRow | undefined): boolean => c !== undefined && c.proc_id !== null && !c.is_active;
 
 /**
  * 고른 케이스가 프로시저 안 케이스면 그 프로시저의 케이스 전부로 펼친다 — 앞 흐름 없이는 그 케이스의 시작 상태가 안 맞는다.
@@ -60,7 +64,7 @@ export async function 프로시저로펼친다(client: 질의, items: RunItemInp
     if (넣은.has(번호)) return [];
     넣은.add(번호);
     return [...cases.values()]
-      .filter((c) => c.proc_id === 번호)
+      .filter((c) => c.proc_id === 번호 && c.is_active)
       .sort((a, b) => (a.proc_seq ?? 0) - (b.proc_seq ?? 0))
       .map((c) => ({ tcId: c.tc_id, platforms: 디바이스.get(번호)!, params: 요청.get(c.tc_id)?.params ?? {}, expected: 요청.get(c.tc_id)?.expected ?? {} }));
   });

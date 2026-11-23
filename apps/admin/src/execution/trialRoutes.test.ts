@@ -691,7 +691,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
         historyId: 보낸.historyId,
         durationMs: 9,
         results: [
-          { tcId: 'XTR-FN-101', status: 'FAIL', durationMs: 4, steps: [], error: { message: '본문이 비었는데 게시됐다 (p4ss!)' } },
+          { tcId: 'XTR-FN-101', status: 'FAIL', durationMs: 4, steps: [{ seq: 1, title: 'XTR-FN-101 준비', status: 'PASS', verifications: [] }], error: { message: '본문이 비었는데 게시됐다 (p4ss!)' } },
           { tcId: 'XTR-FN-102', status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 'XTR-FN-101' },
         ],
       });
@@ -700,10 +700,11 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
         끝 = (await 읽기(trialId, 'xtr-writer', 'XTR-FN-102')).json<Record<string, unknown>>();
         await new Promise((ok) => setTimeout(ok, 20));
       }
-      // result 는 누른 케이스 한 건이고 results 는 케이스마다 한 건이다. 다른 케이스의 사유 글에 되비친 비밀값도 가린다
+      // result 의 판정 · 사유는 누른 케이스 것이고 절차는 프로시저 전체 차례다(화면의 단계 목록이 프로시저 전체다). results 는 케이스마다 한 건이다.
+      // 다른 케이스의 사유 글에 되비친 비밀값도 가린다
       expect(끝).toMatchObject({
         status: 'DONE',
-        result: { status: 'NA', error: { message: 'BLOCKED' }, steps: [] },
+        result: { status: 'NA', error: { message: 'BLOCKED' }, steps: [{ seq: 1, title: 'XTR-FN-101 준비' }] },
         results: [
           { tcId: 'XTR-FN-101', status: 'FAIL', error: { message: '본문이 비었는데 게시됐다 (********)' } },
           { tcId: 'XTR-FN-102', status: 'NA', blockedBy: 'XTR-FN-101' },

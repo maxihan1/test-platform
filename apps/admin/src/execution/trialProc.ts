@@ -48,7 +48,8 @@ interface 케이스줄 {
   step_titles: string[] | null;
 }
 
-// 화면의 결과 칸은 누른 케이스 한 건을 그린다 — 프로시저 화면(TP-F3-16)이 서기 전에도 지금 화면이 그대로 읽는다
+// 화면의 결과 칸은 누른 케이스의 판정 · 사유를 그린다 — 프로시저 화면(TP-F3-16)이 서기 전에도 지금 화면이 그대로 읽는다.
+// 절차만은 프로시저 전체를 차례대로 싣는다 — 화면의 단계 목록이 프로시저 전체라(stepTitles) 누른 케이스 것만 실으면 실제로 돈 다른 케이스의 단계가 「실행 안 함」으로 뜬다
 function 누른케이스로(답: CasesExecuteResponse, tcId: string): 시험결과 {
   const 것 = 답.results.find((r) => r.tcId === tcId);
   if (것 === undefined) {
@@ -58,7 +59,7 @@ function 누른케이스로(답: CasesExecuteResponse, tcId: string): 시험결�
     historyId: 답.historyId,
     status: 것.status,
     durationMs: 것.durationMs,
-    steps: 것.steps,
+    steps: 답.results.flatMap((r) => r.steps),
     ...(것.error !== undefined && { error: 것.error }),
     ...(답.device !== undefined && { device: 답.device }),
     results: 답.results,
