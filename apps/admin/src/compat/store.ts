@@ -1,7 +1,7 @@
 // 호환성 세트를 읽고 쓰고, 자동 선택 재료(전체 화면 목록 · 고를 수 있는 케이스 · 최근 소요)를 모은다 (도메인/호환성 §3.13 · 데이터모델 「호환성 표」)
 
 import { 주소틀 } from '../../../../scripts/authoring-crawl-rules.js';
-import { 찾은화면에닿나 } from '../../../../scripts/authoring-game-key.js';
+import { 닿는찾은화면 } from '../../../../scripts/authoring-game-key.js';
 import { db } from '../settings/store.js';
 import type { 화면, 후보 } from './select.js';
 
@@ -71,13 +71,16 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
 
   const 틀모음 = new Map<string, Set<string>>(번호들.map((t) => [t, new Set<string>()]));
   const 케이스화면이름 = new Map<string, string>();
-  // 게임 화면 파일의 여는 주소는 장면 + 요소 주소다(카탈로그 screenMap.ts 여는주소들) — 크롤이 찾은 창에 닿을 때만(무늬 `game:*` · `:n` 포함) 화면이고 나머지는 글자 · 버튼이라 세지 않는다
+  // 게임 화면 파일의 여는 주소는 장면 + 요소 주소다(카탈로그 screenMap.ts 여는주소들) — 글자 · 버튼이라 그 자체는 화면이 아니고, 닿는 찾은 화면(같음 · 무늬 · 요소가 든 위 창)을 대신 센다
   const 크롤열쇠 = new Set(기록.rows.map((r) => r.url));
   for (const r of 화면줄.rows) {
     for (const 주소 of [r.screen_url, ...r.open_urls]) {
       const 틀 = 주소 === null ? null : 주소틀(주소);
       if (틀 === null) continue;
-      if (주소 !== r.screen_url && 틀.startsWith('game:') && !찾은화면에닿나(틀, 크롤열쇠)) continue;
+      if (주소 !== r.screen_url && 틀.startsWith('game:')) {
+        for (const k of 닿는찾은화면(틀, 크롤열쇠)) 틀모음.get(r.tc_id)?.add(k);
+        continue;
+      }
       틀모음.get(r.tc_id)?.add(틀);
       if (주소 === r.screen_url && r.name !== null && !케이스화면이름.has(틀)) 케이스화면이름.set(틀, r.name);
     }

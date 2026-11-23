@@ -128,6 +128,23 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     ]);
   });
 
+  it('게임 장소 줄은 활성 케이스의 elements 에 같은 zone 이 있으면 덮는다 — 장면은 안 따지고 꺼진 케이스는 안 센다', async () => {
+    for (const [tc, 활성, 요소] of [['XPD-FN-001', true, '{zone:BossArena,item:sword}'], ['XPD-FN-002', false, '{zone:Hidden}']] as const) {
+      await q(
+        `INSERT INTO test_case (tc_id, name, file_path, param_schema, expected_schema, is_active, elements)
+         VALUES ($1, '검사', 'tests/xpd/a.spec.ts', '{}', '{}', $2, $3)`,
+        [tc, 활성, 요소],
+      );
+    }
+    await 찾음([
+      ['로그아웃', 'game:BossRoom/zone:BossArena', '보스 방'],
+      ['로그아웃', 'game:Lobby/zone:BossArena', '보스 방'],
+      ['로그아웃', 'game:BossRoom/zone:Hidden', '숨은 방'],
+      ['로그아웃', 'game:BossRoom/zone:Cave', '동굴'],
+    ]);
+    expect((await 읽기()).uncoveredScreens.map((x) => x.url)).toEqual(['game:BossRoom/zone:Cave', 'game:BossRoom/zone:Hidden']);
+  });
+
   it('대상 서버가 달라도 같은 상태 · 틀은 한 줄이다 — 이름은 빈 것보다 있는 것 (PRD-F9-29)', async () => {
     await 찾음([['로그인:일반 회원', '/cart', '']], 'qa');
     await 찾음([['로그인:일반 회원', '/cart', '장바구니'], ['로그인:관리자', '/cart', '장바구니']], 'prod');

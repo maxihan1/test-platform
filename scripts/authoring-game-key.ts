@@ -25,24 +25,39 @@ export function 게임무늬(파일틀: string): RegExp | null {
   return 무늬;
 }
 
-/** 찾은 게임 화면 열쇠가 화면 파일 틀들 가운데 무늬 하나에 맞나. 게임 열쇠가 아니면 늘 아니다 */
-export function 게임무늬닿나(틀: string, 파일틀: Iterable<string>): boolean {
+/**
+ * 화면 파일 틀과 그 위 창들(가까운 것부터) — 케이스가 창 안 요소를 읽으면 그 창도 들른 것이다(2026-11-23 사용자).
+ * 장면 첫 화면(`game:<장면>`)은 넣지 않는다 — 글자 하나 읽고 장면 전체를 덮지 않게. 장소(`/zone:`)가 든 틀은 자기만이다
+ */
+function 후보들(파일틀: string): string[] {
+  const m = /^(game:[^/]+)\/(.+)$/.exec(파일틀);
+  if (m === null || m[2]!.includes('zone:')) return [파일틀];
+  const 마디 = m[2]!.split('/');
+  return 마디.map((_, i) => `${m[1]}/${마디.slice(0, 마디.length - i).join('/')}`);
+}
+
+const 맞나 = (후보: string, 찾은틀: string): boolean => 후보 === 찾은틀 || 게임무늬(후보)?.test(찾은틀) === true;
+
+/** 찾은 게임 화면 열쇠가 화면 파일 틀들(무늬 · 위 창 포함)에 닿나. 게임 열쇠가 아니면 늘 아니다 */
+export function 게임틀닿나(틀: string, 파일틀: Iterable<string>): boolean {
   if (!틀.startsWith('game:')) return false;
-  for (const f of 파일틀) if (게임무늬(f)?.test(틀) === true) return true;
+  for (const f of 파일틀) if (후보들(f).some((c) => 맞나(c, 틀))) return true;
   return false;
 }
 
-/** 찾은 게임 화면 열쇠에 무늬로 닿는 화면 파일 틀의 케이스 — 같은 글자의 틀은 부르는 쪽이 따로 모은다 */
-export function 게임무늬케이스(틀: string, 지도: ReadonlyMap<string, readonly string[]>): string[] {
+/** 찾은 게임 화면 열쇠에 무늬 · 위 창으로 닿는 화면 파일 틀의 케이스 — 같은 글자의 틀은 부르는 쪽이 따로 모은다 */
+export function 게임틀케이스(틀: string, 지도: ReadonlyMap<string, readonly string[]>): string[] {
   if (!틀.startsWith('game:')) return [];
-  return [...지도].filter(([k]) => k !== 틀 && 게임무늬(k)?.test(틀) === true).flatMap(([, v]) => v);
+  return [...지도].filter(([k]) => k !== 틀 && 후보들(k).some((c) => 맞나(c, 틀))).flatMap(([, v]) => v);
 }
 
-/** 화면 파일 틀(무늬일 수 있다)이 찾은 화면 열쇠 가운데 하나에 닿나 — 호환성이 게임 여는 주소를 화면으로 셀지 가른다 */
-export function 찾은화면에닿나(파일틀: string, 찾은: ReadonlySet<string>): boolean {
-  if (찾은.has(파일틀)) return true;
-  const 무늬 = 게임무늬(파일틀);
-  if (무늬 === null) return false;
-  for (const k of 찾은) if (무늬.test(k)) return true;
-  return false;
+/** 화면 파일 틀(무늬 · 요소일 수 있다)이 닿는 찾은 화면 열쇠들 — 호환성이 게임 여는 주소 대신 이것을 화면으로 센다 */
+export function 닿는찾은화면(파일틀: string, 찾은: ReadonlySet<string>): string[] {
+  const 모음 = new Set<string>();
+  for (const c of 후보들(파일틀)) {
+    if (찾은.has(c)) 모음.add(c);
+    const 무늬 = 게임무늬(c);
+    if (무늬 !== null) for (const k of 찾은) if (무늬.test(k)) 모음.add(k);
+  }
+  return [...모음];
 }

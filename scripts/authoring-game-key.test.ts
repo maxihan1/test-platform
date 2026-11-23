@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { 틀닿나, 틀케이스 } from './authoring-crawl-rules.js';
 import { 여는주소들 } from '../apps/admin/src/catalog/screenMap.js';
-import { 찾은화면에닿나 } from './authoring-game-key.js';
+import { 닿는찾은화면 } from './authoring-game-key.js';
 
 describe('게임 화면 열쇠 무늬 — 케이스 주소가 표시한 자리만 넓게 본다', () => {
   it('이름 안 :n 은 그 자리 숫자 아무거나와 맞는다 — 던전마다 바뀌는 번호', () => {
@@ -55,17 +55,46 @@ describe('게임 화면 열쇠 무늬 — 케이스 주소가 표시한 자리�
     expect(틀닿나('game:BossRoom/Showcase HUD/Window 상점/Panel 상점/Button 팔기', new Set(여는))).toBe(false);
   });
 
+  it('창 안 요소를 읽으면 그 창도 들른 것이다 — 장면 첫 화면 · 장소는 빼고 무늬와 같이 돈다', () => {
+    const 파일 = new Set([
+      'game:CharSelect/CharacterSelectCanvas/ClassInfoBox/HideAllTheseWhenNoClass/CurrentClass (TMP)',
+      'game:*/Showcase HUD/Window 상점/Panel 상점/Button 사기',
+      'game:BossRoom/PlayerAvatar:n/AvatarGraphics:n/fx_TankAttack1(Clone)',
+    ]);
+    expect(틀닿나('game:CharSelect/CharacterSelectCanvas/ClassInfoBox/HideAllTheseWhenNoClass', 파일)).toBe(true);
+    expect(틀닿나('game:CharSelect/CharacterSelectCanvas', 파일)).toBe(true);
+    expect(틀닿나('game:CharSelect', 파일)).toBe(false);
+    expect(틀닿나('game:CharSelect/CharacterSelectCanvas/ClassInfo', 파일)).toBe(false);
+    expect(틀닿나('game:BossRoom/CharacterSelectCanvas/ClassInfoBox', 파일)).toBe(false);
+    expect(틀닿나('game:BossRoom/Showcase HUD/Window 상점/Panel 상점', 파일)).toBe(true);
+    expect(틀닿나('game:Lobby/Showcase HUD/Window 상점', 파일)).toBe(true);
+    expect(틀닿나('game:BossRoom/PlayerAvatar69/AvatarGraphics69', 파일)).toBe(true);
+    expect(틀닿나('game:BossRoom/PlayerAvatar69', 파일)).toBe(true);
+    expect(틀닿나('game:BossRoom/zone:BossArena', new Set(['game:BossRoom/zone:BossArena/Gate']))).toBe(false);
+  });
+
+  it('틀케이스 — 창 안 요소를 읽는 케이스도 그 창의 케이스다', () => {
+    const 지도 = new Map([['game:CharSelect/CharacterSelectCanvas/Tooltip/Text (TMP)', ['BRP-FN-011']]]);
+    expect(틀케이스('game:CharSelect/CharacterSelectCanvas/Tooltip', 지도)).toEqual(['BRP-FN-011']);
+    expect(틀케이스('game:CharSelect', 지도)).toBeUndefined();
+  });
+
+  it('닿는찾은화면 — 호환성이 게임 여는 주소 대신 셀 찾은 화면(같음 · 무늬 · 조상 창)', () => {
+    const 찾은 = new Set(['game:BossRoom/Showcase HUD/Window 상점', 'game:CharSelect/CharacterSelectCanvas/Tooltip', 'game:CharSelect']);
+    expect(닿는찾은화면('game:*/Showcase HUD/Window 상점/Panel 상점/Button 사기', 찾은)).toEqual(['game:BossRoom/Showcase HUD/Window 상점']);
+    expect(닿는찾은화면('game:CharSelect/CharacterSelectCanvas/Tooltip/Text (TMP)', 찾은)).toEqual(['game:CharSelect/CharacterSelectCanvas/Tooltip']);
+    expect(닿는찾은화면('game:CharSelect/Other/Text', 찾은)).toEqual([]);
+  });
+
   it('앱 열쇠는 무늬를 안 탄다 — 게임 무늬 틀이 있어도 글자가 같아야 한다', () => {
     expect(틀닿나('app:.Main/홈', new Set(['game:*/홈', 'app:.Main/설정']))).toBe(false);
   });
 
-  it('찾은화면에닿나 — 호환성이 게임 여는 주소(무늬일 수 있다)를 화면으로 셀지 가른다', () => {
+  it('닿는찾은화면 — 무늬 틀이 닿는 찾은 화면을 낸다', () => {
     const 찾은 = new Set(['game:BossRoom/Showcase HUD/Window 상점', 'game:BossRoom/PlayerAvatar69/AvatarGraphics69']);
-    expect(찾은화면에닿나('game:*/Showcase HUD/Window 상점', 찾은)).toBe(true);
-    expect(찾은화면에닿나('game:BossRoom/PlayerAvatar:n/AvatarGraphics:n', 찾은)).toBe(true);
-    expect(찾은화면에닿나('game:BossRoom/Showcase HUD/Window 상점', 찾은)).toBe(true);
-    expect(찾은화면에닿나('game:BossRoom/Showcase HUD/Window 상점/Panel/Text', 찾은)).toBe(false);
-    expect(찾은화면에닿나('game:*/Showcase HUD/Window 가방', 찾은)).toBe(false);
+    expect(닿는찾은화면('game:*/Showcase HUD/Window 상점', 찾은)).toEqual(['game:BossRoom/Showcase HUD/Window 상점']);
+    expect(닿는찾은화면('game:BossRoom/PlayerAvatar:n/AvatarGraphics:n', 찾은)).toEqual(['game:BossRoom/PlayerAvatar69/AvatarGraphics69']);
+    expect(닿는찾은화면('game:*/Showcase HUD/Window 가방', 찾은)).toEqual([]);
   });
 
   it('틀케이스 — 무늬가 덮는 화면 파일 틀의 케이스도 모은다', () => {
