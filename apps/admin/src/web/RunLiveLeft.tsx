@@ -58,7 +58,7 @@ function 넘침({ 수 }: { 수: number }) {
 export function 진행왼쪽({ data, 진행: 지금, 남은ms }: { data: RunDetail; 진행: 진행; 남은ms: number | null }) {
   const t = use말();
   const 언어 = use언어();
-  const { 막대, 끝난수, 전체수, 지금도는것들, 끝난것들, 대기것들 } = 지금;
+  const { 막대, 끝난수, 전체수, 지금도는것들, 끝난것들, 지나간것들, 대기것들 } = 지금;
   const 미확정 = 그중미확정글(data.counts, 언어);
 
   return (
@@ -92,7 +92,10 @@ export function 진행왼쪽({ data, 진행: 지금, 남은ms }: { data: RunDeta
             <줄 key={항목.historyId} 항목={항목} 오른쪽={<span className="pill run">{짧은단계글(절차, t) ?? t('진행 중')}</span>} />
           ))}
         </묶음>
-        <묶음 이름={t('종료')} 수={끝난것들.length}>
+        <묶음 이름={t('종료')} 수={지나간것들.length + 끝난것들.length}>
+          {지나간것들.map((항목) => (
+            <줄 key={항목.historyId} 항목={항목} 오른쪽={<span className="pill wait">{t('종료')}</span>} />
+          ))}
           {끝난것들.slice(0, 줄최대).map((항목) => (
             <줄 key={항목.historyId} 항목={항목} 오른쪽={<span className={`pill ${알약종류[항목.status]}`}>{막힌항목(항목) ? 'Blocked' : t(STATUS_LABEL[항목.status])}</span>} />
           ))}

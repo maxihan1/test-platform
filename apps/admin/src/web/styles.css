@@ -312,7 +312,7 @@ a {
    그 다음 사람이 새 자리를 만들 때 붙이는 것을 잊는다. 자리 이름으로 걸어 두면 안 잊는다 */
 .runid,
 .case-tc,
-.tally b,
+.tally b:not(:where(.modal-back *)),
 .tcid,
 .env-url,
 .prow .id,
@@ -732,14 +732,15 @@ a {
   flex-wrap: wrap;
 }
 
-.tally b {
+/* 결과 화면의 실행 창은 .tally 안에 그려진다 — 창 글자까지 커지지 않게 창 안은 뺀다 */
+.tally b:not(:where(.modal-back *)) {
   font-size: 20px;
   font-weight: 600;
   display: block;
   line-height: 1.2;
 }
 
-.tally span {
+.tally span:not(:where(.modal-back *)) {
   font-size: 11.5px;
   color: var(--ink-muted);
 }
@@ -1809,7 +1810,7 @@ input[type='file']::file-selector-button {
 
   /* RUN 머리의 증적 버튼도 같은 화면이다. 하나일 때는 오눌러도 결과가 같았지만
      형식이 셋이 되면서 오눌림이 「엑셀 대신 PDF」라는 뜻을 갖는다 (docs/DESIGN.md 44px) */
-  .tally .btn {
+  .tally .btn:not(:where(.modal-back *)) {
     min-height: 44px;
     padding: 9px 20px;
   }

@@ -95,7 +95,7 @@
 
 .trial-res .top {
   display: grid;
-  grid-template-columns: 128px minmax(0, 1fr) 70px 64px 52px;
+  grid-template-columns: 128px minmax(0, 1fr) 70px 64px 88px;
   gap: 10px;
   align-items: center;
   padding: 9px 14px;

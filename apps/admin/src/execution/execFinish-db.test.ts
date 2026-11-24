@@ -252,7 +252,7 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
     expect(await 실행단위번호(runId + 1, 줄['XEU-FN-101']!)).toBeNull();
   });
 
-  it('진행 조회는 러너가 실행 단위 번호로 알린 진행을 지금 도는 케이스 줄로 바꿔 싣고, 단계 제목은 프로시저 전체를 차례대로 잇는다', async () => {
+  it('진행 조회는 러너가 실행 단위 번호로 알린 진행을 지금 도는 케이스 줄로 바꿔 싣고, 제한은 실제로 끊기는 케이스 한도(옛 꼴은 박제된 값)이며 단계 제목은 프로시저 전체를 차례대로 잇는다', async () => {
     const { runId, execId, 줄, 옛 } = await 실행을만든다();
     const 도는것: RunningStep[] = [
       { historyId: execId, tcId: 'XEU-FN-102', seq: 3, title: '비밀번호를 다시 넣는다', elapsedMs: 1200 } as RunningStep,
@@ -274,10 +274,10 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
         execId,
         tcId: 'XEU-FN-102',
         seq: 3,
-        timeoutMs: 300_000,
+        timeoutMs: 120_000,
         stepTitles: ['글쓰기 화면을 연다', '본문 없이 게시한다', '비밀번호를 다시 넣는다', '게시하고 확인한다'],
       });
-      expect(items[1]).toMatchObject({ historyId: 옛.historyId, execId: 옛.execId, stepTitles: ['옛 꼴 단계'] });
+      expect(items[1]).toMatchObject({ historyId: 옛.historyId, execId: 옛.execId, timeoutMs: 300_000, stepTitles: ['옛 꼴 단계'] });
     } finally {
       항목화면을닫는다(execId);
       await app.close();

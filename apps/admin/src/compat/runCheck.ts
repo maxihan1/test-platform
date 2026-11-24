@@ -54,8 +54,8 @@ export async function Chrome켜기(곳: 팜곳, serial: string): Promise<{ cdpUr
 
 export const 점검폴더 = (runId: number, id: number) => join(runDir(String(runId), String(id)), FARM_EVIDENCE_DIR);
 
-/** 러너가 받아 둔 끝난 점검 파일(앱 · 게임). 아직 없으면 null. 있는데 못 읽으면 던진다 — 기다려도 안 고쳐진다 */
-async function 러너점검(runId: number, id: number): Promise<점검파일 | null> {
+/** 러너가 받아 둔 끝난 점검 파일(앱 · 게임). 아직 없으면 null, 러너가 점검 없음(none)을 남겼으면 '없음'. 있는데 못 읽으면 던진다 — 기다려도 안 고쳐진다 */
+async function 러너점검(runId: number, id: number): Promise<점검파일 | null | '없음'> {
   let 글자: string;
   try {
     글자 = (await 볼륨파일읽기(join(점검폴더(runId, id), 'ui-check.json'))).toString('utf8');
@@ -63,7 +63,10 @@ async function 러너점검(runId: number, id: number): Promise<점검파일 | n
     if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw new Error(`러너가 받아 둔 점검 파일을 읽지 못했습니다: ${글(e)}`);
   }
-  const 점검 = 점검읽기(JSON.parse(글자));
+  const 값 = JSON.parse(글자) as { status?: unknown } | null;
+  // 비전이 꺼졌거나 모르는 세션이라 러너가 한 번 묻고 그만둔 것 — 기다려도 안 생긴다 (§7 「러너 · kit」)
+  if (값?.status === 'none') return '없음';
+  const 점검 = 점검읽기(값);
   if (점검 === null) throw new Error('러너가 받아 둔 점검 파일의 꼴이 틀립니다');
   return 점검;
 }
@@ -108,7 +111,7 @@ async function 점검받기(곳: 팜곳, 번호: number, 끝: number, Chrome세�
 }
 
 /**
- * 점검을 받아 케이스 줄마다 화면 줄로 남긴다. 케이스가 끝난 뒤 60분이 지나면 미점검(missing)이다.
+ * 점검을 받아 케이스 줄마다 화면 줄로 남긴다. 케이스가 끝난 뒤 60분이 지났거나 러너가 점검 없음을 남겼으면 미점검(missing)이다.
  * 받다 깨지면 미점검으로 닫는다 — checking 에 남으면 그 상태 · 실행이 끝나지 않는다
  */
 async function 점검남기기(곳: 팜곳, 번호: number, ids: readonly number[], 끝: number, Chrome세션: string | undefined, 나누기: (점검: 점검파일) => [number, 화면줄[]][]): Promise<void> {

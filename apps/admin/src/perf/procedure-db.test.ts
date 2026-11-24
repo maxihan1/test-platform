@@ -4,6 +4,7 @@ import type { ExecuteRequest } from '@platform/kit';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { type 기기차림타입, 기기차림 } from './deviceFixture.js';
+import { 구간붙이기, 줄넣기, 줄읽기 } from './deviceStore.js';
 
 const 케이스번호 = (body: Record<string, unknown>) => (body as unknown as ExecuteRequest).cases.map((c) => c.tcId);
 
@@ -59,6 +60,30 @@ describe.skipIf(연결 === undefined)('기기 성능 — 테스트 프로시저'
     } finally {
       f.상태.프로시저 = false;
     }
+  });
+
+  it('회차가 바뀌는 1초에는 앞 회차의 구간 이름이 남지 않는다 — 같은 회차 안에서 다음 케이스로 넘어갈 때는 남긴다', async () => {
+    const runId = await f.만들기({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQDP-001'], repeat: 1 }, 0);
+    expect(await f.끝날때까지(runId)).toMatchObject({ status: 'DONE' });
+    await 줄넣기(runId, 'XQDPZ', 'SM-Z', 0, [0, 1, 2, 3, 4].map((sec) => ({ sec, fps: 60, jankPct: null, freezeCount: null, cpu: null, memMb: null, tempC: null, batteryPct: null })));
+    const 표시들 = [
+      { loop: 1, segment: null, fromSec: 0, toSec: 1 },
+      { loop: 1, segment: '가 · 절차', fromSec: 0, toSec: 1 },
+      { loop: 1, segment: null, fromSec: 1, toSec: 2 },
+      { loop: 1, segment: '나 · 절차', fromSec: 2, toSec: 2 },
+      { loop: 2, segment: null, fromSec: 2, toSec: 4 },
+      { loop: 2, segment: '가 · 절차', fromSec: 3, toSec: 4 },
+    ];
+    // 끝날 때 처음부터 한 번 더 붙여도 같아야 한다
+    for (const 표시 of [...표시들, ...표시들]) await 구간붙이기(runId, 'XQDPZ', 표시);
+
+    expect((await 줄읽기(runId, 0, 'XQDPZ')).map((x) => [x.sec, x.loop, x.segment])).toEqual([
+      [0, 1, '가 · 절차'],
+      [1, 1, '가 · 절차'],
+      [2, 2, null],
+      [3, 2, '가 · 절차'],
+      [4, 2, '가 · 절차'],
+    ]);
   });
 
   it('고른 차례대로 프로시저는 활성 케이스 전부를 회차마다 한 번 보내고, 막힌 케이스는 구간 없이 로그에 막은 케이스와 남긴다', async () => {

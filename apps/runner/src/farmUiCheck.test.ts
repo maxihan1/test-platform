@@ -94,15 +94,17 @@ describe('점검결과를기다린다', () => {
     expect(existsSync(둔곳('ui-check.json'))).toBe(false);
   });
 
-  it('팜이 점검 파일을 안 주면(비전 꺼짐) 한 번 묻고 그만 받는다', async () => {
+  it('팜이 점검 파일을 안 주면(비전 꺼짐) 한 번 묻고 그만 받으며 admin 이 기다리지 않게 점검 없음을 남긴다', async () => {
     목록 = { ready: true, files: [파일('logcat.txt')] };
     await 점검결과를기다린다(폴더, 팜, 'sess-1', undefined, Date.now());
     expect(부른곳).toEqual([목록주소]);
+    expect(JSON.parse(readFileSync(둔곳('ui-check.json'), 'utf8'))).toEqual({ status: 'none' });
   });
 
-  it('모르는 세션(404)이면 다시 묻지 않는다', async () => {
+  it('모르는 세션(404)이면 다시 묻지 않고 점검 없음을 남긴다', async () => {
     await 점검결과를기다린다(폴더, 팜, 'sess-9', undefined, Date.now());
     expect(부른곳).toHaveLength(1);
+    expect(JSON.parse(readFileSync(둔곳('ui-check.json'), 'utf8'))).toEqual({ status: 'none' });
   });
 
   it('잠깐의 오류는 1분 뒤 다시 받는다', async () => {

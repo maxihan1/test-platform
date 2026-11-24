@@ -27,7 +27,9 @@ export interface 진행 {
   지금도는것들: 도는것[];
   /** 끝난 항목 전부 — 늦게 끝난 것이 앞이다. 몇 줄까지 그릴지는 화면이 정한다 */
   끝난것들: RunItemSummary[];
-  /** 아직 안 끝났고 지금 도는 것도 아닌 항목 전부 — 실행 차례대로 */
+  /** 판정은 아직이지만 러너가 이미 지나간 프로시저 안 케이스 — 늦게 지나간 것이 앞이다. 판정은 프로시저가 끝나야 와서 finishedAt 이 비어 있다 */
+  지나간것들: RunItemSummary[];
+  /** 아직 안 끝났고 지금 도는 것도 지나간 것도 아닌 항목 전부 — 실행 차례대로 */
   대기것들: RunItemSummary[];
 }
 
@@ -70,6 +72,9 @@ export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진
     return { ...것, 프로시저: { procId, procName: 것.항목.procName ?? '', 전체: data.items.filter((i) => i.execId === execId).length, 번째: execSeq } };
   });
   const 도는중인historyId = new Set(지금도는것들.map((것) => 것.항목.historyId));
+  // 러너가 알린 케이스보다 앞선 같은 실행 단위의 케이스는 이미 돌았다. 러너가 답한 것만 본다 — 이름만 아는 첫째로는 어디까지 갔는지 모른다
+  const 지금차례 = new Map(러너가답한것.flatMap(({ 항목 }) => (항목.execId == null || 항목.execSeq == null ? [] : [[항목.execId, 항목.execSeq] as const])));
+  const 지나갔나 = (i: RunItemSummary) => i.execId != null && i.execSeq != null && i.execSeq < (지금차례.get(i.execId) ?? 0);
 
   return {
     막대: { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 남은것: counts.running },
@@ -83,6 +88,7 @@ export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진
     끝난것들: [...끝난것].sort((a, b) => b.finishedAt.localeCompare(a.finishedAt)),
     // **앞자리 하나만 건너뛰지 않는다.** 러너는 둘 이상을 답한다 — 도는 것을 먼저 빼야
     // 두 번째로 도는 항목이 「진행 중」과 「대기」 양쪽에 서지 않는다
-    대기것들: 안끝난것.filter((i) => !도는중인historyId.has(i.historyId)),
+    지나간것들: 안끝난것.filter(지나갔나).sort((a, b) => (b.execSeq ?? 0) - (a.execSeq ?? 0)),
+    대기것들: 안끝난것.filter((i) => !도는중인historyId.has(i.historyId) && !지나갔나(i)),
   };
 }

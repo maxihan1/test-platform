@@ -8,7 +8,7 @@ import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, runDir } from '@platform/kit
 import { farmArtifacts } from 'appium-cli';
 
 import { logcat만받는다 } from './farmLogcat.js';
-import { UI_CHECK_FILE, 점검결과를기다린다, 점검화면이름 } from './farmUiCheck.js';
+import { UI_CHECK_FILE, 점검결과를기다린다, 점검없음을남긴다, 점검화면이름 } from './farmUiCheck.js';
 
 /**
  * 답에서 팜 토큰을 지운다. 케이스(AI 가 쓴 코드)가 환경값이나 머리를 찍으면 admin 이 그 글을 실행 기록에 남기고,
@@ -45,20 +45,27 @@ export async function 팜증적을받는다(
 ): Promise<void> {
   const 폴더 = runDir(String(runId), String(historyId));
   const idFile = join(폴더, APPIUM_SESSION_ID_FILE);
+  const raw = process.env.PLATFORM_APPIUM_URL;
+  // 호환성 항목인데 물어볼 세션이 없다 — 연결을 못 열었거나 팜 주소가 없다
+  const 점검없음 = async (): Promise<void> => {
+    if (점검 !== undefined && runId !== 0) await 점검없음을남긴다(폴더).catch((err: unknown) => 알림('AI 점검 없음을 남기지 못했다', err));
+  };
   let sessionId: string;
   try {
     sessionId = (await readFile(idFile, 'utf8')).trim();
   } catch (err) {
     // 연결을 못 열었으면 파일이 없다
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') 알림('팜 증적을 받을 연결 번호를 읽지 못했다', err);
+    await 점검없음();
     return;
   }
-  const raw = process.env.PLATFORM_APPIUM_URL;
   // 호환성 항목은 판정과 상관없이 AI 점검 결과를 받는다. 점검은 연결이 닫힌 뒤 몇 분 걸려 받기 줄을 막지 않게 따로 기다린다 (도메인/호환성 §7 「러너 · kit」)
   if (점검 !== undefined && runId !== 0 && sessionId !== '' && raw !== undefined && raw !== '') {
     // 잘못된 팜 주소처럼 안에서 못 잡은 오류가 러너를 끄지 않게 받는다
     점검결과를기다린다(폴더, raw, sessionId, 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN, 점검.끝난때)
       .catch((err: unknown) => 알림('AI 점검 결과를 받지 못했다', err));
+  } else {
+    await 점검없음();
   }
   // 통과한 정식 실행 항목은 영상을 받지 않고 번호만 남긴다 — 「영상 보기」를 누를 때 admin 이 받는다
   if (runId !== 0 && status === 'PASS' && sessionId !== '') {

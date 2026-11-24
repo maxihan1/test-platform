@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 환경쓰기 } from '../perf/deviceFixture.js';
 import { 설정 } from './runEngine.js';
@@ -30,6 +30,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 — 테스트 프로시�
   let 앱 = 0;
   let 세트 = 0;
   let 프로시저됨 = true;
+  let 점검못함 = false;
   const 보낸것: Record<string, unknown>[] = [];
   const 옛설정 = { ...설정 };
   const 옛환경 = { DEVICE_FARM_URL: process.env.DEVICE_FARM_URL, RUNNER_URL: process.env.RUNNER_URL, PLATFORM_ARTIFACTS_DIR: process.env.PLATFORM_ARTIFACTS_DIR, PLATFORM_TESTS_DIR: process.env.PLATFORM_TESTS_DIR, DEVICE_FARM_RUN_AS: process.env.DEVICE_FARM_RUN_AS };
@@ -68,7 +69,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 — 테스트 프로시�
         const 때 = (ms: number) => new Date(t0 + ms).toISOString();
         const 곳 = join(폴더, 'runs', String(body.runId), String(body.historyId), 'farm');
         await mkdir(곳, { recursive: true });
-        await writeFile(join(곳, 'ui-check.json'), JSON.stringify({
+        await writeFile(join(곳, 'ui-check.json'), JSON.stringify(점검못함 ? { status: 'none' } : {
           version: 1, status: 'done',
           screens: [
             { before: 'element/click', at: 때(100), status: 'done', locator: { using: 'id', value: 'com.x:id/cart_button' }, issues: [] },
@@ -188,5 +189,20 @@ describe.skipIf(연결 === undefined)('호환성 실행 — 테스트 프로시�
     const 결과 = (await app.inject({ method: 'GET', url: `/api/compat-runs/${runId}` })).json<{ rows: { key: string; cells: { value: string; reason?: string }[] }[]; cards: { tcId: string }[] }>();
     expect(결과.rows.find((r) => r.key === 'app:.Main/draft')?.cells).toEqual([{ seq: 1, value: 'UNCHECKED', reason: 'XCV-FN-102 Blocked · 선행 케이스 XCV-FN-101 실패' }]);
     expect(결과.cards.map((c) => c.tcId)).toEqual(['XCV-FN-103']);
+  });
+
+  it('러너가 점검 없음을 남기면(비전 꺼짐 · 모르는 세션) 오류로 다루지 않고 바로 미점검으로 닫아 실행이 끝난다', async () => {
+    점검못함 = true;
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const { runId } = (await app.inject({ method: 'POST', url: `/api/compat-sets/${세트}/runs`, payload: { env: 'qa' } })).json<{ runId: number }>();
+      expect(await 끝나길(runId)).toBe('FINISHED');
+      const 줄 = await pool.query<{ check_state: string }>('SELECT check_state FROM compat_run_case WHERE run_id = $1 ORDER BY id', [runId]);
+      expect(줄.rows.map((x) => x.check_state)).toEqual(['missing', 'missing', 'missing']);
+      expect(오류.mock.calls.flat().map(String).filter((x) => x.includes('점검 결과를 받다 깨져'))).toEqual([]);
+    } finally {
+      점검못함 = false;
+      오류.mockRestore();
+    }
   });
 });

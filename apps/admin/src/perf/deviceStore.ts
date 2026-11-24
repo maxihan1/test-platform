@@ -28,7 +28,7 @@ export async function 실행시간채우기(runId: number, index: number, ms: nu
 
 export interface 구간표시 {
   loop: number;
-  /** 없으면 회차만 붙인다(구간 이름은 건드리지 않는다) */
+  /** 없으면 회차만 붙인다 — 같은 회차면 구간 이름을 건드리지 않고, 앞 회차에 붙은 이름은 지운다 */
   segment: string | null;
   fromSec: number;
   toSec: number;
@@ -37,7 +37,7 @@ export interface 구간표시 {
 /** 그 초 범위의 줄에 회차 · 구간을 붙인다 — 늦게 온 줄이 있어 끝날 때 한 번 더 붙인다 */
 export async function 구간붙이기(runId: number, serial: string, s: 구간표시): Promise<void> {
   await (await 표.풀()).query(
-    `UPDATE perf_device_metric SET loop = $3, segment = COALESCE($4, segment) WHERE run_id = $1 AND serial = $2 AND sec BETWEEN $5 AND $6`,
+    `UPDATE perf_device_metric SET loop = $3, segment = COALESCE($4, CASE WHEN loop = $3 THEN segment END) WHERE run_id = $1 AND serial = $2 AND sec BETWEEN $5 AND $6`,
     [runId, serial, s.loop, s.segment, s.fromSec, s.toSec],
   );
 }
