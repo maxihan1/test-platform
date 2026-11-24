@@ -79,7 +79,7 @@ export function CaseDetail({
   요구보나?: boolean;
   /** 케이스 쓰기인가. 아니면 고쳐도 「모두에게 저장」이 없다 (화면공통 §8) */
   저장된다?: boolean;
-  /** 실행 쓰기 · 테스트만(`테스트만` — 기록 없는 테스트 실행 창, 도메인/인증 §3.5 「테스트 모드」)일 때만 온다 — 고친 값을 실은 실행 창을 연다. 프로시저 안 케이스면 받아 둔 그 프로시저의 케이스(`묶음`)를 같이 넘긴다 */
+  /** 실행 쓰기 · 테스트만(`테스트만` — 기록 없는 테스트 실행 창, 도메인/인증 §3.5 「테스트 모드」)일 때만 온다 — 고친 값을 실은 실행 창을 연다. 프로시저 안 케이스면 받아 둔 그 프로시저의 케이스(`묶음`)를 같이 넘긴다 — 못 받았거나 이 케이스가 거기 없으면 이 한 건만 넘긴다(서버가 프로시저를 통째로 펼친다) */
   on실행?: (row: CaseRow, 묶음?: CaseRow[]) => void;
   테스트만?: boolean;
   onClose: () => void;
@@ -231,7 +231,7 @@ export function CaseDetail({
           />
         )}
         {on실행 === undefined || !row.isActive ? null : (
-          <button type="button" className="btn" onClick={() => (프로시저안 ? on실행(row, 같은 ?? undefined) : on실행(row))}>
+          <button type="button" className="btn" onClick={() => (프로시저안 && 같은 != null && 같은.some((c) => c.tcId === row.tcId) ? on실행(row, 같은) : on실행(row))}>
             {프로시저안
               ? t(테스트만 ? '프로시저 시험 실행' : '프로시저 실행')
               : t(입력값.length === 0 && 기대결과.length === 0 ? (테스트만 ? '시험 실행' : '실행') : 테스트만 ? '이 값으로 시험 실행' : '이 값으로 실행')}

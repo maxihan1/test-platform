@@ -120,6 +120,7 @@ export const 케이스말: Record<string, string> = {
   '단독으로 실행할 수 없습니다. 프로시저 단위로 실행합니다': 'Cannot run on its own. It runs with its procedure',
   '프로시저 실행': 'Run procedure',
   '프로시저 시험 실행': 'Trial run procedure',
+  '선행 케이스 {케이스}': 'Preceding case {케이스}',
   '선행 케이스 {케이스} 실패': 'Preceding case {케이스} failed',
   '선행 케이스 {케이스} 제한 시간 초과': 'Preceding case {케이스} timed out',
 

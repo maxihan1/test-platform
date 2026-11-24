@@ -223,7 +223,7 @@ describe('케이스 상세의 「테스트 프로시저」 구획', () => {
     const 한건 = 다섯.find((c) => c.tcId === tcId)!;
     const 것 = await 그리기([한건], 할수);
     것.cases.mockImplementation((q) =>
-      Promise.resolve({ items: q.q === 'ZPP-TP-001' ? [...다섯].reverse() : [한건], total: 5, page: 1, pageSize: 50 }),
+      Promise.resolve({ items: q.q === 'ZPP-TP-001' ? 다섯 : [한건], total: 5, page: 1, pageSize: 50 }),
     );
     fireEvent.click(screen.getByRole('button', { name: `${tcId} 케이스` }));
     const 칸 = within(await screen.findByRole('complementary').catch(() => document.querySelector<HTMLElement>('#case-pane')!));
@@ -235,7 +235,7 @@ describe('케이스 상세의 「테스트 프로시저」 구획', () => {
     const { cases } = await 연다('ZPP-FN-104');
     const 구획 = document.querySelector<HTMLElement>('.case-proc')!;
 
-    expect(cases).toHaveBeenCalledWith({ service: 'ZPP', q: 'ZPP-TP-001' });
+    expect(cases).toHaveBeenCalledWith({ service: 'ZPP', q: 'ZPP-TP-001', page: 1 });
     expect(within(구획).getByText('테스트 프로시저')).toBeTruthy();
     expect(within(구획).getByText('5건 중 4번째')).toBeTruthy();
     expect([...구획.querySelectorAll('.case-proc-list .id')].map((x) => x.textContent)).toEqual(['ZPP-FN-101', 'ZPP-FN-102', 'ZPP-FN-103', 'ZPP-FN-104', 'ZPP-FN-105']);
@@ -248,6 +248,26 @@ describe('케이스 상세의 「테스트 프로시저」 구획', () => {
     await 연다('ZPP-FN-104');
 
     expect(document.querySelector('.case-blocked')?.textContent).toBe('Blocked 선행 케이스 ZPP-FN-103 실패');
+  });
+
+  // 막은 케이스(103)의 마지막 결과만 바꿔 본다 — 끝나면 되돌린다
+  async function 막은결과로(바꾼: LastResult, 기대: string) {
+    const 원래 = 마지막[2]!;
+    마지막[2] = 바꾼;
+    try {
+      await 연다('ZPP-FN-104');
+      expect(document.querySelector('.case-blocked')?.textContent).toBe(기대);
+    } finally {
+      마지막[2] = 원래;
+    }
+  }
+
+  it('막은 케이스가 같은 실행에서 판정 없이 끝났으면 「제한 시간 초과」로 적는다', async () => {
+    await 막은결과로(결과('ZPP-FN-103', 'NA'), 'Blocked 선행 케이스 ZPP-FN-103 제한 시간 초과');
+  });
+
+  it('막은 케이스가 그 뒤에 다시 돌아 마지막 결과가 다른 실행 것이면 까닭 없이 번호까지만 적는다', async () => {
+    await 막은결과로(결과('ZPP-FN-103', 'PASS', { runId: 8 }), 'Blocked 선행 케이스 ZPP-FN-103');
   });
 
   it('막은 케이스 번호가 없는 Blocked 는 글자만 선다', async () => {
@@ -264,6 +284,30 @@ describe('케이스 상세의 「테스트 프로시저」 구획', () => {
 
     const 창 = within(await screen.findByRole('dialog', { name: '케이스 5건 실행' }));
     expect(창.getByText('ZPP-FN-101 케이스')).toBeTruthy();
+  });
+
+  it('그 번호를 이름에 적은 다른 케이스가 많아 첫 쪽에 다 안 들면 다음 쪽까지 받는다', async () => {
+    const 한건 = 다섯[3]!;
+    const { cases } = await 그리기([한건]);
+    const 남 = Array.from({ length: 2 }, (_, n) => 케이스(`ZPP-FN-90${String(n)}`));
+    cases.mockImplementation((q) =>
+      Promise.resolve(q.q !== 'ZPP-TP-001' ? { items: [한건], total: 1, page: 1, pageSize: 50 } : { items: q.page === 1 ? [...남, 다섯[0]!, 다섯[1]!] : 다섯.slice(2), total: 7, page: q.page ?? 1, pageSize: 4 }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'ZPP-FN-104 케이스' }));
+
+    await waitFor(() => expect(document.querySelectorAll('.case-proc-list li')).toHaveLength(5));
+    expect(cases).toHaveBeenCalledWith({ service: 'ZPP', q: 'ZPP-TP-001', page: 2 });
+  });
+
+  it('같은 프로시저의 케이스를 못 받았으면 그 사실을 적고 단추는 이 케이스 한 건으로 실행 창을 연다 — 서버가 프로시저를 펼친다', async () => {
+    const 한건 = 다섯[3]!;
+    const { cases } = await 그리기([한건]);
+    cases.mockImplementation((q) => (q.q === 'ZPP-TP-001' ? Promise.reject(new Error('끊김')) : Promise.resolve({ items: [한건], total: 1, page: 1, pageSize: 50 })));
+    fireEvent.click(screen.getByRole('button', { name: 'ZPP-FN-104 케이스' }));
+
+    expect(await screen.findByText('같은 프로시저의 케이스를 불러오지 못했습니다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '프로시저 실행' }));
+    expect(within(await screen.findByRole('dialog', { name: '케이스 1건 실행' })).getByText('ZPP-FN-104 케이스')).toBeTruthy();
   });
 
   it('실행 칸이 테스트만이면 단추가 「프로시저 시험 실행」이다', async () => {

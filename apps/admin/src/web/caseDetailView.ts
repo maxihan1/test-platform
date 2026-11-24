@@ -13,8 +13,8 @@ import { 막혔나 } from './proc.js';
 export interface 상세기억 {
   이력: Map<string, HistoryRow[] | null>;
   절차: Map<number, RunItemDetail | null>;
-  /** 프로시저 번호마다 그 프로시저의 케이스(실행 차례). 서랍은 케이스 하나만 찾아 열릴 때가 많아 목록이 받은 줄로는 못 채운다 */
-  프로시저: Map<string, CaseRow[] | null>;
+  /** 프로시저 번호와 훑은 때마다 그 프로시저의 케이스(실행 차례). 서랍은 케이스 하나만 찾아 열릴 때가 많아 목록이 받은 줄로는 못 채운다 */
+  프로시저: Map<string, CaseRow[]>;
 }
 
 export const 빈기억 = (): 상세기억 => ({ 이력: new Map(), 절차: new Map(), 프로시저: new Map() });

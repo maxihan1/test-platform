@@ -162,7 +162,8 @@ export function 프로시저표짓기(줄들: { tc_id: string; proc_id: string; 
   const 머리 = new Map<string, { id: string; seq: number }>();
   for (const r of 줄들) {
     const 지금 = 머리.get(r.proc_id);
-    if (지금 === undefined || r.proc_seq < 지금.seq) 머리.set(r.proc_id, { id: r.tc_id, seq: r.proc_seq });
+    // 차례가 같은 케이스가 둘이어도 머리가 요청마다 달라지지 않게 번호로 가린다 — 달라지면 프로시저가 쪽 사이에서 자리를 옮긴다
+    if (지금 === undefined || r.proc_seq < 지금.seq || (r.proc_seq === 지금.seq && r.tc_id < 지금.id)) 머리.set(r.proc_id, { id: r.tc_id, seq: r.proc_seq });
   }
   return new Map(줄들.map((r) => [r.tc_id, { 머리: 머리.get(r.proc_id)!.id, seq: r.proc_seq }]));
 }
@@ -215,13 +216,17 @@ export interface 맥락조건 {
   endpoint?: string;
 }
 
-/** 「이것만 보기」는 묶음 자리를 그대로 거른다 — 케이스가 쓰는 다른 화면으로는 안 걸린다. 걸리면 고른 묶음에 다른 묶음 머리가 섞여 보인다 */
-export function 맥락거르기(tcIds: string[], 표: 맥락표, 조건: 맥락조건): string[] {
+/**
+ * 「이것만 보기」는 묶음 자리를 그대로 거른다 — 케이스가 쓰는 다른 화면으로는 안 걸린다. 걸리면 고른 묶음에 다른 묶음 머리가 섞여 보인다.
+ * 프로시저 안 케이스의 묶인 자리(기능 묶음 · 화면 · 화면 조각 · 엔드포인트)는 머리 케이스 것이다 — 줄세우기가 groups 에 싣는 자리와 같아야 거른 목록의 이름표가 조건과 어긋나지 않는다
+ */
+export function 맥락거르기(tcIds: string[], 표: 맥락표, 조건: 맥락조건, 프로시저: 프로시저표 = new Map()): string[] {
   return tcIds.filter((id) => {
     const 것 = 표.get(id);
-    const 곳 = 것?.자리 ?? 빈자리;
+    const 머리 = 표.get(프로시저.get(id)?.머리 ?? id);
+    const 곳 = 머리?.자리 ?? 빈자리;
     const reqs = 것?.reqs ?? [];
-    if (조건.feature !== undefined && (것?.feature ?? '') !== 조건.feature) return false;
+    if (조건.feature !== undefined && (머리?.feature ?? '') !== 조건.feature) return false;
     if (조건.screen !== undefined && (곳.screen ?? '') !== 조건.screen) return false;
     if (조건.part !== undefined && 곳.part !== 조건.part) return false;
     if (조건.axis !== undefined && !reqs.some((r) => r.axis === 조건.axis)) return false;

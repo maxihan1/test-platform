@@ -47,7 +47,8 @@ export function 판정점줄({ 결과들 }: { 결과들: readonly (결과 | unde
 }
 
 /**
- * Blocked 의 사유 한 줄. 막은 케이스가 같은 실행에서 판정 없이 끝났으면(제한 시간 초과) 「실패」라고 적지 않는다.
+ * Blocked 의 사유 한 줄. 막은 케이스가 그 실행에서 어떻게 끝났는지는 그 케이스의 마지막 결과가 같은 실행 것일 때만 안다 —
+ * 실패면 「실패」, 판정 없이 끝났으면(kit 이 한도에서 끊었다) 「제한 시간 초과」다. 그 뒤에 다시 돌아 다른 실행 것이면 번호까지만 적는다(틀린 까닭을 적지 않는다).
  * 막은 케이스 번호가 없는 줄은 사유가 없다(null)
  */
 export function use막힘사유(): (r: LastResult, 마지막: LastMap) => string | null {
@@ -55,8 +56,7 @@ export function use막힘사유(): (r: LastResult, 마지막: LastMap) => string
   return (r, 마지막) => {
     if (r.blockedBy == null) return null;
     const 막은 = 마지막[keyOf(r.blockedBy, r.platform)];
-    return 막은 !== undefined && 막은.runId === r.runId && 막은.status === 'NA'
-      ? t('선행 케이스 {케이스} 제한 시간 초과', { 케이스: r.blockedBy })
-      : t('선행 케이스 {케이스} 실패', { 케이스: r.blockedBy });
+    if (막은 === undefined || 막은.runId !== r.runId || 막은.status === 'PASS') return t('선행 케이스 {케이스}', { 케이스: r.blockedBy });
+    return 막은.status === 'NA' ? t('선행 케이스 {케이스} 제한 시간 초과', { 케이스: r.blockedBy }) : t('선행 케이스 {케이스} 실패', { 케이스: r.blockedBy });
   };
 }
