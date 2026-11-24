@@ -13,6 +13,8 @@ import { type 기준결정, tcId들, 사람이뺀번호, 요구줄들, 제외번
 import { 제거함번호들 } from './authoring-ledger-hold.js';
 import { 표tcId들 } from './authoring-conflicts.js';
 import { 칸재료만들기 } from './authoring-slots.js';
+import { 프로시저값읽기 } from './authoring-proc-pieces.js';
+import { 절번호들 } from './authoring-proc-table.js';
 import { 안전히읽기, 옛줄들 } from './authoring-old-table.js';
 
 export { 옛줄들, 옛표줄들 } from './authoring-old-table.js';
@@ -31,6 +33,8 @@ export const 기준재료이름 = 'ledger-base.json';
 export interface 기준표 {
   표글: string;
   있는케이스: Set<string>;
+  /** 기준 판 프로시저 파일의 procId — 번호 명령이 다시 주지 않는다 */
+  있는프로시저?: Set<string>;
 }
 
 /**
@@ -62,6 +66,7 @@ export function 기준결정만들기(
     다음요청: 제외번호들(기준.표글, '다음 요청'),
     제거함: 제거함번호들(기준.표글),
     칸재료: 칸재료만들기(기준.접두사, 요구줄들(기준.표글), 쓰인, 원장번호들, 옛번호),
+    쓰인프로시저: [...new Set([...절번호들(기준.표글), ...(기준.있는프로시저 ?? [])])].sort(),
   };
 }
 
@@ -83,7 +88,7 @@ export function 표준원장사본(
   const 항목들 = 옮긴 === null || '사유' in 옮긴 ? 지금 : 판합치기(지금, 옮긴).items;
   const 원장값 = 표준원장(항목들, api, 게임);
   const 결정 = 기준결정만들기(기준 === null ? null : { ...기준, 접두사 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(항목들));
-  const 사본 = '없음' in 원장값 ? 원장값 : { 원장: 원장값, 사람이뺌: [...결정.사람이뺌], 다음요청: [...결정.다음요청], 제거함: [...(결정.제거함 ?? [])], 칸재료: 결정.칸재료 };
+  const 사본 = '없음' in 원장값 ? 원장값 : { 원장: 원장값, 사람이뺌: [...결정.사람이뺌], 다음요청: [...결정.다음요청], 제거함: [...(결정.제거함 ?? [])], 칸재료: 결정.칸재료, 쓰인프로시저: 결정.쓰인프로시저 ?? [] };
   return { 원장: 원장값, 기준: 결정, 글: JSON.stringify(사본, null, 2) };
 }
 
@@ -140,7 +145,7 @@ export function 기준읽기(깃: 깃손, 기준: string, 서비스: string, 폴
     if (typeof 글 !== 'string') return 글;
     케이스글.push(글);
   }
-  return { 표글, 있는케이스: tcId들(케이스글) };
+  return { 표글, 있는케이스: tcId들(케이스글), 있는프로시저: new Set(케이스글.flatMap((글) => 프로시저값읽기(글)?.procId ?? [])) };
 }
 
 /**
@@ -215,7 +220,7 @@ export function 원장과남은번호(입력: {
   }
   const 기준값 = '까닭' in 기준 ? null : 기준;
   // 자식이 결과 파일을 고친 뒤 원장을 다시 만들 재료 — 판정은 에이전트 메모리의 것으로 한다(자식이 고쳐도 안 흔들린다)
-  const 재료 = { 접두사: 입력.서비스, 기준표: 기준값 === null ? null : { 표글: 기준값.표글, 있는케이스: [...기준값.있는케이스] }, ...(입력.게임 === true ? { 게임: true } : {}) };
+  const 재료 = { 접두사: 입력.서비스, 기준표: 기준값 === null ? null : { 표글: 기준값.표글, 있는케이스: [...기준값.있는케이스], 있는프로시저: [...(기준값.있는프로시저 ?? [])] }, ...(입력.게임 === true ? { 게임: true } : {}) };
   const 사본 = 표준원장사본(입력.지금, 입력.옮긴몸, 입력.서비스, 기준값, 입력.api, 입력.게임 === true);
   const 사본자리 = join(입력.자료폴더, 원장사본이름);
   const 못씀 = !새로쓰기(join(입력.자료폴더, 기준재료이름), JSON.stringify(재료)) || !새로쓰기(사본자리, 사본.글);

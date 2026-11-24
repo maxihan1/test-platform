@@ -7,7 +7,8 @@ import { join } from 'node:path';
 import { PC_PLATFORMS, PC항목인가 } from '@platform/kit/types';
 import ts from 'typescript';
 
-import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
+import { 속성, 읽기 } from './authoring-held-apply.js';
+import { 명세글들 } from './authoring-proc-pieces.js';
 
 /** 에이전트가 게임 작성에서만 자식에게 넘기는 자료 폴더 — 지난 지도 `game-map.txt` 와 이번에 쓴 `game-elements.json` 이 있다(authoring-game.ts 게임자리) */
 export const 게임자료환경 = 'AUTHORING_GAME_DIR';
@@ -90,10 +91,9 @@ function 요소읽기(명세: ts.ObjectLiteralExpression): string[] | null {
   return [...new Set(식.elements.map((e) => (e as ts.StringLiteralLike).text).filter((k) => k !== ''))];
 }
 
-/** 케이스 글이 적은 요소 열쇠 — 글자 배열이 아니거나 케이스가 아니면 빈 목록(에이전트의 「아직 안 다룬 요소」 셈) */
+/** 케이스 글이 적은 요소 열쇠 — 글자 배열이 아니거나 케이스가 아니면 빈 목록(에이전트의 「아직 안 다룬 요소」 셈). 프로시저 파일은 케이스마다 적은 것을 모은다 */
 export function 케이스요소들(글: string): string[] {
-  const 명세 = 명세글(읽기(글));
-  return 명세 === undefined ? [] : (요소읽기(명세) ?? []);
+  return [...new Set(명세글들(읽기(글)).flatMap((명세) => 요소읽기(명세) ?? []))];
 }
 
 /**
@@ -106,13 +106,14 @@ export function 게임형식(파일들: readonly { 경로: string; 글: string }
     // 게임 아닌 작성은 웹 폴더 전체(1,000건 넘게)를 받을 수 있다 — 낱말이 없으면 파서를 안 돌린다
     if (지도 === null && !f.글.includes('elements')) continue;
     const sf = 읽기(f.글);
-    const 명세 = f.경로.endsWith('.spec.ts') ? 명세글(sf) : undefined;
-    const 요소 = 명세 === undefined ? [] : 요소읽기(명세);
+    // 프로시저 파일은 케이스 선언마다 본다
+    const 명세들 = f.경로.endsWith('.spec.ts') ? 명세글들(sf) : [];
     if (지도 === null) {
-      if (요소 === null || 요소.length > 0) 틀림.push(`${f.경로} — 게임 애플리케이션 작성이 아닌데 elements 를 적었다. 칸을 뺀다`);
+      if (명세들.some((명세) => 요소읽기(명세)?.length !== 0)) 틀림.push(`${f.경로} — 게임 애플리케이션 작성이 아닌데 elements 를 적었다. 칸을 뺀다`);
       continue;
     }
-    if (명세 !== undefined) {
+    for (const 명세 of 명세들) {
+      const 요소 = 요소읽기(명세);
       if (요소 === null) 틀림.push(`${f.경로} — elements 는 글자 배열 리터럴로 적는다(변수 · 식 · 펼침 금지)`);
       else for (const k of 요소.filter((k) => !지도.has(k))) 틀림.push(`${f.경로} — 요소 ${k} 가 게임 지도에 없다. game-elements.json 에 먼저 적거나 game-map.txt 의 열쇠를 쓴다`);
       let 기기 = 속성(명세, 'platforms')?.initializer;
@@ -122,8 +123,8 @@ export function 게임형식(파일들: readonly { 경로: string; 글: string }
       if (플랫폼 === 'windows') {
         if (값들 === null || 값들.length === 0 || !값들.every(PC항목인가)) 틀림.push(`${f.경로} — PC 게임 케이스의 platforms 는 윈도우 값(${PC_PLATFORMS.join(' · ')})만이다`);
       } else if (값들?.length !== 1 || 값들[0] !== 'android') 틀림.push(`${f.경로} — 게임 케이스의 platforms 는 ['android'] 하나다`);
-      if (몸통이름들(sf).includes('page')) 틀림.push(`${f.경로} — 게임 케이스 몸통에는 page 가 없다. game · admin · driver 를 쓴다`);
     }
+    if (명세들.length > 0 && 몸통이름들(sf).includes('page')) 틀림.push(`${f.경로} — 게임 케이스 몸통에는 page 가 없다. game · admin · driver 를 쓴다`);
     for (const 줄 of 좌표자리(sf)) 틀림.push(`${f.경로}:${줄} — 좌표({ x, y })를 쓴다. 오브젝트 이름이나 / 경로로 찾는다`);
   }
   return 틀림;
@@ -134,9 +135,9 @@ export function 게임형식(파일들: readonly { 경로: string; 글: string }
  * 보조 AI 는 묶음 하나만 봐 애매하면 빼 두므로 합친 뒤 폴더로 센다(GAME-F1-14 PR #443 — 287건에 0건)
  */
 export function 스모크틀림(폴더: string, 글들: readonly string[]): { 수: number; 틀림: string[] } {
-  const 수 = 글들.filter((글) => {
-    const 명세 = 글.includes('smoke') ? 명세글(읽기(글)) : undefined;
-    let 값 = 명세 === undefined ? undefined : 속성(명세, 'smoke')?.initializer;
+  // 프로시저 파일은 케이스마다 센다
+  const 수 = 글들.flatMap((글) => (글.includes('smoke') ? 명세글들(읽기(글)) : [])).filter((명세) => {
+    let 값 = 속성(명세, 'smoke')?.initializer;
     while (값 !== undefined && (ts.isAsExpression(값) || ts.isSatisfiesExpression(값) || ts.isParenthesizedExpression(값))) 값 = 값.expression;
     return 값?.kind === ts.SyntaxKind.TrueKeyword;
   }).length;

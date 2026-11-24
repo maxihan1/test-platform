@@ -3,10 +3,10 @@
 // 사람과 자식은 `npm run check:ledger` 로 부른다 (도메인/작성 §3.6 「★ 원장」)
 
 import { tcId종류 } from '../apps/admin/src/catalog/rules.js';
-import { 케이스tcId } from './authoring-held-apply.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
 import { type 원장항목, 번호찾기 } from './authoring-ledger.js';
 import { 제거함읽기 } from './authoring-ledger-hold.js';
-import { 백틱벗기기, 표몸줄들, 표읽기 } from './authoring-md-table.js';
+import { 백틱벗기기, 칸채우기, 표읽기 } from './authoring-md-table.js';
 import { type 칸재료, type 표줄, 칸번호, 화면잡이줄인가 } from './authoring-slots.js';
 
 export { 표읽기 };
@@ -70,14 +70,17 @@ export interface 기준결정 {
   /** 표에 「제거함(…)」으로 있던 요구 번호 — 사람이 반영 때 뺀 보류. 에이전트는 이 번호의 줄만 인정한다 (2026-10-12) */
   제거함?: Set<string>;
   칸재료: 칸재료 | null;
+  /** 기준(main)의 프로시저 파일 · 절에 쓰인 프로시저 번호 — 번호 명령이 그 다음부터 매긴다 (작성 §3.6 「프로시저 절 · 프로시저 번호」) */
+  쓰인프로시저?: string[];
 }
 
 /**
  * 케이스 파일 글들에서 tcId 를 모은다 — 대조의 `있는케이스` 재료. 파일 이름이 아니라 **`defineCase` 선언**을 문법 트리로 읽는다.
- * 글자로 찾으면 절차 제목에 「tcId: 'X'」 만 적어도 케이스가 있는 것으로 쳐 대조를 넘는다 (2026-09-30 코드 검토)
+ * 글자로 찾으면 절차 제목에 「tcId: 'X'」 만 적어도 케이스가 있는 것으로 쳐 대조를 넘는다 (2026-09-30 코드 검토).
+ * 프로시저 파일은 선언한 케이스마다 센다 — 그 tcId 를 선언한 프로시저 파일이 있으면 덮은 것이다 (작성 §3.6 「★ 테스트 프로시저 작성」 「관문」 0)
  */
 export function tcId들(글들: string[]): Set<string> {
-  return new Set(글들.map(케이스tcId).filter((t): t is string => t !== null));
+  return new Set(글들.flatMap((글) => 케이스조각들(글).map((c) => c.tcId)));
 }
 
 /**
@@ -85,25 +88,7 @@ export function tcId들(글들: string[]): Set<string> {
  * 다른 칸 · 다른 절(미확정 · 보류 표도 tcId 칸이 있다) · 줄 끝 `\r` · 칸의 백틱은 그대로 둔다
  */
 export function 표번호채우기(표글: string, 기대: Map<number, string>): string {
-  const 줄들 = 표글.split('\n');
-  표몸줄들(줄들, '요구사항').forEach(({ 줄, 머리 }, 차례) => {
-    const 새 = 기대.get(차례);
-    const 열 = 머리.indexOf('tcId');
-    if (새 === undefined || 열 < 0) return;
-    const 원 = 줄들[줄] ?? '';
-    const 끝 = 원.endsWith('\r') ? '\r' : '';
-    const 몸 = 원.slice(0, 원.length - 끝.length);
-    const 조각 = 몸.split(/(?<!\\)\|/);
-    const 앞 = 몸.trim().startsWith('|') ? 1 : 0;
-    const 자리 = 열 + 앞;
-    // 칸이 모자란 줄은 둔다 — 끝 가름 자리에 쓰면 표가 깨진다. 대조가 어긋남으로 보인다
-    if (자리 >= 조각.length - (몸.trimEnd().endsWith('|') ? 1 : 0)) return;
-    const 옛 = (조각[자리] ?? '').trim();
-    if (백틱벗기기(옛) === 새) return;
-    조각[자리] = ` ${옛.startsWith('`') ? `\`${새}\`` : 새} `;
-    줄들[줄] = 조각.join('|') + 끝;
-  });
-  return 줄들.join('\n');
+  return 칸채우기(표글, '요구사항', 'tcId', 기대);
 }
 
 /**

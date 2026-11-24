@@ -1,7 +1,7 @@
 // 원장 명령 — 사람 세션과 자식이 부른다. 판단은 authoring-ledger · authoring-ledger-check 의 순수 함수에 있다
 //   npm run ledger -- <글자본…>                                   원장 JSON 을 찍는다
 //   npm run check:ledger -- <ledger.json> <표.md> [--tests <폴더>] [--agent]   빠짐 · 형식 오류 · 칸 번호 어긋남(--agent 면 설계 칸 빠짐 · 설계 거절 형식 오류도, --tests 까지 주면 기법 어긋남도)이 있으면 종료 코드 1
-//   npm run ledger:number -- <ledger.json> <표.md>                 칸마다 tcId 를 매겨 표를 고쳐 쓴다. 칸 재료가 없으면 종료 코드 2
+//   npm run ledger:number -- <ledger.json> <표.md>                 칸마다 tcId 를, 프로시저 절의 빈 칸에 프로시저 번호를 매겨 표를 고쳐 쓴다. 칸 재료가 없으면 종료 코드 2
 //   npm run ledger:design -- <ledger.json>                         설계 목록(요구마다 경계 · 예외 칸)과 요약을 찍는다
 //   npm run prd:ledger -- <자료 폴더>                              작성 자식 — 표준 기획서 지금 판 + 결과 파일로 원장 사본(ledger.json)을 다시 만든다
 
@@ -22,6 +22,7 @@ import { tcId들, 설계거절행들, 셈글, 요구줄들, 원장대조, 표번
 import { tcId별글 } from './authoring-ledger-verdict.js';
 import { 기법대조 } from './authoring-technique-check.js';
 import { type 칸재료, 칸번호 } from './authoring-slots.js';
+import { 프로시저번호채우기 } from './authoring-proc-table.js';
 
 const [명령, ...인자] = process.argv.slice(2);
 
@@ -104,22 +105,26 @@ if (명령 === '뽑기') {
     console.error('쓰는 법: npm run ledger:number -- <ledger.json> <표.md>');
     process.exit(2);
   }
-  const 읽은 = JSON.parse(readFileSync(원장파일, 'utf8')) as { 원장?: 원장; 칸재료?: 칸재료 | null };
+  const 읽은 = JSON.parse(readFileSync(원장파일, 'utf8')) as { 원장?: 원장; 칸재료?: 칸재료 | null; 쓰인프로시저?: string[] };
   // 재료가 없으면 쓰인 번호를 모른다 — 매기면 트리에 있는 다른 요구의 케이스 파일을 덮어쓴다 (작성 §3.6 「칸과 번호」 「사본」)
   if (읽은.원장 === undefined || 읽은.칸재료 == null) {
-    console.log('칸 재료가 없다(원장 없음 · 기준 표를 못 읽음 · 사람 세션 사본) — 번호를 안 매긴다. 지금처럼 종류별로 가장 큰 번호 다음부터 매긴다');
+    console.log('칸 재료가 없다(원장 없음 · 기준 표를 못 읽음 · 사람 세션 사본) — 번호를 안 매긴다. 지금처럼 종류별로 가장 큰 번호 다음부터 매긴다. 프로시저 절의 빈 칸도 절과 tests 폴더에 쓰인 가장 큰 프로시저 번호 다음부터 적는다');
     process.exit(2);
   }
   const 표글 = readFileSync(표파일, 'utf8');
   const 앞줄 = 요구줄들(표글);
   const 칸 = 칸번호(읽은.원장.항목, 앞줄, 읽은.칸재료);
-  const 새글 = 표번호채우기(표글, 칸.기대);
+  // 프로시저 절의 빈 프로시저 칸도 같이 채운다 — 절이 없으면 할 일이 없다 (작성 §3.6 「프로시저 절 · 프로시저 번호」)
+  const 프 = 프로시저번호채우기(표번호채우기(표글, 칸.기대), 읽은.칸재료.접두사, 읽은.쓰인프로시저 ?? []);
+  const 새글 = 프.글;
   if (새글 !== 표글) writeFileSync(표파일, 새글);
   const 바뀜 = 앞줄.filter((줄) => 칸.기대.has(줄.차례) && 칸.기대.get(줄.차례) !== 줄.tcId).length;
   console.log(`번호를 매겼다 — 요구 줄 ${String(앞줄.length)} · 매긴 줄 ${String(칸.기대.size)} · 바꾼 줄 ${String(바뀜)} · 케이스 ${String(new Set(칸.기대.values()).size)}`);
   for (const m of 칸.알림) console.log(m);
   for (const m of 칸.어긋남) console.log(`칸 번호 어긋남: ${m}`);
-  process.exit(칸.어긋남.length === 0 ? 0 : 1);
+  if (프.매김.length > 0) console.log(`프로시저 번호를 매겼다 — ${프.매김.join(' · ')}`);
+  for (const m of 프.어긋남) console.log(`프로시저 번호 어긋남: ${m}`);
+  process.exit(칸.어긋남.length === 0 && 프.어긋남.length === 0 ? 0 : 1);
 } else if (명령 === '설계') {
   const [원장파일] = 인자;
   if (원장파일 === undefined) {
@@ -137,7 +142,7 @@ if (명령 === '뽑기') {
     process.exit(2);
   }
   const 지금 = JSON.parse(readFileSync(join(폴더, 'prd-current.json'), 'utf8')) as { items: PrdItem[] };
-  const 재료 = JSON.parse(readFileSync(join(폴더, 기준재료이름), 'utf8')) as { 접두사: string; 기준표: { 표글: string; 있는케이스: string[] } | null; 게임?: boolean };
+  const 재료 = JSON.parse(readFileSync(join(폴더, 기준재료이름), 'utf8')) as { 접두사: string; 기준표: { 표글: string; 있는케이스: string[]; 있는프로시저?: string[] } | null; 게임?: boolean };
   const 결과자리 = join(폴더, 'out', 'prd.json');
   let 옮긴몸: unknown;
   try {
@@ -157,7 +162,7 @@ if (명령 === '뽑기') {
     writeFileSync(결과자리, `${JSON.stringify(옮긴몸, null, 2)}\n`);
     console.log(`번호 없던 새 항목 ${String(자동.length)}개에 임시 번호를 적었다: ${자동.map(([, n]) => n).join(' · ')}`);
   }
-  const 기준 = 재료.기준표 === null ? null : { 표글: 재료.기준표.표글, 있는케이스: new Set(재료.기준표.있는케이스) };
+  const 기준 = 재료.기준표 === null ? null : { 표글: 재료.기준표.표글, 있는케이스: new Set(재료.기준표.있는케이스), 있는프로시저: new Set(재료.기준표.있는프로시저 ?? []) };
   // API 애플리케이션이면 자료 폴더의 판 파일로 API 줄을 붙인다 — 에이전트가 띄우기 전에 만든 원장과 같게 (도메인/API §3.8 「작성」)
   let api: ReturnType<typeof API원장읽기>;
   try {

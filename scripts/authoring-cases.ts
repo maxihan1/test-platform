@@ -13,6 +13,7 @@ import {
   확인문장수상한,
 } from '../apps/admin/src/authoring/cases.js';
 import type { 보고손 } from './authoring-io.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
 import { 글자자르기 } from './authoring-usage.js';
 
 type 바뀜 = Map<string, 'NEW' | 'CHANGED'>;
@@ -48,7 +49,8 @@ const 물건인가 = (v: unknown): v is Record<string, unknown> => typeof v === 
 
 /**
  * 스캐너 명세들 가운데 이번 PR 이 더하거나 고친 파일의 것만 서버 모양으로 만든다.
- * 서버가 거절할 줄(tcId 틀림 · 같은 tcId · file 이 상한 초과)은 빼고 나머지를 싣는다 — 한 줄 때문에 목록 전체를 잃지 않게
+ * 서버가 거절할 줄(tcId 틀림 · 같은 tcId · file 이 상한 초과)은 빼고 나머지를 싣는다 — 한 줄 때문에 목록 전체를 잃지 않게.
+ * 프로시저 파일을 고쳤으면 그 파일의 케이스가 모두 실린다(file 이 같다). 확인 문장은 그 케이스의 test.case 구간 것만이다 (작성 §3.6 「★ 테스트 프로시저 작성」 계약 블록 ⑤)
  */
 export function 케이스목록만들기(명세들: unknown[], 재료: 케이스재료): 만든케이스[] {
   const 요구들 = new Map<string, Set<string>>();
@@ -70,7 +72,7 @@ export function 케이스목록만들기(명세들: unknown[], 재료: 케이스
       name,
       file,
       change,
-      verifies: 확인문장들(재료.읽기(file))
+      verifies: 확인문장들(구간글(재료.읽기(file), s.tcId))
         .map((문장) => 글자자르기(문장, 케이스글상한))
         .filter((문장) => 문장 !== '')
         .slice(0, 확인문장수상한),
@@ -81,6 +83,11 @@ export function 케이스목록만들기(명세들: unknown[], 재료: 케이스
     목록.push(케이스);
   }
   return 목록.slice(0, 케이스건수상한);
+}
+
+/** 프로시저 파일이면 그 케이스의 선언과 구간만, 옛 꼴은 파일 글 그대로 */
+function 구간글(글: string, tcId: string): string {
+  return 케이스조각들(글).find((c) => c.tcId === tcId)?.프로시저?.구간글 ?? 글;
 }
 
 /**

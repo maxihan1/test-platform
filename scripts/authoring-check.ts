@@ -8,127 +8,18 @@ import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import ts from 'typescript';
-
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임검사 } from './authoring-check-game.js';
-import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
+import { type 케이스문장, 맞춰보기, 묶은확인들, 케이스문장들읽기 } from './authoring-check-match.js';
 import { 보류경고 } from './authoring-held-kinds.js';
 import { 비밀자리들, 파일모으기 } from './authoring-secret-spots.js';
-import { 바뀐것 } from './authoring-base-list.js';
+import { 기준경로들, 바뀐것 } from './authoring-base-list.js';
 import { tsc인자, 앱tsc인자 } from './authoring-typecheck.js';
-import { type 모양지적, 모양확인들, 문구모양, 코드모양 } from './authoring-case-shape.js';
-import { 묶었나 } from './authoring-one-value.js';
-import { 백틱벗기기, 표읽기 } from './authoring-md-table.js';
+import { 모양확인들 } from './authoring-case-shape.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
+import { 절검사 } from './authoring-proc-table.js';
 
-export interface 케이스문장 {
-  tcId: string;
-  name: string | null;
-  전제: string[];
-  절차: string[];
-  판정: string[];
-  /** 실제 값을 배열 · 객체로 묶어 견주는 verify 의 문장 */
-  묶은판정: string[];
-  /** 기다림 · 케이스 안 화면 요소 · 문구 꼴 지적 (`authoring-case-shape.ts`) */
-  모양: 모양지적[];
-  /** 보류 사유 — 글자일 때만. 남은 보류 경고가 쓴다 */
-  held?: string;
-}
-
-const 글자 = (n: ts.Node | undefined): string | null => (n !== undefined && ts.isStringLiteralLike(n) ? n.text : null);
-
-/** 케이스 파일에서 맞춰 볼 문장 — `defineCase` 의 tcId · name · precondition, `test.step` 제목, `verify` 첫 인자. 글자가 아닌 것(템플릿 · 상수)은 못 읽어 빠진다 */
-export function 케이스문장읽기(글: string): 케이스문장 | null {
-  const sf = 읽기(글);
-  const 명세 = 명세글(sf);
-  const tcId = 명세 === undefined ? null : 글자(속성(명세, 'tcId')?.initializer);
-  if (명세 === undefined || tcId === null) return null;
-  const 전제식 = 속성(명세, 'precondition')?.initializer;
-  const 절차: string[] = [];
-  const 판정: string[] = [];
-  const 묶은판정: string[] = [];
-  const 훑기 = (n: ts.Node): void => {
-    if (ts.isCallExpression(n)) {
-      const 부름 = n.expression;
-      const 첫 = 글자(n.arguments[0]);
-      if (첫 !== null && ts.isPropertyAccessExpression(부름) && 부름.name.text === 'step' && 부름.expression.getText(sf) === 'test') 절차.push(첫);
-      if (첫 !== null && ts.isIdentifier(부름) && 부름.text === 'verify') {
-        판정.push(첫);
-        if (n.arguments[1] !== undefined && 묶었나(n.arguments[1])) 묶은판정.push(첫);
-      }
-    }
-    ts.forEachChild(n, 훑기);
-  };
-  훑기(sf);
-  const held = 글자(속성(명세, 'held')?.initializer);
-  const name = 글자(속성(명세, 'name')?.initializer);
-  return {
-    tcId,
-    name,
-    전제: 전제식 !== undefined && ts.isArrayLiteralExpression(전제식) ? 전제식.elements.flatMap((e) => 글자(e) ?? []) : [],
-    절차,
-    판정,
-    묶은판정,
-    모양: [...코드모양(sf), ...문구모양({ tcId, name, 판정 })],
-    ...(held === null ? {} : { held }),
-  };
-}
-
-/** 확인 하나에 값 하나(`tpx-cases` `references/5-writing.md` 「확인 하나에 값 하나」) — `볼` 이 있으면 그 tcId 만 본다 */
-export function 묶은확인들(케이스들: readonly 케이스문장[], 볼?: ReadonlySet<string>): string[] {
-  const 볼것 = 케이스들.filter((c) => 볼 === undefined || 볼.has(c.tcId));
-  return 볼것.flatMap((c) => c.묶은판정.map((문장) => `${c.tcId} 「${문장}」 — 값을 배열 · 객체로 묶어 견준다. 값마다 verify 를 따로 쓴다`));
-}
-
-const 칸 = (행: Record<string, string>, 이름: string) => (행[이름] ?? '').replace(/\\\|/g, '|').trim();
-
-/**
- * 케이스와 요구 목록 맞춰 보기(관문 2) — 목록 기준 한 방향 글자 대조 (`tpx-cases` `references/6-gates.md` 「관문 2」).
- * 줄마다 전제 ∈ precondition · 조작 ∈ test.step 제목 · 결과 ∈ verify 문장, tcId 를 혼자 쓰는 줄은 name = 결과. 합친 케이스(R15)의 name 은 안 본다.
- * 결과 문장과 합친 이름은 서로 겹치면 안 된다. 케이스 파일이 없는 tcId 는 빠진 요구 검사 몫이라 건너뛴다. `볼` 이 있으면 그 tcId 만 본다(서브에이전트)
- */
-export function 맞춰보기(표글: string, 케이스들: readonly 케이스문장[], 볼?: ReadonlySet<string>): string[] {
-  const 케이스 = new Map(케이스들.map((c) => [c.tcId, c]));
-  const 줄들 = 표읽기(표글, '요구사항').map((행) => ({ 번호: 칸(행, '요구'), 전제: 칸(행, '전제'), 조작: 칸(행, '조작'), 결과: 칸(행, '결과'), tcId: 백틱벗기기(칸(행, 'tcId')) }));
-  const 몇줄 = new Map<string, number>();
-  for (const 줄 of 줄들) 몇줄.set(줄.tcId, (몇줄.get(줄.tcId) ?? 0) + 1);
-  const 틀림: string[] = [];
-  for (const 줄 of 줄들) {
-    const c = 케이스.get(줄.tcId);
-    if (c === undefined || (볼 !== undefined && !볼.has(줄.tcId))) continue;
-    const 머리 = `${줄.tcId} (목록 ${줄.번호}번째 줄)`;
-    if (줄.전제 !== '' && !c.전제.includes(줄.전제)) 틀림.push(`${머리} 전제 「${줄.전제}」 — precondition 에 없다`);
-    if (줄.조작 !== '' && !c.절차.includes(줄.조작)) 틀림.push(`${머리} 조작 「${줄.조작}」 — test.step 제목에 없다`);
-    if (줄.결과 !== '' && !c.판정.includes(줄.결과)) 틀림.push(`${머리} 결과 「${줄.결과}」 — verify 문장에 없다`);
-    if (몇줄.get(줄.tcId) === 1 && 줄.결과 !== '' && c.name !== 줄.결과) 틀림.push(`${머리} name 「${c.name ?? '(글자 아님)'}」 — 결과와 다르다`);
-  }
-  // 결과 문장 · 합친 이름이 겹치면 실행 목록과 증적에 같은 줄이 둘씩 뜬다 — 합친 케이스 안의 두 줄끼리도
-  const 안겹침 = new Map<string, number>();
-  for (const 줄 of 줄들) if (줄.결과 !== '' && 케이스.has(줄.tcId)) 안겹침.set(`${줄.tcId}\0${줄.결과}`, (안겹침.get(`${줄.tcId}\0${줄.결과}`) ?? 0) + 1);
-  for (const [열쇠, 수] of 안겹침) {
-    const [tcId, 문장] = 열쇠.split('\0') as [string, string];
-    if (수 >= 2 && (볼 === undefined || 볼.has(tcId))) 틀림.push(`같은 케이스 안에서 결과 문장이 겹친다 「${문장}」 — ${tcId} ${수}줄`);
-  }
-  const 문장주인 = new Map<string, Set<string>>();
-  const 더하기 = (문장: string, tcId: string) => 문장주인.set(문장, new Set([...(문장주인.get(문장) ?? []), tcId]));
-  for (const 줄 of 줄들) if (줄.결과 !== '' && 케이스.has(줄.tcId)) 더하기(줄.결과, 줄.tcId);
-  for (const [tcId, 수] of 몇줄) {
-    const 이름 = 케이스.get(tcId)?.name;
-    if (수 >= 2 && 이름) 더하기(이름, tcId);
-  }
-  const 보나 = (tcIds: Iterable<string>) => 볼 === undefined || [...tcIds].some((t) => 볼.has(t));
-  for (const [문장, 주인] of 문장주인) {
-    if (주인.size >= 2 && 보나(주인)) 틀림.push(`결과 문장이 겹친다 「${문장}」 — ${[...주인].sort().join(' · ')}`);
-  }
-  // 한 문장이 어디선 결과이고 어디선 준비 확인 판정이면 증적에서 「결과 FAIL」과 「전제 실행 중단」으로 갈린다 — 결과 쪽을 고친다
-  const 결과들 = new Map<string, Set<string>>();
-  for (const 줄 of 줄들) if (줄.결과 !== '') 결과들.set(줄.tcId, new Set([...(결과들.get(줄.tcId) ?? []), 줄.결과]));
-  for (const [문장, 주인] of 문장주인) {
-    const 준비쪽 = 케이스들.filter((c) => !주인.has(c.tcId) && c.판정.includes(문장) && !(결과들.get(c.tcId)?.has(문장) ?? false)).map((c) => c.tcId);
-    if (준비쪽.length > 0 && 보나([...주인, ...준비쪽])) 틀림.push(`결과 문장이 다른 케이스의 준비 판정이다 「${문장}」 — 결과 ${[...주인].sort().join(' · ')} · 준비 ${준비쪽.sort().join(' · ')} — 결과 쪽을 고친다`);
-  }
-  return 틀림;
-}
+export { type 케이스문장, 맞춰보기, 묶은확인들, 케이스문장들읽기, 케이스문장읽기 } from './authoring-check-match.js';
 
 const 줄상한 = 20;
 const 줄이기 = (줄들: string[]) => (줄들.length <= 줄상한 ? 줄들 : [...줄들.slice(0, 줄상한), `…외 ${줄들.length - 줄상한}줄`]);
@@ -198,7 +89,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 게임 = 게임검사(트리, 맡은, env);
     if (게임 !== null) 결과들.push(게임);
     if (케이스파일.length > 0) {
-      const 문장들 = 케이스파일.flatMap((f) => 케이스문장읽기(readFileSync(resolve(트리, f), 'utf8')) ?? []);
+      const 문장들 = 케이스파일.flatMap((f) => 케이스문장들읽기(readFileSync(resolve(트리, f), 'utf8')));
       // 목록은 tcId 접두사로, 폴더는 맡은 파일 경로(tests/<폴더>/…)로 — 새 서비스 폴더 이름은 접두사와 다를 수 있다
       const 접두사 = 문장들[0]?.tcId.split('-')[0];
       const 폴더 = 케이스파일[0]?.split('/')[1] ?? '';
@@ -231,7 +122,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     // 에이전트가 기준 SHA 의 tests 목록을 주면 이번 작성이 바꾼 케이스만 본다 — 앞 작성의 케이스가 이 규칙에 걸려도 이번 요청 밖이라 고치지 않는다(첫 작성은 다 새것이라 전체다)
     const 문장들 = 케이스문장들(트리, 폴더);
     const 바뀐 = env.AUTHORING_BASE_LIST ? 바뀐것(트리, env.AUTHORING_BASE_LIST) : null;
-    const 볼 = 바뀐 === null || '까닭' in 바뀐 ? undefined : new Set(바뀐.filter((f) => f.startsWith(`tests/${폴더}/`) && f.endsWith('.spec.ts')).flatMap((f) => (existsSync(join(트리, f)) ? (케이스문장읽기(readFileSync(join(트리, f), 'utf8'))?.tcId ?? []) : [])));
+    const 볼 = 바뀐 === null || '까닭' in 바뀐 ? undefined : new Set(바뀐.filter((f) => f.startsWith(`tests/${폴더}/`) && f.endsWith('.spec.ts')).flatMap((f) => (existsSync(join(트리, f)) ? 케이스조각들(readFileSync(join(트리, f), 'utf8')).map((c) => c.tcId) : [])));
     const 어긋남 = existsSync(join(트리, 표)) ? 맞춰보기(readFileSync(join(트리, 표), 'utf8'), 문장들, 볼) : [`목록 ${표} 이 없다`];
     const 못좁힘 = 바뀐 !== null && '까닭' in 바뀐 ? `바뀐 파일을 못 읽어 케이스 전체를 봤다 — ${바뀐.까닭}` : undefined;
     결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? 못좁힘 : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
@@ -246,6 +137,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 처음 = 볼 === undefined || 문장들.every((c) => 볼.has(c.tcId));
     const 게임 = 게임검사(트리, 바뀐 !== null && !('까닭' in 바뀐) ? 바뀐.filter((f) => f.startsWith(`tests/${폴더}/`)) : 폴더경로들(트리, 폴더), env, 처음 ? 폴더 : undefined);
     if (게임 !== null) 결과들.push(게임);
+    결과들.push(...절결과(트리, 표, 폴더, 바뀐, env));
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);
     결과들.push(비밀검사([`tests/${폴더}`, 표, ...(existsSync(join(트리, 가이드)) ? [가이드] : []), ...더]));
   } else {
@@ -260,6 +152,21 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   return 결과들.every((r) => r.ok) ? 0 : 1;
 }
 
+/**
+ * 프로시저 절 — 이번 작성이 바꾼 케이스 파일을 절과 맞댄다. 스위치는 에이전트가 넘긴 `AUTHORING_PROCEDURE` 다.
+ * 스위치가 꺼졌고 걸린 것도 없으면 줄을 안 낸다 — 웹 · API 작성의 출력은 그대로다 (작성 §3.6 「★ 테스트 프로시저 작성」 「프로시저 절 · 프로시저 번호」)
+ */
+export function 절결과(트리: string, 표: string, 폴더: string, 바뀐: string[] | { 까닭: string } | null, env: NodeJS.ProcessEnv): 결과[] {
+  const 켬 = env.AUTHORING_PROCEDURE === '1';
+  if (바뀐 === null || '까닭' in 바뀐) return 켬 ? [{ 이름: '프로시저 절', ok: true, 경고: true, 줄들: [`바뀐 파일을 못 읽어 절 검사를 건너뛰었다${바뀐 === null ? '' : ` — ${바뀐.까닭}`}`] }] : [];
+  const 기준 = 기준경로들(env.AUTHORING_BASE_LIST);
+  const 파일들 = 바뀐
+    .filter((f) => f.startsWith(`tests/${폴더}/`) && f.endsWith('.spec.ts') && existsSync(join(트리, f)))
+    .map((f) => ({ 경로: f, 글: readFileSync(join(트리, f), 'utf8'), 기준에있었나: 기준 === null ? null : 기준.has(f) }));
+  const 틀림 = 절검사(existsSync(join(트리, 표)) ? readFileSync(join(트리, 표), 'utf8') : '', 파일들, 켬);
+  return 켬 || 틀림.length > 0 ? [{ 이름: '프로시저 절', ok: 틀림.length === 0, 줄들: 틀림 }] : [];
+}
+
 /** 폴더 아래 파일 경로(저장소 뿌리 기준) — 글은 안 읽는다 */
 const 폴더경로들 = (트리: string, 폴더: string): string[] =>
   existsSync(join(트리, 'tests', 폴더)) ? readdirSync(join(트리, 'tests', 폴더), { recursive: true, encoding: 'utf8' }).map((p) => join('tests', 폴더, p)) : [];
@@ -270,7 +177,7 @@ function 케이스문장들(트리: string, 폴더: string, 더할?: readonly �
   const 읽은 = existsSync(자리)
     ? readdirSync(자리)
         .filter((n) => n.endsWith('.spec.ts'))
-        .flatMap((n) => 케이스문장읽기(readFileSync(join(자리, n), 'utf8')) ?? [])
+        .flatMap((n) => 케이스문장들읽기(readFileSync(join(자리, n), 'utf8')))
     : [];
   const 표 = new Map(읽은.map((c) => [c.tcId, c]));
   for (const c of 더할 ?? []) 표.set(c.tcId, c);

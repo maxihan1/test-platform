@@ -173,6 +173,15 @@ describe('건설정 — 건을 가져갈 때 다시 읽은 me 로 훑지 않을 
     expect(건설정(몸, 'DEMO', 켤때)).toEqual({ ...켤때, 제외: ['/daejeon'] });
   });
 
+  it('「프로시저 작성」 스위치도 집을 때 값으로 바꾼다 — 켜면 실리고 끄면 빠진다', () => {
+    const 켬 = 새me([{ prefix: 'DEMO', kind: 'APP', procedureMode: true, testsDir: 'demo', crawlExclude: [], permissions: { authoring: 'write' } }]);
+    expect(나풀기(켬)).toMatchObject({ 설정표: { DEMO: { 프로시저: true, 종류: 'APP' } } });
+    const 켠때 = 건설정(켬, 'DEMO', 켤때);
+    expect(켠때.프로시저).toBe(true);
+    const 끔 = 새me([{ prefix: 'DEMO', kind: 'APP', procedureMode: false, testsDir: 'demo', crawlExclude: [], permissions: { authoring: 'write' } }]);
+    expect(건설정(끔, 'DEMO', 켠때).프로시저).toBeUndefined();
+  });
+
   it('비웠으면 빈 목록이다', () => {
     const 몸 = 새me([{ prefix: 'DEMO', testsDir: 'demo', crawlExclude: [], permissions: { authoring: 'write' } }]);
     expect(건설정(몸, 'DEMO', 켤때).제외).toEqual([]);

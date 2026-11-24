@@ -9,9 +9,9 @@ import { join, posix } from 'node:path';
 
 import { 가져온화면파일, 여는주소들, 화면주소 } from '../apps/admin/src/catalog/screenMap.js';
 import { 덮음인가, 주소틀, 틀닿나 } from './authoring-crawl-rules.js';
-import { 케이스tcId } from './authoring-held-apply.js';
 import { type 깃손, 새로쓰기 } from './authoring-ledger-io.js';
 import { 덮은파일이름, 화면케이스파일이름 } from './authoring-reverse.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
 
 export interface 덮은입력 {
   깃: 깃손;
@@ -53,8 +53,9 @@ export function 기준화면지도(입력: 덮은입력): { 케이스: 케이스
     if (!f.startsWith(`tests/${폴더}/`) || !f.endsWith('.spec.ts')) continue;
     const 글 = 읽기(f);
     if (typeof 글 !== 'string') return 글;
-    const tcId = 케이스tcId(글);
-    if (tcId === null) continue;
+    // 프로시저 파일은 든 케이스마다 같은 화면을 쓴다 — 가져온 화면 파일은 파일 하나에 묶인다
+    const tcIds = 케이스조각들(글).map((c) => c.tcId);
+    if (tcIds.length === 0) continue;
     const 화면파일들: string[] = [];
     const 틀들 = new Set<string>();
     for (const 상대 of 가져온화면파일(글)) {
@@ -73,7 +74,7 @@ export function 기준화면지도(입력: 덮은입력): { 케이스: 케이스
         if (틀 !== null) 틀들.add(틀);
       }
     }
-    케이스.push({ tcId, 파일: f, 화면파일들, 틀들: [...틀들].sort() });
+    for (const tcId of tcIds) 케이스.push({ tcId, 파일: f, 화면파일들, 틀들: [...틀들].sort() });
   }
   // 폴더는 애플리케이션끼리 같이 쓸 수 있다(tests_dir 에 겹침 막기가 없다) — 덮은 틀은 이 애플리케이션 접두사 케이스만. 미검증 화면 셈(found.ts)도 접두사로 가른다
   const 덮은틀 = [...new Set(케이스.filter((x) => x.tcId.startsWith(`${서비스}-`)).flatMap((x) => x.틀들))].sort();

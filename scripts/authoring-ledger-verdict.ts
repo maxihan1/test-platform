@@ -1,18 +1,15 @@
 // 올리기 판정 — 원장 대조 · 칸 번호 · 설계 칸 · 기법을 PR 머리 줄로 모은다. authoring-ledger-check.ts 가 300줄이라 뗐다 (2026-10-05)
 
 import { 경고줄, 설계대조, 설계줄들 } from './authoring-design-check.js';
-import { 케이스tcId } from './authoring-held-apply.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, type 대조결과, 셈글, 설계거절행들, 요구줄들, 원장대조 } from './authoring-ledger-check.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
 import { 기법대조 } from './authoring-technique-check.js';
 
-/** 케이스 글을 `defineCase` 의 tcId 로 묶는다 — 기법 대조 재료. tcId 를 못 읽은 글은 뺀다(빠짐 · 형식 오류가 따로 본다) */
+/** 케이스 글을 `defineCase` 의 tcId 로 묶는다 — 기법 대조 재료. tcId 를 못 읽은 글은 뺀다(빠짐 · 형식 오류가 따로 본다). 프로시저 파일은 케이스마다 그 선언이 든 조각이다 */
 export function tcId별글(글들: readonly string[]): Map<string, string> {
   const 표 = new Map<string, string>();
-  for (const 글 of 글들) {
-    const tcId = 케이스tcId(글);
-    if (tcId !== null && !표.has(tcId)) 표.set(tcId, 글);
-  }
+  for (const c of 글들.flatMap(케이스조각들)) if (!표.has(c.tcId)) 표.set(c.tcId, c.글);
   return 표;
 }
 

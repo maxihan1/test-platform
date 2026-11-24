@@ -54,3 +54,13 @@ export function 바뀐것(트리: string, 기준목록: string | undefined): str
     return { 까닭: e instanceof Error ? e.message : String(e) };
   }
 }
+
+/** 기준 목록에 든 경로(저장소 기준) — 목록이 없거나 못 읽으면 null. 절 검사가 「기준에 옛 꼴로 있던 케이스」를 가른다 */
+export function 기준경로들(기준목록: string | undefined): Set<string> | null {
+  if (기준목록 === undefined || 기준목록 === '') return null;
+  try {
+    return new Set(readFileSync(기준목록, 'utf8').split('\0').flatMap((항목) => (항목.includes('\t') ? [항목.slice(항목.indexOf('\t') + 1)] : [])));
+  } catch {
+    return null;
+  }
+}
