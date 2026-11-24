@@ -51,6 +51,11 @@ describe('E2E 결과 · 프로시저 단계', () => {
     expect(카드.querySelectorAll('.flow-dots i')).toHaveLength(4);
   });
 
+  it('맨 위 안내는 케이스가 아니라 프로시저 이름으로 적는다', async () => {
+    연다(결과({ parts: [부품(1, {}), 프로시저부품()] }));
+    expect(await screen.findByText('2번 단계 「글쓰기 흐름」에서 실패했습니다')).toBeTruthy();
+  });
+
   it('막은 케이스가 제한 시간 초과(NA)면 그 글로 적는다', async () => {
     연다(
       결과({

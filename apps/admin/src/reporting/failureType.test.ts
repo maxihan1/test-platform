@@ -30,6 +30,7 @@ describe('원인을가른다', () => {
     expect(미실행('TIMEOUT')).toBe('timeout');
     expect(미실행('\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m')).toBe('timeout');
     expect(실패('page.waitForURL: Timeout 30000ms exceeded.')).toBe('timeout');
+    expect(실패('단계 제한 시간 480000ms 를 넘었다')).toBe('timeout');
   });
 
   it('대상 서버에 못 닿거나 러너가 고장 난 것은 환경 오류다', () => {

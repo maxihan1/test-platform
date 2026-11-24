@@ -107,10 +107,11 @@ export function FailGuide({
   env: string;
 }) {
   const t = use말();
+  const 이름 = part.procName ?? part.tcName;
   const 머리 =
-    part.tcName === null
+    이름 === null
       ? t('{번호}번 단계에서 실패했습니다', { 번호: part.seq })
-      : t('{번호}번 단계 「{이름}」에서 실패했습니다', { 번호: part.seq, 이름: part.tcName });
+      : t('{번호}번 단계 「{이름}」에서 실패했습니다', { 번호: part.seq, 이름 });
   const 이유 = part.failure ?? null;
   return (
     <div className="scn-fail-guide">

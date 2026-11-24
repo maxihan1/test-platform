@@ -35,7 +35,8 @@ const 러너사유 = /^(러너에 닿지 못했습니다|러너가 |이 서버�
 // 기다리던 요소를 찾고 나서(보이지 않음 · 누를 수 없음) 시간이 다 된 것은 「못 찾음」이 아니다
 const 요소찾음 = /resolved to/;
 // 앱(WebdriverIO) 기다리기 — waitForDisplayed · waitForClickable 류와 waitUntil 이 끝난 글. 그 밖으로 빠지면 앱 조작 맵의 「다시 확인」을 놓친다 (2026-11-20 APP-F4-09)
-const 시간초과 = /^TIMEOUT\b|Timeout \d+ms exceeded|Test timeout of|still (not )?(displayed|existing|clickable|enabled|selected) after \d+ ?ms|waitUntil condition timed out/;
+// 「단계 제한 시간 …ms 를 넘었다」 는 E2E 단계가 바깥 한도에 끊긴 것이다 (러너 scenario/parts.ts)
+const 시간초과 = /^TIMEOUT\b|단계 제한 시간 \d+ms 를 넘었다|Timeout \d+ms exceeded|Test timeout of|still (not )?(displayed|existing|clickable|enabled|selected) after \d+ ?ms|waitUntil condition timed out/;
 // 게임 드라이버 오류 문구(control_cli SDK · kit 게임 몸통 — 도메인/게임 「실행 결과」). 연결이 끊긴 것이 먼저다 —
 // 「게임이 120초 안에 답하지 않았습니다 — 게임 포트 13100 에 붙지 못했습니다」(켜지기 기다림 실패)는 시간 초과가 아니라 환경이다
 const 게임연결끊김 = /게임 포트 \d+ 에 붙지 못했습니다|게임이 답 없이 연결을 닫았습니다|(디바이스 팜이|Device VISION 이) 게임 명령을 HTTP \d+ 로 거절했습니다/;
