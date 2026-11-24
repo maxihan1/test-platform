@@ -19,7 +19,7 @@ const ROOT = new URL('../../', import.meta.url);
 /** 정본이 맨 앞이다. 어긋났을 때 무엇에 맞춰야 하는지가 순서로 보인다 */
 export const 볼파일들 = [
   'apps/admin/src/catalog/rules.ts',
-  'apps/admin/src/reporting/collect.ts',
+  'apps/admin/src/reporting/collectFields.ts',
   'apps/admin/src/web/mask.ts',
   // 케이스 고치기가 비밀값 칸을 기대값으로 못 받게 거른다 (2026-10-01 · 도메인/작성 §3.6 「★ 케이스 고치기」)
   'apps/admin/src/authoring/edit.ts',

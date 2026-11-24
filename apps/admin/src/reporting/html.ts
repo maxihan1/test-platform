@@ -3,11 +3,12 @@
 
 import type { EvidenceDocument, EvidenceHeader, EvidenceItem } from './collect.js';
 import type { E2E요약줄 } from './e2eSummary.js';
+import { 프로시저글 } from './collectProc.js';
 import { 디바이스순서, 케이스로묶는다 } from './failuresShape.js';
 import { 원래결과, 원래결과부록, 원문고리, 접힌줄, type 항목칸 } from './htmlFold.js';
-import { 다시실행꼬리, 디바이스, 본문, 안전, 원문몸, 판정, 판정글자, 항목줄 } from './htmlItem.js';
+import { 디바이스, 본문, 안전, 원문몸, 판정, 판정글자, 프로시저줄, 항목줄, 후속줄 } from './htmlItem.js';
 import { 증적스타일 } from './htmlStyle.js';
-import { 판정줄 } from './summary.js';
+import { 요약 } from './summary.js';
 
 export interface RenderOptions {
   /** 문서 머리말의 「만든 시각」. 렌더 입력으로 받는다 — 함수 안에서 new Date() 를 부르면 재현성이 깨진다 (SPEC §3.3) */
@@ -33,6 +34,10 @@ interface 케이스 {
   미확정: string | null;
   /** 카드에 펼칠 칸 — 깨진 디바이스마다 처음 실패한 회차. 비면 실패가 없는 케이스(줄)다 */
   펼침: { 칸: 칸; 회차글: string }[];
+  /** 프로시저 안 케이스만 — 케이스 하나는 프로시저 하나에만 들어 디바이스 · 회차가 달라도 같다 */
+  프로시저: EvidenceItem['procedure'];
+  /** 이 케이스에 막혀 Blocked 로 끝난 후속 케이스 번호 — 실패 카드 끝에 한 줄로 선다 */
+  후속: string[];
 }
 
 // 어느 회차를 펼치고 「N회 중 M회 실패」를 어떻게 세는지는 화면 카드와 같은 함수가 정한다 (실행 §8.3 · failuresShape.ts).
@@ -50,9 +55,10 @@ function 케이스로(items: EvidenceItem[]): 케이스[] {
 
   const 표 = new Map<string, 케이스>();
   items.forEach((item, 번호) => {
-    const c = 표.get(item.tcId) ?? { 차례: 0, tcId: item.tcId, tcName: item.tcName, 칸들: [], 미확정: null, 펼침: [] };
+    const c = 표.get(item.tcId) ?? { 차례: 0, tcId: item.tcId, tcName: item.tcName, 칸들: [], 미확정: null, 펼침: [], 프로시저: null, 후속: [] };
     c.칸들.push({ item, 번호 });
     c.미확정 ??= item.unconfirmed;
+    c.프로시저 ??= item.procedure ?? null;
     표.set(item.tcId, c);
   });
 
@@ -61,6 +67,7 @@ function 케이스로(items: EvidenceItem[]): 케이스[] {
   const 케이스들 = [...표.values()].sort((a, b) => a.tcId.localeCompare(b.tcId, 'en'));
   케이스들.forEach((c, 차례) => {
     c.차례 = 차례;
+    c.후속 = [...new Set(items.flatMap((i) => (i.blocked?.by === c.tcId ? [i.tcId] : [])))].sort((a, b) => a.localeCompare(b, 'en'));
     c.칸들.sort(
       (a, b) =>
         디바이스순서.indexOf(a.item.platform) - 디바이스순서.indexOf(b.item.platform) || a.item.attempt - b.item.attempt,
@@ -90,8 +97,9 @@ function 가장나쁜(칸들: 칸[]): EvidenceItem['status'] {
   return 칸들.every((k) => k.item.status === 'PASS') ? 'PASS' : 'NA';
 }
 
+// 칸이 다 Blocked 면 케이스도 「Blocked」다 — 화면 결과 표의 줄 판정과 같다
 function 케이스머리(c: 케이스): string {
-  return `${판정(가장나쁜(c.칸들))}<span class="tc-id">${안전(c.tcId)}</span><span class="tc-name">${안전(c.tcName)}</span>`;
+  return `${판정(가장나쁜(c.칸들), c.칸들.every((k) => k.item.blocked !== undefined))}<span class="tc-id">${안전(c.tcId)}</span><span class="tc-name">${안전(c.tcName)}</span>`;
 }
 
 // 덮인 항목이면 다시 돈 블록 바로 아래에 접힌 줄 「원래 결과」가 붙는다 (도메인/리포팅 §8.4 「다시 실행이 붙은 실행」)
@@ -103,9 +111,11 @@ function 카드(c: 케이스, format: RenderOptions['format']): string[] {
   return [
     `<section class="card">`,
     `  <h3 class="card-head">${케이스머리(c)}</h3>`,
+    ...프로시저줄(c.프로시저),
     ...미확정줄(c),
     ...c.펼침.flatMap((p) => 펼친항목(p.칸, format, p.회차글)),
     ...접힌칸들(c).flatMap((k) => 접힌줄(format, 항목줄(k.item), `i-${k.번호}`, () => [...본문(k.item), ...원래결과(k, format)])),
+    ...후속줄(c.후속),
     `</section>`,
   ];
 }
@@ -119,7 +129,8 @@ function 줄글(c: 케이스): string {
   const 디바이스글 = 디바이스들
     .map(({ p, 칸들 }) => {
       const 통과 = 칸들.filter((k) => k.item.status === 'PASS').length;
-      return `${디바이스[p]} ${칸들.length === 1 ? 판정글자[칸들[0]!.item.status] : `${통과}/${칸들.length} Pass`}`;
+      const 하나 = 칸들[0]!.item;
+      return `${디바이스[p]} ${칸들.length === 1 ? (하나.blocked === undefined ? 판정글자[하나.status] : 'Blocked') : `${통과}/${칸들.length} Pass`}`;
     })
     .join(' · ');
   // 디바이스마다 사유가 다를 수 있다 — 하나만 남기면 나머지는 부록까지 가야 보인다
@@ -128,6 +139,7 @@ function 줄글(c: 케이스): string {
     케이스머리(c),
     `<span class="devs">${디바이스글}</span>`,
     사유 === '' ? '' : `<span class="not-run">${안전(사유)}</span>`,
+    c.프로시저 == null ? '' : `<span class="proc">${안전(프로시저글(c.프로시저))}</span>`,
     c.미확정 === null ? '' : `<span class="u-reason">미확정 · ${안전(c.미확정)}</span>`,
   ].join('');
 }
@@ -144,6 +156,7 @@ function 부록(케이스들: 케이스[]): string[] {
     ...실을것.flatMap(({ c, 칸들 }) => [
       `<section class="app-case" id="c-${c.차례}">`,
       `  <h3 class="card-head">${케이스머리(c)}</h3>`,
+      ...프로시저줄(c.프로시저),
       ...미확정줄(c),
       ...칸들.flatMap((k) => 펼친항목(k, 'PDF', '', ` id="i-${k.번호}"`)),
       `</section>`,
@@ -172,23 +185,6 @@ function 원문부록(케이스들: 케이스[]): string[] {
       ...원문몸(t),
       `</section>`,
     ]),
-    `</section>`,
-  ];
-}
-
-// 화면 요약 띠의 숫자와 같다 — 통과율은 통과 ÷ 항목 전부, 회차를 접지 않고 미확정도 센다 (실행 §8.3)
-function 요약(items: EvidenceItem[]): string[] {
-  const 전체 = items.length;
-  const 통과 = items.filter((i) => i.status === 'PASS').length;
-  const 실패 = items.filter((i) => i.status === 'FAIL').length;
-  return [
-    `<section class="band">`,
-    `  <div class="rate"><span class="big">${전체 === 0 ? '—' : `${((통과 / 전체) * 100).toFixed(1)}%`}</span><span class="axis">통과율</span></div>`,
-    `  <div class="tally">`,
-    `    <span class="${실패 > 0 ? 'verdict v-fail' : 'zero'}">Fail ${실패}건</span>`,
-    `    <span>${전체 === 0 ? '항목 없음' : `항목 ${전체}건 중 ${통과}건 Pass`}</span>`,
-    `    <span class="axis">${안전(판정줄(items) + 다시실행꼬리(items))}</span>`,
-    `  </div>`,
     `</section>`,
   ];
 }
