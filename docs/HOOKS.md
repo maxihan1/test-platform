@@ -39,8 +39,8 @@ echo '{"tool_input":{"command":"git push --force origin main"}}' | node .claude/
 |------|------|----------|
 | `docs` | 문서만 | `check:spec` |
 | `spec` | 명세가 든 문서만 | `check:spec` |
-| `cases` | 테스트만 (가벼운 길) | `typecheck` · `check:tests` |
-| `full` | 그 밖 | `typecheck` · `test:changed` + `test:always` · `.claude/` 가 바뀌면 `check:workflow` · `check:secret-names` · `check:evidence-formats` · `check:tests` |
+| `cases` | 테스트만 (가벼운 길) | `typecheck` · `check:tests` (`tests/` · `docs/cases/` 가 바뀌었을 때) |
+| `full` | 그 밖 | `typecheck` · `test:changed` + `test:always` · `.claude/` 가 바뀌면 `check:workflow` · `check:secret-names` · `check:evidence-formats` · `tests/` · `docs/cases/` 가 바뀌었거나 무엇이 바뀌었는지 못 읽었으면 `check:tests` |
 
 - **검사 전에 디스크가 올리는 커밋과 같은지 본다** (리뷰 L1). 검사는 디스크를 읽으므로 커밋 안 한 변경 · 새 파일이 있거나 올리는 커밋이 지금 꺼낸 커밋(HEAD)이 아니면 막는다 — 커밋하거나 치우고 다시 push
 - `check:secret-names` 는 작성 에이전트 PR 의 CI 와 같은 검사고, `check:evidence-formats` 는 예전 CI 에만 있던 검사다(지금 CI 목록은 아래 「CI 와 병합 차단」) — 사람 PR 에는 CI 가 없어 둘 다 여기서 돈다 (리뷰 M2). 보류 케이스 막기(`check:tests -- --no-held`)는 초안 push 에는 보류가 정상이라(K13) 여기서 안 돌고, `/tpx` 4단계가 「검토 준비」 직전에 돈다 (2026-10-24 사용자)

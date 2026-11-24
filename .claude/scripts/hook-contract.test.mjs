@@ -126,6 +126,28 @@ test('훅은 검사를 부르기 전에 GIT_* 환경 변수를 걷는다', () =>
 const 바뀐것만돌았다 = (호출) =>
   /^run test:changed\b.*origin\/main/m.test(호출) && /^run test:always\b/m.test(호출);
 
+test('케이스 목록 문서만 바꾼 push 도 케이스 작성이라 check:tests 를 돈다', () => {
+  const 저장소 = 임시저장소(['docs/cases/TODO.md']);
+  try {
+    const r = 저장소에서돌린다(저장소);
+    assert.equal(r.code, 0, `막혔다: ${r.out}`);
+    assert.match(불린것(저장소.기록), /check:tests/, '케이스 목록을 바꿨는데 케이스 검사를 안 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('케이스 파일을 안 바꾼 push 는 check:tests 를 안 돈다 (2026-11-24 사용자 — 케이스를 작성한 이후에만)', () => {
+  const 저장소 = 임시저장소(['apps/x.ts']);
+  try {
+    const r = 저장소에서돌린다(저장소);
+    assert.equal(r.code, 0, `막혔다: ${r.out}`);
+    assert.doesNotMatch(불린것(저장소.기록), /check:tests/, '케이스를 안 바꿨는데 케이스 검사를 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
 test('코드가 섞인 커밋은 무거운 길 — 타입 검사 · 바뀐 것과 이어진 테스트 · check:tests 를 돌고 통과한다', () => {
   const 저장소 = 임시저장소(['tests/todo/TODO-002.spec.ts', 'apps/x.ts']);
   try {
