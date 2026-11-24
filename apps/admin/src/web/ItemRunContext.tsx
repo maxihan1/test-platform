@@ -10,6 +10,8 @@ import { use말 } from './i18n.js';
 import { 관련요구줄 } from './RunFailedReqs.js';
 import { RunFailJudge } from './RunFailJudge.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
+import type { RunDetail } from './runProgress.js';
+import { 한건인가 } from './RunSingleDone.js';
 import { useAsync } from './ui.js';
 
 /** 같은 케이스 · 디바이스를 몇 번 돌렸는지. 반복 실행이 아니면 1 이라 회차를 적지 않는다 */
@@ -56,13 +58,13 @@ function use실패카드(runId: number, tcId: string, 찾을까: boolean) {
   return { 카드, 다시읽기: () => set다시((값) => 값 + 1) };
 }
 
-/** @param on항목들 읽은 실행의 항목을 항목 상세에 넘긴다 — 프로시저 건수와 막은 케이스의 판정을 같은 응답에서 찾는다(실행을 두 번 읽지 않는다) */
-export function 항목실행줄({ item, 판정하기, on항목들 }: { item: RunItemDetail; 판정하기: 판정하기; on항목들?: (항목들: RunItemSummary[]) => void }) {
+/** @param on실행 읽은 실행을 항목 상세에 넘긴다 — 프로시저 건수 · 막은 케이스의 판정 · 한 건 실행인지를 같은 응답에서 찾는다(실행을 두 번 읽지 않는다) */
+export function 항목실행줄({ item, 판정하기, on실행 }: { item: RunItemDetail; 판정하기: 판정하기; on실행?: (실행: RunDetail) => void }) {
   const t = use말();
   const 실행 = useAsync(() => api.run(item.runId), [item.runId]);
   const 데이터 = 실행.data;
   useEffect(() => {
-    if (데이터 !== null) on항목들?.(데이터.items);
+    if (데이터 !== null) on실행?.(데이터);
   }, [데이터]);
   const 권한 = 실행판정(판정하기, 데이터);
   const 증적칸 = use증적(데이터, 권한, 실행.reload);
@@ -74,8 +76,8 @@ export function 항목실행줄({ item, 판정하기, on항목들 }: { item: Run
     const timer = setInterval(reload, 2000);
     return () => clearInterval(timer);
   }, [만드는문서있나, reload]);
-  // 도는 실행은 카드 통로가 409 다 — 끝난 실행의 실패 항목만 찾는다
-  const { 카드, 다시읽기 } = use실패카드(item.runId, item.tcId, item.status === 'FAIL' && 데이터 !== null && 데이터.status !== 'RUNNING');
+  // 도는 실행은 카드 통로가 409 · 한 건 실행은 404 다 — 끝난 묶음 실행의 실패 항목만 찾는다
+  const { 카드, 다시읽기 } = use실패카드(item.runId, item.tcId, item.status === 'FAIL' && 데이터 !== null && 데이터.status !== 'RUNNING' && !한건인가(데이터));
 
   if (데이터 === null) return null;
 
@@ -98,7 +100,8 @@ export function 항목실행줄({ item, 판정하기, on항목들 }: { item: Run
             {뒤 === undefined ? null : <a href={주소(뒤)}>{t('다음 실패 →')}</a>}
           </nav>
         )}
-        <증적만들기버튼들 칸={증적칸} />
+        {/* 한 건 실행은 증적이 없다 — 만들기를 누르면 404 다 (도메인/실행 §7) */}
+        {한건인가(데이터) ? null : <증적만들기버튼들 칸={증적칸} />}
       </div>
       <증적알림과목록 칸={증적칸} 한줄로 />
       {카드 === null ? null : (

@@ -29,6 +29,14 @@ describe('남은 리스크 결과', () => {
     }
   });
 
+  it('근거가 10개를 넘으면 앞 10개만 쓴다 — 근거가 많다고 리스크 글을 통째로 버리지 않는다', () => {
+    const refs = Array.from({ length: 12 }, (_, i) => `DM-FN-${String(i + 1).padStart(3, '0')}`);
+    const r = 리스크모양.parse({ functional: [{ text: '결제 실패가 판정 전입니다', refs }], nonFunctional: [] });
+    expect(r.functional[0]!.refs).toEqual(refs.slice(0, 10));
+    const 섞임 = 리스크모양.parse({ functional: [{ text: 'a', refs: [' RUN 7 ', '', 'x'.repeat(51), ...refs] }], nonFunctional: [] });
+    expect(섞임.functional[0]!.refs).toEqual(['RUN 7', ...refs.slice(0, 9)]);
+  });
+
   it('묶음마다 10줄 · 줄마다 300자를 넘거나 묶음이 빠지면 모양이 틀렸다', () => {
     expect(리스크모양.safeParse({ functional: Array.from({ length: 11 }, () => ({ text: 'a' })), nonFunctional: [] }).success).toBe(false);
     expect(리스크모양.safeParse({ functional: [{ text: 'a'.repeat(301) }], nonFunctional: [] }).success).toBe(false);

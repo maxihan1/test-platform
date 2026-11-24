@@ -1,15 +1,13 @@
 // 실행 컨텍스트의 HTTP 라우트 (SPEC §7 Execution)
 // 규약: default export 한 Fastify 플러그인을 app.ts가 /api 접두사로 등록한다
 
-import { join } from 'node:path';
-
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
 import { 시나리오실행을멈춘다 } from '../scenario/runAbort.js';
-import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
+import { artifactsDir } from '../artifactFile.js';
 import { dispatch, markAborted } from './dispatcher.js';
 import { notifyRun } from './notify.js';
 import { 항목장면경로 } from './live.js';
@@ -31,6 +29,7 @@ import { 팜영상경로, 팜증적경로, 항목팜증적 } from './farmEvidenc
 import { 목록종류읽기 } from './runKind.js';
 import { 시작방식거르개 } from './runOrigin.js';
 import { runBody, 팜을본다 } from './location.js';
+import { 사진경로 } from './screenshotRoute.js';
 
 const PAGE_SIZE = 50;
 
@@ -244,30 +243,9 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   await app.register(팜증적경로);
   await app.register(팜영상경로);
   await app.register(항목장면경로);
+  await app.register(사진경로);
   await app.register(진행경로);
   await app.register(앞뒤경로);
-
-  app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
-    '/screenshots/:runId/:historyId/:seq.png',
-    async (req, reply) => {
-      // 경로를 정수로만 조립한다. 볼륨 밖으로 올라가는 경로가 애초에 만들어지지 않는다 — 바로가기는 볼륨파일읽기가 막는다.
-      // 여기만 규칙을 따로 적었다가 0 과 지수 표기를 통과시키고 있었다 — 같은 자리를 쓴다
-      const parts = [req.params.runId, req.params.historyId, req.params.seq].map(정수);
-      if (parts.some((n) => n === null)) {
-        return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
-      }
-
-      const file = join(artifactsDir(), 'runs', String(parts[0]), String(parts[1]), `${parts[2]}.png`);
-      let png: Buffer;
-      try {
-        png = await 볼륨파일읽기(file);
-      } catch {
-        // 내보낼 것을 손에 쥔 뒤에 형식을 정한다. 먼저 image/png로 박아 두면 404 본문을 png로 쓰려다 500이 난다
-        return reply.code(404).send({ error: 'SCREENSHOT_NOT_FOUND', detail: req.url });
-      }
-      return reply.type('image/png').send(png);
-    },
-  );
 
   app.get<{ Params: { tcId: string } }>('/cases/:tcId/param-sets', async (req) => ({
     items: await listParamSets(req.params.tcId),

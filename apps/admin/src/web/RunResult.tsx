@@ -7,7 +7,7 @@ import { api, ApiError, type RunInsights as 비교 } from './api.js';
 import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { use말, use언어 } from './i18n.js';
-import { use주소조건, 주소조건 } from './leaveGuard.js';
+import { use주소조건, 주소덮기, 주소조건 } from './leaveGuard.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { type 보기바꿈, 바꾼보기, 보기읽기, 보기조건 } from './runResultView.js';
 import { 진행상황 } from './runProgress.js';
@@ -15,6 +15,7 @@ import { 시간글자, 실행남은글 } from './remainText.js';
 import { RunAbortModal } from './RunAbortModal.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { 실패다시실행 } from './RerunFailed.js';
+import { 한건자리, 한건인가 } from './RunSingleDone.js';
 import { 결과본문, 도는집계 } from './RunResultBody.js';
 import { 다른빌드알림 } from './RunBuild.js';
 import { 실행명 } from './runName.js';
@@ -62,6 +63,20 @@ function 케이스결과({ runId, 판정하기, on시나리오 }: 결과바깥 &
     throw e;
   }), [runId]);
   const data = run.data;
+  // 한 건 실행은 결과 화면이 없다(insights · failures 가 404) — 그 번호의 주소로 와도 붙은 실행의 그 케이스나 케이스 상세로 옮긴다 (도메인/실행 §7 `GET /api/runs/:runId`)
+  const 한건 = data !== null && 한건인가(data);
+  useEffect(() => {
+    if (data === null || !한건) return;
+    // 도는 한 건의 진행 · 멈추기는 진행 창이 맡는다(§8.9) — 주소로 온 사람이 멈출 길을 잃지 않게 열어 둔다
+    if (도는중(data.status)) 지켜본다({ runId: data.runId, 열림: true });
+    let 살아있음 = true;
+    void 한건자리(data, 열카드).then((주소) => {
+      if (살아있음) 주소덮기(주소);
+    });
+    return () => {
+      살아있음 = false;
+    };
+  }, [한건]);
   // ABORTED 를 빠뜨리면 사람이 멈춘 실행에서 2초마다 영원히 다시 묻는다 (SPEC §8.3)
   const running = data !== null && 도는중(data.status);
 
@@ -99,13 +114,13 @@ function 케이스결과({ runId, 판정하기, on시나리오 }: 결과바깥 &
 
   // 끝났을 때 한 번만 부른다 — 요약 띠와 옆 칸이 나눠 쓴다. 아직 도는 중이면 판정이 안 들어간 항목이
   // `NA` 로 읽혀 앞 실행이 깨졌던 것이 전부 「고쳐짐」으로 보인다. 실패해도 결과는 그대로 선다 (도메인/실행 §8.3)
-  const 끝났나 = data !== null && !running;
+  const 끝났나 = data !== null && !running && !한건;
   const 견줌 = useAsync<비교 | null>(() => (끝났나 ? api.insights(runId) : Promise.resolve(null)), [runId, 끝났나]);
   // 이 실행이 든 빌드의 QA 리포트 — 머리 버튼과 맨 위 띠가 나눠 쓴다 (도메인/리포팅 §8.21 「다른 화면의 고리」)
   const 리포트 = use실행리포트(runId, 끝났나);
 
   if (run.error !== null) return <Failed error={run.error} />;
-  if (data === null) return <Loading />;
+  if (data === null || 한건) return <Loading />;
 
   const 디바이스들 = 실행디바이스들(data.items);
   // 몇 건 끝났고 얼마 남았나는 머리에 늘 둔다 — 누르면 진행 상자가 무엇이 도는지까지 편다 (도메인/실행 §8.9 · 점검 2.14).

@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-import { api, type RunItemPage, type RunItemSummary } from './api.js';
+import { api, type RunItemPage } from './api.js';
 import { 통과영상, 팜증적 } from './FarmEvidence.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
@@ -18,6 +18,8 @@ import { 실행결과주소 } from './route.js';
 import { 막힌항목 } from './runFlow.js';
 import { 미실행사유 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
+import type { RunDetail } from './runProgress.js';
+import { 한건인가 } from './RunSingleDone.js';
 import { RunWindow } from './RunWindow.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
 
@@ -28,8 +30,9 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
   const detail = useAsync<RunItemPage>(() => api.item(runId, historyId), [runId, historyId]);
   const item = detail.data;
   const [다시, set다시] = useState(false);
-  // 같은 실행의 항목 — 프로시저의 건수와 막은 케이스의 판정을 찾는다. 윗줄(항목실행줄)이 읽은 것을 받아 쓴다
-  const [항목들, set항목들] = useState<RunItemSummary[]>([]);
+  // 같은 실행 — 프로시저의 건수 · 막은 케이스의 판정 · 한 건 실행인지를 찾는다. 윗줄(항목실행줄)이 읽은 것을 받아 쓴다
+  const [실행, set실행] = useState<RunDetail | null>(null);
+  const 항목들 = 실행?.items ?? [];
   const 막힘사유글 = use막힘사유글();
 
   if (detail.error !== null) return <Failed error={detail.error} />;
@@ -43,7 +46,10 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
   const 막힘 = 막힌항목(item);
   const 프로시저건수 = 항목들.filter((i) => i.execId != null && i.execId === item.execId).length;
   // 막은 케이스가 같은 실행 · 같은 디바이스 · 같은 회차에서 어떻게 끝났는지 알 때만 까닭을 붙인다
-  const 막은판정 = 항목들.find((i) => i.tcId === item.blockedBy && i.platform === item.platform && i.attempt === item.attempt)?.status;
+  const 막은항목 = 항목들.find((i) => i.tcId === item.blockedBy && i.platform === item.platform && i.attempt === item.attempt);
+  const 막은판정 = 막은항목?.status;
+  // 한 건 실행은 결과 화면이 없다 — 「실행 결과」는 보던 케이스를 짚어 보내고(그 주소가 붙은 실행이나 케이스 상세로 옮긴다) 막은 케이스는 같은 실행의 그 항목으로 간다 (도메인/실행 §7)
+  const 한건 = 실행 !== null && 한건인가(실행);
   // 판정이 다 난 뒤 프로세스가 실패로 끝난 사유다. 러너에 못 보내고 닫은 사유는 케이스 줄 사유와 같은 글이라 한 번만 보인다 (도메인/실행 §3.2 「돌리기 · 저장」)
   const 단위오류 = item.execError == null || item.execError.message === item.error?.message ? null : item.execError;
 
@@ -69,7 +75,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
       </div>
 
       {/* 회차 · 이전/다음 실패 · 증적 · 관련 요구 · 판정 — 같은 실행의 다른 실패로 가는 길과 판정 자리가 항목 상세에도 있어야 한다 (점검 3.2 · 3.4) */}
-      <항목실행줄 item={item} 판정하기={판정하기} on항목들={set항목들} />
+      <항목실행줄 item={item} 판정하기={판정하기} on실행={set실행} />
 
       {/* 「실행이 멈춘 사유」는 실행 전체가 멈춘 것처럼 읽혔다. 이유는 유형과 한 줄, 러너 원문(최대 2천 자)은 접는다 (점검 3.1 · 3.6) */}
       {/* Blocked 는 실패가 아니다 — 고칠 것은 막은 케이스라 그 케이스로 가는 고리를 둔다 (DESIGN.md 「항목 상세」) */}
@@ -82,7 +88,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
           </p>
           {item.blockedBy == null ? null : (
             <p>
-              <a href={실행결과주소(item.runId, { 펼칠: item.blockedBy })}>{t말(막은판정 === 'FAIL' ? '{케이스} 실패 보기' : '{케이스} 결과 보기', { 케이스: item.blockedBy })}</a>
+              <a href={한건 && 막은항목 !== undefined ? `#/runs/${String(item.runId)}/items/${String(막은항목.historyId)}` : 실행결과주소(item.runId, { 펼칠: item.blockedBy })}>{t말(막은판정 === 'FAIL' ? '{케이스} 실패 보기' : '{케이스} 결과 보기', { 케이스: item.blockedBy })}</a>
             </p>
           )}
         </div>
@@ -137,7 +143,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
 
       <div className="actions">
         <span className="note">{t말('이 화면의 구성이 리포트에 그대로 출력됩니다.')}</span>
-        <a className="btn ghost" href={실행결과주소(item.runId)}>
+        <a className="btn ghost" href={실행결과주소(item.runId, 한건 ? { 펼칠: item.tcId } : {})}>
           {t말('실행 결과')}
         </a>
         {/* 이 항목에서 쓴 값으로 실행 창을 연다. 비밀값 칸은 응답이 가려 주므로 비워서 연다 (도메인/실행 §8.10) */}
