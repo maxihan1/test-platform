@@ -40,6 +40,11 @@
   align-items: center;
 }
 
+/* 고른 케이스와 같은 테스트 프로시저라 같이 도는 줄 — 실행 창의 자동 포함 줄처럼 흐리게 (DESIGN.md 「실행 창」) */
+.pd-cases .pd-auto {
+  color: var(--ink-muted);
+}
+
 .pd-cases {
   border: 1px solid var(--line);
   border-radius: 4px;

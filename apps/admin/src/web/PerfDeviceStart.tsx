@@ -88,6 +88,11 @@ export function PerfDeviceStart({
   }, []);
 
   const 케이스로 = 조작 !== 'MANUAL';
+  // 고른 케이스가 든 테스트 프로시저는 케이스 전부가 돈다 — 서버가 펼치는 것을 화면이 먼저 보인다. 상한은 고른 케이스만 센다 (도메인/성능 §3.9 「기기 성능」)
+  const 활성 = (c: CaseRow) => c.procId != null && c.isActive !== false;
+  const 고른프로시저 = new Set((케이스들 ?? []).filter((c) => 고른케이스.includes(c.tcId) && 활성(c)).map((c) => c.procId));
+  const 자동인가 = (c: CaseRow) => !고른케이스.includes(c.tcId) && 활성(c) && 고른프로시저.has(c.procId);
+  const 자동수 = (케이스들 ?? []).filter(자동인가).length;
   // 앞 측정 · 추천에서 온 기기가 지금 쓰는 중이거나 이 조작으로 못 쓰면 고른 것에서 뺀다 — 상한 5대에도 안 센다
   const 쓸기기 = 고른기기.flatMap((키) => {
     const d = 기기들?.find((x) => 기기키(x) === 키);
@@ -196,17 +201,25 @@ export function PerfDeviceStart({
             ) : (
               <fieldset className="pd-cases">
                 <legend className="perf-faint">{t('실행할 케이스 ({수}/{상한})', { 수: 고른케이스.length, 상한: 케이스상한 })}</legend>
+                {고른프로시저.size === 0 ? null : (
+                  <div className="mnote proc-note">
+                    <b>{t('테스트 프로시저는 케이스 전체를 실행합니다')}</b>
+                    {자동수 === 0 ? null : <> · {t('선택 {선택}건 · 자동 포함 {자동}건', { 선택: 고른케이스.length, 자동: 자동수 })}</>}
+                  </div>
+                )}
                 {케이스들.map((c) => {
                   const 골랐나 = 고른케이스.includes(c.tcId);
+                  const 자동 = 자동인가(c);
                   return (
-                    <label key={c.tcId}>
+                    <label key={c.tcId} className={자동 ? 'pd-auto' : undefined}>
                       <input
                         type="checkbox"
-                        checked={골랐나}
-                        disabled={!쓰나 || (!골랐나 && 고른케이스.length >= 케이스상한)}
+                        checked={골랐나 || 자동}
+                        disabled={!쓰나 || 자동 || (!골랐나 && 고른케이스.length >= 케이스상한)}
                         onChange={() => set고른케이스(골랐나 ? 고른케이스.filter((x) => x !== c.tcId) : [...고른케이스, c.tcId])}
                       />
                       <span className="mono">{c.tcId}</span> {c.name}
+                      {자동 ? <span className="case-tag">{t('자동 포함')}</span> : null}
                     </label>
                   );
                 })}

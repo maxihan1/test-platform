@@ -7,7 +7,7 @@ import { 대상줄읽기 } from '../authoring/reverse.js';
 import { 게임시나리오인가 } from '../catalog/rules.js';
 import { PC기기인가, 팜머리, 팜주소 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
-import { 러너머리 } from '../execution/runnerAddr.js';
+import { 러너머리, 프로시저못도는러너인가 } from '../execution/runnerAddr.js';
 import { 기기목표 } from './deviceStats.js';
 import * as 표 from './store.js';
 import type { DeviceRunConfig } from './types.js';
@@ -134,8 +134,8 @@ async function 앱없는폰(팜: string, 패키지: string, serials: string[]): 
 async function 케이스검사(serviceId: number, caseIds: string[], 이름: string): Promise<string | null> {
   const 접두사 = (await (await 표.풀()).query<{ prefix: string }>('SELECT prefix FROM service WHERE id = $1', [serviceId])).rows[0]?.prefix;
   if (접두사 === undefined) return '애플리케이션이 없습니다';
-  const r = await (await 표.풀()).query<{ tc_id: string; platforms: string[] }>(
-    `SELECT tc_id, platforms FROM test_case WHERE tc_id = ANY($1::text[]) AND split_part(tc_id, '-', 1) = $2`,
+  const r = await (await 표.풀()).query<{ tc_id: string; platforms: string[]; dropped: boolean }>(
+    `SELECT tc_id, platforms, proc_id IS NOT NULL AND NOT is_active AS dropped FROM test_case WHERE tc_id = ANY($1::text[]) AND split_part(tc_id, '-', 1) = $2`,
     [caseIds, 접두사],
   );
   const 행 = new Map(r.rows.map((x) => [x.tc_id, x]));
@@ -144,6 +144,8 @@ async function 케이스검사(serviceId: number, caseIds: string[], 이름: str
     if (게임시나리오인가(id)) return `게임 시나리오는 기기 성능에 쓰지 않습니다: ${id}`;
     if (x === undefined) return `이 애플리케이션의 케이스가 아닙니다: ${id}`;
     if (!x.platforms.includes('android')) return `${이름} 케이스가 아닙니다: ${id}`;
+    // 프로시저에서 빠져 내려간 케이스는 같이 돌 수도 혼자 돌 수도 없다 (실행 §3.2 「반영」)
+    if (x.dropped) return `테스트 프로시저에서 빠진 케이스입니다: ${id}`;
   }
   return null;
 }
@@ -165,6 +167,9 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
     if (줄.appPath === null) return 나쁨('대상 서버 줄에 앱 파일이 없습니다');
     // 케이스는 서버 러너가 팜에서 잡은 폰으로 돌린다 — 내 컴퓨터 러너 폰에는 보낼 길이 없다
     if (b.devices.some((d) => d.where !== 'FARM')) return 나쁨(`${b.drive === 'GAME' ? '게임' : 'Appium'} 케이스는 팜 폰만 잴 수 있습니다`);
+    // 프로시저 안 케이스는 그 프로시저를 통째로 보낸다 — 못 돌리는 러너면 측정을 만들지 않는다 (§3.9 「기기 성능」)
+    const 프로시저 = await (await 표.풀()).query('SELECT 1 FROM test_case WHERE tc_id = ANY($1::text[]) AND proc_id IS NOT NULL AND is_active LIMIT 1', [케이스]);
+    if ((프로시저.rowCount ?? 0) > 0 && (await 프로시저못도는러너인가())) return { status: 409, error: 'RUNNER_NO_PROCEDURE' };
   }
   const 팜 = 팜주소();
   if (b.devices.some((d) => d.where === 'FARM') && 팜 === undefined) return { status: 409, error: 'FARM_OFF' };

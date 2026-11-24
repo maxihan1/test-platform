@@ -49,6 +49,27 @@ describe('측정 시작', () => {
     expect(요청).not.toHaveProperty('durationSec');
   });
 
+  it('프로시저 안 케이스를 고르면 같은 프로시저의 나머지 케이스가 자동 포함으로 체크된 채 잠기고, 요청에는 고른 케이스만 싣는다', async () => {
+    const 만들기 = 빈화면();
+    const 프로시저 = (tcId: string, procSeq: number) => ({ tcId, name: tcId, platforms: ['android'], procId: 'ZQD-TP-001', procSeq, procName: '글쓰기', isActive: true });
+    vi.spyOn(api, 'cases').mockResolvedValue({ items: [프로시저('ZQD-FN-101', 1), 프로시저('ZQD-FN-102', 2), 프로시저('ZQD-FN-103', 3), ...케이스쪽.items] as CaseRow[], total: 5 } as CasePage);
+    render(<PerfDevices service={앱} 쓰나 />);
+    fireEvent.click(await screen.findByLabelText(/ZQD-FN-102/));
+    expect(screen.getByText('선택 1건 · 자동 포함 2건', { exact: false })).toBeTruthy();
+    for (const id of ['ZQD-FN-101', 'ZQD-FN-103']) {
+      const 칸 = screen.getByLabelText<HTMLInputElement>(new RegExp(id));
+      expect([칸.checked, 칸.disabled]).toEqual([true, true]);
+    }
+    expect(screen.getAllByText('자동 포함')).toHaveLength(2);
+    expect(screen.getByLabelText<HTMLInputElement>(/ZQD-001/).checked).toBe(false);
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.market' } });
+    fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
+    fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    await waitFor(() => expect(만들기).toHaveBeenCalled());
+    expect(만들기.mock.calls[0]![0]).toMatchObject({ caseIds: ['ZQD-FN-102'] });
+  });
+
   it('쓰는 기기는 못 고르고, Appium 케이스면 내 컴퓨터 폰도 못 고른다. 직접 플레이로 바꾸면 고를 수 있고 측정 시간을 초로 보낸다', async () => {
     const 만들기 = 빈화면();
     render(<PerfDevices service={앱} 쓰나 />);

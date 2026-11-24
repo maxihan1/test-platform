@@ -4,13 +4,14 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
+import type { CasesExecuteRequest, ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
 import { type 대상줄, 대상줄읽기 } from '../authoring/reverse.js';
-import { 저장값을채운다 } from '../execution/savedInput.js';
 import { 엔진칸 } from '../execution/engineField.js';
 import { artifactsDir } from '../execution/routes.js';
 import { abortRunner, httpTimeoutMs, 러너에보낸다 } from '../execution/runner.js';
+import { 못간답, 케이스들을보낸다 } from '../execution/runnerCases.js';
+import { type 도는단위, type 단위답, 단위로펼친다, 새답풀기, 알릴말, 옛답풀기 } from './deviceProc.js';
 import { type 기록기, 로컬기록기, 팜기록기 } from './deviceRecorder.js';
 import { 구간붙이기, 줄넣기, 실행시간채우기, type 구간표시 } from './deviceStore.js';
 import type { 끝 } from './finish.js';
@@ -38,7 +39,7 @@ interface 기기상태 {
 
 interface 조작재료 {
   줄: 대상줄;
-  케이스들: { tcId: string; filePath: string; params: Record<string, unknown>; expected: Record<string, unknown> }[];
+  단위들: 도는단위[];
 }
 
 interface 도는기기 {
@@ -102,18 +103,10 @@ export function 기기실행시작(run: 표.실행행, onEnd: 도는기기['onEn
 async function 조작재료읽기(run: 표.실행행, cfg: DeviceRunConfig): Promise<조작재료> {
   const 줄 = await 대상줄읽기(run.serviceId, run.env);
   if (줄 === null || 줄.appPath === null) throw new Error('대상 서버 줄이나 앱 파일이 없어졌습니다');
-  const pool = await 표.풀();
-  const r = await pool.query<{ tc_id: string; file_path: string; param_schema: unknown; expected_schema: unknown }>(
-    'SELECT tc_id, file_path, param_schema, expected_schema FROM test_case WHERE tc_id = ANY($1::text[])',
-    [cfg.caseIds],
-  );
-  const 행 = new Map(r.rows.map((x) => [x.tc_id, x]));
-  const 아이템 = cfg.caseIds.map((tcId) => {
-    if (!행.has(tcId)) throw new Error(`케이스 ${tcId} 가 없어졌습니다`);
-    return { tcId, params: {} as Record<string, unknown>, expected: {} as Record<string, unknown> };
-  });
-  const 채움 = await 저장값을채운다(pool, 아이템, new Map(r.rows.map((x) => [x.tc_id, { param_schema: x.param_schema, expected_schema: x.expected_schema }])), 줄.계정들);
-  return { 줄, 케이스들: 채움.map((c) => ({ ...c, filePath: 행.get(c.tcId)?.file_path ?? '' })) };
+  const { 단위들, 뺀 } = await 단위로펼친다(await 표.풀(), cfg.caseIds, 줄.계정들);
+  for (const id of 뺀) await 표.로그(run.id, `${id} 는 테스트 프로시저에서 빠져 실행하지 않습니다`, 'WARN');
+  if (단위들.length === 0) throw new Error('고른 케이스가 모두 테스트 프로시저에서 빠져 돌릴 케이스가 없습니다');
+  return { 줄, 단위들 };
 }
 
 async function 시작하기(run: 표.실행행, s: 도는기기): Promise<void> {
@@ -204,54 +197,69 @@ let 보낸수 = 0;
 
 async function 기기조작(s: 도는기기, d: 기기상태, 재료: 조작재료): Promise<void> {
   for (let loop = 1; loop <= s.cfg.repeat; loop++) {
-    for (const c of 재료.케이스들) {
+    for (const u of 재료.단위들) {
       if (s.ending) return;
-      await 케이스보내기(s, d, loop, c, 재료);
+      await 단위보내기(s, d, loop, u, 재료);
     }
   }
 }
 
-async function 케이스보내기(s: 도는기기, d: 기기상태, loop: number, c: 조작재료['케이스들'][number], { 줄 }: 조작재료): Promise<void> {
+/** 옛 꼴 케이스 하나 — 거절 · 끊김도 판정 없는 답으로 접는다 */
+async function 케이스하나보내기(요청: ExecuteRequest): Promise<단위답> {
+  try {
+    const r = await 러너에보낸다('/execute', 요청, httpTimeoutMs(요청.timeoutMs));
+    if (r.status >= 200 && r.status < 300) return 옛답풀기(요청.tcId, r.json as ExecuteResponse, null);
+    return 옛답풀기(요청.tcId, null, `러너가 ${r.status} 로 거절했습니다`);
+  } catch (e) {
+    return 옛답풀기(요청.tcId, null, `러너에 닿지 못했습니다 — ${글(e)}`);
+  }
+}
+
+/** 만들 때 /health 를 못 읽어 지나친 옛 러너는 옛 꼴로 답한다 — 케이스마다 Not tested 로 접는다 */
+async function 프로시저보내기(요청: CasesExecuteRequest): Promise<단위답> {
+  const 답 = await 케이스들을보낸다(요청);
+  return 새답풀기(Array.isArray(답.results) ? 답 : 못간답(요청, '서버 테스트 실행기가 테스트 프로시저를 실행하지 못하는 버전입니다'));
+}
+
+/** 옛 꼴 케이스는 하나씩, 테스트 프로시저는 케이스 전부를 요청 하나로 보낸다 (§3.9 「기기 성능」 「프로시저 안 케이스를 고르면 그 프로시저가 통째로 돈다」) */
+async function 단위보내기(s: 도는기기, d: 기기상태, loop: number, u: 도는단위, { 줄 }: 조작재료): Promise<void> {
   const historyId = Date.now() * 100 + (보낸수++ % 100);
   // 팜 폰은 기록기가 서버 몫(DEVICE_FARM_RUN_AS) 이름으로 잡았다 — Appium 세션도 같은 주인이어야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
   const farmToken = await d.rec.팜토큰();
-  const 요청: ExecuteRequest = {
-    runId: 0, historyId, tcId: c.tcId, platform: 'android', filePath: c.filePath, baseUrl: 줄.baseUrl, params: c.params, expected: c.expected,
-    timeoutMs: 케이스제한ms, udid: d.serial, ...(줄.appPath !== null && { app: 줄.appPath }), ...엔진칸(s.cfg.drive === 'GAME' ? 'GAME' : null, 'android', 줄.adminKey),
+  const 공통 = {
+    runId: 0, historyId, platform: 'android' as const, filePath: u.케이스들[0]!.filePath, baseUrl: 줄.baseUrl, udid: d.serial,
+    ...(줄.appPath !== null && { app: 줄.appPath }), ...엔진칸(s.cfg.drive === 'GAME' ? 'GAME' : null, 'android', 줄.adminKey),
     ...(farmToken !== undefined && { farmToken }),
   };
   s.보낸것.add(historyId);
   const t0 = Date.now();
-  let 응답: ExecuteResponse | null = null;
-  let 문제: string | null = null;
+  let 답: 단위답;
   try {
-    const r = await 러너에보낸다('/execute', 요청, httpTimeoutMs(케이스제한ms));
-    if (r.status >= 200 && r.status < 300) 응답 = r.json as ExecuteResponse;
-    else 문제 = `러너가 ${r.status} 로 거절했습니다`;
-  } catch (e) {
-    문제 = `러너에 닿지 못했습니다 — ${글(e)}`;
+    const c = u.케이스들[0]!;
+    // 프로시저 한도는 케이스 한도의 합이다 — 러너 한도가 kit 이 케이스마다 거는 한도의 합보다 짧으면 러너가 먼저 끊어 kit 정리가 안 돈다 (러너 §5.2 「케이스별 한도」)
+    답 = u.procId === null
+      ? await 케이스하나보내기({ ...공통, tcId: c.tcId, params: c.params, expected: c.expected, timeoutMs: 케이스제한ms })
+      : await 프로시저보내기({ ...공통, procId: u.procId, cases: u.케이스들.map(({ tcId, params, expected }) => ({ tcId, params, expected })), timeoutMs: 케이스제한ms * u.케이스들.length });
   } finally {
     s.보낸것.delete(historyId);
     await rm(join(artifactsDir(), 'runs', '0', String(historyId)), { recursive: true, force: true }).catch(() => undefined);
   }
   const t1 = Date.now();
   if (s.놓는중) return;
-  // 회차는 케이스를 보낸 때부터 끝날 때까지, 구간 이름은 절차마다 걸린 시간으로 이어 붙인다.
+  // 회차는 보낸 때부터 끝날 때까지, 구간 이름은 절차마다 걸린 시간으로 이어 붙인다.
   // 절차는 끝에서 거꾸로 놓는다 — 앞쪽엔 연결 · 앱 설치가 끼어 있어 보낸 때부터 세면 구간이 앞으로 밀린다
   const 표시: 구간표시[] = [{ loop, segment: null, fromSec: 초(s, t0), toSec: 초(s, t1) }];
-  let 지남 = Math.max(t0, t1 - (응답?.steps ?? []).reduce((a, st) => a + st.durationMs, 0));
-  for (const st of 응답?.steps ?? []) {
-    표시.push({ loop, segment: `${c.tcId} · ${st.title}`, fromSec: 초(s, 지남), toSec: 초(s, 지남 + st.durationMs) });
+  let 지남 = Math.max(t0, t1 - 답.steps.reduce((a, st) => a + st.durationMs, 0));
+  for (const st of 답.steps) {
+    표시.push({ loop, segment: `${st.tcId} · ${st.title}`, fromSec: 초(s, 지남), toSec: 초(s, 지남 + st.durationMs) });
     지남 += st.durationMs;
   }
   for (const g of 표시) {
     d.구간들.push(g);
     await 구간붙이기(s.runId, d.serial, g);
   }
-  const 까닭 = 문제 ?? 응답?.error?.message;
-  if (!s.ending && (응답 === null || 응답.status !== 'PASS')) {
-    await 경고(s, `${d.model} ${loop}회차 ${c.tcId} 가 ${응답?.status ?? 'NA'} 로 끝났습니다${까닭 === undefined ? '' : ` — ${까닭}`}`);
-  }
+  if (s.ending) return;
+  for (const 말 of 알릴말(d.model, loop, 답)) await 경고(s, 말);
 }
 
 async function 정리(s: 도는기기): Promise<void> {
