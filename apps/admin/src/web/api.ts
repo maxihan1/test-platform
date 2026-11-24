@@ -275,6 +275,8 @@ export type NoticeRunning =
       env: string;
       /** 실행 종류 — UI 테스트 · 기능 테스트 */
       testKind: 'UI' | 'FN' | null;
+      /** 시작 방식 — 실행명의 「무엇을」을 가르는 데 쓴다 (도메인/실행 §8.7 「실행명」) */
+      origin: NonNullable<RunSummary['origin']>;
       total: number;
       done: number;
       counts: RunCounts;
@@ -304,6 +306,7 @@ export type NoticeRecent =
       title: string;
       env: string;
       testKind: 'UI' | 'FN' | null;
+      origin: NonNullable<RunSummary['origin']>;
       status: string;
       counts: RunCounts;
       finishedAt: string;

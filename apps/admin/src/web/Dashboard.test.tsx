@@ -145,6 +145,8 @@ function 실행중(runId: number, 끝난: number, 전체: number, 실패 = 0) {
     serviceId: 1,
     serviceName: 'ZDA 결제',
     title: `ZDA 점검 ${runId}`,
+    origin: 'MANUAL' as const,
+    kind: 'FN' as const,
     doneItems: 끝난,
     totalItems: 전체,
     failedItems: 실패,
@@ -234,6 +236,13 @@ describe('실행 중 줄', () => {
     expect(링크.textContent).toContain('3 / 8건');
     expect(링크.textContent).toContain('Fail 1');
     expect(screen.getByText('실행 중 1건').querySelector('.pulse')).not.toBeNull();
+  });
+
+  it('제목은 「무엇을」로 적는다 — 맨 앞 케이스 번호 대신 종류와 건수', async () => {
+    읽기를(응답({ running: [{ ...실행중(12, 3, 8), title: 'MTA-UI-168 외 19건', kind: 'UI' as const }, { ...실행중(13, 3, 8), title: 'MTA-FN-001 외 19건' }] }));
+    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
+    expect((await screen.findByRole('link', { name: /RUN 12/ })).textContent).toContain('UI 테스트 20건');
+    expect(screen.getByRole('link', { name: /RUN 13/ }).textContent).toContain('기능 테스트 20건');
   });
 
   it('둘까지 보이고 나머지는 「외 N건」이다', async () => {

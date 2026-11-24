@@ -150,7 +150,7 @@ describe('기간 고르기 · 프로젝트', () => {
     window.location.hash = '#/dashboard?days=7';
     vi.useFakeTimers();
     const 읽기 = vi.spyOn(api, 'dashboard').mockResolvedValue(
-      응답({ running: [{ runId: 3, serviceId: 1, serviceName: 'ZDA 결제', title: '점검', doneItems: 1, totalItems: 4, failedItems: 0, startedAt: '2026-10-07T04:00:00.000Z' }] }, 7) as never,
+      응답({ running: [{ runId: 3, serviceId: 1, serviceName: 'ZDA 결제', title: '점검', origin: 'MANUAL', kind: 'FN', doneItems: 1, totalItems: 4, failedItems: 0, startedAt: '2026-10-07T04:00:00.000Z' }] }, 7) as never,
     );
     render(<Dashboard 서비스열기={() => {}} {...기본재료} 프로젝트={10} />);
     await act(async () => {

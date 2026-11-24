@@ -300,6 +300,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
         serviceId: A,
         serviceName: 'XDQ 마켓',
         title: 'XDQ R4 도는 중',
+        origin: 'MANUAL',
         doneItems: 2,
         totalItems: 3,
         failedItems: 1,

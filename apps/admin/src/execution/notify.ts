@@ -5,6 +5,10 @@
 
 import type { Pool } from 'pg';
 
+import { 무엇을 } from '../web/runName.js';
+import { Blocked줄 } from './notVerdict.js';
+import type { RunSummary } from './runTypes.js';
+
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
@@ -22,6 +26,11 @@ interface NotifyRow {
   pass: number;
   fail: number;
   na: number;
+  // na 가운데 앞 케이스에 막힌 수 — 「Not tested 3 (Blocked 2)」의 괄호다 (도메인/실행 §3.2)
+  blocked: number;
+  // 실행명의 「무엇을」을 가르는 칸 — 박제 제목 그대로는 맨 앞 케이스 번호만 보인다 (도메인/실행 §8.7 「실행명」)
+  origin: NonNullable<RunSummary['origin']>;
+  kind: RunSummary['kind'];
   // 위 셋에 이미 들어 있는 항목 중 미확정인 수 — 「그중 미확정 N건」 (SPEC 실행 §3.2)
   unconfirmed: number;
   /** 준비 실패 까닭 — status PREP_FAILED 일 때만 찬다(가린 뒤 300자). 없는 행은 undefined 로 둬도 된다 */
@@ -37,12 +46,13 @@ interface FailedCase {
 
 // 「보낼 생각이 없었던 것」과 「보내려다 실패한 것」을 가르려면 notify_slack 과 notified_at 이 둘 다 필요하다 (§6)
 const TARGET = `
-  SELECT r.title, r.status, r.env, r.service_name, r.triggered_by, r.triggered_by_name, r.prep_note,
+  SELECT r.title, r.origin, r.kind, r.status, r.env, r.service_name, r.triggered_by, r.triggered_by_name, r.prep_note,
          s.slack_webhook,
          EXTRACT(EPOCH FROM (r.finished_at - r.started_at)) * 1000 AS duration_ms,
          count(i.history_id) FILTER (WHERE i.status = 'PASS')::int AS pass,
          count(i.history_id) FILTER (WHERE i.status = 'FAIL')::int AS fail,
          count(i.history_id) FILTER (WHERE i.status = 'NA')::int AS na,
+         count(i.history_id) FILTER (WHERE ${Blocked줄('i')})::int AS blocked,
          count(i.history_id) FILTER (WHERE i.status IN ('PASS', 'FAIL', 'NA') AND i.unconfirmed IS NOT NULL)::int AS unconfirmed
     FROM test_run r
     LEFT JOIN service s ON s.id = r.service_id
@@ -66,6 +76,13 @@ function 미확정꼬리(run: NotifyRow): string {
   return run.unconfirmed === 0 ? '' : ` · 그중 미확정 ${run.unconfirmed}건`;
 }
 
+// 서버에는 번역 표가 없어 한국어 키의 자리표만 채운다 — 꼬리(「§실행명」)는 화면에 안 나온다
+const 한글로 = (키: string, 값?: Record<string, string | number>): string =>
+  키.replace(/§[^§]*$/u, '').replace(/\{([^}]+)\}/gu, (원, 이름: string) => (값 !== undefined && 이름 in 값 ? String(값[이름]) : 원));
+
+// Blocked 는 Not tested 의 사유다 — 0 이면 괄호를 안 적는다
+const 미실행글 = (run: NotifyRow): string => `Not tested ${run.na}${run.blocked > 0 ? ` (Blocked ${run.blocked})` : ''}`;
+
 export function 걸린시간(ms: number | null): string {
   if (ms === null || ms <= 0) return '시간 미상';
   const 초 = Math.round(ms / 1000);
@@ -77,8 +94,8 @@ export function 본문(run: NotifyRow, 실패: FailedCase[], publicUrl: string, 
   const 실행자 = run.triggered_by_name ?? run.triggered_by;
 
   const 줄 = [
-    `${머리} ${run.service_name} · RUN ${runId} · ${run.title}`,
-    `Pass ${run.pass} · Fail ${run.fail} · Not tested ${run.na}${미확정꼬리(run)} · ${걸린시간(run.duration_ms)} · 대상 서버 ${run.env} · 실행자 ${실행자}`,
+    `${머리} ${run.service_name} · RUN ${runId} · ${무엇을({ title: run.title, origin: run.origin, kind: run.kind === 'UI' ? 'UI' : 'FN' }, 한글로)}`,
+    `Pass ${run.pass} · Fail ${run.fail} · ${미실행글(run)}${미확정꼬리(run)} · ${걸린시간(run.duration_ms)} · 대상 서버 ${run.env} · 실행자 ${실행자}`,
   ];
 
   if (run.status === 'PREP_FAILED') {

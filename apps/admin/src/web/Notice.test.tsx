@@ -55,7 +55,7 @@ describe('「알림」 버튼', () => {
 describe('알림 줄', () => {
   it('도는 실행은 열기 링크와 남은 시간 글을, 도는 작성은 단계를 보인다', async () => {
     띄운다({ running: [도는실행(2113), 도는작성(5)], recent: [] });
-    expect(await screen.findByText('RUN 2113 실행 중 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · 12 / 40 완료 · Fail 2')).toBeTruthy();
+    expect(await screen.findByText('RUN 2113 실행 중 · 기능 테스트 전체 382건 · 대상 서버 qa · 12 / 40 완료 · Fail 2')).toBeTruthy();
     expect(screen.getByText('남은 시간 계산 중')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: '열기' }).map((a) => a.getAttribute('href'))).toEqual(['#/runs/2113', '#/authoring/5']);
     expect(screen.getByText(/#5 작성 요청이 진행 중입니다 · 3 \/ 6 단계 케이스 작성/)).toBeTruthy();
@@ -76,7 +76,7 @@ describe('알림 줄', () => {
 
   it('끝난 줄의 ×를 누르면 줄이 사라지고 읽음으로 남는다. 배지도 하나 준다', async () => {
     띄운다({ running: [], recent: [끝난실행(7, { pass: 3, fail: 1 }), 끝난실행(8)] });
-    const 글 = await screen.findByText('RUN 7 실행이 완료되었습니다 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · Pass 3 · Fail 1');
+    const 글 = await screen.findByText('RUN 7 실행이 완료되었습니다 · 기능 테스트 전체 382건 · 대상 서버 qa · Pass 3 · Fail 1');
     fireEvent.click(within(글.closest('.nt-line') as HTMLElement).getByRole('button', { name: '알림 닫기' }));
     expect(screen.queryByText(/RUN 7 실행이 완료되었습니다/)).toBeNull();
     expect(읽음들().has('run:7')).toBe(true);

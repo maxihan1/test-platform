@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { NoticeApproval, NoticeRecent } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 서랍승인목록, 승인안읽은수, 승인열쇠, 승인줄만들기 } from './noticeApproval.js';
-import { 거르개, 끝난줄만들기, 서랍목록, 상대시각, 안읽은수, 읽음열쇠 } from './noticeView.js';
+import { 안읽은수 } from './noticeUnread.js';
+import { 거르개, 끝난줄만들기, 서랍목록, 상대시각, 읽음열쇠 } from './noticeView.js';
 import { use휴대폰 } from './phone.js';
 import { 손잡이, use끌어닫기 } from './Sheet.js';
 

@@ -4,6 +4,7 @@ import type { NoticeRecent, NoticeResponse, NoticeRunning } from './api.js';
 import { 단계글라벨, 단계라벨, 단계이름들, 단계칸, 아는단계글 } from './authoringStatus.js';
 import { t, type 언어 } from './i18n.js';
 import { 실행남은글, 시간글자, 작성남은글 } from './remainText.js';
+import { 무엇을 } from './runName.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 /** 본문 위에 한꺼번에 보이는 줄 수. 넘으면 마지막 자리를 「외 N건」으로 바꾼다 */
@@ -91,10 +92,13 @@ function 오류첫줄(오류: string | null): string | null {
 }
 
 // 제목 · 종류 · 대상 서버 — 도는 줄과 끝난 줄이 같은 말로 어느 실행인지 알린다
+// 제목 자리는 「무엇을」이다 — 끝난 시각 · 시작 시각이 따로 보여 시각과 방식은 붙이지 않는다. 호환성 줄은 박제 제목 그대로다
 function 실행덧말(n: Extract<NoticeRunning | NoticeRecent, { kind: 'run' }>, 언어: 언어): string[] {
+  const 제목 = n.testKind === 'COMPAT' ? n.title : 무엇을({ title: n.title, origin: n.origin, kind: n.testKind ?? undefined }, (키, 값) => t(키, 언어, 값));
   return [
-    ...(n.title === '' ? [] : [n.title]),
-    ...(n.testKind === null ? [] : [t(n.testKind === 'UI' ? 'UI 테스트' : n.testKind === 'FN' ? '기능 테스트' : '호환성', 언어)]),
+    ...(제목 === '' ? [] : [제목]),
+    // 실행명의 「무엇을」이 건수 앞에 종류를 적는다 — 종류 덧말은 호환성만 남긴다(같은 말을 두 번 적지 않는다 · 도메인/실행 「실행명」)
+    ...(n.testKind === 'COMPAT' ? [t('호환성', 언어)] : []),
     t('대상 서버 {서버}', 언어, { 서버: n.env }),
   ];
 }
@@ -124,7 +128,8 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
     const { counts } = n;
     const 집계 = [...실행덧말(n, 언어), t('Pass {수}', 언어, { 수: counts.pass })];
     if (counts.fail > 0) 집계.push(t('Fail {수}', 언어, { 수: counts.fail }));
-    if (counts.na > 0) 집계.push(t('Not tested {수}', 언어, { 수: counts.na }));
+    // Blocked 는 Not tested 의 사유다 — 0 이면 괄호를 안 적는다 (WORDS 「Not tested 3 (Blocked 2)」)
+    if (counts.na > 0) 집계.push(t('Not tested {수}', 언어, { 수: counts.na }) + ((counts.blocked ?? 0) > 0 ? ` (Blocked ${String(counts.blocked)})` : ''));
     // 미확정은 이미 위 숫자에 센 항목이다 — 「그중 N건」 한 줄만 뒤에 붙인다 (도메인/실행 §3.2)
     const 미확정 = 그중미확정글(counts, 언어);
     if (미확정 !== '') 집계.push(미확정);
@@ -248,29 +253,6 @@ export function 보일줄들(
   const 전부: 줄[] = [...도는것.map((n) => 도는줄만들기(n, 지금, 언어)), ...끝난것.map((n) => 끝난줄만들기(n, 언어))];
   if (전부.length <= 줄최대) return { 줄들: 전부, 넘친수: 0 };
   return { 줄들: 전부.slice(0, 줄최대 - 1), 넘친수: 전부.length - (줄최대 - 1) };
-}
-
-/** 「알림」 버튼의 배지 수 — 서랍에 있는(7일) 것 가운데 이 브라우저가 아직 안 읽은 것 */
-export function 안읽은수(recent: readonly NoticeRecent[], 읽음: ReadonlySet<string>): number {
-  return recent.filter((n) => !읽음.has(읽음열쇠(n))).length;
-}
-
-/**
- * 토스트로 알릴 새 소식 하나 — 앞 답에 없던 안 읽은 것 가운데 가장 늦게 끝난 것.
- * 앞 답이 없으면(화면을 막 열었다) 없다 — 열기 전에 끝난 것은 소식이 아니라 줄 · 배지가 알린다.
- * `뺄실행` 은 완료 창(진행 알약)이나 결과 화면이 이미 알리는 실행이다
- */
-export function 새소식(
-  앞: readonly NoticeRecent[] | null,
-  지금: readonly NoticeRecent[],
-  읽음: ReadonlySet<string>,
-  뺄실행: readonly (number | null)[],
-): NoticeRecent | null {
-  if (앞 === null) return null;
-  const 있던 = new Set(앞.map(읽음열쇠));
-  // E2E(scenario)도 runId 로 뺀다 — 실행 창이 떠 있으면 그 창이 끝을 알린다 (점검표 D8)
-  const 새것 = 지금.filter((n) => !있던.has(읽음열쇠(n)) && !읽음.has(읽음열쇠(n)) && !(n.kind !== 'authoring' && 뺄실행.includes(n.runId)));
-  return 서랍목록(새것, 읽음, 'all')[0] ?? null;
 }
 
 export type 거르개 = 'all' | 'run' | 'authoring' | 'unread';

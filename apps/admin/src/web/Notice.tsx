@@ -9,7 +9,8 @@ import { 아이콘 } from './icons.js';
 import { NoticeDrawer } from './NoticeDrawer.js';
 import { 승인안읽은수, 승인열쇠 } from './noticeApproval.js';
 import { 읽음들, 읽음바뀜, 읽음으로적는다, 읽음정리 } from './noticeRead.js';
-import { 끝난글, 끝난줄만들기, 보일줄들, 새소식, 안읽은수, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
+import { 새소식, 안읽은수 } from './noticeUnread.js';
+import { 끝난글, 끝난줄만들기, 보일줄들, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
 import { use지켜봄 } from './runWatchStore.js';
 import { use보는실행, use창실행 } from './viewedRun.js';
 

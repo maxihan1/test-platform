@@ -16,6 +16,9 @@ const 실행 = {
   pass: 8,
   fail: 1,
   na: 1,
+  blocked: 0,
+  origin: 'MANUAL' as const,
+  kind: 'FN' as const,
   unconfirmed: 0,
 };
 
@@ -66,6 +69,17 @@ describe('본문', () => {
   it('집계와 대상 서버와 실행자를 한 줄에 적는다', () => {
     const 둘째줄 = 본문(실행, 실패하나, '', 2111).split('\n')[1];
     expect(둘째줄).toBe('Pass 8 · Fail 1 · Not tested 1 · 12분 04초 · 대상 서버 qa · 실행자 김철수');
+  });
+
+  it('Blocked 가 있으면 Not tested 뒤 괄호로 적고 0 이면 괄호가 없다', () => {
+    expect(본문({ ...실행, na: 3, blocked: 2 }, [], '', 2111).split('\n')[1]).toContain('Not tested 3 (Blocked 2) · 12분 04초');
+    expect(본문({ ...실행, na: 3, blocked: 0 }, [], '', 2111).split('\n')[1]).toContain('Not tested 3 · 12분 04초');
+  });
+
+  it('머리의 실행명은 「무엇을」이다 — 맨 앞 케이스 번호 대신 종류와 건수', () => {
+    const 외건 = { ...실행, title: 'MTA-UI-168 외 19건' };
+    expect(본문({ ...외건, kind: 'UI' }, [], '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · UI 테스트 20건');
+    expect(본문(외건, [], '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · 기능 테스트 20건');
   });
 
   it('박제된 이름이 없으면 로그인 아이디로 적는다', () => {
