@@ -95,13 +95,13 @@ export const 앞판정SQL = `
 
 // 항목은 끝나면 finished_at 이 찍힌다(execution/store.ts). 시나리오 실행은 케이스 실행이 아니라 뺀다
 export const 실행중SQL = `
-  SELECT r.run_id, r.service_id, r.service_name, r.title, r.started_at,
+  SELECT r.run_id, r.service_id, r.service_name, r.title, r.origin, r.kind, r.started_at,
          count(i.history_id) AS total,
          count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL) AS done,
          count(i.history_id) FILTER (WHERE i.status = 'FAIL') AS failed
   FROM test_run r LEFT JOIN run_item i ON i.run_id = r.run_id
   WHERE r.service_id = ANY($1::bigint[]) AND r.status = 'RUNNING' AND ${종류조건('case', 'r')} AND r.origin <> 'SINGLE'
-  GROUP BY r.run_id, r.service_id, r.service_name, r.title, r.started_at
+  GROUP BY r.run_id, r.service_id, r.service_name, r.title, r.origin, r.kind, r.started_at
   ORDER BY r.started_at DESC, r.run_id DESC`;
 
 // 어디에도 안 붙은 한 건 판정 — 붙지 않았거나 붙은 실행에 그 디바이스 항목이 없었다. 회귀 실패 「지금도 실패」의 가장 최근 판정에

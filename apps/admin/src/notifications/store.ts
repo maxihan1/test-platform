@@ -7,6 +7,7 @@ import { 작성제목 } from '../authoring/notify.js';
 import { 실행남은시간 } from '../execution/eta.js';
 import { RUN_COLUMNS, toRun, type RawRun } from '../execution/runRow.js';
 import { 케이스실행인가, 종류조건 } from '../execution/runKind.js';
+import type { 시작방식 } from '../execution/runOrigin.js';
 import type { RunCounts, RunSummary } from '../execution/runTypes.js';
 import { 지금항목 } from '../execution/single.js';
 import { 지금판 } from '../prd/store.js';
@@ -26,6 +27,7 @@ export type NoticeRunning =
       title: string;
       env: string;
       testKind: 'UI' | 'FN' | null;
+      origin: 시작방식;
       total: number;
       done: number;
       counts: RunCounts;
@@ -61,6 +63,7 @@ export type NoticeRecent =
       title: string;
       env: string;
       testKind: 'UI' | 'FN' | null;
+      origin: 시작방식;
       status: RunSummary['status'];
       counts: RunCounts;
       finishedAt: string;
@@ -218,6 +221,7 @@ export async function 알림(
         title: 실행.title,
         env: 실행.env,
         testKind: 케이스실행인가(실행.kind) ? 실행.kind : null,
+        origin: 실행.origin,
         total: 실행.counts.total,
         done: 실행.counts.total - 실행.counts.running,
         counts: 실행.counts,
@@ -261,6 +265,7 @@ export async function 알림(
         title: 실행.title,
         env: 실행.env,
         testKind: 케이스실행인가(실행.kind) ? 실행.kind : null,
+        origin: 실행.origin,
         status: 실행.status,
         counts: 실행.counts,
         finishedAt: 실행.finishedAt!,

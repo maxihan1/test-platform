@@ -46,6 +46,22 @@ export interface 실패재료 {
   화면: { 깨짐: BrowserPlatform[]; 통과: BrowserPlatform[] } | null;
   /** 둘째로 깨진 화면이 다른 단계나 다른 확인에서 깨졌을 때만 그 화면 것 — 같으면 null 이고 첫 화면 것만 싣는다 */
   둘째: 화면재료 | null;
+  /** 프로시저 안 케이스만 — 옛 꼴 케이스 · 웹 · API 는 null (도메인/BTS 「테스트 프로시저 — 이슈 등록과 이슈 처리」) */
+  프로시저: 프로시저재료 | null;
+}
+
+export interface 프로시저재료 {
+  id: string;
+  name: string;
+  /** 몇 번째 케이스인지(1부터) / 실행 단위의 케이스 수 */
+  seq: number;
+  total: number;
+  /** 이 케이스보다 앞에 돈 케이스와 그 절차 제목 — 개발자가 그 화면에 서려면 앞 케이스가 만든 상태가 있어야 한다 */
+  앞케이스: { tcId: string; tcName: string; 판정: string; steps: string[] }[];
+  /** 같은 실행 · 같은 프로시저에서 앞서 실패한 케이스 — 앞 실패가 남긴 화면 탓일 수 있다 */
+  앞실패: string[];
+  /** 이 실패로 Blocked 가 된 케이스 */
+  후속: { tcId: string; tcName: string }[];
 }
 
 /** 한 화면에서 깨진 모습 — 첫 화면 것은 실패재료 에 바로 있다 */
@@ -181,6 +197,34 @@ function 폰로그줄(폰: 폰오류줄 | '없음'): string[] {
   ];
 }
 
+/**
+ * 프로시저 처음부터 그 케이스까지 — 케이스가 바뀌는 자리에 `<번호> <이름> — <판정>` 줄을 끼우고 번호는 이어 센다. 그 케이스 뒤의 절차는 싣지 않는다.
+ * 접으면 앞 케이스를 한 줄씩으로 줄인다 — 상한을 넘으면 실패한 케이스의 절차보다 앞 케이스부터 덜어 낸다
+ */
+function 프로시저단계줄(재료: 실패재료, p: 프로시저재료, 남길: number, 접기: boolean): string[] {
+  let 번호 = 0;
+  const 앞 = p.앞케이스.flatMap((c) => {
+    if (접기) return [`- ${c.tcId} ${c.tcName} — ${c.판정}`];
+    return [`**${c.tcId} ${c.tcName} — ${c.판정}**`, ...c.steps.map((t) => `${String(++번호)}. ${t}`)];
+  });
+  const 뺀수 = Math.max(0, 재료.steps.length - 남길);
+  return [
+    ...앞,
+    ...(접기 && p.앞케이스.length > 0 ? ['앞서 돈 케이스의 절차는 Test Commander 실행 결과에서'] : []),
+    `**${재료.tcId} ${재료.tcName} — Fail**`,
+    ...재료.steps.slice(0, 남길).map((s) => `${String(++번호)}. ${s.title}${s.status === 'FAIL' ? ' ← 여기서 실패' : ''}`),
+    ...(뺀수 > 0 ? [`이하 ${String(뺀수)}단계는 Test Commander 실행 결과에서`] : []),
+  ];
+}
+
+function 프로시저머리줄(p: 프로시저재료): string[] {
+  return [
+    `**프로시저** — ${p.id} ${p.name} · ${String(p.seq)}번째 / ${String(p.total)}`,
+    ...(p.앞실패.length === 0 ? [] : [`**앞서 실패한 케이스** — ${p.앞실패.join(' · ')}`]),
+    ...(p.후속.length === 0 ? [] : [`**후속 케이스** — ${p.후속.map((c) => `${c.tcId} ${c.tcName}`).join(' · ')}`]),
+  ];
+}
+
 function 단계줄(steps: 화면재료['steps'], 남길: number): string[] {
   const 뺀수 = Math.max(0, steps.length - 남길);
   return [
@@ -189,15 +233,19 @@ function 단계줄(steps: 화면재료['steps'], 남길: number): string[] {
   ];
 }
 
-/** 화면마다 재현 단계를 남길 개수만큼 싣는다 */
-function 본문(재료: 실패재료, 남길: number): string {
+/** 화면마다 재현 단계를 남길 개수만큼 싣는다. 접기는 프로시저 안 케이스의 앞 케이스 절차를 한 줄씩으로 줄인다 */
+function 본문(재료: 실패재료, 남길: number, 접기 = false): string {
   const 화면 = 화면들(재료);
+  const p = 재료.프로시저;
   return [
     `**케이스** — ${재료.tcId}`,
     환경줄(재료),
+    ...(p === null ? [] : 프로시저머리줄(p)),
     ...(재료.화면 === null ? [] : [`**화면** — ${화면글(재료.화면)}`]),
     `**꼬리표** — ${재료.꼬리표} (Test Commander 규칙으로 붙였습니다)`,
-    ...화면.flatMap((h) => ['', 머리('재현 단계', h.이름), ...단계줄(h.재료.steps, 남길)]),
+    ...(p === null
+      ? 화면.flatMap((h) => ['', 머리('재현 단계', h.이름), ...단계줄(h.재료.steps, 남길)])
+      : ['', 머리('재현 단계', null), ...프로시저단계줄(재료, p, 남길, 접기)]),
     '',
     '### 기대 (PRD)',
     ...(재료.reqs.length === 0 ? ['이 케이스가 커버하는 PRD 요구사항이 없습니다'] : 재료.reqs.map((r) => `- ${r.reqId} ${r.text ?? ''}`.trimEnd())),
@@ -210,16 +258,24 @@ function 본문(재료: 실패재료, 남길: number): string {
   ].join('\n');
 }
 
-/** 상한을 넘으면 재현 단계를 뒤에서부터 덜어 내고 남은 수를 적는다 — 기대 · 실제 · 고리는 늘 남는다 */
+/**
+ * 상한을 넘으면 재현 단계를 뒤에서부터 덜어 내고 남은 수를 적는다 — 기대 · 실제 · 고리는 늘 남는다.
+ * 프로시저 안 케이스는 앞 케이스의 절차를 먼저 접는다 — 뒤에서부터만 덜면 실패한 케이스의 절차가 먼저 잘린다
+ */
 export function 이슈본문(재료: 실패재료): string {
   const 많은쪽 = Math.max(재료.steps.length, 재료.둘째?.steps.length ?? 0);
+  const 접기 = 재료.프로시저 !== null;
+  if (접기) {
+    const 글 = 본문(재료, 많은쪽);
+    if (바이트(글) <= 본문상한) return 글;
+  }
   for (let 남길 = 많은쪽; 남길 >= 0; 남길--) {
-    const 글 = 본문(재료, 남길);
+    const 글 = 본문(재료, 남길, 접기);
     if (바이트(글) <= 본문상한) return 글;
   }
   // 단계를 다 빼도 넘으면 끝을 자른다 — 요구 문장 · 기록이 유난히 긴 경우뿐이다. 실행 결과 고리는 잘린 글 뒤에 다시 붙여 남긴다
   const 고리 = 재료.결과주소 === null ? '' : `\n\nTest Commander 실행 결과 — ${재료.결과주소}`;
-  const 글 = Buffer.from(본문({ ...재료, 결과주소: null }, 0), 'utf8').subarray(0, 본문상한 - 3 - 바이트(고리));
+  const 글 = Buffer.from(본문({ ...재료, 결과주소: null }, 0, 접기), 'utf8').subarray(0, 본문상한 - 3 - 바이트(고리));
   return `${글.toString('utf8').replace(/\uFFFD$/, '')}…${고리}`;
 }
 

@@ -40,6 +40,7 @@ describe.skipIf(연결 === undefined)('notifyRun — 먼저 차지하고 보낸�
   });
 
   afterAll(async () => {
+    await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
   });
@@ -85,5 +86,29 @@ describe.skipIf(연결 === undefined)('notifyRun — 먼저 차지하고 보낸�
     expect(await notifyRun(runId)).toBe(true);
     expect(await notifyRun(runId)).toBe(false);
     expect(보냄).toHaveBeenCalledTimes(1);
+  });
+
+  it('Blocked 수와 실행명을 질의에서 읽어 본문에 싣는다', async () => {
+    const r = await pool.query<{ run_id: string }>(
+      `INSERT INTO test_run (title, service_name, tests_repo, triggered_by, env, base_url, status, service_id, finished_at, notify_slack, kind, origin)
+            VALUES ('XNF-UI-001 외 2건', 'XNF', '', 'xnf', 'qa', 'https://qa.example.com', 'FINISHED', $1, now(), true, 'UI', 'MANUAL')
+         RETURNING run_id`,
+      [서비스],
+    );
+    const runId = Number(r.rows[0]!.run_id);
+    for (const [tcId, status, error] of [['XNF-UI-001', 'FAIL', null], ['XNF-UI-002', 'NA', '{"message":"BLOCKED"}'], ['XNF-UI-003', 'NA', '{"message":"BLOCKED"}']] as const) {
+      await pool.query(
+        `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms, precondition, params, expected, param_schema, expected_schema, status, error, finished_at)
+         VALUES ($1, $2, 'desktop', 1, $2, 'xnf/a.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', $3, $4, now())`,
+        [runId, tcId, status, error],
+      );
+    }
+    const 보냄 = vi.fn(async (_주소: unknown, _옵션: { body: string }) => new Response('ok'));
+    vi.stubGlobal('fetch', 보냄);
+
+    expect(await notifyRun(runId)).toBe(true);
+    const 글 = (JSON.parse(보냄.mock.calls[0]![1].body) as { text: string }).text.split('\n');
+    expect(글[0]).toBe(`[Fail] XNF · RUN ${runId} · 직접 실행 · UI 테스트 3건`);
+    expect(글[1]).toContain('Pass 0 · Fail 1 · Not tested 2 (Blocked 2)');
   });
 });

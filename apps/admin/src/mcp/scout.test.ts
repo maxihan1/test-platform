@@ -38,6 +38,7 @@ describe.skipIf(연결 === undefined)('MCP Scout 도구', () => {
     await q(`DELETE FROM compat_run_device WHERE run_id IN (${실행들})`, [앱들]);
     await q(`DELETE FROM scenario_run_part WHERE run_id IN (${실행들})`, [앱들]);
     await q(`DELETE FROM run_item WHERE run_id IN (${실행들})`, [앱들]);
+    await q(`DELETE FROM run_exec WHERE run_id IN (${실행들})`, [앱들]);
     await q('DELETE FROM test_run WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM compat_set WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = ANY($1))', [앱들]);
@@ -273,5 +274,40 @@ describe.skipIf(연결 === undefined)('MCP Scout 도구', () => {
     });
     expect(BTS받은것.at(-1)).toBe('/api/v1/issues?projectKey=XMTQ&page=1&size=30');
     expect(await 최근이슈(나, null, 남프로젝트, 0, 부르기)).toMatchObject({ ok: false, error: 'FORBIDDEN' });
+  });
+
+  it('프로시저 실행 — run_result 는 막힌 줄에 procId · procName · blockedBy 와 counts.blocked 를, run_list 는 summary 에 blocked 를 싣는다', async () => {
+    const 실행 = 번호(
+      await q(
+        `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url, started_at, finished_at, kind)
+         VALUES ('XMT 프로시저', 'xmt', 'FINISHED', 'qa', $1, 'XMT', '', 'https://qa.xmt.test', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z', 'UI') RETURNING run_id`,
+        [내앱],
+      ),
+    );
+    const 단위 = 번호(
+      await q(`INSERT INTO run_exec (run_id, file_path, proc_id, proc_name, platform, timeout_ms) VALUES ($1, 'xmt/p.spec.ts', 'XMT-TP-001', '글쓰기', 'desktop', 300000) RETURNING exec_id`, [실행]),
+      'exec_id',
+    );
+    const 줄 = (tcId: string, 차례: number, status: string, error: string | null, 막은: string | null) =>
+      q(
+        `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms, precondition, params, expected, param_schema, expected_schema, status, error, blocked_by, exec_id, exec_seq, finished_at)
+         VALUES ($1, $2, 'desktop', 1, $2, 'xmt/p.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', $3, $4, $5, $6, $7, now())`,
+        [실행, tcId, status, error, 막은, 단위, 차례],
+      );
+    await 줄('XMT-TP-001', 1, 'FAIL', JSON.stringify({ message: '글쓰기 실패' }), null);
+    await 줄('XMT-TP-002', 2, 'NA', JSON.stringify({ message: 'BLOCKED' }), 'XMT-TP-001');
+    await 줄('XMT-TP-003', 3, 'NA', JSON.stringify({ message: 'BLOCKED' }), 'XMT-TP-001');
+
+    const 결과 = (await 실행보기(나, 실행)) as { data: { counts: Record<string, number>; items: Record<string, unknown>[] } };
+    expect(결과.data.counts).toMatchObject({ fail: 1, na: 2, blocked: 2 });
+    expect(결과.data.items.map((i) => [i.tcId, i.procId, i.procName, i.blockedBy])).toEqual([
+      ['XMT-TP-001', 'XMT-TP-001', '글쓰기', undefined],
+      ['XMT-TP-002', 'XMT-TP-001', '글쓰기', 'XMT-TP-001'],
+      ['XMT-TP-003', 'XMT-TP-001', '글쓰기', 'XMT-TP-001'],
+    ]);
+    expect(await 실행목록(나, 프로젝트, 'UI')).toMatchObject({ ok: true, data: { runs: expect.arrayContaining([expect.objectContaining({ runId: 실행, summary: expect.objectContaining({ fail: 1, na: 2, blocked: 2 }) as unknown })]) as unknown } });
+    const 옛줄 = ((await 실행보기(나, 실행번호.ui)) as { data: { items: Record<string, unknown>[] } }).data.items[0]!;
+    expect(옛줄).not.toHaveProperty('procId');
+    expect(옛줄).not.toHaveProperty('blockedBy');
   });
 });

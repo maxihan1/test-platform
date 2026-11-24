@@ -5,6 +5,8 @@ import type { Pool } from 'pg';
 
 import { 뿌리 } from '../authoring/history.js';
 import type { AI품질 } from '../bts/quality.js';
+import type { 시작방식 } from '../execution/runOrigin.js';
+import type { 케이스종류 } from '../execution/runKind.js';
 import {
   창날수,
   커버리지날수,
@@ -59,6 +61,9 @@ export interface 실행중 {
   serviceId: number;
   serviceName: string;
   title: string;
+  /** 실행명의 「무엇을」을 가르는 칸 — 박제 제목은 맨 앞 케이스 번호만 보인다 (도메인/실행 §8.7 「실행명」). 도는 줄은 케이스 실행뿐이다 */
+  origin: 시작방식;
+  kind: 케이스종류;
   doneItems: number;
   totalItems: number;
   failedItems: number;
@@ -155,6 +160,8 @@ async function 실행중읽기(pool: Pool, ids: number[]): Promise<실행중[]> 
     service_id: string;
     service_name: string;
     title: string;
+    origin: 시작방식;
+    kind: 케이스종류;
     started_at: Date;
     total: string;
     done: string;
@@ -165,6 +172,8 @@ async function 실행중읽기(pool: Pool, ids: number[]): Promise<실행중[]> 
     serviceId: Number(r.service_id),
     serviceName: r.service_name,
     title: r.title,
+    origin: r.origin,
+    kind: r.kind,
     doneItems: Number(r.done),
     totalItems: Number(r.total),
     failedItems: Number(r.failed),

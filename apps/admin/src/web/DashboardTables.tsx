@@ -4,6 +4,7 @@ import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 
 import { use말 } from './i18n.js';
 import { 아이콘 } from './icons.js';
+import { 무엇을 } from './runName.js';
 
 type 자료 = 대시보드응답;
 
@@ -25,7 +26,7 @@ export function 실행중줄({ 목록 }: { 목록: 자료['running'] }) {
         return (
           <a key={실행.runId} className="dash-live-item" href={`#/runs/${실행.runId}`}>
             <span className="dash-live-title">
-              <span className="one-line">{실행.title}</span>
+              <span className="one-line">{무엇을(실행, t)}</span>
               <span className="mono">
                 {실행.serviceName} · RUN {실행.runId}
               </span>

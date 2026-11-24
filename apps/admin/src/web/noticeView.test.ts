@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { 끝난글, 끝난줄만들기, 도는줄만들기, 보일줄들, 상대시각, 새소식, 서랍목록, 안읽은수, 읽음열쇠, 줄최대, type 끝난줄, type 도는줄 } from './noticeView.js';
+import { 새소식, 안읽은수 } from './noticeUnread.js';
+import { 끝난글, 끝난줄만들기, 도는줄만들기, 보일줄들, 상대시각, 서랍목록, 읽음열쇠, 줄최대, type 끝난줄, type 도는줄 } from './noticeView.js';
 import { 끝난실행, 끝난작성, 끝난호환성, 도는E2E, 도는실행, 도는작성, 도는호환성, 전에 } from './notice.fixture.js';
 
 const 지금 = Date.now();
@@ -9,7 +10,7 @@ const 없음 = new Set<string>();
 describe('도는 줄', () => {
   it('실행은 몇 건 중 몇 건인지와 막대 폭, 남은 시간 글을 같이 낸다', () => {
     const 줄 = 도는줄만들기(도는실행(2113), 지금, 'ko');
-    expect(줄.앞글).toBe('RUN 2113 실행 중 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · 12 / 40 완료 · Fail 2');
+    expect(줄.앞글).toBe('RUN 2113 실행 중 · 기능 테스트 전체 382건 · 대상 서버 qa · 12 / 40 완료 · Fail 2');
     expect(줄.막대).toEqual({ 통과: 10, 실패: 2, 미실행: 0, 남음: 28 });
     expect(줄.뒷글).toBe('남은 시간 계산 중');
     expect(줄.열기).toBe('#/runs/2113');
@@ -17,7 +18,7 @@ describe('도는 줄', () => {
 
   it('막대 색만으로 판정을 말하지 않는다 — 실패가 없으면 실패 글을 안 붙인다', () => {
     const 줄 = 도는줄만들기(도는실행(2114, { counts: { total: 40, pass: 12, fail: 0, na: 0, running: 28 } }), 지금, 'ko');
-    expect(줄.앞글).toBe('RUN 2114 실행 중 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · 12 / 40 완료');
+    expect(줄.앞글).toBe('RUN 2114 실행 중 · 기능 테스트 전체 382건 · 대상 서버 qa · 12 / 40 완료');
   });
 
   it('E2E 실행은 단계 수와 지난 시간만 낸다 — 도중 진척을 몰라 막대도 남은 시간도 없다', () => {
@@ -86,14 +87,28 @@ describe('호환성 줄', () => {
 describe('끝난 줄', () => {
   it('실행은 집계를 그대로 적는다 — 통과 · 실패 · 미실행 · 그중 미확정', () => {
     const 줄 = 끝난줄만들기(끝난실행(2127, { total: 10, pass: 6, fail: 1, na: 3, unconfirmed: 2 }), 'ko');
-    expect(끝난글(줄)).toBe('RUN 2127 실행이 완료되었습니다 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · Pass 6 · Fail 1 · Not tested 3 · 그중 미확정 2건');
+    expect(끝난글(줄)).toBe('RUN 2127 실행이 완료되었습니다 · 기능 테스트 전체 382건 · 대상 서버 qa · Pass 6 · Fail 1 · Not tested 3 · 그중 미확정 2건');
     expect(줄.모양).toBe('fail');
     expect(줄.열기라벨).toBe('결과 보기');
   });
 
+  it('Not tested 뒤에 Blocked 수를 괄호로 적고, 0 이거나 칸이 없으면 괄호가 없다', () => {
+    expect(끝난글(끝난줄만들기(끝난실행(2125, { pass: 5, na: 3, blocked: 2 }), 'ko'))).toContain('Not tested 3 (Blocked 2)');
+    expect(끝난글(끝난줄만들기(끝난실행(2125, { pass: 5, na: 3, blocked: 0 }), 'ko'))).toMatch(/Not tested 3$/);
+    expect(끝난글(끝난줄만들기(끝난실행(2125, { pass: 5, na: 3 }), 'ko'))).toMatch(/Not tested 3$/);
+  });
+
+  it('실행 제목은 「무엇을」로 적는다 — 맨 앞 케이스 번호 대신 종류와 건수. 도는 줄도 같다', () => {
+    const 외건 = { title: 'MTA-UI-168 외 19건' };
+    expect(끝난줄만들기(끝난실행(2124, {}, { ...외건, testKind: 'UI' }), 'ko').머리).toBe('RUN 2124 실행이 완료되었습니다');
+    expect(끝난글(끝난줄만들기(끝난실행(2124, {}, { ...외건, testKind: 'UI' }), 'ko'))).toContain('· UI 테스트 20건 · 대상 서버');
+    expect(끝난글(끝난줄만들기(끝난실행(2124, {}, 외건), 'ko'))).toContain('· 기능 테스트 20건 · 대상 서버');
+    expect(도는줄만들기(도는실행(2123, 외건), 지금, 'ko').앞글).toContain('· 기능 테스트 20건 ·');
+  });
+
   it('실패가 없으면 통과만 적고 통과 모양이다', () => {
     const 줄 = 끝난줄만들기(끝난실행(2126, { pass: 5 }), 'ko');
-    expect(끝난글(줄)).toBe('RUN 2126 실행이 완료되었습니다 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · Pass 5');
+    expect(끝난글(줄)).toBe('RUN 2126 실행이 완료되었습니다 · 기능 테스트 전체 382건 · 대상 서버 qa · Pass 5');
     expect(줄.모양).toBe('pass');
   });
 
