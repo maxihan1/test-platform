@@ -7,7 +7,8 @@ import { 남은손들 } from './listTodo.js';
 import { 반영할일 } from './applyTodo.js';
 import { db } from './store.js';
 import { 종류조건 } from '../execution/runKind.js';
-import { 멈춰닫힌항목아님, 지금항목 } from '../execution/single.js';
+import { 멈춰닫힌항목아님 } from '../execution/notVerdict.js';
+import { 지금항목 } from '../execution/single.js';
 import { 화면목록식 } from '../prd/screenRight.js';
 import type { 결정항목 } from './decisionItems.js';
 

@@ -2,6 +2,8 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import { 판정난줄 } from './notVerdict.js';
+
 type 질의 = Pick<PoolClient, 'query'>;
 
 async function db(): Promise<Pool> {
@@ -31,7 +33,7 @@ export const 지금항목 = (조건: string, 한건조건 = ''): string => `(
         FROM test_run sr JOIN run_item s ON s.run_id = sr.run_id
        WHERE sr.origin = 'SINGLE' AND sr.rerun_of = o.run_id
          AND s.tc_id = o.tc_id AND s.platform = o.platform
-         AND s.finished_at IS NOT NULL AND s.status IN ('PASS', 'FAIL')${한건조건}
+         AND s.finished_at IS NOT NULL AND ${판정난줄('s')}${한건조건}
        ORDER BY s.finished_at DESC, s.history_id DESC
        LIMIT 1
     ) d ON true
@@ -40,15 +42,6 @@ export const 지금항목 = (조건: string, 한건조건 = ''): string => `(
       OFFSET 0
     ) n
    WHERE ${조건})`;
-
-/**
- * 판정이 된 항목만 거르는 조건 — 멈춰서 안 돌고 닫힌 항목(NA · error ABORTED)과 준비 실패로 안 돈 항목(NA · error PREP_FAILED)은 판정이 아니다. 넣으면 통과였던 케이스가 멈춘 실행 하나로 「미실행」이 된다.
- * 「케이스마다 최근 실행」을 고르는 질의는 모두 이 조건을 건다 (execution/history.ts lastByCase · authoring/decisionReads.ts)
- */
-export const 멈춰닫힌항목아님 = (별칭 = ''): string => {
-  const 앞 = 별칭 === '' ? '' : `${별칭}.`;
-  return `NOT (${앞}status = 'NA' AND ${앞}error->>'message' IN ('ABORTED', 'PREP_FAILED'))`;
-};
 
 /** 덮인 항목에 붙는 칸 (도메인/실행 §7 `GET /api/runs/:runId` items[].rerun) */
 export interface 다시실행칸 {
@@ -84,9 +77,18 @@ export function 다시실행칸으로(row: 다시실행원재료): 다시실행�
   };
 }
 
-/** 케이스 하나 · 반복 1 이면 한 건이다 — 디바이스 수와 거는 곳은 상관없다 */
-export function 한건인가(tcIds: string[], repeat: number): boolean {
-  return new Set(tcIds).size === 1 && repeat === 1;
+/** 펼치기 전에 고른 케이스 — 프로시저 안 케이스면 그 프로시저 번호가 실린다 */
+export interface 고른케이스 {
+  tcId: string;
+  procId: string | null;
+}
+
+/**
+ * 케이스 하나 · 반복 1 이면 한 건이다 — 디바이스 수와 거는 곳은 상관없다.
+ * 프로시저 안 케이스는 고른 케이스가 모두 같은 프로시저 하나에 들면 한 건이다 — 화면이 케이스 하나를 보내든 그 프로시저의 케이스를 다 보내든 도는 것은 그 프로시저 한 번이다
+ */
+export function 한건인가(케이스들: 고른케이스[], repeat: number): boolean {
+  return repeat === 1 && new Set(케이스들.map((c) => (c.procId === null ? `c:${c.tcId}` : `p:${c.procId}`))).size === 1;
 }
 
 /** 회차가 둘 이상인 실행 — 붙이면 회차 요약의 「5회 중 2회 실패」가 지워진다 */
@@ -113,24 +115,25 @@ export interface 붙을곳 {
 }
 
 /**
- * 같은 대상 서버에서 그 케이스의 고른 디바이스 항목이 하나라도 있는 끝난 실행 가운데 시작이 가장 늦은 것.
+ * 같은 대상 서버에서 고른 케이스의 고른 디바이스 항목이 하나라도 있는 끝난 실행 가운데 시작이 가장 늦은 것.
+ * 고른 케이스가 여럿인 것은 같은 프로시저의 케이스를 같이 보냈을 때다 — 그 가운데 하나라도 든 실행이 후보다.
  * 빌드 스모크 · 한 건 실행 · 시나리오 실행(항목이 없다)은 후보가 아니다. 고른 것이 반복 실행이면 그 앞으로 내려가지 않고 null —
  * 더 낡은 실행을 고치게 된다. 실행을 만드는 쪽과 rerun-target 통로가 같은 함수를 쓴다
  */
 export async function 붙을곳고르기(
   client: 질의,
-  재료: { serviceId: string; env: string; tcId: string; platforms: string[]; 실제폰: boolean },
+  재료: { serviceId: string; env: string; tcIds: string[]; platforms: string[]; 실제폰: boolean },
 ): Promise<붙을곳 | null> {
   const r = await client.query<{ run_id: string; title: string; started_at: Date }>(
     `SELECT r.run_id, r.title, r.started_at
        FROM test_run r
       WHERE r.service_id = $1 AND r.env = $2 AND r.status IN ('FINISHED', 'ABORTED')
         AND r.origin <> 'SINGLE' AND r.build_stage IS DISTINCT FROM 'SMOKE'
-        AND EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = r.run_id AND i.tc_id = $3 AND i.platform = ANY($4::text[]))
+        AND EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = r.run_id AND i.tc_id = ANY($3::text[]) AND i.platform = ANY($4::text[]))
         AND ${같은위치('r.run_id', 5)}
       ORDER BY r.started_at DESC, r.run_id DESC
       LIMIT 1`,
-    [재료.serviceId, 재료.env, 재료.tcId, 재료.platforms, 위치값(재료.platforms, 재료.실제폰)],
+    [재료.serviceId, 재료.env, 재료.tcIds, 재료.platforms, 위치값(재료.platforms, 재료.실제폰)],
   );
   const 것 = r.rows[0];
   if (것 === undefined || (await 반복실행인가(client, Number(것.run_id)))) return null;
@@ -143,11 +146,11 @@ export async function 붙을곳고르기(
  */
 export async function 시작방식정하기<기본 extends string>(
   client: 질의,
-  재료: { origin: 기본; rerunOf?: number; tcIds: string[]; repeat: number; serviceId: string; env: string; platforms: string[]; 실제폰: boolean },
+  재료: { origin: 기본; rerunOf?: number; 케이스들: 고른케이스[]; repeat: number; serviceId: string; env: string; platforms: string[]; 실제폰: boolean },
 ): Promise<{ origin: 기본 | 'RERUN' | 'SINGLE'; rerunOf: number | null; attachedTo: number | null }> {
   const 다시 = 재료.rerunOf;
   // 정기 실행 · 빌드 실행은 서버 안에서 만들어 이 규칙 밖이다 — 사람이 실행 창에서 건 것만 한 건이다
-  if (재료.origin !== 'MANUAL' || !한건인가(재료.tcIds, 재료.repeat)) {
+  if (재료.origin !== 'MANUAL' || !한건인가(재료.케이스들, 재료.repeat)) {
     return 다시 === undefined ? { origin: 재료.origin, rerunOf: null, attachedTo: null } : { origin: 'RERUN', rerunOf: 다시, attachedTo: null };
   }
   if (다시 !== undefined) {
@@ -160,7 +163,7 @@ export async function 시작방식정하기<기본 extends string>(
     );
     if ((r.rowCount ?? 0) > 0) return { origin: 'SINGLE', rerunOf: 다시, attachedTo: 다시 };
   }
-  const 곳 = await 붙을곳고르기(client, { serviceId: 재료.serviceId, env: 재료.env, tcId: 재료.tcIds[0]!, platforms: 재료.platforms, 실제폰: 재료.실제폰 });
+  const 곳 = await 붙을곳고르기(client, { serviceId: 재료.serviceId, env: 재료.env, tcIds: 재료.케이스들.map((c) => c.tcId), platforms: 재료.platforms, 실제폰: 재료.실제폰 });
   return { origin: 'SINGLE', rerunOf: 곳?.runId ?? null, attachedTo: 곳?.runId ?? null };
 }
 
@@ -183,5 +186,5 @@ export async function 붙을실행(tcId: string, env: string, platforms: string[
   if (것 === undefined) return { error: `카탈로그에 없는 케이스다: ${tcId}` };
   if (것.env === null) return { error: `대상 서버 ${env} 가 없다` };
   if (platforms.length === 0 || platforms.some((p) => !것.platforms.includes(p))) return { error: `${tcId} 가 선언하지 않은 디바이스가 있다` };
-  return { target: await 붙을곳고르기(pool, { serviceId: 것.service_id, env, tcId, platforms, 실제폰 }) };
+  return { target: await 붙을곳고르기(pool, { serviceId: 것.service_id, env, tcIds: [tcId], platforms, 실제폰 }) };
 }

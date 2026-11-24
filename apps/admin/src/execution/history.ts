@@ -6,7 +6,7 @@ import type { ItemStatus, Platform } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import type { 시작방식 } from './runOrigin.js';
-import { 멈춰닫힌항목아님 } from './single.js';
+import { 멈춰닫힌항목아님 } from './notVerdict.js';
 
 export interface HistoryRow {
   historyId: number;

@@ -1,5 +1,6 @@
 // 앱 대시보드 질의의 SQL 글 — 접은 줄 · 앞 실행 · 실행 중 · 요구사항 커버리지 (dashboardResults.ts 가 300줄을 넘어 뗐다)
 
+import { 판정난줄 } from '../execution/notVerdict.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 지금항목 } from '../execution/single.js';
 
@@ -109,7 +110,7 @@ export const 붙지않은한건SQL = `
   SELECT r.service_id, r.env, s.run_id, s.tc_id, s.platform, s.status AS verdict, s.finished_at
   FROM test_run r JOIN run_item s ON s.run_id = r.run_id
   WHERE r.origin = 'SINGLE' AND r.service_id = ANY($1::bigint[])
-    AND s.finished_at IS NOT NULL AND s.status IN ('PASS', 'FAIL')
+    AND s.finished_at IS NOT NULL AND ${판정난줄('s')}
     AND (s.finished_at AT TIME ZONE $2::text)::date >= $3::date
     AND NOT EXISTS (SELECT 1 FROM run_item o WHERE o.run_id = r.rerun_of AND o.tc_id = s.tc_id AND o.platform = s.platform)`;
 
