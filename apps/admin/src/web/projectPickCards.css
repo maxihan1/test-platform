@@ -1,0 +1,219 @@
+/* 프로젝트 고르기의 다른 프로젝트 카드 · 검색 칸과 휴대폰 폭 규칙 (projectPick.css 에서 떼어 냈다 — 300줄 규칙) */
+
+/* ── 다른 프로젝트 ── */
+
+.pp-others {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pp-others-h {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pp-h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pp-count {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.pp-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 280px;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-muted);
+}
+
+.pp-search .side-ico {
+  width: 16px;
+  height: 16px;
+}
+
+.pp-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
+.pp-search:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.pp-empty {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+/* 칸이 최소 260px 로 늘고 줄어 본문 1000px 에 셋까지 선다. 카드가 하나 둘이면 줄을 나눠 채운다 — 고정 셋이면 남은 칸이 빈자리로 남았다 (끝 검사) */
+.pp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.pp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pp-card:hover,
+.pp-app:hover {
+  border-color: var(--line-2);
+}
+
+:is(.pp-card, .pp-app, .pp-go):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.pp-card-h {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pp-card-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pp-card-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pp-card-count {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+/* 휴대폰에서만 — 한 줄씩 쌓인 카드가 눌러 들어가는 것임을 보인다 */
+.pp-chev {
+  display: none;
+  color: var(--ink-muted);
+}
+
+.pp-chev .side-ico {
+  width: 18px;
+  height: 18px;
+}
+
+.pp-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pp-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--well);
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.pp-apps {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 휴대폰 — 시안 2판 ① 카드마다 따로 (2026-11-24 사용자) */
+@media (max-width: 640px) {
+  .pp-top {
+    padding: 10px 16px;
+  }
+
+  .pp-user {
+    display: none;
+  }
+
+  .pp-main {
+    gap: 20px;
+    padding: 24px 16px 40px;
+  }
+
+  .pp-h {
+    font-size: 22px;
+  }
+
+  .pp-recent {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .pp-go {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .pp-recent-apps {
+    display: none;
+  }
+
+  .pp-recent-line {
+    display: block;
+  }
+
+  .pp-search {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .pp-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .pp-card {
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .pp-chev {
+    display: inline-flex;
+  }
+
+  .pp-apps {
+    display: none;
+  }
+}

@@ -44,7 +44,11 @@ export const 껍데기말: Record<string, string> = {
   '프로젝트를 선택하세요': 'Choose a project',
   '선택한 프로젝트의 애플리케이션만 보입니다. 사이드바 맨 위에서 언제든 변경할 수 있습니다.':
     'Only the applications in the chosen project are shown. You can change it any time at the top of the sidebar.',
-  '마지막에 연 프로젝트': 'Last opened project',
+  // 프로젝트 고르기 — 최근 프로젝트 큰 카드와 다른 프로젝트 카드 (2026-11-24 시안 A안)
+  '최근 프로젝트': 'Recent project',
+  '{이름} 이어서 열기': 'Continue in {이름}',
+  '다른 프로젝트': 'Other projects',
+  '프로젝트 · 애플리케이션 이름 검색': 'Search projects and applications',
   '애플리케이션 없음': 'No application',
   // 사이드바 맨 위 위치 카드 · 위치 판 (화면공통 §8 「껍데기」 위치 카드 · 2026-11-05). 판 왼쪽 칸 제목 「프로젝트」 는 설정 표의 'Projects' 를 같이 쓴다
   '애플리케이션 {수}개': '{수} applications',
