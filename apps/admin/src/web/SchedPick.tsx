@@ -61,7 +61,9 @@ function 케이스목록({ 앱, kind, 한종류, 줄, on줄 }: { 앱: string; ki
 export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱들: readonly ServiceRow[]; items: 담은줄[]; onItems: (items: 담은줄[]) => void }) {
   const t = use말();
   // 수정으로 열면 첫 줄의 탭 · 애플리케이션부터 보인다 — 안 그러면 담은 것이 없는 것처럼 빈 체크가 보인다
-  const [탭, set탭] = useState<줄종류>(items[0]?.kind ?? 'FN');
+  // 첫 줄이 「프로시저 작성」을 켠 애플리케이션의 옛 UI 줄이면 그 앱이 UI 탭에 없다 — 기능 탭에서 그 앱을 연다
+  const 켠UI줄 = items[0]?.kind === 'UI' && 후.services.some((s) => s.prefix === items[0]!.service && s.procedure);
+  const [탭, set탭] = useState<줄종류>(켠UI줄 ? 'FN' : (items[0]?.kind ?? 'FN'));
   // UI 탭에는 API 애플리케이션과 「프로시저 작성」을 켠 애플리케이션이 없다 (§3.16 결정 2 · 「테스트 프로시저」)
   const 고를앱들 = 후.services.filter((s) => 탭 !== 'UI' || (s.kind !== 'API' && !s.procedure));
   const [고른앱, set고른앱] = useState<string | null>(items[0]?.service ?? null);
