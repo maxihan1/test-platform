@@ -31,10 +31,13 @@ interface 첨부글 {
   body?: unknown;
 }
 
-/** 회차들의 kit 판정 첨부 — 같은 케이스를 다시 냈으면 뒤 것이다(끝 정리를 더한 판정). 첨부가 하나도 없으면(옛 꼴 · kit 이 판정 전에 죽음) undefined */
+/**
+ * 마지막 회차의 kit 판정 첨부 — 같은 케이스를 다시 냈으면 뒤 것이다(끝 정리를 더한 판정). 재시도가 있으면 앞 회차 판정이 섞이지 않게 마지막 회차만 본다.
+ * 첨부가 하나도 없으면(옛 꼴 · kit 이 판정 전에 죽음) undefined
+ */
 export function 케이스판읽기(회차들: readonly { attachments?: 첨부글[] }[] | undefined): 케이스판[] | undefined {
   const 판들 = new Map<string, 케이스판>();
-  for (const a of (회차들 ?? []).flatMap((r) => r.attachments ?? [])) {
+  for (const a of 회차들?.at(-1)?.attachments ?? []) {
     if (a.name !== CASE_ATTACHMENT || typeof a.body !== 'string') continue;
     let r: { tcId?: unknown; status?: unknown; blockedBy?: unknown; error?: { message?: unknown }; steps?: { assertions?: { statement?: unknown; status?: unknown }[] }[] };
     try {
@@ -62,6 +65,16 @@ export function 프로시저케이스들(글: string): string[] | null {
   return /\bdefineProcedure\s*\(/.test(글) ? (프로시저값읽기(글)?.케이스 ?? null) : null;
 }
 
+/** 파일마다 케이스 수 — 프로시저는 든 케이스 수, 옛 꼴은 1. 끝 검사 · 출력은 케이스로 센다. 파일마다 한 번만 읽는다 */
+export function 케이스세기(글: (파일: string) => string): { 목록: (파일: string) => string[] | null; 수: (파일들: readonly string[]) => number } {
+  const 맵 = new Map<string, string[] | null>();
+  const 목록 = (f: string) => {
+    if (!맵.has(f)) 맵.set(f, 프로시저케이스들(글(f)));
+    return 맵.get(f)!;
+  };
+  return { 목록, 수: (파일들) => 파일들.reduce((합, f) => 합 + (목록(f)?.length ?? 1), 0) };
+}
+
 /** 케이스 하나의 판정 — 앞 케이스에 막혀 한 번도 못 돈 케이스는 막힘이다 */
 export type 케이스판정 = 판정 | { 상태: '막힘'; 막은: string };
 
@@ -77,9 +90,10 @@ export function 프로시저판정(케이스들: readonly string[], 판들: read
   const 케이스 = 케이스들.map((tcId): [string, 케이스판정] => {
     const 한판들 = 새판.flatMap((p) => {
       const 자리 = { ...기록자리(p.기록), 시작: p.시작 };
-      if (p.케이스들 === undefined) return [{ ...자리, 빨강: p.상태들.includes('unexpected'), 오류: p.오류 }];
-      const k = p.케이스들.find((x) => x.tcId === tcId);
-      return k === undefined || k.상태 === '막힘' ? [] : [{ ...자리, 빨강: k.상태 === '빨강', 오류: k.오류 }];
+      const k = p.케이스들?.find((x) => x.tcId === tcId);
+      // 그 케이스의 판정 첨부가 없으면(kit 이 판정 전에 죽음) 그 판의 파일 상태를 쓴다 — 안 돈 케이스가 초록으로 남지 않게
+      if (k === undefined) return [{ ...자리, 빨강: p.상태들.includes('unexpected'), 오류: p.오류 }];
+      return k.상태 === '막힘' ? [] : [{ ...자리, 빨강: k.상태 === '빨강', 오류: k.오류 }];
     });
     if (한판들.length > 0) return [tcId, 판정하기(한판들, 있는폰들, 계정들)];
     const 막힌 = 늦은판.케이스들?.find((x) => x.tcId === tcId);
@@ -96,6 +110,17 @@ export function 프로시저판정(케이스들: readonly string[], 판들: read
 
 /** 폰판정들 한 줄 — 프로시저 파일만 케이스 줄이 붙는다 */
 export type 판정줄 = [파일: string, 판정: 판정, 케이스들?: [string, 케이스판정][]];
+
+/** 앞 케이스에 막힌 케이스 꼬리 */
+export const 막힌꼬리 = (p: 케이스판정): string => (p.상태 === '막힘' ? `(${p.막은} 에 막힘)` : '');
+
+/** 돌려 보기 출력의 막힘 묶음 — 막힌 케이스는 못 돌려 본 것이라 남긴 채 끝내지 않는다. 없으면 null */
+export function 막힘말(줄들: readonly [string, 케이스판정][]): string | null {
+  const 막힘 = 줄들.filter(([, p]) => p.상태 === '막힘');
+  if (막힘.length === 0) return null;
+  const 머리 = `막힘 ${막힘.length}건 — 앞 케이스에 막혀 못 돌았다. 막은 케이스가 깨짐이면 고쳐 다시 돌리고, 값 다름이라 빨간 채 둘 것이면 그 케이스를 맨 뒤로(그래도 막히면 따로 프로시저로) 옮긴다`;
+  return [머리, ...막힘.map(([f, p]) => `- ${f} ${막힌꼬리(p)}`)].join('\n');
+}
 
 /** 끝 검사 · 출력이 세는 단위 — 옛 꼴은 파일 하나가 케이스 하나, 프로시저는 케이스마다 `<파일> <케이스 번호>` */
 export const 케이스줄들 = (줄들: readonly 판정줄[]): [string, 케이스판정][] =>

@@ -49,6 +49,12 @@ describe('케이스판읽기 — kit 이 남긴 판정 첨부', () => {
     ]);
   });
 
+  it('재시도가 있으면 마지막 회차 첨부만 읽는다 — 앞 회차 판정이 남지 않게', () => {
+    expect(케이스판읽기([{ attachments: [첨부({ tcId: 'A', status: 'FAIL', steps: [] }), 첨부({ tcId: 'B', status: 'PASS' })] }, { attachments: [첨부({ tcId: 'A', status: 'PASS' })] }])).toEqual([
+      { tcId: 'A', 상태: '초록', 오류: null },
+    ]);
+  });
+
   it('판정 첨부가 없으면(옛 꼴 · kit 이 판정 전에 죽음) undefined', () => {
     expect(케이스판읽기([{ attachments: [] }])).toBeUndefined();
     expect(케이스판읽기(undefined)).toBeUndefined();
@@ -81,6 +87,14 @@ describe('프로시저판정 — 통째로 돈 판을 케이스마다 견준다'
   it('판정 첨부가 없는 판(폰 연결에서 죽음)은 모든 케이스에 그 판의 상태를 쓴다', () => {
     const 죽음 = { ...판('P1', 100, undefined), 상태들: ['unexpected'], 오류: '세션을 못 열었다' };
     expect(프로시저판정(['A', 'B'], [죽음], 0, [], [1]).케이스).toEqual([['A', { 상태: '빨강', 오류: '세션을 못 열었다' }], ['B', { 상태: '빨강', 오류: '세션을 못 열었다' }]]);
+  });
+
+  it('보류 케이스 첨부만 남기고 죽었으면 첨부가 빠진 케이스는 그 판의 상태다 — 안 돈 케이스가 초록으로 끝나지 않는다', () => {
+    const 반쯤 = { ...판('P1', 100, [{ tcId: 'H', 상태: '초록', 오류: null }]), 상태들: ['unexpected'], 오류: '앱이 꺼졌다' };
+    expect(프로시저판정(['H', 'A'], [반쯤], 0, [], [1])).toEqual({
+      파일: { 상태: '빨강', 오류: 'A: 앱이 꺼졌다' },
+      케이스: [['H', { 상태: '초록' }], ['A', { 상태: '빨강', 오류: '앱이 꺼졌다' }]],
+    });
   });
 });
 
@@ -146,12 +160,12 @@ writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: 
     expect(찍힌()).toMatch(/앱 파일 2개\(프로시저 2개 · 케이스 6건\) 가운데 이번 2개/);
     expect(찍힌()).toMatch(/빨강 1건\n- g\/XQ-TP-002\.spec\.ts XQ-FN-202: 검증 실패: 글자 수 초과 안내가 보인다/);
     expect(찍힌()).toMatch(/막힘 1건 — 앞 케이스에 막혀 못 돌았다[^\n]*\n- g\/XQ-TP-002\.spec\.ts XQ-FN-203 \(XQ-FN-202 에 막힘\)/);
-    expect(찍힌()).toMatch(/남은 것 1건/);
+    expect(찍힌()).toMatch(/남은 것 1개 파일/);
 
     말.mockClear();
     expect(await 폰실행('앱', 'g', 트리, env, 팜 as unknown as typeof fetch)).toBe(1);
     expect(readFileSync(join(결과폴더, 'runs.txt'), 'utf8').trim().split('\n')).toEqual(['g/XQ-TP-001.spec.ts,g/XQ-TP-002.spec.ts', 'g/XQ-TP-001.spec.ts']);
-    expect(찍힌()).toMatch(/끊긴 프로시저 1개를 먼저 폰마다 하나씩 혼자 돌린다/);
+    expect(찍힌()).toMatch(/끊긴 프로시저 1개 가운데 1개를 먼저 폰마다 하나씩 혼자 돌린다/);
     expect(찍힌()).toMatch(/한 번에 못 끝낸 프로시저 1개 — [^\n]*: g\/XQ-TP-001\.spec\.ts/);
 
     // 세 번째 부름은 못 끝낸 프로시저를 다시 안 돌린다
