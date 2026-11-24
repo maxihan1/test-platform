@@ -87,6 +87,7 @@ async function 한번받는다(폴더: string, base: string, headers: Record<str
 
 /**
  * 연결이 닫힌 뒤 부른다 — 비전은 그때부터 점검한다. 점검 중이면 1분마다 다시 받고, 그 항목이 끝난 때(끝난때)부터 60분이 지나면 그만 받는다.
+ * 팜이 점검 파일을 안 주면 「점검 없음」을 남기고 그만둔다.
  * 던지지 않는다 — 결과가 없으면 admin 이 미점검으로 닫는다
  */
 export async function 점검결과를기다린다(폴더: string, raw: string, sessionId: string, 토큰: string | undefined, 끝난때: number): Promise<void> {
@@ -96,6 +97,9 @@ export async function 점검결과를기다린다(폴더: string, raw: string, s
       const 됨 = await 한번받는다(폴더, base, headers, sessionId);
       if (됨 === 'saved') return;
       if (됨 === 'none') {
+        // 남기지 않으면 admin 이 안 올 결과를 60분 기다린다
+        await mkdir(join(폴더, FARM_EVIDENCE_DIR), { recursive: true });
+        await writeFile(join(폴더, FARM_EVIDENCE_DIR, UI_CHECK_FILE), JSON.stringify({ status: 'none' }));
         console.error(`[runner] 팜이 세션 ${sessionId} 의 AI 점검 결과를 주지 않는다 — 그만 받는다`);
         return;
       }
