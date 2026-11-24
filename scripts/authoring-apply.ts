@@ -9,7 +9,7 @@ import { type 조작실패, 게임고침틀 } from '../apps/admin/src/bts/gameFi
 import { type 지도줄, 지도줄들 } from '../apps/admin/src/catalog/reqMap.js';
 import { 반영안됨 } from '../apps/admin/src/prd/rules.js';
 import { type 설계, 설계하기 } from './authoring-design.js';
-import { type 고칠프로시저, 삭제뒤줄, 삭제요청읽기, 트리케이스들, 프로시저절 } from './authoring-apply-proc.js';
+import { type 고칠프로시저, 사라진케이스, 삭제뒤줄, 삭제요청읽기, 트리케이스들, 프로시저절 } from './authoring-apply-proc.js';
 import { 경고줄 } from './authoring-design-check.js';
 
 /** 자식에게 주는 반영 계획 사본 — 자료 폴더 안. 지울 케이스 확인은 에이전트 메모리의 계획으로 한다 */
@@ -283,7 +283,7 @@ export function 반영뒤줄(계획: 반영계획, 트리: string, 폴더: strin
   const 머리 = `표준 기획서 반영: ${앞} → 버전 ${String(계획.지금판)} · 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}`;
   try {
     const 있는 = 트리케이스들(트리, 폴더);
-    return [머리, ...경고줄('지운 요구만 덮던 케이스가 남음', 계획.지움.flatMap((x) => x.지울케이스).filter((t) => 있는.has(t)), 10)];
+    return [머리, ...경고줄('지운 요구만 덮던 케이스가 남음', 계획.지움.flatMap((x) => x.지울케이스).filter((t) => 있는.has(t)), 10), ...경고줄('고친 프로시저에서 사라진 케이스', 사라진케이스(계획, 있는), 10)];
   } catch (e) {
     // 보이기만 하는 줄이다 — 자식 트리를 못 읽었다고 다 된 올리기를 거절로 만들지 않는다(옛표줄들과 같다)
     return [머리, 못봄(e)];

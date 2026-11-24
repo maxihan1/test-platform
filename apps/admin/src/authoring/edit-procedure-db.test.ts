@@ -3,6 +3,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { 집기 } from './agentStore.js';
 import authoringEditRoutes from './edit-routes.js';
 import { 목록요약들 } from './listSummary.js';
 import authoringRoutes from './routes.js';
@@ -95,6 +96,18 @@ describe.skipIf(process.env.DATABASE_URL === undefined)('프로시저 안 케이
       const 칸 = await 집기대상칸(서비스, { kind: 행.kind, compare: 행.compare, env: 행.env, startUrl: 행.start_url, params: 행.params }, undefined);
       expect(칸.target).toBeUndefined();
       expect(칸.accounts?.map((a) => a.env)).toEqual(['qa']);
+    });
+
+    it('집기가 읽은 판을 안 적는다 — 지금 판이 아니라 기준 판으로 돈다', async () => {
+      const p = await pool();
+      await p.query(`INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name) VALUES ($1, 1, '[]', 0, 'PERSON', 'xeq', 'xeq')`, [서비스]);
+      try {
+        const id = await 세운번호(지우기('XEQ-FN-002'));
+        expect((await 집기(서비스, 'xeq'))?.id).toBe(id);
+        expect((await 읽기(id)).prd_version).toBeNull();
+      } finally {
+        await p.query('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
+      }
     });
 
     it.each([

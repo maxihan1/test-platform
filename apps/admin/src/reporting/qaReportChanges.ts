@@ -155,12 +155,15 @@ async function 요구사항(pool: Pool, serviceId: number, 앞때: Date, 이번�
   };
 }
 
-/** 앞 빌드 마지막 실행 시작 뒤 · 이번 빌드 마지막 실행 시작까지 병합된 작성 요청에서 케이스마다 가장 늦은 것 */
+/**
+ * 앞 빌드 마지막 실행 시작 뒤 · 이번 빌드 마지막 실행 시작까지 병합된 작성 요청에서 케이스마다 가장 늦은 것.
+ * 프로시저 안 케이스의 삭제로 선 작성(procDelete)은 작성 행이지만 사람에게는 케이스 고치기다 — 지운 번호는 result.cases 에 없다
+ */
 async function 까닭들(pool: Pool, serviceId: number, tcIds: string[], 부터: Date, 까지: Date): Promise<Map<string, 까닭>> {
   if (tcIds.length === 0) return new Map();
   const 목록 = (칸: string) => `jsonb_array_elements(CASE WHEN jsonb_typeof(${칸}) = 'array' THEN ${칸} ELSE '[]'::jsonb END)`;
   const r = await pool.query<{ tc_id: string; root_id: string; kind: string; prd_apply: boolean; issue_key: string | null; test_fix: boolean; pr_url: string | null }>(
-    `SELECT DISTINCT ON (c.tc_id) c.tc_id, root.id AS root_id, root.kind, root.params->>'prdApply' IS NOT DISTINCT FROM 'true' AS prd_apply,
+    `SELECT DISTINCT ON (c.tc_id) c.tc_id, root.id AS root_id, CASE WHEN root.params ? 'procDelete' THEN 'EDIT' ELSE root.kind END AS kind, root.params->>'prdApply' IS NOT DISTINCT FROM 'true' AS prd_apply,
             tf.issue_key, tf.id IS NOT NULL AS test_fix, COALESCE(s.pr_url, root.pr_url) AS pr_url
        FROM unnest($2::text[]) AS c(tc_id)
        JOIN authoring_request m ON m.service_id = $1 AND m.kind = 'MERGE' AND m.status = 'DONE' AND m.finished_at > $3 AND m.finished_at <= $4
@@ -170,6 +173,7 @@ async function 까닭들(pool: Pool, serviceId: number, tcIds: string[], 부터:
       WHERE tf.id IS NOT NULL
          OR EXISTS (SELECT 1 FROM ${목록("s.result->'cases'")} x WHERE x->>'tcId' = c.tc_id)
          OR EXISTS (SELECT 1 FROM ${목록("root.params->'edits'")} x WHERE x->>'tcId' = c.tc_id)
+         OR root.params->'procDelete'->'cases' @> to_jsonb(c.tc_id)
       ORDER BY c.tc_id, m.finished_at DESC, m.id DESC`,
     [serviceId, tcIds, 부터, 까지],
   );

@@ -31,6 +31,7 @@ import { 기준화면지도, 다덮음사유, 바뀐화면줄 } from './authorin
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
 import { tcId별글, 원장판정, 케이스없음사유 } from './authoring-ledger-verdict.js';
+import { 삭제요청읽기 } from './authoring-apply-proc.js';
 import { 케이스글들 } from './authoring-ledger-io.js';
 import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
 import { 거두며스캔, 보류싣는손 } from './authoring-held.js';
@@ -177,7 +178,8 @@ export async function 올리기(
   const 원장결과 = 원장판정(원장재료.값, 읽기(표), tcId들(글들), 원장재료.기준, tcId별글(글들));
   // 여기부터의 끝내기(DONE · 올리기 거절)에 셈이 실린다
   const 원장값 = 원장재료.값;
-  셈 = '없음' in 원장값 ? { 없음: 원장값.없음 } : '대조' in 원장결과 ? { 대조: 원장결과.대조, 원장: 원장값 } : null;
+  // 삭제 작성의 셈은 기준 판으로 센 것이라 싣지 않는다 — 실으면 대시보드 커버리지가 아직 반영 안 된 요구를 뺀 숫자로 덮인다 (§3.6 「★ 테스트 프로시저 작성」 「삭제 작성 행」)
+  셈 = 삭제요청읽기(것) !== undefined ? null : '없음' in 원장값 ? { 없음: 원장값.없음 } : '대조' in 원장결과 ? { 대조: 원장결과.대조, 원장: 원장값 } : null;
   // 케이스 0건 · 바뀐 파일 목록 · 보류 스캔을 못 읽음은 push 전에 거절로 닫는다 — DONE 이면 PR 이 서고 작업 폴더가 지워진다 (§3.6 「★ 원장」 「케이스 0건」 · #15285)
   const 영건 = 케이스없음사유(원장결과, 글들.length);
   if (영건 !== null) return void (await 손.끝내기(거절(영건)));

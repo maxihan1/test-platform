@@ -194,12 +194,19 @@ describe('고른 것으로 고치기 요청', () => {
       expect(screen.queryByText(/테스트 프로시저/)).toBeNull();
     });
 
-    it('뒤 요청만 실패하면 선 요청과 못 보낸 수를 같이 보인다', async () => {
-      vi.spyOn(api, 'createAuthoringEdit').mockResolvedValueOnce({ id: 63 }).mockRejectedValueOnce(new ApiError(409, 'EDIT_OPEN', '15'));
+    it('뒤 요청만 실패하면 선 요청과 못 보낸 케이스를 같이 보이고, 못 보낸 것만 다시 보낸다', async () => {
+      const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValueOnce({ id: 63 }).mockRejectedValueOnce(new ApiError(409, 'EDIT_OPEN', '15')).mockResolvedValueOnce({ id: 64 });
       render(<고른것고치기 service="XEW" 고른={섞음()} 다되면={() => {}} />);
       열고보낸다();
       expect(await screen.findByRole('link', { name: '작성 요청 63번' })).toBeTruthy();
       expect(screen.getByText(/나머지 1건은 보내지 못했습니다.*#15/)).toBeTruthy();
+      expect(screen.getByText('XEW-001')).toBeTruthy();
+      expect(screen.queryByText('XEW-FN-101')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: '삭제 요청 보내기' }));
+      expect(await screen.findByRole('link', { name: '작성 요청 64번' })).toBeTruthy();
+      expect(screen.getByRole('link', { name: '작성 요청 63번' })).toBeTruthy();
+      expect(보냄.mock.calls[2]![1]).toEqual([{ tcId: 'XEW-001', delete: true }]);
+      expect(screen.queryByText(/보내지 못했습니다/)).toBeNull();
     });
 
     it('앞 요청이 실패하면 뒤 요청을 안 보내고 다시 보낼 수 있다', async () => {

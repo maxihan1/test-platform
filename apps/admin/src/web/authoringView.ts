@@ -1,7 +1,7 @@
 // 작성 요청 한 줄을 화면이 어떻게 보여 줄지 정한다 (도메인/작성 §3.6). 판단만 여기, 그림은 Authoring.tsx
 
 import type { 반영 } from '../authoring/applyTodo.js';
-import { 고치기실행인가 as 서버판정, 행의고칠것, type 기대값 } from '../authoring/edit.js';
+import { 고치기실행인가 as 서버판정, 행의고칠것, 행의삭제케이스, type 기대값 } from '../authoring/edit.js';
 
 import type { AuthoringRow, AuthoringTodoCount } from './api.js';
 import { t, type 언어 } from './i18n.js';
@@ -212,8 +212,10 @@ export interface 고칠줄 {
   확정: boolean;
 }
 
-/** 행의 params 에서 고칠 내용을 꺼낸다. 모양을 믿지 않는다 — 배열이 아니면 null, tcId 없는 줄은 버린다 */
+/** 행의 params 에서 고칠 내용을 꺼낸다. 프로시저 안 케이스의 삭제로 선 작성(procDelete)은 삭제 줄들이다. 모양을 믿지 않는다 — 배열이 아니면 null, tcId 없는 줄은 버린다 */
 export function 고칠것목록(params: unknown): 고칠줄[] | null {
+  const 지울 = 행의삭제케이스(params);
+  if (지울 !== null) return 지울.map((tcId) => ({ tcId, 삭제: true, 기대값: [], 확정: false }));
   const edits = 행의고칠것(params);
   if (edits === null) return null;
   return edits

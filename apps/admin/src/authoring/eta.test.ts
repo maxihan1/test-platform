@@ -82,12 +82,13 @@ describe.skipIf(연결 === undefined)('작성 예상 시간', () => {
     expect(await 작성예상(서비스)).toEqual({ ms: 4 * 60_000, samples: 5 });
   });
 
-  it('이어서 작성한 것(resume_from)과 고치기 다시 적용(params.edits)은 표본에서 뺀다', async () => {
+  it('이어서 작성한 것(resume_from)과 고치기 다시 적용(params.edits) · 프로시저 안 케이스 삭제(procDelete)는 표본에서 뺀다', async () => {
     await 치우기();
     const 중단 = await 행({ status: 'STOPPED', 걸린분: 1, 끝난분전: 90 });
     await 행({ kind: 'RERUN', sourceId: 중단, resumeFrom: 중단, 걸린분: 500, 끝난분전: 60 });
     const 원본 = await 행({ 걸린분: 8, 끝난분전: 50 });
     await 행({ kind: 'RERUN', sourceId: 원본, params: { edits: [] }, 걸린분: 500, 끝난분전: 40 });
+    await 행({ params: { procDelete: { cases: ['XWE-FN-001'] } }, 걸린분: 500, 끝난분전: 35 });
     await 행({ kind: 'RERUN', sourceId: 원본, 걸린분: 12, 끝난분전: 30 });
 
     expect(await 작성예상(서비스)).toEqual({ ms: 10 * 60_000, samples: 2 });

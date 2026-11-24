@@ -18,14 +18,14 @@ import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
 export async function 집기(서비스: number, 집는이: string): Promise<요청 | null> {
   const pool = await db();
   const r = await pool.query<행>(
-    // 읽은 판 — 작성 · 재실행 · 반영 요청 실행만 적는다. 케이스 고치기(그 다시 적용은 params.edits)와 머지는 표준 기획서를 안 읽는다.
+    // 읽은 판 — 작성 · 재실행 · 반영 요청 실행만 적는다. 케이스 고치기(그 다시 적용은 params.edits)와 머지는 표준 기획서를 안 읽는다. 프로시저 안 케이스의 삭제(procDelete)는 지금 판이 아니라 기준 판으로 돈다.
     // 표준 기획서가 없으면 비운다 (도메인/작성 §7 「표준 기획서 통로」)
     `WITH RECURSIVE ${열린반영식('$1')}
      UPDATE authoring_request
         -- 앞 집기의 MCP 열쇠는 지운다 — 열쇠는 집을 때마다 새로 난다(mcp/jobKey.ts · 도메인/BTS 결정 20)
         SET status = 'RUNNING', claimed_by = $2, started_at = now(), mcp_key_hash = NULL,
             -- 노트 고치기 줄(서비스 칸이 빔)은 표준 기획서를 안 읽는다 — 집은 애플리케이션의 판을 적으면 틀린 판이 남는다
-            prd_version = CASE WHEN service_id IS NOT NULL AND (kind = 'AUTHOR' OR (kind = 'RERUN' AND NOT (params ? 'edits')))
+            prd_version = CASE WHEN service_id IS NOT NULL AND (kind = 'AUTHOR' OR (kind = 'RERUN' AND NOT (params ? 'edits'))) AND NOT (params ? 'procDelete')
                                THEN (SELECT max(version) FROM prd_version WHERE service_id = $1) END
       WHERE id = (
               SELECT id FROM authoring_request 줄

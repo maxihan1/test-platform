@@ -30,13 +30,12 @@ export function 삭제요청읽기(것: { params?: unknown }): string[] | null |
   return Array.isArray(cases) && cases.length > 0 && cases.every((x): x is string => typeof x === 'string' && /^\S+$/.test(x)) ? [...new Set(cases)] : null;
 }
 
-/** 계획이 고치거나 지우는 케이스가 든 프로시저. 다시 쓰지 않는 종류의 케이스는 그대로 두므로 세지 않는다 */
+/** 계획이 고치거나 지우는 케이스가 든 프로시저. 다시 쓰지 않는 종류의 케이스는 그대로 두므로 세지 않는다. 테스트 고침은 「수정 AI」 규칙이 따로다 */
 export function 고칠프로시저들(계획: 반영계획, 기준: readonly 기준프로시저[]): 고칠프로시저[] {
   const 고칠 = new Set([
     ...계획.다시씀.flatMap((x) => x.케이스.filter((c) => x.다시쓸종류.includes(c.축)).map((c) => c.tcId)),
     ...계획.지움.flatMap((x) => x.남길케이스),
     ...(계획.화면이맞음 ?? []).flatMap((x) => [x.tcId, ...x.번호들.flatMap((n) => n.케이스.map((c) => c.tcId))]),
-    ...(계획.테스트고침?.cases ?? []).map((c) => c.tcId),
   ]);
   const 지울 = new Set([...계획.지움.flatMap((x) => x.지울케이스), ...(계획.삭제 ?? [])]);
   return 기준.flatMap((p): 고칠프로시저[] => {
@@ -63,13 +62,18 @@ export function 트리케이스들(트리: string, 폴더: string): Set<string> 
   return new Set([...케이스파일들(자리)].map((p) => join(자리, p)).filter((p) => lstatSync(p).isFile()).flatMap((p) => [basename(p, '.spec.ts'), ...케이스조각들(readFileSync(p, 'utf8')).map((c) => c.tcId)]));
 }
 
+/** 닿은 프로시저에서 지울 것 말고 사라진 케이스 — 파일을 통째로 다시 쓰므로 다른 케이스가 같이 빠질 수 있다 */
+export const 사라진케이스 = (계획: 반영계획, 있는: ReadonlySet<string>): string[] =>
+  (계획.프로시저 ?? []).flatMap((p) => p.케이스.filter((t) => !p.지울.includes(t) && !있는.has(t)));
+
 /** 삭제 작성의 PR 본문 머리 줄 — 지울 것이 남았거나 남길 것이 사라졌으면 사람이 반영 전에 본다 */
 export function 삭제뒤줄(계획: 반영계획, 있는: ReadonlySet<string>): string[] {
   const 프로시저 = 계획.프로시저 ?? [];
   const 지울 = 프로시저.flatMap((p) => p.지울);
   return [
     `프로시저 안 케이스 삭제: ${String(지울.length)}건(${지울.join(', ')}) · 프로시저 ${프로시저.map((p) => p.procId).join(', ')}`,
-    ...경고줄('지울 케이스가 남음', 지울.filter((t) => 있는.has(t)), 10),
-    ...경고줄('남길 케이스가 사라짐', 프로시저.flatMap((p) => p.케이스.filter((t) => !p.지울.includes(t) && !있는.has(t))), 10),
+    // 요청한 번호 전부로 본다 — main 의 프로시저에서 못 찾아 계획에 안 든 케이스가 다른 파일에 남아 있을 수 있다
+    ...경고줄('지울 케이스가 남음', (계획.삭제 ?? []).filter((t) => 있는.has(t)), 10),
+    ...경고줄('남길 케이스가 사라짐', 사라진케이스(계획, 있는), 10),
   ];
 }
