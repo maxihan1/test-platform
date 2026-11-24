@@ -80,7 +80,7 @@ const 실패행들SQL = `
   SELECT i.history_id, i.tc_id, i.tc_name, i.platform, i.attempt, i.status, ${다시실행칸들}
   FROM ${지금항목('o.run_id = $1', 자동수정실행빼기)} i`;
 
-export async function 실패카드(runId: number, page: number, platform?: Platform, 자동수정만 = false): Promise<FailureCards> {
+export async function 실패카드(runId: number, page: number, platform?: Platform, 자동수정만 = false, tc?: string): Promise<FailureCards> {
   const pool = await db();
   const [비교, 자동수정, 고치는중] = await Promise.all([compareWithPrevious(runId), 카드자동수정들(runId), 카드자동수정중들(runId)]);
   const 변화표 = new Map<string, 카드변화>();
@@ -109,7 +109,9 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
 
   const 카드들 = 케이스로묶는다(모양, 변화표, platform);
   const autoFixCount = 카드들.filter((c) => 자동수정.has(c.tcId)).length;
-  const 쪽 = 쪽을자른다(자동수정만 ? 카드들.filter((c) => 자동수정.has(c.tcId)) : 카드들, page);
+  // 케이스 하나의 카드만 찾는 통로다(실행 결과 표의 Fail 줄이 쪽을 넘기며 찾지 않게). autoFixCount 는 이 조건과 상관없이 실행 전체 수다
+  const 고른카드 = (자동수정만 ? 카드들.filter((c) => 자동수정.has(c.tcId)) : 카드들).filter((c) => tc === undefined || c.tcId === tc);
+  const 쪽 = 쪽을자른다(고른카드, page);
   const 쌍들 = 쪽.items.flatMap((c) => c.devices.map((d) => ({ tcId: c.tcId, platform: d.platform })));
 
   const 흐름 = new Map<string, ItemStatus[]>();

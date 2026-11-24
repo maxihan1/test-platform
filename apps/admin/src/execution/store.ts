@@ -281,8 +281,11 @@ export async function createRun(
     const 빌드 = await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
     // 옛판에서올리기 가 깔 앞 빌드 — 실행 빌드 바로 앞에 그 줄에 올린 빌드다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
     const 앞 = 빌드 === null ? null : await 앞빌드(client, Number(found서비스.id), input.env, 빌드.id);
+    // 한 건이 프로시저 하나면 tcIds 는 모두 그 프로시저의 케이스다(한건인가) — 첫 케이스에서 번호 · 이름을 읽는다
+    const 한프로시저 = cases.get(tcIds[0]!)!;
     const title = await 제목을짓는다(client, {
       origin,
+      ...(origin === 'SINGLE' && 한프로시저.proc_id !== null && { 프로시저: { id: 한프로시저.proc_id, name: 한프로시저.proc_name } }),
       ...(rerunOf === null ? {} : { rerunOf }),
       ...(input.build === undefined ? {} : { build: { no: input.build.no, stage: input.build.stage } }),
       ...(input.sched === undefined ? {} : { setName: input.sched.setName }),

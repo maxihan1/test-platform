@@ -150,8 +150,8 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     expect(줄.map((r) => r.params.본문)).toEqual([undefined, '보낸 본문', undefined, '저장한 본문']);
 
     const 실행 = (await q<{ kind: string; title: string }>('SELECT kind, title FROM test_run WHERE run_id = $1', [runId])).rows[0]!;
-    // -UI- 케이스가 섞여도 기능 하나다. 제목은 펼치기 전에 고른 케이스로 짓는다
-    expect(실행).toEqual({ kind: 'FN', title: 'XPC-FN-102 500자 넘게 넣기' });
+    // -UI- 케이스가 섞여도 기능 하나다. 프로시저 하나를 돌리는 한 건이라 제목은 프로시저 번호 · 이름이다 (TP-F3-16)
+    expect(실행).toEqual({ kind: 'FN', title: 'XPC-TP-001 글쓰기 — 입력 제한부터 게시까지' });
   });
 
   it('프로시저와 옛 꼴 케이스가 한 실행에 섞이고 반복은 프로시저를 통째로 그 횟수만큼 돌린다', async () => {

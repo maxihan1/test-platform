@@ -447,6 +447,42 @@ describe('GET /progress', () => {
   });
 });
 
+describe('GET /progress — 케이스 경과', () => {
+  it('tcId 가 실린 항목은 케이스의 첫 단계 알림을 받은 뒤 흐른 시간을 caseElapsedMs 로 싣고, 같은 케이스의 다음 단계가 와도 0 으로 돌아가지 않는다', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const child = 진행을_흘리는_자식(7);
+
+    vi.setSystemTime(1_000_000);
+    child.stdin.write(진행줄({ historyId: 7, seq: 1, title: '글을 쓴다', tcId: 'MTA-FN-001' }));
+    await once(child.stdout, 'data');
+
+    vi.setSystemTime(1_005_000);
+    child.stdin.write(진행줄({ historyId: 7, seq: 2, title: '사진을 붙인다', tcId: 'MTA-FN-001' }));
+    await once(child.stdout, 'data');
+
+    vi.setSystemTime(1_005_300);
+    const 같은케이스 = await 서버().inject({ method: 'GET', url: '/progress' });
+    expect(같은케이스.json().items).toEqual([{ historyId: 7, seq: 2, title: '사진을 붙인다', tcId: 'MTA-FN-001', elapsedMs: 300, caseElapsedMs: 5300 }]);
+
+    vi.setSystemTime(1_010_000);
+    child.stdin.write(진행줄({ historyId: 7, seq: 3, title: '글을 올린다', tcId: 'MTA-FN-002' }));
+    await once(child.stdout, 'data');
+
+    vi.setSystemTime(1_010_200);
+    const 다음케이스 = await 서버().inject({ method: 'GET', url: '/progress' });
+    expect(다음케이스.json().items[0]).toMatchObject({ tcId: 'MTA-FN-002', elapsedMs: 200, caseElapsedMs: 200 });
+  });
+
+  it('tcId 가 없는 옛 꼴 케이스는 caseElapsedMs 를 싣지 않는다', async () => {
+    const child = 진행을_흘리는_자식(7);
+    child.stdin.write(진행줄({ historyId: 7, seq: 1, title: '화면을 연다' }));
+    await once(child.stdout, 'data');
+
+    const res = await 서버().inject({ method: 'GET', url: '/progress' });
+    expect(res.json().items[0]).not.toHaveProperty('caseElapsedMs');
+  });
+});
+
 describe('POST /execute-scenario — 입구 검사', () => {
   const trialId = '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b';
   const 케이스 = (filePath?: string) => ({

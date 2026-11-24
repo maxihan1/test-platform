@@ -90,7 +90,7 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     가짜러너 = Fastify();
     가짜러너.get('/progress', async () => ({
       items: [
-        { historyId: 내항목, seq: 2, title: '로그인한다', elapsedMs: 1200 },
+        { historyId: 내항목, seq: 2, title: '로그인한다', tcId: 'XBR-010', elapsedMs: 1200, caseElapsedMs: 5400 },
         { historyId: 남의항목, seq: 1, title: '결제한다', elapsedMs: 800 },
       ],
       // E2E 시나리오 자식 — 남의 실행 것은 응답에 안 나온다
@@ -145,7 +145,10 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
       execId: 내항목,
       seq: 2,
       title: '로그인한다',
+      tcId: 'XBR-010',
       elapsedMs: 1200,
+      // 러너가 잰 케이스 경과를 그대로 싣는다 (도메인/실행 §7)
+      caseElapsedMs: 5400,
       timeoutMs: 7000,
       live: false,
     });

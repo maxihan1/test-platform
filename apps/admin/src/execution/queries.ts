@@ -10,10 +10,11 @@ import type { ItemStatus, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
-import { 항목실패를가른다 } from '../reporting/itemFailure.js';
+import { 항목실패를가른다, type 항목실패 } from '../reporting/itemFailure.js';
 import { 직전대비수 } from '../reporting/runChange.js';
 import { 가린값들 } from '../web/mask.js';
 import { 단위비밀들 } from './execRead.js';
+import { 실패이유들, 이유줄인가 } from './runItemFailure.js';
 import { ITEM_COLUMNS, toItem, 단위붙이기, type RawItem } from './runItemRow.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
@@ -157,7 +158,7 @@ export interface 폰에깔린앱 {
 
 export async function findRun(
   runId: number,
-): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[]; mobileDevices: string[]; autoFixedCases: string[] }) | null> {
+): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null; failure: 항목실패 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[]; mobileDevices: string[]; autoFixedCases: string[] }) | null> {
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   // 폰 모델은 목록 줄과 같은 칸이다 — 화면이 「실패 다시 실행」 창에 그 실행의 모바일 실행 위치를 미리 고른다 (도메인/실행 §8.10)
@@ -174,8 +175,9 @@ export async function findRun(
     `SELECT ${ITEM_COLUMNS}, ${다시실행칸들} FROM ${지금항목('o.run_id = $1', 자동수정실행빼기)} i ${단위붙이기} ORDER BY i.tc_id, i.platform`,
     [runId],
   );
-  // 프로시저 줄의 사유 글은 그 실행 단위의 모든 케이스 비밀값으로 가린다 — 가릴 글이 있는 줄만 읽는다 (공통/4 「테스트 프로시저 표」)
-  const 비밀들 = await 단위비밀들([...new Set(items.rows.filter((r) => r.proc_id !== null && r.error !== null).map((r) => Number(r.exec_id)))]);
+  // 프로시저 줄의 사유 글은 그 실행 단위의 모든 케이스 비밀값으로 가린다 — 가릴 글이 있는 줄(사유가 있거나 Fail 이유를 싣는 줄)만 읽는다 (공통/4 「테스트 프로시저 표」)
+  const 비밀들 = await 단위비밀들([...new Set(items.rows.filter((r) => r.proc_id !== null && (r.error !== null || 이유줄인가(r))).map((r) => Number(r.exec_id)))]);
+  const 이유 = await 실패이유들(pool, items.rows, 비밀들);
   // 둘 다 못 읽은 폰은 뺀다 — 견줄 것이 없다. 빌드 번호가 없는 실행은 견줄 상대가 없어 읽지 않는다(도는 동안 화면이 이 통로를 거듭 부른다)
   const 깔린 =
     row.build_no === null
@@ -191,7 +193,7 @@ export async function findRun(
     // API 애플리케이션 실행만 찬다 — 실행 시작 때 견준 문서 판 · 한 줄 (도메인/API §3.8 「실행 시작 때 견주기」)
     apiDocVersion: row.api_doc_version,
     apiDocNote: row.api_doc_note,
-    items: items.rows.map((r) => ({ ...toItem(r, 비밀들.get(Number(r.exec_id))), rerun: 다시실행칸으로(r) })),
+    items: items.rows.map((r) => ({ ...toItem(r, 비밀들.get(Number(r.exec_id))), rerun: 다시실행칸으로(r), failure: 이유.get(Number(r.history_id)) ?? null })),
     // 「수정 후 통과」 카드의 케이스 — 항목은 고치기 전 결과라 [실패 N건 다시 실행]이 이것을 뺀다 (도메인/BTS §8.15 B)
     autoFixedCases: (await 자동수정케이스들([runId])).get(runId) ?? [],
     evidence: await 증적목록(runId),

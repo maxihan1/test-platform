@@ -215,6 +215,7 @@ export interface StepProgress {
 // 러너가 GET /progress로 답하는 것. 경과는 킷이 아니라 러너가 자기 시계로 잰다
 export interface RunningStep extends StepProgress {
   elapsedMs: number;
+  caseElapsedMs?: number;       // 프로시저만 · 지금 케이스가 시작한 뒤 흐른 시간. 러너가 그 케이스의 첫 단계 알림을 받은 때부터 잰다 (도메인/실행 §7 `GET /api/runs/:runId/progress`)
 }
 
 // 러너가 GET /progress 의 scenarios 로 답하는 것 (2026-11-06 WEB-F9-13 · 도메인/러너 §5.2 「시나리오 진행 · 중단」)

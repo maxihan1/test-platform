@@ -39,6 +39,8 @@ export interface Running {
   // 아직 절차를 알리지 않은 자식이 있으므로 선택 칸이다. 필수로 만들면 abort()가 읽는 같은 지도의
   // 기존 항목들이 전부 이 칸을 채워야 한다
   progress?: { step: StepProgress; 시작한때: number };
+  // 프로시저만 — 지금 케이스의 첫 단계 알림을 받은 때. 단계마다 0으로 돌아가는 progress.시작한때와 달리 케이스가 바뀔 때만 갱신한다
+  케이스시작?: { tcId: string; 시작한때: number };
 }
 
 // 진행 줄이 올 때마다 마지막 것 하나로 갈아 끼운다. 쌓지 않는 이유는 화면이 묻는 것이
@@ -49,6 +51,8 @@ export function 진행을_모은다(entry: Running, stdout: Readable): void {
   stdout.on('data', (chunk: Buffer | string) => {
     for (const step of collector.push(chunk.toString())) {
       entry.progress = { step, 시작한때: Date.now() };
+      // tcId 가 앞 단계와 달라졌을 때(처음 포함)만 갱신한다. 옛 꼴 케이스는 tcId 가 없어 건드리지 않는다
+      if (step.tcId !== undefined && step.tcId !== entry.케이스시작?.tcId) entry.케이스시작 = { tcId: step.tcId, 시작한때: entry.progress.시작한때 };
     }
   });
 }

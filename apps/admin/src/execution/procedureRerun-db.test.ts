@@ -110,12 +110,18 @@ describe.skipIf(연결 === undefined)('프로시저가 든 실행의 한 건 · 
 
     const 하나 = await 건다(['XPN-FN-102']);
     expect(하나.attachedTo).toBe(원래);
-    expect(await 줄(하나.runId)).toMatchObject({ origin: 'SINGLE', rerun_of: String(원래), n: 3 });
+    // 프로시저가 통째로 도니 제목은 케이스가 아니라 프로시저 번호 · 이름이다
+    expect(await 줄(하나.runId)).toMatchObject({ origin: 'SINGLE', rerun_of: String(원래), n: 3, title: 'XPN-TP-001 글쓰기' });
     await 닫는다(하나.runId);
 
     const 전부 = await 건다(프로시저케이스);
     expect(전부.attachedTo).toBe(원래);
-    expect(await 줄(전부.runId)).toMatchObject({ origin: 'SINGLE', rerun_of: String(원래), n: 3 });
+    expect(await 줄(전부.runId)).toMatchObject({ origin: 'SINGLE', rerun_of: String(원래), n: 3, title: 'XPN-TP-001 글쓰기' });
+    await 닫는다(전부.runId);
+
+    // 옛 꼴 케이스의 한 건 제목은 번호 + 케이스 이름 그대로다
+    const 옛꼴 = await 건다(['XPN-FN-201']);
+    expect(await 줄(옛꼴.runId)).toMatchObject({ origin: 'SINGLE', title: 'XPN-FN-201 XPN-FN-201 이름' });
   });
 
   it('옛 꼴 케이스가 섞이거나 반복이 2 이상이면 한 건이 아니다', async () => {
