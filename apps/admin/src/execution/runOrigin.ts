@@ -85,6 +85,8 @@ export async function 다시실행사유(
   if (원래.origin === 'SINGLE') return `실행 ${String(rerunOf)}은 한 건 실행이다`;
   if (원래.kind !== 이번.kind && !(이번.한종류 === true && 원래.kind === 'UI')) return `실행 ${String(rerunOf)}은 다른 종류의 실행이다`;
   if (원래.status === 'RUNNING') return `실행 ${String(rerunOf)}은 아직 도는 중이다`;
+  // 준비 실패 실행은 하나도 안 돌았다 — 프로시저 줄이 미실행이어도 「실패 다시」가 아니다(결과 화면도 항목을 안 그린다)
+  if (원래.status === 'PREP_FAILED') return `실행 ${String(rerunOf)}은 준비 실패로 돌지 않았다`;
   const 실패 = new Set(원래.failed);
   const 아닌것 = 이번.tcIds.filter((t) => !실패.has(t));
   if (아닌것.length > 0) return `실행 ${String(rerunOf)}에서 실패하지 않은 케이스가 있다: ${아닌것.join(', ')}`;

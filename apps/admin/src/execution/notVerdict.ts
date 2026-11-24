@@ -8,10 +8,15 @@ export type 판정아닌까닭 = 'BLOCKED' | 'ABORTED' | 'PREP_FAILED' | 'TIMEOU
 
 const 아는까닭 = new Set<string>([BLOCKED, 'ABORTED', 'PREP_FAILED', 'TIMEOUT', PROCEDURE_CHANGED]);
 
-/** 끝난 줄의 판정값과 사유 글자로 가른다. 통과 · 실패는 판정이라 null 이다 */
+/**
+ * 끝난 줄의 판정값과 사유 글자로 가른다. 통과 · 실패는 판정이라 null 이다.
+ * 시간 초과는 글이 둘이다 — 러너가 프로세스를 끊으면 `TIMEOUT`, kit 이 케이스 한도에서 끊으면 Playwright 꼴 「Test timeout of …ms exceeded.」다(packages/kit/src/runtime/procedure.ts)
+ */
 export function 판정아닌까닭을가른다(status: string, message: string | null | undefined): 판정아닌까닭 | null {
   if (status !== 'NA') return null;
-  return typeof message === 'string' && 아는까닭.has(message) ? (message as 판정아닌까닭) : 'OTHER';
+  if (typeof message !== 'string') return 'OTHER';
+  if (message.startsWith('Test timeout of ')) return 'TIMEOUT';
+  return 아는까닭.has(message) ? (message as 판정아닌까닭) : 'OTHER';
 }
 
 const 앞 = (별칭: string): string => (별칭 === '' ? '' : `${별칭}.`);

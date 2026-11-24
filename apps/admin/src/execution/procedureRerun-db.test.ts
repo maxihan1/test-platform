@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { lastByCase } from './history.js';
 import { findRun } from './queries.js';
+import { 한건인가 } from './single.js';
 import { createRun, RunInputError } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -118,6 +119,9 @@ describe.skipIf(연결 === undefined)('프로시저가 든 실행의 한 건 · 
   });
 
   it('옛 꼴 케이스가 섞이거나 반복이 2 이상이면 한 건이 아니다', async () => {
+    // 프로시저 둘에 걸친 요청도 한 건이 아니다
+    expect(한건인가([{ tcId: 'XPN-FN-101', procId: 'XPN-TP-001' }, { tcId: 'XPN-FN-401', procId: 'XPN-TP-002' }], 1)).toBe(false);
+    expect(한건인가([{ tcId: 'XPN-FN-101', procId: 'XPN-TP-001' }, { tcId: 'XPN-FN-102', procId: 'XPN-TP-001' }], 1)).toBe(true);
     await 어젯밤();
     const 섞음 = await 건다(['XPN-FN-102', 'XPN-FN-201']);
     expect(섞음.attachedTo).toBeNull();
@@ -154,6 +158,12 @@ describe.skipIf(연결 === undefined)('프로시저가 든 실행의 한 건 · 
     const 막힌것 = await 건다(['XPN-FN-103'], { rerunOf: 원래 });
     expect(await 줄(막힌것.runId)).toMatchObject({ origin: 'SINGLE', rerun_of: String(원래), n: 3 });
     await 닫는다(막힌것.runId);
+
+    // 준비 실패로 하나도 안 돈 실행은 프로시저 줄이 미실행이어도 거절한다
+    const 준비실패 = await 건다(['XPN-FN-101', 'XPN-FN-202']);
+    await pool.query("UPDATE run_item SET status = 'NA', error = '{\"message\":\"PREP_FAILED\"}', finished_at = clock_timestamp() WHERE run_id = $1", [준비실패.runId]);
+    await pool.query("UPDATE test_run SET status = 'PREP_FAILED', finished_at = clock_timestamp() WHERE run_id = $1", [준비실패.runId]);
+    expect(await 거절(건다(['XPN-FN-101', 'XPN-FN-202'], { rerunOf: 준비실패.runId }))).toBe('BAD_RERUN');
 
     // 제목의 N 은 펼치기 전에 고른 케이스 수다
     const 여럿 = await 건다(['XPN-FN-103', 'XPN-FN-202'], { rerunOf: 원래 });

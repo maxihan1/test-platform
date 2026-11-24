@@ -14,6 +14,7 @@ describe('판정이 아닌 결과', () => {
     for (const 까닭 of ['BLOCKED', 'ABORTED', 'PREP_FAILED', 'TIMEOUT', 'PROCEDURE_CHANGED']) {
       expect(판정아닌까닭을가른다('NA', 까닭)).toBe(까닭);
     }
+    expect(판정아닌까닭을가른다('NA', 'Test timeout of 120000ms exceeded.')).toBe('TIMEOUT');
     expect(판정아닌까닭을가른다('NA', '러너에 닿지 못했습니다')).toBe('OTHER');
     expect(판정아닌까닭을가른다('NA', null)).toBe('OTHER');
     expect(판정아닌까닭을가른다('NA', undefined)).toBe('OTHER');
