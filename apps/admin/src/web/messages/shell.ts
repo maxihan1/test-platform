@@ -117,7 +117,7 @@ export const 껍데기말: Record<string, string> = {
   어제: 'Yesterday',
 
   // 화면 어디서나 쓰는 것 — 판정 배지 · 디바이스 이름 · 빈 화면
-  // 통과 · 실패 · 「불러오는 중입니다.」는 runs 표의 영어를 같이 쓴다 — 두 표가 달리 적으면 뒤 표가 덮는다
+  // 「불러오는 중입니다.」는 runs 표의 영어를 같이 쓴다(판정 배지 글자 Pass · Fail · Not tested 는 영어라 표에 없다) — 두 표가 달리 적으면 뒤 표가 덮는다
   모바일: 'Mobile',
   'Android 앱': 'Android app',
   '없는 주소입니다.': 'Page not found.',

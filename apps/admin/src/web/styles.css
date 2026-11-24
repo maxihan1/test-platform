@@ -1072,6 +1072,7 @@ input[type='file']::file-selector-button {
   min-width: 42px;
   text-align: center;
   display: inline-block;
+  white-space: nowrap;
 }
 
 .v-pass {

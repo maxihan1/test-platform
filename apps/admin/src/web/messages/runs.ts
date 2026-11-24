@@ -236,7 +236,7 @@ export const 실행말: Record<string, string> = {
   // 케이스 목록 줄의 흐름 막대 — 개수는 이름 · 마우스 올림 글로 (2026-11-06 시험 D9)
   '디바이스 필터': 'Filter by device',
   'Fail 케이스 안의 항목 {건수}건은 「전체」에서 카드로 봅니다':
-    '{건수} items inside failed cases appear as cards under "All"',
+    '{건수} items inside Fail cases appear as cards under "All"',
   '펼치기': 'Expand',
   '접기': 'Collapse',
   '{케이스} {디바이스} 펼치기': 'Expand {케이스} {디바이스}',
