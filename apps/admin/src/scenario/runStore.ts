@@ -1,20 +1,24 @@
 // 시나리오 실행을 만든다 — 최신 버전으로 test_run(SCENARIO) 한 행과 부품마다 NA 행을 세우고 러너 요청을 돌려준다 (SPEC 도메인/시나리오 §3.7 · §7)
 
 import type { Platform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
-import type { 역할계정 } from '@platform/kit/accounts';
-import type { Pool, PoolClient } from 'pg';
+import type { Pool } from 'pg';
 
 import { 부품판 } from '../apidoc/caseDoc.js';
 import { 팜주소 } from '../execution/farm.js';
-import { 저장값을채운다 } from '../execution/savedInput.js';
+import { 프로시저못도는러너인가 } from '../execution/runnerAddr.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 삭제코드합치기, 쓰는앱읽기, 앱종류들 } from './apps.js';
 import { 점검 } from './checks.js';
 import { 앱단계인가, 케이스접두사, 쓰는접두사 } from './mixed.js';
+import { 부품채우기 } from './partFill.js';
 import { 케이스재료 } from './parts.js';
 import { type 시나리오폰, 폰값 } from './phone.js';
+import { 단계케이스수, 요청케이스들, 프로시저단계읽기 } from './procRun.js';
+import { 프로시저몫 } from './procStep.js';
 import type { 저장하는사람 } from './store.js';
-import { 시나리오제한시간, 제한시간크기사유, type 카탈로그 } from './validate.js';
+import { 시나리오제한시간, 제한시간크기사유, 프로시저수, type 카탈로그 } from './validate.js';
+
+export { 부품채우기 } from './partFill.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -27,7 +31,7 @@ const 케이스몫 = 300000;
 
 export class 시나리오실행오류 extends Error {
   constructor(
-    readonly code: 'NOT_FOUND' | 'ARCHIVED' | 'SERVICE_INACTIVE' | 'ENV_NOT_FOUND' | 'NOT_RUNNABLE' | 'FARM_OFF',
+    readonly code: 'NOT_FOUND' | 'ARCHIVED' | 'SERVICE_INACTIVE' | 'ENV_NOT_FOUND' | 'NOT_RUNNABLE' | 'FARM_OFF' | 'RUNNER_NO_PROCEDURE',
     message: string,
   ) {
     super(message);
@@ -74,7 +78,12 @@ export async function 실행만들기(id: number, env: string, 사람: 저장하
   // 동시 요청이 풀 크기만큼 올 때 교착한다. 그 사이 새 버전이 저장됐으면 새 버전으로 처음부터 다시 한다
   // 누가 쉬지 않고 저장하면 끝나지 않으므로 세 번에서 멈춘다 — 사람이 다시 누르면 된다
   for (let 번 = 0; 번 < 3; 번 += 1) {
-    const 결과 = await 잠그고만들기(id, env, 사람, mobileOn, await 미리판정(id), 정기);
+    const 판정 = await 미리판정(id);
+    // 못 도는 러너에는 프로시저 파일을 보내지 않는다 — 정기 실행의 줄은 이 오류 코드와 문구를 까닭으로 남긴다 (도메인/실행 §3.2 「러너 능력」)
+    if (판정?.거절 === null && 프로시저수(판정.카탈로그).size > 0 && (await 프로시저못도는러너인가())) {
+      throw new 시나리오실행오류('RUNNER_NO_PROCEDURE', '서버 테스트 실행기가 테스트 프로시저를 실행하지 못하는 버전입니다');
+    }
+    const 결과 = await 잠그고만들기(id, env, 사람, mobileOn, 판정, 정기);
     if (결과 !== null) return 결과;
   }
   throw new 시나리오실행오류('NOT_RUNNABLE', '실행하는 사이 시나리오가 계속 새로 저장됐다. 다시 눌러 달라');
@@ -167,8 +176,12 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     const 케이스들 = new Map(케이스.rows.map((r) => [r.tc_id, r]));
 
     // 저장값을 채우면 커진다. 판정은 조립만 쟀으므로 채운 목록을 다시 잰다 (§7). 던지면 아래 catch 가 되돌린다
-    const 채운부품 = await 부품채우기(c, parts, 케이스들, (tcId) => 앱들.get(케이스접두사(tcId))?.계정들 ?? 계정없음);
-    const 크기사유 = 제한시간크기사유(채운부품);
+    const 계정들 = (tcId: string) => 앱들.get(케이스접두사(tcId))?.계정들 ?? 계정없음;
+    const 채운부품 = await 부품채우기(c, parts, 케이스들, 계정들);
+    // 프로시저 안 케이스를 고른 부품은 지금 그 프로시저의 케이스를 읽어 박제한다. 한도는 그 케이스 수로 센다 (결정 17)
+    const 프로시저들 = await 프로시저단계읽기(c, 채운부품, 판정.카탈로그, 계정들, (글) => new 시나리오실행오류('NOT_RUNNABLE', 글));
+    const 케이스수 = 단계케이스수(프로시저들);
+    const 크기사유 = 제한시간크기사유(채운부품, 케이스수);
     if (크기사유.length > 0) {
       throw new 시나리오실행오류('NOT_RUNNABLE', `저장값을 채운 뒤 ${크기사유.join(' · ')}`);
     }
@@ -194,10 +207,11 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
         throw new 시나리오실행오류('NOT_RUNNABLE', `${i + 1}번 단계: ${p.tcId} 는 없거나 비활성인 케이스다`);
       }
       const 주소 = 단계주소(p, 행.prefix, 앱들);
+      const 단계 = 프로시저들.get(i);
       await c.query(
         `INSERT INTO scenario_run_part (run_id, seq, kind, tc_id, tc_name, part, file_path, param_schema, expected_schema,
-                                        timeout_ms, precondition, unconfirmed, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'NA')`,
+                                        timeout_ms, precondition, unconfirmed, proc_id, proc_name, cases, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'NA')`,
         [
           runId,
           i + 1,
@@ -208,17 +222,29 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
           케?.file_path ?? null,
           케 === undefined ? null : JSON.stringify(케.param_schema),
           케 === undefined ? null : JSON.stringify(케.expected_schema),
-          케 === undefined ? null : 케이스몫,
+          케 === undefined ? null : 단계 === undefined ? 케이스몫 : 프로시저몫(단계.cases.length),
           JSON.stringify(케?.precondition ?? []),
           // 케이스가 나중에 확정돼도 그날의 증적은 미확정 표시를 지녀야 한다 (run_item.unconfirmed 와 같다)
           케?.unconfirmed ?? null,
+          단계?.procId ?? null,
+          단계?.procName ?? null,
+          단계 === undefined ? null : JSON.stringify(단계.cases),
         ],
       );
       // 앱 · 게임 단계 표시는 러너 요청에만 싣는다 — 부품 기록은 종류에서 다시 읽는다 (결정 16)
+      // 프로시저 단계는 skipSteps 를 비워 보낸다 — 위에서 skippable 이 없는 케이스라 이미 비었다
       요청부품.push(
         케 === undefined
           ? { ...p, ...주소, ...단계인증(p, 행.prefix, 앱들) }
-          : { ...p, ...주소, ...단계인증(p, 행.prefix, 앱들), ...(await 부품판(p, c)), filePath: 케.file_path, ...(앱단계인가(p, 종류) && { appStep: true }) },
+          : {
+              ...p,
+              ...주소,
+              ...단계인증(p, 행.prefix, 앱들),
+              ...(await 부품판(p, c)),
+              filePath: 케.file_path,
+              ...(앱단계인가(p, 종류) && { appStep: true }),
+              ...(단계 !== undefined && { procId: 단계.procId, cases: 요청케이스들(단계) }),
+            },
       );
     }
 
@@ -228,7 +254,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     await c.query('COMMIT');
     return {
       runId,
-      요청: { runId, platform: 행.platform, ...폰?.칸, baseUrl, parts: 요청부품, timeoutMs: 시나리오제한시간(parts), deleteStatuses },
+      요청: { runId, platform: 행.platform, ...폰?.칸, baseUrl, parts: 요청부품, timeoutMs: 시나리오제한시간(parts, 케이스수), deleteStatuses },
       ...(폰 !== null ? { 폰: 폰.폰 } : 폰Chrome ? { 폰: 'chrome' as const } : {}),
     };
   } catch (err) {
@@ -237,51 +263,6 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
   } finally {
     c.release();
   }
-}
-
-type 케이스부품 = Extract<ScenarioPart, { kind: 'case' }>;
-
-/**
- * case 부품의 조립에 없는 칸을 저장값으로, 그래도 빈 계정 칸은 그 실행 대상 서버 줄의 계정(`계정들`)으로 채운다 —
- * 단독 실행과 같은 규칙이다 (시나리오 §3.7 · 실행 §3.2).
- * 값 꽂기 칸은 「입력한 값」이라 저장값 · 계정으로 안 채운다 — 실제 값은 러너가 꽂고 bound 에 남는다 (게이트 1 ①).
- * 시험 실행도 같은 것을 부른다. 연결은 트랜잭션 것을 받는다 — 쥔 채 pool 에서 또 꺼내면 교착한다
- */
-export async function 부품채우기(
-  c: Pick<PoolClient, 'query'>,
-  parts: ScenarioPart[],
-  케이스들: Map<string, { param_schema: unknown; expected_schema: unknown }>,
-  계정들: readonly 역할계정[] | ((tcId: string) => readonly 역할계정[]) = [],
-): Promise<ScenarioPart[]> {
-  const 케이스부품들 = parts.filter((p): p is 케이스부품 => p.kind === 'case');
-  const 채움 = await 계정별로채운다(c, 케이스부품들, 케이스들, 계정들);
-  return parts.map((p) => {
-    if (p.kind !== 'case') return p;
-    const 찬 = 채움[케이스부품들.indexOf(p)]!;
-    const 꽂을칸 = new Set((p.links ?? []).flatMap((l) => (l.kind === 'bind' && !Object.hasOwn(p.params, l.param) ? [l.param] : [])));
-    return { ...찬, params: Object.fromEntries(Object.entries(찬.params).filter(([k]) => !꽂을칸.has(k))) };
-  });
-}
-
-// 애플리케이션마다 그 대상 서버 줄의 계정이 다르다 (결정 13). 같은 계정 목록을 쓰는 부품끼리 묶어 채우고 원래 차례로 돌려놓는다
-async function 계정별로채운다(
-  c: Pick<PoolClient, 'query'>,
-  부품들: 케이스부품[],
-  케이스들: Map<string, { param_schema: unknown; expected_schema: unknown }>,
-  계정들: readonly 역할계정[] | ((tcId: string) => readonly 역할계정[]),
-): Promise<케이스부품[]> {
-  if (typeof 계정들 !== 'function') return 저장값을채운다(c, 부품들, 케이스들, 계정들);
-  const 묶음 = new Map<readonly 역할계정[], number[]>();
-  부품들.forEach((p, i) => {
-    const 계정 = 계정들(p.tcId);
-    묶음.set(계정, [...(묶음.get(계정) ?? []), i]);
-  });
-  const 결과 = [...부품들];
-  for (const [계정, 자리들] of 묶음) {
-    const 채운 = await 저장값을채운다(c, 자리들.map((i) => 부품들[i]!), 케이스들, 계정);
-    자리들.forEach((자리, k) => { 결과[자리] = 채운[k]!; });
-  }
-  return 결과;
 }
 
 // 목록·상세의 runnable 과 같은 판정을 본다 (게이트 1). 뿌리 밖 경로도 재료에서 빠져 CASE_INACTIVE 가 된다
@@ -295,7 +276,7 @@ function 실행가능확인(parts: ScenarioPart[], 재료: 카탈로그): 시나
         const p = parts[ch.seq - 1];
         return `${ch.seq}번 단계: ${p?.kind === 'case' ? p.tcId : ''} 는 없거나 비활성인 케이스다`;
       }),
-    ...제한시간크기사유(parts),
+    ...제한시간크기사유(parts, 프로시저수(재료)),
   ];
   return new 시나리오실행오류('NOT_RUNNABLE', 사유.join(' · '));
 }

@@ -14,9 +14,10 @@ export function 까닭글들(줄: RowPart, 상세: DetailPart, t: 말): string[]
   const 글들 = 상세.checks.map((c) => {
     const 단계 = 상세.parts[c.seq - 1];
     const tcId = 단계?.kind === 'case' ? 단계.tcId : '';
-    return c.reason === 'CASE_INACTIVE'
-      ? t('{번호}번 단계 케이스가 비활성입니다 · {tcId}', { 번호: c.seq, tcId })
-      : t('{번호}번 단계에서 건너뛰게 둔 사전 단계를 이제 건너뛸 수 없습니다', { 번호: c.seq });
+    if (c.reason === 'CASE_INACTIVE') return t('{번호}번 단계 케이스가 비활성입니다 · {tcId}', { 번호: c.seq, tcId });
+    if (c.reason === 'PROC_DUP') return t('{번호}번 단계 케이스가 다른 단계와 같은 프로시저에 있어 그 프로시저가 두 번 실행됩니다 · 케이스 변경에서 한쪽을 다른 케이스로 선택하면 풀립니다', { 번호: c.seq });
+    if (c.reason === 'PROC_SKIP') return t('{번호}번 단계가 프로시저 안 케이스가 되어 저장해 둔 사전 단계 건너뛰기를 무시하고 실행합니다', { 번호: c.seq });
+    return t('{번호}번 단계에서 건너뛰게 둔 사전 단계를 이제 건너뛸 수 없습니다', { 번호: c.seq });
   });
   if (!줄.runnable && !상세.checks.some((c) => c.reason === 'CASE_INACTIVE')) {
     글들.push(t('단계 제한 시간 합이 상한을 넘거나 시나리오가 너무 커서 실행할 수 없습니다'));

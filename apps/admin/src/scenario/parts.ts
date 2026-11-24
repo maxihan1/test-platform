@@ -12,6 +12,7 @@ import { testsRoot } from '../catalog/scanner.js';
 import { caseSteps } from '../catalog/steps.js';
 import { findCase } from '../catalog/store.js';
 
+import type { 프로시저정보 } from './procStep.js';
 import type { 카탈로그 } from './validate.js';
 
 export interface 케이스부품재료 {
@@ -24,6 +25,27 @@ export interface 케이스부품재료 {
   steps: { title: string; skippable: boolean }[];
   r16: boolean;
   unconfirmed: string | null;
+  // 프로시저 안 케이스만 — 그 프로시저가 통째로 돈다. 건너뛸 절차는 없다 (결정 17)
+  procId?: string;
+  procName?: string;
+  cases?: 프로시저정보['cases'];
+}
+
+/** 프로시저 번호 → 지금 그 프로시저의 활성 케이스(proc_seq 차례). `-UI-` 케이스도 든다 — 단계로 못 고를 뿐 같이 돈다 */
+async function 프로시저들읽기(번호들: string[]): Promise<Map<string, 프로시저정보>> {
+  const 프로시저 = new Map<string, 프로시저정보>();
+  if (번호들.length === 0) return 프로시저;
+  const { pool } = await import('../db/index.js');
+  const r = await pool.query<{ tc_id: string; name: string; proc_id: string; proc_name: string | null }>(
+    'SELECT tc_id, name, proc_id, proc_name FROM test_case WHERE proc_id = ANY($1::text[]) AND is_active ORDER BY proc_id, proc_seq',
+    [번호들],
+  );
+  for (const 행 of r.rows) {
+    const 앞 = 프로시저.get(행.proc_id) ?? { procId: 행.proc_id, procName: 행.proc_name ?? 행.proc_id, cases: [] };
+    앞.cases.push({ tcId: 행.tc_id, name: 행.name });
+    프로시저.set(행.proc_id, 앞);
+  }
+  return 프로시저;
 }
 
 /**
@@ -42,6 +64,7 @@ export async function 케이스재료(
   const 부품재료 = new Map<string, 케이스부품재료>();
   const 뿌리 = resolve(testsRoot());
   const 허용 = service === undefined ? undefined : [service].flat();
+  const 소속 = new Map<string, string>();
 
   for (const tcId of new Set(tcIds)) {
     if (허용 !== undefined && !허용.some((접두사) => tcId.startsWith(`${접두사}-`))) continue;
@@ -66,7 +89,9 @@ export async function 케이스재료(
     const 판별 = caseSteps(소스);
     // 파서가 너그러워 깨진 소스에서도 「만들기」 모양을 찾아낸다. 애매하면 만들기로 치지 않는다 (결정 4)
     const 깨짐 = (ts.transpileModule(소스, { reportDiagnostics: true }).diagnostics ?? []).length > 0;
-    const steps = 판별.steps.map((s) => ({ title: s.title, skippable: s.skippable && !깨짐 }));
+    // 프로시저 안 케이스는 건너뛸 절차가 없다 — 프로시저가 자기 시작 상태를 스스로 맞춘다 (결정 17)
+    if (행.procId !== null) 소속.set(tcId, 행.procId);
+    const steps = 판별.steps.map((s) => ({ title: s.title, skippable: s.skippable && !깨짐 && 행.procId === null }));
     // jsonb 라 null 이나 properties 없는 스키마도 올 수 있다 — 입력값 칸이 없는 것으로 친다
     const 칸들: unknown = 행.paramSchema?.properties;
     카탈로그재료.set(tcId, {
@@ -87,6 +112,15 @@ export async function 케이스재료(
       r16: steps.some((s) => s.skippable),
       unconfirmed: 행.unconfirmed,
     });
+  }
+
+  const 프로시저 = await 프로시저들읽기([...new Set(소속.values())]);
+  for (const [tcId, procId] of 소속) {
+    const 정보 = 프로시저.get(procId);
+    // 읽는 사이 프로시저가 비면 옛 꼴로 둔다 — 실행 만들기가 다시 읽어 막는다
+    if (정보 === undefined) continue;
+    카탈로그재료.get(tcId)!.proc = 정보;
+    Object.assign(부품재료.get(tcId)!, { procId: 정보.procId, procName: 정보.procName, cases: 정보.cases });
   }
   return { 카탈로그: 카탈로그재료, 부품재료 };
 }

@@ -9,6 +9,26 @@ import type { ScenarioRunPart, ScenarioRunResult } from '../web/scenarioApi.js';
 import { 값연결글, 건너뜀번호, 멈춘사유글자, 미확정있나, 접은판정 } from '../web/scenarioResultView.js';
 import { 카드요약, 종류글 } from '../web/scenarioView.js';
 import { toFields, 값글자, 기기글, type EvidenceHeader, type EvidenceItem, type EvidenceStep } from './collect.js';
+import { 막힘사유, 시간초과글 } from './collectProc.js';
+
+/** 프로시저 단계의 케이스 한 건 — 화면 결과 칸(web/ScenarioProcCases.tsx)과 같은 판정이다 */
+export interface E2E프로시저케이스 {
+  tcId: string;
+  name: string;
+  status: ItemStatus | 'NOT_RUN';
+  durationMs: number | null;
+  blocked: boolean;
+  /** Blocked 면 막은 케이스 번호(kit 이 못 정했으면 null) */
+  blockedBy: string | null;
+  /** Blocked 의 「선행 케이스 … 실패」 · 제한 시간 초과 · 중단 사유. 판정을 낸 케이스는 null */
+  사유: string | null;
+}
+
+export interface E2E프로시저 {
+  procId: string;
+  procName: string;
+  cases: E2E프로시저케이스[];
+}
 
 export interface E2E단계 {
   seq: number;
@@ -32,6 +52,8 @@ export interface E2E단계 {
   값연결: { 종류: string; 글: string }[];
   /** 단계가 실패하거나 판정을 못 낸 사유 — 안 돈 단계는 비운다 */
   사유: string | null;
+  /** 프로시저 단계만 — 이 단계는 프로시저 이름과 케이스마다의 판정으로 적는다. item 은 고른 케이스의 입력 · 기대와 모든 절차(절차마다 tcId)를 든다 */
+  프로시저?: E2E프로시저 | null;
 }
 
 export interface E2E증적 {
@@ -55,6 +77,7 @@ const 기록없음 = '기록 없음';
 function 절차(runId: number, s: ScenarioRunPart['steps'][number]): EvidenceStep {
   return {
     seq: s.seq,
+    ...(s.tcId === undefined ? {} : { tcId: s.tcId }),
     title: s.title,
     status: s.status,
     durationMs: s.durationMs,
@@ -92,6 +115,37 @@ function 케이스항목(runId: number, p: ScenarioRunPart, platform: Platform, 
   };
 }
 
+const 막혔나 = (c: NonNullable<ScenarioRunPart['cases']>[number]): boolean => c.status === 'NA' && (c.blockedBy != null || c.error?.message === 'BLOCKED');
+
+/** 케이스마다의 판정 — status 가 없으면 안 돈 것(Not tested)이다. Blocked 의 사유는 막은 케이스가 같은 단계에서 어떻게 끝났는지로 붙인다(실행 증적과 같은 글) */
+function 프로시저모양(p: ScenarioRunPart): E2E프로시저 | null {
+  if (p.procId === undefined) return null;
+  const 케이스들 = p.cases ?? [];
+  const 하나 = (c: (typeof 케이스들)[number]): E2E프로시저케이스 => {
+    const 막힘 = 막혔나(c);
+    const 안돎 = c.status === undefined;
+    return {
+      tcId: c.tcId,
+      name: c.name ?? '',
+      status: c.status ?? 'NOT_RUN',
+      durationMs: c.durationMs ?? null,
+      blocked: 막힘,
+      blockedBy: c.blockedBy ?? null,
+      사유: 막힘 || 안돎 || c.status === 'PASS' || c.error === undefined ? null : 멈춘사유글자(c.error.message, 'ko'),
+    };
+  };
+  const 모양들 = 케이스들.map(하나);
+  const 막은것 = (번호: string) => {
+    const 막은 = 모양들.find((c) => c.tcId === 번호);
+    return 막은 === undefined || 막은.status === 'NOT_RUN' || 막은.blocked ? undefined : { status: 막은.status, notRunReason: 막은.status === 'NA' ? 시간초과글 : null };
+  };
+  return {
+    procId: p.procId,
+    procName: p.procName ?? '',
+    cases: 모양들.map((c) => (c.blockedBy === null || !c.blocked ? c : { ...c, 사유: 막힘사유(c.blockedBy, 막은것(c.blockedBy)) })),
+  };
+}
+
 function 단계(runId: number, p: ScenarioRunPart, 결과: 결과): E2E단계 {
   const 안돌았다 = p.status === 'NA' && p.error?.message === 'NOT_RUN';
   const 케이스 = p.part.kind === 'case' ? p.part : null;
@@ -118,6 +172,7 @@ function 단계(runId: number, p: ScenarioRunPart, 결과: 결과): E2E단계 {
     값연결: (케이스?.links ?? []).map((link) => 값연결글(link, p.bound, 'ko')),
     // 결과 화면이 보이는 문장이다 — 케이스 단계가 실패해도 적는다. 원문 스택은 안 싣는다
     사유: !안돌았다 && p.status !== 'PASS' && p.error !== null && p.error.message !== '' ? 멈춘사유글자(p.error.message, 'ko') : null,
+    프로시저: 프로시저모양(p),
   };
 }
 
@@ -165,4 +220,39 @@ export async function collectScenario(runId: number): Promise<E2E증적 | null> 
   );
   const 행 = 머리.rows[0];
   return E2E모양(runId, 결과, { serviceName: 행?.service_name ?? '', testsRepo: 행?.tests_repo ?? '' });
+}
+
+/** 프로시저 단계를 케이스마다의 항목으로 편다 — 절차는 tcId 로 가르고 고른 케이스만 사전 조건 · 입력 · 기대를 든다(나머지는 저장값이라 이 문서가 모른다) */
+export function 프로시저항목들(d: E2E단계, platform: Platform): { item: EvidenceItem; 고른것: boolean }[] {
+  if (d.프로시저 == null || d.item === null) return [];
+  const 고른 = d.item;
+  return d.프로시저.cases.map((c) => {
+    const 고른것 = c.tcId === 고른.tcId;
+    return {
+      고른것,
+      item: {
+        tcId: c.tcId,
+        tcName: c.name,
+        platform,
+        attempt: 1,
+        status: c.status,
+        durationMs: c.durationMs,
+        notRunReason: c.사유,
+        unconfirmed: null,
+        precondition: 고른것 ? 고른.precondition : [],
+        params: 고른것 ? 고른.params : [],
+        expected: 고른것 ? 고른.expected : [],
+        steps: 고른.steps.filter((s) => s.tcId === c.tcId),
+        ...(c.blocked ? { blocked: { by: c.blockedBy } } : {}),
+      },
+    };
+  });
+}
+
+/** 「Pass 2 · Fail 1 · Not tested 2 (Blocked 2)」 — 실행 증적의 요약 띠와 같은 꼴이다 */
+export function 프로시저요약(p: E2E프로시저): string {
+  const 수 = (맞나: (c: E2E프로시저케이스) => boolean) => p.cases.filter(맞나).length;
+  const 막힘 = 수((c) => c.blocked);
+  const 미실행 = 수((c) => c.status === 'NA' || c.status === 'NOT_RUN');
+  return `${p.cases.length}건 · Pass ${수((c) => c.status === 'PASS')} · Fail ${수((c) => c.status === 'FAIL')} · Not tested ${미실행}${막힘 === 0 ? '' : ` (Blocked ${막힘})`}`;
 }

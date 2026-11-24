@@ -40,6 +40,7 @@ import './runNav.css';
 import './runPill.css';
 import './caseList.css';
 import './runFlow.css';
+import './scenarioProc.css';
 import './casePick.css';
 import './compat.css';
 import './compatResult.css';

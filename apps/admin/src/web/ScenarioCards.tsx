@@ -7,6 +7,7 @@ import type { Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { 단계앱, 섞였나, 모킹구간, 빼기, 순서바꾸기, 카드요약, 종류글, type 앱줄, type 재료들 } from './scenarioView.js';
+import type { 프로시저정보 } from './scenarioProc.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { PLATFORM_LABEL } from './ui.js';
 
@@ -24,6 +25,7 @@ export function ScenarioCards({
   단계들,
   단계들바꾸기,
   재료,
+  프로시저들 = new Map(),
   디바이스,
   시작 = '',
   앱들 = [],
@@ -36,6 +38,8 @@ export function ScenarioCards({
   단계들: ScenarioPart[];
   단계들바꾸기: (다음: ScenarioPart[]) => void;
   재료: 재료들;
+  /** 프로시저 안 케이스를 고른 단계 — 케이스 번호로 찾는다. 그 단계는 프로시저를 통째로 실행해 준비 건너뛰기 칩이 안 선다 (도메인/시나리오 §3.7 결정 17) */
+  프로시저들?: ReadonlyMap<string, 프로시저정보>;
   디바이스: Platform;
   /** 시나리오 서비스(시작 애플리케이션)와 같은 프로젝트의 애플리케이션. 시작 애플리케이션 밖의 단계가 있을 때만 이름표 · 구분선이 선다 */
   시작?: string;
@@ -109,6 +113,7 @@ export function ScenarioCards({
             const 바뀜 = 섞임 && 앱 !== null && 직전앱 !== null && 앱 !== 직전앱;
             if (앱 !== null) 직전앱 = 앱;
             const 재료값 = part.kind === 'case' ? 재료.get(part.tcId) : undefined;
+            const 프로시저 = part.kind === 'case' ? 프로시저들.get(part.tcId) : undefined;
             const 모킹안 = (구간[i]?.length ?? 0) > 0;
             const 이름 =
               part.kind === 'case' ? (재료값 ? `${part.tcId} ${재료값.name}` : part.tcId) : 카드요약(part, undefined, 언어);
@@ -138,6 +143,9 @@ export function ScenarioCards({
                   <span className="tech-tag">{t(종류글[part.kind])}</span>
                   <span className="scn-card-name">{이름}</span>
                   {요약 === '' ? null : <span className="scn-card-sum">{요약}</span>}
+                  {프로시저 === undefined ? null : (
+                    <span className="scn-card-sum">{t('프로시저 {번호} · {수}건을 통째로 실행', { 번호: 프로시저.procId, 수: 프로시저.cases.length })}</span>
+                  )}
                 </button>
                 <span className="scn-card-chips">
                   {!섞임 || 앱 === null ? null : (
@@ -148,6 +156,17 @@ export function ScenarioCards({
                   {part.kind === 'case' ? 칩들(part, 재료값, 디바이스, t) : null}
                   {part.kind === 'api' && 모킹안 ? <span className="tech-tag">{t('모킹되지 않음')}</span> : null}
                 </span>
+                {프로시저 === undefined || 프로시저.cases.length === 0 ? null : (
+                  <ol className="scn-card-cases">
+                    {프로시저.cases.map((c, k) => (
+                      <li key={c.tcId}>
+                        <span className="n mono">{k + 1}</span>
+                        <span className="mono">{c.tcId}</span>
+                        <span className="t">{c.name}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
                 {!쓰나 ? null : (
                   <span className="scn-card-ops">
                     {번호 === 1 ? null : (

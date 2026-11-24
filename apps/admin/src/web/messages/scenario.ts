@@ -206,6 +206,13 @@ export const 시나리오말: Record<string, string> = {
   '← SC-{번호} 시나리오': '← Scenario SC-{번호}',
   '{번호}번 단계 케이스가 비활성입니다 · {tcId}': 'The case in step {번호} is inactive · {tcId}',
   '{번호}번 단계에서 건너뛰게 둔 사전 단계를 이제 건너뛸 수 없습니다': 'Step {번호} skips a setup step that can no longer be skipped',
+  '{번호}번 단계 케이스가 다른 단계와 같은 프로시저에 있어 그 프로시저가 두 번 실행됩니다 · 케이스 변경에서 한쪽을 다른 케이스로 선택하면 풀립니다':
+    'The case in step {번호} is in the same procedure as another step, so that procedure runs twice · changing one of the cases fixes it',
+  '{번호}번 단계가 프로시저 안 케이스가 되어 저장해 둔 사전 단계 건너뛰기를 무시하고 실행합니다':
+    'The case in step {번호} is now inside a procedure, so the saved setup skips are ignored when it runs',
+  '프로시저': 'Procedure',
+  '프로시저 {번호} · {수}건을 통째로 실행': 'Procedure {번호} · runs all {수} cases as one step',
+  '프로시저는 시작 상태를 스스로 맞추므로 사전 단계를 건너뛸 수 없습니다': 'A procedure sets up its own start state, so setup steps cannot be skipped',
   '단계 제한 시간 합이 상한을 넘거나 시나리오가 너무 커서 실행할 수 없습니다': 'Cannot run: step time limits add up to more than allowed or the scenario is too large',
   '수정': 'Edit',
   '삭제': 'Delete',

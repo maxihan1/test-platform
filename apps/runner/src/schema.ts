@@ -93,14 +93,17 @@ const 실행칸 = {
 };
 const 케이스값 = z.record(z.string(), z.unknown());
 
-// 새 꼴 — 파일 하나 + 케이스 목록. 케이스가 없거나 같은 번호가 둘이면 거절한다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「거절」)
+// 케이스가 없거나 같은 번호가 둘이면 거절한다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「거절」). E2E 프로시저 단계도 같은 목록이다
+const 케이스목록 = z
+  .array(z.object({ tcId: z.string().min(1), params: 케이스값, expected: 케이스값 }))
+  .min(1)
+  .refine((cases) => new Set(cases.map((c) => c.tcId)).size === cases.length, 'cases 에 같은 tcId 가 둘 이상이다');
+
+// 새 꼴 — 파일 하나 + 케이스 목록
 const 새꼴 = z.object({
   ...실행칸,
   procId: z.string().min(1).optional(),
-  cases: z
-    .array(z.object({ tcId: z.string().min(1), params: 케이스값, expected: 케이스값 }))
-    .min(1)
-    .refine((cases) => new Set(cases.map((c) => c.tcId)).size === cases.length, 'cases 에 같은 tcId 가 둘 이상이다'),
+  cases: 케이스목록,
 });
 // 앞 꼴 — 케이스 하나. 옮기는 동안 같이 받고 TP-F6-32 에 걷는다.
 // cases 가 온 요청은 여기로 떨어지지 않는다 — 틀린 케이스 목록을 버리고 앞 꼴로 돌리면 러너가 앞 꼴로 답한다
@@ -156,7 +159,11 @@ const scenarioPart = z.discriminatedUnion('kind', [
     apiDoc,
     // 앱 · 게임 단계 — admin 이 애플리케이션 종류로 정해 싣는다. 창 대신 폰 연결로 돈다 (SPEC 도메인/시나리오 §3.7 결정 16)
     appStep: z.boolean().optional(),
-  }),
+    // 프로시저 단계 — 그 케이스가 든 프로시저와 케이스 전부(도는 차례). 둘은 같이 오고 목록에 그 부품 케이스가 든다 (SPEC 도메인/시나리오 §3.7 결정 17)
+    procId: z.string().min(1).optional(),
+    cases: 케이스목록.optional(),
+  }).refine((p) => (p.procId === undefined) === (p.cases === undefined), 'procId 와 cases 는 같이 온다')
+    .refine((p) => p.cases === undefined || p.cases.some((c) => c.tcId === p.tcId), 'cases 에 그 단계의 tcId 가 없다'),
   z.object({
     kind: z.literal('api'),
     method: scenarioMethod,

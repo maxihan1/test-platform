@@ -6,7 +6,7 @@
 import ExcelJS from 'exceljs';
 
 import type { EvidenceAssertion, EvidenceDocument, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
-import type { E2E단계, E2E증적 } from './collectScenario.js';
+import { 프로시저항목들, type E2E단계, type E2E증적 } from './collectScenario.js';
 import { 프로시저글 } from './collectProc.js';
 import { 기대문장 } from './expectedLines.js';
 import { 절차판정글자, 참고글자 } from './htmlItem.js';
@@ -155,7 +155,7 @@ export async function renderXlsx(doc: EvidenceDocument, options: RenderOptions):
 // 단계 칸 — 차례 · 종류 · 붙는 표시를 한 칸에 줄로 적는다. 값 연결 · 모킹을 빼면 꾸민 응답으로 통과한 것이 진짜로 읽힌다 (도메인/리포팅 §8.4)
 function 단계글(d: E2E단계): string {
   return [
-    [`${d.seq}단계`, d.종류, ...(d.모킹구간.length > 0 ? ['모킹 구간'] : []), ...(d.단독실행 ? ['단독 실행'] : [])].join(' · '),
+    [`${d.seq}단계`, d.종류, ...(d.프로시저 == null ? [] : [`프로시저 ${d.프로시저.procId} ${d.프로시저.procName}`]), ...(d.모킹구간.length > 0 ? ['모킹 구간'] : []), ...(d.단독실행 ? ['단독 실행'] : [])].join(' · '),
     ...(d.모킹구간.length > 0 && !d.모킹안탐 ? [`모킹이 적용된 상태로 실행했습니다 — ${d.모킹구간.join(', ')}`] : []),
     ...(d.모킹안탐 ? ['이 단계의 API 호출은 모킹되지 않습니다'] : []),
     ...d.건너뜀,
@@ -166,7 +166,7 @@ function 단계글(d: E2E단계): string {
 // 절차가 없는 단계(모킹 · API · 대기 · 안 돈 케이스)도 한 행을 남긴다 — 행이 없으면 그 단계가 표에서 사라진다
 function 한행(판: EvidenceDocument, d: E2E단계, platform: E2E증적['platform']): 칸값[] {
   const 판정 = d.적용됨 ? '적용됨' : d.안돌았다 ? '실행 안 함' : 판정글자[d.status];
-  const 케이스 = d.item === null ? [null, d.요약] : [d.item.tcId, d.item.tcName];
+  const 케이스 = d.프로시저 != null ? [d.프로시저.procId, d.프로시저.procName] : d.item === null ? [null, d.요약] : [d.item.tcId, d.item.tcName];
   return [
     ...실행칸(판),
     ...케이스,
@@ -197,7 +197,13 @@ export async function renderScenarioXlsx(doc: E2E증적, options: RenderOptions)
   // 실행 칸 여섯은 케이스 증적과 같은 함수가 채운다 — 항목은 단계마다 따로 넘긴다
   const 판: EvidenceDocument = { runId: doc.runId, header: doc.header, items: [] };
   for (const d of doc.parts) {
-    const 행들 = d.item !== null && !d.안돌았다 ? 항목행들(판, d.item) : [한행(판, d, doc.platform)];
+    // 프로시저 단계는 케이스마다 항목으로 펴 행을 낸다 — 케이스 칸이 그 케이스 번호 · 이름이다
+    const 행들 =
+      d.프로시저 != null && d.item !== null && !d.안돌았다
+        ? 프로시저항목들(d, doc.platform).flatMap(({ item }) => 항목행들(판, item))
+        : d.item !== null && !d.안돌았다
+          ? 항목행들(판, d.item)
+          : [한행(판, d, doc.platform)];
     sheet.addRows(행들.map((행) => [단계글(d), ...행, doc.header.kind]));
   }
   // 판정에는 안 든다 — 마지막 단계 뒤에 한 줄씩 (도메인/시나리오 §3.7 결정 12)

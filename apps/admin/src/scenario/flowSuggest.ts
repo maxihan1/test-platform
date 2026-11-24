@@ -8,6 +8,7 @@ import { 주소틀 } from '../../../../scripts/authoring-crawl-rules.js';
 import { 흐름인가 } from './flowSide.js';
 import { 값연결제안들, type 값연결제안, type 지도요청 } from './linkSuggest.js';
 import { 메뉴뺀연결들, type 연결줄 } from './next.js';
+import { 프로시저하나씩 } from './procStep.js';
 import { 제한시간크기사유 } from './validate.js';
 
 export const 케이스상한 = 1000;
@@ -21,7 +22,8 @@ export interface 흐름재료 {
   game?: boolean;
   reqs: { reqId: string; feature: string; kinds: string[]; text: string }[];
   /** params 는 입력값 칸 이름 · gameScreen 은 게임 애플리케이션에만 단다 */
-  cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean; params: string[]; gameScreen?: boolean }[];
+  /** procCases 는 프로시저 안 케이스만 — 그 프로시저의 케이스 수. 60분 상한을 저장 검사와 같게 센다 (결정 17) */
+  cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean; params: string[]; gameScreen?: boolean; procCases?: number }[];
   links: { from: string; to: string; via: string }[];
   truncated: boolean;
 }
@@ -38,6 +40,10 @@ export interface 재료원천 {
     platforms: string[];
     techniques: string[];
     params: string[];
+    /** 프로시저 안 케이스만 — 프로시저마다 프로시저 안 차례가 가장 앞인 하나만 후보로 낸다 (결정 17) */
+    procId?: string | null | undefined;
+    procSeq?: number | null | undefined;
+    procCases?: number | null | undefined;
     /** 케이스 몸통이 받는 이름(catalog/steps.ts) — 게임 애플리케이션만 읽는다. 못 읽었으면 없다 */
     fixtures?: string[] | undefined;
   }[];
@@ -54,7 +60,7 @@ export function 재료짓기(원천: 재료원천): 흐름재료 {
   for (const [, m] of 원천.맥락) for (const r of m.reqs) 종류들.set(r.reqId, (종류들.get(r.reqId) ?? new Set()).add(r.axis));
   const reqs = 원천.prd.map((i) => ({ reqId: i.reqId, feature: i.feature, kinds: [...(종류들.get(i.reqId) ?? [])].sort(), text: i.text }));
 
-  const cases = 원천.케이스들.filter((c) => c.platforms.includes(원천.platform)).map((c) => {
+  const cases = 프로시저하나씩(원천.케이스들.filter((c) => c.platforms.includes(원천.platform))).map((c) => {
     const m = 원천.맥락.get(c.tcId);
     const 요구 = m?.reqs ?? [];
     return {
@@ -68,6 +74,7 @@ export function 재료짓기(원천: 재료원천): 흐름재료 {
       params: c.params,
       // 몸통이 game · driver 를 받아야 게임 화면을 연다. 나머지는 API 만 부른다 (2026-11-09 E2E-F4-03 — ASH 267개 중 218개)
       ...(원천.game ? { gameScreen: (c.fixtures ?? []).some((f) => f === 'game' || f === 'driver') } : {}),
+      ...(c.procId != null && c.procCases != null && { procCases: c.procCases }),
     };
   });
 
@@ -131,6 +138,7 @@ export function 흐름다듬기(
 ): 흐름후보[] {
   const 이름 = new Map(재료.cases.map((c) => [c.tcId, c.name]));
   const 게임화면 = new Set(재료.cases.filter((c) => c.gameScreen === true).map((c) => c.tcId));
+  const 프로시저수들 = new Map(재료.cases.flatMap((c) => (c.procCases === undefined ? [] : [[c.tcId, c.procCases] as const])));
   const 요구 = new Set(재료.reqs.map((r) => r.reqId));
   return 후보들.flatMap((후보) => {
     // AI 의 번호(1부터) → 남은 차례(1부터)
@@ -153,7 +161,7 @@ export function 흐름다듬기(
 
     const parts: ScenarioPart[] = 남은.map((tcId) => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [] }));
     // 실행 한도(60분 · 크기)를 넘는 후보는 시험 실행 · 저장이 어차피 거절한다 — 고른 뒤에 막히지 않게 여기서 버린다 (2026-11-08 E2E-F3-05 시험)
-    if (제한시간크기사유(parts).length > 0) {
+    if (제한시간크기사유(parts, 프로시저수들).length > 0) {
       버린까닭.add('실행 한도(60분 · 크기)를 넘는다');
       return [];
     }

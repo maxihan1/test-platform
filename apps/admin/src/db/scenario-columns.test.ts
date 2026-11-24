@@ -48,6 +48,9 @@ const 정본: Record<string, 칸[]> = {
     ['bound', 'jsonb', 'NO', true],
     ['cleanup', 'jsonb', 'NO', true],
     ['trace', 'jsonb', 'YES', false],
+    ['proc_id', 'text', 'YES', false],
+    ['proc_name', 'text', 'YES', false],
+    ['cases', 'jsonb', 'YES', false],
   ],
   scenario_run_step: [
     ['id', 'bigint', 'NO', true],
@@ -63,6 +66,7 @@ const 정본: Record<string, 칸[]> = {
     ['http_trace', 'jsonb', 'YES', false],
     ['error', 'jsonb', 'YES', false],
     ['shape_checks', 'jsonb', 'YES', false],
+    ['tc_id', 'text', 'YES', false],
   ],
 };
 const test_run새칸: 칸[] = [

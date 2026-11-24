@@ -17,7 +17,8 @@ export type RouteHandler = (route: {
 
 // 케이스 단계 하나가 도는 자리. 웹 단계는 공용 창 위에, 앱 · 게임 단계는 폰 연결 위에 연다
 export interface 단계창 {
-  runCase(part: CasePart, seq: number, phase: ScenarioPhase, params: Record<string, unknown>): Promise<ScenarioCaseOutcome>;
+  // 케이스한도는 프로시저 단계에만 — kit 이 케이스마다 다시 건다 (SPEC 도메인/시나리오 §3.7 결정 17)
+  runCase(part: CasePart, seq: number, phase: ScenarioPhase, params: Record<string, unknown>, 케이스한도?: number): Promise<ScenarioCaseOutcome>;
   // 창 쿠키 · localStorage 에 그 단계 request 의 쿠키를 합친 것 — 한도에 걸린 단계의 늦은 미룬 삭제가 이것으로 나간다
   state(): Promise<상태>;
   // 단계 끝 — 단계 request · 그 단계가 직접 만든 창과 연결을 닫고, 웹 단계는 단계가 건 것을 되돌린다(시나리오 §3.7 결정 3 「단계 끝 되돌리기」).
@@ -112,8 +113,9 @@ async function 한도안에(
   부품: 부품상태,
   params: Record<string, unknown>,
   한도: number,
+  케이스한도?: number,
 ): Promise<{ outcome: ScenarioCaseOutcome | undefined; 넘었다: boolean }> {
-  const 달림 = 지금.runCase(part, seq, 부품.phase, params);
+  const 달림 = 케이스한도 === undefined ? 지금.runCase(part, seq, 부품.phase, params) : 지금.runCase(part, seq, 부품.phase, params, 케이스한도);
   if (한도 <= 0) return { outcome: await 달림, 넘었다: false };
 
   // 달림이 던지면 그대로 던진다 — 부르는 쪽이 이음 오류와 함께 실패 줄로 적는다
@@ -144,6 +146,8 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
       let steps: StepResult[] = [];
       let error: { message: string; stack?: string } | undefined;
       let bound: Record<string, unknown> | undefined;
+      // 프로시저 단계의 케이스마다 판정 — kit 이 낸 그대로 옮긴다
+      let cases: ScenarioPartResult['cases'];
       // 케이스를 돌리기 시작한 부품 — 예외로 끝나도 이음 오류 · 안 걸린 이어 주기를 실어야 해서 블록 밖에 둔다
       let 돈부품: 부품상태 | undefined;
 
@@ -172,11 +176,15 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
             }
 
             돈부품 = 부품;
+            // 프로시저 단계는 판정을 kit 한 곳이 내야 해서 케이스 한도를 kit 이 케이스마다 건다. 러너는 kit 이 안 돌아올 때만 끊는다 — 폰 열기 몫으로 한 칸 더 (SPEC 도메인/시나리오 §3.7 결정 17)
+            const 케이스수 = part.cases?.length;
+            const 바깥한도 = 케이스수 === undefined || 한도 <= 0 ? 한도 : 한도 * (케이스수 + 1);
             try {
-              const { outcome, 넘었다 } = await 한도안에(단계, part, seq, 부품, 꽂음.params, 한도);
+              const { outcome, 넘었다 } = await 한도안에(단계, part, seq, 부품, 꽂음.params, 바깥한도, 케이스수 === undefined ? undefined : 한도);
               if (outcome !== undefined) {
                 seq = outcome.seq;
                 steps = outcome.steps;
+                cases = outcome.cases;
                 if (outcome.failed) {
                   status = 'FAIL';
                   error = outcome.error;
@@ -184,7 +192,7 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
               }
               if (넘었다) {
                 status = 'FAIL';
-                error = { message: `단계 제한 시간 ${한도}ms 를 넘었다` };
+                error = { message: `단계 제한 시간 ${바깥한도}ms 를 넘었다` };
               }
             } finally {
               // 웹 단계는 단계가 건 것을 되돌리고 창은 남긴다. 앱 단계 자리는 그 단계의 request 만 쥔다 — 폰 연결은 시나리오 끝까지 남는다
@@ -254,6 +262,7 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
         mocks: [...걸린.keys()],
         ...(bound === undefined ? {} : { bound }),
         ...(error === undefined ? {} : { error }),
+        ...(cases === undefined ? {} : { cases }),
       });
 
       // 실패한 부품에서 멈춘다. 뒤 부품을 NOT_RUN 으로 채우는 일은 러너가 한다 — 자식이 죽어도 채울 수 있어야 한다

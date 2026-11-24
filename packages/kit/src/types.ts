@@ -282,11 +282,12 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
   adminKey?: { header: string; value: string };   // 게임 단계 케이스에만 넘긴다. 부품 기록 · 결과에 안 넣는다
   cdpUrl?: string;                                 // mobile 시나리오만 — ExecuteRequest.cdpUrl 과 같다. 웹 단계가 그 폰 Chrome 의 창 하나 · 탭 하나로 끝까지 돈다 (결정 3)
   baseUrl: string;
-  parts: Array<ScenarioPart & { filePath?: string; baseUrl?: string; apiAuths?: ApiAuth[]; apiDoc?: ApiDocRef; appStep?: boolean }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다.
+  parts: Array<ScenarioPart & { filePath?: string; baseUrl?: string; apiAuths?: ApiAuth[]; apiDoc?: ApiDocRef; appStep?: boolean; procId?: ProcId; cases?: ExecuteCase[] }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다.
                                                    // baseUrl 은 case · api 부품이 돌 주소 — 시작 애플리케이션이 아닌 단계에만 붙는다. 없으면 위 baseUrl (결정 13)
                                                    // apiAuths 는 API 애플리케이션 case 부품과 auth 를 단 api 부품에만 — 그 애플리케이션 · 짝지은 대상 서버의 인증. 부품 기록에는 안 넣는다 (도메인/API §3.8)
                                                    // apiDoc 은 그 case 부품 케이스가 만들어진 판. apiAuths 와 같이 부품 기록에는 안 넣는다
                                                    // appStep 은 앱 · 게임 단계인 case 부품에만 true — admin 이 애플리케이션 종류로 정한다. 그 단계는 창 대신 폰 연결로 돈다 (결정 16)
+                                                   // procId · cases 는 프로시저 단계에만 — 그 케이스가 든 프로시저와 그 케이스 전부(도는 차례). 부품의 tcId 케이스 값은 부품 params · expected 와 같다. 부품 기록에는 안 넣는다 (결정 17)
   timeoutMs: number;
   deleteStatuses?: ScenarioDeleteStatus[];         // 미룬 삭제에 줄 응답 코드. 없는 주소는 204 (도메인/시나리오 §3.7 결정 12)
   recordHar?: { jobId: number };                   // 성능 시나리오 녹화 — ExecuteRequest.recordHar 와 같다. 시나리오는 runId null
@@ -307,6 +308,15 @@ export interface ScenarioPartResult {
   mocks: string[];                                 // 이 부품이 도는 동안 걸려 있던 mock 의 urlPattern
   bound?: Record<string, unknown>;                 // 값 꽂기로 넣은 값 (결정 12). API 호출 단계는 값 주입으로 넣은 값 (결정 14)
   error?: { message: string; stack?: string };
+  cases?: ScenarioCaseResult[];                    // 프로시저 단계만 — 요청 cases 와 같은 수 · 같은 차례. 절차는 steps 에 그대로 싣고 StepResult.tcId 로 가른다. status 는 다 PASS 일 때만 PASS (결정 17)
+}
+
+export interface ScenarioCaseResult {              // 프로시저 단계의 케이스 한 건 (도메인/시나리오 §3.7 결정 17)
+  tcId: TcId;
+  status: ItemStatus;
+  durationMs: number;
+  error?: { message: string; stack?: string };    // Blocked 는 message 가 'BLOCKED'
+  blockedBy?: TcId;                                // Blocked 일 때만. 막은 케이스
 }
 
 export interface ScenarioExecuteResponse {

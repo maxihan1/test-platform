@@ -18,6 +18,7 @@ import { 웹사진 } from './highlight.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { 장면걸기 } from './live.js';
 import { testCase, 프로시저를등록한다 } from './procedure.js';
+import { 프로시저를시나리오에올린다 } from './procedureScenario.js';
 import { GAME_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
 import { 실제폰테스트 } from './realPhone.js';
 import { registerScenarioCase, registerScenarioPhone, type ScenarioCaseRunner } from './scenario.js';
@@ -104,9 +105,11 @@ function defineTest<P, E>(target: CaseHandle<P, E> | ProcedureSpec, body: CaseBo
   // 스캐너는 명세만 읽으려고 이 파일을 import 한다. 그때는 Playwright에 등록하지 않는다 (SPEC §3.1)
   if (process.env.PLATFORM_SCAN === '1') return;
 
-  // 안 케이스에도 procId 가 실려 있어 cases 로 가른다
-  if ('cases' in target) 프로시저를등록한다(target, body as ProcedureBody);
-  else 케이스를등록한다(target, body as CaseBody<P, E>);
+  // 안 케이스에도 procId 가 실려 있어 cases 로 가른다. E2E 시나리오 모드는 러너 고정 spec 이 꺼내 쓴다 (도메인/시나리오 §3.7 결정 17)
+  if ('cases' in target) {
+    if (process.env.PLATFORM_SCENARIO_MODE === '1') 프로시저를시나리오에올린다(target, body as ProcedureBody);
+    else 프로시저를등록한다(target, body as ProcedureBody);
+  } else 케이스를등록한다(target, body as CaseBody<P, E>);
 }
 
 function 케이스를등록한다<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {

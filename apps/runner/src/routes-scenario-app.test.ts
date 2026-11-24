@@ -56,6 +56,17 @@ describe('POST /execute-scenario — 앱 · 게임 단계', () => {
     }));
   });
 
+  it('프로시저 단계는 procId · cases 를 버리지 않고 넘기고, 둘 중 하나만 오거나 cases 에 그 단계 케이스가 없으면 400 이다', async () => {
+    const 목록 = [{ tcId: 'TODO-000', params: {}, expected: {} }, { tcId: 'TODO-001', params: { a: 1 }, expected: {} }];
+    const 받음 = await 보냄(요청({ parts: [앱({ procId: 'TODO-TP-001', cases: 목록 })] }));
+    expect(받음.statusCode).toBe(200);
+    expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({ parts: [expect.objectContaining({ procId: 'TODO-TP-001', cases: 목록 })] }));
+
+    for (const 칸 of [{ procId: 'TODO-TP-001' }, { cases: 목록 }, { procId: 'TODO-TP-001', cases: 목록.slice(0, 1) }]) {
+      expect((await 보냄(요청({ parts: [앱(칸)] }))).statusCode).toBe(400);
+    }
+  });
+
   it.each([
     ['앞 응답 돌려주기를 건다', [케이스(), 앱({ links: [{ kind: 'reuse', method: 'GET', urlPattern: '**/a', fromSeq: 1 }] })], '값 꽂기만 건다'],
     ['요청 막기를 건다', [앱({ links: [{ kind: 'block', method: 'DELETE', urlPattern: '**/a' }] })], '값 꽂기만 건다'],

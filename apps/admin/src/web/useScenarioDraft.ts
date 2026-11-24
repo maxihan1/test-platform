@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, type Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type CasePartMaterial, type ScenarioDetail } from './scenarioApi.js';
+import { 프로시저건너뛰기빼기, 프로시저떼기, 프로시저읽기, type 프로시저정보 } from './scenarioProc.js';
 import { 가리킴빈곳, type 재료들 } from './scenarioView.js';
 import { message } from './ui.js';
 
@@ -70,6 +71,8 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
   const [디바이스, set디바이스] = useState(carried?.디바이스 ?? 새디바이스);
   const [단계들, set단계들] = useState<ScenarioPart[]>(carried === null ? [] : carried.단계들);
   const [재료, set재료] = useState<재료들>(new Map());
+  // 프로시저 안 케이스를 고른 단계의 프로시저. 단계 자체에는 안 싣는다 — 서버가 저장 때 받는 부품 모양이 그대로여야 한다
+  const [프로시저들, set프로시저들] = useState<ReadonlyMap<string, 프로시저정보>>(new Map());
   const [점검, set점검] = useState<점검들>([]);
   const [버전, set버전] = useState<number | null>(null);
   const [버전들, set버전들] = useState<버전들>([]);
@@ -101,7 +104,9 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
   }, []);
 
   const 전부읽기 = useCallback(async (번호: number, 취소됨: () => boolean): Promise<number | null> => {
-    const 상세 = await scenarioApi.detail(번호);
+    const 받음 = await scenarioApi.detail(번호);
+    const { 단계들: 맨몸들, 정보 } = 프로시저떼기(받음.parts);
+    const 상세 = { ...받음, parts: 맨몸들 };
     const 읽음 = await Promise.all(케이스번호들(상세.parts).map(async (n) => [n, await 재료받기(n)] as const));
     // 재료는 케이스마다 같은 값이라 취소돼도 담는다 — StrictMode 가 처음 읽기를 늘 취소한다 (2026-10-07 실측)
     set재료((앞) => new Map([...앞, ...읽음]));
@@ -110,7 +115,8 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
     set이름(상세.name);
     set디바이스(상세.platform);
     // 저장본은 그대로 찍어 둔다 — 뺀 것이 저장 안 한 변경으로 보여 저장 한 번이면 「확인 필요」가 풀린다
-    set단계들(못건너뛸제목빼기(상세.parts, new Map(읽음)));
+    set프로시저들(정보);
+    set단계들(못건너뛸제목빼기(프로시저건너뛰기빼기(상세.parts, 정보), new Map(읽음)));
     set점검(상세.checks);
     set버전(상세.version);
     set버전들(상세.versions);
@@ -160,7 +166,12 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
   const 재료더하기 = useCallback((tcId: string) => {
     if (부른것.current.has(tcId)) return;
     재료받기(tcId).then(
-      (값) => set재료((앞) => new Map(앞).set(tcId, 값)),
+      (값) => {
+        set재료((앞) => new Map(앞).set(tcId, 값));
+        // 저장하지 않은 초안은 서버 상세가 프로시저를 아직 안 알려 준다 — 새로 고른 케이스의 재료가 알려 준다
+        const 정보 = 값 === null ? null : 프로시저읽기(값);
+        if (정보 !== null) set프로시저들((앞) => new Map(앞).set(tcId, 정보));
+      },
       (err: unknown) => set저장오류(message(err, 언어쪽.current)),
     );
   }, [재료받기]);
@@ -231,6 +242,7 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
     디바이스,
     단계들,
     재료,
+    프로시저들,
     점검,
     버전,
     버전들,

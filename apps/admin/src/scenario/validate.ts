@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { tcId종류, 게임시나리오인가 } from '../catalog/rules.js';
 
 import { type 앱종류, 단계디바이스, 앱단계인가, 섞였나, 케이스접두사 } from './mixed.js';
+import { type 프로시저정보, type 프로시저케이스수, 프로시저몫 } from './procStep.js';
 
 // 러너 입구(apps/runner/src/routes.ts scenarioLink · responseRef)와 맞춘다 — 여기서 통과한 것을 러너가 400 으로 돌려보내면 저장만 되고 영영 못 돈다.
 // 바꿔 보내기 경로 규칙과 {} 개수는 사람 말 사유로 알려 주려고 조립검사가 본다
@@ -77,8 +78,18 @@ type 이어주기<K> = Extract<z.infer<typeof 이어주기모양>, { kind: K }>;
   never
 >;
 
-/** params 는 케이스 입력값 칸 이름이다 — 값 꽂기가 없는 칸을 가리키는지 본다 */
-export type 카탈로그 = Map<string, { platforms: Platform[]; isActive: boolean; skippable: string[]; titles: string[]; params: string[] }>;
+/**
+ * params 는 케이스 입력값 칸 이름이다 — 값 꽂기가 없는 칸을 가리키는지 본다.
+ * proc 은 프로시저 안 케이스만 찬다 — 그 프로시저가 통째로 돈다. 프로시저 안 케이스는 건너뛸 절차가 없다 (결정 17)
+ */
+export type 카탈로그 = Map<
+  string,
+  { platforms: Platform[]; isActive: boolean; skippable: string[]; titles: string[]; params: string[]; proc?: 프로시저정보 }
+>;
+
+/** 프로시저 단계의 제한 시간 몫을 셀 재료 — 카탈로그에서 프로시저 안 케이스만 뽑는다 */
+export const 프로시저수 = (재료: 카탈로그): 프로시저케이스수 =>
+  new Map([...재료].flatMap(([tcId, c]) => (c.proc === undefined ? [] : [[tcId, c.proc.cases.length] as const])));
 
 const 케이스몫 = 300000;
 const API몫 = 30000;
@@ -87,16 +98,17 @@ const 바닥 = 60000;
 const 제한시간상한 = 3600000;
 const 크기상한 = 100000;
 
-function 부품시간합(parts: ScenarioPart[]): number {
-  return parts.reduce(
-    (합, p) => 합 + (p.kind === 'case' ? 케이스몫 : p.kind === 'api' ? API몫 : p.kind === 'wait' ? p.ms : 0),
-    0,
-  );
+// 케이스수를 안 주면 프로시저 단계도 케이스 부품 몫으로 센다 — 프로시저를 모르는 곳(재료 없이 크기만 보는 곳)이 지금처럼 돈다
+function 부품시간합(parts: ScenarioPart[], 케이스수?: 프로시저케이스수): number {
+  return parts.reduce((합, p) => {
+    if (p.kind === 'case') return 합 + (케이스수?.has(p.tcId) === true ? 프로시저몫(케이스수.get(p.tcId)!) : 케이스몫);
+    return 합 + (p.kind === 'api' ? API몫 : p.kind === 'wait' ? p.ms : 0);
+  }, 0);
 }
 
 /** 러너에 넘길 제한 시간. ③ 이 `timeoutMs` 로 쓴다 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」) */
-export function 시나리오제한시간(parts: ScenarioPart[]): number {
-  return Math.max(부품시간합(parts), 바닥);
+export function 시나리오제한시간(parts: ScenarioPart[], 케이스수?: 프로시저케이스수): number {
+  return Math.max(부품시간합(parts, 케이스수), 바닥);
 }
 
 /** 크기 상한 사유. 넘지 않으면 null. 조립검사는 다른 검사보다 이것을 먼저 본다 — 큰 목록은 부품마다 도는 검사가 서버를 수 초 붙잡는다 */
@@ -105,19 +117,23 @@ function 크기사유(parts: ScenarioPart[]): string | null {
   return 크기 > 크기상한 ? `단계 목록이 ${크기}바이트로 한도 ${크기상한}바이트를 넘습니다 — 단계나 모킹 응답 본문을 줄여 주세요` : null;
 }
 
-function 제한시간사유(parts: ScenarioPart[]): string | null {
+function 제한시간사유(parts: ScenarioPart[], 케이스수?: 프로시저케이스수): string | null {
   // 상한은 바닥 전 합으로 본다 — 바닥은 러너 몫이지 조립이 쓴 시간이 아니다
-  const 합 = 부품시간합(parts);
+  const 합 = 부품시간합(parts, 케이스수);
   // 마법사 · 조립 화면에 그대로 뜬다 — ms 숫자 대신 분으로, 줄일 것까지 말한다 (2026-11-08 E2E-F3-05 시험 문제 18).
   // API 호출 · 대기도 합에 들어서 케이스만 줄이라고 하지 않는다
   return 합 > 제한시간상한
-    ? `단계가 많아 제한 시간 합이 ${Math.ceil(합 / 60000)}분으로 한도 ${제한시간상한 / 60000}분을 넘습니다 — 케이스 단계(하나에 ${케이스몫 / 60000}분)나 API 호출 · 대기를 줄여 주세요`
+    ? `단계가 많아 제한 시간 합이 ${Math.ceil(합 / 60000)}분으로 한도 ${제한시간상한 / 60000}분을 넘습니다 — 케이스 단계(하나에 ${케이스몫 / 60000}분)${프로시저말(parts, 케이스수)}나 API 호출 · 대기를 줄여 주세요`
     : null;
 }
 
+// 프로시저 단계가 든 조립만 그 몫이 케이스 수만큼 늘어난다고 덧붙인다
+const 프로시저말 = (parts: ScenarioPart[], 케이스수?: 프로시저케이스수): string =>
+  parts.some((p) => p.kind === 'case' && 케이스수?.has(p.tcId) === true) ? '나 프로시저 단계(케이스 하나마다 2분이 더 든다)' : '';
+
 /** 60분·크기 상한 사유. 저장(조립검사)과 실행 가능 판정 · 값 연결 제안이 같은 것을 본다. 비면 통과다 */
-export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
-  return [제한시간사유(parts), 크기사유(parts)].filter((s) => s !== null);
+export function 제한시간크기사유(parts: ScenarioPart[], 케이스수?: 프로시저케이스수): string[] {
+  return [제한시간사유(parts, 케이스수), 크기사유(parts)].filter((s) => s !== null);
 }
 
 // 짧은 무늬는 걸린 창의 주소로 풀려 어느 애플리케이션을 가리키는지 모호하다 (SPEC 도메인/시나리오 §3.7 결정 13)
@@ -158,6 +174,8 @@ export function 조립검사(
   if (앱들.length > 1) 오류.push(`앱 · 게임 애플리케이션은 한 시나리오에 하나다: ${앱들.join(' · ')}`);
   const 섞임 = 섞였나(parts, service);
   const 켜진모킹 = new Set<string>();
+  // 프로시저 번호 → 그 프로시저의 케이스를 처음 넣은 단계. 같은 프로시저를 두 번 돌리지 않는다 (결정 17)
+  const 프로시저단계 = new Map<string, number>();
   parts.forEach((p, i) => {
     const 자리 = `${i + 1}번 단계`;
     if (p.kind === 'case') {
@@ -195,9 +213,17 @@ export function 조립검사(
           오류.push(`${자리}: 앱 · 게임 단계에는 값 꽂기만 건다 — 앞 응답 돌려주기 · 요청 막기 · 바꿔 보내기는 앱 요청에 안 걸린다`);
         }
       }
-      for (const 제목 of p.skipSteps) {
-        // 케이스에서 사라진 제목은 실행처럼 무시한다 — 명세 결정 8 · 2026-10-06 사용자
-        if (케이스.titles.includes(제목) && !케이스.skippable.includes(제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);
+      if (케이스.proc !== undefined) {
+        const 앞 = 프로시저단계.get(케이스.proc.procId);
+        if (앞 !== undefined) 오류.push(`${자리}: ${p.tcId} 는 ${앞}번 단계와 같은 프로시저(${케이스.proc.procName})의 케이스다 — 프로시저는 한 시나리오에 한 번만 넣는다`);
+        else 프로시저단계.set(케이스.proc.procId, i + 1);
+        // 프로시저가 자기 시작 상태를 스스로 맞춘다 — 흐름 가운데를 건너뛰면 뒤 케이스가 다 Blocked 가 된다
+        if (p.skipSteps.length > 0) 오류.push(`${자리}: 프로시저 단계는 건너뛸 절차를 걸 수 없다 — 프로시저가 시작 상태를 스스로 맞춘다`);
+      } else {
+        for (const 제목 of p.skipSteps) {
+          // 케이스에서 사라진 제목은 실행처럼 무시한다 — 명세 결정 8 · 2026-10-06 사용자
+          if (케이스.titles.includes(제목) && !케이스.skippable.includes(제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);
+        }
       }
 
       // 이어 주기 (§3.7 결정 12)
@@ -263,6 +289,6 @@ export function 조립검사(
     }
   });
 
-  const 시간 = 제한시간사유(parts);
+  const 시간 = 제한시간사유(parts, 프로시저수(재료));
   return 시간 === null ? 오류 : [...오류, 시간];
 }

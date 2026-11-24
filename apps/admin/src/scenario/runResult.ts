@@ -13,6 +13,7 @@ import { jsonb에맞춘다 } from '../jsonbText.js';
 import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 
 import { type 시나리오폰, 팜폰으로돌린다 } from './phone.js';
+import { type 박제케이스, 결과넣기 } from './procRun.js';
 import { 실행상태를연다, 실행상태를지운다 } from './runAbort.js';
 import { type 부품기록, 부품비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 import { 멈춘부품을고친다, 보내는길 } from './trialAbort.js';
@@ -97,8 +98,8 @@ export async function 결과저장(runId: number, 응답: ScenarioExecuteRespons
 async function 실패기록(pool: Pool, runId: number, 응답: ScenarioExecuteResponse): Promise<Map<number, 부품기록>> {
   let 재료;
   try {
-    재료 = await pool.query<{ seq: number; part: ScenarioPart; param_schema: unknown; expected_schema: unknown }>(
-      'SELECT seq, part, param_schema, expected_schema FROM scenario_run_part WHERE run_id = $1',
+    재료 = await pool.query<{ seq: number; part: ScenarioPart; param_schema: unknown; expected_schema: unknown; cases: 박제케이스[] | null }>(
+      'SELECT seq, part, param_schema, expected_schema, cases FROM scenario_run_part WHERE run_id = $1',
       [runId],
     );
   } catch (err) {
@@ -141,8 +142,8 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse, �
     const 결과들 = new Map<number, ScenarioPartResult>();
     for (const p of 응답.parts) if (!결과들.has(p.seq)) 결과들.set(p.seq, p);
 
-    const 행들 = await c.query<{ id: string; seq: number }>(
-      'SELECT id, seq FROM scenario_run_part WHERE run_id = $1 AND finished_at IS NULL',
+    const 행들 = await c.query<{ id: string; seq: number; cases: 박제케이스[] | null }>(
+      'SELECT id, seq, cases FROM scenario_run_part WHERE run_id = $1 AND finished_at IS NULL',
       [runId],
     );
     for (const 행 of 행들.rows) {
@@ -157,7 +158,7 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse, �
         );
         continue;
       }
-      await 부품적기(c, 행.id, 결과, 기록들.get(행.seq) ?? null);
+      await 부품적기(c, 행.id, 결과, 기록들.get(행.seq) ?? null, 행.cases === null ? null : 결과넣기(행.cases, 결과.cases));
     }
 
     // 뒷정리는 실행 한 벌로 온다. 러너가 그 부품 결과를 안 줬어도 이미 보낸 삭제는 그 행에 남아야 한다 (§7)
@@ -188,10 +189,11 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse, �
   }
 }
 
-async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartResult, 기록: 부품기록 | null): Promise<void> {
+// 케이스 줄은 프로시저 단계만 넘어온다 — 박제한 줄에 케이스마다의 결과를 맞춰 채운 것. 아니면 null 이라 칸을 건드리지 않는다
+async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartResult, 기록: 부품기록 | null, 케이스줄: 박제케이스[] | null): Promise<void> {
   await c.query(
     `UPDATE scenario_run_part SET status = $2, duration_ms = $3, error = $4, mocks = $5, skipped_steps = $6, bound = $7,
-                                  trace = $8, finished_at = now()
+                                  trace = $8, cases = COALESCE($9::jsonb, cases), finished_at = now()
       WHERE id = $1`,
     [
       partId,
@@ -202,14 +204,15 @@ async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartR
       JSON.stringify(결과.steps.filter((s) => s.skipped === true).map((s) => s.title)),
       JSON.stringify(결과.bound ?? {}),
       기록 === null ? null : JSON.stringify(기록),
+      케이스줄 === null ? null : JSON.stringify(케이스줄),
     ],
   );
   // execution/store.ts 의 run_item_step 넣기와 같은 모양이다. 건너뜀 칸이 하나 더 있다
   for (const s of 결과.steps) {
     await c.query(
       `INSERT INTO scenario_run_step (part_id, seq, title, status, skipped, duration_ms, assertions, line, screenshot_path,
-                                      http_trace, error, shape_checks)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                                      http_trace, error, shape_checks, tc_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        ON CONFLICT (part_id, seq) DO NOTHING`,
       [
         partId,
@@ -224,6 +227,7 @@ async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartR
         s.httpTrace === undefined ? null : JSON.stringify(s.httpTrace),
         s.error === undefined ? null : JSON.stringify(s.error),
         s.shapeChecks === undefined ? null : JSON.stringify(s.shapeChecks),
+        s.tcId ?? null,
       ],
     );
   }

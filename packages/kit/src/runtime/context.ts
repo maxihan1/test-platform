@@ -64,6 +64,8 @@ export interface ProcScope {
   // 케이스 한도(ms)와 다음 케이스로 넘어갈 때 그 한도를 다시 거는 손잡이. Playwright 에 닿는 일이라 함수로만 담는다
   한도: number;
   한도를건다(): void;
+  // 한도에 끊긴 케이스의 사유. 없으면 Playwright 꼴 글이다 — E2E 단계만 그 단계의 글을 준다
+  한도글?: string;
 }
 
 export interface RunScope {

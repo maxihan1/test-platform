@@ -11,6 +11,7 @@ import { ScenarioPartPanel } from './ScenarioPartPanel.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { ScenarioVersions } from './ScenarioVersions.js';
 import { useServiceApis } from './useServiceApis.js';
+import { 든프로시저들 } from './scenarioProc.js';
 import { 뒤케이스, 단계앱, type 앱줄 } from './scenarioView.js';
 import type { useScenarioDraft } from './useScenarioDraft.js';
 
@@ -52,6 +53,7 @@ export function ScenarioBuildTabs(props: Props) {
             바꿀번호={바꿀번호}
             // 중간 단계를 바꾸는 중에는 맨 뒤 기준 추천이 안 맞는다
             뒤={바꿀번호 === null ? 뒤케이스(초안.단계들) : null}
+            든프로시저={든프로시저들(초안.단계들, (tcId) => 초안.프로시저들.get(tcId)?.procId)}
             on케이스={on케이스}
             on다른단계={on다른단계}
             on바꾸기취소={on바꾸기취소}
@@ -112,6 +114,7 @@ function TabBody({
       단계={고른단계}
       단계들={초안.단계들}
       재료={초안.재료}
+      프로시저={초안.프로시저들.get(고른단계.tcId) ?? null}
       쓰나={쓰나}
       on바꿈={on바꿈}
       on케이스바꾸기={on케이스바꾸기}

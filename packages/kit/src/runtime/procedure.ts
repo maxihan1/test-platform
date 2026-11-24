@@ -18,14 +18,14 @@ import { 판정을알린다 } from './progress.js';
 import { BLOCKED, CASE_ATTACHMENT, PROCEDURE_CHANGED } from './protocol.js';
 import { StopTest } from './step.js';
 
-// 본문이 케이스 한도에 끊겼다는 표시 — 예외와 같은 자리에서 가른다
-const 한도초과 = Symbol('한도 초과');
+// 본문이 케이스 한도에 끊겼다는 표시 — 예외와 같은 자리에서 가른다. E2E 프로시저 단계(procedureScenario.ts)도 같은 표시로 가른다
+export const 한도초과 = Symbol('한도 초과');
 
-const 보류인가 = (c: { held?: string }): boolean => c.held !== undefined;
+export const 보류인가 = (c: { held?: string }): boolean => c.held !== undefined;
 
 // 러너가 넘긴 케이스별 입력에서 그 케이스 것을 꺼낸다. 사람이 손으로 돌리면 받은 것이 없어 케이스마다 스키마 기본값이다 — 계정 칸은 두 길 다 채운다.
 // PLATFORM_PARAMS 는 케이스 하나의 값이라 프로시저에 쓰지 않는다 (공통/3-공유계약 「테스트 프로시저 타입」)
-function 입력값(받은: ProcScope['받은'], tcId: TcId): RawInputs {
+export function 입력값(받은: ProcScope['받은'], tcId: TcId): RawInputs {
   const 준 = 받은?.find((c) => c.tcId === tcId);
   return { params: 준?.params ?? {}, expected: 준?.expected ?? {}, accounts: injectedAccounts() };
 }
@@ -93,7 +93,7 @@ function 다음케이스로(run: RunScope, proc: ProcScope): void {
  * 흐름을 멈춘 것을 at 케이스의 판정으로 가른다 (공통/2 §4 「케이스 판정」 표).
  * 판정이 이미 났으면 아무것도 안 한다 — 한도에 끊겨 정리 단계에서 가른 뒤에 본문의 예외가 뒤늦게 올라온다
  */
-function 멈춤을가른다(run: RunScope, proc: ProcScope, 까닭: unknown): void {
+export function 멈춤을가른다(run: RunScope, proc: ProcScope, 까닭: unknown): void {
   if (!proc.열림) return;
   run.stopped = true;
   const 절차들 = proc.steps[proc.at]!;
@@ -110,8 +110,9 @@ function 멈춤을가른다(run: RunScope, proc: ProcScope, 까닭: unknown): vo
     return;
   }
   if (까닭 === 한도초과) {
-    // 옛 꼴 케이스의 제한 시간 초과와 같은 글이다 — 화면이 이 꼴을 읽는다. Playwright 가 내는 글의 숫자는 합친 값이라 케이스 한도로 적는다
-    케이스를닫는다(run, proc, { status: 'NA', error: { message: `Test timeout of ${String(proc.한도)}ms exceeded.` } }, true);
+    // 옛 꼴 케이스의 제한 시간 초과와 같은 글이다 — 화면이 이 꼴을 읽는다. Playwright 가 내는 글의 숫자는 합친 값이라 케이스 한도로 적는다.
+    // E2E 단계는 그 단계의 글을 쓴다 (도메인/시나리오 §3.7 결정 17 「제한 시간은 케이스마다 건다」)
+    케이스를닫는다(run, proc, { status: 'NA', error: { message: proc.한도글 ?? `Test timeout of ${String(proc.한도)}ms exceeded.` } }, true);
     return;
   }
   // 본문이 삼킨 예외는 멈춤 신호로만 올라온다 — 사유는 그 절차에 남은 오류다
@@ -121,7 +122,7 @@ function 멈춤을가른다(run: RunScope, proc: ProcScope, 까닭: unknown): vo
 }
 
 /** 흐름이 멈춰 못 간 케이스를 Blocked 로 채운다 — 보류 케이스는 시작할 때 이미 판정이 났다. Blocked 를 정하는 것은 kit 한 곳이다 */
-function 남은케이스를채운다(proc: ProcScope): void {
+export function 남은케이스를채운다(proc: ProcScope): void {
   proc.cases.forEach((c, i) => {
     if (proc.results[i] !== undefined) return;
     const 막은 = 막은케이스(proc, i);
@@ -156,9 +157,6 @@ export async function testCase<P, E>(케이스: CaseHandle<P, E>, 본문: (args:
 }
 
 export function 프로시저를등록한다(procedure: ProcedureSpec, body: ProcedureBody): void {
-  // E2E 단계가 프로시저를 통째로 도는 길은 아직 없다 — 조용히 넘기면 그 단계가 케이스를 못 찾는다 (도메인/시나리오 §3.7 결정 17 · TP-F4-24)
-  if (process.env.PLATFORM_SCENARIO_MODE === '1') throw new Error(`${procedure.procId}: 이 kit 은 프로시저를 E2E 단계로 아직 돌리지 못한다`);
-
   const cases = procedure.cases as CaseHandle<unknown, unknown>[];
   앱테스트()(procedure.name, async ({ request, appSession }, testInfo) => {
     const 본문시작 = Date.now();

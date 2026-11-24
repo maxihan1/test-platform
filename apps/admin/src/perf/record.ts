@@ -73,7 +73,7 @@ async function 케이스돌리기(jobId: number, 줄: 대상줄, 케이스: Extr
 }
 
 async function 시나리오돌리기(jobId: number, env: string, 대상: Extract<녹화대상, { 시나리오: unknown }>['시나리오']): Promise<{ 비밀: string[]; 계정들: 녹화계정[] }> {
-  const { 앱들, baseUrl, parts, 비밀 } = await 시험재료({ service: 대상.service, env, platform: 대상.platform, parts: 대상.parts });
+  const { 앱들, baseUrl, parts, 비밀, 케이스수 } = await 시험재료({ service: 대상.service, env, platform: 대상.platform, parts: 대상.parts });
   const trialId = randomUUID();
   // 녹화는 서버 러너로만 돈다 — HAR 가 admin 이 읽는 산출물 폴더에 떨어져야 한다
   const 응답 = await enqueue(async () =>
@@ -83,7 +83,7 @@ async function 시나리오돌리기(jobId: number, env: string, 대상: Extract
       platform: 대상.platform,
       baseUrl,
       parts,
-      timeoutMs: 시나리오제한시간(대상.parts),
+      timeoutMs: 시나리오제한시간(대상.parts, 케이스수),
       deleteStatuses: await 삭제코드합치기(앱들),
       recordHar: { jobId },
     }),

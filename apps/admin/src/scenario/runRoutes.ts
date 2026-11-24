@@ -18,6 +18,7 @@ import { 정수 } from '../routeParams.js';
 import { 가린값들 } from '../web/mask.js';
 
 import { type 박제부품, 단계앱 } from './mixed.js';
+import { 케이스줄들, type 박제케이스 } from './procRun.js';
 import { 시나리오분배 } from './runResult.js';
 import { 실행만들기, 시나리오실행오류 } from './runStore.js';
 import { type 부품기록, 부품비밀 } from './runTrace.js';
@@ -33,6 +34,7 @@ const 오류응답: Record<시나리오실행오류['code'], [number, string]> =
   ENV_NOT_FOUND: [400, 'ENV_NOT_FOUND'],
   NOT_RUNNABLE: [409, 'SCENARIO_NOT_RUNNABLE'],
   FARM_OFF: [409, 'FARM_OFF'],
+  RUNNER_NO_PROCEDURE: [409, 'RUNNER_NO_PROCEDURE'],
 };
 
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
@@ -58,6 +60,10 @@ interface 부품행 {
   cleanup: Omit<ScenarioCleanup, 'fromSeq'>[];
   // 실패한 case 부품만 찬다 (도메인/시나리오 §7 「실패 기록」)
   trace: 부품기록 | null;
+  // 프로시저 단계만 찬다 — 돈 프로시저와 그 케이스의 박제 · 결과 (결정 17)
+  proc_id: string | null;
+  proc_name: string | null;
+  cases: 박제케이스[] | null;
   finished_at: Date | null;
 }
 
@@ -74,6 +80,7 @@ interface 절차행 {
   http_trace: StepResult['httpTrace'] | null;
   error: StepResult['error'] | null;
   shape_checks: StepResult['shapeChecks'] | null;
+  tc_id: string | null;
 }
 
 // execution/queries.ts 의 toStep 과 같은 모양이다. 건너뜀 칸이 하나 더 있다
@@ -90,6 +97,7 @@ function 절차로(row: 절차행): StepResult {
     ...(row.error === null ? {} : { error: row.error }),
     ...(row.shape_checks === null ? {} : { shapeChecks: row.shape_checks }),
     ...(row.skipped ? { skipped: true as const } : {}),
+    ...(row.tc_id === null ? {} : { tcId: row.tc_id }),
   };
 }
 
@@ -132,13 +140,13 @@ export async function 시나리오결과(runId: number) {
 
   const 부품 = await pool.query<부품행>(
     `SELECT id, seq, kind, tc_id, tc_name, part, status, duration_ms, skipped_steps, mocks, error,
-            param_schema, expected_schema, precondition, unconfirmed, bound, cleanup, trace, finished_at
+            param_schema, expected_schema, precondition, unconfirmed, bound, cleanup, trace, proc_id, proc_name, cases, finished_at
        FROM scenario_run_part WHERE run_id = $1 ORDER BY seq`,
     [runId],
   );
   const 절차 = await pool.query<절차행>(
     `SELECT s.part_id, s.seq, s.title, s.status, s.skipped, s.duration_ms, s.assertions, s.line, s.screenshot_path,
-            s.http_trace, s.error, s.shape_checks
+            s.http_trace, s.error, s.shape_checks, s.tc_id
        FROM scenario_run_step s JOIN scenario_run_part p ON p.id = s.part_id
       WHERE p.run_id = $1 ORDER BY s.seq`,
     [runId],
@@ -177,6 +185,8 @@ export async function 시나리오결과(runId: number) {
       steps: 부품절차,
       error: p.error,
       trace: p.trace,
+      // 프로시저 단계만 — 옛 꼴 케이스 · 다른 부품에는 이 칸이 없다. 값 · 명세는 안 싣는다
+      ...(p.proc_id !== null && { procId: p.proc_id, procName: p.proc_name ?? p.proc_id, cases: 케이스줄들(p.cases ?? []) }),
       failure: 항목실패를가른다(
         {
           status: p.status,
