@@ -17,14 +17,14 @@ import { 플랫폼밖인가, 항목제한ms } from './location.js';
 import { caseSchemas } from './paramSets.js';
 import { PC에서돌린다 } from './pcTrial.js';
 import { Chrome차례, PC를놓는다, PC를바로잡는다, 폰을놓는다, 폰을바로잡는다 } from './phone.js';
-import { abortRunner, na, 보낸다, 시험진행 } from './runner.js';
+import { abortRunner, 못간답, 보낸다, 시험진행, 한건 } from './runner.js';
 import { 프로시저못도는러너인가 } from './runnerAddr.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { 돌발팝업을싣는다, 엔진칸 } from './engineField.js';
 import { prefixOf } from './store.js';
 import { 닫는다, 시작한다, 읽는다, TrialBusyError, type 시험결과 } from './trial.js';
 import { 대상줄찾기, 케이스행 } from './trialCase.js';
-import { 중단글, 팜폰에서돌린다, type 시험요청, type 폰화면함수 } from './trialPhone.js';
+import { 중단글, 팜폰에서돌린다, type 폰화면함수 } from './trialPhone.js';
 import { 프로시저시험감, type 시험감 } from './trialProc.js';
 import { validate } from './validate.js';
 
@@ -90,10 +90,10 @@ interface 돌릴곳 {
 }
 
 /**
- * 디바이스를 잡고 시험을 건다 — 옛 꼴(케이스 하나)과 프로시저가 같은 길을 탄다. 검증이 다 끝난 뒤에 부른다 —
+ * 디바이스를 잡고 시험을 건다 — 옛 꼴 케이스와 프로시저가 같은 길을 탄다. 검증이 다 끝난 뒤에 부른다 —
  * 검증 전에 디바이스를 잡으면 400 경로에서 디바이스가 재기동 때까지 잠긴다
  */
-function 시험을건다<Q extends 시험요청, R>(감: 시험감<Q, R>, 곳: 돌릴곳, reply: FastifyReply): FastifyReply {
+function 시험을건다(감: 시험감, 곳: 돌릴곳, reply: FastifyReply): FastifyReply {
   const { 폰씀, 폰Chrome, PC씀, 사람 } = 곳;
   // 실제 기기는 팜이 있어야 한다(정식 실행과 같은 409 · 도메인/실행 §3.2 「테스트 모드」)
   if ((폰씀 || 폰Chrome || PC씀) && 팜주소() === undefined) {
@@ -117,10 +117,10 @@ function 시험을건다<Q extends 시험요청, R>(감: 시험감<Q, R>, 곳: �
       };
       상태들.set(id, 상태);
       // 멈췄나를 보고 보냄을 적는 사이에 await 가 없다 — 중단은 둘 중 한 갈래만 탄다
-      const 보내기 = async (b: Q): Promise<R> => {
+      const 보내기 = async (b: ExecuteRequest): Promise<ExecuteResponse> => {
         if (상태.멈춤) return 감.못감(중단글);
         상태.보냄 = true;
-        return 감.보낸다(b);
+        return 보낸다(b);
       };
       const 멈췄나 = (): boolean => 상태.멈춤;
       try {
@@ -216,23 +216,20 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     const 요청: ExecuteRequest = {
       runId: 0,
       historyId: 새번호(),
-      tcId,
       platform,
       filePath: 행.file_path,
       baseUrl: 줄.baseUrl,
-      params,
-      expected,
+      cases: [{ tcId, params, expected }],
       timeoutMs: 항목제한ms(tcId, 제한ms),
       // 정식 실행과 같은 규칙 — 게임 애플리케이션이면 엔진 · 조작 맵의 돌발 팝업을 싣는다 (도메인/게임 §3.10 결정 6 · 31)
       ...엔진칸(종류, platform, 줄.adminKey), ...(await 돌발팝업을싣는다(종류, platform, serviceId)),
       // 정식 실행과 같은 규칙 — 그 대상 서버 줄에 API 인증이 있으면 싣는다 (도메인/API §3.8)
       ...(줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
     };
-    const 감: 시험감<ExecuteRequest, ExecuteResponse> = {
+    const 감: 시험감 = {
       요청,
-      보낸다: (b) => 보낸다(요청, b),
-      못감: (까닭, stack) => na(요청, 까닭, stack),
-      결과로: (답) => 답,
+      못감: (까닭, stack) => 못간답(요청, 까닭, stack),
+      결과로: 한건,
       명세: [{ paramSchema: schemas.paramSchema, expectedSchema: schemas.expectedSchema, params, expected }],
       판: () => 케이스판(tcId),
       ...(행.step_titles !== null && { stepTitles: 행.step_titles }),

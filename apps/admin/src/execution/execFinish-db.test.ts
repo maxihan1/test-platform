@@ -1,7 +1,7 @@
 // 프로시저 실행 단위의 답을 케이스 줄 여럿에 한 번에 저장하고, 닫기 · 조회가 실행 단위를 따라가는지 본다
 // (도메인/실행 §3.2 「테스트 프로시저 실행」 · 공통/4 「테스트 프로시저 표」 · DATABASE_URL 이 있을 때만)
 
-import type { CaseResult, CasesExecuteResponse, RunningStep } from '@platform/kit';
+import type { CaseResult, ExecuteResponse, RunningStep } from '@platform/kit';
 import Fastify from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -84,7 +84,7 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
     finishedAt: '2026-11-24T01:00:05.000Z',
     steps: [절차(seq, tcId)],
   });
-  const 답 = (execId: number, results: CaseResult[], 더?: Partial<CasesExecuteResponse>): CasesExecuteResponse => ({ historyId: execId, durationMs: 300, results, ...더 });
+  const 답 = (execId: number, results: CaseResult[], 더?: Partial<ExecuteResponse>): ExecuteResponse => ({ historyId: execId, durationMs: 300, results, ...더 });
 
   const 줄읽기 = async (runId: number) =>
     (

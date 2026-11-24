@@ -82,13 +82,11 @@ async function main(): Promise<void> {
   const body: ExecuteRequest = {
     runId,
     historyId,
-    tcId: CASE.tcId,
     platform: CASE.platform,
     filePath: CASE.filePath,
     // 관통 확인용 케이스는 params의 url로 직접 열어서 baseURL을 쓰지 않는다
     baseUrl: '',
-    params: paramSet.params,
-    expected: paramSet.expected,
+    cases: [{ tcId: CASE.tcId, params: paramSet.params, expected: paramSet.expected }],
     timeoutMs: 120_000,
   };
 
@@ -105,7 +103,7 @@ async function main(): Promise<void> {
     throw new Error(`러너가 ${res.status}로 응답했다: ${detail}`);
   }
 
-  const result = (await res.json()) as ExecuteResponse;
+  const result = ((await res.json()) as ExecuteResponse).results[0]!;
 
   await pool.query(
     `UPDATE run_item SET status = $1, duration_ms = $2, error = $3, finished_at = now() WHERE history_id = $4`,

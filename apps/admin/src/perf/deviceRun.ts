@@ -4,14 +4,12 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { CasesExecuteRequest, ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
 import { type 대상줄, 대상줄읽기 } from '../authoring/reverse.js';
 import { 엔진칸 } from '../execution/engineField.js';
 import { artifactsDir } from '../execution/routes.js';
-import { abortRunner, httpTimeoutMs, 러너에보낸다 } from '../execution/runner.js';
-import { 못간답, 케이스들을보낸다 } from '../execution/runnerCases.js';
-import { type 도는단위, type 단위답, 단위로펼친다, 새답풀기, 알릴말, 옛답풀기 } from './deviceProc.js';
+import { abortRunner, 보낸다 } from '../execution/runner.js';
+import { type 도는단위, type 단위답, 단위로펼친다, 답풀기, 알릴말 } from './deviceProc.js';
 import { type 기록기, 로컬기록기, 팜기록기 } from './deviceRecorder.js';
 import { 구간붙이기, 줄넣기, 실행시간채우기, type 구간표시 } from './deviceStore.js';
 import type { 끝 } from './finish.js';
@@ -204,23 +202,6 @@ async function 기기조작(s: 도는기기, d: 기기상태, 재료: 조작재�
   }
 }
 
-/** 옛 꼴 케이스 하나 — 거절 · 끊김도 판정 없는 답으로 접는다 */
-async function 케이스하나보내기(요청: ExecuteRequest): Promise<단위답> {
-  try {
-    const r = await 러너에보낸다('/execute', 요청, httpTimeoutMs(요청.timeoutMs));
-    if (r.status >= 200 && r.status < 300) return 옛답풀기(요청.tcId, r.json as ExecuteResponse, null);
-    return 옛답풀기(요청.tcId, null, `러너가 ${r.status} 로 거절했습니다`);
-  } catch (e) {
-    return 옛답풀기(요청.tcId, null, `러너에 닿지 못했습니다 — ${글(e)}`);
-  }
-}
-
-/** 만들 때 /health 를 못 읽어 지나친 옛 러너는 옛 꼴로 답한다 — 케이스마다 Not tested 로 접는다 */
-async function 프로시저보내기(요청: CasesExecuteRequest): Promise<단위답> {
-  const 답 = await 케이스들을보낸다(요청);
-  return 새답풀기(Array.isArray(답.results) ? 답 : 못간답(요청, '서버 테스트 실행기가 테스트 프로시저를 실행하지 못하는 버전입니다'));
-}
-
 /** 옛 꼴 케이스는 하나씩, 테스트 프로시저는 케이스 전부를 요청 하나로 보낸다 (§3.9 「기기 성능」 「프로시저 안 케이스를 고르면 그 프로시저가 통째로 돈다」) */
 async function 단위보내기(s: 도는기기, d: 기기상태, loop: number, u: 도는단위, { 줄 }: 조작재료): Promise<void> {
   const historyId = Date.now() * 100 + (보낸수++ % 100);
@@ -235,11 +216,13 @@ async function 단위보내기(s: 도는기기, d: 기기상태, loop: number, u
   const t0 = Date.now();
   let 답: 단위답;
   try {
-    const c = u.케이스들[0]!;
     // 프로시저 한도는 케이스 한도의 합이다 — 러너 한도가 kit 이 케이스마다 거는 한도의 합보다 짧으면 러너가 먼저 끊어 kit 정리가 안 돈다 (러너 §5.2 「케이스별 한도」)
-    답 = u.procId === null
-      ? await 케이스하나보내기({ ...공통, tcId: c.tcId, params: c.params, expected: c.expected, timeoutMs: 케이스제한ms })
-      : await 프로시저보내기({ ...공통, procId: u.procId, cases: u.케이스들.map(({ tcId, params, expected }) => ({ tcId, params, expected })), timeoutMs: 케이스제한ms * u.케이스들.length });
+    답 = 답풀기(await 보낸다({
+      ...공통,
+      ...(u.procId !== null && { procId: u.procId }),
+      cases: u.케이스들.map(({ tcId, params, expected }) => ({ tcId, params, expected })),
+      timeoutMs: 케이스제한ms * u.케이스들.length,
+    }));
   } finally {
     s.보낸것.delete(historyId);
     await rm(join(artifactsDir(), 'runs', '0', String(historyId)), { recursive: true, force: true }).catch(() => undefined);

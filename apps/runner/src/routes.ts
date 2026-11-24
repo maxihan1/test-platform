@@ -28,7 +28,7 @@ export function registerRoutes(app: FastifyInstance): void {
   // 토큰 검사를 맨 먼저 건다 — 뒤에 붙는 통로가 모두 그 아래다
   registerRemote(app);
 
-  // procedure — 새 꼴 요청(파일 하나 + 케이스 목록)을 받는 러너다. admin 은 이 칸이 없는 러너에 프로시저 파일을 보내지 않는다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「능력」)
+  // procedure — 프로시저 파일을 케이스마다 판정하며 돌리는 러너다. admin 은 이 칸이 없는 러너에 프로시저 파일을 보내지 않는다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「능력」)
   app.get('/health', async () => ({ ok: true, playwrightVersion, procedure: true }));
 
   registerPerfDeviceRoutes(app);

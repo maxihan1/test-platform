@@ -8,7 +8,7 @@ import { runDir, type ExecuteRequest } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 앱연결을닫는다 } from './appSession.js';
-import { abort, execute, gameEnv, killedResponse, resolveSpecPath, running, statusFromExit, tail, traceEnv } from './execute.js';
+import { abort, execute, gameEnv, resolveSpecPath, running, tail, traceEnv } from './execute.js';
 import { killTree } from './kill.js';
 import { executeRequest } from './schema.js';
 
@@ -25,20 +25,6 @@ vi.mock('node:child_process', async (원본) => {
 });
 
 vi.mock('./appSession.js', () => ({ 앱연결을닫는다: vi.fn() }));
-
-describe('statusFromExit', () => {
-  it('exit code 0이면 PASS다', () => {
-    expect(statusFromExit(0, false)).toBe('PASS');
-  });
-
-  it('exit code가 0이 아니면 FAIL이다', () => {
-    expect(statusFromExit(1, false)).toBe('FAIL');
-  });
-
-  it('타임아웃으로 죽인 경우는 판정 불가라 NA다', () => {
-    expect(statusFromExit(null, true)).toBe('NA');
-  });
-});
 
 describe('traceEnv', () => {
   it('정식 실행의 브라우저 항목만 trace 를 켠다', () => {
@@ -88,38 +74,11 @@ describe('gameEnv', () => {
   it('돌발 팝업 칸은 요청 검사가 지나보내고 줄 수 · 글 길이를 묶는다', () => {
     const 초대 = { window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' };
     const 요청 = (platform: ExecuteRequest['platform'], timeoutMs: number): ExecuteRequest =>
-      ({ runId: 5, historyId: 8, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs });
+      ({ runId: 5, historyId: 8, platform, filePath: 'a.spec.ts', baseUrl: '', cases: [{ tcId: 'AND-001', params: {}, expected: {} }], timeoutMs });
     expect(executeRequest.parse({ ...요청('android', 1000), engine: 'GAME', gamePopups: [초대] }).gamePopups).toEqual([초대]);
     expect(executeRequest.safeParse({ ...요청('android', 1000), gamePopups: Array.from({ length: 101 }, () => 초대) }).success).toBe(false);
     expect(executeRequest.safeParse({ ...요청('android', 1000), gamePopups: [{ ...초대, close: 'a'.repeat(201) }] }).success).toBe(false);
     expect(executeRequest.safeParse({ ...요청('android', 1000), gamePopups: [{ ...초대, close: '/A\nPLATFORM_X=1' }] }).success).toBe(false);
-  });
-});
-
-describe('killedResponse', () => {
-  const 한절차 = { seq: 1, title: '로그인', status: 'PASS', durationMs: 3, assertions: [] };
-  const 결과줄 = `@@RESULT@@${JSON.stringify({ status: 'PASS', durationMs: 5, steps: [한절차] })}\n`;
-
-  it('끊긴 실행도 타임아웃과 같은 모양이고 사유만 갈린다', () => {
-    const 끊김 = killedResponse(7, 'ABORTED', 12, '');
-    const 시간초과 = killedResponse(7, 'TIMEOUT', 12, '');
-
-    expect(끊김.status).toBe('NA');
-    expect(시간초과.status).toBe('NA');
-    expect(끊김.error?.message).toBe('ABORTED');
-    expect(시간초과.error?.message).toBe('TIMEOUT');
-  });
-
-  it('죽이기 전까지 나온 절차는 그대로 남긴다', () => {
-    expect(killedResponse(7, 'ABORTED', 12, 결과줄).steps).toHaveLength(1);
-  });
-
-  it('결과 줄이 없으면 절차는 빈 목록이다', () => {
-    expect(killedResponse(7, 'TIMEOUT', 12, '').steps).toEqual([]);
-  });
-
-  it('죽이는 바람에 결과 줄이 잘렸으면 빈 목록으로 접고 예외를 밖으로 내보내지 않는다', () => {
-    expect(killedResponse(7, 'ABORTED', 12, '@@RESULT@@{"steps":[').steps).toEqual([]);
   });
 });
 
@@ -197,12 +156,10 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
     return {
       runId: 5,
       historyId: 8,
-      tcId: 'AND-001',
       platform,
       filePath: 'a.spec.ts',
       baseUrl: '',
-      params: {},
-      expected: {},
+      cases: [{ tcId: 'AND-001', params: {}, expected: {} }],
       timeoutMs,
     };
   }
@@ -256,7 +213,7 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
 
     const 응답 = await execute(요청('android', 0), 'a.spec.ts');
 
-    expect(응답.error?.message).not.toBe('TIMEOUT');
+    expect(응답.error).toBeUndefined();
     expect(executeRequest.parse({ ...요청('android', 0) }).timeoutMs).toBe(0);
     expect(executeRequest.safeParse({ ...요청('android', -1) }).success).toBe(false);
   });
@@ -360,19 +317,19 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
 
 describe('execute 는 자식 출력을 UTF-8 로 이어 읽는다', () => {
   const 요청: ExecuteRequest = {
-    runId: 5, historyId: 9, tcId: 'DEMO-001', platform: 'desktop', filePath: 'a.spec.ts',
-    baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    runId: 5, historyId: 9, platform: 'desktop', filePath: 'a.spec.ts',
+    baseUrl: '', cases: [{ tcId: 'DEMO-001', params: {}, expected: {} }], timeoutMs: 10_000,
   };
 
   it('한글 한 글자가 stderr 두 조각에 걸쳐도 깨지지 않는다', async () => {
     스크립트.지금 = String.raw`printf '\352\260' >&2; sleep 0.2; printf '\200 실패\n' >&2; exit 1`;
 
-    expect((await execute(요청, 'a.spec.ts')).error?.message).toBe('가 실패');
+    expect((await execute(요청, 'a.spec.ts')).results[0]?.error?.message).toBe('가 실패');
   });
 
   it('결과 줄의 한글이 stdout 두 조각에 걸쳐도 깨지지 않는다', async () => {
     스크립트.지금 = String.raw`printf '@@RESULT@@{"status":"FAIL","durationMs":1,"steps":[],"error":{"message":"\352\260'; sleep 0.2; printf '\200"}}\n'`;
 
-    expect((await execute(요청, 'a.spec.ts')).error?.message).toBe('가');
+    expect((await execute(요청, 'a.spec.ts')).results[0]?.error?.message).toBe('가');
   });
 });

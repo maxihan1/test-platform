@@ -4,8 +4,7 @@
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ExecuteResponse } from '@platform/kit';
-
+import type { 줄결과 } from './runLifecycle.js';
 import { abortRun, createRun, finishItem, finishRun, recoverRunning } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -355,7 +354,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
     ).rejects.toMatchObject({ code: 'SERVICE_FORBIDDEN' });
   });
 
-  const 결과: ExecuteResponse = {
+  const 결과: 줄결과 = {
     historyId: 0,
     status: 'FAIL',
     durationMs: 1234,

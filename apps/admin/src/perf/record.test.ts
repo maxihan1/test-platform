@@ -70,10 +70,10 @@ describe('녹화하기', () => {
   };
 
   it('가린 녹화를 한 파일로 남기고 원본 폴더를 지운 뒤 AI 재료로 일을 세운다', async () => {
-    가짜.러너에보낸다.mockImplementation(러너가쓴다(11, { status: 200, json: { status: 'FAIL' } }));
+    가짜.러너에보낸다.mockImplementation(러너가쓴다(11, { status: 200, json: { results: [{ status: 'FAIL' }] } }));
     await 녹화하기(11, 줄, 케이스, 재료);
 
-    expect(가짜.러너에보낸다.mock.calls[0]?.[1]).toMatchObject({ runId: 0, tcId: 'XRD-001', baseUrl: 'http://shop.test', recordHar: { jobId: 11 } });
+    expect(가짜.러너에보낸다.mock.calls[0]?.[1]).toMatchObject({ runId: 0, cases: [{ tcId: 'XRD-001' }], baseUrl: 'http://shop.test', recordHar: { jobId: 11 } });
     expect(existsSync(join(뿌리, 'perf-record', '11'))).toBe(false);
     const 남은 = await readFile(join(뿌리, 'perf-record', '11.har'), 'utf8');
     expect(남은).not.toContain('pw-secret!');
@@ -91,7 +91,7 @@ describe('녹화하기', () => {
     키든HAR.log.entries[0]!.request.postData = { text: JSON.stringify({ note: 키.value }) };
     가짜.러너에보낸다.mockImplementation(async () => {
       await writeFile(join(뿌리, 'perf-record', '14', '1.har'), JSON.stringify(키든HAR));
-      return { status: 200, json: { status: 'PASS' } };
+      return { status: 200, json: { results: [{ status: 'PASS' }] } };
     });
     await 녹화하기(14, { ...줄, adminKey: 키 }, 케이스, 재료);
     expect(가짜.러너에보낸다.mock.calls[0]?.[1]).toMatchObject({ adminKey: 키 });
@@ -99,7 +99,7 @@ describe('녹화하기', () => {
   });
 
   it('판정을 못 낸 케이스는 반쪽 녹화라 일을 실패로 닫고 원본 폴더도 지운다', async () => {
-    가짜.러너에보낸다.mockImplementation(러너가쓴다(12, { status: 200, json: { status: 'NA' } }));
+    가짜.러너에보낸다.mockImplementation(러너가쓴다(12, { status: 200, json: { results: [{ status: 'NA' }] } }));
     await 녹화하기(12, 줄, 케이스, 재료);
     expect(가짜.녹화끝).toHaveBeenCalledWith(12, { error: expect.stringContaining('끝까지 돌리지 못했습니다') });
     expect(existsSync(join(뿌리, 'perf-record', '12'))).toBe(false);

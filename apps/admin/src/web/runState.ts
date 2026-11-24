@@ -46,7 +46,7 @@ export const 준비실패 = 'PREP_FAILED';
 
 /** 서버가 사람의 중단을 이 값으로 저장한다 (`store.ts` 의 `CLOSE_UNFINISHED`) */
 const 사람이멈춤 = 'ABORTED';
-/** 러너가 케이스 제한 시간에 끊은 항목을 이 값으로 돌려준다 (`runner/src/execute.ts` 의 `killedResponse`) */
+/** 러너가 케이스 제한 시간에 끊은 항목을 이 값으로 돌려준다 (`runner/src/response.ts` 의 `파일결과` · `케이스응답`) */
 export const 시간초과 = 'TIMEOUT';
 
 /**

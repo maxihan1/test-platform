@@ -64,6 +64,14 @@ describe('injectedInputs', () => {
     });
   });
 
+  it('러너가 준 케이스 목록이 있으면 그 케이스의 값을 쓴다 — 사람이 남긴 PLATFORM_PARAMS 는 보지 않는다', () => {
+    const PLATFORM_CASES = JSON.stringify([{ tcId: 'DEMO-001', params: { userId: 7 }, expected: { statusCode: 200 } }]);
+
+    expect(injectedInputs({ PLATFORM_CASES })).toEqual({ params: { userId: 7 }, expected: { statusCode: 200 } });
+    expect(injectedInputs({ PLATFORM_CASES, PLATFORM_PARAMS: '{"params":{"userId":9}}' }).params).toEqual({ userId: 7 });
+    expect(() => injectedInputs({ PLATFORM_CASES: '[{"params":{"pw":"s3cret"' })).toThrow(/^PLATFORM_CASES가 JSON이 아니다$/);
+  });
+
   it('JSON이 아니면 무엇이 잘못됐는지 알리며 멈춘다', () => {
     expect(() => injectedInputs({ PLATFORM_PARAMS: '{망가진' })).toThrow(/PLATFORM_PARAMS/);
   });

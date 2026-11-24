@@ -9,6 +9,7 @@ import * as farm from './farm.js';
 import * as farmToken from './farmToken.js';
 import { callRunner } from './runner.js';
 import type { PendingItem } from './store.js';
+import { 러너답 } from './runnerFixture.js';
 
 vi.mock('../apidoc/caseDoc.js', () => ({ 케이스판: vi.fn(async () => ({})) }));
 
@@ -34,7 +35,7 @@ describe('callRunner — 모바일 실행 위치', () => {
     러너.get('/health', async () => ({ ok: true }));
     러너.post('/execute', async (req) => {
       받음.push(req.body as ExecuteRequest);
-      return { historyId: 7, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(req.body as ExecuteRequest);
     });
     await 러너.listen({ port: 0, host: '127.0.0.1' });
     const addr = 러너.server.address();
@@ -127,7 +128,7 @@ describe('callRunner — 앞 빌드 (APP-F3-08)', () => {
     러너.get('/health', async () => ({ ok: true }));
     러너.post('/execute', async (req) => {
       받음.push(req.body as ExecuteRequest);
-      return { historyId: 7, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(req.body as ExecuteRequest);
     });
     await 러너.listen({ port: 0, host: '127.0.0.1' });
     const addr = 러너.server.address();

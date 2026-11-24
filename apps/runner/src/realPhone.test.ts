@@ -12,7 +12,7 @@ import { 로그한줄, 실제폰환경, 팜주소, 폰기기를묻는다, 폰로
 import { executeRequest, scenarioRequest } from './schema.js';
 
 const 케이스 = (덧: Record<string, unknown> = {}) => ({
-  runId: 7, historyId: 8, tcId: 'XRP-001', platform: 'mobile', filePath: 'a.spec.ts', baseUrl: 'https://x.test', params: {}, expected: {},
+  runId: 7, historyId: 8, platform: 'mobile', filePath: 'a.spec.ts', baseUrl: 'https://x.test', cases: [{ tcId: 'XRP-001', params: {}, expected: {} }],
   cdpUrl: 'wss://farm.test/api/devices/R3CR/chrome/cdp', udid: 'R3CR', ...덧,
 });
 const 시나리오 = (덧: Record<string, unknown> = {}) => ({

@@ -45,6 +45,9 @@ export function injectedAccounts(env: NodeJS.ProcessEnv = process.env): 역할�
 export function injectedInputs(env: NodeJS.ProcessEnv = process.env): RawInputs {
   const accounts = injectedAccounts(env);
   const withAccounts = accounts.length === 0 ? {} : { accounts };
+  // 러너는 옛 꼴 파일에도 케이스 1건짜리 목록을 준다. PLATFORM_PARAMS 는 사람이 직접 돌릴 때만 쓴다 (도메인/러너 §5.2 「케이스별 입력」)
+  const 첫 = injectedCases(env)?.[0];
+  if (첫 !== undefined) return { params: 첫.params, expected: 첫.expected, ...withAccounts };
   const raw = env.PLATFORM_PARAMS;
   if (raw === undefined || raw.trim() === '') return { params: {}, expected: {}, ...withAccounts };
 
@@ -61,7 +64,7 @@ export function injectedInputs(env: NodeJS.ProcessEnv = process.env): RawInputs 
 }
 
 /**
- * 러너가 프로시저에 넘긴 케이스별 입력(PLATFORM_CASES — JSON `[{ tcId, params, expected }]` · 도는 차례대로).
+ * 러너가 넘긴 케이스별 입력(PLATFORM_CASES — JSON `[{ tcId, params, expected }]` · 도는 차례대로).
  * 없으면 undefined — 사람이 손으로 돌리는 것이라 케이스마다 스키마 기본값으로 돈다 (도메인/러너 §5.2 「프로시저 실행」 「케이스별 입력」)
  */
 export function injectedCases(env: NodeJS.ProcessEnv = process.env): ExecuteCase[] | undefined {

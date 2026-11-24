@@ -1,11 +1,13 @@
 // 케이스 테스트 실행의 윈도우 PC 길 — 그 줄 최신 빌드(PC 게임은 늘 zip)를 깔고 1건(프로시저면 통째로)을 돌린 뒤 놓는다. 기다리지 않는다 (도메인/게임 §3.10 「케이스 테스트 실행도 같은 길이다」)
 
+import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
+
 import { 최신빌드 } from './buildFile.js';
 import { 팜주소 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
 import { PC로 } from './pcFarm.js';
 import { PC화면을단다 } from './pcScreen.js';
-import type { 못감함수, 시험요청, 폰화면함수 } from './trialPhone.js';
+import type { 못감함수, 폰화면함수 } from './trialPhone.js';
 
 async function 최신PC빌드파일(serviceId: number, env: string): Promise<string | null> {
   const { pool } = await import('../db/index.js');
@@ -14,15 +16,15 @@ async function 최신PC빌드파일(serviceId: number, env: string): Promise<str
   return (await pool.query<{ file_path: string | null }>('SELECT file_path FROM app_build WHERE id = $1', [빌드.id])).rows[0]?.file_path ?? null;
 }
 
-export async function PC에서돌린다<Q extends 시험요청, R>(
-  요청: Q,
+export async function PC에서돌린다(
+  요청: ExecuteRequest,
   사람: string,
   줄: { serviceId: number; env: string },
   폰화면: 폰화면함수,
-  보내기: (body: Q) => Promise<R>,
+  보내기: (body: ExecuteRequest) => Promise<ExecuteResponse>,
   멈췄나: () => boolean,
-  못감: 못감함수<R>,
-): Promise<R> {
+  못감: 못감함수,
+): Promise<ExecuteResponse> {
   const 팜 = 팜주소();
   // 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 통로가 FARM_OFF 로 먼저 거절한다
   if (팜 === undefined) return 못감('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');

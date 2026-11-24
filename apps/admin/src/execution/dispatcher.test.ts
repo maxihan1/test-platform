@@ -1,12 +1,12 @@
 // 동시 실행이 설정값(기본 2)을 넘지 않는지 본다 (SPEC §3.2 불변식).
 // 실행 묶음마다가 아니라 서버 전체에서 2다 — CPU가 2코어라 그 이상은 느려지기만 한다 (SPEC §9)
 
-import type { ExecuteResponse } from '@platform/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { dispatch, enqueue, markAborted } from './dispatcher.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { callRunner, type 잡은폰 } from './runner.js';
+import type { 줄결과 } from './runLifecycle.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
 
 vi.mock('./runner.js', async (원본) => ({ ...(await 원본<typeof import('./runner.js')>()), callRunner: vi.fn() }));
@@ -112,7 +112,7 @@ function 항목(historyId: number, platform: PendingItem['platform']): PendingIt
   return { historyId, execId: historyId, tcId: `XDP-${historyId}`, platform, filePath: 'x.spec.ts', baseUrl: 'http://x', params: {}, expected: {}, timeoutMs: 1000 };
 }
 
-function 결과(historyId: number): ExecuteResponse {
+function 결과(historyId: number): 줄결과 {
   return { historyId, status: 'PASS', durationMs: 1, steps: [] };
 }
 

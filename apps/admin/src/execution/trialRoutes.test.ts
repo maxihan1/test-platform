@@ -61,7 +61,9 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     EXECUTION_CONCURRENCY: process.env.EXECUTION_CONCURRENCY,
     LOCAL_RUNNER_URL: process.env.LOCAL_RUNNER_URL,
   };
-  const 끝낸다 = (답: unknown = { historyId: 1, status: 'PASS', durationMs: 5, steps: [] }) => {
+  // 옛 꼴 케이스는 케이스 1건짜리 답이다
+  const 한건답 = (것: object = {}) => ({ historyId: 1, durationMs: 5, results: [{ tcId: 케이스, status: 'PASS', durationMs: 5, steps: [], ...것 }] });
+  const 끝낸다 = (답: unknown = 한건답()) => {
     for (const res of 매달린것.splice(0)) res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(답));
   };
   const q = async (sql: string, 값: unknown[] = []) => {
@@ -204,7 +206,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     process.env.RUNNER_URL = 러너주소;
     delete process.env.DEVICE_FARM_URL;
     delete process.env.EXECUTION_CONCURRENCY;
-    러너응답 = () => ({ historyId: 1, status: 'PASS', durationMs: 5, steps: [] });
+    러너응답 = () => 한건답();
   });
 
   const 시작 = (body: unknown, 누구 = 'xtr-writer', tcId = 케이스) =>
@@ -278,7 +280,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       const res = await 시작({ ...정상, params: {} });
       expect(res.statusCode).toBe(202);
       const 끝 = await 끝날때까지(res.json<{ trialId: string }>().trialId);
-      expect(받은요청[0]!.params).toMatchObject({ loginId: '저장한아이디', password: '저장한비번!' });
+      expect(받은요청[0]!.cases[0]?.params).toMatchObject({ loginId: '저장한아이디', password: '저장한비번!' });
       expect(JSON.stringify(끝)).not.toContain('저장한비번!');
     } finally {
       await q('DELETE FROM case_input WHERE tc_id = $1', [케이스]);
@@ -290,11 +292,11 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     await q(`UPDATE service_env SET login_password = 'xtr-qa-비번' WHERE service_id = $1 AND env = 'qa'`, [서비스]);
     try {
       const 끝 = await 끝날때까지((await 시작({ ...정상, params: { loginId: 'u' } })).json<{ trialId: string }>().trialId);
-      expect(받은요청[0]!.params).toEqual({ loginId: 'u', password: 'xtr-qa-비번' });
+      expect(받은요청[0]!.cases[0]?.params).toEqual({ loginId: 'u', password: 'xtr-qa-비번' });
       expect(JSON.stringify(끝)).not.toContain('xtr-qa-비번');
 
       await 끝날때까지((await 시작({ ...정상, env: 'stg', params: { loginId: 'u' } })).json<{ trialId: string }>().trialId);
-      expect(받은요청[1]).toMatchObject({ baseUrl: 'https://stg.example.com', params: { loginId: 'u', password: 'xtr-stg-비번' } });
+      expect(받은요청[1]).toMatchObject({ baseUrl: 'https://stg.example.com', cases: [{ params: { loginId: 'u', password: 'xtr-stg-비번' } }] });
     } finally {
       await q(`DELETE FROM service_env WHERE service_id = $1 AND env = 'stg'`, [서비스]);
       await q(`UPDATE service_env SET login_password = NULL WHERE service_id = $1 AND env = 'qa'`, [서비스]);
@@ -312,12 +314,11 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect(받은요청).toHaveLength(1);
     expect(받은요청[0]).toMatchObject({
       runId: 0,
-      tcId: 케이스,
       platform: 'desktop',
       filePath: 'xtr/a.spec.ts',
       // 본문에 실은 주소는 안 본다 — 고른 대상 서버 줄의 주소다
       baseUrl: 'https://qa.example.com',
-      params: { loginId: 'u', password: 'p4ss!' },
+      cases: [{ tcId: 케이스, params: { loginId: 'u', password: 'p4ss!' } }],
       timeoutMs: 300000,
       live: trialId,
     });
@@ -493,10 +494,8 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   });
 
   it('실패하면 DONE 에 정식 실행과 같은 실패 유형과 한 줄을 싣고 통과면 null 이다', async () => {
-    러너응답 = () => ({
-      historyId: 1,
+    러너응답 = () => 한건답({
       status: 'FAIL',
-      durationMs: 5,
       steps: [{ seq: 6, title: '구매하기를 누른다', status: 'FAIL', durationMs: 1, assertions: [], error: { message: 'locator.click: Timeout' } }],
       error: { message: 'Error: Can\'t call click on element with selector "id=buy_now_button" because element wasn\'t found' },
     });
@@ -506,15 +505,13 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect((실패.failure as { reason: string }).reason).toBe('요소를 찾지 못했습니다 — id=buy_now_button');
     expect(실패).toMatchObject({ result: { error: { message: expect.stringContaining('buy_now_button') } } });
 
-    러너응답 = () => ({ historyId: 1, status: 'PASS', durationMs: 5, steps: [] });
+    러너응답 = () => 한건답();
     expect(await 끝날때까지((await 시작(정상)).json<{ trialId: string }>().trialId)).toMatchObject({ status: 'DONE', failure: null });
   });
 
   it('응답 어디에도 비밀번호 원문이 없다', async () => {
-    러너응답 = () => ({
-      historyId: 1,
+    러너응답 = () => 한건답({
       status: 'FAIL',
-      durationMs: 5,
       steps: [{ seq: 1, title: '비밀번호 p4ss! 입력', status: 'FAIL', durationMs: 1, assertions: [] }],
       error: { message: 'p4ss! 로 실패' },
     });
@@ -617,7 +614,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect((await 중단(trialId)).json()).toEqual({ aborted: true });
     expect(받은중단).toEqual([받은요청[0]!.historyId]);
     expect((await 읽기(trialId)).json()).toMatchObject({ status: 'RUNNING' });
-    끝낸다({ historyId: 받은요청[0]!.historyId, status: 'TIMEOUT', durationMs: 5, steps: [] });
+    끝낸다(한건답({ status: 'TIMEOUT' }));
     expect(await 끝날때까지(trialId)).toMatchObject({ result: { status: 'TIMEOUT' } });
 
     // 끝난 시험은 오류가 아니라 false 다
@@ -655,7 +652,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       expect(받은요청).toHaveLength(0);
     });
 
-    it('프로시저를 통째로 새 꼴 요청으로 보내고, DONE 에 누른 케이스 한 건과 케이스마다 한 건을 싣는다', async () => {
+    it('프로시저를 통째로 요청 하나로 보내고, DONE 에 누른 케이스 한 건과 케이스마다 한 건을 싣는다', async () => {
       프로시저돈다 = true;
       process.env.DEVICE_FARM_URL = 러너주소;
       await q(`INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ('XTR-FN-101', '{"loginId":"저장한 아이디"}', '{}', 'xtr') ON CONFLICT (tc_id) DO UPDATE SET params = EXCLUDED.params`);

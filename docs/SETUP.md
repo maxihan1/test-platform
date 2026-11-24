@@ -751,7 +751,7 @@ Android 앱을 조작하는 케이스(`platforms: ['android']`)를 **맥에 USB 
 3. **러너를 거쳐 실행** — 러너를 `PLATFORM_APP` 을 준 채 켜고(`npm run runner:local` 이 `PLATFORM_APPIUM_URL` 은 알아서 싣는다), 다른 창에서 요청을 보낸다.
    ```bash
    PLATFORM_APP=<apk 경로> npm run runner:local
-   curl -X POST http://127.0.0.1:4001/execute -H 'Content-Type: application/json' -d '{"runId":999,"historyId":1,"tcId":"MDA-FN-001","platform":"android","filePath":"mda/MDA-FN-001.spec.ts","baseUrl":"http://example.invalid","params":{},"expected":{},"timeoutMs":120000}'
+   curl -X POST http://127.0.0.1:4001/execute -H 'Content-Type: application/json' -d '{"runId":999,"historyId":1,"platform":"android","filePath":"mda/MDA-FN-001.spec.ts","baseUrl":"http://example.invalid","cases":[{"tcId":"MDA-FN-001","params":{},"expected":{}}],"timeoutMs":120000}'
    ```
 
 4. **스크린샷을 컨테이너가 바로 읽게 하기 (선택)** — 2026-11-03 TMO-F3-02 부터 관리 화면의 「시험 실행」은 이 러너를 쓰지 않는다(서버 러너 + 디바이스 팜 → §16). 아래 1~3 은 이 러너가 만든 파일을 컨테이너가 바로 읽게 하는 절차로만 남는다. 이 러너를 직접 부를 때는 늘 `PLATFORM_APP` 을 준다 — 대상 서버 줄의 「앱 파일 경로」(아래 4번)는 관리 화면이 부르는 실행에만 실린다.
@@ -1031,6 +1031,16 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
 ```
 
 이미지를 서버에서 만들어 몇 분 걸린다. 도는 실행은 끊긴다 — admin 이 다시 뜨며 `ABORTED` 로 닫는다(SPEC 공통/6-인프라 §9.2 「배포 절차」).
+
+**러너와 주고받는 요청이 바뀐 판은 admin 과 러너를 같이 올린다** (2026-11-25 TP-F6-32 — 요청이 케이스 목록 꼴 하나가 됐다). 위 한 줄은 둘을 같이 만들어 그대로 쓰면 된다. 빠뜨리기 쉬운 것은 둘이다.
+
+1. **서버 작성 에이전트** — `authoring` 묶음이라 위 한 줄로는 안 올라간다. 테스트 프로시저 지침(TP-F5-31)도 다시 켜야 실린다. 도는 작성이 없을 때 켠다.
+   ```bash
+   ssh qahub 'cd /opt/qahub && docker compose -p test_platform --env-file .env --profile authoring up -d --build author'
+   ```
+2. **맥 러너** — §10 으로 켜 둔 맥 러너가 있으면 `git pull` 하고 `npm run runner:local` 을 다시 켠다. TP-F2-08 앞 판 러너는 새 요청을 400 으로 거절해 그 실행의 케이스가 「러너가 거절했다: INVALID_REQUEST …」 미실행으로 닫힌다.
+
+확인 — 웹 케이스 하나를 「시험 실행」으로 돌려 단계와 결과가 뜨면 정상이다. 「프로시저 작성」 스위치(설정 › 애플리케이션)는 기본이 꺼짐이라 배포만으로 케이스가 바뀌지 않는다.
 
 ### 맥 정리 — author · perf-agent 와 pre-push postgres 만 (OPS-F4-08, 약 1시간)
 

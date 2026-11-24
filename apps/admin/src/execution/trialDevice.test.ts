@@ -68,7 +68,7 @@ describe('케이스 테스트 실행 통로 — android 디바이스 잠금', ()
     );
   });
 
-  const 결과 = { historyId: 1, status: 'PASS', durationMs: 5, steps: [] };
+  const 결과 = { historyId: 1, durationMs: 5, results: [{ tcId: 'XTR-AND', status: 'PASS', durationMs: 5, steps: [] }] };
 
   it('android 케이스는 202 이고 도는 동안 디바이스를 잡았다가 끝나면 놓는다', async () => {
     const res = await 보낸다('XTR-AND', 안드로이드);

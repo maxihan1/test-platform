@@ -7,6 +7,10 @@ import { join } from 'node:path';
 
 import type { z } from 'zod';
 
+import type { ExecuteRequest } from '@platform/kit';
+
+import { 러너답 } from '../execution/runnerFixture.js';
+
 import { 차리기, type 차림 } from './dbFixture.js';
 import { type 측정본문, 측정세우기 } from './devices.js';
 import { 설정 } from './deviceRun.js';
@@ -120,11 +124,11 @@ export async function 기기차림(접두사: string, api: boolean) {
     if (h.path === '/health') return 응답(200, 상태.프로시저 ? { ok: true, procedure: true } : { ok: true });
     if (h.method === 'GET') return 응답(404, { error: 'NOT_FOUND' });
     await 쉼(상태.러너지연);
-    const 케이스 = (h.body as { cases?: { tcId: string }[] }).cases;
-    if (케이스 !== undefined) {
+    const { historyId, procId, cases: 케이스 } = h.body as unknown as ExecuteRequest;
+    if (procId !== undefined) {
       let seq = 0;
       let 앞 = '';
-      return 응답(200, { historyId: (h.body as { historyId: number }).historyId, durationMs: 2000, results: 케이스.map(({ tcId }) => {
+      return 응답(200, { historyId, durationMs: 2000, results: 케이스.map(({ tcId }) => {
         const 판 = 상태.판정[tcId];
         const 막은 = 앞;
         if (판 === 'FAIL') 앞 = tcId;
@@ -133,10 +137,10 @@ export async function 기기차림(접두사: string, api: boolean) {
         return { tcId, status: 판 ?? 'PASS', durationMs: 1000, steps: [{ seq, title: `${tcId} 절차`, status: 판 ?? 'PASS', durationMs: 1000, assertions: [], tcId }] };
       }) });
     }
-    응답(200, { historyId: (h.body as { historyId: number }).historyId, status: 'PASS', durationMs: 2000, steps: [
+    응답(200, 러너답({ historyId, cases: 케이스 }, { durationMs: 2000, steps: [
       { seq: 1, title: '로그인', status: 'PASS', durationMs: 1000, assertions: [] },
       { seq: 2, title: '목록', status: 'PASS', durationMs: 1000, assertions: [] },
-    ] });
+    ] }));
   });
   const 로컬 = await 서버((h, 응답) => {
     if (h.path === '/perf/devices') return 응답(200, { devices: [{ serial: 'LC1', model: 'Pixel 7', os: '14' }] });

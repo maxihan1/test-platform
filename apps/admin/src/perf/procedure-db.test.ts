@@ -1,8 +1,11 @@
 // 기기 성능의 테스트 프로시저 — 고른 케이스가 든 프로시저를 통째로 요청 하나로 보내고, 못 돌리는 러너면 측정을 만들지 않는다 (도메인/성능 §3.9 「기기 성능」)
 
+import type { ExecuteRequest } from '@platform/kit';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { type 기기차림타입, 기기차림 } from './deviceFixture.js';
+
+const 케이스번호 = (body: Record<string, unknown>) => (body as unknown as ExecuteRequest).cases.map((c) => c.tcId);
 
 vi.mock('../execution/farmToken.js', async (원래) => ({ ...(await 원래<typeof import('../execution/farmToken.js')>()), 서버팜토큰: vi.fn(async () => 'pat_runas') }));
 
@@ -50,7 +53,7 @@ describe.skipIf(연결 === undefined)('기기 성능 — 테스트 프로시저'
       } finally {
         await f.판.pool.query(`UPDATE test_case SET is_active = true WHERE tc_id = 'XQDP-FN-103'`);
       }
-      expect(f.러너.호출들.slice(전).filter((h) => h.path === '/execute').map((h) => h.body.tcId)).toEqual(['XQDP-001']);
+      expect(f.러너.호출들.slice(전).filter((h) => h.path === '/execute').map((h) => 케이스번호(h.body))).toEqual([['XQDP-001']]);
       const 로그 = (await f.판.pool.query<{ message: string }>(`SELECT message FROM perf_event WHERE run_id = $1 AND level = 'WARN'`, [runId])).rows.map((x) => x.message);
       expect(로그).toEqual(['XQDP-FN-103 는 테스트 프로시저에서 빠져 실행하지 않습니다']);
     } finally {
@@ -69,10 +72,9 @@ describe.skipIf(연결 === undefined)('기기 성능 — 테스트 프로시저'
       expect(await f.끝날때까지(runId)).toMatchObject({ status: 'DONE', config: { caseIds: ['XQDP-FN-102', 'XQDP-001', 'XQDP-FN-101'] } });
 
       const 보냄 = f.러너.호출들.slice(전).filter((h) => h.path === '/execute').map((h) => h.body);
-      expect(보냄.map((b) => b.procId ?? b.tcId)).toEqual(['XQDP-TP-001', 'XQDP-001', 'XQDP-TP-001', 'XQDP-001']);
+      expect(보냄.map((b) => b.procId ?? 케이스번호(b)[0])).toEqual(['XQDP-TP-001', 'XQDP-001', 'XQDP-TP-001', 'XQDP-001']);
       expect(보냄[0]).toMatchObject({ runId: 0, platform: 'android', filePath: 'x/proc.spec.ts', udid: 'FA1', timeoutMs: 900_000, farmToken: 'pat_runas' });
-      expect((보냄[0]!.cases as { tcId: string }[]).map((c) => c.tcId)).toEqual(['XQDP-FN-101', 'XQDP-FN-102', 'XQDP-FN-103']);
-      expect('tcId' in 보냄[0]!).toBe(false);
+      expect(케이스번호(보냄[0]!)).toEqual(['XQDP-FN-101', 'XQDP-FN-102', 'XQDP-FN-103']);
 
       const 구간 = (await f.결과(runId)).segments.filter((x) => x.loop === 1).map((x) => x.segment);
       expect(구간).toEqual(expect.arrayContaining(['XQDP-FN-101 · XQDP-FN-101 절차', 'XQDP-FN-102 · XQDP-FN-102 절차', 'XQDP-001 · 로그인']));

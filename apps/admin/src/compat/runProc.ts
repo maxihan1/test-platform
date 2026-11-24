@@ -1,11 +1,11 @@
 // 호환성 실행의 테스트 프로시저 한 번 — 프로시저의 케이스 줄을 요청 하나로 보내고 케이스마다 결과를 적는다 (도메인/호환성 §3.13 「테스트 프로시저」)
 // runEngine.ts 가 300줄을 넘지 않게 뗐다. 폰 연결 준비(연결칸)는 옛 꼴 케이스와 같이 쓴다
 
-import type { CasesExecuteRequest, ExecuteRequest, StepResult } from '@platform/kit';
+import type { ExecuteRequest, ExecuteResponse, StepResult } from '@platform/kit';
 
 import { 엔진칸 } from '../execution/engineField.js';
 import { 잡기를늘린다 } from '../execution/farm.js';
-import { 케이스들을보낸다 } from '../execution/runnerCases.js';
+import { 보낸다 } from '../execution/runner.js';
 import { Chrome켜기, 프로시저점검기다리기 } from './runCheck.js';
 import type { 도는실행, 실행재료 } from './runEngine.js';
 import type { 실행케이스 } from './runRead.js';
@@ -67,7 +67,7 @@ export async function 프로시저돌기(재: 실행재료, s: 도는실행, seq
   };
   const 연결 = await 연결칸(재, 첫.platform, serial);
   if ('까닭' in 연결) return 닫기(연결.까닭);
-  const 요청: CasesExecuteRequest = {
+  const 요청: ExecuteRequest = {
     runId: 재.runId,
     historyId: execId,
     platform: 첫.platform,
@@ -85,9 +85,9 @@ export async function 프로시저돌기(재: 실행재료, s: 도는실행, seq
   s.도는케이스 = execId;
   // 프로시저 하나가 케이스 수 × 5분까지 돈다 — 보내기 전 한 번으로는 모자라 도는 동안에도 늘린다. 팜은 끝나기 10분 전부터만 받는다 (실행 execUnit.ts 도는동안늘린다와 같다)
   const 늘리기 = setInterval(() => void 잡기를늘린다(재.팜, serial, fetch, 재.토큰).catch(() => undefined), 늘리는ms);
-  let 답: Awaited<ReturnType<typeof 케이스들을보낸다>>;
+  let 답: ExecuteResponse;
   try {
-    답 = await 케이스들을보낸다(요청);
+    답 = await 보낸다(요청);
   } finally {
     clearInterval(늘리기);
   }

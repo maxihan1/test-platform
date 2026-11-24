@@ -40,7 +40,7 @@ describe.skipIf(연결 === undefined)('기기 성능 실행', { timeout: 90_000 
       const 보냄 = 러너.호출들.filter((h) => h.path === '/execute').map((h) => h.body);
       expect(보냄.filter((b) => b.udid === 'FA1')).toHaveLength(2);
       expect(보냄.filter((b) => b.udid === 'FA2')).toHaveLength(2);
-      expect(보냄[0]).toMatchObject({ runId: 0, tcId: 'XQDR-001', platform: 'android', app: '/apps/demo.apk', baseUrl: 'http://shop.xqdr.test', filePath: 'x/x.spec.ts' });
+      expect(보냄[0]).toMatchObject({ runId: 0, cases: [{ tcId: 'XQDR-001' }], platform: 'android', app: '/apps/demo.apk', baseUrl: 'http://shop.xqdr.test', filePath: 'x/x.spec.ts' });
       expect('engine' in 보냄[0]!).toBe(false);
       expect(보냄.map((b) => b.farmToken)).toEqual(['pat_runas', 'pat_runas', 'pat_runas', 'pat_runas']);
       expect(팜.호출들.filter((h) => h.method === 'POST' && h.path === '/api/devices/FA1/hold').at(-1)?.body).toMatchObject({ minutes: 120 });

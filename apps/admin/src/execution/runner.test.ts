@@ -12,6 +12,7 @@ import { 항목화면 } from './live.js';
 import { PC화면자리 } from './pcScreen.js';
 import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 보낸다, 시험진행, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
+import { 러너답 } from './runnerFixture.js';
 
 // 화면 애플리케이션 케이스로 둔다 — API 케이스 검사가 저마다 바꿔 낀다
 vi.mock('../apidoc/caseDoc.js', () => ({ 케이스판: vi.fn(async () => ({})) }));
@@ -79,30 +80,28 @@ describe('callRunner', () => {
     app.post('/execute', async (req) => { req.raw.socket.destroy(); });
     app.post('/abort', async (req) => { 멈춤.push(req.body); return { aborted: true }; });
     await 붙인다(app);
-    const 요청 = { ...항목, runId: 1 } as unknown as ExecuteRequest;
+    const 요청 = (historyId: number, timeoutMs: number) => ({ runId: 1, historyId, timeoutMs, cases: [{ tcId: 'DEMO-001', params: {}, expected: {} }] }) as unknown as ExecuteRequest;
 
-    expect((await 보낸다({ historyId: 43, timeoutMs: 0 }, 요청)).status).toBe('NA');
-    expect((await 보낸다({ historyId: 44, timeoutMs: 5000 }, 요청)).status).toBe('NA');
+    expect((await 보낸다(요청(43, 0))).results[0]?.status).toBe('NA');
+    expect((await 보낸다(요청(44, 5000))).results[0]?.status).toBe('NA');
     expect(멈춤).toEqual([{ historyId: 43 }]);
   });
 
-  it('ExecuteRequest 모양 그대로 보낸다', async () => {
+  it('옛 꼴 케이스는 케이스 1건짜리 목록으로 보낸다', async () => {
     let 받은것: ExecuteRequest | null = null;
     await 띄운다((body) => {
       받은것 = body;
-      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(body);
     });
 
     await callRunner(7, 항목);
     expect(받은것).toEqual({
       runId: 7,
       historyId: 42,
-      tcId: 'DEMO-001',
       platform: 'desktop',
       filePath: 'demo/DEMO-001.spec.ts',
       baseUrl: 'https://qa.example.com',
-      params: { 아이디: 'tester' },
-      expected: { 결과: true },
+      cases: [{ tcId: 'DEMO-001', params: { 아이디: 'tester' }, expected: { 결과: true } }],
       timeoutMs: 5000,
       live: expect.stringMatching(/^[0-9a-f-]{36}$/) as unknown as string,
     });
@@ -114,7 +113,7 @@ describe('callRunner', () => {
     await 띄운다((body) => {
       받은것.push(body);
       도는중.push(항목화면(body.historyId)?.열쇠);
-      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(body);
     });
 
     await callRunner(7, 항목);
@@ -131,7 +130,7 @@ describe('callRunner', () => {
     await 띄운다((body) => {
       받은것.push(body);
       도는중.push({ ...항목화면(body.historyId) });
-      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(body);
     });
     vi.mocked(케이스판).mockResolvedValueOnce({ apiDoc: { version: 1, doc: {} } });
 
@@ -150,19 +149,19 @@ describe('callRunner', () => {
     let 받은것: ExecuteRequest | null = null;
     await 띄운다((body) => {
       받은것 = body;
-      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(body);
     });
 
     const gamePopups = [{ window: '/Canvas/Invite', close: '/Canvas/Invite/Decline' }];
     await callRunner(7, { ...항목, engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' }, gamePopups });
-    expect(받은것).toMatchObject({ tcId: 'DEMO-001', engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' }, gamePopups });
+    expect(받은것).toMatchObject({ cases: [{ tcId: 'DEMO-001' }], engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' }, gamePopups });
   });
 
   it('디스패처가 잡은 폰이 오면 팜을 거치지 않고 그 번호로 보낸다 — 멈춘 실행이면 보내지 않는다', async () => {
     const 받은것: ExecuteRequest[] = [];
     await 띄운다((body) => {
       받은것.push(body);
-      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(body);
     });
     const 폰항목: PendingItem = { ...항목, platform: 'android' };
 
@@ -183,7 +182,7 @@ describe('callRunner', () => {
     await 띄운다((body) => {
       받은것.push(body);
       화면자리.push(PC화면자리(`item:${String(body.historyId)}`));
-      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(body);
     });
     const PC항목: PendingItem = { ...항목, platform: 'windows-ps5', engine: 'GAME', buildId: 9 };
 
@@ -203,11 +202,11 @@ describe('callRunner', () => {
     let 받은것: ExecuteRequest | null = null;
     await 띄운다((body) => {
       받은것 = body;
-      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(body);
     });
 
     await callRunner(7, 항목);
-    expect(받은것).toMatchObject({ tcId: 'DEMO-001', apiDoc: 판 });
+    expect(받은것).toMatchObject({ cases: [{ tcId: 'DEMO-001' }], apiDoc: 판 });
   });
 
   it('판이 없으면 러너에 보내지 않고 사유를 단 미실행으로 닫는다', async () => {
@@ -223,21 +222,22 @@ describe('callRunner', () => {
     expect(res).toMatchObject({ historyId: 42, status: 'NA', steps: [], error: { message: 'API 문서 버전 9 이(가) 없습니다' } });
   });
 
-  it('200이면 러너가 만든 판정을 그대로 돌려준다', async () => {
-    await 띄운다(() => ({
-      historyId: 42,
-      status: 'FAIL',
-      durationMs: 1234,
-      steps: [{ seq: 1, title: '연다', status: 'FAIL', durationMs: 9, assertions: [] }],
-    }));
+  it('200이면 러너가 낸 그 케이스의 결과를 케이스 줄 하나로 푼다 — 기기 정보 · FPS 는 그 줄 것이다', async () => {
+    const 것 = { status: 'FAIL' as const, durationMs: 1234, steps: [{ seq: 1, title: '연다', status: 'FAIL' as const, durationMs: 9, assertions: [] }], error: { message: '값이 다르다' } };
+    const 한벌 = { device: { model: 'SM-X', osVersion: '14', appVersion: null }, fps: [{ seq: 1, fps: 60 }] };
+    await 띄운다((body) => ({ ...러너답(body, 것), durationMs: 5000, ...한벌 }));
 
-    const res = await callRunner(7, 항목);
-    expect(res.status).toBe('FAIL');
-    expect(res.steps).toHaveLength(1);
+    expect(await callRunner(7, 항목)).toEqual({ historyId: 42, ...것, ...한벌 });
+  });
+
+  it('러너 답에 그 케이스의 결과가 없으면 미실행이다', async () => {
+    await 띄운다((body) => ({ historyId: body.historyId, durationMs: 7, results: [] }));
+
+    expect(await callRunner(7, 항목)).toMatchObject({ historyId: 42, status: 'NA', steps: [], error: { message: '러너 답에 이 케이스의 결과가 없습니다' } });
   });
 
   it('타임아웃도 러너가 200으로 알려준다. 그대로 싣는다', async () => {
-    await 띄운다(() => ({ historyId: 42, status: 'NA', durationMs: 5010, steps: [], error: { message: 'TIMEOUT' } }));
+    await 띄운다((body) => ({ ...러너답(body, { status: 'NA', durationMs: 5010, error: { message: 'TIMEOUT' } }), error: { message: 'TIMEOUT' } }));
 
     const res = await callRunner(7, 항목);
     expect(res.status).toBe('NA');

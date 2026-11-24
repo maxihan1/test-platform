@@ -1,5 +1,6 @@
 // 케이스 테스트 실행이 고른 대상 서버 줄의 앱 파일을 android 요청에만 싣고(패키지 이름이면 그 앱이 깔린 폰만 잡는다), 장면 열쇠는 모든 테스트 실행에 싣는지 본다(android 는 2026-11-05 부터). 모바일 웹은 팜이 있으면 실제 폰이다. DB · 팜은 가짜다 (APP-F1-03 · TMO-F3-02 · TMO-F4-03)
 
+import type { ExecuteRequest } from '@platform/kit';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,6 +8,7 @@ import * as farm from './farm.js';
 import * as farmToken from './farmToken.js';
 import { 폰을놓는다 } from './phone.js';
 import * as runner from './runner.js';
+import { 러너답 } from './runnerFixture.js';
 import { 전부비운다 } from './trial.js';
 import trialRoutes from './trialRoutes.js';
 
@@ -48,7 +50,7 @@ describe('케이스 테스트 실행 — 대상 서버 줄 · 앱 파일 · 장�
     전부비운다();
     process.env.DEVICE_FARM_URL = 'http://127.0.0.1:1';
     보냄.mockReset();
-    보냄.mockResolvedValue({ historyId: 1, status: 'PASS', durationMs: 5, steps: [] });
+    보냄.mockImplementation(async (b: ExecuteRequest) => 러너답(b));
   });
 
   const 시작 = (body: object) =>
@@ -56,7 +58,7 @@ describe('케이스 테스트 실행 — 대상 서버 줄 · 앱 파일 · 장�
   const 보낸요청 = async (body: object) => {
     const res = await 시작(body);
     await vi.waitFor(() => expect(보냄).toHaveBeenCalled());
-    return { 몸: 보냄.mock.calls[0]![1] as Record<string, unknown>, trialId: res.json<{ trialId: string }>().trialId };
+    return { 몸: 보냄.mock.calls[0]![0] as Record<string, unknown>, trialId: res.json<{ trialId: string }>().trialId };
   };
 
   it('android 는 폰을 잡고 그 줄의 앱 경로와 장면 열쇠를 싣는다 — 폰 장면은 러너가 Appium 으로 찍는다', async () => {
@@ -97,7 +99,7 @@ describe('케이스 테스트 실행 — 대상 서버 줄 · 앱 파일 · 장�
     expect('app' in 몸).toBe(false);
     const 도는중 = await app.inject({ method: 'GET', url: `/api/cases/XAP-001/test-run/${trialId}` });
     expect(도는중.json()).toEqual({ status: 'RUNNING', vision: { url: 'https://farm.test/#phone=s2&view=k' } });
-    끝내기({ historyId: 1, status: 'PASS', durationMs: 5, steps: [] });
+    끝내기(러너답(몸 as unknown as ExecuteRequest));
     await vi.waitFor(async () => expect((await app.inject({ method: 'GET', url: `/api/cases/XAP-001/test-run/${trialId}` })).json()).toMatchObject({ status: 'DONE' }));
   });
 

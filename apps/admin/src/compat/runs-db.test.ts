@@ -5,11 +5,13 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type { ExecuteRequest } from '@platform/kit';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { listRuns } from '../execution/queries.js';
+import { 러너답 } from '../execution/runnerFixture.js';
 import { 호환성알림 } from '../notifications/compat.js';
 import { 환경쓰기 } from '../perf/deviceFixture.js';
 import { 설정, 호환성다시켜기, 호환성중단 } from './runEngine.js';
@@ -83,8 +85,8 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
       void (async () => {
         if (req.url === '/health') return res.writeHead(200).end('{}');
         if (req.url === '/abort') return res.writeHead(200, { 'content-type': 'application/json' }).end('{"aborted":true}');
-        const body = JSON.parse(await 받기(req)) as { runId: number; historyId: number };
-        보낸것.push(body);
+        const body = JSON.parse(await 받기(req)) as ExecuteRequest;
+        보낸것.push({ ...body });
         if (러너멈춤) await 쉼(400);
         const 곳 = join(폴더, 'runs', String(body.runId), String(body.historyId), 'farm');
         await mkdir(곳, { recursive: true });
@@ -97,7 +99,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
           ],
         }));
         res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({
-          historyId: body.historyId, status: 'PASS', durationMs: 100, steps: [{ seq: 1, title: '연다', status: 'PASS', durationMs: 100, assertions: [] }],
+          ...러너답(body, { durationMs: 100, steps: [{ seq: 1, title: '연다', status: 'PASS', durationMs: 100, assertions: [] }] }),
           device: { model: 'SM-X', osVersion: '14', appVersion: null },
         }));
       })();
