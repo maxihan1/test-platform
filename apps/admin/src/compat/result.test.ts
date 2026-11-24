@@ -8,7 +8,7 @@ const 상태 = (seq: number, 덧: Partial<상태줄> = {}): 상태줄 => ({
   seq, serial: `S${seq}`, heldSerial: null, model: `M${seq}`, name: `폰${seq}`, os: '14', fold: null, state: 'DONE', skipReason: null, ...덧,
 });
 const 케이스 = (id: number, seq: number, tcId: string, 덧: Partial<케이스줄> = {}): 케이스줄 => ({
-  id, seq, tcId, name: `${tcId} 이름`, status: 'PASS', failedStep: null, checkState: 'done', started: true, startedAt: '2026-11-07T00:00:00.000Z', finished: true, 까닭: null, ...덧,
+  id, seq, tcId, name: `${tcId} 이름`, status: 'PASS', failedStep: null, checkState: 'done', started: true, startedAt: '2026-11-07T00:00:00.000Z', finished: true, 까닭: null, execId: null, blockedBy: null, ...덧,
 });
 const 재료 = (덧: Partial<결과재료>): 결과재료 => ({
   상태들: [], 케이스들: [], 화면들: [], 판정들: [], 지나는: new Map(), 화면수: new Map(), 이름: new Map(), ...덧,
@@ -104,5 +104,22 @@ describe('결과셈', () => {
     expect(r.devices[1]?.now).toBeNull();
     const 멈춤 = 결과셈(재료({ 상태들: [상태(1, { state: 'STOPPED' })], 케이스들: [케이스(11, 1, 'A-1', { finished: false, checkState: null })] }));
     expect(멈춤.devices[0]?.now).toBeNull();
+  });
+
+  it('앞 케이스에 막혀 못 돈 케이스가 지날 화면은 미점검이고 까닭에 막은 케이스가 어떻게 끝났는지 붙는다', () => {
+    const r = 결과셈(재료({
+      상태들: [상태(1), 상태(2)],
+      케이스들: [
+        케이스(1, 1, 'MTA-FN-278', { status: 'FAIL', execId: 9 }),
+        케이스(2, 1, 'MTA-FN-279', { status: 'NA', 까닭: 'BLOCKED', blockedBy: 'MTA-FN-278', execId: 9 }),
+        케이스(3, 2, 'MTA-FN-278', { status: 'NA', 까닭: 'Test timeout of 300000ms exceeded.', execId: 10 }),
+        케이스(4, 2, 'MTA-FN-279', { status: 'NA', 까닭: 'BLOCKED', blockedBy: 'MTA-FN-278', execId: 10 }),
+      ],
+      지나는: new Map([['MTA-FN-279', ['app:Main/글쓰기']]]),
+    }));
+    expect(r.rows.find((x) => x.key === 'app:Main/글쓰기')?.cells).toEqual([
+      { seq: 1, value: 'UNCHECKED', reason: 'MTA-FN-279 Blocked · 선행 케이스 MTA-FN-278 실패' },
+      { seq: 2, value: 'UNCHECKED', reason: 'MTA-FN-279 Blocked · 선행 케이스 MTA-FN-278 제한 시간 초과' },
+    ]);
   });
 });

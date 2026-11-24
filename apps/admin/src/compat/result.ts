@@ -1,5 +1,7 @@
 // 호환성 결과의 순수 셈 — 칸(화면 × 점검 상태) · 머리 숫자 · 카드 · 미점검 까닭 (도메인/호환성 §3.13 「결과 · 판정」)
 
+import { 판정아닌까닭을가른다 } from '../execution/notVerdict.js';
+import { 막힘사유, 시간초과글 } from '../reporting/collectProc.js';
 import type { 의심 } from './uiCheck.js';
 
 export type 상태값 = 'WAIT' | 'RUNNING' | 'CHECKING' | 'DONE' | 'SKIPPED' | 'STOPPED';
@@ -31,6 +33,10 @@ export interface 케이스줄 {
   finished: boolean;
   /** 케이스가 남긴 오류 문장 — 못 돌린 까닭(Chrome 을 못 켬 · 케이스가 없어짐 · 서버가 다시 켜짐)을 미점검 칸에 보인다 */
   까닭: string | null;
+  /** 프로시저 안 케이스 줄만 — 같은 프로시저의 줄이 나눠 든 실행 단위 번호. 옛 꼴 케이스는 null */
+  execId: number | null;
+  /** 앞 케이스에 막혀 못 돈 케이스(Blocked)만 — 막은 케이스 번호 */
+  blockedBy: string | null;
 }
 
 export interface 저장화면 {
@@ -87,6 +93,13 @@ function 칸(재: 결과재료, 상태: 상태줄, key: string, 화면: 저장�
   if (지난케이스.some((c) => c.checkState === 'checking' || (c.started && !c.finished))) return null;
   const 실패 = 지난케이스.find((c) => c.status === 'FAIL');
   if (실패 !== undefined) return { value: 'UNCHECKED', reason: `${실패.tcId} 이 ${실패.failedStep === null ? '' : `${실패.failedStep}단계에서 `}실패` };
+  // 앞 케이스에 막혀 못 돈 케이스가 지나야 했던 화면 — 막은 케이스가 같은 상태에서 어떻게 끝났는지를 붙인다 (§3.13 「테스트 프로시저」 · WORDS 「호환성 미점검 까닭」)
+  const 막힌 = 지난케이스.find((c) => c.blockedBy !== null);
+  if (막힌?.blockedBy != null) {
+    const 막은 = 재.케이스들.find((c) => c.seq === 상태.seq && c.tcId === 막힌.blockedBy);
+    const 시간초과 = 막은 !== undefined && 판정아닌까닭을가른다(막은.status, 막은.까닭) === 'TIMEOUT';
+    return { value: 'UNCHECKED', reason: `${막힌.tcId} Blocked · ${막힘사유(막힌.blockedBy, 막은 === undefined ? undefined : { status: 막은.status, notRunReason: 시간초과 ? 시간초과글 : null })}` };
+  }
   const 못돈 = 지난케이스.find((c) => !c.started || (c.status === 'NA' && c.checkState === null));
   if (못돈 !== undefined) return { value: 'UNCHECKED', reason: (못돈.started ? 못돈.까닭 : null) ?? 상태.skipReason ?? 못돈.까닭 ?? '케이스를 돌리지 못했습니다' };
   // 여러 케이스가 지나면 limit → failed → missing 차례로 앞엣것 하나다

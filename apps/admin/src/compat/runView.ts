@@ -2,11 +2,33 @@
 
 import { 결과셈 } from './result.js';
 import { 폰화면 } from './runEngine.js';
-import { 상태들읽기, 실행머리읽기, 케이스들읽기, 판정들읽기, 화면들읽기 } from './runRead.js';
+import { 진행 } from '../execution/runnerProgress.js';
+import { type 실행케이스, 상태들읽기, 실행머리읽기, 케이스들읽기, 판정들읽기, 화면들읽기 } from './runRead.js';
 import { 셈하기 } from './select.js';
 import { 재료읽기 } from './store.js';
 
 const 장소인가 = (k: string) => k.startsWith('game:World/zone:');
+
+type 상태보임 = ReturnType<typeof 결과셈>['devices'][number];
+
+/**
+ * 프로시저가 도는 상태의 「지금 케이스」는 러너 진행 줄의 tcId 다 — 케이스 줄은 보낼 때 다 같이 시작해 DB 로는 첫 케이스만 보인다.
+ * 시각은 지금 케이스가 시작한 때다. 러너에 못 닿으면 DB 값 그대로다 (§3.13 「테스트 프로시저」 「중단」)
+ */
+async function 프로시저지금(devices: 상태보임[], 케이스들: readonly 실행케이스[]): Promise<상태보임[]> {
+  const 도는 = new Map(devices.flatMap((d) => {
+    const c = d.now === null ? undefined : 케이스들.find((x) => x.seq === d.seq && x.started && !x.finished && x.execId !== null);
+    return c === undefined ? [] : [[d.seq, c.execId!] as const];
+  }));
+  if (도는.size === 0) return devices;
+  const 줄들 = await 진행().catch(() => []);
+  return devices.map((d) => {
+    const p = 줄들.find((x) => x.historyId === 도는.get(d.seq));
+    const c = p?.tcId === undefined ? undefined : 케이스들.find((x) => x.seq === d.seq && x.tcId === p.tcId);
+    if (c === undefined || d.now === null) return d;
+    return { ...d, now: { tcId: c.tcId, name: c.name, startedAt: p?.caseElapsedMs === undefined ? d.now.startedAt : new Date(Date.now() - p.caseElapsedMs).toISOString() } };
+  });
+}
 
 type 재료캐시 = Map<number, ReturnType<typeof 재료읽기>>;
 
@@ -37,7 +59,7 @@ export async function 호환성결과(runId: number, 캐시: 재료캐시 = new 
   const { affected, devices: _devices, ...보임 } = 셈;
   return {
     // 잡은 폰의 VISION 링크는 엔진 메모리에 있다 — 놓았거나 admin 이 다시 켜졌으면 null (§7 「결과」)
-    devices: 셈.devices.map((d) => ({ ...d, vision: 폰화면(runId, d.seq) })),
+    devices: (요약만 ? 셈.devices : await 프로시저지금(셈.devices, 케이스들)).map((d) => ({ ...d, vision: 폰화면(runId, d.seq) })),
     run: { runId, setId: 머리.setId, title: 머리.title, env: 머리.env, buildNo: 머리.buildNo, startedAt: 머리.startedAt, finishedAt: 머리.finishedAt, state: 머리.status, startedBy: 머리.startedBy },
     ...보임,
     uncovered,

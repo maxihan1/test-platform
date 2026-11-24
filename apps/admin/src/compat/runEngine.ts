@@ -4,19 +4,20 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
+import type { ExecuteRequest } from '@platform/kit';
 
 import { 주소틀 } from '../../../../scripts/authoring-crawl-rules.js';
+import type { 엔진칸 } from '../execution/engineField.js';
 import { 대상줄읽기 } from '../authoring/reverse.js';
 import { testsRoot } from '../catalog/scanner.js';
-import { 엔진칸 } from '../execution/engineField.js';
 import { 잡기를늘린다, 잡는다, 팜주소, 폰을돌려준다 } from '../execution/farm.js';
 import { 실행팜토큰 } from '../execution/farmToken.js';
 import { abortRunner, 보낸다 } from '../execution/runner.js';
 import { 저장값을채운다 } from '../execution/savedInput.js';
 import { db } from '../settings/store.js';
 import { type 호환성디바이스, 호환성디바이스목록 } from './devices.js';
-import { Chrome켜기, type 팜곳, 글, 설정, 점검기다리기 } from './runCheck.js';
+import { type 팜곳, 글, 설정, 점검기다리기 } from './runCheck.js';
+import { 단계꼴, 단위로, 연결칸, 프로시저돌기 } from './runProc.js';
 import { type 실행케이스, 상태들읽기, 실행머리읽기, 케이스들읽기 } from './runRead.js';
 import {
   기기채우기, 빈점검닫기, 상태놓음, 상태닫기, 상태잡음, 실행끝내기, 실행멈추기, 안끝난케이스닫기, 케이스끝, 케이스시작, 호환성정리,
@@ -27,8 +28,9 @@ export { 설정 } from './runCheck.js';
 
 const 쉬기 = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-interface 도는실행 {
+export interface 도는실행 {
   멈춤: boolean;
+  /** 러너에서 도는 번호 — 옛 꼴 케이스는 compat_run_case.id, 프로시저는 exec_id 다. 중단이 이 번호로 /abort 를 부른다 */
   도는케이스: number | null;
   점검들: Promise<void>[];
 }
@@ -40,14 +42,15 @@ export const 도는호환성인가 = (runId: number): boolean => 도는들.has(r
 const 폰화면들 = new Map<string, string>();
 export const 폰화면 = (runId: number, seq: number): string | null => 폰화면들.get(`${String(runId)}#${String(seq)}`) ?? null;
 
-interface 케이스재료 {
+export interface 케이스재료 {
   platform: 'android' | 'mobile';
+  procId?: string;
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
   파일들: 화면파일[];
 }
 
-interface 실행재료 extends 팜곳 {
+export interface 실행재료 extends 팜곳 {
   baseUrl: string;
   app: string | null;
   serviceKind: string;
@@ -89,8 +92,8 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
   const pool = await db();
   const 번호들 = [...new Set((await 케이스들읽기(runId)).map((c) => c.tcId))];
   const [행, 화면] = await Promise.all([
-    pool.query<{ tc_id: string; platforms: string[]; param_schema: unknown; expected_schema: unknown }>(
-      'SELECT tc_id, platforms, param_schema, expected_schema FROM test_case WHERE tc_id = ANY($1::text[]) AND is_active',
+    pool.query<{ tc_id: string; platforms: string[]; param_schema: unknown; expected_schema: unknown; proc_id: string | null }>(
+      'SELECT tc_id, platforms, param_schema, expected_schema, proc_id FROM test_case WHERE tc_id = ANY($1::text[]) AND is_active',
       [번호들],
     ),
     pool.query<{ tc_id: string; file: string; screen_url: string }>(
@@ -112,9 +115,10 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
   const 파일꼴 = (r: { file: string; screen_url: string }): 화면파일[] => { const key = 주소틀(r.screen_url); return key === null ? [] : [{ file: r.file, key, 글: 글들.get(r.file) ?? '' }]; };
   const 케이스 = new Map<string, 케이스재료>();
   for (const c of 채움) {
-    const platforms = 행.rows.find((r) => r.tc_id === c.tcId)?.platforms ?? [];
+    const 줄 = 행.rows.find((r) => r.tc_id === c.tcId);
     케이스.set(c.tcId, {
-      platform: platforms.includes('android') ? 'android' : 'mobile',
+      platform: (줄?.platforms ?? []).includes('android') ? 'android' : 'mobile',
+      ...(줄?.proc_id != null && { procId: 줄.proc_id }),
       params: c.params,
       expected: c.expected,
       파일들: 화면.rows.filter((r) => r.tc_id === c.tcId).flatMap(파일꼴),
@@ -205,10 +209,12 @@ async function 상태돌기(재: 실행재료, s: 도는실행, seq: number, 폰
   try {
     // 중단이 먼저 STOPPED 로 닫았으면 돌지 않는다
     if (!(await 상태잡음(재.runId, seq, 폰.serial, fold))) return;
-    for (const c of 케이스들) {
+    // 프로시저는 그 케이스 줄 전부가 요청 하나다 — 늘리기는 보낼 때마다 부른다 (§3.13 「테스트 프로시저」)
+    for (const 단위 of 단위로(케이스들)) {
       if (s.멈춤) break;
       await 잡기를늘린다(재.팜, 폰.serial, fetch, 재.토큰);
-      await 케이스돌기(재, s, seq, 폰.serial, c);
+      if (단위[0]!.execId === null) await 케이스돌기(재, s, seq, 폰.serial, 단위[0]!);
+      else await 프로시저돌기(재, s, seq, 폰.serial, 단위);
     }
   } finally {
     폰화면들.delete(화면열쇠);
@@ -219,8 +225,6 @@ async function 상태돌기(재: 실행재료, s: 도는실행, seq: number, 폰
   }
 }
 
-const 단계꼴 = (r: ExecuteResponse) => r.steps.map((x) => ({ seq: x.seq, title: x.title, status: x.status, durationMs: x.durationMs, ...(x.startedAt === undefined ? {} : { startedAt: x.startedAt }) }));
-
 async function 케이스돌기(재: 실행재료, s: 도는실행, seq: number, serial: string, c: 실행케이스): Promise<void> {
   const 재료 = 재.케이스.get(c.tcId);
   // 지워졌거나 폰에서 안 도는 케이스 — 세트에는 남고 실행 때 건너뛴다 (§3.13 「호환성 세트」)
@@ -228,23 +232,16 @@ async function 케이스돌기(재: 실행재료, s: 도는실행, seq: number, 
     await 케이스끝(c.id, { status: 'NA', failedStep: null, steps: [], error: { message: '케이스가 없어졌거나 폰에서 돌지 않습니다' }, checkState: null });
     return;
   }
+  const 연결 = await 연결칸(재, 재료.platform, serial);
+  if ('까닭' in 연결) {
+    await 케이스끝(c.id, { status: 'NA', failedStep: null, steps: [], error: { message: 연결.까닭 }, checkState: null });
+    return;
+  }
   const 요청: ExecuteRequest = {
     runId: 재.runId, historyId: c.id, tcId: c.tcId, platform: 재료.platform, filePath: c.filePath, baseUrl: 재.baseUrl,
-    params: 재료.params, expected: 재료.expected, timeoutMs: c.timeoutMs, udid: serial, ...(재.토큰 !== undefined && { farmToken: 재.토큰 }),
+    params: 재료.params, expected: 재료.expected, timeoutMs: c.timeoutMs, udid: serial, ...(재.토큰 !== undefined && { farmToken: 재.토큰 }), ...연결.칸,
   };
-  let Chrome세션: string | undefined;
-  if (재료.platform === 'android') {
-    Object.assign(요청, { uiCheck: true as const }, 재.app !== null && { app: 재.app }, 엔진칸(재.serviceKind, 'android', 재.adminKey));
-  } else {
-    // 모바일 웹은 admin 이 Chrome 을 켤 때 점검을 켜고, 끝나면 그 세션의 점검 파일을 받는다 (비전 안내서 13절 「UI 점검」)
-    const 켬 = await Chrome켜기(재, serial);
-    if ('까닭' in 켬) {
-      await 케이스끝(c.id, { status: 'NA', failedStep: null, steps: [], error: { message: 켬.까닭 }, checkState: null });
-      return;
-    }
-    요청.cdpUrl = 켬.cdpUrl;
-    Chrome세션 = 켬.sessionId;
-  }
+  const Chrome세션 = 연결.Chrome세션;
   // Chrome 켜기 · 잡기 늘리기를 기다리는 사이에 멈췄으면 보내지 않는다 — 그때는 끊을 케이스가 아직 없다
   if (s.멈춤) return;
   await 케이스시작(c.id);
@@ -257,7 +254,7 @@ async function 케이스돌기(재: 실행재료, s: 도는실행, seq: number, 
   await 케이스끝(c.id, {
     status: 결과.status,
     failedStep: 결과.steps.find((x) => x.status === 'FAIL')?.seq ?? null,
-    steps: 단계꼴(결과),
+    steps: 단계꼴(결과.steps),
     error: 결과.error ?? null,
     checkState: 점검받나 ? 'checking' : null,
   });

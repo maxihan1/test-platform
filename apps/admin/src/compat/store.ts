@@ -52,8 +52,8 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
       `SELECT key, name FROM game_element WHERE service_id = $1 AND kind = 'WORLD' AND key LIKE 'zone:%' ORDER BY key COLLATE "C"`,
       [serviceId],
     ),
-    pool.query<{ tc_id: string; name: string }>(
-      `SELECT tc_id, name FROM test_case
+    pool.query<{ tc_id: string; name: string; proc_id: string | null; proc_name: string | null; proc_seq: number | null }>(
+      `SELECT tc_id, name, proc_id, proc_name, proc_seq FROM test_case
         WHERE is_active AND split_part(tc_id, '-', 1) = $1 AND tc_id !~ '-GS-[0-9]{3}$' AND (platforms ? 'android' OR platforms ? 'mobile')
         ORDER BY tc_id COLLATE "C"`,
       [prefix],
@@ -106,7 +106,13 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
   return {
     전체: [...화면들, ...장소들],
     fallback,
-    후보들: 케이스.rows.map((r) => ({ tcId: r.tc_id, name: r.name, 틀: [...(틀모음.get(r.tc_id) ?? [])], 화면수: 화면수.get(r.tc_id) ?? 0 })),
+    후보들: 케이스.rows.map((r) => ({
+      tcId: r.tc_id,
+      name: r.name,
+      틀: [...(틀모음.get(r.tc_id) ?? [])],
+      화면수: 화면수.get(r.tc_id) ?? 0,
+      ...(r.proc_id !== null && { proc: { id: r.proc_id, name: r.proc_name ?? '', seq: r.proc_seq ?? 0 } }),
+    })),
   };
 }
 

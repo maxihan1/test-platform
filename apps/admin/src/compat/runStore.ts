@@ -6,7 +6,7 @@ import type { 상태줄, 케이스줄 } from './result.js';
 import type { 점검상태, 화면줄 } from './uiCheck.js';
 
 export class 호환성실행오류 extends Error {
-  constructor(readonly code: 'ENV_NOT_FOUND' | 'NO_CASE' | 'NO_DEVICE' | 'FARM_OFF', message: string) {
+  constructor(readonly code: 'ENV_NOT_FOUND' | 'NO_CASE' | 'NO_DEVICE' | 'FARM_OFF' | 'RUNNER_NO_PROCEDURE', message: string) {
     super(message);
   }
 }
@@ -20,6 +20,8 @@ export interface 박제케이스 {
   picked: 'AUTO' | 'ADDED';
   filePath: string;
   timeoutMs: number;
+  /** 프로시저 안 케이스만 — 같은 프로시저의 줄들이 상태마다 실행 단위 번호(exec_id) 하나를 나눠 든다 */
+  procId?: string;
 }
 
 /** test_run 한 줄 · 점검 상태마다 compat_run_device · 상태 × 케이스마다 compat_run_case 를 한 트랜잭션으로 세운다 */
@@ -54,10 +56,15 @@ export async function 실행세우기(
     // 원격 접기가 없어 폴더블도 상태 하나다 — 점검 상태 = 디바이스 (§3.13 「디바이스 · 점검 상태」)
     for (const [i, d] of set.devices.entries()) {
       await c.query('INSERT INTO compat_run_device (run_id, seq, serial, model, name) VALUES ($1, $2, $3, $4, $5)', [runId, i + 1, d.serial, d.model, d.name]);
+      // 실행 단위 번호는 run_item.history_id 와 같은 번호 줄에서 뽑는다 — 러너가 historyId 하나로 자식 · 중단 · 진행 · 폴더를 가른다 (데이터모델 「테스트 프로시저 표」)
+      const 단위번호 = new Map<string, string>();
       for (const k of 케이스들) {
+        if (k.procId !== undefined && !단위번호.has(k.procId)) {
+          단위번호.set(k.procId, (await c.query<{ id: string }>(`SELECT nextval('run_item_history_id_seq'::regclass) AS id`)).rows[0]!.id);
+        }
         await c.query(
-          'INSERT INTO compat_run_case (run_id, seq, tc_id, tc_name, picked, file_path, timeout_ms) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-          [runId, i + 1, k.tcId, k.name, k.picked, k.filePath, k.timeoutMs],
+          'INSERT INTO compat_run_case (run_id, seq, tc_id, tc_name, picked, file_path, timeout_ms, exec_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [runId, i + 1, k.tcId, k.name, k.picked, k.filePath, k.timeoutMs, k.procId === undefined ? null : 단위번호.get(k.procId)],
         );
       }
     }
@@ -121,14 +128,14 @@ export async function 케이스시작(id: number): Promise<void> {
   await (await db()).query('UPDATE compat_run_case SET started_at = now() WHERE id = $1', [id]);
 }
 
-/** 돈 결과를 남긴다. 점검을 기다릴 케이스면 check_state 는 checking 이다 */
+/** 돈 결과를 남긴다. 점검을 기다릴 케이스면 check_state 는 checking 이다. blockedBy 는 프로시저 안에서 앞 케이스에 막힌 케이스만 있다 */
 export async function 케이스끝(
   id: number,
-  결과: { status: 케이스줄['status']; failedStep: number | null; steps: object[]; error: object | null; checkState: 'checking' | null },
+  결과: { status: 케이스줄['status']; failedStep: number | null; steps: object[]; error: object | null; checkState: 'checking' | null; blockedBy?: string | null },
 ): Promise<void> {
   await (await db()).query(
-    'UPDATE compat_run_case SET status = $2, failed_step = $3, steps = $4, error = $5, check_state = $6, finished_at = now() WHERE id = $1 AND finished_at IS NULL',
-    [id, 결과.status, 결과.failedStep, JSON.stringify(결과.steps), 결과.error === null ? null : JSON.stringify(결과.error), 결과.checkState],
+    'UPDATE compat_run_case SET status = $2, failed_step = $3, steps = $4, error = $5, check_state = $6, blocked_by = $7, finished_at = now() WHERE id = $1 AND finished_at IS NULL',
+    [id, 결과.status, 결과.failedStep, JSON.stringify(결과.steps), 결과.error === null ? null : JSON.stringify(결과.error), 결과.checkState, 결과.blockedBy ?? null],
   );
 }
 
