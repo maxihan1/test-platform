@@ -262,14 +262,14 @@ export async function createRun(
     }
 
     if (input.rerunOf !== undefined) {
-      const 사유 = await 다시실행사유(client, input.rerunOf, { serviceId: found서비스.id, kind, tcIds });
+      const 사유 = await 다시실행사유(client, input.rerunOf, { serviceId: found서비스.id, kind, tcIds, 한종류: found서비스.procedure_mode });
       if (사유 !== null) throw new RunInputError('BAD_RERUN', 사유);
     }
-    // 한 건(케이스 하나 · 반복 1)은 새 실행으로 서지 않고 가장 최근 묶음 실행에 붙는다 (도메인/실행 §3.2)
+    // 한 건(케이스 하나나 프로시저 하나 · 반복 1)은 새 실행으로 서지 않고 가장 최근 묶음 실행에 붙는다 (도메인/실행 §3.2)
     const { origin, rerunOf, attachedTo } = await 시작방식정하기(client, {
       origin: input.origin,
       ...(input.rerunOf === undefined ? {} : { rerunOf: input.rerunOf }),
-      tcIds,
+      케이스들: tcIds.map((tcId) => ({ tcId, procId: cases.get(tcId)!.proc_id })),
       repeat,
       serviceId: found서비스.id,
       env: input.env,

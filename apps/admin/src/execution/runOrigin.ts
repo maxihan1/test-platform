@@ -57,18 +57,23 @@ export async function 제목을짓는다(
 
 /**
  * 「실패 N건 다시」가 사실일 때만 실행을 만든다 — 제목이 박제되므로 틀린 제목이 남지 않게 만들기 전에 거절한다.
- * 실패 케이스 가운데 몇 건을 빼고 거는 것은 된다
+ * 실패 케이스 가운데 몇 건을 빼고 거는 것은 된다. tcIds 는 프로시저로 펼치기 전에 고른 케이스다 — 펼쳐서 든 케이스는 그 실행에서 통과했어도 같이 돈다.
+ * 프로시저로 돈 케이스는 판정 없이 미실행(Blocked · 중단 · 시간 초과)으로 끝났어도 받는다 — 앞 케이스에 가려진 케이스를 볼 길이 다시 돌리기뿐이다.
+ * 옛 꼴 케이스는 실패한 것만 받는다 (도메인/실행 §3.2 「테스트 프로시저 실행」 「한 건 · 다시 돌리기 · 시험 실행」)
  */
 export async function 다시실행사유(
   client: Pick<PoolClient, 'query'>,
   rerunOf: number,
-  이번: { serviceId: string; kind: 케이스종류; tcIds: string[] },
+  // 한종류 — 「프로시저 작성」을 켠 애플리케이션. 종류가 하나라 켜기 전에 돈 UI 실행도 다시 돌린다
+  이번: { serviceId: string; kind: 케이스종류; tcIds: string[]; 한종류?: boolean },
 ): Promise<string | null> {
   // 다른 서비스의 실행은 없는 것과 같은 말로 거절한다 — 볼 권한 없는 서비스의 실행 번호가 있는지 새지 않게.
   // 만들기까지 원래 실행이 지워지지 않게 잡아 둔다 — 지워지면 rerun_of 외래 키가 500 으로 깨진다
   const r = await client.query<{ kind: string; status: string; origin: string; failed: string[] }>(
     `SELECT kind, status, origin,
-            ARRAY(SELECT DISTINCT tc_id FROM run_item WHERE run_id = $1 AND status = 'FAIL' AND finished_at IS NOT NULL) AS failed
+            ARRAY(SELECT DISTINCT i.tc_id FROM run_item i LEFT JOIN run_exec e ON e.exec_id = i.exec_id
+                   WHERE i.run_id = $1 AND i.finished_at IS NOT NULL
+                     AND (i.status = 'FAIL' OR (i.status = 'NA' AND e.proc_id IS NOT NULL))) AS failed
        FROM test_run WHERE run_id = $1 AND service_id = $2
         FOR SHARE`,
     [rerunOf, 이번.serviceId],
@@ -78,7 +83,7 @@ export async function 다시실행사유(
   if (원래.kind === 'SCENARIO') return `실행 ${String(rerunOf)}은 시나리오 실행이다`;
   // 한 건 실행은 실행으로 서지 않는 기록이다 — 거기에 붙이면 어느 실행 결과도 안 고친다 (도메인/실행 §3.2)
   if (원래.origin === 'SINGLE') return `실행 ${String(rerunOf)}은 한 건 실행이다`;
-  if (원래.kind !== 이번.kind) return `실행 ${String(rerunOf)}은 다른 종류의 실행이다`;
+  if (원래.kind !== 이번.kind && !(이번.한종류 === true && 원래.kind === 'UI')) return `실행 ${String(rerunOf)}은 다른 종류의 실행이다`;
   if (원래.status === 'RUNNING') return `실행 ${String(rerunOf)}은 아직 도는 중이다`;
   const 실패 = new Set(원래.failed);
   const 아닌것 = 이번.tcIds.filter((t) => !실패.has(t));

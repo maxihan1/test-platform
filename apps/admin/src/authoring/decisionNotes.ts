@@ -4,7 +4,8 @@ import type { PrdItem } from '@platform/kit';
 
 import { 종류조건 } from '../execution/runKind.js';
 import { findItem } from '../execution/queries.js';
-import { 멈춰닫힌항목아님, 지금항목 } from '../execution/single.js';
+import { 멈춰닫힌항목아님 } from '../execution/notVerdict.js';
+import { 지금항목 } from '../execution/single.js';
 import { 케이스지도 } from '../prd/store.js';
 import type { 결정항목, 고르기 } from './decisionItems.js';
 import { db } from './store.js';

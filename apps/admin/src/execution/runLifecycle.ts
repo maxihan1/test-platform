@@ -1,7 +1,6 @@
 // 실행 항목의 결과를 되쓰고 실행 묶음을 닫는다 — 항목 완료 · 중단 · 재기동 복구 (SPEC §3.2 · §7)
 
 import type { CaseResult, ElementCheck, ExecuteResponse, FpsSample, Platform, StepResult } from '@platform/kit';
-import { BLOCKED } from '@platform/kit/protocol';
 
 import type { Pool, PoolClient } from 'pg';
 
@@ -9,6 +8,7 @@ import { jsonb에맞춘다 } from '../jsonbText.js';
 import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 
 import { 게임결과를넣는다 } from './gameResult.js';
+import { 판정아닌까닭을가른다 } from './notVerdict.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
 async function db(): Promise<Pool> {
@@ -121,7 +121,7 @@ export async function 케이스줄을닫는다(client: PoolClient, historyId: nu
       대조칸(result.elementChecks),
       FPS칸(result.fps),
       // 막은 케이스는 Blocked 줄에만 적는다 (공통/4 「테스트 프로시저 표」 run_item.blocked_by)
-      result.status === 'NA' && result.error?.message === BLOCKED ? (result.blockedBy ?? null) : null,
+      판정아닌까닭을가른다(result.status, result.error?.message) === 'BLOCKED' ? (result.blockedBy ?? null) : null,
       시각(result.startedAt),
       시각(result.finishedAt),
     ],

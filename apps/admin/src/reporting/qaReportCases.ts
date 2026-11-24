@@ -3,7 +3,8 @@
 import type { Pool } from 'pg';
 
 import { tcId종류 } from '../catalog/rules.js';
-import { 멈춰닫힌항목아님, 지금항목 } from '../execution/single.js';
+import { 멈춰닫힌항목아님 } from '../execution/notVerdict.js';
+import { 지금항목 } from '../execution/single.js';
 import { 미확정SQL, 접은판정SQL } from '../scenario/verdict.js';
 import { 판정들 } from './failReqs.js';
 import { 원인을가른다, type 원인 } from './failureType.js';
@@ -60,7 +61,7 @@ interface 접은행 {
 
 // 같은 케이스 × 디바이스가 묶음의 여러 실행에 들면 가장 늦게 시작한 실행 것이 이 빌드의 결과다(다시 돌린 결과가 앞 결과를 덮는다).
 // 실행 안의 회차는 대시보드와 같이 접는다(reporting/dashboardSql.ts — 전부 통과 · 하나라도 실패 · 나머지 미실행).
-// 멈춤 · 준비 실패로 안 돌고 닫힌 항목만 있는 실행은 판정이 난 앞 실행을 덮지 않는다 — 뒤에 멈춘 실행 하나로 통과가 미실행이 되면 안 된다(execution/single.ts 멈춰닫힌항목아님).
+// 멈춤 · 준비 실패로 안 돌고 닫힌 항목만 있는 실행은 판정이 난 앞 실행을 덮지 않는다 — 뒤에 멈춘 실행 하나로 통과가 미실행이 되면 안 된다(execution/notVerdict.ts 멈춰닫힌항목아님).
 // 한 건 실행은 붙은 실행과 빌드가 같을 때만 덮는다 — 다음 빌드에서 고쳐진 결과가 앞 빌드에 「통과」로 들면 안 된다 (§3.17 「묶음 · 버전」)
 const 고르기CTE = `
   WITH 항목 AS (
