@@ -70,7 +70,8 @@ async function 조작실패들(pool: Pool, runId: number): Promise<{ tcId: strin
 
 /**
  * 「풀림」 — 그 줄이 끝난 뒤 (a) 그 케이스가 모든 디바이스에서 통과한 끝난 실행이 있거나 (b) 그 케이스를 고친 작성의 반영이 있다.
- * 실패 · 그만둔 케이스를 다음 실행마다 같은 고침으로 되풀이하지 않게 하는 문턱이다(failReport.ts 짝SQL 의 released 와 같은 꼴)
+ * 실패 · 그만둔 케이스를 다음 실행마다 같은 고침으로 되풀이하지 않게 하는 문턱이다(failReport.ts 짝SQL 의 released 와 같은 꼴).
+ * 프로시저 파일을 고친 작성은 그 파일의 케이스를 다 싣는다 — 게임 고침이 이 케이스는 안 고쳤다고(FIXED 아님) 알렸으면 같은 파일의 다른 케이스를 고친 반영으로 안 푼다
  */
 async function 풀렸나(손: PoolClient, 서비스: number, tcId: string, env: string, 뒤: Date): Promise<boolean> {
   const r = await 손.query<{ ok: boolean }>(
@@ -79,7 +80,8 @@ async function 풀렸나(손: PoolClient, 서비스: number, tcId: string, env: 
                        AND NOT EXISTS (SELECT 1 FROM run_item j WHERE j.run_id = i.run_id AND j.tc_id = i.tc_id AND j.status <> 'PASS'))
          OR EXISTS (SELECT 1 FROM authoring_request m JOIN authoring_request d ON d.id = m.source_id
                      WHERE m.service_id = $1 AND m.kind = 'MERGE' AND m.status = 'DONE' AND m.finished_at > $4
-                       AND d.result->'cases' @> jsonb_build_array(jsonb_build_object('tcId', $2::text))) AS ok`,
+                       AND d.result->'cases' @> jsonb_build_array(jsonb_build_object('tcId', $2::text))
+                       AND NOT EXISTS (SELECT 1 FROM jsonb_path_query(d.result, '$.testFix.cases[*]') c WHERE c->>'tcId' = $2 AND c->>'outcome' <> 'FIXED')) AS ok`,
     [서비스, tcId, env, 뒤],
   );
   return r.rows[0]!.ok;
