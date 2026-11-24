@@ -28,24 +28,37 @@ export async function 실행단위들읽기(pool: Pool, execIds: readonly string
   return new Map(r.rows.map((row) => [row.exec_id, { procId: row.proc_id, procName: row.proc_name, count: Number(row.n), 통과: row.통과 }]));
 }
 
+/** 시간 초과로 끝난 항목의 사유 글자 — 미실행 사유(collectReason.ts 돈항목사유)가 까닭 TIMEOUT 에 적는 글과 같다 */
+export const 시간초과글 = '제한 시간 초과';
+
 /**
  * Blocked 의 사유 — 막은 케이스가 같은 실행 · 같은 디바이스 · 같은 회차에서 어떻게 끝났는지로 까닭을 붙인다.
- * Fail 이면 「실패」, 판정 없이 끝났으면 kit 이 한도에서 끊은 것이라 「제한 시간 초과」, 못 찾거나 통과면 번호까지만 — 화면 결과 표 · 항목 상세와 같은 규칙이다(web/proc.tsx use막힘사유글)
+ * Fail 이면 「실패」, 시간 초과로 끝났으면 「제한 시간 초과」, 그 밖(통과 · 다른 미실행 · 못 찾음)은 번호까지만 — 틀린 까닭을 적지 않는다.
+ * 화면(web/proc.tsx use막힘사유글)은 판정만 보고 미실행이면 「제한 시간 초과」다 — 증적은 사유 글자까지 본다(kit 이 낸 Blocked 의 막은 미실행은 거의 늘 시간 초과다)
  */
-export function 막힘사유(blockedBy: string, 막은판정: EvidenceItem['status'] | undefined): string {
-  if (막은판정 === undefined || 막은판정 === 'PASS') return `선행 케이스 ${blockedBy}`;
-  return 막은판정 === 'FAIL' ? `선행 케이스 ${blockedBy} 실패` : `선행 케이스 ${blockedBy} 제한 시간 초과`;
+export function 막힘사유(blockedBy: string, 막은: Pick<EvidenceItem, 'status' | 'notRunReason'> | undefined): string {
+  if (막은?.status === 'FAIL') return `선행 케이스 ${blockedBy} 실패`;
+  if (막은?.status === 'NA' && 막은.notRunReason === 시간초과글) return `선행 케이스 ${blockedBy} ${시간초과글}`;
+  return `선행 케이스 ${blockedBy}`;
 }
 
-/** 문서의 항목이 다 모인 뒤 Blocked 줄에 사유를 채운다 — 막은 케이스의 판정은 같은 문서의 다른 항목이다. 막은 케이스 번호가 없는 줄은 사유 없이 「Blocked」만 선다 */
+/**
+ * 문서의 항목이 다 모인 뒤 Blocked 줄에 사유를 채운다 — 막은 케이스의 판정은 같은 문서의 다른 항목이다. 막은 케이스 번호가 없는 줄은 사유 없이 「Blocked」만 선다.
+ * 한 건 실행이 덮은 항목의 「원래 결과」는 막은 케이스도 원래 결과에서 찾는다 — 다시 돌아 통과한 결과로 적으면 처음의 실패 사슬이 문서에서 사라진다.
+ * 문서에 막은 케이스가 없으면(QA 리포트가 고른 케이스만 읽을 때) 번호까지만 적는다
+ */
 export function 막힘을채운다(items: EvidenceItem[]): EvidenceItem[] {
-  const 채운다 = (item: EvidenceItem): EvidenceItem => {
+  const 지금들 = items;
+  const 원래들 = items.map((i) => i.rerun?.original ?? i);
+  const 채운다 = (item: EvidenceItem, 찾을곳: EvidenceItem[]): EvidenceItem => {
     const 막은번호 = item.blocked?.by;
     if (막은번호 == null) return item;
-    const 막은 = items.find((i) => i.tcId === 막은번호 && i.platform === item.platform && i.attempt === item.attempt);
-    return { ...item, notRunReason: 막힘사유(막은번호, 막은?.status) };
+    const 막은 = 찾을곳.find((i) => i.tcId === 막은번호 && i.platform === item.platform && i.attempt === item.attempt);
+    return { ...item, notRunReason: 막힘사유(막은번호, 막은) };
   };
-  return items.map((item) => (item.rerun === undefined ? 채운다(item) : { ...채운다(item), rerun: { ...item.rerun, original: 채운다(item.rerun.original) } }));
+  return items.map((item) =>
+    item.rerun === undefined ? 채운다(item, 지금들) : { ...채운다(item, 지금들), rerun: { ...item.rerun, original: 채운다(item.rerun.original, 원래들) } },
+  );
 }
 
 /** 「MTA-TP-022 글쓰기 · 5건 중 4번째」 — 증적 블록 · 줄의 프로시저 줄. 화면 항목 상세의 프로시저 줄과 같은 꼴이다 */

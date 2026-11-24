@@ -3,6 +3,7 @@
 
 import { 판정아닌까닭을가른다 } from '../execution/notVerdict.js';
 import { 가린다 } from '../execution/trial.js';
+import { 시간초과글 } from './collectProc.js';
 import { 색코드, 한줄로자른다 } from './failureType.js';
 
 export type RunStatus = 'RUNNING' | 'FINISHED' | 'ABORTED' | 'PREP_FAILED';
@@ -67,7 +68,7 @@ export function 돈항목사유(row: Pick<사유재료, 'status' | 'error'>, 절
     const 까닭 = 판정아닌까닭을가른다(row.status, 원문);
     if (까닭 === 'BLOCKED') return null;
     // 러너가 끊은 TIMEOUT 과 kit 이 케이스 한도에서 끊은 「Test timeout of …」는 사람에게 같은 말이다 — 화면 미실행 사유와 같은 글자다(web/runState.ts)
-    if (까닭 === 'TIMEOUT') return '제한 시간 초과';
+    if (까닭 === 'TIMEOUT') return 시간초과글;
     return 원문 === '' ? null : (가린다(원문, 비밀) as string);
   }
   if (row.status !== 'FAIL' || 절차들.some((s) => s.assertions.some((a) => a.status === 'FAIL'))) return null;

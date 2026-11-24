@@ -265,7 +265,7 @@ export async function collectRun(runId: number, 고른?: string[]): Promise<Evid
  */
 async function 팜글(돈실행: number, row: RawItem, 단위통과: boolean | undefined): Promise<string | null> {
   const 글 = await 팜기록글(돈실행, Number(row.exec_id ?? row.history_id), 단위통과 ?? row.status === 'PASS');
-  if (글 === null || row.exec_id == null || row.case_started_at == null) return 글;
-  const 끝 = row.case_finished_at == null ? '' : row.case_finished_at.toISOString();
-  return `${글} · 이 케이스 ${row.case_started_at.toISOString()} ~ ${끝}`;
+  // 프로시저 줄만 시각이 찬다(kit 이 잰 값). 끝을 못 쟀으면 「~ 」로 끝나는 줄이 되니 둘 다 있을 때만 붙인다
+  if (글 === null || row.case_started_at == null || row.case_finished_at == null) return 글;
+  return `${글} · 이 케이스 ${row.case_started_at.toISOString()} ~ ${row.case_finished_at.toISOString()}`;
 }

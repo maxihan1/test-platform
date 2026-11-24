@@ -49,20 +49,29 @@ function 문서(items: EvidenceItem[]): EvidenceDocument {
 
 async function 시트(doc: EvidenceDocument): Promise<string[][]> {
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(await renderXlsx(doc, { generatedAt: '2026-11-24T00:00:00.000Z' }));
+  await wb.xlsx.load(new Uint8Array(await renderXlsx(doc, { generatedAt: '2026-11-24T00:00:00.000Z' })).buffer);
   const 행들: string[][] = [];
   wb.getWorksheet('리포트')!.eachRow((row) => 행들.push((row.values as unknown[]).slice(1).map((v) => (v == null ? '' : String(v)))));
   return 행들;
 }
 
 describe('Blocked 사유', () => {
-  it('막은 케이스가 Fail 이면 「실패」, 판정 없이 끝났으면 「제한 시간 초과」, 통과거나 못 찾으면 번호까지만', () => {
-    expect([막힘사유('A-1', 'FAIL'), 막힘사유('A-1', 'NA'), 막힘사유('A-1', 'PASS'), 막힘사유('A-1', undefined)]).toEqual([
+  it('막은 케이스가 Fail 이면 「실패」, 시간 초과로 끝났으면 「제한 시간 초과」, 그 밖(통과 · 다른 미실행 · 못 찾음)은 번호까지만', () => {
+    const 시간초과 = 항목('A-1', { status: 'NA', notRunReason: '제한 시간 초과' });
+    const 러너고장 = 항목('A-1', { status: 'NA', notRunReason: '러너에 닿지 못했습니다' });
+    expect([막힘사유('A-1', 항목('A-1', { status: 'FAIL' })), 막힘사유('A-1', 시간초과), 막힘사유('A-1', 러너고장), 막힘사유('A-1', 항목('A-1')), 막힘사유('A-1', undefined)]).toEqual([
       '선행 케이스 A-1 실패',
       '선행 케이스 A-1 제한 시간 초과',
       '선행 케이스 A-1',
       '선행 케이스 A-1',
+      '선행 케이스 A-1',
     ]);
+  });
+
+  it('한 건 실행이 덮은 문서에서 「원래 결과」의 Blocked 사유는 막은 케이스의 원래 결과로 적는다', () => {
+    const 막은 = { ...항목('F-1'), rerun: { finishedAt: 't', triggeredBy: 'x', original: 항목('F-1', { status: 'FAIL' }) } };
+    const 막힌 = { ...항목('F-2'), rerun: { finishedAt: 't', triggeredBy: 'x', original: { ...막힘('F-2', 2), blocked: { by: 'F-1' } } } };
+    expect(막힘을채운다([막은, 막힌])[1]!.rerun!.original.notRunReason).toBe('선행 케이스 F-1 실패');
   });
 
   it('같은 디바이스 · 같은 회차의 막은 케이스로 가르고, 막은 케이스 번호가 없는 Blocked 는 사유가 없다', () => {
