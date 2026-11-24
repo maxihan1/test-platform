@@ -54,7 +54,7 @@ export const 대시보드말: Record<string, string> = {
   '제한 시간 안에 완료되지 않음': 'Did not finish within the time limit',
   '대상 서버 · 테스트 실행기에 닿지 못하거나 테스트 실행기가 거절함': 'Could not reach the target server or runner, or the runner refused',
   '위 넷에 들지 않는 그 밖의 오류': 'Any other error not in the four above',
-  '실행이 중단되어 실행되지 못한 {수}건은 집계하지 않았습니다': '{수} tests that did not run because the run was stopped are not counted',
+  '실행 중단되어 실행하지 못한 {수}건은 집계하지 않았습니다': '{수} tests that did not run because the run was stopped are not counted',
 
   // 실행 0
   '아직 실행한 테스트가 없습니다': 'No tests have run yet',

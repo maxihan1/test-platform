@@ -37,7 +37,9 @@ export function 결과글(x: 첫장['results']['functional'][number] | 첫장['r
       return 안정화글(x.result);
     default: {
       const v = x.result;
-      return `Pass ${v.pass} · Fail ${v.fail} · Not tested ${v.notRun}${v.unconfirmed > 0 ? ` (그중 미확정 ${v.unconfirmed}건)` : ''}`;
+      // Blocked 는 Not tested 안의 수다 — 0 이면(이 칸 전에 굳힌 리포트도) 괄호를 안 적는다 (도메인/리포팅 §3.3 「테스트 프로시저」)
+      const 미확정 = v.unconfirmed === 0 ? '' : v.blocked > 0 ? ` · 그중 미확정 ${v.unconfirmed}건` : ` (그중 미확정 ${v.unconfirmed}건)`;
+      return `Pass ${v.pass} · Fail ${v.fail} · Not tested ${v.notRun}${v.blocked > 0 ? ` (Blocked ${v.blocked})` : ''}${미확정}`;
     }
   }
 }

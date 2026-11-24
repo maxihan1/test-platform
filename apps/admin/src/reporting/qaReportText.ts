@@ -186,9 +186,11 @@ function 변경사항(s: 첫장): 덩이[] {
       ...[...t.modified]
         .sort((a, b) => Number(b.expected) - Number(a.expected))
         .map((x): 표줄 => ({
-          칸: ['수정', 케이스(x), [x.expected ? '기대 결과 변경' : '', x.file ? '케이스 파일' : ''].filter(Boolean).join(' · '), 까닭글(x.reason)],
+          칸: ['수정', 케이스(x), [x.expected ? '기대 결과 변경' : '', x.file ? (x.segment === true ? '케이스 구간' : '케이스 파일') : ''].filter(Boolean).join(' · '), 까닭글(x.reason)],
           ...(x.expected ? { 결: '강조' as const } : {}),
         })),
+      // 그 케이스는 그대로이고 같은 프로시저의 앞 케이스가 바뀌었다 — 강조하지 않는다(강조는 기대 결과 변경뿐). 이 칸 전에 굳힌 리포트에는 없다
+      ...(t.flowChanged ?? []).map((x) => ({ 칸: ['선행 케이스 변경', 케이스(x), '—', 까닭글(x.reason)] })),
       ...t.added.map((x) => ({ 칸: ['신규', 케이스(x), '—', 까닭글(x.reason)] })),
       ...t.removed.map((x) => ({ 칸: ['삭제', 케이스(x), '—', 까닭글(x.reason)] })),
     ];
@@ -205,13 +207,19 @@ function 변경사항(s: 첫장): 덩이[] {
   return 덩이들;
 }
 
+// 고른 케이스만 읽어 막은 케이스가 어떻게 끝났는지 모른다 — 번호까지만 적는다(증적과 같은 경우 · WORDS 「Blocked 의 사유」).
+// 이 칸 전에 굳힌 리포트는 blockedBy 가 없어 「Blocked」만 선다
+function 미실행까닭(x: 첫장['plan']['cases'][number]['notRun'][number]): string {
+  return x.cause === 'blocked' && x.blockedBy ? `Blocked 선행 케이스 ${x.blockedBy}` : 원인이름[x.cause];
+}
+
 function 계획대비차이(s: 첫장): 덩이[] {
   const 덩이들: 덩이[] = [{ 꼴: '절', 글: '계획 대비 차이' }];
   for (const c of s.plan.cases) {
     덩이들.push({ 꼴: '글', 글: `${종류이름[c.kind]} — 활성 케이스 ${c.planned}건 중 ${c.ran}건 실행` });
     const 줄: 표줄[] = [
       ...c.notIncluded.map((x) => ({ 칸: [`${x.tcId} ${x.name}`, '—', '실행에 안 담김 · 사유 기록 없음'] })),
-      ...c.notRun.map((x) => ({ 칸: [`${x.tcId} ${x.name}`, 디바이스이름[x.platform] ?? x.platform, `Not tested · ${원인이름[x.cause]}`] })),
+      ...c.notRun.map((x) => ({ 칸: [`${x.tcId} ${x.name}`, 디바이스이름[x.platform] ?? x.platform, `Not tested · ${미실행까닭(x)}`] })),
     ];
     if (줄.length > 0) 덩이들.push({ 꼴: '표', 머리: ['케이스', '디바이스', '까닭'], 줄 });
   }

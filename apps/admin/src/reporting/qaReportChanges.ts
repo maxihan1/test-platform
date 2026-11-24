@@ -44,8 +44,10 @@ export interface 변경사항 {
         fromCommit: string | null;
         toCommit: string | null;
         added: 테스트줄[];
-        /** file 은 케이스 파일이, expected 는 기대 결과가 바뀌었다 — 기대 결과 변경은 화면이 따로 강조한다 */
-        modified: (테스트줄 & { file: boolean; expected: boolean })[];
+        /** file 은 케이스 파일(segment 면 프로시저 안 케이스의 자기 구간)이, expected 는 기대 결과가 바뀌었다 — 기대 결과 변경은 화면이 따로 강조한다. segment 는 이 칸 전에 굳힌 리포트에 없다 */
+        modified: (테스트줄 & { file: boolean; expected: boolean; segment?: boolean })[];
+        /** 프로시저 안 케이스 가운데 자기 구간과 기대 결과는 그대로이고 앞 흐름만 바뀐 것 — modified 에는 안 든다(화면 글자 「선행 케이스 변경」). 이 칸 전에 굳힌 리포트에는 없다 */
+        flowChanged?: 테스트줄[];
         removed: 테스트줄[];
       };
   /** 실패 카드에서 사람이 판정한 케이스 — 이번 빌드 실행 것만 */
@@ -65,6 +67,8 @@ interface 항목줄 {
   tc_id: string;
   tc_name: string;
   case_sha256: string | null;
+  seg_sha256: string | null;
+  flow_sha256: string | null;
   tests_commit: string | null;
   expected: unknown;
   started_at: Date;
@@ -72,7 +76,7 @@ interface 항목줄 {
 
 // 케이스마다 그 빌드에서 가장 늦게 시작한 실행의 항목 하나 — 그 빌드의 결과를 낸 테스트가 그것이다
 const 항목SQL = (곳: string) => `
-  SELECT DISTINCT ON (i.tc_id) i.tc_id, i.tc_name, i.case_sha256, i.tests_commit, i.expected, r.started_at
+  SELECT DISTINCT ON (i.tc_id) i.tc_id, i.tc_name, i.case_sha256, i.seg_sha256, i.flow_sha256, i.tests_commit, i.expected, r.started_at
     FROM test_run r JOIN run_item i ON i.run_id = r.run_id
    WHERE r.kind IN ('UI', 'FN') AND ${곳}
    ORDER BY i.tc_id, r.started_at DESC, r.run_id DESC, i.history_id`;
@@ -211,21 +215,28 @@ async function 테스트(pool: Pool, b: 견줄묶음 & { previousBuildNo: string
   const added = 이번.filter((r) => !앞표.has(r.tc_id) && !돈적있는.has(r.tc_id));
   // 이번 빌드에 안 돈 케이스는 지워졌을 때만 삭제다 — 살아 있는데 안 돈 것은 「계획 대비 차이」가 적는다
   const removed = 앞.filter((r) => !이번표.has(r.tc_id) && !살아있는.has(r.tc_id));
-  const modified = 이번.flatMap((r) => {
+  // 프로시저 안 케이스는 두 빌드의 줄에 구간 지문이 다 있을 때만 구간 지문으로 견준다 — 파일 지문은 한 케이스만 고쳐도 그 프로시저의 케이스가 다 바뀐다.
+  // 한쪽이라도 없으면(옛 꼴 · 이 칸 전 실행 · 옛 꼴에서 다시 써서 프로시저가 된 케이스) 지금처럼 파일 지문이다 (§3.17 「프로시저 안 케이스의 지문 둘」)
+  const 견준 = 이번.flatMap((r) => {
     const p = 앞표.get(r.tc_id);
     if (p === undefined) return [];
-    const file = p.case_sha256 !== null && r.case_sha256 !== null && p.case_sha256 !== r.case_sha256;
+    const 구간으로 = p.seg_sha256 !== null && r.seg_sha256 !== null;
+    const file = 구간으로 ? p.seg_sha256 !== r.seg_sha256 : p.case_sha256 !== null && r.case_sha256 !== null && p.case_sha256 !== r.case_sha256;
     const expected = JSON.stringify(p.expected) !== JSON.stringify(r.expected);
-    return file || expected ? [{ r, file, expected }] : [];
+    const 앞흐름만 = !file && !expected && 구간으로 && p.flow_sha256 !== r.flow_sha256;
+    return file || expected || 앞흐름만 ? [{ r, file, expected, 앞흐름만, segment: 구간으로 }] : [];
   });
-  const 이유 = await 까닭들(pool, b.serviceId, [...added, ...removed, ...modified.map((m) => m.r)].map((r) => r.tc_id), 앞마지막, b.lastStartedAt);
+  const modified = 견준.filter((m) => !m.앞흐름만);
+  const flowChanged = 견준.filter((m) => m.앞흐름만).map((m) => m.r);
+  const 이유 = await 까닭들(pool, b.serviceId, [...added, ...removed, ...modified.map((m) => m.r), ...flowChanged].map((r) => r.tc_id), 앞마지막, b.lastStartedAt);
   const 줄 = (r: 항목줄): 테스트줄 => ({ tcId: r.tc_id, name: r.tc_name, reason: 이유.get(r.tc_id) ?? null });
   return {
     recorded: true,
     fromCommit: 마지막커밋(앞),
     toCommit: 마지막커밋(이번),
     added: added.map(줄),
-    modified: modified.map((m) => ({ ...줄(m.r), file: m.file, expected: m.expected })),
+    modified: modified.map((m) => ({ ...줄(m.r), file: m.file, expected: m.expected, segment: m.segment })),
+    flowChanged: flowChanged.map(줄),
     removed: removed.map(줄),
   };
 }

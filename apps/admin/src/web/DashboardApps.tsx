@@ -57,7 +57,8 @@ function 카드({ a, 차례, 흐름, 서비스열기 }: { a: 앱; 차례: number
           </span>
           <span className="dash-lab">
             {t('Pass {통과} · Fail {실패}', { 통과: 수글(a.last.pass), 실패: 수글(a.last.fail) })}
-            {a.last.notRun > 0 ? <> · {t('Not tested {수}', { 수: 수글(a.last.notRun) })}</> : null}
+            {/* Blocked 는 Not tested 의 사유다 — 0 이면 괄호를 안 적는다 (WORDS 「Not tested 3 (Blocked 2)」) */}
+            {a.last.notRun > 0 ? <> · {t('Not tested {수}', { 수: 수글(a.last.notRun) })}{a.last.blocked > 0 ? ` (Blocked ${수글(a.last.blocked)})` : null}</> : null}
           </span>
         </div>
       )}

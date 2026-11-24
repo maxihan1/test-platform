@@ -28,11 +28,12 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
         [앱, build, 시작],
       )
       .then((r) => Number(r.rows[0]!.run_id));
-  const 항목 = (runId: number, tcId: string, o: { sha: string | null; commit?: string; expected?: object; status?: string }) =>
+  const 항목 = (runId: number, tcId: string, o: { sha: string | null; commit?: string; expected?: object; status?: string; seg?: string; flow?: string }) =>
     pool.query(
-      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, file_path, timeout_ms, precondition, params, expected, param_schema, expected_schema, status, tests_commit, case_sha256)
-       VALUES ($1, $2, 'desktop', $2 || ' 이름', 'xqc/x.spec.ts', 5000, '[]', '{}', $3, '{}', '{}', $4, $5, $6)`,
-      [runId, tcId, JSON.stringify(o.expected ?? {}), o.status ?? 'PASS', o.commit ?? null, o.sha],
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, file_path, timeout_ms, precondition, params, expected, param_schema, expected_schema, status, tests_commit, case_sha256,
+                             seg_sha256, flow_sha256)
+       VALUES ($1, $2, 'desktop', $2 || ' 이름', 'xqc/x.spec.ts', 5000, '[]', '{}', $3, '{}', '{}', $4, $5, $6, $7, $8)`,
+      [runId, tcId, JSON.stringify(o.expected ?? {}), o.status ?? 'PASS', o.commit ?? null, o.sha, o.seg ?? null, o.flow ?? null],
     );
   const 요청 = (o: { kind: string; source?: number; params?: object; result?: object; finished?: string; prUrl?: string }) =>
     pool
@@ -180,11 +181,36 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
       toCommit: 'c2',
       added: [{ tcId: 'XQC-FN-004', name: 'XQC-FN-004 이름', reason: { kind: 'PRD_APPLY', requestId: expect.any(Number), issueKey: null, prUrl: null } }],
       modified: [
-        { tcId: 'XQC-FN-001', name: 'XQC-FN-001 이름', file: false, expected: true, reason: { kind: 'EDIT', requestId: expect.any(Number), issueKey: null, prUrl: 'https://github.com/o/t/pull/11' } },
-        { tcId: 'XQC-FN-002', name: 'XQC-FN-002 이름', file: true, expected: false, reason: { kind: 'TEST_FIX', requestId: expect.any(Number), issueKey: 'XQC-9', prUrl: 'https://github.com/o/t/pull/12' } },
+        { tcId: 'XQC-FN-001', name: 'XQC-FN-001 이름', file: false, expected: true, segment: false, reason: { kind: 'EDIT', requestId: expect.any(Number), issueKey: null, prUrl: 'https://github.com/o/t/pull/11' } },
+        { tcId: 'XQC-FN-002', name: 'XQC-FN-002 이름', file: true, expected: false, segment: false, reason: { kind: 'TEST_FIX', requestId: expect.any(Number), issueKey: 'XQC-9', prUrl: 'https://github.com/o/t/pull/12' } },
       ],
       removed: [{ tcId: 'XQC-FN-003', name: 'XQC-FN-003 이름', reason: null }],
+      flowChanged: [],
     });
+  });
+
+  it('프로시저 안 케이스는 두 빌드에 구간 지문이 다 있을 때만 구간으로 견주고, 앞 흐름만 바뀐 케이스는 수정이 아니라 선행 케이스 변경이다', async () => {
+    // 한 프로시저 파일(파일 지문 p1 → p2)의 케이스 넷. 014 는 앞 빌드에 옛 꼴이라 구간 지문이 없다
+    await 항목(실행.앞, 'XQC-FN-011', { sha: 'p1', commit: 'c1', seg: 's11', flow: 'f11' });
+    await 항목(실행.앞, 'XQC-FN-012', { sha: 'p1', commit: 'c1', seg: 's12', flow: 'f12' });
+    await 항목(실행.앞, 'XQC-FN-013', { sha: 'p1', commit: 'c1', seg: 's13', flow: 'f13' });
+    await 항목(실행.앞, 'XQC-FN-014', { sha: 'o14', commit: 'c1' });
+    await 항목(실행.이번, 'XQC-FN-011', { sha: 'p2', commit: 'c2', seg: 's11', flow: 'f11-바뀜' });
+    await 항목(실행.이번, 'XQC-FN-012', { sha: 'p2', commit: 'c2', seg: 's12-바뀜', flow: 'f12-바뀜' });
+    await 항목(실행.이번, 'XQC-FN-013', { sha: 'p2', commit: 'c2', seg: 's13', flow: 'f13' });
+    await 항목(실행.이번, 'XQC-FN-014', { sha: 'p2', commit: 'c2', seg: 's14', flow: 'f14' });
+    try {
+      const t = (await 센다('1.0')).tests;
+      if (t === null || !t.recorded) throw new Error('테스트 갈래가 비었다');
+      const 줄 = (tcId: string) => ({ tcId, name: `${tcId} 이름`, reason: null });
+      expect(t.flowChanged).toEqual([줄('XQC-FN-011')]);
+      expect(t.modified.filter((m) => m.tcId >= 'XQC-FN-011')).toEqual([
+        { ...줄('XQC-FN-012'), file: true, expected: false, segment: true },
+        { ...줄('XQC-FN-014'), file: true, expected: false, segment: false },
+      ]);
+    } finally {
+      await pool.query("DELETE FROM run_item WHERE run_id = ANY($1::bigint[]) AND tc_id IN ('XQC-FN-011', 'XQC-FN-012', 'XQC-FN-013', 'XQC-FN-014')", [[실행.앞, 실행.이번]]);
+    }
   });
 
   it('제품은 배포가 건 실행으로 이슈를 찾고, Bunker 를 못 읽으면 노트 사건의 제목을 쓴다', async () => {

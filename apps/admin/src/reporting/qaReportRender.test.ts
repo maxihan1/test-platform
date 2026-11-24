@@ -84,7 +84,7 @@ function 재료(approval: 리포트응답['approval'] = null): 문서재료 {
     kinds: ['FN', 'UI', 'E2E', 'COMPAT', 'PERF'],
     overview: { serviceName: 'XQ <웹>', env: 'qa', baseUrl: 'https://qa.xq.test', buildNo: '2.0', testsRepo: null, startedAt: '2026-11-12T01:00:00.000Z', finishedAt: null, performers: [], runs: 3, running: 1 },
     results: {
-      functional: [{ kind: 'FN', result: { pass: 1, fail: 1, notRun: 0, unconfirmed: 0 } }, { kind: 'UI', result: { pass: 1, fail: 0, notRun: 0, unconfirmed: 0 } }, { kind: 'E2E', result: { pass: 0, fail: 1, notRun: 0, unconfirmed: 0 } }],
+      functional: [{ kind: 'FN', result: { pass: 1, fail: 1, notRun: 0, blocked: 0, unconfirmed: 0 } }, { kind: 'UI', result: { pass: 1, fail: 0, notRun: 0, blocked: 0, unconfirmed: 0 } }, { kind: 'E2E', result: { pass: 0, fail: 1, notRun: 0, blocked: 0, unconfirmed: 0 } }],
       nonFunctional: [
         { kind: 'COMPAT', quality: 'COMPATIBILITY', result: { devices: 2, screens: 5, suspect: 2 } },
         { kind: 'PERF', quality: 'PERFORMANCE_EFFICIENCY', result: { runs: 2, pass: 2, fail: 1 } },

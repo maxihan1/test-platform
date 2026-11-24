@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 
+import { 구간지문, type 구간지문값 } from '../catalog/procedure.js';
 import { testsRoot } from '../catalog/scanner.js';
 
 const 읽기 = (경로: string): Promise<string | null> => readFile(경로, 'utf8').then((t) => t.trim(), () => null);
@@ -55,8 +56,36 @@ export async function 테스트커밋(뿌리: string = testsRoot()): Promise<str
 
 /** 케이스 파일 지문(sha256). file_path 는 테스트 폴더 기준이다. 폴더 밖이거나 못 읽으면 null */
 export async function 케이스지문(filePath: string, 뿌리: string = testsRoot()): Promise<string | null> {
+  const 글 = await 케이스파일(filePath, 뿌리);
+  return 글 === null ? null : createHash('sha256').update(글).digest('hex');
+}
+
+async function 케이스파일(filePath: string, 뿌리: string): Promise<Buffer | null> {
   const 절대 = resolve(뿌리, filePath);
   if (!절대.startsWith(resolve(뿌리) + sep)) return null;
-  const 글 = await readFile(절대).catch(() => null);
-  return 글 === null ? null : createHash('sha256').update(글).digest('hex');
+  return readFile(절대).catch(() => null);
+}
+
+/**
+ * 프로시저 파일의 케이스 구간 지문 둘 — cases 차례대로(proc_seq - 1 자리). 파일 지문은 한 케이스만 고쳐도 그 프로시저의 케이스가 다 바뀌어서
+ * QA 리포트가 자기 구간 · 앞 흐름으로 견준다 (도메인/리포팅 §3.17 「프로시저 안 케이스의 지문 둘」). 폴더 밖 · 못 읽음 · 구간을 못 가르면 null
+ */
+export async function 구간지문읽기(filePath: string, 뿌리: string = testsRoot()): Promise<구간지문값[] | null> {
+  const 글 = await 케이스파일(filePath, 뿌리);
+  return 글 === null ? null : 구간지문(글.toString('utf8'));
+}
+
+/** 프로시저 안 케이스마다 지문 둘 — 프로시저 파일은 하나를 한 번만 읽는다. 옛 꼴 케이스와 구간을 못 가른 파일의 케이스는 빠진다 */
+export async function 구간지문들짓기(
+  cases: { tc_id: string; file_path: string; proc_seq: number | null }[],
+  뿌리: string = testsRoot(),
+): Promise<Map<string, 구간지문값>> {
+  const 파일들 = [...new Set(cases.filter((c) => c.proc_seq !== null).map((c) => c.file_path))];
+  const 구간 = new Map(await Promise.all(파일들.map(async (f) => [f, await 구간지문읽기(f, 뿌리)] as const)));
+  return new Map(
+    cases.flatMap((c) => {
+      const x = c.proc_seq === null ? undefined : 구간.get(c.file_path)?.[c.proc_seq - 1];
+      return x === undefined ? [] : [[c.tc_id, x] as const];
+    }),
+  );
 }

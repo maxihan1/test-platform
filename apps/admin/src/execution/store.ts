@@ -18,7 +18,7 @@ import { 프로시저못도는러너인가 } from './runnerAddr.js';
 import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 import { 시작방식정하기 } from './single.js';
-import { 케이스지문, 테스트커밋 } from './testVersion.js';
+import { 구간지문들짓기, 케이스지문, 테스트커밋 } from './testVersion.js';
 import { PC디바이스글 } from './pcPlatform.js';
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
@@ -330,6 +330,7 @@ export async function createRun(
     // 테스트 버전도 박제한다 — QA 리포트가 앞 빌드와 케이스 신규 · 수정 · 삭제를 견준다 (도메인/리포팅 §3.17 「변경 사항」)
     const 커밋 = await 테스트커밋();
     const 지문들 = new Map(await Promise.all([...cases.values()].map(async (c) => [c.tc_id, await 케이스지문(c.file_path)] as const)));
+    const 구간지문들 = await 구간지문들짓기([...cases.values()]);
 
     // 게임 애플리케이션만 읽는다 — 항목마다 같은 목록이라 한 번
     const 팝업칸 = found서비스.kind === 'GAME' ? await 돌발팝업칸(Number(found서비스.id), client) : {};
@@ -340,6 +341,7 @@ export async function createRun(
       cases,
       커밋,
       지문들,
+      구간지문들,
       줄칸: (platform) => ({
         baseUrl: found서비스.base_url!,
         ...(platform === 'android' && 앱칸(빌드, found서비스.app_path, 앞)),

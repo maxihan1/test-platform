@@ -13,6 +13,8 @@ export interface 판정셈 {
   pass: number;
   fail: number;
   notRun: number;
+  /** notRun 가운데 앞 케이스에 막힌 것(Blocked) — 미실행에 들고 그 안에서 따로 센다 (도메인/리포팅 §3.3 「테스트 프로시저」) */
+  blocked: number;
   unconfirmed: number;
 }
 
@@ -36,7 +38,8 @@ export interface 케이스계획 {
   ran: number;
   notIncluded: { tcId: string; name: string }[];
   /** 원인 규칙의 「멈춤」(stopped)에서 준비 실패만 prepFailed 로 가른다 — 계획 대비 차이는 둘을 따로 적는다 */
-  notRun: { tcId: string; name: string; platform: string; cause: 원인 | 'prepFailed' }[];
+  /** blockedBy 는 Blocked 줄의 막은 케이스 번호다. 그 밖의 줄과 번호 없이 막힌 줄은 null */
+  notRun: { tcId: string; name: string; platform: string; cause: 원인 | 'prepFailed'; blockedBy: string | null }[];
 }
 
 export interface 기능재료 {
@@ -57,6 +60,7 @@ interface 접은행 {
   unconfirmed: boolean;
   rep: string | null;
   rep_message: string | null;
+  rep_blocked_by: string | null;
 }
 
 // 같은 케이스 × 디바이스가 묶음의 여러 실행에 들면 가장 늦게 시작한 실행 것이 이 빌드의 결과다(다시 돌린 결과가 앞 결과를 덮는다).
@@ -65,7 +69,7 @@ interface 접은행 {
 // 한 건 실행은 붙은 실행과 빌드가 같을 때만 덮는다 — 다음 빌드에서 고쳐진 결과가 앞 빌드에 「통과」로 들면 안 된다 (§3.17 「묶음 · 버전」)
 const 고르기CTE = `
   WITH 항목 AS (
-    SELECT r.run_id, r.kind, r.started_at, i.tc_id, i.tc_name, i.platform, i.status, i.unconfirmed, i.history_id, i.error
+    SELECT r.run_id, r.kind, r.started_at, i.tc_id, i.tc_name, i.platform, i.status, i.unconfirmed, i.history_id, i.error, i.blocked_by
       FROM test_run r
       JOIN LATERAL ${지금항목('o.run_id = r.run_id', ' AND sr.build_no IS NOT DISTINCT FROM r.build_no')} i ON true
      WHERE r.run_id = ANY($1::bigint[]) AND r.kind IN ('UI', 'FN')
@@ -77,7 +81,8 @@ const 접기SQL = `${고르기CTE}
   SELECT h.run_id, h.kind, h.tc_id, h.platform, max(h.tc_name) AS tc_name,
          ${접은판정SQL('h')} AS verdict, bool_or(h.unconfirmed IS NOT NULL) AS unconfirmed,
          (array_agg(h.history_id ORDER BY h.status = 'FAIL' DESC, h.history_id) FILTER (WHERE h.status <> 'PASS'))[1] AS rep,
-         (array_agg(COALESCE(h.error->>'message', '') ORDER BY h.status = 'FAIL' DESC, h.history_id) FILTER (WHERE h.status <> 'PASS'))[1] AS rep_message
+         (array_agg(COALESCE(h.error->>'message', '') ORDER BY h.status = 'FAIL' DESC, h.history_id) FILTER (WHERE h.status <> 'PASS'))[1] AS rep_message,
+         (array_agg(h.blocked_by ORDER BY h.status = 'FAIL' DESC, h.history_id) FILTER (WHERE h.status <> 'PASS'))[1] AS rep_blocked_by
     FROM 고른 g JOIN 항목 h USING (run_id, kind, tc_id, platform)
    GROUP BY h.run_id, h.kind, h.tc_id, h.platform
    ORDER BY h.kind, h.tc_id, h.platform`;
@@ -106,12 +111,13 @@ const 절차SQL = `
          COALESCE((SELECT s.error->>'message' FROM run_item_step s WHERE s.history_id = h AND s.error IS NOT NULL AND s.status <> 'NA' ORDER BY s.seq LIMIT 1), '') AS step_message
     FROM unnest($1::bigint[]) AS h`;
 
-const 빈셈 = (): 판정셈 => ({ pass: 0, fail: 0, notRun: 0, unconfirmed: 0 });
+const 빈셈 = (): 판정셈 => ({ pass: 0, fail: 0, notRun: 0, blocked: 0, unconfirmed: 0 });
 
-function 더한다(셈: 판정셈, verdict: 'PASS' | 'FAIL' | 'NA', unconfirmed: boolean): void {
+function 더한다(셈: 판정셈, verdict: 'PASS' | 'FAIL' | 'NA', unconfirmed: boolean, blocked = false): void {
   if (verdict === 'PASS') 셈.pass += 1;
   else if (verdict === 'FAIL') 셈.fail += 1;
   else 셈.notRun += 1;
+  if (verdict === 'NA' && blocked) 셈.blocked += 1;
   if (unconfirmed) 셈.unconfirmed += 1;
 }
 
@@ -138,7 +144,8 @@ export async function 기능재료읽기(pool: Pool, 묶음: 묶음재료): Prom
   }
 
   const results: 기능재료['results'] = { FN: null, UI: null, E2E: null };
-  for (const r of 접은) 더한다((results[r.kind] ??= 빈셈()), r.verdict, r.unconfirmed);
+  // 접은 판정이 미실행이면 대표 줄(첫 미실행 회차)의 원인으로 Blocked 를 가른다 — 실패 분류 · 계획 대비 차이와 같은 값이다
+  for (const r of 접은) 더한다((results[r.kind] ??= 빈셈()), r.verdict, r.unconfirmed, 원인들.get(r) === 'blocked');
 
   const e2e = (
     await pool.query<{ run_id: string; scenario_id: string; verdict: 'PASS' | 'FAIL' | 'NA'; unconfirmed: boolean }>(
@@ -163,7 +170,10 @@ export async function 기능재료읽기(pool: Pool, 묶음: 묶음재료): Prom
       notIncluded: 계획.filter((c) => !돈.has(c.tc_id)).map((c) => ({ tcId: c.tc_id, name: c.name })),
       notRun: 접은
         .filter((r) => r.kind === kind && r.verdict === 'NA')
-        .map((r) => ({ tcId: r.tc_id, name: r.tc_name, platform: r.platform, cause: /^PREP_FAILED\b/.test(r.rep_message ?? '') ? 'prepFailed' : (원인들.get(r) ?? 'other') })),
+        .map((r) => {
+          const cause = /^PREP_FAILED\b/.test(r.rep_message ?? '') ? 'prepFailed' : (원인들.get(r) ?? 'other');
+          return { tcId: r.tc_id, name: r.tc_name, platform: r.platform, cause, blockedBy: cause === 'blocked' ? r.rep_blocked_by : null };
+        }),
     };
   });
 

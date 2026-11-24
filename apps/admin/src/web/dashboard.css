@@ -483,6 +483,12 @@
 }
 
 .dash-app {
+  /* 한 줄의 카드는 여섯 칸(머리 · 통과율 · 막대 · 세 칸 · 최근 실행 · 종류별 한 줄)의 높이를 같이 쓴다 —
+     「Not tested 3 (Blocked 2)」가 두 줄로 꺾인 카드만 아래 칸이 밀려 옆 카드와 어긋나지 않게 (2026-11-24 사용자 「카드 위치 맞춰」) */
+  display: grid;
+  grid-row: span 6;
+  grid-template-rows: subgrid;
+  row-gap: 14px;
   color: inherit;
   text-decoration: none;
   transition: transform var(--t1), border-color var(--t1);
