@@ -6,6 +6,7 @@ import type { ShapeCheck } from '@platform/kit';
 import type { EvidenceTrace } from './apiTrace.js';
 import type { EvidenceAssertion, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
 import { PC디바이스글 } from '../execution/pcPlatform.js';
+import { 프로시저글 } from './collectProc.js';
 import { 기대문장 } from './expectedLines.js';
 
 /** 화면 표기는 PC / 모바일이다. desktop / mobile 은 코드 안에서만 쓴다 (SPEC §2 · web/ui.tsx) */
@@ -37,8 +38,19 @@ export function 안전(값: string): string {
     .replace(/"/g, '&quot;');
 }
 
-export function 판정(status: EvidenceItem['status']): string {
-  return `<span class="verdict ${판정색[status]}">${판정글자[status]}</span>`;
+/** Blocked 는 판정이 아니라 Not tested 의 사유라 미실행 색 그대로 글자만 「Blocked」다 — 화면 결과 표 · 항목 상세 배지와 같다 (docs/DESIGN.md 「테스트 프로시저 · 목록 · 결과」 「판정」) */
+export function 판정(status: EvidenceItem['status'], 막힘 = false): string {
+  return `<span class="verdict ${판정색[status]}">${막힘 ? 'Blocked' : 판정글자[status]}</span>`;
+}
+
+/** 케이스의 프로시저 줄 — 카드 · 부록 머리 아래. 프로시저 안 케이스가 아니면 빈 목록 (도메인/리포팅 §3.3 「증적 문서 · 엑셀」) */
+export function 프로시저줄(p: EvidenceItem['procedure']): string[] {
+  return p == null ? [] : [`  <div class="proc-line">${안전(프로시저글(p))}</div>`];
+}
+
+/** 막은 케이스의 실패 카드 끝 한 줄 — 이 실패로 Blocked 가 된 후속 케이스 번호. 없으면 빈 목록 */
+export function 후속줄(후속: string[]): string[] {
+  return 후속.length === 0 ? [] : [`  <div class="blocked-next"><span class="verdict v-na">Blocked</span>후속 케이스 ${안전(후속.join(' · '))}</div>`];
 }
 
 function 소요(durationMs: number | null): string {
@@ -147,7 +159,7 @@ export function 다시실행꼬리(items: EvidenceItem[]): string {
 export function 항목줄(item: EvidenceItem, 덧말 = ''): string {
   // 배지 옆에 붙인다. 떨어뜨리면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
   const 사유 = item.notRunReason === null ? '' : `<span class="not-run">${안전(item.notRunReason)}</span>`;
-  return `<span class="badge">${디바이스[item.platform]}</span><span class="badge">${item.attempt}회차</span>${판정(item.status)}${소요(item.durationMs)}${덧말}${다시실행글(item)}${사유}`;
+  return `<span class="badge">${디바이스[item.platform]}</span><span class="badge">${item.attempt}회차</span>${판정(item.status, item.blocked !== undefined)}${소요(item.durationMs)}${덧말}${다시실행글(item)}${사유}`;
 }
 
 /**

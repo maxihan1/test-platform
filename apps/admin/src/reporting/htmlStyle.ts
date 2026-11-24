@@ -106,6 +106,11 @@ details[open] > .fold-line::before{ transform:rotate(90deg); }
 .v-na{ background:var(--na-bg); color:var(--na); }
 .ms{ font-size:12px; color:var(--ink-faint); }
 .u-reason{ margin-top:4px; font-size:12.5px; color:var(--ink-muted); }
+/* 프로시저 줄 — 케이스명 아래 작은 글. 화면 항목 상세의 프로시저 줄과 같은 자리다 (DESIGN.md 「테스트 프로시저 · 목록 · 결과」 「항목 상세」) */
+.proc-line{ margin-top:4px; font-size:12.5px; color:var(--ink-muted); }
+.proc{ font-size:12px; color:var(--ink-faint); }
+/* 후속 케이스 줄 — 실패 카드 끝. 판정 색을 새로 쓰지 않고 Blocked 배지(미실행 색)만 단다 */
+.blocked-next{ display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:6px; border-top:1px solid var(--rule-soft); font-size:12.5px; color:var(--ink-muted); }
 .row{ display:flex; gap:12px; margin-top:10px; }
 .row-k{ width:72px; flex:none; font-size:12px; font-weight:600; color:var(--ink-faint); padding-top:2px; }
 .row-v{ flex:1; min-width:0; }
