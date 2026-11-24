@@ -32,7 +32,8 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
   const [다시, set다시] = useState(false);
   // 같은 실행 — 프로시저의 건수 · 막은 케이스의 판정 · 한 건 실행인지를 찾는다. 윗줄(항목실행줄)이 읽은 것을 받아 쓴다
   const [실행, set실행] = useState<RunDetail | null>(null);
-  const 항목들 = 실행?.items ?? [];
+  // 다른 실행의 항목으로 옮긴 직후에는 앞 실행이 남아 있다 — 그 줄로 세면 건수가 틀린다
+  const 항목들 = 실행?.runId === runId ? 실행.items : [];
   const 막힘사유글 = use막힘사유글();
 
   if (detail.error !== null) return <Failed error={detail.error} />;

@@ -1,6 +1,6 @@
 // 통과하지 못한 android 항목만 팜 증적을 받는지 보는 단위 테스트. 팜은 appium-cli 가짜로 막는다
 
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -173,10 +173,26 @@ describe('팜증적을받는다', () => {
     expect(existsSync(join(runDir('0', '9'), APPIUM_SESSION_ID_FILE))).toBe(false);
   });
 
+  it('호환성 항목이 연결을 못 열었거나 팜 주소가 없으면 물을 세션이 없어 점검 없음을 남긴다 — 옆 폴더에 쓰고 옮긴다', async () => {
+    const 점검파일 = join(폴더(), FARM_EVIDENCE_DIR, 'ui-check.json');
+    rmSync(idFile());
+    await 팜증적을받는다(3, 9, 'NA', undefined, { 끝난때: 1 });
+    expect(JSON.parse(readFileSync(점검파일, 'utf8'))).toEqual({ status: 'none' });
+    expect(existsSync(join(폴더(), `${FARM_EVIDENCE_DIR}.ui.part`))).toBe(false);
+
+    rmSync(점검파일);
+    writeFileSync(idFile(), 'sess-1\n');
+    delete process.env.PLATFORM_APPIUM_URL;
+    await 팜증적을받는다(3, 9, 'PASS', undefined, { 끝난때: 1 });
+    expect(JSON.parse(readFileSync(점검파일, 'utf8'))).toEqual({ status: 'none' });
+    expect(점검결과를기다린다).not.toHaveBeenCalled();
+  });
+
   it('연결을 못 열어 번호 파일이 없으면 아무것도 안 한다', async () => {
     rmSync(idFile());
     await expect(팜증적을받는다(3, 9, 'FAIL')).resolves.toBeUndefined();
     expect(farmArtifacts).not.toHaveBeenCalled();
+    expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR))).toBe(false);
   });
 
   it('받다 실패하면(팜이 아닌 Appium 의 404 등) 던지지 않고 반쯤 받은 폴더를 지운다', async () => {

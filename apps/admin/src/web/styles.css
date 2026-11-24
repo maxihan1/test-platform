@@ -1810,7 +1810,7 @@ input[type='file']::file-selector-button {
 
   /* RUN 머리의 증적 버튼도 같은 화면이다. 하나일 때는 오눌러도 결과가 같았지만
      형식이 셋이 되면서 오눌림이 「엑셀 대신 PDF」라는 뜻을 갖는다 (docs/DESIGN.md 44px) */
-  .tally .btn {
+  .tally .btn:not(:where(.modal-back *)) {
     min-height: 44px;
     padding: 9px 20px;
   }

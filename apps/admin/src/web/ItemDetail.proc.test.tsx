@@ -57,6 +57,21 @@ describe('프로시저 줄', () => {
     await waitFor(() => expect([...document.querySelectorAll('.runmeta')][0]?.textContent).toBe('MTA-TP-022 결제 흐름 · 3건 중 3번째'));
   });
 
+  it('다른 실행의 항목으로 옮기면 그 실행을 읽기 전까지 앞 실행의 건수를 적지 않는다', async () => {
+    const 단위 = { execId: 10, execSeq: 1, procId: 'MTA-TP-022', procName: '결제 흐름' };
+    vi.spyOn(api, 'item').mockImplementation((runId, historyId) => Promise.resolve({ ...항목, ...단위, runId, historyId }));
+    vi.spyOn(api, 'run').mockImplementation((runId) =>
+      runId === RUN_ID ? Promise.resolve({ ...실행, runId, status: 'FINISHED', items: [1, 2, 3].map((n) => 요약(7700 + n, `ZID-00${String(n)}`, 'PASS', { ...단위, execSeq: n })), evidence: [] }) : new Promise(() => undefined),
+    );
+    const 화면 = (runId: number, historyId: number) => <ItemDetail runId={runId} historyId={historyId} 판정하기={() => () => true} />;
+    const { rerender } = render(화면(RUN_ID, 7701));
+    await screen.findByText(/3건 중 1번째/);
+    rerender(화면(RUN_ID + 1, 8801));
+    await screen.findByText(new RegExp(`RUN ${String(RUN_ID + 1)} `));
+
+    expect(screen.queryByText(/건 중/)).toBeNull();
+  });
+
   it('프로시저에 안 든 항목에는 프로시저 줄이 없다', async () => {
     await 그린다({}, [요약(7701, 'ZID-004', 'NA')]);
 

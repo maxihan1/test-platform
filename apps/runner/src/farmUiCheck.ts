@@ -21,6 +21,17 @@ interface 팜파일 { name?: unknown; url?: unknown }
 const 알림 = (말: string, err: unknown): void =>
   console.error(`[runner] ${말}: ${err instanceof Error ? err.message : String(err)}`);
 
+/** 팜이 점검을 안 한다는 표시 — 남기지 않으면 admin 이 안 올 결과를 60분 기다린다. admin 이 반쯤 쓴 것을 읽지 않게 옆 폴더에 쓰고 옮긴다 */
+export async function 점검없음을남긴다(폴더: string): Promise<void> {
+  const 받는곳 = join(폴더, `${FARM_EVIDENCE_DIR}.ui.part`);
+  const 둘곳 = join(폴더, FARM_EVIDENCE_DIR);
+  await mkdir(받는곳, { recursive: true });
+  await mkdir(둘곳, { recursive: true });
+  await writeFile(join(받는곳, UI_CHECK_FILE), JSON.stringify({ status: 'none' }));
+  await rename(join(받는곳, UI_CHECK_FILE), join(둘곳, UI_CHECK_FILE));
+  await rm(받는곳, { recursive: true, force: true });
+}
+
 /** 'checking' 이면 다시 받는다. 'none' 은 팜이 점검 파일을 안 준다(비전이 꺼졌거나 팜이 아닌 Appium) — 기다려도 안 생긴다 */
 async function 한번받는다(폴더: string, base: string, headers: Record<string, string>, sessionId: string): Promise<'checking' | 'saved' | 'none'> {
   const 받기 = async (주소: string): Promise<Response> => {
@@ -97,9 +108,7 @@ export async function 점검결과를기다린다(폴더: string, raw: string, s
       const 됨 = await 한번받는다(폴더, base, headers, sessionId);
       if (됨 === 'saved') return;
       if (됨 === 'none') {
-        // 남기지 않으면 admin 이 안 올 결과를 60분 기다린다
-        await mkdir(join(폴더, FARM_EVIDENCE_DIR), { recursive: true });
-        await writeFile(join(폴더, FARM_EVIDENCE_DIR, UI_CHECK_FILE), JSON.stringify({ status: 'none' }));
+        await 점검없음을남긴다(폴더);
         console.error(`[runner] 팜이 세션 ${sessionId} 의 AI 점검 결과를 주지 않는다 — 그만 받는다`);
         return;
       }

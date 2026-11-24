@@ -111,7 +111,7 @@ async function 점검받기(곳: 팜곳, 번호: number, 끝: number, Chrome세�
 }
 
 /**
- * 점검을 받아 케이스 줄마다 화면 줄로 남긴다. 케이스가 끝난 뒤 60분이 지나면 미점검(missing)이다.
+ * 점검을 받아 케이스 줄마다 화면 줄로 남긴다. 케이스가 끝난 뒤 60분이 지났거나 러너가 점검 없음을 남겼으면 미점검(missing)이다.
  * 받다 깨지면 미점검으로 닫는다 — checking 에 남으면 그 상태 · 실행이 끝나지 않는다
  */
 async function 점검남기기(곳: 팜곳, 번호: number, ids: readonly number[], 끝: number, Chrome세션: string | undefined, 나누기: (점검: 점검파일) => [number, 화면줄[]][]): Promise<void> {

@@ -88,7 +88,7 @@ export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진
     끝난것들: [...끝난것].sort((a, b) => b.finishedAt.localeCompare(a.finishedAt)),
     // **앞자리 하나만 건너뛰지 않는다.** 러너는 둘 이상을 답한다 — 도는 것을 먼저 빼야
     // 두 번째로 도는 항목이 「진행 중」과 「대기」 양쪽에 서지 않는다
-    지나간것들: 안끝난것.filter(지나갔나).reverse(),
+    지나간것들: 안끝난것.filter(지나갔나).sort((a, b) => (b.execSeq ?? 0) - (a.execSeq ?? 0)),
     대기것들: 안끝난것.filter((i) => !도는중인historyId.has(i.historyId) && !지나갔나(i)),
   };
 }
