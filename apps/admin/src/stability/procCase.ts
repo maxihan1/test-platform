@@ -11,19 +11,19 @@ export interface 단위케이스 {
 }
 
 /**
- * 흐름이 멈춘 케이스 — 실패 · 제한 시간 초과 · 자기 준비 구간에서 깨진 Blocked(시작한 케이스만 받으니 Blocked 는 다 그것이다).
- * 흐름이 멈추면 뒤 케이스는 시작하지 않아 많아야 하나다. 끝까지 갔으면 첫 케이스 — logcat 은 폰 시각이라 서버 시각에 못 맞춰 케이스는 어림이다
+ * 흐름이 멈춘 케이스 — 흐름이 멈추면 뒤 케이스는 시작하지 않으니 시작한 케이스 중 마지막이고, 판정은 실패 · 제한 시간 초과 · 자기 준비 구간에서 깨진 Blocked 다.
+ * 판정 확인만 틀린 실패는 흐름을 안 멈춰(공통/2 §4 「계속 간다」) 앞에 실패가 있어도 마지막 케이스를 본다.
+ * 마지막이 통과면 끝까지 갔다 — 첫 케이스에 붙인다. logcat 은 폰 시각이라 서버 시각에 못 맞춰 케이스는 어림이다
  */
 export function 깨진케이스<T extends 단위케이스>(시작한: readonly [T, ...T[]]): T {
-  const 멈춤 = 시작한.find((c) => {
-    const 까닭 = 판정아닌까닭을가른다(c.status, c.message);
-    return c.status === 'FAIL' || 까닭 === 'TIMEOUT' || 까닭 === 'BLOCKED';
-  });
-  return 멈춤 ?? 시작한[0];
+  const 마지막 = 시작한[시작한.length - 1]!;
+  const 까닭 = 판정아닌까닭을가른다(마지막.status, 마지막.message);
+  return 마지막.status === 'FAIL' || 까닭 === 'TIMEOUT' || 까닭 === 'BLOCKED' ? 마지막 : 시작한[0];
 }
 
 /**
  * 오류 시각(`occurredAt` · UTC) 이상인 마지막 절차 시작의 케이스와 단계. 절차 시작이 다 늦거나 없으면 케이스 시작 시각으로 케이스만 맞추고 단계는 비운다.
+ * 그 절차 뒤 오류 전에 다음 케이스가 시작했으면 그 케이스의 준비 구간에서 난 것이라 그 케이스에 붙이고 단계는 비운다.
  * 그것도 안 맞거나 시각이 없으면(옛 SDK) logcat 과 같이 깨진 케이스다. 시각이 같으면 뒤 차례가 이긴다 — 넘기는 차례가 프로시저 안 차례다
  */
 export function 시각으로붙인다<T extends 단위케이스>(때: string | null, 시작한: readonly [T, ...T[]]): { 케이스: T; seq: number | null } {
@@ -39,8 +39,8 @@ export function 시각으로붙인다<T extends 단위케이스>(때: string | n
         if (시작 <= 오류때 && (절차 === null || 시작 >= 절차.시작)) 절차 = { 케이스: c, seq: s.seq, 시작 };
       }
     }
+    if (케이스 !== null) return { 케이스: 케이스.케이스, seq: 절차?.케이스 === 케이스.케이스 ? 절차.seq : null };
     if (절차 !== null) return { 케이스: 절차.케이스, seq: 절차.seq };
-    if (케이스 !== null) return { 케이스: 케이스.케이스, seq: null };
   }
   return { 케이스: 깨진케이스(시작한), seq: null };
 }

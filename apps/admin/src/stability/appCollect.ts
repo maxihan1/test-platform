@@ -70,7 +70,8 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
   const 단계 = new Map<number, { seq: number; startedAt: string | null }[]>();
   if (게임) {
     const 줄들 = await pool.query<{ history_id: string; seq: number; started_at: Date | null }>(
-      'SELECT history_id, seq, started_at FROM run_item_step WHERE history_id = ANY($1)',
+      // 시각이 같은 절차는 뒤 차례가 이긴다 — 차례가 읽을 때마다 바뀌지 않게 둔다
+      'SELECT history_id, seq, started_at FROM run_item_step WHERE history_id = ANY($1) ORDER BY history_id, seq',
       [항목.map((i) => i.history_id)],
     );
     for (const s of 줄들.rows) {
@@ -104,7 +105,10 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
       단계: 단계.get(Number(i.history_id)) ?? [],
     }));
     const [첫, ...나머지] = 시작한;
-    if (첫 === undefined) continue;
+    if (첫 === undefined) {
+      console.warn(`[stability] 실행 ${String(runId)} 의 실행 단위 ${String(번호)} — 기록은 있지만 시작한 케이스가 없어 그 오류를 세지 않는다`);
+      continue;
+    }
     const 케이스들 = [첫, ...나머지] as const;
     for (const c of 케이스들) 판정.set(c.i.tc_id, true);
     // 견본은 넣을 때 그 항목 값의 비밀값을 글자째 가린다 — Issue Bunker 실패 본문의 logcat 줄과 같은 가림.
@@ -126,10 +130,11 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
       넣는다(깨진, e.지문, e.견본, null, e.hits, true);
     }
     if (게임글 !== null) {
-      // 같은 단위 logcat 에 크래시 · ANR 도 남았으면 「크래시 연결」이다 (공통/4 stab_occurrence.crash)
+      // 같은 케이스에 크래시 · ANR 도 붙었으면 「크래시 연결」이다 (공통/4 stab_occurrence.crash) — 프로시저는 크래시가 붙은 케이스만이다.
+      // 한참 앞에서 통과한 케이스의 Exception 까지 그 크래시에 잇지 않게
       for (const e of 게임항목오류(게임글, 단계.get(Number(첫.i.history_id)) ?? [])) {
         const 자리 = 프로시저 ? 시각으로붙인다(e.때, 케이스들) : { 케이스: 첫, seq: e.seq };
-        넣는다(자리.케이스.i, e.지문, e.견본, 자리.seq, e.hits, 앱오류.length > 0);
+        넣는다(자리.케이스.i, e.지문, e.견본, 자리.seq, e.hits, 앱오류.length > 0 && 자리.케이스.i === 깨진);
       }
     }
   }

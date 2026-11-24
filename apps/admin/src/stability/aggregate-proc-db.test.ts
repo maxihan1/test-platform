@@ -143,7 +143,7 @@ describe.skipIf(연결 === undefined)('안정화 게임 집계 — 프로시저'
     ).rows;
     expect(발생).toEqual([
       { source: 'APP_CRASH', tc_id: 'XGQ-FN-102', seq: null, crash: true },
-      { source: 'GAME_EXCEPTION', tc_id: 'XGQ-FN-101', seq: 2, crash: true },
+      { source: 'GAME_EXCEPTION', tc_id: 'XGQ-FN-101', seq: 2, crash: false },
     ]);
     const 견본 = (
       await pool.query<{ text: string }>(
