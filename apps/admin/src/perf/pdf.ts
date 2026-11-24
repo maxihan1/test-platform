@@ -4,6 +4,7 @@
 import { chromium } from '@playwright/test';
 
 import { enqueue } from '../execution/dispatcher.js';
+import { 한국시각 } from '../kst.js';
 import { 문서판 } from '../reporting/html.js';
 import { 안전 } from '../reporting/htmlItem.js';
 import { percentile } from './hist.js';
@@ -42,7 +43,7 @@ export function 결과HTML(d: 결과문서): string {
     `<tr><td>${지표글[t.metric]}</td><td>${안전(t.scope ?? '전체')}</td><td>${t.op === '<=' ? '≤' : '≥'} ${값글(t.metric, t.value)}</td><td>${값글(t.metric, t.measured)}</td><td>${t.verdict === 'PASS' ? 'Pass' : 'Fail'}</td><td>${근거글[t.source]}${t.reqId ? ` ${안전(t.reqId)}` : ''}</td></tr>`);
   return 문서판(`${실행번호글(d.id)} ${d.title}`, [
     `<header><h1>${안전(`${실행번호글(d.id)} ${d.title}`)}</h1>`,
-    `<p>${안전(유형글[d.testType ?? ''] ?? '')} · 대상 서버 ${안전(d.env)} · 시작 ${d.startedAt === null ? '—' : 안전(d.startedAt.toISOString())} · 판정 ${판정글(d.verdict, d.status)}</p>`,
+    `<p>${안전(유형글[d.testType ?? ''] ?? '')} · 대상 서버 ${안전(d.env)} · 시작 ${d.startedAt === null ? '—' : 안전(한국시각(d.startedAt.toISOString()))} · 판정 ${판정글(d.verdict, d.status)}</p>`,
     d.testType === 'STRESS' && d.peakVus !== null ? `<p>최대 동시 사용자 ${d.peakVus}명</p>` : '',
     `</header>`,
     `<h2>AI 분석</h2>`,

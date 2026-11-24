@@ -42,7 +42,7 @@ export function SchedWizard({
 }) {
   const t = use말();
   const 언어 = use언어();
-  // 시간대는 세트를 만든 브라우저 것이고 고칠 때는 만든 때 것 그대로다 (§3.16 결정 6 · §7 PUT)
+  // 새 세트는 한국 시간(Asia/Seoul)이고 고칠 때는 만든 때 것 그대로다 (§3.16 결정 6 · §7 PUT)
   const tz = 세트?.tz ?? 서울;
   const [v, setV] = useState(() => 처음값(세트, 시간대로(new Date(), tz).날));
   const 값 = (덮: 덮을값) => setV((앞) => ({ ...앞, ...덮 }));

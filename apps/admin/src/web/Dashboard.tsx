@@ -179,7 +179,7 @@ export function Dashboard({
           <div className="empty dash-error" role="alert">
             {읽음.틀린시간대 === null
               ? 읽음.글
-              : t('이 브라우저의 시간대 「{시간대}」를 서버가 알아보지 못해 현황을 불러오지 못했습니다', {
+              : t('서버가 시간대 「{시간대}」를 알아보지 못해 현황을 불러오지 못했습니다', {
                   시간대: 읽음.틀린시간대,
                 })}
           </div>

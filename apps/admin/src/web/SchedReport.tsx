@@ -36,7 +36,7 @@ export function SchedReport({
 }) {
   const t = use말();
   const 언어 = use언어();
-  // 시간대는 만든 브라우저 것이고 고칠 때는 만든 때 것 그대로다 (§3.16 결정 6 · §7 PUT)
+  // 새 일정은 한국 시간(Asia/Seoul)이고 고칠 때는 만든 때 것 그대로다 (§3.16 결정 6 · §7 PUT)
   const tz = 세트?.tz ?? 서울;
   // 신규는 시안 그대로 「주간 QA 리포트 · 매주 금 18:00 · 이번 주」로 연다
   const [v, setV] = useState(() =>
