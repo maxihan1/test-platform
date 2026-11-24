@@ -13,7 +13,7 @@
 |------|------|--------|
 | `bash` | 실행 전 | 강제 push(`--force-with-lease` · `-fu` 같은 묶은 깃발 · `+참조` 포함) · 브랜치 강제 삭제(`-D` · `-d -f` · `--delete --force`) · 마이그레이션 되돌리기(`dbmate down` · `rollback` 포함) · 루트 · 홈 폴더 자체 삭제(`-rf` · `-fr` · `-r -f` · `~` · `$HOME` 포함, `/Users/<이름>/` 안쪽은 허용) · 무늬로 프로세스 끄기(`pkill -f` · `$(pgrep -f …)`). `bash -c '…'` · `eval "…"` 로 감싼 명령은 따옴표 안도 본다. **화면 훑기 보조(`author-scan`)에서만** playwright cli 로 브라우저를 움직이기 전에 그 세션에 GET · HEAD · OPTIONS 말고는 끊는(로그아웃 · 탈퇴 · 크롤러의 동작 낱말 주소는 GET 도) 가로채기를 걸고(못 걸면 막는다 · 건 세션은 임시 폴더 `scan-guard/` 표시로 다시 묻지 않고 open · close 가 지운다 · 표시는 playwright 세션 공간 단위라 같은 설치를 쓰는 다른 폴더가 같은 세션을 다시 열어도 지워진다), `guard.mjs` `못씀`(`run-code` · `route` · `unroute` · `network-state-set`) · 주소를 단 `open` · 같은 명령에서 연 세션 움직이기 · 한 명령에 세션 둘을 막는다(도메인/작성 §3.6 「★ 역방향」 훑기 규칙 · PRD-F9-27) |
 | `tests` | 수정 후 | 작업 폴더 안 `tests/**` 의 주석 · `expect` 직접 호출 |
-| `fanout` | 보조(Agent) 띄우기 전 | **작성 자식에서만**(`AUTHORING_GATE3_DIR` 이 있을 때) 케이스 작성 보조의 다섯 번째 묶음 · 같은 묶음 세 번째 띄우기(도메인/작성 §3.6 팬아웃) |
+| `fanout` | 보조(Agent) 띄우기 전 | **작성 자식에서만**(`AUTHORING_GATE3_DIR` 이 있을 때) 케이스 작성 보조의 다섯 번째 묶음 · 같은 묶음 세 번째 띄우기(도메인/작성 §3.6 팬아웃). 프로시저로 쓰는 작성은 묶음 이름 머리(`화면 단계 — ` · `프로시저 단계 — `)로 갈라 단계마다 센다 |
 
 exit 2 로 막고, stderr 에 적은 이유와 대안을 Claude 가 읽고 스스로 고친다.
 배선과 구현이 어긋나면 `.claude/scripts/guard-wiring.test.mjs` 가 잡는다. 금지 명령 판정 정본은 `guard.mjs` 의 `isBanned()`.

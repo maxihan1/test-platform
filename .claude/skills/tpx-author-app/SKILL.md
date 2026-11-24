@@ -21,6 +21,8 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 | `tpx-author/references/app.md` | 앱 화면 절을 읽을 때 · 역방향이면 `reverse.md` §2~§3.5 대신 §6 · 앱 탐색 절이 오거나 자료 폴더에 `app-route.txt` 가 있으면 §7 |
 | `tpx-cases/references/5-stable-app.md` | `5-stable.md` 를 열 때 이어서 — 공용 부품 · 누르기 · 읽기 |
 | `tpx-cases/references/5-writing-app.md` | `5-writing.md` 를 열 때 이어서 — `keepAppData` · `launchIntent` |
+| `tpx-cases/references/procedure.md` | 프롬프트 머리에 「이 애플리케이션은 테스트 프로시저로 쓴다.」 줄이 있으면 표를 쓰기 전 — 흐름 짜기 · 프로시저 절 · 파일 꼴 · 돌려 보기 |
+| `tpx-author/references/fanout-procedure.md` | 그 줄이 있고 케이스 쓰기를 나눠 맡길 때 `fanout.md` 에 이어서 — 화면 파일 먼저, 그다음 프로시저 |
 
 ## 열지 않는 파일
 
@@ -31,7 +33,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 보조 AI 에게 넘길 읽기 목록
 
-- **케이스 작성 보조** — `fanout.md` §4 뼈대의 「먼저 Read 로 연다」 줄 그대로에 `4-selector-common.md` · `5-stable-app.md` · `5-writing-app.md` 를 더하고, 줄 끝에 「종류는 「Android 앱」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다
+- **케이스 작성 보조** — `fanout.md` §4 뼈대의 「먼저 Read 로 연다」 줄 그대로에 `4-selector-common.md` · `5-stable-app.md` · `5-writing-app.md` 를 더하고, 줄 끝에 「종류는 「Android 앱」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다. 프로시저로 쓰는 작성이면 단계마다 여는 것이 다르다 — `fanout-procedure.md` 를 따른다
 
 ## 이 종류만의 규칙
 

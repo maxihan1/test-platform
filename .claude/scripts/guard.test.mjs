@@ -203,6 +203,26 @@ test('훅이 세는 문구가 fanout.md §4 뼈대 첫 줄과 맞는다 — 뼈�
   assert.deepEqual(fanoutVerdict([], 뼈대.replace('<묶음 이름>', '장바구니')), { 셈: '장바구니' });
 });
 
+test('프로시저 팬아웃은 단계마다 따로 센다 — 화면 단계 넷을 띄운 뒤에도 프로시저 단계 넷을 띄운다 (2026-11-25 TP-F5-31)', () => {
+  const 화면 = ['가방', '상점', '강화', '우편'].map((n) => `화면 단계 — ${n}`);
+  const 프로시저 = ['가', '나', '다', '라'].map((n) => `프로시저 단계 — ${n}`);
+  assert.deepEqual(fanoutVerdict(화면, 작성프롬프트('프로시저 단계 — 가')), { 셈: '프로시저 단계 — 가' });
+  assert.ok(fanoutVerdict(화면, 작성프롬프트('화면 단계 — 길드')).거절);
+  assert.ok(fanoutVerdict([...화면, ...프로시저], 작성프롬프트('프로시저 단계 — 마')).거절);
+  assert.deepEqual(fanoutVerdict([...화면, ...프로시저], 작성프롬프트('프로시저 단계 — 라')), { 셈: '프로시저 단계 — 라' });
+  assert.ok(fanoutVerdict([...화면, '화면 단계 — 우편'], 작성프롬프트('화면 단계 — 우편')).거절);
+});
+
+test('훅이 세는 단계 머리가 fanout-procedure.md 두 뼈대 첫 줄과 맞는다', async () => {
+  const { readFileSync } = await import('node:fs');
+  const 줄들 = readFileSync(new URL('../skills/tpx-author/references/fanout-procedure.md', import.meta.url), 'utf8').split('\n');
+  for (const [단계, 다른] of [['화면 단계', '프로시저 단계'], ['프로시저 단계', '화면 단계']]) {
+    const 뼈대 = 줄들.find((줄) => 줄.trim().startsWith('>') && 줄.includes(`「${단계} — <묶음 이름>」 묶음을 만든다`));
+    assert.ok(뼈대, `fanout-procedure.md 에 「${단계} — 」 뼈대 첫 줄이 없다`);
+    assert.deepEqual(fanoutVerdict([1, 2, 3, 4].map((n) => `${다른} — ${n}`), 뼈대.replace('<묶음 이름>', '가방')), { 셈: `${단계} — 가방` });
+  }
+});
+
 test('거절 글은 남은 묶음을 자식이 직접 쓰라고 알린다', () => {
   assert.match(fanoutVerdict(['a', 'b', 'c', 'd'], 작성프롬프트('e')).거절, /직접 쓴다/);
 });
