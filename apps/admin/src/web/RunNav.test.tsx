@@ -27,9 +27,9 @@ describe('실행기록주소', () => {
     expect(실행기록주소('e2e', '', 'MKT')).toBe('#/runs/e2e?service=MKT');
   });
 
-  it('걸어 둔 조건을 그대로 두고 접두사는 그 실행의 것으로 덮는다 — 다른 애플리케이션을 고른 채 열어도 그 실행의 목록으로 간다', () => {
+  it('걸어 둔 조건을 그대로 두고, 조건에 애플리케이션이 없을 때만 그 실행의 접두사를 단다', () => {
     expect(실행기록주소('fn', 'state=failed&page=2', 'MKT')).toBe('#/runs/fn?state=failed&page=2&service=MKT');
-    expect(실행기록주소('fn', 'state=failed&service=ZRL', 'MKT')).toBe('#/runs/fn?state=failed&service=MKT');
+    expect(실행기록주소('e2e', 'state=failed&service=ZRL', 'MKT')).toBe('#/runs/e2e?state=failed&service=ZRL');
   });
 });
 

@@ -138,8 +138,8 @@ describe('ScenarioRunList 줄', () => {
 
     const [첫, 둘] = 줄들(container) as [HTMLElement, HTMLElement];
     expect(첫.tagName).toBe('A');
-    expect(첫.getAttribute('href')).toBe('#/runs/11');
-    expect(둘.getAttribute('href')).toBe('#/runs/12');
+    expect(첫.getAttribute('href')).toBe('#/runs/11?list=service%3DZSL');
+    expect(둘.getAttribute('href')).toBe('#/runs/12?list=service%3DZSL');
     const 칸 = 칸들(첫);
     expect(칸).toHaveLength(8);
     expect(칸[1]).toBe('11');
@@ -241,7 +241,7 @@ describe('ScenarioRunList 줄', () => {
     await screen.findByText(/ZSL 시나리오 11/);
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'failed' } });
-    await waitFor(() => expect(줄들(container)[0]?.getAttribute('href')).toBe('#/runs/11?list=state%3Dfailed'));
+    await waitFor(() => expect(줄들(container)[0]?.getAttribute('href')).toBe('#/runs/11?list=state%3Dfailed%26service%3DZSL'));
   });
 });
 

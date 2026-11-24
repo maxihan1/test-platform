@@ -15,7 +15,14 @@ import { message } from './ui.js';
 /** 결과에서 돌아갈 곳. 들어온 곳을 주소 `from` 에 실어 온다 — 없으면 실행 기록이다 */
 export type 들어온곳 = 'scenarios' | 'scenario' | null;
 
-export const 결과주소 = (runId: number, 어디서: 들어온곳) => (어디서 === null ? `#/runs/${runId}` : `#/runs/${runId}?from=${어디서}`);
+export function 결과주소(runId: number, 어디서: 들어온곳, 목록 = ''): string {
+  const 칸 = new URLSearchParams();
+  if (어디서 !== null) 칸.set('from', 어디서);
+  // 실행 기록에서 온 결과에서 다시 실행하면 그 목록 조건을 넘긴다 (도메인/실행 §8.7 「결과 화면 위의 길」)
+  if (목록 !== '') 칸.set('list', 목록);
+  const 글 = 칸.toString();
+  return 글 === '' ? `#/runs/${runId}` : `#/runs/${runId}?${글}`;
+}
 
 /**
  * 실패한 첫 단계. 실패가 없으면 그 단계 탓으로 멈춘 판정 없음(NA) 첫 단계 — 러너 거절 · 제한 시간 초과가 그렇다.

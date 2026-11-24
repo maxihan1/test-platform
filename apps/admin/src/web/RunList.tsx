@@ -124,8 +124,10 @@ function 실행목록({ service, envs, kind }: Props) {
   // 총건수로 페이지 수를 계산하지 않는다 (SPEC §8.7 — §8.1 과 같은 함정이다)
   const 더있나 = 다음이있나(runs.data);
   const 건조건 = q !== '' || state !== undefined || env !== '' || origin !== undefined || days !== undefined;
-  // 결과 화면이 이 조건으로 「← 실행 기록」 · 「이전 · 다음 실행」을 잡는다
-  const 목록조건 = new URLSearchParams(걸린조건).toString();
+  // 결과 화면이 이 조건으로 「← 실행 기록」 · 「이전 · 다음 실행」을 잡는다. 쪽은 싣지 않는다 — 옆 실행으로 넘어가면 그 실행이 그 쪽에 없다.
+  // 애플리케이션은 싣는다 — 결과 화면이 돌아갈 목록을 실행에서 짐작하지 않는다(E2E 는 첫 단계가 다른 애플리케이션일 수 있다)
+  const { page: _쪽, ...쪽뺀조건 } = 걸린조건;
+  const 목록조건 = new URLSearchParams({ ...쪽뺀조건, ...(service === '' ? {} : { service }) }).toString();
 
   // 거르개를 바꾸면 첫 쪽으로 간다
   function 거르기(바꾸기: () => void) {

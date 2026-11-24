@@ -7,6 +7,7 @@ import { 정식이름줄들, 목록줄들 } from './e2eWindowView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { RunAbortModal } from './RunAbortModal.js';
+import { 목록조건읽기 } from './RunNav.js';
 import { scenarioApi, type ScenarioRunPart, type ScenarioRunResult } from './scenarioApi.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 결과주소, type 들어온곳 } from './ScenarioResultNext.js';
@@ -98,7 +99,7 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
                 className="btn"
                 onClick={() => {
                   닫는다();
-                  window.location.hash = 결과주소(runId, 어디서);
+                  window.location.hash = 결과주소(runId, 어디서, 목록조건읽기());
                 }}
               >
                 {t('결과 보기')}

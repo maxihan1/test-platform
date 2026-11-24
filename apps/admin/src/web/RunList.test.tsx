@@ -76,7 +76,7 @@ describe('RunList 목록만 그린다', () => {
     const { container } = await 그리기();
     await screen.findByText('ZRL 실행 2113');
 
-    expect(줄들(container).map((el) => el.getAttribute('href'))).toEqual(['#/runs/2113', '#/runs/2112']);
+    expect(줄들(container).map((el) => el.getAttribute('href'))).toEqual(['#/runs/2113?list=service%3DZRL', '#/runs/2112?list=service%3DZRL']);
     expect(window.location.hash).toBe('#/runs/fn?service=ZRL');
   });
 });
@@ -120,8 +120,16 @@ describe('RunList 거르개 — 거르는 일은 서버가 한다', () => {
     await screen.findByText('ZRL 실행 2113');
 
     fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'failed' } });
-    await waitFor(() => expect(줄들(container)[0]?.getAttribute('href')).toBe('#/runs/2113?list=state%3Dfailed'));
-    expect(줄들(container)[1]?.getAttribute('href')).toBe('#/runs/2112?list=state%3Dfailed');
+    await waitFor(() => expect(줄들(container)[0]?.getAttribute('href')).toBe('#/runs/2113?list=state%3Dfailed%26service%3DZRL'));
+    expect(줄들(container)[1]?.getAttribute('href')).toBe('#/runs/2112?list=state%3Dfailed%26service%3DZRL');
+  });
+
+  it('쪽은 list 에 싣지 않는다 — 옆 실행으로 넘어가면 그 실행이 그 쪽에 없다', async () => {
+    window.location.hash = '#/runs/fn?state=failed&page=2&service=ZRL';
+    const { container } = await 그리기();
+    await screen.findByText('ZRL 실행 2113');
+
+    expect(줄들(container)[0]?.getAttribute('href')).toBe('#/runs/2113?list=state%3Dfailed%26service%3DZRL');
   });
 
   it('애플리케이션을 바꾸면 건 조건을 버린다 — 남기면 다른 애플리케이션에서 「없다」만 보여준다', async () => {

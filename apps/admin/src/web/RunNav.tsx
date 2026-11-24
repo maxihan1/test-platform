@@ -12,10 +12,10 @@ import { useAsync } from './ui.js';
 /** 실행 기록에서 넘어올 때 걸어 둔 조건(주소의 `list=`). 다른 고리로 바로 열었으면 빈 글이다 */
 export const 목록조건읽기 = (): string => 주소조건().get('list') ?? '';
 
-/** 그 조건이 걸린 실행 기록 주소. 접두사를 달아 다른 애플리케이션을 고른 채 열어도 그 실행의 애플리케이션 목록으로 간다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」) */
+/** 그 조건이 걸린 실행 기록 주소. 조건에 애플리케이션이 없을 때만(알림처럼 목록을 안 거치고 열었을 때) 접두사를 달아 그 실행의 애플리케이션 목록으로 간다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」) */
 export function 실행기록주소(목록: 'fn' | 'ui' | 'e2e', 조건글: string, 접두사: string | null): string {
   const 조건 = new URLSearchParams(조건글);
-  if (접두사 !== null) 조건.set('service', 접두사);
+  if (접두사 !== null && !조건.has('service')) 조건.set('service', 접두사);
   const 글 = 조건.toString();
   return 글 === '' ? `#/runs/${목록}` : `#/runs/${목록}?${글}`;
 }

@@ -70,7 +70,9 @@ function 시나리오실행목록({ service }: { service: string }) {
   // 총건수로 페이지 수를 계산하지 않는다 (SPEC §8.7)
   const 더있나 = 다음이있나(runs.data);
   const 건조건 = q !== '' || state !== undefined;
-  const 목록조건 = new URLSearchParams(걸린조건).toString();
+  // 쪽은 싣지 않고 애플리케이션은 싣는다 — RunList 와 같은 까닭이다
+  const { page: _쪽, ...쪽뺀조건 } = 걸린조건;
+  const 목록조건 = new URLSearchParams({ ...쪽뺀조건, ...(service === '' ? {} : { service }) }).toString();
 
   function 찾기(term: string) {
     setQ(term);

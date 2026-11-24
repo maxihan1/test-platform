@@ -21,7 +21,7 @@ export function 시작글(iso: string, 언어: 언어, 지금 = new Date()): str
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
+    hourCycle: 'h23',
   }).format(때);
 }
 

@@ -96,4 +96,16 @@ describe('돌아갈 곳', () => {
     fireEvent.click(await within(창).findByRole('button', { name: '결과 보기' }));
     expect(window.location.hash).toBe('#/runs/89?from=scenarios');
   });
+
+  it('실행 기록에서 온 결과에서 다시 실행하면 새 결과에도 그 목록 조건을 넘긴다', async () => {
+    window.location.hash = '#/runs/77?list=state%3Dfailed%26service%3DZSR';
+    연다(결과());
+    vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 89 });
+    fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
+    vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과({ status: 'FINISHED', finishedAt: '2026-11-06T00:00:00.000Z' }));
+    const 창 = await screen.findByRole('dialog', { name: /RUN 89/ });
+    fireEvent.click(await within(창).findByRole('button', { name: '결과 보기' }));
+    expect(window.location.hash).toBe('#/runs/89?list=state%3Dfailed%26service%3DZSR');
+  });
 });

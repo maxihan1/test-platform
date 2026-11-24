@@ -6,6 +6,7 @@ import { api } from './api.js';
 import { use언어 } from './i18n.js';
 import { 실행결과주소 } from './route.js';
 import type { 실행요청 } from './pickRun.js';
+import { 목록조건읽기 } from './RunNav.js';
 import { 지켜본다 } from './runWatchStore.js';
 import { message } from './ui.js';
 
@@ -49,7 +50,8 @@ export function useRunStart() {
         return true;
       }
       // 그 실행의 결과 화면으로 간다 — 뒤로 가면 떠난 목록의 조건이 그대로다 (도메인/실행 §8.7 「목록 화면과 결과 화면을 따로」)
-      window.location.hash = 실행결과주소(runId);
+      // 결과 화면에서 걸었으면(「Fail N건 다시 실행」) 그 화면이 쥔 목록 조건을 넘긴다 — 「← 실행 기록」이 같은 목록으로 돌아간다
+      window.location.hash = 실행결과주소(runId, { 목록: 목록조건읽기() });
       // 옮긴 뒤에도 진행 창을 바로 연다 — 앞 판은 알약 「N/12 완료」를 눌러야 열려 시험에서 못 찾았다 (점검표 B7 · §8.16 ⑤)
       지켜본다({ runId, 열림: true });
       return true;
