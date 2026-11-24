@@ -137,6 +137,7 @@ function Screen({
           envs={service?.envs ?? []}
           피그마토큰={service?.hasFigmaToken !== false}
           앱종류={service?.kind}
+          한종류={service?.procedureMode === true}
           pc={service?.kind === 'GAME' && service.gamePlatform === 'windows' ? { 패드: service.gamePads ?? [], 빌드: service.latestBuildNo ?? null } : undefined}
           할수={할수}
         />

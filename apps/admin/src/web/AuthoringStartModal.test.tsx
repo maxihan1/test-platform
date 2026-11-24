@@ -105,6 +105,17 @@ describe('테스트 작성 시작 모달', () => {
     await vi.waitFor(() => expect(부른횟수).toBeGreaterThan(1));
   });
 
+  it('「프로시저 작성」을 켠 애플리케이션은 커버 숫자를 상세와 같이 케이스로 적는다', async () => {
+    답 = 줄({
+      status: 'DONE',
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+      coverage: { total: 10, cased: 4, held: 0, excluded: {}, missing: [], later: [], casedFn: 3, casedUi: 2 },
+    });
+    render(<AuthoringStartModal service="MKT" id={5872} 한종류 onClose={() => undefined} />);
+    expect(await screen.findByText(/기능 케이스가 커버한 것 3 · UI 케이스가 커버한 것 2/)).toBeTruthy();
+  });
+
   it('끝난 요청은 다시 읽지 않는다', async () => {
     답 = 줄({ status: 'DONE', startedAt: new Date().toISOString(), finishedAt: new Date().toISOString() });
     vi.useFakeTimers();

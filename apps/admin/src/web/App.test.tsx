@@ -233,3 +233,27 @@ describe('링크에 애플리케이션이 담긴다 (WEB-F8-02)', () => {
     expect(screen.queryByText(안내)).toBeNull();
   });
 });
+
+describe('「프로시저 작성」을 켠 애플리케이션의 작성 상세 (TP-F5-30)', () => {
+  it('띠에서 고른 애플리케이션의 스위치가 작성 상세까지 닿아 단추가 하나로 선다', async () => {
+    세.나 = { ...모두쓴다, services: 모두쓴다.services.map((s) => ({ ...s, kind: 'APP' as const, procedureMode: true })) };
+    const 때 = '2026-11-25T00:00:00.000Z';
+    const 케이스 = (tcId: string) => ({ tcId, name: tcId, file: `tests/zap/${tcId}.spec.ts`, change: 'NEW', verifies: [], reqs: [] });
+    const 공통 = { sourceId: null, status: 'DONE', stage: '끝', stageAt: 때, requestedByName: '테스터', claimedBy: '맥', prUrl: null, error: null, createdAt: 때, startedAt: 때, finishedAt: 때, rootId: 7, serviceId: 7 };
+    const runs = [
+      { id: 8, kind: 'MERGE', status: 'DONE' },
+      { id: 7, kind: 'AUTHOR', status: 'DONE' },
+    ].map((r) => ({ ...r, resumeFrom: null, stopReason: null, error: null, createdAt: 때, startedAt: 때, finishedAt: 때, caseFiles: null, tokens: null, prUrl: null }));
+    const 앞 = globalThis.fetch;
+    vi.stubGlobal('fetch', (url: string, init?: RequestInit) => {
+      const 번호 = /^\/api\/authoring\/requests\/([78])(\?|$)/.exec(url)?.[1];
+      if (번호 === '7') return Promise.resolve(답(200, { ...공통, id: 7, kind: 'AUTHOR', runs, cases: [케이스('ZAP-FN-001'), 케이스('ZAP-UI-002')] }));
+      if (번호 === '8') return Promise.resolve(답(200, { ...공통, id: 8, kind: 'MERGE', runs, result: { pulled: true } }));
+      return 앞(url, init);
+    });
+    await 간다('#/authoring/7');
+    render(<앱뿌리 />);
+    expect(await screen.findByRole('button', { name: '테스트 2건 바로 실행' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /UI 테스트 .*바로 실행/ })).toBeNull();
+  });
+});

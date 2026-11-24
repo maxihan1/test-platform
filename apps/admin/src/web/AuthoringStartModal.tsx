@@ -9,7 +9,7 @@ import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
-export function AuthoringStartModal({ service, id, onClose }: { service: string; id: number; onClose: () => void }) {
+export function AuthoringStartModal({ service, id, 한종류 = false, onClose }: { service: string; id: number; 한종류?: boolean; onClose: () => void }) {
   const t = use말();
   const 것 = useAsync<AuthoringRow>(() => api.authoringRequest(service, id), [service, id]);
   const reload = 것.reload;
@@ -54,7 +54,7 @@ export function AuthoringStartModal({ service, id, onClose }: { service: string;
           <small>{t('창을 닫아도 작성은 계속 진행됩니다. 테스트 작성 목록에서 #{번호}를 누르면 다시 볼 수 있습니다.', { 번호: id })}</small>
         </div>
       </div>
-      {것.error !== null ? <Failed error={것.error} /> : 것.data === null ? <Loading /> : <AuthoringStatusCard 요청={것.data} 지금={Date.now()} service={service} 세로단계 />}
+      {것.error !== null ? <Failed error={것.error} /> : 것.data === null ? <Loading /> : <AuthoringStatusCard 요청={것.data} 지금={Date.now()} service={service} 한종류={한종류} 세로단계 />}
     </Modal>
   );
 }
