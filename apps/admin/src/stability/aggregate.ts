@@ -162,8 +162,12 @@ async function trace를기다린다(pool: Pool, 번호들: number[], 상한ms: n
  */
 async function logcat을기다린다(pool: Pool, 번호들: number[], 상한ms: number, 간격ms: number): Promise<void> {
   const 항목 = (
-    await pool.query<{ run_id: string; history_id: string }>("SELECT run_id, history_id FROM run_item WHERE run_id = ANY($1) AND platform = 'android'", [번호들])
-  ).rows.map((r) => [Number(r.run_id), Number(r.history_id)] as const);
+    // 폴더는 실행 단위마다 하나다 — 프로시저는 케이스 줄 번호로 보면 빈 폴더라 늘 기록 없음이 된다 (§3.15 「테스트 프로시저」 기록은 실행 단위에 한 벌)
+    await pool.query<{ run_id: string; unit: string }>(
+      "SELECT DISTINCT run_id, COALESCE(exec_id, history_id) AS unit FROM run_item WHERE run_id = ANY($1) AND platform = 'android'",
+      [번호들],
+    )
+  ).rows.map((r) => [Number(r.run_id), Number(r.unit)] as const);
   const 마감 = Date.now() + 상한ms;
   for (;;) {
     // 15초마다 항목 전부를 보므로 이 볼륨의 파일만 본다 — 터널 너머 러너까지 물으면 한 바퀴가 간격보다 길어진다. 번호 파일도 이 볼륨만 본다
