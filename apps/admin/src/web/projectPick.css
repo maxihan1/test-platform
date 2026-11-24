@@ -1,4 +1,4 @@
-/* 로그인 직후 프로젝트 고르기 (SPEC 공통/5-화면공통 §8 「프로젝트 고르기」 · 2026-10-19 시안 A). 색은 토큰만 쓴다 */
+/* 로그인 직후 프로젝트 고르기 (SPEC 공통/5-화면공통 §8 「프로젝트 고르기」 · 2026-11-24 시안 A안 · 휴대폰 2판 ①). 색은 토큰만 쓴다 */
 
 .pp {
   display: flex;
@@ -7,19 +7,24 @@
   background: var(--bg);
 }
 
+/* ── 머리 줄 — 본 화면 사이드바와 같은 로고 ── */
+
 .pp-top {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 24px;
-  background: var(--well);
+  background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 
-.pp-logo {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+/* 글꼴 · 「Commander」 색과 움직임은 사이드바 로고(.side-logo · rail.css)를 그대로 쓰고 자리만 바꾼다 — 사이드바에서는 칸을 채우지만 여기서는 왼쪽 끝 한 덩이다 */
+.pp-top .pp-logo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
 }
 
 .pp-gap {
@@ -27,95 +32,388 @@
 }
 
 .pp-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--ink-muted);
   font-size: 14px;
 }
 
+.pp-user .side-ico {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── 본문 ── */
+
 .pp-main {
-  flex: 1;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 40px 16px;
+  gap: 28px;
+  padding: 48px 24px 64px;
+}
+
+.pp-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .pp-h {
   margin: 0;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 600;
   letter-spacing: -0.015em;
 }
 
 .pp-sub {
-  margin: 0 0 20px;
+  margin: 0;
   color: var(--ink-muted);
   font-size: 14px;
-  text-align: center;
+}
+
+/* 머리글자 칸 — 이름만 늘어선 카드끼리 눈이 걸릴 곳이 없어 밋밋했다 (2026-11-24 사용자) */
+.pp-mono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--well);
+  color: var(--ink-muted);
+  font-weight: 700;
+}
+
+.pp-mono.is-recent {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-mark);
+  font-size: 20px;
+}
+
+/* ── 최근 프로젝트 — 다시 열릴 곳이라 대표색 테두리 하나만 쓴다 ── */
+
+.pp-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--accent-mark);
+  border-radius: 12px;
+}
+
+.pp-recent-h {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.pp-recent-name {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pp-chip {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-mark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pp-name {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.pp-go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pp-recent-apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pp-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--well);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pp-app .side-ico,
+.pp-kind .side-ico {
+  width: 15px;
+  height: 15px;
+}
+
+.pp-app-kind {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+/* 휴대폰에서만 — 단추 대신 이름 한 줄 */
+.pp-recent-line {
+  display: none;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+/* ── 다른 프로젝트 ── */
+
+.pp-others {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pp-others-h {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pp-h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pp-count {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.pp-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 280px;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-muted);
+}
+
+.pp-search .side-ico {
+  width: 16px;
+  height: 16px;
+}
+
+.pp-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
+.pp-search:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.pp-empty {
+  margin: 0;
+  color: var(--ink-muted);
 }
 
 .pp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  width: 100%;
-  max-width: 900px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .pp-card {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 22px;
+  min-width: 0;
+  padding: 18px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.pp-card:hover {
+.pp-card:hover,
+.pp-app:hover {
   border-color: var(--line-2);
 }
 
-.pp-card:focus-visible {
+:is(.pp-card, .pp-app, .pp-go):focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
-/* 마지막에 연 프로젝트 — 지금 고른 것이 아니라 다시 열릴 곳이라 대표색 테두리만 쓴다 */
-.pp-card.is-last {
-  border-color: var(--accent-mark);
-}
-
 .pp-card-h {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+}
+
+.pp-card-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .pp-card-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
 }
 
-.pp-chip {
-  padding: 2px 8px;
-  border-radius: 999px;
+.pp-card-count {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+/* 휴대폰에서만 — 한 줄씩 쌓인 카드가 눌러 들어가는 것임을 보인다 */
+.pp-chev {
+  display: none;
+  color: var(--ink-muted);
+}
+
+.pp-chev .side-ico {
+  width: 18px;
+  height: 18px;
+}
+
+.pp-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pp-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
   background: var(--well);
   color: var(--ink-muted);
   font-size: 12px;
 }
 
 .pp-apps {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  overflow: hidden;
   color: var(--ink-muted);
-  font-size: 13px;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .pp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 휴대폰 — 시안 2판 ① 카드마다 따로 (2026-11-24 사용자) */
+@media (max-width: 640px) {
+  .pp-top {
+    padding: 10px 16px;
+  }
+
+  .pp-user-name {
+    display: none;
+  }
+
+  .pp-main {
+    gap: 20px;
+    padding: 24px 16px 40px;
+  }
+
+  .pp-h {
+    font-size: 22px;
+  }
+
+  .pp-recent {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .pp-go {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .pp-recent-apps {
+    display: none;
+  }
+
+  .pp-recent-line {
+    display: block;
+  }
+
+  .pp-search {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .pp-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .pp-card {
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .pp-chev {
+    display: inline-flex;
+  }
+
+  .pp-apps {
+    display: none;
+  }
 }
