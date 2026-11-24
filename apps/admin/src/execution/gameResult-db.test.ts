@@ -227,6 +227,13 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
       await finishItem(초과, { historyId: 초과, status: 'FAIL', durationMs: 1, steps: [실패절차('/Hud/Attack 이 20초 안에 뜨지 않았습니다')] });
       expect(await 행들()).toEqual({ ...그대로, 공격: 'RECHECK 15' });
     });
+
+    it('앞 케이스에 막힌 항목(Blocked)의 깨진 절차는 행을 건드리지 않는다 — 길이 틀린 것이 아니라 앞 케이스 탓에 화면이 달라졌다', async () => {
+      await 맵을차린다();
+      const 막힘 = await 빌드로시작('16');
+      await finishItem(막힘, { historyId: 막힘, status: 'NA', durationMs: 1, error: { message: 'BLOCKED' }, steps: [실패절차('켜진 오브젝트 중에 /Hud/Attack 이 없습니다')] });
+      expect(await 행들()).toEqual(그대로);
+    });
   });
 
   it('지도를 못 채워도 판정과 절차는 남기고 알린다', async () => {
