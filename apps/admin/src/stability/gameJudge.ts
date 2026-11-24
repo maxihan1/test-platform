@@ -8,6 +8,8 @@ export interface 게임오류 {
   견본: string;
   /** 처음 난 것의 단계 */
   seq: number | null;
+  /** 처음 난 것의 occurredAt(UTC) — 옛 SDK 의 지역 시각이면 null. 프로시저는 이 시각으로 케이스를 고른다(procCase.ts) */
+  때: string | null;
   hits: number;
 }
 
@@ -38,7 +40,8 @@ export function 게임항목오류(글: string, 단계들: readonly { seq: numbe
       앞.hits += 1;
       continue;
     }
-    모음.set(지문.fingerprint, { 지문, 견본: d.줄.join('\n'), seq: 게임단계(UTC꼴.test(d.시각) ? d.시각 : null, 단계들), hits: 1 });
+    const 때 = UTC꼴.test(d.시각) ? d.시각 : null;
+    모음.set(지문.fingerprint, { 지문, 견본: d.줄.join('\n'), seq: 게임단계(때, 단계들), 때, hits: 1 });
   }
   return [...모음.values()];
 }
