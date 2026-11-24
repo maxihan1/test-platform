@@ -38,7 +38,12 @@ function 쓴이름들(sf: ts.SourceFile): Set<string> {
   const 이름 = new Set<string>();
   const 걷기 = (n: ts.Node): void => {
     if (ts.isImportDeclaration(n)) return;
-    if (ts.isIdentifier(n)) 이름.add(n.text);
+    // `a.이름` · `{ 이름: 값 }` 의 이름은 그 import 를 쓴 것이 아니다 — 쓴 것으로 치면 안 쓰는 import 가 남아 타입 검사가 막는다
+    if (ts.isIdentifier(n)) {
+      const 위 = n.parent;
+      const 속성이름 = (ts.isPropertyAccessExpression(위) || ts.isPropertyAssignment(위)) && 위.name === n;
+      if (!속성이름) 이름.add(n.text);
+    }
     n.forEachChild(걷기);
   };
   걷기(sf);

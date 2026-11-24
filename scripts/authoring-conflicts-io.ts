@@ -99,8 +99,14 @@ export function 겹침판읽기(
   if (틀림 !== undefined) return { 사유: `겹친 케이스의 번호나 이름 모양이 규칙과 다르다 — ${틀림.tcId}. 다시 작성한다` };
   // 같은 main 에서 출발한 두 요청은 새 프로시저에 같은 번호를 받는다 — 파일 이름이 곧 번호라 이름으로 견준다
   const main프로시저 = new Set(main길.flatMap((f) => 파일프로시저번호(f) ?? []));
-  const 프로시저겹침 = 더한길.filter((f) => main프로시저.has(파일프로시저번호(f) ?? ''));
-  const 자식길 = 목록(['ls-tree', '-r', '--name-only', '-z', 자식, '--', 폴더길]) ?? 더한길;
+  // 보류 「제거」로 케이스가 다 빠지는 파일은 반영이 지운다 — 남겨 두면 새 번호를 줄 파일이 없어 반영이 늘 실패한다
+  const 다빠짐 = (file: string) => {
+    const 번호들 = 케이스번호들(더한.find((c) => c.file === file)?.글 ?? '');
+    return 번호들.length > 0 && 번호들.every((id) => 입력.뺀것.has(id));
+  };
+  const 프로시저겹침 = 더한길.filter((f) => main프로시저.has(파일프로시저번호(f) ?? '') && !다빠짐(f));
+  const 자식길 = 목록(['ls-tree', '-r', '--name-only', '-z', 자식, '--', 폴더길]);
+  if (자식길 === null) return { 사유: '자식이 끝낸 커밋의 케이스 파일 목록을 못 읽었다' };
   const 쓴프로시저 = 쓴프로시저번호([...main길, ...자식길], [요청표, main표]);
   return { 자식커밋: 자식, mainSha, 합칠까: 합칠까(main바뀐, 표경로, 폴더), 겹침, 쓴번호, 프로시저겹침, 쓴프로시저 };
 }
