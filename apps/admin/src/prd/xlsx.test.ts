@@ -58,8 +58,8 @@ describe('추적표만들기', () => {
       1,
       1,
       '경계값 분석 2 · 동등 분할 1',
-      '통과 2 · 실패 1 · 미실행 2',
-      '2개 · 실패',
+      'Pass 2 · Fail 1 · Not tested 2',
+      '2개 · Fail',
     ]);
   });
 
@@ -80,8 +80,8 @@ describe('추적표만들기', () => {
 
   it('성능 목표 칸은 목표 수와 최근 판정을 싣고 판정이 아직 없으면 미실행, 목표가 없으면 비운다', async () => {
     const 칸 = async (perf: 추적표자료['perf']) => (await 읽기(await 추적표만들기({ ...자료(null), perf }, []))).줄;
-    expect((await 칸({ 'MKT-REQ-001': { targets: 1, verdict: 'PASS', runId: 3 } }))(2)[13]).toBe('1개 · 통과');
-    expect((await 칸({ 'MKT-REQ-001': { targets: 3, verdict: null, runId: null } }))(2)[13]).toBe('3개 · 미실행');
+    expect((await 칸({ 'MKT-REQ-001': { targets: 1, verdict: 'PASS', runId: 3 } }))(2)[13]).toBe('1개 · Pass');
+    expect((await 칸({ 'MKT-REQ-001': { targets: 3, verdict: null, runId: null } }))(2)[13]).toBe('3개 · Not tested');
     expect((await 칸({}))(2)[13]).toBeUndefined();
   });
 

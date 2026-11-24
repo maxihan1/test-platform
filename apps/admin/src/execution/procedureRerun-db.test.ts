@@ -167,7 +167,7 @@ describe.skipIf(연결 === undefined)('프로시저가 든 실행의 한 건 · 
 
     // 제목의 N 은 펼치기 전에 고른 케이스 수다
     const 여럿 = await 건다(['XPN-FN-103', 'XPN-FN-202'], { rerunOf: 원래 });
-    expect(await 줄(여럿.runId)).toEqual({ origin: 'RERUN', rerun_of: String(원래), kind: 'FN', title: `RUN ${String(원래)}의 실패 2건 다시`, n: 4 });
+    expect(await 줄(여럿.runId)).toEqual({ origin: 'RERUN', rerun_of: String(원래), kind: 'FN', title: `RUN ${String(원래)}의 Fail 2건 다시`, n: 4 });
   });
 
   it('「프로시저 작성」을 켜기 전에 돈 UI 실행도 켠 뒤에 다시 돌린다', async () => {

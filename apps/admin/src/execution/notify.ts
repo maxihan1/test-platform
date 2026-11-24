@@ -52,13 +52,13 @@ const TARGET = `
 
 // 색 막대를 쓰지 않는다. 판정은 글자로도 읽혀야 한다 (DESIGN.md).
 // SPEC §8.9 는 머리글 셋만 정하고 「미실행만 남은 실행」을 어느 쪽으로 볼지는 적지 않았다.
-// 실패로 본다 — 러너가 전부 죽어 한 건도 못 돈 실행에 [통과]가 나가면 아무도 안 본다.
+// 실패로 본다 — 러너가 전부 죽어 한 건도 못 돈 실행에 [Pass]가 나가면 아무도 안 본다.
 // 미확정도 가르지 않는다 — 미확정 항목은 통과·실패·미실행으로 그대로 세고 머리에는 변형이 없다 (SPEC 실행 §3.2)
 function 머리글(run: NotifyRow): string {
   if (run.status === 'ABORTED') return '[중단]';
-  // 데이터 준비가 안 된 것은 서비스 결함이 아니다 — [실패]로 알리지 않는다 (도메인/실행 §3.2 「실행 전 준비」)
+  // 데이터 준비가 안 된 것은 서비스 결함이 아니다 — [Fail]로 알리지 않는다 (도메인/실행 §3.2 「실행 전 준비」)
   if (run.status === 'PREP_FAILED') return '[준비 실패]';
-  return run.fail + run.na > 0 ? '[실패]' : '[통과]';
+  return run.fail + run.na > 0 ? '[Fail]' : '[Pass]';
 }
 
 // 미확정이 없으면 안 붙인다
@@ -78,7 +78,7 @@ export function 본문(run: NotifyRow, 실패: FailedCase[], publicUrl: string, 
 
   const 줄 = [
     `${머리} ${run.service_name} · RUN ${runId} · ${run.title}`,
-    `통과 ${run.pass} · 실패 ${run.fail} · 미실행 ${run.na}${미확정꼬리(run)} · ${걸린시간(run.duration_ms)} · 대상 서버 ${run.env} · 실행자 ${실행자}`,
+    `Pass ${run.pass} · Fail ${run.fail} · Not tested ${run.na}${미확정꼬리(run)} · ${걸린시간(run.duration_ms)} · 대상 서버 ${run.env} · 실행자 ${실행자}`,
   ];
 
   if (run.status === 'PREP_FAILED') {
@@ -88,7 +88,7 @@ export function 본문(run: NotifyRow, 실패: FailedCase[], publicUrl: string, 
   // 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다. 다섯을 넘으면 앞의 다섯만 적는다.
   // tc_id 차례 하나로 적고 미확정 항목에만 꼬리를 단다
   if (실패.length > 0) {
-    줄.push('', '실패한 케이스');
+    줄.push('', 'Fail 케이스');
     for (const c of 실패.slice(0, 5)) 줄.push(`  ${c.tc_id}  ${c.tc_name}${c.is_unconfirmed === true ? '  (미확정)' : ''}`);
     if (실패.length > 5) 줄.push(`  외 ${실패.length - 5}건`);
   }

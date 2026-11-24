@@ -37,18 +37,18 @@ describe('걸린시간', () => {
 
 describe('본문', () => {
   it('머리에 판정을 글자로 적는다', () => {
-    expect(본문(실행, 실패하나, '', 2111).split('\n')[0]).toBe('[실패] 결제 서비스 · RUN 2111 · 결제 회귀');
+    expect(본문(실행, 실패하나, '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · 결제 회귀');
   });
 
   it('전부 통과했을 때만 통과로 적는다', () => {
     const 전부통과 = { ...실행, fail: 0, na: 0, pass: 10 };
-    expect(본문(전부통과, [], '', 2111).split('\n')[0]).toContain('[통과]');
+    expect(본문(전부통과, [], '', 2111).split('\n')[0]).toContain('[Pass]');
   });
 
   it('미실행만 남은 실행도 실패로 적는다', () => {
-    // 러너가 전부 죽어 한 건도 못 돈 실행에 [통과]가 나가면 아무도 안 본다
+    // 러너가 전부 죽어 한 건도 못 돈 실행에 [Pass]가 나가면 아무도 안 본다
     const 전부미실행 = { ...실행, pass: 0, fail: 0, na: 10 };
-    expect(본문(전부미실행, [], '', 2111).split('\n')[0]).toContain('[실패]');
+    expect(본문(전부미실행, [], '', 2111).split('\n')[0]).toContain('[Fail]');
   });
 
   it('사람이 멈춘 실행은 중단으로 적는다', () => {
@@ -65,7 +65,7 @@ describe('본문', () => {
 
   it('집계와 대상 서버와 실행자를 한 줄에 적는다', () => {
     const 둘째줄 = 본문(실행, 실패하나, '', 2111).split('\n')[1];
-    expect(둘째줄).toBe('통과 8 · 실패 1 · 미실행 1 · 12분 04초 · 대상 서버 qa · 실행자 김철수');
+    expect(둘째줄).toBe('Pass 8 · Fail 1 · Not tested 1 · 12분 04초 · 대상 서버 qa · 실행자 김철수');
   });
 
   it('박제된 이름이 없으면 로그인 아이디로 적는다', () => {
@@ -75,7 +75,7 @@ describe('본문', () => {
 
   it('실패한 케이스를 숫자 대신 이름으로 적는다', () => {
     const text = 본문(실행, 실패하나, '', 2111);
-    expect(text).toContain('실패한 케이스');
+    expect(text).toContain('Fail 케이스');
     expect(text).toContain('PAY-002  한도를 넘는 카드로 결제하면 거절 사유가 안내된다');
   });
 
@@ -88,7 +88,7 @@ describe('본문', () => {
   });
 
   it('실패가 없으면 실패 목록 자체를 만들지 않는다', () => {
-    expect(본문({ ...실행, fail: 0, na: 0 }, [], '', 2111)).not.toContain('실패한 케이스');
+    expect(본문({ ...실행, fail: 0, na: 0 }, [], '', 2111)).not.toContain('Fail 케이스');
   });
 
   it('바깥 주소를 알면 결과 화면 링크를 붙인다', () => {
@@ -108,14 +108,14 @@ describe('본문 — 미확정 항목 (SPEC 실행 §3.2)', () => {
   const 머리 = (run: typeof 실행): string => 본문(run, [], '', 2111).split('\n')[0] ?? '';
 
   it('미확정이 섞여도 머리는 미확정이 없을 때와 같다 — 미확정 변형이 없다', () => {
-    expect(머리({ ...실행, pass: 8, fail: 0, na: 0, unconfirmed: 3 })).toBe('[통과] 결제 서비스 · RUN 2111 · 결제 회귀');
-    expect(머리({ ...실행, pass: 0, fail: 0, na: 0, unconfirmed: 0 })).toContain('[통과] ');
-    expect(머리({ ...실행, pass: 0, fail: 1, na: 0, unconfirmed: 1 })).toBe('[실패] 결제 서비스 · RUN 2111 · 결제 회귀');
+    expect(머리({ ...실행, pass: 8, fail: 0, na: 0, unconfirmed: 3 })).toBe('[Pass] 결제 서비스 · RUN 2111 · 결제 회귀');
+    expect(머리({ ...실행, pass: 0, fail: 0, na: 0, unconfirmed: 0 })).toContain('[Pass] ');
+    expect(머리({ ...실행, pass: 0, fail: 1, na: 0, unconfirmed: 1 })).toBe('[Fail] 결제 서비스 · RUN 2111 · 결제 회귀');
   });
 
   it('미확정 항목의 실패와 미실행도 실패로 센다', () => {
-    expect(머리({ ...실행, pass: 8, fail: 1, na: 0, unconfirmed: 1 })).toContain('[실패] ');
-    expect(머리({ ...실행, pass: 8, fail: 0, na: 1, unconfirmed: 1 })).toContain('[실패] ');
+    expect(머리({ ...실행, pass: 8, fail: 1, na: 0, unconfirmed: 1 })).toContain('[Fail] ');
+    expect(머리({ ...실행, pass: 8, fail: 0, na: 1, unconfirmed: 1 })).toContain('[Fail] ');
   });
 
   it('사람이 멈춘 실행은 미확정이 있어도 중단이다', () => {
@@ -124,7 +124,7 @@ describe('본문 — 미확정 항목 (SPEC 실행 §3.2)', () => {
 
   it('숫자 줄은 미실행 뒤에 그중 미확정 N건을 붙이고 0 이면 안 붙인다', () => {
     const 둘째줄 = 본문({ ...실행, unconfirmed: 5 }, [], '', 2111).split('\n')[1];
-    expect(둘째줄).toBe('통과 8 · 실패 1 · 미실행 1 · 그중 미확정 5건 · 12분 04초 · 대상 서버 qa · 실행자 김철수');
+    expect(둘째줄).toBe('Pass 8 · Fail 1 · Not tested 1 · 그중 미확정 5건 · 12분 04초 · 대상 서버 qa · 실행자 김철수');
     expect(본문(실행, [], '', 2111)).not.toContain('미확정');
   });
 
@@ -134,7 +134,7 @@ describe('본문 — 미확정 항목 (SPEC 실행 §3.2)', () => {
       { tc_id: 'PAY-002', tc_name: '한도 초과 거절', is_unconfirmed: false },
     ];
     const 줄 = 본문({ ...실행, unconfirmed: 1 }, 섞임, '', 2111).split('\n');
-    const 시작 = 줄.indexOf('실패한 케이스');
+    const 시작 = 줄.indexOf('Fail 케이스');
     expect(줄.slice(시작 + 1, 시작 + 3)).toEqual(['  PAY-001  화면 기준 케이스  (미확정)', '  PAY-002  한도 초과 거절']);
   });
 });

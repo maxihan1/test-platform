@@ -25,7 +25,7 @@ export interface 제목재료 {
 /** 제목은 test_run.title 에 박제한다 — 옛 실행은 그때 제목 그대로라 다시 짓지 않는다 */
 export function 자동제목(재료: 제목재료): string {
   const n = 재료.케이스들.length;
-  if (재료.origin === 'RERUN') return `RUN ${String(재료.rerunOf)}의 실패 ${String(n)}건 다시`;
+  if (재료.origin === 'RERUN') return `RUN ${String(재료.rerunOf)}의 Fail ${String(n)}건 다시`;
   const 첫 = 재료.케이스들[0]!;
   // 한 건은 그 종류 케이스가 하나뿐이어도 「전체 1건」이 아니라 번호 + 이름이다 (도메인/실행 §7 「한 건」 줄)
   const 몸 = 재료.전체 && 재료.origin !== 'SINGLE'

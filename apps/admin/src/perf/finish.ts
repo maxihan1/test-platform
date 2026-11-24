@@ -23,7 +23,7 @@ export type 끝 = { kind: 'DONE' } | { kind: 'STOP'; stop: Stop | { reason: 'USE
 
 function 끝줄(v: 표.끝값): string {
   if (v.stopReason !== null) return 사유[v.stopReason] ?? v.stopReason;
-  if (v.status === 'DONE') return `실행이 끝났습니다 — ${v.verdict === 'PASS' ? '통과' : '실패'}`;
+  if (v.status === 'DONE') return `실행이 끝났습니다 — ${v.verdict === 'PASS' ? 'Pass' : 'Fail'}`;
   return '실행이 오류로 끝났습니다';
 }
 

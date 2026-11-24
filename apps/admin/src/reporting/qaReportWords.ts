@@ -32,12 +32,12 @@ export function 결과글(x: 첫장['results']['functional'][number] | 첫장['r
     case 'COMPAT':
       return `디바이스 ${x.result.devices}대 · 화면 ${x.result.screens}개 · UI 결함 의심 ${x.result.suspect}곳`;
     case 'PERF':
-      return `성능 목표 통과 ${x.result.pass} · 미달 ${x.result.fail} (실행 ${x.result.runs}회)`;
+      return `성능 목표 Pass ${x.result.pass} · 미달 ${x.result.fail} (실행 ${x.result.runs}회)`;
     case 'STAB':
       return 안정화글(x.result);
     default: {
       const v = x.result;
-      return `통과 ${v.pass} · 실패 ${v.fail} · 미실행 ${v.notRun}${v.unconfirmed > 0 ? ` (그중 미확정 ${v.unconfirmed}건)` : ''}`;
+      return `Pass ${v.pass} · Fail ${v.fail} · Not tested ${v.notRun}${v.unconfirmed > 0 ? ` (그중 미확정 ${v.unconfirmed}건)` : ''}`;
     }
   }
 }

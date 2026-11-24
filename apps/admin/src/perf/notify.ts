@@ -30,8 +30,8 @@ export function 알림보낼까(origin: 'MANUAL' | 'SCHEDULED', degradeAlert: bo
 // 색 막대를 쓰지 않는다. 판정은 글자로도 읽혀야 한다 (DESIGN.md). 판정이 없는 중단은 [중단], 고장은 [오류]
 function 머리글(r: 알림재료): string {
   if (r.status === 'ERROR') return '[오류]';
-  if (r.verdict === 'PASS') return '[통과]';
-  if (r.verdict === 'FAIL') return '[실패]';
+  if (r.verdict === 'PASS') return '[Pass]';
+  if (r.verdict === 'FAIL') return '[Fail]';
   return '[중단]';
 }
 

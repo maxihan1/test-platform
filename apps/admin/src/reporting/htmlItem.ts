@@ -21,10 +21,10 @@ const 판정색: Record<EvidenceItem['status'], string> = {
 // NA 와 NOT_RUN 이 같은 낱말인 것은 겹친 것이 아니라 SPEC 이 정한 표기다. 배지는 셋뿐이고
 // 「돌다가 판정을 못 냈다」와 「아예 안 돌았다」를 가르는 것은 옆에 붙는 사유 한 문장이다 (SPEC §8.3)
 export const 판정글자: Record<EvidenceItem['status'], string> = {
-  PASS: '통과',
-  FAIL: '실패',
-  NA: '미실행',
-  NOT_RUN: '미실행',
+  PASS: 'Pass',
+  FAIL: 'Fail',
+  NA: 'Not tested',
+  NOT_RUN: 'Not tested',
 };
 
 // 케이스 이름과 검증 문장은 사람이 적은 글이다. < 나 & 가 그대로 나가면 문서가 깨지거나 값이 조용히 사라진다

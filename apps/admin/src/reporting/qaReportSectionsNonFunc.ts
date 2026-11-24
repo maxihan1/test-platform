@@ -120,7 +120,7 @@ function 성능실행(r: 성능재료): 덩이[] {
           머리: ['지표', '대상', '목표', '잰 값', '판정', '근거'],
           판정칸: 4,
           줄: r.targets.map((t) => ({
-            칸: [지표이름[t.metric] ?? t.metric, 대상글(r, t), `${t.op === '<=' ? '≤' : '≥'} ${목표값글(t.metric, t.value)}`, 목표값글(t.metric, t.measured), t.verdict === 'PASS' ? '통과' : '미달', `${근거글[t.source]}${t.reqId ? ` ${t.reqId}` : ''}`],
+            칸: [지표이름[t.metric] ?? t.metric, 대상글(r, t), `${t.op === '<=' ? '≤' : '≥'} ${목표값글(t.metric, t.value)}`, 목표값글(t.metric, t.measured), t.verdict === 'PASS' ? 'Pass' : '미달', `${근거글[t.source]}${t.reqId ? ` ${t.reqId}` : ''}`],
           })),
         },
   );

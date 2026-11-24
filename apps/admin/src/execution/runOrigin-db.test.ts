@@ -113,7 +113,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     expect((await pool.query(`SELECT count(*)::int AS n FROM test_run WHERE service_id = ${서비스번호}`)).rows[0]).toEqual(앞수.rows[0]);
 
     const 다시 = await 건다(['XBO-002', 'XBO-001'], { rerunOf: 원래 });
-    expect(await 줄(다시)).toEqual([`RUN ${String(원래)}의 실패 2건 다시`, 'RERUN', 원래]);
+    expect(await 줄(다시)).toEqual([`RUN ${String(원래)}의 Fail 2건 다시`, 'RERUN', 원래]);
     // 한 건은 새 실행이 아니라 원래 실행에 붙는다 (도메인/실행 §3.2)
     const 일부 = await 건다(['XBO-001'], { rerunOf: 원래 });
     expect(await 줄(일부)).toEqual(['XBO-001 XBO-001 이름', 'SINGLE', 원래]);
@@ -132,7 +132,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     await pool.query('DELETE FROM run_item WHERE run_id = $1', [원래]);
     await pool.query('DELETE FROM run_exec WHERE run_id = $1', [원래]);
     await pool.query('DELETE FROM test_run WHERE run_id = $1', [원래]);
-    expect(await 줄(다시)).toEqual([`RUN ${String(원래)}의 실패 2건 다시`, 'RERUN', null]);
+    expect(await 줄(다시)).toEqual([`RUN ${String(원래)}의 Fail 2건 다시`, 'RERUN', null]);
     const 목록 = await listRuns('XBO', 1, 50, { origin: 'RERUN' });
     expect(목록.items.find((r) => r.runId === 다시)?.rerunOf).toBeNull();
   });

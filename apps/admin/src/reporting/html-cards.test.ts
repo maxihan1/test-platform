@@ -61,8 +61,8 @@ describe('증적 C 양식', () => {
     );
 
     expect(html).toContain('<span class="big">50.0%</span>');
-    expect(html).toContain('실패 1건');
-    expect(html).toContain('항목 4건 중 2건 통과');
+    expect(html).toContain('Fail 1건');
+    expect(html).toContain('항목 4건 중 2건 Pass');
   });
 
   it('항목이 없으면 통과율 자리에 — 와 항목 없음, 카드 자리에 한 줄이다', () => {
@@ -70,15 +70,15 @@ describe('증적 C 양식', () => {
 
     expect(html).toContain('<span class="big">—</span>');
     expect(html).toContain('항목 없음');
-    expect(html).toContain('실패한 케이스가 없습니다');
+    expect(html).toContain('Fail 케이스가 없습니다');
   });
 
   it('실패가 있는 케이스만 카드이고 케이스 번호 차례다 — 나머지는 줄이다', () => {
     const html = renderHtml(문서([항목('B-2', { status: 'FAIL' }), 항목('A-9'), 항목('A-1', { status: 'FAIL' })]), HTML);
 
     expect(html.match(/<section class="card">/g)).toHaveLength(2);
-    expect(html).toContain('실패 케이스 2건');
-    expect(html).toContain('통과 · 미실행 케이스 1건');
+    expect(html).toContain('Fail 케이스 2건');
+    expect(html).toContain('Pass · Not tested 케이스 1건');
     const 차례 = ['A-1', 'B-2', 'A-9'].map((id) => html.indexOf(`${id} 케이스`));
     expect(차례).toEqual([...차례].sort((a, b) => a - b));
   });
@@ -90,7 +90,7 @@ describe('증적 C 양식', () => {
     const 펼친머리 = 카드.split('\n').filter((줄) => 줄.includes('class="dev-head"'));
     expect(펼친머리).toHaveLength(1);
     expect(펼친머리[0]).toContain('2회차');
-    expect(펼친머리[0]).toContain('3회 중 2회 실패');
+    expect(펼친머리[0]).toContain('3회 중 2회 Fail');
     expect(카드.match(/<details class="fold">/g)).toHaveLength(3);
   });
 
@@ -128,9 +128,9 @@ describe('증적 C 양식', () => {
     );
     const 줄 = html.split('\n').find((l) => l.includes('<summary class="fold-line">') && l.includes('C-1 케이스')) ?? '';
 
-    expect(줄).toContain('PC 2/2 통과 · 모바일 미실행');
+    expect(줄).toContain('PC 2/2 Pass · 모바일 Not tested');
     expect(줄).toContain('러너에 닿지 못했습니다');
-    expect(줄).toContain('<span class="verdict v-na">미실행</span>');
+    expect(줄).toContain('<span class="verdict v-na">Not tested</span>');
   });
 
   it('디바이스마다 미실행 사유가 다르면 줄에 사유를 모두 적는다', () => {

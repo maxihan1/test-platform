@@ -39,7 +39,7 @@ function 트랜잭션별(txs: 결과문서['txs']): string {
 
 export function 결과HTML(d: 결과문서): string {
   const 목표줄 = (d.targets ?? []).map((t) =>
-    `<tr><td>${지표글[t.metric]}</td><td>${안전(t.scope ?? '전체')}</td><td>${t.op === '<=' ? '≤' : '≥'} ${값글(t.metric, t.value)}</td><td>${값글(t.metric, t.measured)}</td><td>${t.verdict === 'PASS' ? '통과' : '실패'}</td><td>${근거글[t.source]}${t.reqId ? ` ${안전(t.reqId)}` : ''}</td></tr>`);
+    `<tr><td>${지표글[t.metric]}</td><td>${안전(t.scope ?? '전체')}</td><td>${t.op === '<=' ? '≤' : '≥'} ${값글(t.metric, t.value)}</td><td>${값글(t.metric, t.measured)}</td><td>${t.verdict === 'PASS' ? 'Pass' : 'Fail'}</td><td>${근거글[t.source]}${t.reqId ? ` ${안전(t.reqId)}` : ''}</td></tr>`);
   return 문서판(`${실행번호글(d.id)} ${d.title}`, [
     `<header><h1>${안전(`${실행번호글(d.id)} ${d.title}`)}</h1>`,
     `<p>${안전(유형글[d.testType ?? ''] ?? '')} · 대상 서버 ${안전(d.env)} · 시작 ${d.startedAt === null ? '—' : 안전(d.startedAt.toISOString())} · 판정 ${판정글(d.verdict, d.status)}</p>`,

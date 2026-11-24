@@ -43,7 +43,7 @@ function 문서(items: EvidenceItem[]): EvidenceDocument {
 describe('증적 HTML — 미확정', () => {
   it('요약 띠에 판정 줄 — 미확정도 그대로 세고 그중 미확정 N건만 붙는다', () => {
     const 글 = renderHtml(문서([항목('A-1', 'PASS'), 항목('A-2', 'FAIL', '다름 D1')]), 옵션);
-    expect(글).toContain('<span class="axis">통과 1 · 실패 1 · 미실행 0 · 그중 미확정 1건</span>');
+    expect(글).toContain('<span class="axis">Pass 1 · Fail 1 · Not tested 0 · 그중 미확정 1건</span>');
   });
 
   it('미확정도 따로 묶지 않고 제자리에 있다 — 실패면 카드, 아니면 케이스 번호 차례의 줄', () => {

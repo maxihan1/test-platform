@@ -89,7 +89,7 @@ describe('증적 문서 엑셀', () => {
       '회차',
       '판정',
       '소요(ms)',
-      '미실행·판정불가 사유',
+      'Not tested·판정불가 사유',
       '미확정 사유',
       '사전 조건',
       '입력값',
@@ -132,7 +132,7 @@ describe('증적 문서 엑셀', () => {
     expect(셀(ws, 3, 22)).toBe('토큰이 발급된다');
     expect(셀(ws, 3, 23)).toBe('true');
     expect(셀(ws, 3, 24)).toBe('false');
-    expect(셀(ws, 3, 25)).toBe('실패');
+    expect(셀(ws, 3, 25)).toBe('Fail');
   });
 
   it('검증 문장이 없는 절차도 한 행이 남는다', async () => {
@@ -141,7 +141,7 @@ describe('증적 문서 엑셀', () => {
     expect(ws.rowCount).toBe(2);
     expect(셀(ws, 2, 18)).toBe('3');
     expect(셀(ws, 2, 19)).toBe('결제를 누른다');
-    expect(셀(ws, 2, 20)).toBe('미실행');
+    expect(셀(ws, 2, 20)).toBe('Not tested');
     expect(셀(ws, 2, 22)).toBe('');
   });
 
@@ -152,7 +152,7 @@ describe('증적 문서 엑셀', () => {
 
     expect(ws.rowCount).toBe(2);
     expect(셀(ws, 2, 7)).toBe('AUTH-002');
-    expect(셀(ws, 2, 11)).toBe('미실행');
+    expect(셀(ws, 2, 11)).toBe('Not tested');
     expect(셀(ws, 2, 12)).toBe('');
     expect(셀(ws, 2, 13)).toBe('실행이 중단되어 수행되지 않았습니다');
     expect(셀(ws, 2, 18)).toBe('');
@@ -212,7 +212,7 @@ describe('증적 문서 엑셀', () => {
       expect(셀(ws, 행, 7)).toBe('AUTH-002');
       expect(셀(ws, 행, 9)).toBe('모바일');
       expect(셀(ws, 행, 10)).toBe('1');
-      expect(셀(ws, 행, 11)).toBe('통과');
+      expect(셀(ws, 행, 11)).toBe('Pass');
       expect(셀(ws, 행, 18)).toBe('1');
     }
 

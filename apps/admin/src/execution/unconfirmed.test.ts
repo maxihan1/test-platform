@@ -221,8 +221,8 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
     }
 
     const 줄 = 보낸것[0]!.split('\n');
-    expect(줄[0]).toBe(`[실패] XBU 서비스 · RUN ${String(runId)} · XBU-001 외 1건`);
-    expect(줄[1]).toMatch(/^통과 1 · 실패 1 · 미실행 1 · 그중 미확정 2건 · /);
+    expect(줄[0]).toBe(`[Fail] XBU 서비스 · RUN ${String(runId)} · XBU-001 외 1건`);
+    expect(줄[1]).toMatch(/^Pass 1 · Fail 1 · Not tested 1 · 그중 미확정 2건 · /);
     expect(줄).toContain('  XBU-002  미확정 케이스  (미확정)');
   });
 });

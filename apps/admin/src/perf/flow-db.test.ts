@@ -190,7 +190,7 @@ describe.skipIf(연결 === undefined)('성능 실행 흐름', { timeout: 60_000 
     expect(series.find((r) => r.tx === '')).toMatchObject({ vus: 10, requests: 60 });
     const 로그 = (await 사람(관리자, 'GET', `/api/perf/runs/${runId}/events`)).json<{ events: { message: string }[] }>().events.map((e) => e.message);
     expect(로그.some((m) => m.startsWith('스모크 테스트를 통과했습니다'))).toBe(true);
-    expect(로그.at(-1)).toBe('실행이 끝났습니다 — 통과');
+    expect(로그.at(-1)).toBe('실행이 끝났습니다 — Pass');
   });
 
   it('스모크 테스트에서 에러가 나면 본 테스트 없이 SMOKE_FAILED 로 멈춘다', async () => {
