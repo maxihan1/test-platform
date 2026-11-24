@@ -94,6 +94,14 @@ describe('중복 케이스 표', () => {
     await vi.waitFor(() => expect(넣기).toHaveBeenCalledWith('PAY', 7, 'PAY-041', 'DROP'));
   });
 
+  it('프로시저 안 케이스는 새 케이스 제외를 그리지 않고 둘 다 유지만 남긴다 (TP-F5-27)', () => {
+    const 프로시저겹침 = { ...번호겹침, tcId: 'PAY-FN-101', file: 'tests/pay/PAY-TP-001.spec.ts' };
+    render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[프로시저겹침, 번호겹침]} 편집 reload={reload} />);
+    expect(screen.queryByRole('button', { name: 'PAY-FN-101 새 케이스 제외' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'PAY-FN-101 둘 다 유지' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'PAY-041 새 케이스 제외' })).toBeTruthy();
+  });
+
   it('번호가 겹친 케이스를 유지하기로 했으면 새 번호를 받는다고 말한다', () => {
     const 남김 = { ...번호겹침, input: { action: 'KEEP' as const, by: 'maxi', at: '2026-10-01T05:00:00.000Z' } };
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[남김]} 편집 reload={reload} />);
