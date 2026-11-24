@@ -59,7 +59,7 @@ function 케이스결과({ runId, 판정하기, on시나리오 }: 결과바깥 &
   // 호환성 실행은 결과 화면이 따로다 — 옛 알림 · 받은 링크(#/runs/<번호>)로 와도 그리로 옮긴다 (도메인/호환성 §7 `COMPAT_RUN`)
   const run = useAsync(() => api.run(runId).catch((e: unknown) => {
     if (e instanceof ApiError && e.code === 'SCENARIO_RUN') on시나리오?.();
-    if (e instanceof ApiError && e.code === 'COMPAT_RUN') window.location.replace(`#/compat/runs/${String(runId)}`);
+    if (e instanceof ApiError && e.code === 'COMPAT_RUN') 주소덮기(`#/compat/runs/${String(runId)}`);
     throw e;
   }), [runId]);
   const data = run.data;
