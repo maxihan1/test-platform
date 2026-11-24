@@ -11,6 +11,7 @@ import { 프로시저글 } from './collectProc.js';
 import { 기대문장 } from './expectedLines.js';
 import { 절차판정글자, 참고글자 } from './htmlItem.js';
 import { PC디바이스글 } from '../execution/pcPlatform.js';
+import { 한국시각 } from '../kst.js';
 
 export interface RenderOptions {
   /** 렌더 입력으로 받는다 — 함수 안에서 new Date() 를 부르면 재현성이 깨진다 (SPEC §3.3) */
@@ -71,7 +72,7 @@ function 라벨값(칸: EvidenceField[]): string {
 
 function 실행칸(doc: EvidenceDocument): 칸값[] {
   const h = doc.header;
-  return [doc.runId, h.startedAt, h.serviceName, h.env, h.baseUrl, h.triggeredByName];
+  return [doc.runId, 한국시각(h.startedAt), h.serviceName, h.env, h.baseUrl, h.triggeredByName];
 }
 
 function 케이스칸(item: EvidenceItem): 칸값[] {
@@ -143,7 +144,7 @@ export async function renderXlsx(doc: EvidenceDocument, options: RenderOptions):
   for (const item of doc.items) {
     const r = item.rerun;
     if (r !== undefined) sheet.addRows(항목행들(doc, r.original).map(끝칸(r.original, '원래 결과')));
-    const 다시 = r === undefined ? null : `다시 실행 · ${r.finishedAt} · ${r.triggeredBy}`;
+    const 다시 = r === undefined ? null : `다시 실행 · ${한국시각(r.finishedAt)} · ${r.triggeredBy}`;
     sheet.addRows(항목행들(doc, item).map(끝칸(item, 다시)));
   }
 

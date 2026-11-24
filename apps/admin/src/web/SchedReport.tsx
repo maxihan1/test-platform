@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { ApiError } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { 서울 } from './seoul.js';
 import { Modal } from './Modal.js';
 import { schedApi, type 리포트기간, type 세트 } from './schedApi.js';
 import { 다음실행들, 보낼days, 처음값, type 덮을값 } from './schedForm.js';
@@ -35,8 +36,8 @@ export function SchedReport({
 }) {
   const t = use말();
   const 언어 = use언어();
-  // 시간대는 만든 브라우저 것이고 고칠 때는 만든 때 것 그대로다 (§3.16 결정 6 · §7 PUT)
-  const tz = 세트?.tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // 새 일정은 한국 시간(Asia/Seoul)이고 고칠 때는 만든 때 것 그대로다 (§3.16 결정 6 · §7 PUT)
+  const tz = 세트?.tz ?? 서울;
   // 신규는 시안 그대로 「주간 QA 리포트 · 매주 금 18:00 · 이번 주」로 연다
   const [v, setV] = useState(() =>
     세트 === null ? { ...처음값(null, 시간대로(new Date(), tz).날), name: t('주간 QA 리포트'), 반복: 'days' as const, days: [5], at: '18:00' } : 처음값(세트, 시간대로(new Date(), tz).날),

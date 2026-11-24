@@ -7,6 +7,7 @@ import { t, use말, use언어, type 언어 } from './i18n.js';
 import { ApiError, type ItemStatus, type Platform } from './api.js';
 import { use올라가기 } from './dashboardView.js';
 import { 요청오류문장 } from './errorText.js';
+import { 서울 } from './seoul.js';
 import type { PcPlatform } from '@platform/kit/types';
 
 // PC 게임 디바이스 이름은 kit 의 PC_PLATFORM_LABEL 과 같은 글자를 여기 글자로 둔다 — 영어 표(messages)가 화면 소스의 글자를 키로 찾아서다. 둘이 같은지는 ui.test 가 본다
@@ -89,12 +90,13 @@ export function when(iso: string | null, 언어: 언어): string {
     dateStyle: 'long',
     timeStyle: 'short',
     hour12: false,
+    timeZone: 서울,
   }).format(new Date(iso));
 }
 
 /** 「11월 11일」 꼴 — 연도 · 시각 없이 날만 (도메인/BTS §8.15 「자동 수정 표시」) */
 export function 월일(iso: string, 언어: 언어): string {
-  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric' }).format(new Date(iso));
+  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric', timeZone: 서울 }).format(new Date(iso));
 }
 
 export function message(err: unknown, 언어: 언어): string {

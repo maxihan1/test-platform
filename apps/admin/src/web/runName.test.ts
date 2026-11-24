@@ -2,13 +2,14 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { 서울날 } from './seoul.js';
 import { 무엇을, 시작글, 시작방식글, 실행명 } from './runName.js';
 
 // 자리표를 채우는 가짜 t — 「{수}건」의 수가 들어가는지 본다
 const 그대로 = (키: string, 값: Record<string, string | number> = {}) => 키.replace(/§.*$/, '').replace(/\{(.+?)\}/g, (_, 칸: string) => String(값[칸]));
-const 지금 = new Date(2026, 10, 24, 9, 0);
-// 시간대에 안 매이게 지역 시각으로 만든다
-const 때 = (해: number, 월: number, 일: number, 시: number, 분: number) => new Date(해, 월 - 1, 일, 시, 분).toISOString();
+const 지금 = new Date('2026-11-24T09:00:00+09:00');
+// 서버가 어느 시간대에 떠 있든 같게 한국 시각으로 만든다
+const 때 = (해: number, 월: number, 일: number, 시: number, 분: number) => new Date(Date.UTC(해, 월 - 1, 일, 시 - 9, 분)).toISOString();
 
 type 재료 = Parameters<typeof 무엇을>[0];
 const 런 = (title: string, origin: 재료['origin'], kind: 재료['kind'] = 'FN'): 재료 => ({ title, origin, kind });
@@ -92,7 +93,7 @@ describe('시작글', () => {
 });
 
 describe('실행명 — 언제 · 어떻게 · 무엇을', () => {
-  const 올해 = new Date().getFullYear();
+  const 올해 = Number(서울날(new Date()).slice(0, 4));
 
   it('시작 시각 · 시작 방식 · 무엇을 순서로 가운뎃점으로 잇는다', () => {
     const run = { title: 'MTA-FN-168 외 19건', origin: 'MANUAL' as const, kind: 'FN' as const, startedAt: 때(올해, 11, 23, 14, 2) };

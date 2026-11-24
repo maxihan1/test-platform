@@ -6,6 +6,7 @@ import type { ShapeCheck } from '@platform/kit';
 import type { EvidenceTrace } from './apiTrace.js';
 import type { EvidenceAssertion, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
 import { PC디바이스글 } from '../execution/pcPlatform.js';
+import { 한국시각 } from '../kst.js';
 import { 프로시저글 } from './collectProc.js';
 import { 기대문장 } from './expectedLines.js';
 
@@ -146,13 +147,13 @@ function 기대행(item: EvidenceItem): string[] {
 /** 한 건 실행이 덮은 항목의 머리 문구 — 이 블록이 다시 돈 결과이고 처음에는 어땠는지 같이 적는다 (도메인/리포팅 §8.4 「다시 실행이 붙은 실행」) */
 function 다시실행글(item: EvidenceItem): string {
   const r = item.rerun;
-  return r === undefined ? '' : `<span class="axis">다시 실행 · ${안전(r.finishedAt)} · ${안전(r.triggeredBy)} · 원래 결과 ${판정글자[r.original.status]}</span>`;
+  return r === undefined ? '' : `<span class="axis">다시 실행 · ${안전(한국시각(r.finishedAt))} · ${안전(r.triggeredBy)} · 원래 결과 ${판정글자[r.original.status]}</span>`;
 }
 
 /** 머리말 판정 한 줄 끝에 붙는 꼬리 — 덮인 항목이 없으면 빈 글자. 시각은 그중 가장 늦게 끝난 것이다 */
 export function 다시실행꼬리(items: EvidenceItem[]): string {
   const 끝난때 = items.flatMap((i) => (i.rerun === undefined ? [] : [i.rerun.finishedAt])).sort();
-  return 끝난때.length === 0 ? '' : ` · 다시 실행 ${끝난때.length}건 포함 · 마지막 ${끝난때[끝난때.length - 1]}`;
+  return 끝난때.length === 0 ? '' : ` · 다시 실행 ${끝난때.length}건 포함 · 마지막 ${한국시각(끝난때[끝난때.length - 1] ?? '')}`;
 }
 
 /** 항목 한 줄 — 디바이스 · 회차 · 판정 · 소요 · 사유. 카드의 디바이스 머리 · 접힌 줄 · 부록 머리가 같은 줄이다 */

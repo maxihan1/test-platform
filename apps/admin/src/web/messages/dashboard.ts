@@ -5,8 +5,8 @@ export const 대시보드말: Record<string, string> = {
   // 머리와 읽기
   '애플리케이션 {수}개 · 최근 {일}일 · {날짜} 기준': '{수} applications · last {일} days · as of {날짜}',
   '최근 {일}일': 'Last {일} days',
-  '이 브라우저의 시간대 「{시간대}」를 서버가 알아보지 못해 현황을 불러오지 못했습니다':
-    'The server does not recognize this browser’s time zone “{시간대}”, so the overview could not be loaded',
+  '서버가 시간대 「{시간대}」를 알아보지 못해 현황을 불러오지 못했습니다':
+    'The server does not recognize the time zone “{시간대}”, so the overview could not be loaded',
 
   // 실행 중 줄
   '실행 중 {수}건': '{수} running',

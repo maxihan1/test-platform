@@ -1,6 +1,7 @@
 // 실행 · 작성이 언제 끝날지를 사람 말로 옮기는 순수 함수와 시간 글자 (SPEC §8.9 · 도메인/작성 §7)
 
 import { t, type 언어 } from './i18n.js';
+import { 서울 } from './seoul.js';
 
 /**
  * 밀리초를 사람이 읽는 글자로.
@@ -19,7 +20,7 @@ export function 시간글자(ms: number, 언어: 언어): string {
 
 /** 시각(HH:MM). 형식을 손으로 짜지 않고 언어 관례를 따른다 */
 export function 시각글자(d: Date, 언어: 언어): string {
-  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 서울 }).format(d);
 }
 
 const 분 = 60_000;

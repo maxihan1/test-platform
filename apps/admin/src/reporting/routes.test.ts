@@ -11,6 +11,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { 서비스권한 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
+import { 한국시각 } from '../kst.js';
 import reportingRoutes from './routes.js';
 import { claim, fail, findDocument, type EvidenceRow } from './store.js';
 
@@ -216,8 +217,8 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     expect(res.headers['content-type']).toContain('text/html');
     expect(res.headers['content-disposition']).toBe(`inline; filename="evidence-run-${String(runId)}.html"`);
     expect(res.body).toContain(제목);
-    // 문서에 찍히는 「만든 시각」은 DB가 기억하는 값이다. 생성 중에 새로 재면 둘이 갈린다
-    expect(res.body).toContain(만들기.generatedAt);
+    // 문서에 찍히는 「만든 시각」은 DB가 기억하는 값을 한국 시간으로 적은 것이다(2026-11-24). 생성 중에 새로 재면 둘이 갈린다
+    expect(res.body).toContain(한국시각(만들기.generatedAt));
   });
 
   // 엑셀은 브라우저가 못 열어 파일로 떨어진다. 이름이 없으면 확장자 없는 파일이 되어 더블클릭이 안 된다 (SPEC §7 · §8.4).

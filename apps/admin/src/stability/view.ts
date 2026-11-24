@@ -69,7 +69,7 @@ const 빈요약 = { headline: null, changes: null, features: null, verified: nul
 
 export async function 안정화보기(앱: 애플리케이션행, runId: number | null, days: 7 | 30) {
   const pool = await db();
-  const schedule = 앱.scheduleAt === null ? null : { at: 앱.scheduleAt, tz: 앱.scheduleTz ?? 'UTC' };
+  const schedule = 앱.scheduleAt === null ? null : { at: 앱.scheduleAt, tz: 앱.scheduleTz ?? 'Asia/Seoul' };
   const 고른 = (
     await pool.query<집계줄>(
       runId === null

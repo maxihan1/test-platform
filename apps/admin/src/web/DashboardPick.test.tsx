@@ -7,9 +7,10 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api } from './api.js';
 import { Dashboard } from './Dashboard.js';
+import { 서울 } from './seoul.js';
 import { 실행목록주소, 조건을주소로, 주소에서조건, 창실패종류 } from './DashboardPick.js';
 
-const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const 시간대 = 서울;
 const 건 = (pass: number, fail: number, notRun: number) => ({ pass, fail, notRun });
 const 기본재료 = { 케이스갈수있나: true, 세트만들수있나: false, 프로젝트: null };
 

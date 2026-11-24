@@ -1,6 +1,6 @@
 // 앱 대시보드 화면 — 서비스를 가로지르는 테스트 결과 (도메인/리포팅 §8.12 · DESIGN.md 「대시보드」)
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api, ApiError } from './api.js';
@@ -17,6 +17,7 @@ import { 추적칸, 케이스칸 } from './DashboardTrace.js';
 import { 실패유형칸 } from './DashboardTypes.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 서울 } from './seoul.js';
 import { use주소조건 } from './leaveGuard.js';
 import { Loading, message } from './ui.js';
 
@@ -147,7 +148,7 @@ export function Dashboard({
   승인볼앱들?: 승인볼앱[] | null;
 }) {
   const t = use말();
-  const 시간대 = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  const 시간대 = 서울;
   const [조건, set조건] = useState(주소에서조건);
   // 기본값(14일)은 주소에 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   use주소조건('#/dashboard', 조건을주소로(조건));
@@ -178,7 +179,7 @@ export function Dashboard({
           <div className="empty dash-error" role="alert">
             {읽음.틀린시간대 === null
               ? 읽음.글
-              : t('이 브라우저의 시간대 「{시간대}」를 서버가 알아보지 못해 현황을 불러오지 못했습니다', {
+              : t('서버가 시간대 「{시간대}」를 알아보지 못해 현황을 불러오지 못했습니다', {
                   시간대: 읽음.틀린시간대,
                 })}
           </div>

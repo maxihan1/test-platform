@@ -65,7 +65,8 @@ describe('목록 표 칸 (2026-11-10 사용자 시안)', () => {
   });
 
   it('작성일은 YYYY-MM-DD HH:mm · 서버가 세운 줄의 작성자는 Agent', () => {
-    expect(작성일글('2026-11-10T14:22:00')).toBe('2026-11-10 14:22');
+    expect(작성일글('2026-11-10T14:22:00+09:00')).toBe('2026-11-10 14:22');
+    expect(작성일글('2026-11-23T15:30:00.000Z')).toBe('2026-11-24 00:30');
     expect(작성자글(요약({ kind: 'UNCOVERED', from: { by: 'AUTO', after: 1 } }), { requestedByName: '맥시' })).toBe('Agent');
     expect(작성자글(요약(), { requestedByName: '맥시' })).toBe('맥시');
   });

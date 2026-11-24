@@ -7,8 +7,9 @@ import { act, cleanup, render, screen, within } from '@testing-library/react';
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api, ApiError } from './api.js';
 import { Dashboard } from './Dashboard.js';
+import { 서울 } from './seoul.js';
 
-const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const 시간대 = 서울;
 
 /** main.tsx 가 사람의 권한에서 뽑아 넘기는 재료 — 케이스 자리가 있는 사람 */
 const 기본재료 = { 케이스갈수있나: true, 세트만들수있나: false, 프로젝트: null };

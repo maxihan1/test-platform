@@ -1,5 +1,6 @@
 // 성능 실행 화면의 계산 — 판정 글자 · 숫자 꼴 · 최근 숫자 집계 · 그래프 점 (도메인/성능 §3.9 「실행 · 결과」)
 
+import { 서울 } from './seoul.js';
 import type { 판정하기 } from './runJudge.js';
 import type { Target, 실행상태, 실행판정, 중단사유, 초숫자 } from './perfApi.js';
 
@@ -139,10 +140,10 @@ export const 눈금최대 = (...값들: number[]): number => Math.max(1, Math.ce
 /** 「10월 21일 14:05」 꼴의 짧은 시각. 시작 시각을 표 한 칸에 담으려고 연도 · 초를 뺀다 */
 export function 시각글(iso: string | null, 언어: string): string {
   if (iso === null) return '-';
-  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
+  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 서울 }).format(new Date(iso));
 }
 
 /** 「14:05」 — 실행 로그 줄 앞의 시각 */
 export function 시분(iso: string): string {
-  return new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
+  return new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 서울 }).format(new Date(iso));
 }

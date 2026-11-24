@@ -62,7 +62,7 @@ describe('정기 실행', () => {
     expect(screen.queryByRole('button', { name: '정기 실행' })).toBeNull();
   });
 
-  it('시각 · 대상 서버 · 브라우저 시간대를 보내고 켜진 모양을 단추 옆에 적는다. 실서비스 서버는 고를 수 없다', async () => {
+  it('시각 · 대상 서버 · 한국 시간대를 보내고 켜진 모양을 단추 옆에 적는다. 실서비스 서버는 고를 수 없다', async () => {
     const 보내기 = vi.spyOn(perfApi, 'setSchedule').mockImplementation((_id, 값) => Promise.resolve({ schedule: 값 }));
     await 그리기(사람('admin'));
 
@@ -79,7 +79,7 @@ describe('정기 실행', () => {
     fireEvent.change(within(창).getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
     fireEvent.click(within(창).getByRole('button', { name: '켜기' }));
 
-    await waitFor(() => expect(보내기).toHaveBeenCalledWith(42, { at: '03:00', tz: Intl.DateTimeFormat().resolvedOptions().timeZone, env: 'qa' }));
+    await waitFor(() => expect(보내기).toHaveBeenCalledWith(42, { at: '03:00', tz: 'Asia/Seoul', env: 'qa' }));
     expect(await screen.findByText('매일 03:00 · qa')).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
   });

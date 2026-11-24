@@ -6,16 +6,12 @@ import type { ItemStatus, Platform, Technique } from '@platform/kit';
 import { 보류들, type 보류입력 } from '../authoring/held.js';
 import { 사슬식 } from '../authoring/history.js';
 import type { LastResult } from '../execution/history.js';
+import { 한국시각 } from '../kst.js';
 import { 케이스판정 } from '../prd/trace.js';
 import type { 맥락조건 } from './context.js';
 import type { ExportCase, ExportHeld, ExportInput } from './export.js';
 import { 기기별결과, 판정으로 } from './last.js';
 import { listCases } from './store.js';
-
-/** 표에 적는 시각 — 서버가 어느 시간대에 떠 있든 한국 시각으로 적는다. sv-SE 가 `YYYY-MM-DD HH:mm:ss` 모양을 준다 */
-export function 한국시각(iso: string): string {
-  return new Date(iso).toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 16);
-}
 
 async function 보류기록(serviceId: number): Promise<ExportHeld[]> {
   const { pool } = await import('../db/index.js');

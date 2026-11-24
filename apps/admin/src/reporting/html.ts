@@ -1,6 +1,7 @@
 // 표시용 모델을 증거 카드형(C 양식) A4 문서로 그린다. 이 HTML 이 곧 PDF 의 원본이다 (도메인/리포팅 §8.4)
 // 가공하지 않는다 — 라벨·마스킹·빈 값은 collect.ts 가 이미 끝냈다. 여기서 또 하면 마스킹이 새는 자리가 둘이 된다
 
+import { 한국시각 } from '../kst.js';
 import type { EvidenceDocument, EvidenceHeader, EvidenceItem } from './collect.js';
 import type { E2E요약줄 } from './e2eSummary.js';
 import { 프로시저글 } from './collectProc.js';
@@ -189,7 +190,7 @@ function 원문부록(케이스들: 케이스[]): string[] {
   ];
 }
 
-// 시각은 머리말의 실행 시각과 같은 꼴(ISO)로 적는다 — 같은 문서 안에서 두 꼴이 섞이지 않게
+// 시각은 머리말의 실행 시각과 같은 꼴(한국 시간)로 적는다 — 같은 문서 안에서 두 꼴이 섞이지 않게
 function E2E요약절(줄들: E2E요약줄[]): string[] {
   if (줄들.length === 0) return [];
   return [
@@ -201,7 +202,7 @@ function E2E요약절(줄들: E2E요약줄[]): string[] {
       // 단계 행 없이 멈춘 실행은 판정 없음인데 멈춘 단계도 없다 — 「모두 통과」는 통과에만 붙인다
       const 멈춘곳 = z.stoppedAt !== null ? ` · ${z.stoppedAt}번에서 종료` : z.verdict === 'PASS' ? ' · 모두 Pass' : '';
       const 미확정 = z.unconfirmed ? `<span class="badge">미확정</span>` : '';
-      return `<div class="fold fold-line">${판정(z.verdict)}${이름}<span class="devs">${안전(z.startedAt)}${멈춘곳}</span>${미확정}</div>`;
+      return `<div class="fold fold-line">${판정(z.verdict)}${이름}<span class="devs">${안전(한국시각(z.startedAt))}${멈춘곳}</span>${미확정}</div>`;
     }),
     `<p class="axis">케이스 판정은 위 카드와 줄이 정본이다</p>`,
   ];
@@ -217,13 +218,13 @@ export function 머리말(h: EvidenceHeader, generatedAt: string): string[] {
     `  <dl class="meta">`,
     `    <dt>실행 제목</dt><dd>${안전(h.title)}</dd>`,
     `    <dt>종류</dt><dd>${안전(h.kind)}</dd>`,
-    `    <dt>실행 시각</dt><dd>${안전(h.startedAt)}</dd>`,
+    `    <dt>실행 시각</dt><dd>${안전(한국시각(h.startedAt))}</dd>`,
     `    <dt>실행자</dt><dd>${안전(h.triggeredByName)}</dd>`,
     `    <dt>대상 서버</dt><dd>${안전(h.env)}</dd>`,
     `    <dt>대상 주소</dt><dd>${안전(h.baseUrl)}</dd>`,
     // 앱 항목이 있는 실행만 — 브라우저 실행 · E2E 증적에는 줄이 없다 (도메인/리포팅 §8.4 · APP-F1-05)
     ...(기기.length === 0 ? [] : [`    <dt>디바이스</dt><dd>${안전(기기.join(' / '))}</dd>`]),
-    `    <dt>만든 시각</dt><dd>${안전(generatedAt)}</dd>`,
+    `    <dt>만든 시각</dt><dd>${안전(한국시각(generatedAt))}</dd>`,
     `  </dl>`,
     `</header>`,
   ];

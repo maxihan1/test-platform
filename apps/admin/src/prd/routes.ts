@@ -7,7 +7,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { 칸되는서비스 } from '../auth/permissions.js';
 import { 번호 } from '../authoring/params.js';
 import { 서비스번호 } from '../authoring/routes.js';
-import { 한국시각 } from '../catalog/exportData.js';
+import { 한국시각 } from '../kst.js';
 import { lastByCase } from '../execution/history.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 워드만들기 } from './docx.js';

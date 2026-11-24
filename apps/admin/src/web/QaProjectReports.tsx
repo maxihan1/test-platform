@@ -5,14 +5,15 @@ import { useState } from 'react';
 import { 빠른기간, 짧은날 } from '../reporting/qaProjectReportShape.js';
 import type { ServiceRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { 서울 } from './seoul.js';
 import { 다음이있나 } from './paging.js';
 import { qaReportApi, 쪽크기, type 프로젝트리포트줄 } from './qaReportApi.js';
 import { Failed, Loading, message, useAsync, when, 기다림글자 } from './ui.js';
 
 type 기간꼴 = 'week' | 'month' | 'custom';
 
-const 시간대 = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone;
-/** 이 브라우저 시간대의 오늘 — sv-SE 꼴이 곧 YYYY-MM-DD 다 */
+const 시간대 = (): string => 서울;
+/** 한국 시간의 오늘 — sv-SE 꼴이 곧 YYYY-MM-DD 다 */
 const 오늘 = (): string => new Intl.DateTimeFormat('sv-SE', { timeZone: 시간대() }).format(new Date());
 
 function 만들기창({ projectId, on닫기 }: { projectId: number; on닫기: () => void }) {

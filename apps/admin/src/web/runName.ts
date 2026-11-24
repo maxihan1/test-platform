@@ -3,6 +3,7 @@
 
 import type { RunSummary } from './api.js';
 import type { 값들, 언어 } from './i18n.js';
+import { 서울, 서울날 } from './seoul.js';
 
 type 말 = (키: string, 값?: 값들) => string;
 type 방식 = NonNullable<RunSummary['origin']>;
@@ -16,12 +17,13 @@ export const 시작방식글 = (origin: RunSummary['origin'], t: 말): string =>
 export function 시작글(iso: string, 언어: 언어, 지금 = new Date()): string {
   const 때 = new Date(iso);
   return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', {
-    ...(때.getFullYear() === 지금.getFullYear() ? {} : { year: 'numeric' }),
+    ...(서울날(때).slice(0, 4) === 서울날(지금).slice(0, 4) ? {} : { year: 'numeric' }),
     month: 언어 === 'en' ? 'short' : 'long',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
+    timeZone: 서울,
   }).format(때);
 }
 
