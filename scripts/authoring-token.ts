@@ -115,6 +115,8 @@ export interface 서비스설정 {
   제외: string[];
   /** 종류 「게임」 — 게임 첫 화면 통로가 실패해도 게임 절 · 게임 지도 · 창 기록 올리기를 붙인다 (도메인/게임 §3.10 「작성 — 한 바퀴」) */
   게임?: boolean;
+  /** 「프로시저 작성」 스위치(me 의 procedureMode) — 켜졌으면 자식이 테스트 프로시저로 쓴다 (도메인/작성 §3.6 「★ 테스트 프로시저 작성」) */
+  프로시저?: boolean;
   /** 애플리케이션 종류(me 의 kind) — PRD 초안 자식이 웹일 때만 브라우저로 화면을 연다 (도메인/BTS 「PRD 초안 → 결정 필요」). Android 앱 대조는 appium-cli 절을 받고 계정 없이도 간다 (작성 §3.6 「앱 · 게임 역방향」) */
   종류?: string;
 }
@@ -128,7 +130,7 @@ export function 나풀기(몸: unknown): { username: string; 서비스들: strin
     | {
         username?: unknown;
         role?: unknown;
-        services?: { prefix: string; kind?: unknown; envs?: 서버[]; testsDir?: unknown; crawlExclude?: unknown; permissions?: { authoring?: unknown } }[];
+        services?: { prefix: string; kind?: unknown; procedureMode?: unknown; envs?: 서버[]; testsDir?: unknown; crawlExclude?: unknown; permissions?: { authoring?: unknown } }[];
       }
     | undefined;
   if (user === undefined || typeof user.username !== 'string' || !Array.isArray(user.services)) {
@@ -144,19 +146,19 @@ export function 나풀기(몸: unknown): { username: string; 서비스들: strin
     username: user.username,
     서비스들: 맡은것.map((s) => s.prefix),
     설정표: Object.fromEntries(
-      맡은것.map((s) => [s.prefix, { 서버들: s.envs ?? [], 폴더: 폴더고르기(s.prefix, s.testsDir), 제외: 제외고르기(s.crawlExclude), 게임: s.kind === 'GAME', ...(typeof s.kind === 'string' && { 종류: s.kind }) }]),
+      맡은것.map((s) => [s.prefix, { 서버들: s.envs ?? [], 폴더: 폴더고르기(s.prefix, s.testsDir), 제외: 제외고르기(s.crawlExclude), 게임: s.kind === 'GAME', ...(s.procedureMode === true && { 프로시저: true }), ...(typeof s.kind === 'string' && { 종류: s.kind }) }]),
     ),
   };
 }
 
 /**
- * 건을 가져갈 때 다시 읽은 me 로 그 서비스의 훑지 않을 경로만 바꾼다 — 설정을 바꾸면 에이전트를 다시 켜지 않아도 다음 건부터 먹는다.
+ * 건을 가져갈 때 다시 읽은 me 로 그 서비스의 훑지 않을 경로와 「프로시저 작성」 스위치만 바꾼다(작성 §3.6 「프로시저 절 · 프로시저 번호」 — 스위치는 집을 때 값이다) — 설정을 바꾸면 에이전트를 다시 켜지 않아도 다음 건부터 먹는다.
  * 못 읽었거나 그 서비스가 빠졌으면 켤 때 것. 대상 서버 · 테스트 폴더는 켤 때 것 그대로다 (SPEC 도메인/인증 §7 · #153)
  */
 export function 건설정(몸: unknown, 서비스: string, 켤때: 서비스설정): 서비스설정 {
   const 새것 = 나풀기(몸);
-  const 제외 = typeof 새것 === 'string' ? undefined : 새것.설정표[서비스]?.제외;
-  return 제외 === undefined ? 켤때 : { ...켤때, 제외 };
+  const 그것 = typeof 새것 === 'string' ? undefined : 새것.설정표[서비스];
+  return 그것 === undefined ? 켤때 : { ...켤때, 제외: 그것.제외, 프로시저: 그것.프로시저 };
 }
 
 /**
