@@ -4,7 +4,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api } from './api.js';
+import { api, ApiError } from './api.js';
 import { RunResult } from './RunResult.js';
 import { RUN_ID, 실행까지 } from './RunResult.fixture.js';
 import { 견줌, 끝난실행, 섞인항목, 첫실행, 칩, 항목줄 } from './RunResultAssemble.fixture.js';
@@ -175,5 +175,17 @@ describe('실행 기록에서 넘어온 조건(list=)', () => {
     await screen.findByText('이름-ZRR-002');
 
     expect(window.location.hash).toBe('#/runs/2112');
+  });
+});
+
+describe('호환성 실행 번호로 온 주소', () => {
+  it('호환성 결과로 옮기되 방문 기록의 칸 번호를 남긴다 — 지우면 떠나기 막기가 뒤로 가기를 잘못 센다', async () => {
+    vi.mocked(api.run).mockRejectedValue(new ApiError(404, 'COMPAT_RUN', '2112'));
+    window.history.replaceState({ navIndex: 4 }, '', '#/runs/2112');
+    render(<RunResult runId={2112} 판정하기={() => 실행까지} />);
+
+    await waitFor(() => expect(window.location.hash).toBe('#/compat/runs/2112'));
+    expect(window.history.state).toEqual({ navIndex: 4 });
+    window.history.replaceState(null, '', '#');
   });
 });
