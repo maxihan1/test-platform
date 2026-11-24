@@ -116,6 +116,15 @@ describe.skipIf(연결 === undefined)('안정화 집계 — 정기 실행 회차
     expect(await 집계(fn)).toBe('집계함');
   });
 
+  it('「프로시저 작성」을 켜 돌 때 빠진 UI 줄도 빠진 줄로 세지 않는다 — 기능 실행 하나로 그날 점을 찍는다', async () => {
+    const 기준 = await 세트('XSD 켠 앱 회귀', true);
+    await pool.query("INSERT INTO sched_set_item (set_id, seq, kind, service_id) VALUES ($1, 1, 'FN', $2), ($1, 2, 'UI', $2)", [기준, 서비스]);
+    const 회 = await 회차(기준, '2001-09-10', 'DONE');
+    await pool.query(`UPDATE sched_occurrence SET notes = '[{"kind":"UI","service":"XSD","reason":"PROCEDURE_ONE_KIND"}]' WHERE id = $1`, [회]);
+    const fn = await 실행('qa8', 'FN', '2001-09-09T18:00:00Z', 회);
+    expect(await 집계(fn)).toBe('집계함');
+  });
+
   it('다시 켜질 때 기준이 아닌 세트의 회차 실행은 빠진 집계 후보가 아니다', async () => {
     const 두시간전 = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const 보통 = await 세트('XSD 낮 점검', false);

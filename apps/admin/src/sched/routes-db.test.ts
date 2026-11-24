@@ -309,9 +309,9 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
     expect(res.statusCode).toBe(200);
     const b = res.json() as { services: object[]; scenarios: object[]; compatSets: object[] };
     expect(b.services).toEqual([
-      { prefix: 'XKS', name: 'XKS 앱', kind: 'SCREEN', fn: 2, ui: 1 },
-      { prefix: 'XKSA', name: 'XKSA 앱', kind: 'API', fn: 1, ui: 0 },
-      { prefix: 'XKSM', name: 'XKSM 앱', kind: 'SCREEN', fn: 0, ui: 0 },
+      { prefix: 'XKS', name: 'XKS 앱', kind: 'SCREEN', procedure: false, fn: 2, ui: 1 },
+      { prefix: 'XKSA', name: 'XKSA 앱', kind: 'API', procedure: false, fn: 1, ui: 0 },
+      { prefix: 'XKSM', name: 'XKSM 앱', kind: 'SCREEN', procedure: false, fn: 0, ui: 0 },
     ]);
     expect(b.scenarios).toEqual([{ id: 섞인시나리오, name: '주문 흐름', service: 'XKS', path: ['XKS', 'XKSM'], runnable: true }]);
     expect(b.compatSets).toEqual([{ id: 호환성세트, name: '주요 폰', service: 'XKS' }]);

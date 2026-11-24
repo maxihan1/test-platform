@@ -33,12 +33,12 @@ import { use이어받기 } from './useCasePages.js';
 import { useRunPick, 쪽상한 } from './useRunPick.js';
 
 // 결과보나 — 실행 칸이 none 이면 마지막 결과를 부르지 않는다. 부르면 서버가 403 을 낸다
-// 요구보나 — 작성 칸이 none 이면 요구 번호가 「PRD 관리」 고리가 아니라 글자다. 요구 — 「PRD 관리」에서 넘어온 요구 번호 (§8.1 「맥락」)
-export function CaseList({ service, 할수, 결과보나, 요구보나 = false, kind, 요구, 앱종류 }: { service: string; 할수: 판정; 결과보나: boolean; 요구보나?: boolean; kind: 'UI' | 'FN' | 'GS'; 요구?: string; 앱종류?: 앱종류 }) {
+// 요구보나 — 작성 칸이 none 이면 요구 번호가 「PRD 관리」 고리가 아니라 글자다. 요구 — 「PRD 관리」에서 넘어온 요구 번호 (§8.1 「맥락」). 한종류 — 「프로시저 작성」을 켰다(기능 목록이 UI 번호까지)
+export function CaseList({ service, 할수, 결과보나, 요구보나 = false, kind, 요구, 앱종류, 한종류 = false }: { service: string; 할수: 판정; 결과보나: boolean; 요구보나?: boolean; kind: 'UI' | 'FN' | 'GS'; 요구?: string; 앱종류?: 앱종류; 한종류?: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const 테스트만 = 테스트만인가(할수);
-  const 검색 = use검색조건(service, kind, 요구, 앱종류);
+  const 검색 = use검색조건(service, kind, 요구, 앱종류, 한종류);
   const { 조건, 결과 } = 검색;
   const [본서비스, set본서비스] = useState(service);
   const [scanning, setScanning] = useState(false);
@@ -144,12 +144,12 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
       {/* 저장 뒤 비운 칸은 빈 표라 고친 것이 아니다 */}
       <떠나기상자 막나={Object.values(글자).some((it) => Object.keys({ ...it?.params, ...it?.expected }).length > 0)} />
       {/* 화면 제목은 메뉴 이름이다 — 「기능 · UI 테스트 › 기능 테스트」로 누른 하위 메뉴까지 보인다 (2026-10-19 · 10-20 사용자).
-          API 의 「기능 테스트」 · 게임의 「기능 테스트」 · 「게임 미션」은 하위 없는 한 줄이라 묶음 이름이 없다. 게임 UI 목록은 「기능 테스트」에서 들어온다 (화면공통 §8 「자리 목록」) */}
+          API · 게임 · 「프로시저 작성」을 켠 앱의 「기능 테스트」와 「게임 미션」은 하위 없는 한 줄이라 묶음 이름이 없고 그 UI 목록은 「기능 테스트」 아래다 (화면공통 §8 「자리 목록」) */}
       <Head
         클래스="case-head"
-        위치={앱종류 === 'API' || (앱종류 === 'GAME' && kind !== 'UI') ? undefined : t(앱종류 === 'GAME' ? '기능 테스트' : '기능 · UI 테스트')}
+        위치={앱종류 === 'API' || ((앱종류 === 'GAME' || 한종류) && kind !== 'UI') ? undefined : t(앱종류 === 'GAME' || 한종류 ? '기능 테스트' : '기능 · UI 테스트')}
         제목={kind === 'UI' ? t('UI 테스트') : kind === 'GS' ? t('게임 미션') : t('기능 테스트')}
-        부제={<목록부제 전체={cases.data?.total ?? null} 미확정={cases.data?.unconfirmed} scan={scan.data} error={notice ?? scan.error} 모으는중={뽑기.모으는중} UI링크={앱종류 === 'GAME' && kind === 'FN'} />}
+        부제={<목록부제 전체={cases.data?.total ?? null} 미확정={cases.data?.unconfirmed} scan={scan.data} error={notice ?? scan.error} 모으는중={뽑기.모으는중} UI링크={앱종류 === 'GAME' && kind === 'FN' && !한종류} />}
         행동={
           <목록머리행동
             전체={전체}

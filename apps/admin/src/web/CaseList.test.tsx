@@ -112,6 +112,21 @@ describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
     expect(스파이.mock.calls[0]![0].mission).toBeUndefined();
   });
 
+  it('「프로시저 작성」을 켠 애플리케이션의 기능 테스트는 종류를 거르지 않고 제목에 묶음 이름이 없으며 게임도 UI 번호 링크를 달지 않는다', async () => {
+    const 스파이 = 모킹(쪽주기);
+    render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 앱종류="APP" 한종류 />);
+    await screen.findByText('ZPK-001');
+    expect(스파이.mock.calls[0]![0].kind).toBeUndefined();
+    expect(screen.getByRole('heading', { level: 1, name: '기능 테스트' })).toBeTruthy();
+    cleanup();
+
+    render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 앱종류="GAME" 한종류 />);
+    await screen.findByText('ZPK-001');
+    expect(스파이).toHaveBeenLastCalledWith(expect.objectContaining({ mission: false }));
+    expect(스파이.mock.lastCall![0].kind).toBeUndefined();
+    expect(screen.queryByRole('link', { name: 'UI 번호 케이스 보기' })).toBeNull();
+  });
+
   it('게임이 아니면 게임 미션 조건을 보내지 않는다', async () => {
     const 스파이 = 모킹(쪽주기);
     render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 앱종류="SCREEN" />);

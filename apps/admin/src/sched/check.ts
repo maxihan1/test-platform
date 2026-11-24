@@ -22,6 +22,8 @@ export interface 앱 {
   kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
   isActive: boolean;
   projectId: number;
+  /** 「프로시저 작성」을 켰나 — 켠 애플리케이션은 케이스 실행 종류가 하나라 세트도 기능 줄 하나만 담는다 (§3.16 「테스트 프로시저」) */
+  procedureMode: boolean;
 }
 
 export interface 재료 {
@@ -48,7 +50,11 @@ export type 빠진까닭 =
   | 'ENV_GONE'
   | 'ENV_PROD'
   | 'PATH_ENV_GONE'
-  | 'PATH_ENV_PROD';
+  | 'PATH_ENV_PROD'
+  | 'PROCEDURE_ONE_KIND';
+
+/** 「프로시저 작성」을 켠 애플리케이션의 UI 줄 — 그 케이스는 기능 줄이 같이 돌린다. 담아 두면 같은 케이스가 두 번 돈다 (§3.16 「테스트 프로시저」) */
+const 한종류UI줄 = (x: 줄, a: 앱 | undefined) => x.kind === 'UI' && a?.procedureMode === true;
 
 /** 실행을 만드는 애플리케이션 — E2E 는 시나리오의 지금 시작 애플리케이션, 호환성은 세트의 애플리케이션이다 (§3.16 「세트」) */
 export function 줄앱(x: 줄, 재: 재료): 앱 | undefined {
@@ -78,6 +84,7 @@ export function 빠진까닭(x: 줄, 고름: 서버고름, 재: 재료): 빠진�
   const a = 줄앱(x, 재);
   if (a === undefined || a.projectId !== 재.projectId) return 'SERVICE_MOVED';
   if (!a.isActive) return 'SERVICE_INACTIVE';
+  if (한종류UI줄(x, a)) return 'PROCEDURE_ONE_KIND';
   if (x.tcIds !== null && !x.tcIds.some((t) => 재.살아있는케이스.has(t))) return 'CASES_GONE';
   if (x.kind === 'E2E' && !재.시나리오.get(x.scenarioId!)!.runnable) return 'SCENARIO_NOT_RUNNABLE';
   const env = 고름.get(a.id);
@@ -120,11 +127,14 @@ export function 저장문제(새줄: readonly 줄[], 새고름: 서버고름, �
       if (x.kind === 'COMPAT' && 재.호환성.get(x.compatSetId!)?.isActive !== true) return 줄글(seq, `없는 호환성 세트입니다 (${x.compatSetId})`);
       if (a === undefined || a.projectId !== 재.projectId) return 줄글(seq, '다른 프로젝트의 테스트입니다');
       if (x.kind === 'UI' && a.kind === 'API') return 줄글(seq, 'API 애플리케이션에는 UI 테스트가 없습니다');
+      if (한종류UI줄(x, a)) return 줄글(seq, '「프로시저 작성」을 켠 애플리케이션은 기능 테스트 줄 하나로 담습니다');
     }
     if (x.tcIds !== null && a !== undefined) {
       // 같은 애플리케이션의 기능 줄이 둘일 수 있다 — 짝 하나가 아니라 같은 옛 줄 전부의 번호와 견준다
       const 있던 = new Set(옛?.줄들.filter((o) => 같은줄(o, x)).flatMap((o) => o.tcIds ?? []) ?? []);
-      const 모름 = x.tcIds.filter((t) => !있던.has(t) && (!t.startsWith(`${a.prefix}-`) || tcId종류(t) !== x.kind || !재.살아있는케이스.has(t)));
+      // 「프로시저 작성」을 켠 애플리케이션의 기능 줄은 UI 번호도 받는다 — 실행이 한 종류다
+      const 종류맞나 = (t: string) => tcId종류(t) === x.kind || (x.kind === 'FN' && a.procedureMode);
+      const 모름 = x.tcIds.filter((t) => !있던.has(t) && (!t.startsWith(`${a.prefix}-`) || !종류맞나(t) || !재.살아있는케이스.has(t)));
       if (모름.length > 0) return 줄글(seq, `고를 수 없는 케이스입니다 (${모름.join(', ')})`);
     }
     if (a !== undefined && a.projectId === 재.projectId) 쓰는앱.set(a.id, a);
@@ -152,8 +162,12 @@ export function 저장문제(새줄: readonly 줄[], 새고름: 서버고름, �
   return null;
 }
 
-/** 기준 세트의 꼴 — 애플리케이션 하나의 기능 · UI 줄만 · 매일 또는 요일 (§3.16 「기준 세트의 꼴」). 맞으면 그 애플리케이션 번호 */
-export function 기준앱(줄들: readonly 줄[], days: readonly number[] | null): number | null {
+/**
+ * 기준 세트의 꼴 — 애플리케이션 하나의 기능 · UI 줄만 · 매일 또는 요일 (§3.16 「기준 세트의 꼴」). 맞으면 그 애플리케이션 번호.
+ * 「프로시저 작성」을 켠 애플리케이션의 UI 줄은 돌 때 빠지니 빼고 본다 — 스위치를 켰다고 기준이 풀리지 않게 (§3.16 「테스트 프로시저」)
+ */
+export function 기준앱(모든줄: readonly 줄[], days: readonly number[] | null, 앱들표: ReadonlyMap<number, 앱>): number | null {
+  const 줄들 = 모든줄.filter((x) => !한종류UI줄(x, 앱들표.get(x.serviceId)));
   const 앱들 = new Set(줄들.map((x) => x.serviceId));
   if (days === null || 줄들.length === 0 || 앱들.size !== 1 || 줄들.some((x) => x.kind !== 'FN' && x.kind !== 'UI')) return null;
   return 줄들[0]!.serviceId;

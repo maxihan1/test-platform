@@ -47,9 +47,10 @@ interface 묶음행 {
 export const 묶음SQL = `
   WITH 이 AS (
     SELECT r.service_id, r.env, s.kind AS service_kind, z.tz, r.sched_occurrence_id AS occ, o.state AS occ_state,
-           -- 돌릴 케이스가 없어 실행이 안 선 줄(NO_CASE — UI 케이스가 없는 애플리케이션)은 빼고 센다. 앞 판도 그 종류 실행을 안 만들고 집계했다
+           -- 돌릴 케이스가 없어 실행이 안 선 줄(NO_CASE — UI 케이스가 없는 애플리케이션)은 빼고 센다. 앞 판도 그 종류 실행을 안 만들고 집계했다.
+           -- 「프로시저 작성」을 켜 돌 때 빠진 UI 줄(PROCEDURE_ONE_KIND)도 뺀다 — 그 케이스는 기능 실행이 같이 돌려 묶음이 그 실행 하나다 (도메인/안정화 §3.15 「테스트 프로시저」)
            ((SELECT count(*) FROM sched_set_item i WHERE i.set_id = o.set_id AND i.kind IN ('UI', 'FN'))
-            - (SELECT count(*) FROM jsonb_array_elements(o.notes) n WHERE n->>'reason' = 'NO_CASE' AND n->>'kind' IN ('UI', 'FN')))::int AS occ_lines,
+            - (SELECT count(*) FROM jsonb_array_elements(o.notes) n WHERE n->>'reason' IN ('NO_CASE', 'PROCEDURE_ONE_KIND') AND n->>'kind' IN ('UI', 'FN')))::int AS occ_lines,
            COALESCE(o.planned_on, (r.started_at AT TIME ZONE z.tz)::date) AS day
       FROM test_run r JOIN service s ON s.id = r.service_id
       CROSS JOIN LATERAL (SELECT COALESCE((SELECT b.tz FROM sched_set b JOIN sched_set_item bi ON bi.set_id = b.id

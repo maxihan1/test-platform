@@ -56,6 +56,8 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   const 줄 = 종류(고른?.kind);
   const API = 종류키(고른?.kind) === 'API';
   const 게임 = 종류키(고른?.kind) === 'GAME';
+  // 「프로시저 작성」을 켠 Android 앱은 실행 종류가 하나라 UI 테스트가 따로 서지 않는다 — 게임 · API 처럼 「기능 테스트」 한 줄이다 (DESIGN 「테스트 프로시저 · 목록 · 결과」 「메뉴」)
+  const 한종류 = 고른?.procedureMode === true;
   const 실행 = 기능보나(user, prefix, 'runs');
   // QA 단계 구분선 넷 — 메뉴만 훑어도 품질 현황 → 설계 → 수행 → 결과 분석이 읽힌다 (2026-11-12 사용자 · 시안 LrgxrskjP1hxHEFj3qRjsZ)
   const 현황 = t('품질 현황', 언어);
@@ -82,7 +84,7 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   if (기능보나(user, prefix, 'cases')) {
     // API 애플리케이션은 화면이 없어 UI 테스트가 없다(도메인/API §3.1) — 이름도 「기능 테스트」이고 하위 없이 바로 그 목록이다.
     // 주소는 지금 자리(`지금자리` 의 `#/cases/fn`)와 같아야 밑줄이 간다
-    if (API) 목록.push({ 이름: t('기능 테스트', 언어), 해시: '#/cases/fn', 아이콘: 'cases', 단계: 수행 });
+    if (API || (한종류 && !게임)) 목록.push({ 이름: t('기능 테스트', 언어), 해시: '#/cases/fn', 아이콘: 'cases', 단계: 수행 });
     else if (게임) {
       // 게임은 UI 갈래를 새로 쓰지 않고 게임 시나리오(-GS-)가 따로 돈다 — 둘 다 하위 없는 한 줄이다.
       // 남은 -UI- 케이스는 「기능 테스트」 화면의 링크로 간다 (도메인/게임 「케이스 꼴」 · 2026-11-23 사용자)

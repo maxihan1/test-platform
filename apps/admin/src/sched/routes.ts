@@ -55,7 +55,7 @@ const 프로젝트칸 = (req: FastifyRequest, projectId: number, 필요: 'read' 
 /** 세트줄 (§7) — 재료는 같은 프로젝트 세트들을 한 번에 읽은 것이다 */
 function 세트줄(s: 세트, 재: 재료, 지난: Awaited<ReturnType<typeof 지난결과들>>, 기준있는앱: Map<number, number>) {
   const 앱이름 = (id: number) => 재.앱들.get(id)?.prefix ?? '';
-  const 기준 = 기준앱(s.줄들, s.days);
+  const 기준 = 기준앱(s.줄들, s.days, 재.앱들);
   const 다른기준 = 기준 === null ? undefined : 기준있는앱.get(기준);
   return {
     id: s.id,
@@ -86,9 +86,10 @@ function 세트줄(s: 세트, 재: 재료, 지난: Awaited<ReturnType<typeof 지
 async function 세트줄들(projectId: number, 고를번호?: number) {
   const 세트들 = await 세트들읽기({ projectId });
   // 기준 세트는 프로젝트 전체에서 찾고, 무거운 재료 · 지난 결과는 돌려줄 세트만 읽는다
-  const 기준있는앱 = new Map(세트들.flatMap((s) => { const a = s.isBase ? 기준앱(s.줄들, s.days) : null; return a === null ? [] : [[a, s.id] as const]; }));
   const 고른 = 세트들.filter((s) => 고를번호 === undefined || s.id === 고를번호);
+  // 기준 꼴은 애플리케이션의 「프로시저 작성」 스위치를 본다 — 앱 표는 프로젝트 애플리케이션을 다 담아 기준 세트의 앱도 든다
   const [재, 지난] = await Promise.all([재료읽기(projectId, 고른.flatMap((s) => s.줄들)), 지난결과들(고른.map((s) => s.id))]);
+  const 기준있는앱 = new Map(세트들.flatMap((s) => { const a = s.isBase ? 기준앱(s.줄들, s.days, 재.앱들) : null; return a === null ? [] : [[a, s.id] as const]; }));
   return 고른.map((s) => 세트줄(s, 재, 지난, 기준있는앱));
 }
 
@@ -140,7 +141,7 @@ async function 검사(b: 본문, projectId: number, tz: string, 옛: 세트 | nu
   for (const id of 고름.keys()) if (!쓰는.has(id)) 고름.delete(id);
   const 문제 = 저장문제(줄들, 고름, 옛 === null ? null : { 줄들: 옛.줄들, 고름: 옛.고름 }, 재);
   if (문제 !== null) return 문제;
-  if (옛?.isBase === true && 기준앱(줄들, days) !== 기준앱(옛.줄들, 옛.days)) return 'BASE_SET_SHAPE';
+  if (옛?.isBase === true && 기준앱(줄들, days, 재.앱들) !== 기준앱(옛.줄들, 옛.days, 재.앱들)) return 'BASE_SET_SHAPE';
   return { name: b.name, at: b.at, days: 정리days, onceOn, report: null, 줄들, 고름 };
 }
 
@@ -206,8 +207,9 @@ export default async function schedRoutes(app: FastifyInstance): Promise<void> {
     // 꼴이 맞고 그 애플리케이션에 다른 기준 세트가 없어야 한다 (§3.16 「기준 정하기 · 풀기」).
     // 검사는 프로젝트 잠금 안에서 한다 — 두 사람이 같은 애플리케이션의 다른 세트를 동시에 기준으로 정해도 하나만 된다
     const 기준검사 = async () => {
-      const 앱 = 기준앱(s.줄들, s.days);
-      return 앱 !== null && !(await 세트들읽기({ projectId: s.projectId })).some((x) => x.isBase && x.id !== s.id && 기준앱(x.줄들, x.days) === 앱);
+      const { 앱들 } = await 재료읽기(s.projectId, s.줄들);
+      const 앱 = 기준앱(s.줄들, s.days, 앱들);
+      return 앱 !== null && !(await 세트들읽기({ projectId: s.projectId })).some((x) => x.isBase && x.id !== s.id && 기준앱(x.줄들, x.days, 앱들) === 앱);
     };
     const 됨 = await 세트바꾸기(s.id, s.projectId, parsed.data, req.user?.username ?? '알 수 없음', parsed.data.isBase === true && !s.isBase ? 기준검사 : undefined);
     return 됨 ? { id: s.id } : 잘못(reply, 'BASE_SET_SHAPE');

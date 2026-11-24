@@ -24,7 +24,8 @@ export type 덮을값 = Partial<마법사값>;
 
 /** 담을 후보 (§7 GET /api/sched/candidates) */
 export interface 후보 {
-  services: { prefix: string; name: string; kind: string; fn: number; ui: number }[];
+  /** procedure — 「프로시저 작성」을 켰나. 켠 애플리케이션은 UI 탭에 없고 기능 「전체」가 둘의 합이다 (도메인/정기실행 §3.16 「테스트 프로시저」) */
+  services: { prefix: string; name: string; kind: string; procedure: boolean; fn: number; ui: number }[];
   scenarios: { id: number; name: string; service: string; path: string[]; runnable: boolean }[];
   compatSets: { id: number; name: string; service: string }[];
 }

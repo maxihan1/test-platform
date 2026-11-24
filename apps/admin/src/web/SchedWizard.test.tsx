@@ -43,13 +43,14 @@ const 세트하나 = (덮: Partial<세트> = {}): 세트 => ({
   ...덮,
 });
 
-const 차리기 = (세트들: 세트[]) => {
+const 차리기 = (세트들: 세트[], 더앱들: { prefix: string; name: string; kind: string; procedure: boolean; fn: number; ui: number }[] = []) => {
   vi.spyOn(schedApi, 'sets').mockResolvedValue({ items: 세트들 });
   vi.spyOn(schedApi, 'calendar').mockResolvedValue({ occurrences: [] });
   vi.spyOn(schedApi, 'candidates').mockResolvedValue({
     services: [
-      { prefix: 'ADM', name: 'ADM 앱', kind: 'SCREEN', fn: 12, ui: 3 },
-      { prefix: 'MKT', name: 'MKT 앱', kind: 'SCREEN', fn: 382, ui: 40 },
+      { prefix: 'ADM', name: 'ADM 앱', kind: 'SCREEN', procedure: false, fn: 12, ui: 3 },
+      { prefix: 'MKT', name: 'MKT 앱', kind: 'SCREEN', procedure: false, fn: 382, ui: 40 },
+      ...더앱들,
     ],
     scenarios: [{ id: 3, name: '주문 → 어드민 확인', service: 'MKT', path: ['MKT', 'ADM'], runnable: true }],
     compatSets: [{ id: 5, name: '주요 화면 호환성', service: 'MKT' }],
@@ -154,6 +155,29 @@ describe('정기 실행 세트 마법사', () => {
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
     await waitFor(() => expect(기준).toHaveBeenCalledWith(9, true));
     expect(만들기.mock.calls[0]![0].items).toEqual([{ kind: 'FN', service: 'MKT', tcIds: ['MKT-FN-001', 'MKT-FN-002'] }]);
+  });
+
+  it('「프로시저 작성」을 켠 애플리케이션은 UI 탭에 없고, 기능 탭의 「전체」가 기능과 UI 를 합친 수이며 케이스 검색이 종류를 거르지 않는다', async () => {
+    차리기([], [{ prefix: 'MTA', name: 'MTA 앱', kind: 'APP', procedure: true, fn: 20, ui: 5 }]);
+    render(<Sched service={앱들[0]!} 앱들={[...앱들, 앱('MTA', { kind: 'APP', procedureMode: true })]} 쓰나 />);
+    fireEvent.click((await screen.findAllByRole('button', { name: '+ 신규 세트' }))[0]!);
+    fireEvent.change(within(창()).getByRole('textbox'), { target: { value: '앱 회귀' } });
+    다음();
+    fireEvent.change(await within(창()).findByRole('combobox'), { target: { value: 'MTA' } });
+    expect(await within(창()).findByText('전체 25건')).toBeTruthy();
+    await waitFor(() => expect(api.cases).toHaveBeenLastCalledWith({ service: 'MTA', q: undefined, page: 1 }));
+    fireEvent.click(within(창()).getByRole('tab', { name: 'UI 테스트' }));
+    expect(within(창()).getAllByRole('option').map((o) => o.getAttribute('value'))).toEqual(['ADM', 'MKT']);
+  });
+
+  it('첫 줄이 「프로시저 작성」을 켠 애플리케이션의 옛 UI 줄이면 수정을 기능 탭의 그 애플리케이션으로 연다', async () => {
+    차리기([세트하나({ items: [{ kind: 'UI', service: 'MTA', tcIds: null, label: 'UI 전체' }], envs: [{ service: 'MTA', env: 'qa' }] })], [{ prefix: 'MTA', name: 'MTA 앱', kind: 'APP', procedure: true, fn: 20, ui: 5 }]);
+    render(<Sched service={앱들[0]!} 앱들={[...앱들, 앱('MTA', { kind: 'APP', procedureMode: true })]} 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '수정' }));
+    다음();
+    await within(창()).findByText('선택한 테스트 1개');
+    expect(within(창()).getByRole('tab', { name: '기능 테스트' }).getAttribute('aria-selected')).toBe('true');
+    expect((within(창()).getByRole('combobox') as HTMLSelectElement).value).toBe('MTA');
   });
 
   it('케이스 read 가 없으면 「전체」만 보이고 검색 칸이 없다', async () => {
