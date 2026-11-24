@@ -77,7 +77,8 @@ export async function 기기차림(접두사: string, api: boolean) {
   const 팜시작 = new Map<string, number>();
   const 줄끔 = new Set<string>();
   // 바꿔 가며 쓰는 값 — 검사가 직접 고친다
-  const 상태 = { fps값: 58, 러너지연: 0 };
+  // 프로시저 · 판정은 프로시저 검사(procedure-db.test.ts)가 쓴다 — 판정이 없는 케이스는 PASS, BLOCKED 는 앞 케이스에 막힌 것이다
+  const 상태 = { fps값: 58, 러너지연: 0, 프로시저: false, 판정: {} as Record<string, 'FAIL' | 'BLOCKED'> };
   const 로컬시작 = { at: 0 };
 
   const 줄들 = (시작: number, since: number, serial: string) => {
@@ -116,9 +117,22 @@ export async function 기기차림(접두사: string, api: boolean) {
   });
   const 러너 = await 서버(async (h, 응답) => {
     if (h.path === '/abort') return 응답(200, { aborted: true });
-    if (h.path === '/health') return 응답(200, { ok: true });
+    if (h.path === '/health') return 응답(200, 상태.프로시저 ? { ok: true, procedure: true } : { ok: true });
     if (h.method === 'GET') return 응답(404, { error: 'NOT_FOUND' });
     await 쉼(상태.러너지연);
+    const 케이스 = (h.body as { cases?: { tcId: string }[] }).cases;
+    if (케이스 !== undefined) {
+      let seq = 0;
+      let 앞 = '';
+      return 응답(200, { historyId: (h.body as { historyId: number }).historyId, durationMs: 2000, results: 케이스.map(({ tcId }) => {
+        const 판 = 상태.판정[tcId];
+        const 막은 = 앞;
+        if (판 === 'FAIL') 앞 = tcId;
+        if (판 === 'BLOCKED') return { tcId, status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 막은 };
+        seq += 1;
+        return { tcId, status: 판 ?? 'PASS', durationMs: 500, steps: [{ seq, title: `${tcId} 절차`, status: 판 ?? 'PASS', durationMs: 500, assertions: [], tcId }] };
+      }) });
+    }
     응답(200, { historyId: (h.body as { historyId: number }).historyId, status: 'PASS', durationMs: 2000, steps: [
       { seq: 1, title: '로그인', status: 'PASS', durationMs: 1000, assertions: [] },
       { seq: 2, title: '목록', status: 'PASS', durationMs: 1000, assertions: [] },

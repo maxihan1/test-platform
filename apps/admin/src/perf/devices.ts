@@ -7,7 +7,7 @@ import { 대상줄읽기 } from '../authoring/reverse.js';
 import { 게임시나리오인가 } from '../catalog/rules.js';
 import { PC기기인가, 팜머리, 팜주소 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
-import { 러너머리 } from '../execution/runnerAddr.js';
+import { 러너머리, 프로시저못도는러너인가 } from '../execution/runnerAddr.js';
 import { 기기목표 } from './deviceStats.js';
 import * as 표 from './store.js';
 import type { DeviceRunConfig } from './types.js';
@@ -165,6 +165,9 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
     if (줄.appPath === null) return 나쁨('대상 서버 줄에 앱 파일이 없습니다');
     // 케이스는 서버 러너가 팜에서 잡은 폰으로 돌린다 — 내 컴퓨터 러너 폰에는 보낼 길이 없다
     if (b.devices.some((d) => d.where !== 'FARM')) return 나쁨(`${b.drive === 'GAME' ? '게임' : 'Appium'} 케이스는 팜 폰만 잴 수 있습니다`);
+    // 프로시저 안 케이스는 그 프로시저를 통째로 보낸다 — 못 돌리는 러너면 측정을 만들지 않는다 (§3.9 「기기 성능」)
+    const 프로시저 = await (await 표.풀()).query('SELECT 1 FROM test_case WHERE tc_id = ANY($1::text[]) AND proc_id IS NOT NULL AND is_active LIMIT 1', [케이스]);
+    if ((프로시저.rowCount ?? 0) > 0 && (await 프로시저못도는러너인가())) return { status: 409, error: 'RUNNER_NO_PROCEDURE' };
   }
   const 팜 = 팜주소();
   if (b.devices.some((d) => d.where === 'FARM') && 팜 === undefined) return { status: 409, error: 'FARM_OFF' };
