@@ -1,7 +1,7 @@
 // 작성 결과 일관성 — 같은 기획서로 여러 번 작성한 케이스 폴더를 견줘 얼마나 같은지 숫자로 낸다 (바뀐 부분만 다시 만들기 · 같은 입력이면 같은 결과의 기준선)
 // 얇은 명령은 case-consistency.ts 다. 여기는 파일을 읽지 않는다
 
-import { 케이스tcId } from './authoring-held-apply.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
 import { 제외종류, 표읽기 } from './authoring-ledger-check.js';
 import { 가족, 가족하한, 번호찾기 } from './authoring-ledger.js';
 import type { 파일글 } from './authoring-quality.js';
@@ -65,8 +65,8 @@ export function 실행요약(파일들: 파일글[], 표?: string, 바꾸기?: R
     const 자리 = 마디.findIndex((m) => m === 'pages' || m === 'components' || m === 'helpers');
     if (자리 >= 0) 화면파일.add(마디.slice(자리).join('/'));
     if (!f.경로.endsWith('.spec.ts')) continue;
-    const tcId = 케이스tcId(f.글);
-    if (tcId !== null) 케이스.set(tcId, new Set(확인문장들(f.글)));
+    // 프로시저 파일은 케이스마다 — 확인 문장은 그 케이스 구간 것만
+    for (const c of 케이스조각들(f.글)) 케이스.set(c.tcId, new Set(확인문장들(c.프로시저?.구간글 ?? c.글)));
   }
   if (표 === undefined) return { 케이스, 화면파일, 덮음: null, 칸줄: null, 제외셈: null };
 

@@ -8,6 +8,7 @@ import { 경고줄 } from './authoring-design-check.js';
 import { 번호찾기 } from './authoring-ledger.js';
 import { 요구줄들 } from './authoring-ledger-check.js';
 import { 케이스파일들 } from './authoring-progress.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
 import { type 표줄, 줄상태 } from './authoring-slots.js';
 
 /** 링크 · 특수 파일은 안 읽는다 — 자료 폴더는 자식 uid 것이고 이어받은 폴더는 앞 자식이 만졌다. 못 읽으면 null */
@@ -56,7 +57,14 @@ function 옛표셈(트리: string, 서비스: string, 폴더: string, 기준표�
   const 새번호 = new Set(새줄.map((줄) => 줄.tcId));
   const 새미확정 = new Set(새줄.filter((줄) => 줄상태(줄.출처) === '미확정').map((줄) => 줄.tcId));
   const 미확정못받음 = [...옛미확정].filter((t) => !새미확정.has(t)).sort();
-  const 파일번호 = new Set([...케이스파일들(join(트리, 'tests', 폴더))].map((p) => basename(p, '.spec.ts')));
+  // 프로시저 파일은 이름이 프로시저 번호라 선언한 케이스 번호로 센다 — 글을 못 읽으면 파일 이름이다
+  const 자리 = join(트리, 'tests', 폴더);
+  const 파일번호 = new Set(
+    [...케이스파일들(자리)].flatMap((p) => {
+      const 번호들 = 케이스조각들(안전히읽기(join(자리, p)) ?? '').map((c) => c.tcId);
+      return 번호들.length > 0 ? 번호들 : [basename(p, '.spec.ts')];
+    }),
+  );
   const 물려받음 = [...옛번호].filter((t) => 새번호.has(t)).length;
   return [
     `옛 표 옮김: 옛 케이스 ${String(옛번호.size)} 중 번호 물려받음 ${String(물려받음)} · 새 표에 없음 ${String(옛번호.size - 물려받음)}`,
