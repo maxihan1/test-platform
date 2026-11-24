@@ -2,9 +2,10 @@
 
 import { randomUUID } from 'node:crypto';
 
-import type { CaseResult, ExecuteResponse, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
+import type { CaseResult, ExecuteResponse, ScenarioCaseResult, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
 import { 계정칸 } from '@platform/kit/accounts';
 
+import type { 케이스줄 } from '../scenario/procRun.js';
 import type { 부품기록 } from '../scenario/runTrace.js';
 
 import { 가린값들 } from '../web/mask.js';
@@ -225,8 +226,13 @@ export function 전부비운다(): void {
   케이스시험.전부비운다();
 }
 
-/** 실패한 case 부품에는 네트워크 · 조작 · 콘솔이 붙는다 (도메인/시나리오 §7 「실패 기록」) */
-export type 시나리오시험결과 = Omit<ScenarioExecuteResponse, 'parts'> & { parts: (ScenarioPartResult & { trace?: 부품기록 })[] };
+/**
+ * 실패한 case 부품에는 네트워크 · 조작 · 콘솔이 붙는다 (도메인/시나리오 §7 「실패 기록」).
+ * 프로시저 단계에는 돈 프로시저와 케이스 줄이 붙는다 — 러너 답의 cases 에 이름을 더해 박제한 차례대로 싣는다 (결정 17)
+ */
+export type 시나리오시험결과 = Omit<ScenarioExecuteResponse, 'parts'> & {
+  parts: (Omit<ScenarioPartResult, 'cases'> & { trace?: 부품기록; procId?: string; procName?: string; cases?: (ScenarioCaseResult | 케이스줄)[] })[];
+};
 
 /** E2E 시나리오 「시험 실행」 — 서버 러너. 문(auth/scope.ts)이 이 인스턴스에서 서비스를 읽어 여기 둔다 — scenario/trial.ts 는 무겁다 */
 export const 시나리오시험 = 시험보관소<시나리오시험결과, 'FINISHED'>({

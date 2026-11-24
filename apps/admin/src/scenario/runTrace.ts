@@ -41,6 +41,8 @@ interface 부품재료 {
   param_schema: unknown;
   expected_schema: unknown;
   bound: Record<string, unknown>;
+  // 프로시저 단계만 — 그 프로시저의 다른 케이스 값에도 저장 비밀번호가 채워져 있다
+  cases?: { params: Record<string, unknown>; expected: Record<string, unknown>; paramSchema: unknown; expectedSchema: unknown }[] | null;
 }
 
 /** 부품들의 비밀 글자 — 결과 조회(runRoutes.ts)와 trace 적재가 같은 목록으로 가린다. 숫자 비밀(pin: 1234)도 글자로 실린다 */
@@ -49,7 +51,8 @@ export function 부품비밀(부품: 부품재료[]): string[] {
     const 꽂은비밀 = 꽂은값비밀(p.bound, p.param_schema);
     if (p.part.kind !== 'case') return 꽂은비밀;
     const 명세 = { paramSchema: p.param_schema, expectedSchema: p.expected_schema, params: p.part.params, expected: p.part.expected };
-    return [...비밀글자들(명세), ...꽂은비밀];
+    const 다른케이스 = (p.cases ?? []).flatMap((x) => 비밀글자들({ paramSchema: x.paramSchema, expectedSchema: x.expectedSchema, params: x.params, expected: x.expected }));
+    return [...비밀글자들(명세), ...다른케이스, ...꽂은비밀];
   });
 }
 

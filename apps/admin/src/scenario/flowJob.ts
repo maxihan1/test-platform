@@ -92,8 +92,8 @@ async function 재료읽기(서비스: number, prefix: string, platform: Platfor
   const [판, 맥락, 케이스, 연결들, 종류] = await Promise.all([
     지금판(서비스),
     맥락읽기(prefix),
-    pool.query<{ tc_id: string; name: string; platforms: string[]; techniques: string[]; file_path: string; param_schema: { properties?: unknown } | null }>(
-      `SELECT tc_id, name, platforms, techniques, file_path, param_schema FROM test_case WHERE tc_id LIKE $1 AND is_active ORDER BY tc_id COLLATE "C"`,
+    pool.query<{ tc_id: string; name: string; platforms: string[]; techniques: string[]; file_path: string; param_schema: { properties?: unknown } | null; proc_id: string | null; proc_seq: number | null }>(
+      `SELECT tc_id, name, platforms, techniques, file_path, param_schema, proc_id, proc_seq FROM test_case WHERE tc_id LIKE $1 AND is_active ORDER BY tc_id COLLATE "C"`,
       [`${prefix}-%`],
     ),
     화면연결들(서비스),
@@ -111,6 +111,8 @@ async function 재료읽기(서비스: number, prefix: string, platform: Platfor
       platforms: r.platforms,
       techniques: r.techniques,
       params: typeof 칸들 === 'object' && 칸들 !== null ? Object.keys(칸들) : [],
+      procId: r.proc_id,
+      procSeq: r.proc_seq,
       ...(game && r.platforms.includes(platform) ? { fixtures: await 몸통이름들(r.file_path) } : {}),
     });
   }

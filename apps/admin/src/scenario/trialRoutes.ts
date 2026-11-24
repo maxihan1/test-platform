@@ -49,7 +49,7 @@ export default async function scenarioTrialRoutes(app: FastifyInstance): Promise
     } catch (err) {
       if (err instanceof TrialBusyError) return reply.code(409).send({ error: err.code, detail: err.message });
       // detail 을 싣지 않는다 — 화면 문장이 사유를 다 말한다(케이스 테스트 실행과 같다)
-      if (err instanceof 시험시작오류 && err.code === 'DEVICE_BUSY') return reply.code(409).send({ error: err.code });
+      if (err instanceof 시험시작오류 && (err.code === 'DEVICE_BUSY' || err.code === 'RUNNER_NO_PROCEDURE')) return reply.code(409).send({ error: err.code });
       if (err instanceof 시험시작오류) return reply.code(err.code === 'FARM_OFF' ? 409 : 400).send({ error: err.code, detail: err.message });
       throw err;
     }

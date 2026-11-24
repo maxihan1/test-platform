@@ -3,13 +3,14 @@
 import { lstat, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Platform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
+import type { Platform, ScenarioExecuteRequest, ScenarioPart, ScenarioPartResult } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 부품판 } from '../apidoc/caseDoc.js';
 import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { 팜주소 } from '../execution/farm.js';
+import { 프로시저못도는러너인가 } from '../execution/runnerAddr.js';
 import { 사람팜토큰 } from '../execution/farmToken.js';
 import { Chrome차례, 폰을바로잡는다, 폰을놓는다 } from '../execution/phone.js';
 import { artifactsDir } from '../execution/routes.js';
@@ -19,8 +20,9 @@ import { 가린값들 } from '../web/mask.js';
 import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 삭제코드합치기, 쓰는앱읽기, 앱종류들, 앱종류읽기 } from './apps.js';
 import { 앱단계인가, 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { type 케이스부품재료, 케이스재료 } from './parts.js';
+import { 부품채우기 } from './partFill.js';
 import { type 시나리오폰, 팜폰으로돌린다, 폰값 } from './phone.js';
-import { 부품채우기 } from './runStore.js';
+import { 단계비밀, 단계케이스수, 요청케이스들, 케이스줄들, 프로시저단계읽기, type 프로시저단계, 결과넣기 } from './procRun.js';
 import { 멈춘부품을고친다, 보내기전멈춘결과, 보내는길, 상태를연다, 상태를지운다, type 시험상태 } from './trialAbort.js';
 import { 꽂은값비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 import { 시나리오제한시간, 제한시간크기사유, 조립검사 } from './validate.js';
@@ -33,7 +35,7 @@ async function db(): Promise<Pool> {
 
 export class 시험시작오류 extends Error {
   constructor(
-    readonly code: 'INVALID_REQUEST' | 'ENV_NOT_FOUND' | 'FARM_OFF' | 'DEVICE_BUSY',
+    readonly code: 'INVALID_REQUEST' | 'ENV_NOT_FOUND' | 'FARM_OFF' | 'DEVICE_BUSY' | 'RUNNER_NO_PROCEDURE',
     message: string,
   ) {
     super(message);
@@ -106,11 +108,15 @@ export async function 시험재료(본문: 시험본문) {
   );
   const 케이스들 = new Map(행.rows.map((r) => [r.tc_id, r]));
   // 진짜 실행과 같은 채우기다 — 조립에서 비운 비밀번호도 저장값 · 그 대상 서버 계정으로 러너에 간다. 채우면 커지므로 다시 잰다 (§7)
-  const 채운부품 = await 부품채우기(pool, 본문.parts, 케이스들, (tcId) => 앱들.get(케이스접두사(tcId))?.계정들 ?? 계정없음);
-  const 크기사유 = 제한시간크기사유(채운부품);
+  const 계정들 = (tcId: string) => 앱들.get(케이스접두사(tcId))?.계정들 ?? 계정없음;
+  const 채운부품 = await 부품채우기(pool, 본문.parts, 케이스들, 계정들);
+  // 프로시저 안 케이스를 고른 단계는 지금 그 프로시저의 케이스를 읽어 통째로 돈다. 한도는 그 케이스 수로 센다 (결정 17)
+  const 프로시저들 = await 프로시저단계읽기(pool, 채운부품, 카탈로그, 계정들, (글) => new 시험시작오류('INVALID_REQUEST', 글));
+  const 케이스수 = 단계케이스수(프로시저들);
+  const 크기사유 = 제한시간크기사유(채운부품, 케이스수);
   if (크기사유.length > 0) throw new 시험시작오류('INVALID_REQUEST', `저장값을 채운 뒤 ${크기사유.join(' · ')}`);
   const parts: ScenarioExecuteRequest['parts'] = await Promise.all(
-    채운부품.map(async (p) =>
+    채운부품.map(async (p, i) =>
       p.kind === 'case'
         ? {
             ...p,
@@ -120,25 +126,35 @@ export async function 시험재료(본문: 시험본문) {
             filePath: 케이스들.get(p.tcId)?.file_path,
             // 진짜 실행과 같다 — 앱 · 게임 단계 표시는 admin 이 애플리케이션 종류로 정한다 (결정 16)
             ...(앱단계인가(p, 종류) && { appStep: true }),
+            ...(프로시저들.has(i) && { procId: 프로시저들.get(i)!.procId, cases: 요청케이스들(프로시저들.get(i)!) }),
           }
         : { ...p, ...단계주소(p, 본문.service, 앱들), ...단계인증(p, 본문.service, 앱들) },
     ),
   );
 
   // 조립 본문이 아니라 채운 값으로 모은다 — 저장값에서 온 비밀번호는 본문에 없다
-  const 비밀 = 채운부품.flatMap((p) => {
-    if (p.kind !== 'case') return [];
-    const 재료 = 부품재료.get(p.tcId);
-    return 재료 === undefined
-      ? []
-      : 비밀글자들({ paramSchema: 재료.paramSchema, expectedSchema: 재료.expectedSchema, params: p.params, expected: p.expected });
-  });
-  return { 앱들, baseUrl, parts, 부품재료, 비밀, 폰: 폰값(본문.parts, 앱들, 본문.env) };
+  const 비밀 = [
+    ...채운부품.flatMap((p) => {
+      if (p.kind !== 'case') return [];
+      const 재료 = 부품재료.get(p.tcId);
+      return 재료 === undefined
+        ? []
+        : 비밀글자들({ paramSchema: 재료.paramSchema, expectedSchema: 재료.expectedSchema, params: p.params, expected: p.expected });
+    }),
+    // 같은 프로시저의 다른 케이스 값에도 저장 비밀번호가 채워진다
+    ...[...프로시저들.values()].flatMap(단계비밀),
+  ];
+  return { 앱들, baseUrl, parts, 부품재료, 비밀, 폰: 폰값(본문.parts, 앱들, 본문.env), 프로시저들, 케이스수 };
 }
 
 /** 조립을 검사하고 줄에 세운다. 기다리지 않고 trialId 를 돌려준다. 바쁘면 TrialBusyError 를 그대로 던진다 */
 export async function 시험시작(사람: { username: string }, 본문: 시험본문): Promise<string> {
-  const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 } = await 시험재료(본문);
+  const 재료 = await 시험재료(본문);
+  const { 폰 } = 재료;
+  // 못 도는 러너에는 프로시저 파일을 보내지 않는다 — 정식 실행과 같은 409 (도메인/실행 §3.2 「러너 능력」)
+  if (재료.프로시저들.size > 0 && (await 프로시저못도는러너인가())) {
+    throw new 시험시작오류('RUNNER_NO_PROCEDURE', '서버 테스트 실행기가 테스트 프로시저를 실행하지 못하는 버전입니다');
+  }
   // 앱 · 게임 단계는 늘 서버 러너 + 팜 폰이다 — 내 컴퓨터 러너에 꽂은 폰 길은 2026-11-03 TMO 에 걷었다 (도메인/실행 §3.2 「테스트 모드」)
   if (폰 !== null && 팜주소() === undefined) {
     throw new 시험시작오류('FARM_OFF', '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다');
@@ -159,14 +175,14 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
       (id, 폰화면) => {
         // 줄에서 기다리는 동안에도 중단이 닿아야 해서 줄에 서기 전에 연다
         const 상태 = 상태를연다(id, 본문.parts.length);
-        const 돌기 = () => enqueue(() => 시험돌기(id, 사람.username, 본문, { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 }, 돌폰, 폰화면, 상태));
+        const 돌기 = () => enqueue(() => 시험돌기(id, 사람.username, 본문, 재료, 돌폰, 폰화면, 상태));
         // 실제 폰 Chrome 은 Chrome 줄 → 동시성 자리 차례다. 디바이스 줄은 위에서 바로 잡았다
         return (돌폰 === 'chrome' ? Chrome차례(돌기) : 돌기()).finally(() => {
           상태를지운다(id);
           놓기();
         });
       },
-      비밀,
+      재료.비밀,
     );
   } catch (err) {
     // 시작한다 는 일을 부르기 전에만 던진다 — 위 finally 가 안 도니 여기서 놓는다
@@ -183,6 +199,13 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
 
 type 시험재료결과 = Awaited<ReturnType<typeof 시험재료>>;
 
+// 시험 결과의 프로시저 단계 — 돈 프로시저와 케이스 줄(결과가 없으면 status 없이). 러너 답의 cases 는 이름이 없어 박제한 줄에 맞춰 싣는다
+function 프로시저줄(단계: 프로시저단계 | undefined, 러너줄: ScenarioPartResult['cases']) {
+  return 단계 === undefined
+    ? {}
+    : { procId: 단계.procId, procName: 단계.procName, cases: 케이스줄들(결과넣기(단계.cases, 러너줄)) };
+}
+
 async function 시험돌기(
   id: string,
   누구: string,
@@ -192,7 +215,7 @@ async function 시험돌기(
   폰화면: (url: string | undefined, 이름?: string) => void,
   상태: 시험상태,
 ): Promise<시나리오시험결과> {
-  const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 } = 재료;
+  const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰, 프로시저들, 케이스수 } = 재료;
   // 줄에서 기다리는 사이 멈췄다 — 폰도 대상 서버도 건드리지 않는다
   if (상태.멈춤) return 보내기전멈춘결과(본문.parts.length);
   const 시작 = Date.now();
@@ -205,7 +228,7 @@ async function 시험돌기(
     ...폰?.칸,
     baseUrl,
     parts,
-    timeoutMs: 시나리오제한시간(본문.parts),
+    timeoutMs: 시나리오제한시간(본문.parts, 케이스수),
     // 줄에서 기다리는 사이 trace 적재가 코드를 바꿀 수 있어 돌기 직전에 읽는다
     deleteStatuses: await 삭제코드합치기(앱들),
     // 테스트 모드 장면 열쇠는 이 시험 번호다. 러너가 앱 · 게임 단계 동안은 장면을 끈다 (도메인/실행 §3.2 「테스트 모드」)
@@ -228,7 +251,14 @@ async function 시험돌기(
   const 경로 = 시나리오trace경로({ trialId: id });
   const 기록들 = await 실패부품trace(경로, 응답, [...비밀, ...꽂은]);
   await trace를지운다(경로, 기록들);
-  const 실은 = { ...응답, parts: 응답.parts.map((p) => { const 기록 = 기록들.get(p.seq); return 기록 === undefined ? p : { ...p, trace: 기록 }; }) };
+  const 실은 = {
+    ...응답,
+    parts: 응답.parts.map((p) => {
+      const 기록 = 기록들.get(p.seq);
+      const { cases: _러너줄, ...나머지 } = p;
+      return { ...나머지, ...프로시저줄(프로시저들.get(p.seq - 1), p.cases), ...(기록 !== undefined && { trace: 기록 }) };
+    }),
+  };
   return 꽂은값가리기(실은, 본문.parts, 부품재료, 비밀);
 }
 

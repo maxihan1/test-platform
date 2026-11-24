@@ -8,6 +8,7 @@ import { 주소틀 } from '../../../../scripts/authoring-crawl-rules.js';
 import { 흐름인가 } from './flowSide.js';
 import { 값연결제안들, type 값연결제안, type 지도요청 } from './linkSuggest.js';
 import { 메뉴뺀연결들, type 연결줄 } from './next.js';
+import { 프로시저하나씩 } from './procStep.js';
 import { 제한시간크기사유 } from './validate.js';
 
 export const 케이스상한 = 1000;
@@ -38,6 +39,9 @@ export interface 재료원천 {
     platforms: string[];
     techniques: string[];
     params: string[];
+    /** 프로시저 안 케이스만 — 프로시저마다 프로시저 안 차례가 가장 앞인 하나만 후보로 낸다 (결정 17) */
+    procId?: string | null | undefined;
+    procSeq?: number | null | undefined;
     /** 케이스 몸통이 받는 이름(catalog/steps.ts) — 게임 애플리케이션만 읽는다. 못 읽었으면 없다 */
     fixtures?: string[] | undefined;
   }[];
@@ -54,7 +58,7 @@ export function 재료짓기(원천: 재료원천): 흐름재료 {
   for (const [, m] of 원천.맥락) for (const r of m.reqs) 종류들.set(r.reqId, (종류들.get(r.reqId) ?? new Set()).add(r.axis));
   const reqs = 원천.prd.map((i) => ({ reqId: i.reqId, feature: i.feature, kinds: [...(종류들.get(i.reqId) ?? [])].sort(), text: i.text }));
 
-  const cases = 원천.케이스들.filter((c) => c.platforms.includes(원천.platform)).map((c) => {
+  const cases = 프로시저하나씩(원천.케이스들.filter((c) => c.platforms.includes(원천.platform))).map((c) => {
     const m = 원천.맥락.get(c.tcId);
     const 요구 = m?.reqs ?? [];
     return {

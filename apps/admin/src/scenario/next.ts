@@ -5,10 +5,14 @@ import { 주소틀, 틀닿나 } from '../../../../scripts/authoring-crawl-rules.
 import { tcId종류, 게임시나리오인가 } from '../catalog/rules.js';
 import { db } from '../settings/store.js';
 
+import { 프로시저하나씩 } from './procStep.js';
+
 export interface 다음케이스 {
   tcId: string;
   /** 이어지는 화면 — 크롤러 같은 틀(숫자 마디는 `:n`) */
   screen: string;
+  /** 프로시저 안 케이스만 — 그 단계를 넣으면 그 프로시저가 통째로 돈다. 이미 시나리오에 든 프로시저의 후보를 화면이 거르는 열쇠다 (결정 17) */
+  procId?: string;
 }
 
 type 화면줄 = { tcId: string; url: string };
@@ -99,6 +103,25 @@ export function 첫케이스들(출발: string[], 기록틀: ReadonlySet<string>
   return 닿는케이스들(닿음, 화면들);
 }
 
+type 소속 = ReadonlyMap<string, { procId: string; procSeq: number }>;
+
+/**
+ * 프로시저 안 케이스 후보를 프로시저마다 하나로 줄인다 — 프로시저 안 차례가 가장 앞인 것. `뺄` 은 이미 시나리오에 든 프로시저(앞 케이스의 것)다 (결정 17).
+ * 후보는 기능 테스트뿐이다(UI 는 `닿는케이스들` 이 이미 뺐다)
+ */
+export function 프로시저로줄인다(후보들: 다음케이스[], 소속: 소속, 뺄: string | null = null): 다음케이스[] {
+  const 붙임 = 후보들.map((x) => ({ ...x, procId: 소속.get(x.tcId)?.procId, procSeq: 소속.get(x.tcId)?.procSeq }));
+  return 프로시저하나씩(붙임, new Set(뺄 === null ? [] : [뺄])).map(({ procSeq: _, procId, ...x }) => (procId === undefined ? x : { ...x, procId }));
+}
+
+async function 프로시저소속(prefix: string): Promise<소속> {
+  const r = await (await db()).query<{ tc_id: string; proc_id: string; proc_seq: number }>(
+    'SELECT tc_id, proc_id, proc_seq FROM test_case WHERE tc_id LIKE $1 AND proc_id IS NOT NULL AND is_active',
+    [`${prefix}-%`],
+  );
+  return new Map(r.rows.map((x) => [x.tc_id, { procId: x.proc_id, procSeq: x.proc_seq }]));
+}
+
 /**
  * 그 서비스 활성 케이스의 지도 ② 화면 주소와 화면 연결로 추천을 낸다. 남의 서비스 케이스를 after 로 주면 빈 목록이다.
  * 화면 연결은 대상 서버를 합쳐 다 읽는다 — 머리 · 바닥 메뉴를 가르려면 다른 화면의 링크도 봐야 한다
@@ -107,7 +130,8 @@ export async function 다음케이스읽기(서비스: number, prefix: string, a
   if (!after.startsWith(`${prefix}-`)) return [];
   const 화면들 = await 케이스화면들(prefix);
   if (머문틀(after, 화면들).length === 0) return [];
-  return 다음케이스들(after, 화면들, await 화면연결들(서비스));
+  const 소속 = await 프로시저소속(prefix);
+  return 프로시저로줄인다(다음케이스들(after, 화면들, await 화면연결들(서비스)), 소속, 소속.get(after)?.procId ?? null);
 }
 
 /** 첫 단계 후보를 그 애플리케이션의 대상 서버 주소 · 화면 기록 · 지도 ② · 화면 연결로 낸다. 화면 기록은 상태 · 대상 서버를 안 가른다 */
@@ -120,7 +144,7 @@ export async function 첫케이스읽기(서비스: number, prefix: string): Pro
     화면연결들(서비스),
   ]);
   const 기록틀 = new Set(기록.rows.map((r) => r.url));
-  return 첫케이스들(출발틀들(대상.rows.map((r) => r.base_url), 기록틀), 기록틀, 화면들, 연결들);
+  return 프로시저로줄인다(첫케이스들(출발틀들(대상.rows.map((r) => r.base_url), 기록틀), 기록틀, 화면들, 연결들), await 프로시저소속(prefix));
 }
 
 async function 케이스화면들(prefix: string): Promise<화면줄[]> {

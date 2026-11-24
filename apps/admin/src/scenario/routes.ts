@@ -16,7 +16,7 @@ import { 값연결제안들, 제안재료읽기 } from './linkSuggest.js';
 import { 다음케이스읽기, 첫케이스읽기 } from './next.js';
 import { 케이스재료 } from './parts.js';
 import { 고치기, 되돌리기, 만들기, 목록, 상세, 옛버전, 치우기, type 저장하는사람 } from './store.js';
-import { 부품들모양, 제한시간크기사유, 조립검사 } from './validate.js';
+import { type 카탈로그, 부품들모양, 제한시간크기사유, 조립검사 } from './validate.js';
 
 const 이름 = z.string().trim().min(1).max(100);
 // android 는 Android 앱 · 게임 애플리케이션의 시나리오다 (§3.7 결정 16)
@@ -29,6 +29,13 @@ const 제안본문 = z.object({ service: z.string(), parts: 부품들모양 });
 const 흐름본문 = z.object({ service: z.string(), platform: 디바이스, wish: z.string().trim().max(200).optional() });
 
 const 케이스번호들 = (parts: ScenarioPart[]) => parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
+
+// 프로시저 안 케이스를 고른 단계에는 지금 그 프로시저와 케이스를 싣는다 — 저장한 것은 케이스 번호뿐이다 (결정 17). 다른 부품에는 이 칸이 없다
+const 프로시저칸달기 = (parts: ScenarioPart[], 카탈로그: 카탈로그) =>
+  parts.map((p) => {
+    const 프로시저 = p.kind === 'case' ? 카탈로그.get(p.tcId)?.proc : undefined;
+    return 프로시저 === undefined ? p : { ...p, procId: 프로시저.procId, procName: 프로시저.procName, cases: 프로시저.cases };
+  });
 
 function 누가(req: FastifyRequest): 저장하는사람 {
   return { username: req.user?.username ?? '알 수 없음', displayName: req.user?.displayName ?? '알 수 없음' };
@@ -160,7 +167,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     const 본것 = await 상세(id);
     if (본것 === null) return 없음(reply, req.params.id);
     const { 카탈로그 } = await 케이스재료(케이스번호들(본것.parts), await 같은프로젝트접두사(본것.service));
-    return { ...본것, checks: 점검(본것.parts, 카탈로그).checks };
+    return { ...본것, parts: 프로시저칸달기(본것.parts, 카탈로그), checks: 점검(본것.parts, 카탈로그).checks };
   });
 
   app.get<{ Params: { id: string; v: string } }>('/scenarios/:id/versions/:v', async (req, reply) => {
@@ -168,8 +175,10 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     const v = 정수(req.params.v);
     if (id === null || v === null) return 잘못(reply, `${req.params.id}/${req.params.v}`);
     const 옛것 = await 옛버전(id, v);
-    if (옛것 === null) return 없음(reply, `${req.params.id}/${req.params.v}`);
-    return 옛것;
+    const 지금 = 옛것 === null ? null : await 상세(id);
+    if (옛것 === null || 지금 === null) return 없음(reply, `${req.params.id}/${req.params.v}`);
+    const { 카탈로그 } = await 케이스재료(케이스번호들(옛것.parts), await 같은프로젝트접두사(지금.service));
+    return { ...옛것, parts: 프로시저칸달기(옛것.parts, 카탈로그) };
   });
 
   app.put<{ Params: { id: string } }>('/scenarios/:id', async (req, reply) => {
