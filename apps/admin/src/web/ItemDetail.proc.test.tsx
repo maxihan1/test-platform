@@ -44,6 +44,19 @@ describe('프로시저 줄', () => {
     await waitFor(() => expect([...document.querySelectorAll('.runmeta')][0]?.textContent).toBe('MTA-TP-022 결제 흐름 · 5건 중 4번째'));
   });
 
+  it('다시 실행한 결과가 일부를 덮어 실행 단위 번호가 섞여도 같은 프로시저 · 디바이스 · 회차로 센다', async () => {
+    const 단위 = { procId: 'MTA-TP-022', procName: '결제 흐름' };
+    const 줄들 = [1, 2, 3].map((n) => 요약(7700 + n, `ZID-00${String(n)}`, 'PASS', { ...단위, execId: n === 3 ? 22 : 10, execSeq: n }));
+    const 다른것 = [
+      요약(7801, 'ZID-001', 'PASS', { ...단위, execId: 11, execSeq: 1, attempt: 2 }),
+      요약(7802, 'ZID-001', 'PASS', { ...단위, execId: 12, execSeq: 1, platform: 'desktop' }),
+      요약(7803, 'ZID-009', 'PASS', { execId: 13, execSeq: 1 }),
+    ];
+    await 그린다({ ...단위, execId: 22, execSeq: 3 }, [...줄들, ...다른것]);
+
+    await waitFor(() => expect([...document.querySelectorAll('.runmeta')][0]?.textContent).toBe('MTA-TP-022 결제 흐름 · 3건 중 3번째'));
+  });
+
   it('프로시저에 안 든 항목에는 프로시저 줄이 없다', async () => {
     await 그린다({}, [요약(7701, 'ZID-004', 'NA')]);
 

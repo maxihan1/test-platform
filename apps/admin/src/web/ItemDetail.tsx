@@ -44,7 +44,8 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
   // 증적 블록과 모양이 같아야 한다 (SPEC §8.4). 비어 박제된 칸은 fieldsOf 가 박제 스키마의 기본값으로 채운다
   const expected = fieldsOf(item.expected, item.expectedSchema, 언어);
   const 막힘 = 막힌항목(item);
-  const 프로시저건수 = 항목들.filter((i) => i.execId != null && i.execId === item.execId).length;
+  // 다시 실행한 결과가 덮은 줄은 실행 단위 번호가 달라 번호로 세면 「2건 중 3번째」가 된다
+  const 프로시저건수 = 항목들.filter((i) => i.procId != null && i.procId === item.procId && i.platform === item.platform && i.attempt === item.attempt).length;
   // 막은 케이스가 같은 실행 · 같은 디바이스 · 같은 회차에서 어떻게 끝났는지 알 때만 까닭을 붙인다
   const 막은항목 = 항목들.find((i) => i.tcId === item.blockedBy && i.platform === item.platform && i.attempt === item.attempt);
   const 막은판정 = 막은항목?.status;

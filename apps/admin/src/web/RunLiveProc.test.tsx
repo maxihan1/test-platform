@@ -79,6 +79,21 @@ describe('경과와 제한', () => {
   });
 });
 
+describe('왼쪽 목록', () => {
+  it('지금 케이스보다 앞선 케이스는 「대기」가 아니라 「종료」에 서고 완료 수는 그대로다', async () => {
+    await 그린다([절차(3, { live: true })]);
+
+    const 묶음들 = [...document.querySelectorAll('.rl-items .ih')].map((el) => el.textContent);
+    expect(묶음들).toEqual(['진행 중 1', '종료 2', '대기 2']);
+    const 종료줄 = [...document.querySelectorAll('.rl-items ul')][1]!;
+    expect([...종료줄.querySelectorAll('li')].map((li) => [li.querySelector('.mono')?.textContent, li.querySelector('.pill')?.textContent])).toEqual([
+      ['ZZL-002', '종료'],
+      ['ZZL-001', '종료'],
+    ]);
+    expect(document.querySelector('.rl-row')?.textContent).toContain('0 / 5 완료');
+  });
+});
+
 describe('Blocked 알약', () => {
   const 막힌 = (n: number, 덮을것: Partial<RunItemSummary> = {}): RunItemSummary => ({
     ...프로시저항목(n),
