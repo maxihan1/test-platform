@@ -186,7 +186,7 @@ function 변경사항(s: 첫장): 덩이[] {
       ...[...t.modified]
         .sort((a, b) => Number(b.expected) - Number(a.expected))
         .map((x): 표줄 => ({
-          칸: ['수정', 케이스(x), [x.expected ? '기대 결과 변경' : '', x.file ? '케이스 파일' : ''].filter(Boolean).join(' · '), 까닭글(x.reason)],
+          칸: ['수정', 케이스(x), [x.expected ? '기대 결과 변경' : '', x.file ? (x.segment === true ? '케이스 구간' : '케이스 파일') : ''].filter(Boolean).join(' · '), 까닭글(x.reason)],
           ...(x.expected ? { 결: '강조' as const } : {}),
         })),
       // 그 케이스는 그대로이고 같은 프로시저의 앞 케이스가 바뀌었다 — 강조하지 않는다(강조는 기대 결과 변경뿐). 이 칸 전에 굳힌 리포트에는 없다

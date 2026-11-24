@@ -44,8 +44,8 @@ export interface 변경사항 {
         fromCommit: string | null;
         toCommit: string | null;
         added: 테스트줄[];
-        /** file 은 케이스 파일(프로시저 안 케이스는 자기 구간)이, expected 는 기대 결과가 바뀌었다 — 기대 결과 변경은 화면이 따로 강조한다 */
-        modified: (테스트줄 & { file: boolean; expected: boolean })[];
+        /** file 은 케이스 파일(segment 면 프로시저 안 케이스의 자기 구간)이, expected 는 기대 결과가 바뀌었다 — 기대 결과 변경은 화면이 따로 강조한다. segment 는 이 칸 전에 굳힌 리포트에 없다 */
+        modified: (테스트줄 & { file: boolean; expected: boolean; segment?: boolean })[];
         /** 프로시저 안 케이스 가운데 자기 구간과 기대 결과는 그대로이고 앞 흐름만 바뀐 것 — modified 에는 안 든다(화면 글자 「선행 케이스 변경」). 이 칸 전에 굳힌 리포트에는 없다 */
         flowChanged?: 테스트줄[];
         removed: 테스트줄[];
@@ -224,7 +224,7 @@ async function 테스트(pool: Pool, b: 견줄묶음 & { previousBuildNo: string
     const file = 구간으로 ? p.seg_sha256 !== r.seg_sha256 : p.case_sha256 !== null && r.case_sha256 !== null && p.case_sha256 !== r.case_sha256;
     const expected = JSON.stringify(p.expected) !== JSON.stringify(r.expected);
     const 앞흐름만 = !file && !expected && 구간으로 && p.flow_sha256 !== r.flow_sha256;
-    return file || expected || 앞흐름만 ? [{ r, file, expected, 앞흐름만 }] : [];
+    return file || expected || 앞흐름만 ? [{ r, file, expected, 앞흐름만, segment: 구간으로 }] : [];
   });
   const modified = 견준.filter((m) => !m.앞흐름만);
   const flowChanged = 견준.filter((m) => m.앞흐름만).map((m) => m.r);
@@ -235,7 +235,7 @@ async function 테스트(pool: Pool, b: 견줄묶음 & { previousBuildNo: string
     fromCommit: 마지막커밋(앞),
     toCommit: 마지막커밋(이번),
     added: added.map(줄),
-    modified: modified.map((m) => ({ ...줄(m.r), file: m.file, expected: m.expected })),
+    modified: modified.map((m) => ({ ...줄(m.r), file: m.file, expected: m.expected, segment: m.segment })),
     flowChanged: flowChanged.map(줄),
     removed: removed.map(줄),
   };

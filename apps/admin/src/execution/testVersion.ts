@@ -74,3 +74,18 @@ export async function 구간지문읽기(filePath: string, 뿌리: string = test
   const 글 = await 케이스파일(filePath, 뿌리);
   return 글 === null ? null : 구간지문(글.toString('utf8'));
 }
+
+/** 프로시저 안 케이스마다 지문 둘 — 프로시저 파일은 하나를 한 번만 읽는다. 옛 꼴 케이스와 구간을 못 가른 파일의 케이스는 빠진다 */
+export async function 구간지문들짓기(
+  cases: { tc_id: string; file_path: string; proc_seq: number | null }[],
+  뿌리: string = testsRoot(),
+): Promise<Map<string, 구간지문값>> {
+  const 파일들 = [...new Set(cases.filter((c) => c.proc_seq !== null).map((c) => c.file_path))];
+  const 구간 = new Map(await Promise.all(파일들.map(async (f) => [f, await 구간지문읽기(f, 뿌리)] as const)));
+  return new Map(
+    cases.flatMap((c) => {
+      const x = c.proc_seq === null ? undefined : 구간.get(c.file_path)?.[c.proc_seq - 1];
+      return x === undefined ? [] : [[c.tc_id, x] as const];
+    }),
+  );
+}

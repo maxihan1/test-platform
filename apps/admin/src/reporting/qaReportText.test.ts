@@ -92,23 +92,24 @@ describe('QA 리포트 첫 장 글', () => {
     const 재료 = 첫장재료({
       ...첫빌드,
       tests: {
-        recorded: true, fromCommit: null, toCommit: null, added: [], removed: [], modified: [],
+        recorded: true, fromCommit: null, toCommit: null, added: [], removed: [],
+        modified: [{ tcId: 'DM-FN-011', name: '본문', reason: null, file: true, expected: false, segment: true }],
         flowChanged: [{ tcId: 'DM-FN-012', name: '글자 수', reason: { kind: 'AUTHOR', requestId: 9, issueKey: null, prUrl: null } }],
       },
     });
-    재료.results.functional[0] = { kind: 'FN', result: { pass: 3, fail: 1, notRun: 3, blocked: 2, unconfirmed: 0 } };
+    재료.results.functional[0] = { kind: 'FN', result: { pass: 3, fail: 1, notRun: 3, blocked: 2, unconfirmed: 1 } };
     재료.plan.cases[0]!.notRun = [
       { tcId: 'DM-FN-012', name: '글자 수', platform: 'android', cause: 'blocked', blockedBy: 'DM-FN-011' },
       { tcId: 'DM-FN-013', name: '게시', platform: 'android', cause: 'blocked', blockedBy: null },
     ];
     const 덩이들 = 첫장글(리포트(재료));
     const 글 = 글들(덩이들);
-    expect(글).toContain('Pass 3 · Fail 1 · Not tested 3 (Blocked 2)');
+    expect(글).toContain('Pass 3 · Fail 1 · Not tested 3 (Blocked 2) · 그중 미확정 1건');
     expect(글).toContain('Not tested · Blocked 선행 케이스 DM-FN-011');
     expect(글).toContain('Not tested · Blocked');
     const 테스트표 = 덩이들.find((d) => d.꼴 === '표' && d.머리[0] === '구분' && d.머리[3] === '까닭');
-    expect(테스트표).toMatchObject({ 줄: [{ 칸: ['선행 케이스 변경', 'DM-FN-012 글자 수', '—', '테스트 작성 (작성 요청 #9)'] }] });
-    expect(테스트표?.꼴 === '표' ? 테스트표.줄[0]!.결 : '표 없음').toBeUndefined();
+    expect(테스트표).toMatchObject({ 줄: [{ 칸: ['수정', 'DM-FN-011 본문', '케이스 구간', '사유 기록 없음'] }, { 칸: ['선행 케이스 변경', 'DM-FN-012 글자 수', '—', '테스트 작성 (작성 요청 #9)'] }] });
+    expect(테스트표?.꼴 === '표' ? 테스트표.줄[1]!.결 : '표 없음').toBeUndefined();
   });
 
   it('이 칸 전에 굳힌 리포트(blocked · flowChanged 없음)는 괄호 · 선행 케이스 변경 줄 없이 그대로다', () => {

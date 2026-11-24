@@ -181,8 +181,8 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
       toCommit: 'c2',
       added: [{ tcId: 'XQC-FN-004', name: 'XQC-FN-004 이름', reason: { kind: 'PRD_APPLY', requestId: expect.any(Number), issueKey: null, prUrl: null } }],
       modified: [
-        { tcId: 'XQC-FN-001', name: 'XQC-FN-001 이름', file: false, expected: true, reason: { kind: 'EDIT', requestId: expect.any(Number), issueKey: null, prUrl: 'https://github.com/o/t/pull/11' } },
-        { tcId: 'XQC-FN-002', name: 'XQC-FN-002 이름', file: true, expected: false, reason: { kind: 'TEST_FIX', requestId: expect.any(Number), issueKey: 'XQC-9', prUrl: 'https://github.com/o/t/pull/12' } },
+        { tcId: 'XQC-FN-001', name: 'XQC-FN-001 이름', file: false, expected: true, segment: false, reason: { kind: 'EDIT', requestId: expect.any(Number), issueKey: null, prUrl: 'https://github.com/o/t/pull/11' } },
+        { tcId: 'XQC-FN-002', name: 'XQC-FN-002 이름', file: true, expected: false, segment: false, reason: { kind: 'TEST_FIX', requestId: expect.any(Number), issueKey: 'XQC-9', prUrl: 'https://github.com/o/t/pull/12' } },
       ],
       removed: [{ tcId: 'XQC-FN-003', name: 'XQC-FN-003 이름', reason: null }],
       flowChanged: [],
@@ -205,8 +205,8 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
       const 줄 = (tcId: string) => ({ tcId, name: `${tcId} 이름`, reason: null });
       expect(t.flowChanged).toEqual([줄('XQC-FN-011')]);
       expect(t.modified.filter((m) => m.tcId >= 'XQC-FN-011')).toEqual([
-        { ...줄('XQC-FN-012'), file: true, expected: false },
-        { ...줄('XQC-FN-014'), file: true, expected: false },
+        { ...줄('XQC-FN-012'), file: true, expected: false, segment: true },
+        { ...줄('XQC-FN-014'), file: true, expected: false, segment: false },
       ]);
     } finally {
       await pool.query("DELETE FROM run_item WHERE run_id = ANY($1::bigint[]) AND tc_id IN ('XQC-FN-011', 'XQC-FN-012', 'XQC-FN-013', 'XQC-FN-014')", [[실행.앞, 실행.이번]]);
