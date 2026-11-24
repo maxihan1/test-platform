@@ -1,5 +1,6 @@
 // 작성 목록 표의 칸 글 · 상세 머리의 제목을 summary 에서 사람 말로 (도메인/작성 §3.6 「작성 목록 줄」)
 
+import { 행의삭제케이스 } from '../authoring/edit.js';
 import type { 목록요약, 요약종류 } from '../authoring/listSummary.js';
 
 import type { AuthoringRow } from './api.js';
@@ -131,10 +132,10 @@ export function 작성자글(s: 목록요약, 행: Pick<AuthoringRow, 'requested
 
 /**
  * 상태 뒤에 붙는 단계 — 작성 중이면 「케이스 작성 3/6」, 실패 · 중단이면 멈춘 단계.
- * 케이스 수정 · 반영은 단계 막대가 없고, 칸 표에 없는 단계 글은 칸으로 옮기면 거짓말이라 붙이지 않는다
+ * 케이스 수정 · 반영은 단계 막대가 없고(프로시저 안 케이스의 삭제는 케이스 수정이지만 AI 가 단계를 다 밟아 붙인다), 칸 표에 없는 단계 글은 칸으로 옮기면 거짓말이라 붙이지 않는다
  */
-export function 단계꼬리(s: 목록요약, 행: Pick<AuthoringRow, 'kind' | 'stage'>, 보: 보임, 언어: 언어): string | null {
-  if (s.kind === 'EDIT' || 행.kind === 'MERGE') return null;
+export function 단계꼬리(s: 목록요약, 행: Pick<AuthoringRow, 'kind' | 'stage' | 'params'>, 보: 보임, 언어: 언어): string | null {
+  if ((s.kind === 'EDIT' && 행의삭제케이스(행.params) === null) || 행.kind === 'MERGE') return null;
   const 글 = 보 === 'running' ? (행.stage ?? '준비') : 보 === 'failed' || 보 === 'stopped' ? (s.result?.stoppedAt ?? '') : '';
   if (글 === '' || (글 !== '준비' && !아는단계글(글))) return null;
   const 칸 = 단계칸(글 === '준비' ? null : 글, false);

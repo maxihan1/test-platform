@@ -21,6 +21,7 @@ export { 옛줄들, 옛표줄들 } from './authoring-old-table.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
 import { 옛번호지도, 옮긴것읽기, 임시꼴, 판합치기, 표준원장 } from './authoring-prd.js';
 import { type 반영입력, type 테스트고침요청, type 화면이맞음요청, 반영계획만들기, 반영막힘, 반영사본이름 } from './authoring-apply.js';
+import { type 기준프로시저, 고칠프로시저들, 삭제막힘 } from './authoring-apply-proc.js';
 import type { 원장입력 } from './authoring-prompt.js';
 
 export const 원장사본이름 = 'ledger.json';
@@ -35,6 +36,10 @@ export interface 기준표 {
   있는케이스: Set<string>;
   /** 기준 판 프로시저 파일의 procId — 번호 명령이 다시 주지 않는다 */
   있는프로시저?: Set<string>;
+  /** 기준 판의 프로시저 파일마다 procId · 케이스 — 반영 · 삭제 작성의 계획이 통째로 다시 쓸 파일을 찾는다 */
+  프로시저파일?: 기준프로시저[];
+  /** 삭제 작성이 지울 케이스 — 사람이 지우라고 한 것이라 그 줄의 「제거함」을 기준 표에 있던 것처럼 인정한다 */
+  지울케이스?: ReadonlySet<string>;
 }
 
 /**
@@ -60,11 +65,12 @@ export function 기준결정만들기(
   if (기준 === null) return { 사람이뺌: new Set(), 다음요청: new Set(), 제거함: new Set(), 칸재료: null };
   // 요구 줄 tcId 도 넣는다 — 표tcId들 은 백틱 칸을 못 본다. 「제거함(…)」 안 번호도 쓰인 번호다
   const 줄tcId = 요구줄들(기준.표글).map((줄) => /^제거함\((.+)\)$/.exec(줄.tcId)?.[1] ?? 줄.tcId).filter((t) => TCID.test(t));
+  const 지울번호 = 요구줄들(기준.표글).filter((줄) => 기준.지울케이스?.has(줄.tcId) === true).flatMap((줄) => 번호찾기(줄.출처).번호들);
   const 쓰인 = new Set([...표tcId들(기준.표글), ...줄tcId, ...기준.있는케이스]);
   return {
     사람이뺌: 사람이뺀번호(기준.표글),
     다음요청: 제외번호들(기준.표글, '다음 요청'),
-    제거함: 제거함번호들(기준.표글),
+    제거함: new Set([...제거함번호들(기준.표글), ...지울번호]),
     칸재료: 칸재료만들기(기준.접두사, 요구줄들(기준.표글), 쓰인, 원장번호들, 옛번호),
     쓰인프로시저: [...new Set([...절번호들(기준.표글), ...(기준.있는프로시저 ?? [])])].sort(),
   };
@@ -140,12 +146,15 @@ export function 기준읽기(깃: 깃손, 기준: string, 서비스: string, 폴
     표글 = 글;
   }
   const 케이스글: string[] = [];
+  const 프로시저파일: 기준프로시저[] = [];
   for (const f of 케이스글들(파일들, 폴더, (x) => x)) {
     const 글 = 읽기(f);
     if (typeof 글 !== 'string') return 글;
     케이스글.push(글);
+    const 프 = 프로시저값읽기(글);
+    if (프 !== null && 프.procId !== null) 프로시저파일.push({ 파일: f, procId: 프.procId, 케이스: 프.케이스 });
   }
-  return { 표글, 있는케이스: tcId들(케이스글), 있는프로시저: new Set(케이스글.flatMap((글) => 프로시저값읽기(글)?.procId ?? [])) };
+  return { 표글, 있는케이스: tcId들(케이스글), 있는프로시저: new Set(프로시저파일.map((p) => p.procId)), 프로시저파일 };
 }
 
 /**
@@ -204,8 +213,8 @@ export function 원장과남은번호(입력: {
   옮긴몸?: unknown;
   /** 이번 집기 accounts 의 역할 이름 — 이 역할의 「계정 미등록」 번호가 남은 번호에 든다 */
   등록역할?: Set<string>;
-  /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight · (BTS 테스트 수정이면) 요청의 testFix */
-  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청[] | null; 테스트고침?: 테스트고침요청 | null };
+  /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight · (BTS 테스트 수정이면) 요청의 testFix · (프로시저 안 케이스 삭제면) 요청의 procDelete */
+  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청[] | null; 테스트고침?: 테스트고침요청 | null; 삭제?: string[] | null };
   /** API 애플리케이션 판의 API 줄 (도메인/API §3.8 「작성」 「원장」) */
   api?: readonly 원장항목[];
   /** 종류 「게임」 — 설계에 게임 관점 칸을 더한다(도메인/게임 §3.10 「설계 칸」) */
@@ -218,7 +227,8 @@ export function 원장과남은번호(입력: {
     if (입력.이어작성원본 !== null || 입력.반영 !== undefined) return { 막힘: 기준.까닭 };
     console.error(`[작성] ${기준.까닭} — 기준 표의 「사람이 뺌」 · 「다음 요청」 · 칸 재료 없이 대조한다`);
   }
-  const 기준값 = '까닭' in 기준 ? null : 기준;
+  const 삭제 = 입력.반영?.삭제;
+  const 기준값 = '까닭' in 기준 ? null : 삭제 == null ? 기준 : { ...기준, 지울케이스: new Set(삭제) };
   // 자식이 결과 파일을 고친 뒤 원장을 다시 만들 재료 — 판정은 에이전트 메모리의 것으로 한다(자식이 고쳐도 안 흔들린다)
   const 재료 = { 접두사: 입력.서비스, 기준표: 기준값 === null ? null : { 표글: 기준값.표글, 있는케이스: [...기준값.있는케이스], 있는프로시저: [...(기준값.있는프로시저 ?? [])] }, ...(입력.게임 === true ? { 게임: true } : {}) };
   const 사본 = 표준원장사본(입력.지금, 입력.옮긴몸, 입력.서비스, 기준값, 입력.api, 입력.게임 === true);
@@ -247,7 +257,10 @@ export function 원장과남은번호(입력: {
   };
   if (입력.이어작성원본 === null && 입력.반영 !== undefined && 기준값 !== null) {
     const 계획 = 반영계획만들기({ version: 입력.반영.지금판, items: 입력.지금 }, 입력.반영.기준판, 기준값.표글, 입력.서비스, 입력.반영.화면이맞음 ?? undefined, 입력.게임 === true, 입력.반영.테스트고침 ?? undefined);
-    const 막힘 = 입력.반영.화면이맞음 === null ? '화면이 맞음 칸(params.screenRight) 모양이 틀렸다 — 이 요청은 폐기하고 실행 결과에서 다시 누른다'
+    if (삭제 != null) 계획.삭제 = 삭제;
+    const 프로시저 = 고칠프로시저들(계획, 기준값.프로시저파일 ?? []);
+    if (프로시저.length > 0) 계획.프로시저 = 프로시저;
+    const 막힘 = 삭제 !== undefined ? (삭제 === null ? '삭제 칸(params.procDelete) 모양이 틀렸다 — 이 요청은 폐기한다' : 삭제막힘(계획)) : 입력.반영.화면이맞음 === null ? '화면이 맞음 칸(params.screenRight) 모양이 틀렸다 — 이 요청은 폐기하고 실행 결과에서 다시 누른다'
       : 입력.반영.테스트고침 === null ? '테스트 고침 칸(params.testFix) 모양이 틀렸다 — 이 요청은 폐기한다' : 반영막힘(계획);
     if (막힘 !== null) return { 막힘 };
     const 반영자리 = join(입력.자료폴더, 반영사본이름);

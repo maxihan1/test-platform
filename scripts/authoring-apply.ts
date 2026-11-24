@@ -1,7 +1,7 @@
 // 반영 요청 — 기준 판과 지금 판을 견줘 다시 쓸 요구 · 종류와 지울 케이스를 정한다. 자식은 이것만 맡는다
 // (도메인/작성 §3.6 「사람이 고칠 때」 「고친 요구만 다시 작성」). 판단은 여기 순수 함수, 사본 쓰기는 authoring-ledger-io
 
-import { basename, dirname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import type { PrdItem } from '@platform/kit/types';
 
@@ -9,8 +9,8 @@ import { type 조작실패, 게임고침틀 } from '../apps/admin/src/bts/gameFi
 import { type 지도줄, 지도줄들 } from '../apps/admin/src/catalog/reqMap.js';
 import { 반영안됨 } from '../apps/admin/src/prd/rules.js';
 import { type 설계, 설계하기 } from './authoring-design.js';
+import { type 고칠프로시저, 사라진케이스, 삭제뒤줄, 삭제요청읽기, 트리케이스들, 프로시저절 } from './authoring-apply-proc.js';
 import { 경고줄 } from './authoring-design-check.js';
-import { 케이스파일들 } from './authoring-progress.js';
 
 /** 자식에게 주는 반영 계획 사본 — 자료 폴더 안. 지울 케이스 확인은 에이전트 메모리의 계획으로 한다 */
 export const 반영사본이름 = 'apply.json';
@@ -43,6 +43,10 @@ export interface 반영계획 {
   화면이맞음?: { runId: number; tcId: string; env: string; 번호들: { 번호: string; 문장: string; 케이스: { tcId: string; 축: 축 }[] }[] }[];
   /** BTS 에서 「테스트 수정」으로 옮긴 이슈의 케이스 — 요구는 그대로 두고 그 케이스만 고친다 (도메인/BTS 「테스트 수정 바퀴」) */
   테스트고침?: 테스트고침요청;
+  /** 고치거나 지울 케이스가 든 프로시저 — 통째로 다시 쓴다. 닿는 프로시저가 없으면 칸이 없다 */
+  프로시저?: 고칠프로시저[];
+  /** 프로시저 안 케이스의 삭제 작성(params.procDelete)이면 지울 케이스 — 요구는 그대로라 다시 씀 · 새 항목 · 지움이 빈다 */
+  삭제?: string[];
 }
 
 /**
@@ -89,9 +93,12 @@ export interface 반영입력 {
   사본: string;
 }
 
-/** 반영 요청인가 — 서버가 결정 진행으로만 세운 행이고 재실행 · 이어서 작성은 원본에서 물려받는다 (작성 §7 「표준 기획서 통로」) */
+/**
+ * 반영 요청인가 — 서버가 결정 진행으로만 세운 행이고 재실행 · 이어서 작성은 원본에서 물려받는다 (작성 §7 「표준 기획서 통로」).
+ * 프로시저 안 케이스의 삭제 작성도 같은 길을 탄다 — 자료 없이 main 의 케이스를 고치는 요청이다
+ */
 export function 반영요청인가(것: { params?: unknown }): boolean {
-  return (것.params as { prdApply?: unknown } | undefined)?.prdApply === true;
+  return (것.params as { prdApply?: unknown } | undefined)?.prdApply === true || 삭제요청읽기(것) !== undefined;
 }
 
 /**
@@ -200,8 +207,9 @@ export function 반영절(입력: 반영입력, 서버들: readonly { env: strin
   return [
     '',
     '--- 반영 ---',
-    `이 요청은 「PRD 관리」에서 고친 요구만 테스트에 반영한다 — 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}. 자료(기획서)는 없다.`,
-    `맡을 번호 · 덮던 케이스 · 다시 쓸 종류 · 지울 케이스: ${입력.사본}`,
+    계획.삭제 !== undefined ? `이 요청은 테스트 프로시저 안 케이스 ${String(계획.삭제.length)}건을 지운다(${계획.삭제.join(' · ')}) — 요구는 그대로다. 자료(기획서)는 없다. 맡은 것은 apply.md §8 이다.` : `이 요청은 「PRD 관리」에서 고친 요구만 테스트에 반영한다 — 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}. 자료(기획서)는 없다.`,
+    계획.삭제 !== undefined ? `지울 케이스 · 그 케이스가 든 프로시저 파일 · 같은 프로시저의 케이스: ${입력.사본}` : `맡을 번호 · 덮던 케이스 · 다시 쓸 종류 · 지울 케이스: ${입력.사본}`,
+    ...프로시저절(계획.프로시저 ?? []),
     ...(화면 ?? []).flatMap((x) => [
       `화면이 맞음: 실행 RUN ${String(x.runId)} 에서 실패한 ${x.tcId} 를 사람이 「화면이 맞음」으로 판정했다 — 대상 서버 ${x.env} 에서 다시 돌려 보고 번호 ${x.번호들.map((n) => n.번호).join(' · ') || '없음'} 가운데 화면과 어긋난 요구만 고친다(apply.json 의 화면이맞음). 결과 파일: ${join(자료폴더, 'out', 'prd.json')} · 원장 다시 만들기: \`npm run prd:ledger -- ${자료폴더}\``,
       `그 실행의 실패 trace 요약(받았으면 있다 — 서버가 가린 몇 줄): ${실패trace자리(자료폴더, x.runId, x.tcId)} — 다시 돌리기 전에 읽고 그때 실패한 조작 · API · 콘솔을 먼저 본다(tpx-cases 6-gates.md 「관문이 빨개지면」).`,
@@ -263,13 +271,21 @@ export function 화면이맞음줄(화면: readonly { runId: number; tcId: strin
 
 /** PR 본문 머리 줄 — 판 견줌과, 자식이 끝낸 뒤에도 남은 지울 케이스 파일. 지우지 않고 보이기만 한다(사람이 병합 전에 본다) */
 export function 반영뒤줄(계획: 반영계획, 트리: string, 폴더: string): string[] {
+  const 못봄 = (e: unknown) => `⚠️ 지울 케이스가 남았는지 못 봤다 — ${e instanceof Error ? e.message : String(e)}`;
+  if (계획.삭제 !== undefined) {
+    try {
+      return 삭제뒤줄(계획, 트리케이스들(트리, 폴더));
+    } catch (e) {
+      return [못봄(e)];
+    }
+  }
   const 앞 = 계획.기준판 === null ? '기준 버전 없음' : `버전 ${String(계획.기준판)}`;
   const 머리 = `표준 기획서 반영: ${앞} → 버전 ${String(계획.지금판)} · 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}`;
   try {
-    const 있는 = new Set([...케이스파일들(join(트리, 'tests', 폴더))].map((p) => basename(p, '.spec.ts')));
-    return [머리, ...경고줄('지운 요구만 덮던 케이스가 남음', 계획.지움.flatMap((x) => x.지울케이스).filter((t) => 있는.has(t)), 10)];
+    const 있는 = 트리케이스들(트리, 폴더);
+    return [머리, ...경고줄('지운 요구만 덮던 케이스가 남음', 계획.지움.flatMap((x) => x.지울케이스).filter((t) => 있는.has(t)), 10), ...경고줄('고친 프로시저에서 사라진 케이스', 사라진케이스(계획, 있는), 10)];
   } catch (e) {
     // 보이기만 하는 줄이다 — 자식 트리를 못 읽었다고 다 된 올리기를 거절로 만들지 않는다(옛표줄들과 같다)
-    return [머리, `⚠️ 지울 케이스가 남았는지 못 봤다 — ${e instanceof Error ? e.message : String(e)}`];
+    return [머리, 못봄(e)];
   }
 }

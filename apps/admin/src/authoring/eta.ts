@@ -12,14 +12,14 @@ export const 다섯단계인가 = (행: { kind: string; params: unknown }): bool
 
 /**
  * 같은 서비스에서 끝난 작성 · 다시 작성 최근 5건의 소요 중간값. 한 건도 없으면 null — 화면은 예상을 안 보인다.
- * 이어서 작성한 것(resume_from)과 고치기 다시 적용(params.edits)은 다섯 단계 한 번의 시간이 아니라 뺀다
+ * 이어서 작성한 것(resume_from)과 고치기 다시 적용(params.edits)은 다섯 단계 한 번의 시간이 아니라 뺀다. 프로시저 안 케이스의 삭제(procDelete)는 케이스를 새로 안 써 짧다 — 섞이면 예상이 줄어 보인다
  */
 export async function 작성예상(서비스: number): Promise<{ ms: number; samples: number } | null> {
   const r = await (await db()).query<{ ms: string }>(
     `SELECT EXTRACT(EPOCH FROM (finished_at - started_at)) * 1000 AS ms
        FROM authoring_request
       WHERE service_id = $1 AND status = 'DONE' AND kind IN ('AUTHOR', 'RERUN')
-        AND resume_from IS NULL AND NOT (params ? 'edits')
+        AND resume_from IS NULL AND NOT (params ? 'edits') AND NOT (params ? 'procDelete')
         AND started_at IS NOT NULL AND finished_at IS NOT NULL
       ORDER BY finished_at DESC LIMIT 5`,
     [서비스],

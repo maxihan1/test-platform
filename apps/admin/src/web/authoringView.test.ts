@@ -123,6 +123,10 @@ describe('고칠 내용 목록', () => {
     ]);
   });
 
+  it('프로시저 안 케이스의 삭제로 선 작성은 삭제 줄들이다', () => {
+    expect(고칠것목록({ procDelete: { cases: ['PAY-FN-001', 'PAY-FN-002'] } })).toEqual(['PAY-FN-001', 'PAY-FN-002'].map((tcId) => ({ tcId, 삭제: true, 기대값: [], 확정: false })));
+  });
+
   it('모양이 틀린 줄은 버리고, 배열이 아니면 null 이다', () => {
     expect(고칠것목록({ edits: [null, 'x', { delete: true }, { tcId: 'PAY-003', confirm: true }] })).toEqual([
       { tcId: 'PAY-003', 삭제: false, 기대값: [], 확정: true },

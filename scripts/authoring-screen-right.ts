@@ -19,6 +19,7 @@ import { 다시돌림글, 다시돌림세기 } from './authoring-test-fix.js';
 
 // authoring-run.ts 가 300줄이라 가져오는 줄을 늘리지 않으려고 여기서 다시 내보낸다
 export { 반영요청인가, 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
+export { 삭제요청읽기 } from './authoring-apply-proc.js';
 export { 테스트고침싣는손, 요약되받기 } from './authoring-test-fix.js';
 
 /**

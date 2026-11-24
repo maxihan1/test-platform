@@ -86,7 +86,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
       );
     }
 
-    // 까닭 — 001 은 케이스 고치기, 002 는 테스트 수정 바퀴, 004 는 PRD 반영 작성. 앞 빌드 전에 병합된 것은 안 본다
+    // 까닭 — 001 은 케이스 고치기, 002 는 테스트 수정 바퀴, 003 은 프로시저 안 케이스 삭제, 004 는 PRD 반영 작성. 앞 빌드 전에 병합된 것은 안 본다
     const 옛 = await 요청({ kind: 'AUTHOR', result: { cases: [{ tcId: 'XQC-FN-001' }] } });
     await 요청({ kind: 'MERGE', source: 옛, finished: '2026-10-20T00:00:00Z' });
     const 고치기 = await 요청({ kind: 'EDIT', params: { edits: [{ tcId: 'XQC-FN-001', expected: { 문구: '반갑습니다' } }] }, prUrl: 'https://github.com/o/t/pull/11' });
@@ -97,6 +97,9 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
     await pool.query(`INSERT INTO bts_test_fix (project_id, issue_key, service_id, tc_id, env, request_id) VALUES ($1, 'XQC-9', $2, 'XQC-FN-002', 'qa', $3)`, [프로젝트, 앱, 수정]);
     const 반영 = await 요청({ kind: 'AUTHOR', params: { prdApply: true }, result: { cases: [{ tcId: 'XQC-FN-004' }] } });
     await 요청({ kind: 'MERGE', source: 반영, finished: '2026-11-02T00:00:00Z' });
+
+    const 삭제 = await 요청({ kind: 'AUTHOR', params: { procDelete: { cases: ['XQC-FN-003'] } }, prUrl: 'https://github.com/o/t/pull/13' });
+    await 요청({ kind: 'MERGE', source: 삭제, finished: '2026-11-04T02:00:00Z' });
 
     // Issue Bunker — 이번 빌드 실행을 건 배포와 맡은 이슈. 서버 BTS_URLS 밖 주소라 Bunker 는 못 읽고 노트 사건의 제목을 쓴다
     await pool.query(
@@ -184,7 +187,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
         { tcId: 'XQC-FN-001', name: 'XQC-FN-001 이름', file: false, expected: true, segment: false, reason: { kind: 'EDIT', requestId: expect.any(Number), issueKey: null, prUrl: 'https://github.com/o/t/pull/11' } },
         { tcId: 'XQC-FN-002', name: 'XQC-FN-002 이름', file: true, expected: false, segment: false, reason: { kind: 'TEST_FIX', requestId: expect.any(Number), issueKey: 'XQC-9', prUrl: 'https://github.com/o/t/pull/12' } },
       ],
-      removed: [{ tcId: 'XQC-FN-003', name: 'XQC-FN-003 이름', reason: null }],
+      removed: [{ tcId: 'XQC-FN-003', name: 'XQC-FN-003 이름', reason: { kind: 'EDIT', requestId: expect.any(Number), issueKey: null, prUrl: 'https://github.com/o/t/pull/13' } }],
       flowChanged: [],
     });
   });

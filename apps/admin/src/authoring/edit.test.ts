@@ -157,3 +157,22 @@ describe('고칠것검사 — 기대값 칸', () => {
     expect(고칠것검사({ edits: [{ tcId: 'SHOP-004', expected: { title: 'a' } }] }, 판)).toEqual(나쁨('SHOP-004.title'));
   });
 });
+
+describe('고칠것검사 — 프로시저 안 케이스의 삭제', () => {
+  const 프로시저판 = { ...판, 케이스들: new Map<string, 케이스정보>([케이스('SHOP-001', { procId: 'SHOP-TP-001' }), 케이스('SHOP-002', { procId: 'SHOP-TP-002' }), 케이스('SHOP-003', { procId: null })]) };
+
+  it('모두 프로시저 안 케이스의 삭제면 고칠 것 대신 지울 번호들을 준다', () => {
+    const 본문 = { edits: [{ tcId: 'SHOP-002', delete: true }, { tcId: 'SHOP-001', delete: true }] };
+    expect(고칠것검사(본문, 프로시저판)).toEqual({ procDelete: ['SHOP-002', 'SHOP-001'] });
+  });
+
+  it('프로시저 안 케이스의 기대값 고치기는 지금 길 그대로다', () => {
+    const edits = [{ tcId: 'SHOP-001', expected: { ok: true } }];
+    expect(고칠것검사({ edits }, 프로시저판)).toEqual({ edits });
+  });
+
+  it('그 밖의 고침과 섞이면 프로시저 안 케이스를 짚어 거절한다', () => {
+    const 본문 = { edits: [{ tcId: 'SHOP-003', delete: true }, { tcId: 'SHOP-001', delete: true }] };
+    expect(고칠것검사(본문, 프로시저판)).toEqual(나쁨('SHOP-001'));
+  });
+});

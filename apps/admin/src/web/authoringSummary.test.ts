@@ -79,6 +79,7 @@ describe('목록 표 칸 (2026-11-10 사용자 시안)', () => {
     expect(단계꼬리(요약({ result: { stoppedAt: '' } }), { kind: 'AUTHOR', stage: null }, 'stopped', 'ko')).toBeNull();
     expect(단계꼬리(요약({ result: { stoppedAt: '채운 케이스를 3회 돌리는 중' } }), { kind: 'AUTHOR', stage: null }, 'failed', 'ko')).toBeNull();
     expect(단계꼬리(요약({ kind: 'EDIT' }), { kind: 'AUTHOR', stage: '케이스를 고치는 중' }, 'running', 'ko')).toBeNull();
+    expect(단계꼬리(요약({ kind: 'EDIT' }), { kind: 'AUTHOR', stage: '케이스를 만드는 중', params: { procDelete: { cases: ['DMW-FN-001'] } } }, 'running', 'ko')).toBe('케이스 작성 3/6');
     expect(단계꼬리(요약(), { kind: 'MERGE', stage: 'CI 기다리는 중' }, 'running', 'ko')).toBeNull();
     expect(단계꼬리(요약(), { kind: 'AUTHOR', stage: null }, 'done', 'ko')).toBeNull();
   });
