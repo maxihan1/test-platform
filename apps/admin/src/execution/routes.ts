@@ -14,6 +14,7 @@ import { dispatch, markAborted } from './dispatcher.js';
 import { notifyRun } from './notify.js';
 import { 항목장면경로 } from './live.js';
 import { 진행경로 } from './progressRoute.js';
+import { 앞뒤경로 } from './runNeighbors.js';
 import { 호환성다시켜기, 호환성중단 } from '../compat/runEngine.js';
 import { 실행머리읽기 } from '../compat/runRead.js';
 import { abortRunner } from './runner.js';
@@ -244,6 +245,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   await app.register(팜영상경로);
   await app.register(항목장면경로);
   await app.register(진행경로);
+  await app.register(앞뒤경로);
 
   app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
     '/screenshots/:runId/:historyId/:seq.png',

@@ -131,6 +131,7 @@ describe('라우트표', () => {
 
   it('직전 실행 비교 조회는 실행 번호로 서비스를 찾는다', () => {
     expect(라우트표['/api/runs/:runId/insights']).toEqual({ 종류: '실행', 칸: 'runId' });
+    expect(라우트표['/api/runs/:runId/neighbors']).toEqual({ 종류: '실행', 칸: 'runId' });
   });
 
   it('절차 단위 진행 조회는 실행 번호로 서비스를 찾는다', () => {

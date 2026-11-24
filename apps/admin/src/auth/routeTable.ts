@@ -81,6 +81,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/notifications': 실행읽기,
   'GET /api/runs/:runId': 실행읽기,
   'GET /api/runs/:runId/insights': 실행읽기,
+  'GET /api/runs/:runId/neighbors': 실행읽기,
   'GET /api/runs/:runId/failures': 실행읽기,
   'GET /api/runs/:runId/items/:historyId': 실행읽기,
   'GET /api/runs/:runId/progress': 실행읽기,
