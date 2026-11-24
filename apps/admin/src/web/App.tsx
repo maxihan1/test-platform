@@ -104,6 +104,7 @@ function Screen({
           요구보나={기능보나(user, service?.prefix ?? null, 'authoring')}
           요구={current.req}
           앱종류={service?.kind}
+          한종류={service?.procedureMode === true}
         />
       );
     }
@@ -468,7 +469,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         const 지금 = route(hash);
         const 게임 = 종류키(열린것?.kind) === 'GAME';
         const 종류 = 'kind' in 지금 ? (지금.kind === 'GS' && !게임 ? 'FN' : 지금.kind) : undefined;
-        return 지금자리(지금.name, 집(상태.user, 열린접두사), 종류, 게임);
+        return 지금자리(지금.name, 집(상태.user, 열린접두사), 종류, 게임 || 열린것?.procedureMode === true);
       })()}
     >
       {안내 === null ? null : (

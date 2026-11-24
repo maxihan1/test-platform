@@ -18,7 +18,8 @@ export function 줄글(x: 담은줄, t: 말): string {
   return x.tcIds.length === 1 ? x.tcIds[0]! : t('{번호} 외 {수}건', { 번호: x.tcIds[0]!, 수: x.tcIds.length - 1 });
 }
 
-function 케이스목록({ 앱, kind, 줄, on줄 }: { 앱: string; kind: 'FN' | 'UI'; 줄: 담은줄 | undefined; on줄: (tcIds: string[] | null) => void }) {
+// 한종류 — 「프로시저 작성」을 켠 애플리케이션의 기능 줄이다. UI 번호 케이스도 고른다 (§3.16 「테스트 프로시저」)
+function 케이스목록({ 앱, kind, 한종류, 줄, on줄 }: { 앱: string; kind: 'FN' | 'UI'; 한종류: boolean; 줄: 담은줄 | undefined; on줄: (tcIds: string[] | null) => void }) {
   const t = use말();
   const [q, setQ] = useState('');
   // 글자마다 묻지 않고 입력이 0.3초 멈추면 묻는다
@@ -27,7 +28,7 @@ function 케이스목록({ 앱, kind, 줄, on줄 }: { 앱: string; kind: 'FN' | 
     const 타이머 = setTimeout(() => set찾을(q.trim()), 300);
     return () => clearTimeout(타이머);
   }, [q]);
-  const 쪽 = useAsync(() => api.cases({ service: 앱, kind, q: 찾을 === '' ? undefined : 찾을, page: 1 }), [앱, kind, 찾을]);
+  const 쪽 = useAsync(() => api.cases({ service: 앱, ...(한종류 ? {} : { kind }), q: 찾을 === '' ? undefined : 찾을, page: 1 }), [앱, kind, 한종류, 찾을]);
   const 전체 = 줄?.tcIds === null;
   const 고른 = new Set(줄?.tcIds ?? []);
   const 누름 = (tcId: string) => {
@@ -61,8 +62,8 @@ export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱
   const t = use말();
   // 수정으로 열면 첫 줄의 탭 · 애플리케이션부터 보인다 — 안 그러면 담은 것이 없는 것처럼 빈 체크가 보인다
   const [탭, set탭] = useState<줄종류>(items[0]?.kind ?? 'FN');
-  // UI 탭에는 API 애플리케이션이 없다 (§3.16 결정 2)
-  const 고를앱들 = 후.services.filter((s) => 탭 !== 'UI' || s.kind !== 'API');
+  // UI 탭에는 API 애플리케이션과 「프로시저 작성」을 켠 애플리케이션이 없다 (§3.16 결정 2 · 「테스트 프로시저」)
+  const 고를앱들 = 후.services.filter((s) => 탭 !== 'UI' || (s.kind !== 'API' && !s.procedure));
   const [고른앱, set고른앱] = useState<string | null>(items[0]?.service ?? null);
   const 앱 = 고를앱들.some((s) => s.prefix === 고른앱) ? 고른앱! : (고를앱들[0]?.prefix ?? null);
   const 앱정보 = 후.services.find((s) => s.prefix === 앱);
@@ -105,11 +106,11 @@ export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱
           <label className="sched-wiz-all">
             <input type="checkbox" checked={지금줄?.tcIds === null} onChange={(e) => 케이스줄(탭, 앱, e.target.checked ? null : undefined)} />
             <span>
-              <strong>{t('전체 {수}건', { 수: 탭 === 'FN' ? 앱정보.fn : 앱정보.ui })}</strong>
+              <strong>{t('전체 {수}건', { 수: 탭 === 'UI' ? 앱정보.ui : 앱정보.procedure ? 앱정보.fn + 앱정보.ui : 앱정보.fn })}</strong>
               <small>{t('실행 시점의 활성 케이스 전체(이후 추가된 케이스 포함)')}</small>
             </span>
           </label>
-          {케이스보나 ? <케이스목록 key={`${탭}|${앱}`} 앱={앱} kind={탭} 줄={지금줄} on줄={(ids) => 케이스줄(탭, 앱, ids ?? undefined)} /> : null}
+          {케이스보나 ? <케이스목록 key={`${탭}|${앱}`} 앱={앱} kind={탭} 한종류={탭 === 'FN' && 앱정보.procedure} 줄={지금줄} on줄={(ids) => 케이스줄(탭, 앱, ids ?? undefined)} /> : null}
         </>
       ) : null}
       {탭 === 'E2E' ? (

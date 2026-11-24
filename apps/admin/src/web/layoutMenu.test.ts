@@ -59,6 +59,16 @@ describe('종류별 자리 목록', () => {
     ]);
   });
 
+  it('「프로시저 작성」을 켠 Android 앱은 「기능 테스트」 한 줄이고 실행 기록의 UI 테스트는 남는다 — 켠 게임 · 꺼진 웹은 그대로다', () => {
+    const 메뉴켬 = (kind: ServiceRow['kind']) => 자리목록(사람({ kind, procedureMode: true }), 'PAY', 'ko');
+    const 앱 = 메뉴켬('APP');
+    expect(앱.filter((자리) => 자리.단계 === '테스트 수행').map((자리) => [자리.이름, 자리.해시, 자리.하위 ?? []])).toContainEqual(['기능 테스트', '#/cases/fn', []]);
+    expect(앱.some((자리) => 자리.이름 === '기능 · UI 테스트')).toBe(false);
+    expect(앱.find((자리) => 자리.이름 === '실행 기록')?.하위?.map((하위) => 하위.이름)).toContain('UI 테스트');
+    expect(메뉴켬('GAME').filter((자리) => 자리.이름 === '기능 테스트' || 자리.이름 === '게임 미션')).toHaveLength(2);
+    expect(메뉴('APP').some((자리) => 자리[0] === '기능 · UI 테스트')).toBe(true);
+  });
+
   it('게임의 기능 테스트는 #/cases/fn · 게임 미션은 #/cases/gs 로 가고 둘 다 테스트 수행 단계다', () => {
     const 줄 = 자리목록(사람({ kind: 'GAME' }), 'PAY', 'ko').filter((자리) => 자리.이름 === '기능 테스트' || 자리.이름 === '게임 미션');
     expect(줄.map((자리) => [자리.해시, 자리.아이콘, 자리.단계])).toEqual([

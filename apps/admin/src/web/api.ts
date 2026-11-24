@@ -740,6 +740,11 @@ export interface ServiceRow {
   gamePads?: 패드[];
   /** PC 게임의 최신 Windows 빌드 번호(어느 대상 서버 줄이든). 없거나 PC 게임이 아니면 null — 새 작성이 PC 게임이면 시작을 막는다 (도메인/게임 §3.10 「윈도우 PC」) */
   latestBuildNo?: string | null;
+  /**
+   * 「프로시저 작성」 스위치 — Android 앱 · 게임만 켠다. 켜면 메뉴가 「기능 테스트」 한 줄이고 그 목록이 UI 번호 케이스까지 보인다 (화면공통 §8 「자리 목록」).
+   * 선택으로 둔 건 kind 와 같은 이유다 — 없으면 꺼짐으로 읽는다
+   */
+  procedureMode?: boolean;
 }
 
 export type 게임플랫폼 = 'android' | 'windows';
@@ -770,8 +775,6 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
    * 서버는 늘 싣는다. 선택으로 둔 것은 이 칸을 모르는 기존 화면 검사의 가짜 행을 안 고치려고다 — 없으면 「안 넣음」으로 읽는다
    */
   hasFigmaToken?: boolean;
-  /** 「프로시저 작성」 스위치 — Android 앱 · 게임만 켠다. 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 꺼짐으로 읽는다 */
-  procedureMode?: boolean;
   testsRepo: string;
   /** 플랫폼이 실제로 훑을 폴더. 서비스마다 폴더가 다르다 (SPEC §9.2) */
   testsDir: string;

@@ -23,7 +23,7 @@ function 고른값<T extends string>(글: string | null, 값들: readonly T[], �
 // 처음요구 — 「PRD 관리」에서 넘어온 주소의 요구 번호(도메인/카탈로그 §8.1 「맥락」). 화면에 따로 고르는 칸은 없다
 // 앱종류 — Android 앱 애플리케이션은 디바이스 칩 줄이 없다. 웹에서 고른 디바이스 · 주소의 dev 가 보이지 않는 거르기로 남지 않게 없는 것으로 친다
 // kind GS — 게임 메뉴 「게임 미션」. 서버에는 기능 종류에 게임 미션만(`mission`)으로 묻는다 (도메인/카탈로그 §7 `?mission=`)
-export function use검색조건(service: string, kind: 'UI' | 'FN' | 'GS', 처음요구?: string, 앱종류?: 앱종류) {
+export function use검색조건(service: string, kind: 'UI' | 'FN' | 'GS', 처음요구?: string, 앱종류?: 앱종류, 한종류 = false) {
   const [처음] = useState(주소조건);
   const [typed, setTyped] = useState(처음.get('q') ?? '');
   const [q, setQ] = useState(처음.get('q') ?? '');
@@ -66,9 +66,10 @@ export function use검색조건(service: string, kind: 'UI' | 'FN' | 'GS', 처�
   // 게임의 「기능 테스트」는 게임 미션을 뺀다 — 「게임 미션」 메뉴가 따로 보인다 (화면공통 §8 「자리 목록」).
   // 「PRD 관리」의 「기능 N건」 고리로 왔으면 빼지 않는다 — 그 건수는 게임 미션까지 센다(prd/trace.ts 는 UI · 기능 둘로만 나눈다)
   const 미션 = kind === 'GS' ? true : kind === 'FN' && 종류키(앱종류) === 'GAME' && 요구 === null ? false : undefined;
+  // 「프로시저 작성」을 켠 애플리케이션의 기능 목록은 종류를 거르지 않는다 — 한 실행에 UI 번호 케이스가 섞여도 기능 하나라 「모두 실행」이 거절되지 않는다
   const 조건: CaseQuery = {
     service,
-    kind: kind === 'UI' ? 'UI' : 'FN',
+    ...(kind === 'FN' && 한종류 ? {} : { kind: kind === 'UI' ? ('UI' as const) : ('FN' as const) }),
     ...(미션 === undefined ? {} : { mission: 미션 }),
     q,
     ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
