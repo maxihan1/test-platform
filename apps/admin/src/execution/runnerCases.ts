@@ -1,5 +1,5 @@
 // 러너에 새 꼴 요청(파일 하나 + 케이스 목록)을 보낸다 — 프로시저는 케이스마다 결과가 온다 (도메인/러너 §5.2 「프로시저 실행」)
-// 지금은 케이스 테스트 실행(trialProc.ts)만 쓴다. 정식 실행의 dispatcher 가 이 꼴로 보내는 것은 TP-F2-11 이다
+// 케이스 테스트 실행(trialProc.ts)과 정식 실행의 프로시저 실행 단위(execUnit.ts)가 같이 쓴다. 옛 꼴 케이스는 옛 요청 그대로다 — 걷는 것은 TP-F6-32 다
 
 import type { CasesExecuteRequest, CasesExecuteResponse } from '@platform/kit';
 

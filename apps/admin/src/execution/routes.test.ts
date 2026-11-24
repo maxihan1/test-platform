@@ -141,6 +141,8 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
     expect(body.items[0]).toEqual({
       historyId: 내항목,
+      // 옛 꼴 케이스(실행 단위 칸 전의 줄 포함)는 실행 단위 번호가 케이스 줄 번호다
+      execId: 내항목,
       seq: 2,
       title: '로그인한다',
       elapsedMs: 1200,

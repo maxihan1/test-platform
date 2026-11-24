@@ -26,7 +26,7 @@ import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } f
 import { validate } from './validate.js';
 import { trace기록을읽는다, 밀린trace를푼다 } from './traceIngest.js';
 import { 빠진집계를한다 } from '../stability/aggregate.js';
-import { 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
+import { 팜영상경로, 팜증적경로, 항목팜증적 } from './farmEvidence.js';
 import { 목록종류읽기 } from './runKind.js';
 import { 시작방식거르개 } from './runOrigin.js';
 import { runBody, 팜을본다 } from './location.js';
@@ -224,7 +224,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     const found = await findItem(runId, historyId);
     if (found === null) return reply.code(404).send({ error: 'RUN_ITEM_NOT_FOUND', detail: req.params.historyId });
     // 실패 카드도 findItem 을 쓴다. 세 기록은 상세에만 싣는다 — 가림은 넣을 때 이미 했다
-    return { ...found, trace: await trace기록을읽는다(historyId), farm: await 팜증적목록(runId, historyId, found.status === 'PASS') };
+    return { ...found, trace: await trace기록을읽는다(historyId), farm: await 항목팜증적(runId, historyId) };
   });
 
   app.get<{ Params: { tcId: string }; Querystring: { platform?: string; page?: string } }>(

@@ -14,6 +14,7 @@ vi.mock('../apidoc/caseDoc.js', () => ({ 케이스판: vi.fn(async () => ({})) }
 
 const 항목: PendingItem = {
   historyId: 7,
+  execId: 7,
   tcId: 'DEMO-001',
   platform: 'mobile',
   filePath: 'demo/DEMO-001.spec.ts',

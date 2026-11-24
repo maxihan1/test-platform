@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
 
+import { 실행단위자리 } from './execRead.js';
 import { 팜주소 } from './farm.js';
 import { 읽는다 } from './trial.js';
 
@@ -108,12 +109,11 @@ export async function PC화면경로(app: FastifyInstance): Promise<void> {
     const historyId = 정수(req.params.historyId);
     if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
     const 없음 = () => reply.code(404).send({ error: 'LIVE_NOT_FOUND', detail: String(historyId) });
-    const 열쇠 = `item:${String(historyId)}`;
+    // 주소의 runId 로 문이 권한을 봤다 — 남의 실행 항목 화면이 새지 않게 그 실행의 항목인지 본다. 화면은 실행 단위에 하나라 그 번호로 찾는다
+    const 자리 = await 실행단위자리(runId, historyId);
+    if (자리 === null) return 없음();
+    const 열쇠 = `item:${String(자리.번호)}`;
     if (PC화면자리(열쇠) === undefined) return 없음();
-    // 주소의 runId 로 문이 권한을 봤다 — 남의 실행 항목 화면이 새지 않게 그 실행의 항목인지 본다
-    const { pool } = await import('../db/index.js');
-    const r = await pool.query('SELECT 1 FROM run_item WHERE run_id = $1 AND history_id = $2', [runId, historyId]);
-    if (r.rowCount === 0) return 없음();
     return PC화면을건넨다(reply, 열쇠, 없음);
   });
 

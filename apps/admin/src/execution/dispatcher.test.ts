@@ -11,6 +11,7 @@ import { finishItem, finishRun, type PendingItem } from './store.js';
 
 vi.mock('./runner.js', async (원본) => ({ ...(await 원본<typeof import('./runner.js')>()), callRunner: vi.fn() }));
 vi.mock('./store.js', () => ({ finishItem: vi.fn(async () => undefined), finishRun: vi.fn(async () => undefined) }));
+vi.mock('./execFinish.js', () => ({ finishExec: vi.fn(async () => undefined), 실행단위를시작한다: vi.fn(async () => undefined) }));
 vi.mock('./notify.js', () => ({ notifyRun: vi.fn(async () => undefined) }));
 vi.mock('./traceIngest.js', () => ({ trace적재를맡긴다: vi.fn(async () => undefined) }));
 vi.mock('../apidoc/runCompare.js', () => ({ 실행문서견주기: vi.fn(async () => undefined) }));
@@ -108,7 +109,7 @@ describe('enqueue', () => {
 });
 
 function 항목(historyId: number, platform: PendingItem['platform']): PendingItem {
-  return { historyId, tcId: `XDP-${historyId}`, platform, filePath: 'x.spec.ts', baseUrl: 'http://x', params: {}, expected: {}, timeoutMs: 1000 };
+  return { historyId, execId: historyId, tcId: `XDP-${historyId}`, platform, filePath: 'x.spec.ts', baseUrl: 'http://x', params: {}, expected: {}, timeoutMs: 1000 };
 }
 
 function 결과(historyId: number): ExecuteResponse {

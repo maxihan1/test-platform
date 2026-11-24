@@ -117,7 +117,8 @@ export async function 부를준비들(runId: number): Promise<{ 준비들: 부�
 
 /**
  * 준비 실패로 닫는다 — RUNNING 일 때만이라 멈추기가 먼저 닫은 실행을 덮지 않는다. 한 문장이라 실행 · 항목이 같이 닫힌다.
- * 케이스 항목은 NA · PREP_FAILED, 시나리오 부품은 안 돈 것(NA · NOT_RUN) — 머리가 PREP_FAILED 다 (도메인/시나리오 §3.7 결정 9 표)
+ * 케이스 항목은 NA · PREP_FAILED, 시나리오 부품은 안 돈 것(NA · NOT_RUN) — 머리가 PREP_FAILED 다 (도메인/시나리오 §3.7 결정 9 표).
+ * 닫은 케이스 줄의 실행 단위도 같은 사유로 같이 닫는다 (도메인/실행 §3.2 「테스트 프로시저 실행」)
  */
 export async function 준비실패로닫는다(runId: number, note: string): Promise<boolean> {
   const r = await (await db()).query<{ n: number }>(
@@ -127,7 +128,10 @@ export async function 준비실패로닫는다(runId: number, note: string): Pro
      i AS (
        UPDATE run_item SET status = 'NA', finished_at = now(), duration_ms = COALESCE(duration_ms, 0),
               error = jsonb_build_object('message', 'PREP_FAILED')
-        WHERE run_id IN (SELECT run_id FROM r) AND finished_at IS NULL),
+        WHERE run_id IN (SELECT run_id FROM r) AND finished_at IS NULL RETURNING exec_id),
+     e AS (
+       UPDATE run_exec SET finished_at = now(), error = jsonb_build_object('message', 'PREP_FAILED')
+        WHERE exec_id IN (SELECT exec_id FROM i) AND finished_at IS NULL),
      p AS (
        UPDATE scenario_run_part SET status = 'NA', finished_at = now(), duration_ms = COALESCE(duration_ms, 0),
               error = jsonb_build_object('message', 'NOT_RUN')

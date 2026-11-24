@@ -15,12 +15,13 @@ import {
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
 import { 서명주소 } from './buildFile.js';
-import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
+import { 거를패키지, 단위잡는분, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { 항목폰화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
 import { PC화면을단다 } from './pcScreen.js';
 import { runnerUrl, 답하나, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
+import type { 못감함수, 시험요청 } from './trialPhone.js';
 
 // 러너는 자기 제한 시간이 지나면 자식을 죽이고 200 + NA로 돌려준다. 이쪽이 먼저 끊으면 그 부분 결과가 사라진다
 const RUNNER_GRACE_MS = 30_000;
@@ -121,6 +122,17 @@ export interface 잡은폰 {
   게임?: string;
 }
 
+/** 요청에 그대로 싣는 칸 — 실행 단위에 한 벌이라 옛 꼴 · 새 꼴 요청이 같은 것을 싣는다 */
+export const 실행칸 = (item: PendingItem): Pick<ExecuteRequest, 'app' | 'previousApp' | 'apiAuths' | 'engine' | 'adminKey' | 'gamePopups' | 'stability'> => ({
+  ...(item.app !== undefined && { app: item.app }),
+  ...(item.previousApp !== undefined && { previousApp: item.previousApp }),
+  ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
+  ...(item.engine !== undefined && { engine: item.engine }),
+  ...(item.adminKey !== undefined && { adminKey: item.adminKey }),
+  ...(item.gamePopups !== undefined && { gamePopups: item.gamePopups }),
+  ...(item.stability !== undefined && { stability: item.stability }),
+});
+
 // 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다.
 // 잡은폰이 오면 여기서 잡지도 놓지도 않는다
 export async function callRunner(
@@ -141,21 +153,6 @@ export async function callRunner(
   // 화면이 있는 항목(PC · 모바일 웹 · 앱 · 게임)은 장면을 찍는다 — API 애플리케이션 케이스는 desktop 이어도 브라우저를 안 연다.
   // 정식 실행은 늦추지 않고 화면만 찍는다(러너가 runId 로 가른다) (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
   const 열쇠 = 항목화면을연다(item.historyId, !('apiDoc' in 판), { runId, timeoutMs: item.timeoutMs });
-  try {
-    return await 항목을보낸다(runId, item, 판, 열쇠, 멈췄나, 잡은폰);
-  } finally {
-    항목화면을닫는다(item.historyId);
-  }
-}
-
-async function 항목을보낸다(
-  runId: number,
-  item: PendingItem,
-  판: Exclude<Awaited<ReturnType<typeof 케이스판>>, { 사유: string }>,
-  열쇠: string | undefined,
-  멈췄나: () => boolean,
-  잡은폰: 잡은폰 | undefined,
-): Promise<ExecuteResponse> {
   const body: ExecuteRequest = {
     runId,
     historyId: item.historyId,
@@ -166,82 +163,95 @@ async function 항목을보낸다(
     params: item.params,
     expected: item.expected,
     timeoutMs: item.timeoutMs,
-    ...(item.app !== undefined && { app: item.app }),
-    ...(item.previousApp !== undefined && { previousApp: item.previousApp }),
-    ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
-    ...(item.engine !== undefined && { engine: item.engine }),
-    ...(item.adminKey !== undefined && { adminKey: item.adminKey }),
-    ...(item.gamePopups !== undefined && { gamePopups: item.gamePopups }),
-    ...(item.stability !== undefined && { stability: item.stability }),
+    ...실행칸(item),
     ...(열쇠 !== undefined && { live: 열쇠 }),
     ...판,
   };
+  try {
+    return await 폰에보낸다(runId, { 번호: item.historyId, item, body, 보낸다: (b) => 보낸다(item, b), 못감: (까닭, stack) => na(item, 까닭, stack) }, 멈췄나, 잡은폰);
+  } finally {
+    항목화면을닫는다(item.historyId);
+  }
+}
 
+/** 폰 · PC 를 잡아 보내는 길에 드는 것 — 옛 꼴(케이스 하나)과 새 꼴(프로시저)은 요청 · 답 모양만 다르고 잡고 놓는 길은 같다 */
+export interface 보낼것<Q extends 시험요청, R> {
+  /** 러너에 가는 번호(실행 단위 번호) — 장면 · 폰 화면 칸의 열쇠다 */
+  번호: number;
+  item: Pick<PendingItem, 'platform' | '실제폰' | 'buildId' | 'previousBuildId' | 'app'>;
+  body: Q;
+  보낸다: (body: Q) => Promise<R>;
+  /** 러너에 안 보내고 닫을 때의 답 */
+  못감: 못감함수<R>;
+}
+
+export async function 폰에보낸다<Q extends 시험요청, R>(runId: number, 것: 보낼것<Q, R>, 멈췄나: () => boolean, 잡은폰: 잡은폰 | undefined): Promise<R> {
+  const { 번호, item, body, 못감 } = 것;
   // 모바일 웹은 실행 창 「실행 위치」로 고른 항목만 실제 폰이다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   const 폰Chrome = item.platform === 'mobile' && item.실제폰 === true;
   // 윈도우 PC 는 디스패처가 실행 하나 동안 잡고 깐 PC 로만 간다 — 러너 · kit 은 Appium 세션을 안 만든다
   if (PC항목인가(item.platform)) {
-    if (잡은폰?.게임 === undefined) return na(item, 'Windows PC 를 잡지 않은 항목입니다');
+    if (잡은폰?.게임 === undefined) return 못감('Windows PC 를 잡지 않은 항목입니다');
     const pc = 잡은폰;
-    const 멈춘 = 멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : null;
-    if (멈춘 !== null) return 멈춘;
-    항목폰화면(item.historyId, pc.화면, pc.이름);
+    if (멈췄나()) return 못감('멈춘 실행이라 러너에 보내지 않았습니다');
+    항목폰화면(번호, pc.화면, pc.이름);
     // PC 는 kit 이 장면 사진을 안 찍는다 — 카드가 VISION 화면 영상을 받아 간다 (도메인/게임 §3.10 「증적 · 결과」)
-    PC화면을단다(`item:${String(item.historyId)}`, { serial: pc.udid, 토큰: pc.토큰 });
+    PC화면을단다(`item:${String(번호)}`, { serial: pc.udid, 토큰: pc.토큰 });
     try {
-      return await 보낸다(item, { ...body, udid: pc.udid, app: pc.게임!, ...(pc.토큰 !== undefined && { farmToken: pc.토큰 }) });
+      return await 것.보낸다({ ...body, udid: pc.udid, app: pc.게임!, ...(pc.토큰 !== undefined && { farmToken: pc.토큰 }) });
     } finally {
-      항목폰화면(item.historyId, undefined);
-      PC화면을단다(`item:${String(item.historyId)}`, undefined);
+      항목폰화면(번호, undefined);
+      PC화면을단다(`item:${String(번호)}`, undefined);
     }
   }
-  if (item.platform !== 'android' && !폰Chrome) return 보낸다(item, body);
-  // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL). 폰을 잡는 몇 초 사이에 멈췄는지 잡은 뒤 본다
-  const 멈춤 = (): ExecuteResponse | null => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : null);
+  if (item.platform !== 'android' && !폰Chrome) return 것.보낸다(body);
+  // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 닫는 쪽이 덮지 않는다(finished_at IS NULL). 폰을 잡는 몇 초 사이에 멈췄는지 잡은 뒤 본다
+  const 멈춤 = (): R | null => (멈췄나() ? 못감('멈춘 실행이라 러너에 보내지 않았습니다') : null);
   // 폰을 잡은 토큰을 러너도 써야 팜이 연결을 받는다. 서버 몫이면 안 싣는다 — 러너가 자기 환경값으로 같은 값을 든다
-  const 보낸다폰 = async (udid: string, 토큰: string | undefined): Promise<ExecuteResponse> => {
+  const 보낸다폰 = async (udid: string, 토큰: string | undefined): Promise<R> => {
     const 멈춘 = 멈춤();
     if (멈춘 !== null) return 멈춘;
     // 앞 빌드도 이 설치 한 번에만 쓰는 서명 주소다. 못 만들면 빼고 보낸다 — 옛판에서올리기 만 「앞 빌드가 없다」로 던진다
     const 앞 = item.previousBuildId === undefined ? null : 서명주소(item.previousBuildId);
-    const 폰body: ExecuteRequest = { ...body, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(앞 !== null && { previousApp: 앞 }) };
-    if (item.buildId === undefined) return 보낸다(item, 폰body);
+    const 폰body: Q = { ...body, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(앞 !== null && { previousApp: 앞 }) };
+    if (item.buildId === undefined) return 것.보낸다(폰body);
     // 올린 APK 는 폰을 잡은 뒤 서명 주소를 만든다 — 저장하지 않고 이 설치 한 번에만 쓴다 (도메인/실행 §3.11)
     const app = 서명주소(item.buildId);
-    if (app === null) return na(item, 'PLATFORM_PUBLIC_URL 이 비어 있어 Device VISION 이 빌드를 받을 주소를 만들지 못했습니다');
-    return 보낸다(item, { ...폰body, app });
+    if (app === null) return 못감('PLATFORM_PUBLIC_URL 이 비어 있어 Device VISION 이 빌드를 받을 주소를 만들지 못했습니다');
+    return 것.보낸다({ ...폰body, app });
   };
   // 폰을 잡은 동안만 링크를 단다
   const 폰화면과 = async <T>(화면: string | undefined, 일: () => Promise<T>, 이름?: string): Promise<T> => {
-    항목폰화면(item.historyId, 화면, 이름);
+    항목폰화면(번호, 화면, 이름);
     try {
       return await 일();
     } finally {
-      항목폰화면(item.historyId, undefined);
+      항목폰화면(번호, undefined);
     }
   };
   if (잡은폰 !== undefined) return 폰화면과(잡은폰.화면, () => 보낸다폰(잡은폰.udid, 잡은폰.토큰), 잡은폰.이름);
-  // 앱 항목 · 실제 폰 모바일 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱 · Chrome 데이터를 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
+  // 앱 항목 · 실제 폰 모바일 항목은 서버 러너가 팜에 붙어 돈다. 폰은 실행 단위마다 잡고 놓는다 — 놓을 때 팜이 깐 앱 · Chrome 데이터를 지워 다음 것이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
   // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다
   const 팜 = 팜주소();
-  if (팜 === undefined) return na(item, '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
+  if (팜 === undefined) return 못감('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
   // 누른 사람 토큰으로 잡는다 — 팜 화면에 그 사람이 쓰는 중으로 뜬다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
   let 토큰: string | undefined;
   try {
     토큰 = await 실행팜토큰(runId);
   } catch (err) {
-    return na(item, '누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
+    return 못감('누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   if (폰Chrome) {
     return 폰Chrome으로(
       팜,
-      async (칸, 화면, 이름) => 폰화면과(화면, async () => 멈춤() ?? 보낸다(item, { ...body, ...칸 }), 이름),
-      (까닭) => na(item, 까닭),
+      async (칸, 화면, 이름) => 폰화면과(화면, async () => 멈춤() ?? 것.보낸다({ ...body, ...칸 }), 이름),
+      (까닭) => 못감(까닭),
       토큰,
     );
   }
-  // 올린 빌드는 앱 값 없이 번호만 온다 — 빌드가 앞서 APK 를 까니 거르지 않는다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」)
-  return 팜폰으로(팜, (udid, 화면, 이름) => 폰화면과(화면, () => 보낸다폰(udid, 토큰), 이름), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰, 거를패키지(item.app));
+  // 올린 빌드는 앱 값 없이 번호만 온다 — 빌드가 앞서 APK 를 까니 거르지 않는다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」).
+  // 잡는 시간은 러너 한도보다 긴 가장 짧은 값이다 — 케이스 하나면 30분, 프로시저는 케이스 수만큼 는다 (러너 §5.2 「케이스별 한도」)
+  return 팜폰으로(팜, (udid, 화면, 이름) => 폰화면과(화면, () => 보낸다폰(udid, 토큰), 이름), (까닭) => 못감(까닭), undefined, undefined, 단위잡는분(body.timeoutMs), 토큰, 거를패키지(item.app));
 }
 
 // 러너가 거절하거나 못 닿으면 그 항목만 NA 로 접는다 — 케이스 테스트 실행도 같은 문장으로 접는다 (execution/trialRoutes.ts)

@@ -11,6 +11,8 @@ export interface RunCounts {
   pass: number;
   fail: number;
   na: number;
+  // 그중 Blocked — 앞 케이스에 막혀 못 돈 미실행. na 에도 이미 들어 있다 (SPEC 실행 §3.2 「판정이 아닌 결과」)
+  blocked: number;
   running: number;
   // 그중 미확정 항목 수(진행 중 포함). pass·fail·na·running 에도 이미 들어 있다 — 따로 묶지 않는다 (SPEC 실행 §3.2 · §7)
   unconfirmed: number;
@@ -77,6 +79,14 @@ export interface RunItemSummary {
   finishedAt: string | null;
   // 실행을 만들 때 박제한 미확정 사유. 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (SPEC 실행 §8.3)
   unconfirmed: string | null;
+  // 그 줄이 든 실행 단위와 그 안의 차례(1부터). 실행 단위 칸 전의 줄은 null (공통/4 「테스트 프로시저 표」)
+  execId: number | null;
+  execSeq: number | null;
+  // 프로시저 안 케이스만 — 실행을 만들 때 박제한 프로시저 번호 · 이름. 옛 꼴 케이스는 null
+  procId: string | null;
+  procName: string | null;
+  // Blocked 줄만 — 막은 케이스 번호
+  blockedBy: string | null;
 }
 
 export interface RunItemDetail extends RunItemSummary {
@@ -90,4 +100,6 @@ export interface RunItemDetail extends RunItemSummary {
   steps: StepResult[];
   /** 실패 · 미실행 항목이 왜 통과하지 못했나 — 통과 · 안 끝남 · 멈춰 닫힌 미실행은 null (도메인/실행 §7 항목 상세) */
   failure: 항목실패 | null;
+  /** 프로시저 줄만 — 케이스 판정 밖의 사유(run_exec.error). 케이스는 다 판정이 났는데 테스트 파일이 오류로 끝났거나 프로세스가 통째로 끊겼다. 없거나 옛 꼴 케이스면 null (도메인/실행 §7 항목 상세) */
+  execError: { message: string; stack?: string } | null;
 }

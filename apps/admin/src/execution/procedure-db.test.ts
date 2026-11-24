@@ -204,19 +204,35 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     await expect(createRun(요청([앱항목('XPC-FN-101')], 빌드), 못돈다)).rejects.toMatchObject({ code: 'NO_ITEMS' });
   });
 
-  it('정식 실행은 dispatcher 가 새 꼴로 보내기 전이라 프로시저 안 케이스를 409 RUNNER_NO_PROCEDURE 로 거절한다 (TP-F2-11 이 푼다)', async () => {
+  it('정식 실행은 러너의 /health 를 보고 받는다 — procedure 가 없는 러너면 409 RUNNER_NO_PROCEDURE, 있으면 프로시저를 펼쳐 만든다', async () => {
     const 팜 = process.env.DEVICE_FARM_URL;
+    const 러너 = process.env.RUNNER_URL;
     process.env.DEVICE_FARM_URL = 'http://127.0.0.1:9';
+    let 능력: Record<string, unknown> = { ok: true };
+    const 가짜러너 = Fastify();
+    가짜러너.get('/health', async () => 능력);
+    process.env.RUNNER_URL = await 가짜러너.listen({ port: 0, host: '127.0.0.1' });
     const app = Fastify();
     await app.register(executionRoutes, { prefix: '/api' });
+    const 건다 = () => app.inject({ method: 'POST', url: '/api/runs', payload: { env: 'qa', items: [앱항목('XPC-FN-101')] } });
     try {
-      const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { env: 'qa', items: [앱항목('XPC-FN-101')] } });
-      expect(res.statusCode).toBe(409);
-      expect(res.json()).toEqual({ error: 'RUNNER_NO_PROCEDURE' });
+      const 거절 = await 건다();
+      expect(거절.statusCode).toBe(409);
+      expect(거절.json()).toEqual({ error: 'RUNNER_NO_PROCEDURE' });
+
+      능력 = { ok: true, procedure: true };
+      const 받음 = await 건다();
+      expect(받음.statusCode).toBeLessThan(300);
+      const runId = (받음.json() as { runId: number }).runId;
+      expect((await 단위줄(runId)).map((u) => u.proc_id)).toEqual([프로시저]);
+      expect((await 케이스줄(runId)).map((r) => r.tc_id)).toEqual(['XPC-FN-101', 'XPC-FN-102', 'XPC-UI-103', 'XPC-FN-104']);
     } finally {
       await app.close();
+      await 가짜러너.close();
       if (팜 === undefined) delete process.env.DEVICE_FARM_URL;
       else process.env.DEVICE_FARM_URL = 팜;
+      if (러너 === undefined) delete process.env.RUNNER_URL;
+      else process.env.RUNNER_URL = 러너;
     }
   });
 
@@ -248,7 +264,12 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
 
   it('빌드 실행은 「프로시저 작성」을 켠 애플리케이션을 UI · 기능으로 나누지 않고 실행 하나로 만든다', async () => {
     const 팜 = process.env.DEVICE_FARM_URL;
+    const 러너 = process.env.RUNNER_URL;
     process.env.DEVICE_FARM_URL = 'http://127.0.0.1:9';
+    // 프로시저를 못 도는 판의 러너 — /health 에 procedure 가 없다
+    const 가짜러너 = Fastify();
+    가짜러너.get('/health', async () => ({ ok: true }));
+    process.env.RUNNER_URL = await 가짜러너.listen({ port: 0, host: '127.0.0.1' });
     const 빌드 = (await q<{ id: string }>(
       `INSERT INTO app_build (service_id, env, build_no, app_url, uploaded_by) SELECT id, 'qa', '7', 'https://builds.example.com/xpc-7.apk', 'xpc' FROM service WHERE prefix = 'XPC' RETURNING id`,
     )).rows[0]!;
@@ -256,7 +277,7 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     try {
       const 만든 = await 정기실행을만든다('XPC', 'qa', { info: (글) => 말.push(글), error: (글) => 말.push(`오류: ${글}`) }, { id: Number(빌드.id), buildNo: '7', stage: 'FULL', username: 'xpc', displayName: 'XPC' });
       await 만든.끝;
-      // 정식 실행은 아직 프로시저를 못 보내 그 케이스 넷이 빠지고 옛 꼴 하나가 남는다. 나눴으면 UI 묶음(XPC-UI-103 하나)은 따로 서려다 비어서 안 섰다
+      // 러너가 프로시저를 못 돌아 그 케이스 넷이 빠지고 옛 꼴 하나가 남는다. 나눴으면 UI 묶음(XPC-UI-103 하나)은 따로 서려다 비어서 안 섰다
       expect(만든).toMatchObject({ 실패: false });
       expect(만든.runIds).toHaveLength(1);
       expect(말.filter((글) => 글.includes('뺐다'))).toEqual([expect.stringContaining('프로시저 안 케이스 4건은 뺐다')]);
@@ -265,8 +286,11 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     } finally {
       await 실행을치운다();
       await q('DELETE FROM app_build WHERE id = $1', [빌드.id]);
+      await 가짜러너.close();
       if (팜 === undefined) delete process.env.DEVICE_FARM_URL;
       else process.env.DEVICE_FARM_URL = 팜;
+      if (러너 === undefined) delete process.env.RUNNER_URL;
+      else process.env.RUNNER_URL = 러너;
     }
   });
 

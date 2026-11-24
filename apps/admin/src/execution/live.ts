@@ -6,6 +6,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
 
+import { 실행단위자리 } from './execRead.js';
 import { PC화면경로 } from './pcScreen.js';
 import { runnerUrl, 러너머리 } from './runnerAddr.js';
 
@@ -90,7 +91,8 @@ export const 시나리오화면 = 화면칸();
 
 /**
  * GET /api/runs/:runId/items/:historyId/live — 도는 정식 실행 항목의 마지막 장면 한 장. 권한은 (실행, read) 라 그 실행을 볼 수 있는 사람이 다 본다.
- * historyId 가 그 runId 의 항목인지 DB 로 본다 — 주소의 runId 로 문이 권한을 봤으니 남의 실행 항목 장면이 새지 않게 (도메인/실행 §7)
+ * historyId 가 그 runId 의 항목인지 DB 로 본다 — 주소의 runId 로 문이 권한을 봤으니 남의 실행 항목 장면이 새지 않게 (도메인/실행 §7).
+ * 장면은 실행 단위에 하나다 — 프로시저의 어느 케이스 줄 번호로 물어도 같은 장면이다
  */
 export async function 항목장면경로(app: FastifyInstance): Promise<void> {
   // 윈도우 PC 항목은 장면 사진 대신 화면 영상이다 — 같은 자리라 여기서 같이 붙인다 (routes.ts · trialRoutes.ts 가 300줄을 넘었다)
@@ -100,11 +102,9 @@ export async function 항목장면경로(app: FastifyInstance): Promise<void> {
     const historyId = 정수(req.params.historyId);
     if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
     const 없음 = () => reply.code(404).send({ error: 'LIVE_NOT_FOUND', detail: String(historyId) });
-    const 열쇠 = 항목화면(historyId)?.열쇠;
+    const 자리 = await 실행단위자리(runId, historyId);
+    const 열쇠 = 자리 === null ? undefined : 항목화면(자리.번호)?.열쇠;
     if (열쇠 === undefined) return 없음();
-    const { pool } = await import('../db/index.js');
-    const r = await pool.query('SELECT 1 FROM run_item WHERE run_id = $1 AND history_id = $2', [runId, historyId]);
-    if (r.rowCount === 0) return 없음();
     return 장면을건넨다(reply, 열쇠);
   });
 }

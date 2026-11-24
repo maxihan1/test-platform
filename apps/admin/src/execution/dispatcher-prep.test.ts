@@ -12,6 +12,7 @@ vi.mock('./store.js', () => ({ finishItem: vi.fn(async () => undefined), finishR
 vi.mock('./notify.js', () => ({ notifyRun: vi.fn(async () => undefined) }));
 vi.mock('./traceIngest.js', () => ({ trace적재를맡긴다: vi.fn(async () => undefined) }));
 vi.mock('../apidoc/runCompare.js', () => ({ 실행문서견주기: vi.fn(async () => undefined) }));
+vi.mock('./execFinish.js', () => ({ finishExec: vi.fn(async () => undefined), 실행단위를시작한다: vi.fn(async () => undefined) }));
 vi.mock('./buildRun.js', () => ({ 스모크뒤: vi.fn(async () => undefined) }));
 vi.mock('../bts/deployFlow.js', () => ({ 배포실행뒤: vi.fn(async () => undefined) }));
 vi.mock('../bts/testFixRerun.js', () => ({ 테스트수정실행뒤: vi.fn(async () => undefined) }));
@@ -20,6 +21,7 @@ vi.mock('./prep.js', () => ({ 준비를끊는다: vi.fn(), 준비실패로닫는
 
 const 항목 = (historyId: number): PendingItem => ({
   historyId,
+  execId: historyId,
   tcId: `XDP-${String(historyId)}`,
   platform: 'desktop',
   filePath: 'x.spec.ts',

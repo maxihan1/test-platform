@@ -6,13 +6,15 @@
 // 화면은 `web/mask.ts` 가 라벨을 붙이고 비밀값을 가린 뒤 한 줄로 만든다.
 // 안 실으면 화면이 항목마다 상세를 부르게 되고 그것이 §8.1 이 이름 붙여 금지한 N+1 이다
 
-import type { ItemStatus, Platform, StepResult } from '@platform/kit';
+import type { ItemStatus, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
 import { 직전대비수 } from '../reporting/runChange.js';
 import { 가린값들 } from '../web/mask.js';
+import { 단위비밀들 } from './execRead.js';
+import { ITEM_COLUMNS, toItem, 단위붙이기, type RawItem } from './runItemRow.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
@@ -28,8 +30,6 @@ async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
 }
-
-const iso = (v: Date | null): string | null => (v === null ? null : v.toISOString());
 
 // 접두사가 등록된 활성 서비스인지 본다. 배정 판정은 로그인이 붙을 때 이 함수 안이 바뀐다 (SPEC §3.5)
 export async function serviceExists(prefix: string): Promise<boolean> {
@@ -133,48 +133,6 @@ export async function listRuns(
   };
 }
 
-interface RawItem {
-  history_id: string;
-  tc_id: string;
-  tc_name: string;
-  platform: Platform;
-  attempt: number;
-  params: Record<string, unknown>;
-  param_schema: Record<string, unknown>;
-  status: ItemStatus;
-  duration_ms: number | null;
-  error: { message: string; stack?: string } | null;
-  started_at: Date;
-  finished_at: Date | null;
-  unconfirmed: string | null;
-  expected: Record<string, unknown>;
-  expected_schema: Record<string, unknown>;
-}
-
-const ITEM_COLUMNS =
-  'history_id, tc_id, tc_name, platform, attempt, params, param_schema, status, duration_ms, error, started_at, finished_at, unconfirmed, expected, expected_schema';
-
-
-// 키로 가린 칸 밖에도 같은 값이 되비친다 — 확인의 기대 · 실제 값, 절차 오류 · httpTrace, 항목 오류 (공통/2 §4.1).
-// 시나리오 실행 결과(scenario/runRoutes.ts)와 같은 규칙으로 글자째 가린다. 오류가 없는 줄은 목록을 만들지 않는다
-function toItem(row: RawItem, 비밀?: string[]): RunItemSummary {
-  return {
-    historyId: Number(row.history_id),
-    tcId: row.tc_id,
-    tcName: row.tc_name,
-    platform: row.platform,
-    attempt: row.attempt,
-    params: 가린값들(row.params, row.param_schema),
-    paramSchema: row.param_schema,
-    status: row.status,
-    durationMs: row.duration_ms,
-    error: row.error === null ? null : (가린다(row.error, 비밀 ?? 항목비밀(row)) as RawItem['error']),
-    startedAt: row.started_at.toISOString(),
-    finishedAt: iso(row.finished_at),
-    unconfirmed: row.unconfirmed,
-  };
-}
-
 export interface EvidenceSummary {
   id: number;
   format: string;
@@ -213,9 +171,11 @@ export async function findRun(
 
   // 한 건 실행이 덮은 항목은 그 한 건 항목으로 바꿔 끼워 싣는다 — 원래 결과는 rerun.original 로 연다 (도메인/실행 §7)
   const items = await pool.query<RawItem & 다시실행원재료>(
-    `SELECT ${ITEM_COLUMNS}, ${다시실행칸들} FROM ${지금항목('o.run_id = $1', 자동수정실행빼기)} i ORDER BY tc_id, platform`,
+    `SELECT ${ITEM_COLUMNS}, ${다시실행칸들} FROM ${지금항목('o.run_id = $1', 자동수정실행빼기)} i ${단위붙이기} ORDER BY i.tc_id, i.platform`,
     [runId],
   );
+  // 프로시저 줄의 사유 글은 그 실행 단위의 모든 케이스 비밀값으로 가린다 — 가릴 글이 있는 줄만 읽는다 (공통/4 「테스트 프로시저 표」)
+  const 비밀들 = await 단위비밀들([...new Set(items.rows.filter((r) => r.proc_id !== null && r.error !== null).map((r) => Number(r.exec_id)))]);
   // 둘 다 못 읽은 폰은 뺀다 — 견줄 것이 없다. 빌드 번호가 없는 실행은 견줄 상대가 없어 읽지 않는다(도는 동안 화면이 이 통로를 거듭 부른다)
   const 깔린 =
     row.build_no === null
@@ -231,7 +191,7 @@ export async function findRun(
     // API 애플리케이션 실행만 찬다 — 실행 시작 때 견준 문서 판 · 한 줄 (도메인/API §3.8 「실행 시작 때 견주기」)
     apiDocVersion: row.api_doc_version,
     apiDocNote: row.api_doc_note,
-    items: items.rows.map((r) => ({ ...toItem(r), rerun: 다시실행칸으로(r) })),
+    items: items.rows.map((r) => ({ ...toItem(r, 비밀들.get(Number(r.exec_id))), rerun: 다시실행칸으로(r) })),
     // 「수정 후 통과」 카드의 케이스 — 항목은 고치기 전 결과라 [실패 N건 다시 실행]이 이것을 뺀다 (도메인/BTS §8.15 B)
     autoFixedCases: (await 자동수정케이스들([runId])).get(runId) ?? [],
     evidence: await 증적목록(runId),
@@ -296,9 +256,9 @@ function toStep(row: RawStep, 비밀: string[]): StepResult {
 
 export async function findItem(runId: number, historyId: number): Promise<RunItemDetail | null> {
   const pool = await db();
-  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[] }>(
-    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition
-       FROM run_item i JOIN test_run r ON r.run_id = i.run_id
+  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; exec_error: RawItem['error'] }>(
+    `SELECT ${ITEM_COLUMNS}, i.run_id, r.title AS run_title, i.precondition, e.error AS exec_error
+       FROM run_item i JOIN test_run r ON r.run_id = i.run_id ${단위붙이기}
       WHERE i.run_id = $1 AND i.history_id = $2`,
     [runId, historyId],
   );
@@ -311,7 +271,7 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     [historyId],
   );
 
-  const 비밀 = 항목비밀(row);
+  const 비밀 = row.proc_id === null ? 항목비밀(row) : ((await 단위비밀들([Number(row.exec_id)])).get(Number(row.exec_id)) ?? 항목비밀(row));
   const 절차들 = steps.rows.map((s) => toStep(s, 비밀));
   return {
     ...toItem(row, 비밀),
@@ -321,6 +281,8 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     expected: 가린값들(row.expected, row.expected_schema),
     expectedSchema: row.expected_schema,
     steps: 절차들,
+    // 케이스 판정 밖의 사유 — 케이스는 다 판정이 났는데 테스트 파일이 오류로 끝났거나 프로세스가 통째로 끊겼다. 옛 꼴 케이스는 사유가 케이스 줄에 있어 null 이다
+    execError: row.proc_id === null || row.exec_error === null ? null : (가린다(row.exec_error, 비밀) as RawItem['error']),
     // 절차는 이미 가렸다. 항목 오류는 원문이라 한 줄을 고를 때 가린다
     failure: 항목실패를가른다(
       { status: row.status, finished: row.finished_at !== null, error: row.error, steps: 절차들 },
