@@ -39,6 +39,17 @@ describe('케이스조각들 — 프로시저 파일은 케이스마다 한 조�
     expect(프로시저값읽기(옛꼴)).toBeNull();
   });
 
+  it('let 으로 선언한 케이스는 스캐너처럼 안 센다', () => {
+    const 렛 = 프로시저글(본문, { 선언들: 선언('본문없음', 'XQ-FN-101') + 선언('글자수초과', 'XQ-FN-102') + 선언('게시확인', 'XQ-FN-103').replace('const 게시확인', 'let 게시확인') });
+    expect(케이스조각들(렛).map((c) => c.tcId)).toEqual(['XQ-FN-101', 'XQ-FN-102']);
+  });
+
+  it('구간을 못 가른 파일은 맞춰 볼 문장을 안 낸다 — 형식 검사가 원인을 짚는다', () => {
+    const 깨진 = 프로시저글(본문, { cases: '[본문없음, 글자수초과, 게시확인, 없는것]' });
+    expect(케이스조각들(깨진).every((c) => c.프로시저?.갈림 === false)).toBe(true);
+    expect(케이스문장들읽기(깨진)).toEqual([]);
+  });
+
   it('원장 대조 재료 — 프로시저 파일의 케이스를 다 세고, 기법은 그 케이스 선언에서 읽는다', () => {
     expect([...tcId들([글, 옛꼴])].sort()).toEqual(['XQ-FN-101', 'XQ-FN-102', 'XQ-FN-103', 'XQ-FN-201']);
     const 표 = tcId별글([글]);
@@ -69,6 +80,13 @@ export const spec = defineCase({ tcId: 'XQ-FN-301', name: '남', platforms: ['an
 test(spec, async () => { await test.step('준비', async () => { await verify('게시 버튼이 꺼진다', true, true); }); await verify('남 결과', true, true); });
 `;
     expect(맞춰보기(줄, [...케이스문장들읽기(이어진), ...케이스문장들읽기(남의파일)]).some((l) => l.includes('준비 판정') && l.includes('XQ-FN-301'))).toBe(true);
+    // 결과 주인이 둘 — 같은 프로시저의 XQ-FN-101 과 남의 파일의 XQ-FN-401. 준비하는 XQ-FN-102 와 401 의 어긋남은 남는다
+    const 남의결과 = `import { defineCase, test, verify } from '@platform/kit';
+export const spec = defineCase({ tcId: 'XQ-FN-401', name: '남', platforms: ['android'], precondition: [], params: null, expected: null });
+test(spec, async () => { await verify('게시 버튼이 꺼진다', true, true); });
+`;
+    const 둘 = [...머리, 표('게시 버튼이 꺼진다', 'XQ-FN-101'), 표('게시 버튼이 꺼진다', 'XQ-FN-401')].join('\n');
+    expect(맞춰보기(둘, [...케이스문장들읽기(이어진), ...케이스문장들읽기(남의결과)])).toContain('결과 문장이 다른 케이스의 준비 판정이다 「게시 버튼이 꺼진다」 — 결과 XQ-FN-401 · 준비 XQ-FN-102 — 결과 쪽을 고친다');
   });
 });
 

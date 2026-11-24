@@ -1,7 +1,12 @@
 // 케이스 목록 문서의 프로시저 절 검사 — 읽기 · 프로시저 번호 채우기 · 절 검사 ①~⑤ · 꺼진 스위치 (작성 §3.6 「프로시저 절 · 프로시저 번호」)
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { 구간, 선언, 프로시저글 } from '../apps/admin/src/catalog/procedure-fixture.js';
+import { 절결과 } from './authoring-check.js';
 import { 절검사, 절줄들, 절번호들, 프로시저번호채우기 } from './authoring-proc-table.js';
 
 const 요구표 = (줄들: [string, string][]) =>
@@ -57,6 +62,15 @@ test(spec, async () => { await verify('옛', true, true); });
     ]);
   });
 
+  it('스위치를 끈 뒤에도 기준에 있던 프로시저 파일을 고친 것은 짚지 않는다', () => {
+    expect(절검사(요구, [파일(정상, true)], false)).toEqual([]);
+  });
+
+  it('보류 표시가 같이 적힌 버튼 반응 줄도 같은 화면이면 한 줄에 둔다', () => {
+    const 버튼 = 요구표([['XQ-REQ-001 · 버튼 반응 — 로그인', 'XQ-FN-101'], ['XQ-REQ-002 · 보류 — 값 없음 · 버튼 반응 — 로그인', 'XQ-FN-102'], ['XQ-REQ-003 · 버튼 반응 — 로그인', 'XQ-FN-103']]);
+    expect(절검사(`${버튼}\n\n${절([['XQ-TP-001', 'XQ-FN-101 → XQ-FN-102 → XQ-FN-103']])}`, [파일(정상)], true).filter((l) => l.includes('버튼 반응'))).toEqual([]);
+  });
+
   it('① 절에 없거나 두 줄에 든 케이스 · 새로 쓴 옛 꼴 케이스를 짚는다 — 기준에 있던 옛 꼴 · 게임 미션 · 모르는 기준은 뺀다', () => {
     const 틀림 = 절검사(
       `${요구}\n\n${절([['XQ-TP-001', 'XQ-FN-101 → XQ-FN-102'], ['XQ-TP-002', 'XQ-FN-102']])}`,
@@ -71,7 +85,7 @@ test(spec, async () => { await verify('옛', true, true); });
 
   it('③ 번호가 없거나 다르고 차례가 cases 와 다르면 짚는다', () => {
     expect(절검사(`${요구}\n\n${절([['', 'XQ-FN-101 → XQ-FN-102 → XQ-FN-103']])}`, [파일(정상)], true)).toEqual([
-      `${경로} — 프로시저 절 1번째 줄에 프로시저 번호가 없다. npm run ledger:number 로 매긴다`,
+      `${경로} — 프로시저 절 1번째 줄에 프로시저 번호가 없다. npm run ledger:number 로 매긴다 — 칸 재료가 없다며 멈추면 절과 tests 폴더에 쓰인 가장 큰 번호 다음을 적는다`,
     ]);
     expect(절검사(`${요구}\n\n${절([['XQ-TP-009', 'XQ-FN-101 → XQ-FN-103 → XQ-FN-102']])}`, [파일(정상)], true)).toEqual([
       `${경로} — procId 가 XQ-TP-001 인데 절의 줄은 XQ-TP-009 다`,
@@ -101,5 +115,27 @@ test(spec, async () => { await verify('옛', true, true); });
     expect(절검사(`${요구}\n\n${절([['XQ-TP-001', 'XQ-FN-101 → XQ-FN-102 → XQ-FN-103']])}`, [파일(보류)], true)).toEqual([
       'XQ-TP-001 — 정식 케이스 XQ-FN-102 · XQ-FN-103 가 미확정 · 오류 추정 · 보류 케이스 XQ-FN-101 뒤에 온다. 정식 케이스를 앞으로 옮긴다',
     ]);
+  });
+});
+
+describe('절결과 — 빠른 검사 마지막 모드의 연결', () => {
+  it('스위치(AUTHORING_PROCEDURE)를 켜면 바뀐 프로시저 파일을 절과 맞대고, 바뀐 파일을 모르면 경고만 · 끄고 걸린 것이 없으면 줄을 안 낸다', () => {
+    const 트리 = mkdtempSync(join(tmpdir(), 'proc-table-'));
+    try {
+      mkdirSync(join(트리, 'tests', 'xq'), { recursive: true });
+      mkdirSync(join(트리, 'docs', 'cases'), { recursive: true });
+      writeFileSync(join(트리, 'tests', 'xq', 'XQ-TP-001.spec.ts'), 프로시저글(구간('본문없음', '비운다') + 구간('글자수초과', '넘긴다') + 구간('게시확인', '누른다')));
+      writeFileSync(join(트리, 'docs', 'cases', 'XQ.md'), '## 테스트 프로시저\n\n| 프로시저 | 흐름 | 케이스 |\n|---|---|---|\n| XQ-TP-001 | 글쓰기 | XQ-FN-101 → XQ-FN-102 |\n');
+      const 표 = join('docs', 'cases', 'XQ.md');
+      const 바뀐 = ['tests/xq/XQ-TP-001.spec.ts'];
+      const 켬 = 절결과(트리, 표, 'xq', 바뀐, { AUTHORING_PROCEDURE: '1' });
+      expect(켬).toEqual([{ 이름: '프로시저 절', ok: false, 줄들: expect.arrayContaining(['XQ-FN-103 — 프로시저 절의 어느 줄에도 없다. 케이스 하나는 절의 한 줄에만 적는다']) as unknown }]);
+      expect(절결과(트리, 표, 'xq', null, { AUTHORING_PROCEDURE: '1' })[0]).toMatchObject({ ok: true, 경고: true });
+      expect(절결과(트리, 표, 'xq', null, {})).toEqual([]);
+      expect(절결과(트리, 표, 'xq', [], {})).toEqual([]);
+      expect(절결과(트리, 표, 'xq', 바뀐, {})[0]?.ok).toBe(false);
+    } finally {
+      rmSync(트리, { recursive: true, force: true });
+    }
   });
 });

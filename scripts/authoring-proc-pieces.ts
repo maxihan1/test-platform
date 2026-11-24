@@ -18,6 +18,8 @@ export interface 케이스조각 {
     전제: string[];
     /** 그 케이스의 선언과 `test.case` 구간만 — 결과 문장 · 확인 문장은 여기서 읽는다. 구간을 못 갈랐으면 선언뿐이다 */
     구간글: string;
+    /** 구간을 갈랐나 — 못 갈랐으면(K19 · K20 어긋남) 번호만 믿는다 */
+    갈림: boolean;
   };
 }
 
@@ -36,6 +38,8 @@ function 케이스선언들(sf: ts.SourceFile): Map<string, { 문: ts.VariableSt
     for (const d of s.declarationList.declarations) {
       const 값 = d.initializer;
       if (!ts.isIdentifier(d.name) || 값 === undefined || !ts.isCallExpression(값) || !ts.isIdentifier(값.expression) || 값.expression.text !== 'defineCase') continue;
+      // let · var 선언은 스캐너가 케이스로 안 친다(K19) — 같은 것만 센다
+      if ((s.declarationList.flags & ts.NodeFlags.Const) === 0) continue;
       const 첫 = 값.arguments[0];
       표.set(d.name.text, { 문: s, 인자: 첫 !== undefined && ts.isObjectLiteralExpression(첫) ? 첫 : undefined });
     }
@@ -72,7 +76,7 @@ export function 프로시저값읽기(글: string): 프로시저값 | null {
     if (선 === undefined || tcId === null) return [];
     const 구 = 구간.get(이);
     const 구간글 = [원(선.문), ...(구 === undefined ? [] : [원(구.부름)])].join('\n');
-    return [{ tcId, 글: [원(선.문), ...(구?.준비.map(원) ?? []), ...(구 === undefined ? [] : [원(구.부름)])].join('\n'), 프로시저: { procId, 전제, 구간글 } }];
+    return [{ tcId, 글: [원(선.문), ...(구?.준비.map(원) ?? []), ...(구 === undefined ? [] : [원(구.부름)])].join('\n'), 프로시저: { procId, 전제, 구간글, 갈림: 읽은.구간 !== null } }];
   });
   return { procId, 전제, 케이스: 조각.map((c) => c.tcId), 조각 };
 }

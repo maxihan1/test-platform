@@ -74,8 +74,9 @@ export function 절검사(표글: string, 바뀐: readonly 바뀐케이스파일
     const 값 = 프로시저값읽기(f.글);
     return 값 === null ? [] : [{ ...f, 값 }];
   });
+  // 기준(main)에 이미 있던 프로시저 파일은 스위치를 끈 뒤에도 그 꼴 그대로 고친다 — 옛 꼴로 옮기는 길이 없다
   if (!프로시저모드) {
-    return 프로시저파일.map((f) => `${f.경로} — 「프로시저 작성」이 꺼진 애플리케이션인데 프로시저 파일을 썼다. 케이스 하나를 파일 하나로 쓴다`);
+    return 프로시저파일.filter((f) => f.기준에있었나 !== true).map((f) => `${f.경로} — 「프로시저 작성」이 꺼진 애플리케이션인데 프로시저 파일을 썼다. 케이스 하나를 파일 하나로 쓴다`);
   }
 
   // ① 새로 쓴 케이스가 옛 꼴 파일이면 어긋남 — 기준에 옛 꼴로 있던 케이스를 옛 꼴 그대로 고친 것과 게임 미션은 뺀다
@@ -98,7 +99,7 @@ export function 절검사(표글: string, 바뀐: readonly 바뀐케이스파일
     // ③ 그 파일의 줄은 번호와 차례가 파일과 같아야 한다
     const 줄 = 줄들.find((x) => f.값.케이스.length > 0 && x.케이스.includes(f.값.케이스[0]!));
     if (줄 === undefined) continue;
-    if (줄.프로시저 === '') 틀림.push(`${f.경로} — 프로시저 절 ${String(줄.차례 + 1)}번째 줄에 프로시저 번호가 없다. npm run ledger:number 로 매긴다`);
+    if (줄.프로시저 === '') 틀림.push(`${f.경로} — 프로시저 절 ${String(줄.차례 + 1)}번째 줄에 프로시저 번호가 없다. npm run ledger:number 로 매긴다 — 칸 재료가 없다며 멈추면 절과 tests 폴더에 쓰인 가장 큰 번호 다음을 적는다`);
     else if (f.값.procId !== null && 줄.프로시저 !== f.값.procId) 틀림.push(`${f.경로} — procId 가 ${f.값.procId} 인데 절의 줄은 ${줄.프로시저} 다`);
     if (줄.케이스.join() !== f.값.케이스.join()) 틀림.push(`${줄.프로시저 || f.경로} — 절의 차례(${줄.케이스.join(' → ')})가 파일의 cases 차례(${f.값.케이스.join(' → ')})와 다르다`);
   }
@@ -111,7 +112,8 @@ export function 절검사(표글: string, 바뀐: readonly 바뀐케이스파일
     // ② K19 의 범위
     if (줄.케이스.length < 1 || 줄.케이스.length > 10) 틀림.push(`${이름} — 케이스가 ${String(줄.케이스.length)}개다. 한 프로시저는 1개 이상 10개 이하다`);
     // ④ 버튼 반응은 같은 화면끼리만
-    const 화면들 = new Set(줄.케이스.map((tcId) => (상태들(tcId).includes('버튼반응') ? 버튼화면(요구.find((x) => x.tcId === tcId)?.출처 ?? '') : null)));
+    // 보류 표시가 같이 적힌 버튼 반응 줄도 버튼 반응이다 — 줄상태는 보류를 먼저 돌려준다
+    const 화면들 = new Set(줄.케이스.map((tcId) => 요구.flatMap((x) => (x.tcId === tcId ? (버튼화면(x.출처) ?? []) : []))[0] ?? null));
     if (화면들.size > 1) 틀림.push(`${이름} — 버튼 반응 케이스는 화면마다 따로 프로시저다. 한 줄에 섞였다 — ${[...화면들].map((h) => (h === null ? '버튼 반응이 아닌 케이스' : `「${h}」 화면`)).join(' · ')}`);
     // ⑤ 정식 케이스가 미확정 · 오류 추정 · 보류 케이스 뒤에 오지 않는다
     const 처음뒤 = 줄.케이스.find(뒤쪽);
@@ -121,5 +123,8 @@ export function 절검사(표글: string, 바뀐: readonly 바뀐케이스파일
   return 틀림;
 }
 
-// 버튼 반응 표시 뒤 화면 이름 — authoring-slots.ts 의 「표시뒤」와 같은 꼴이다
-const 버튼화면 = (출처: string): string => (/버튼 반응\s*[—–]\s*([^·]*)/.exec(출처)?.[1] ?? '').trim().replace(/\s+/g, ' ');
+// 버튼 반응 줄이면 표시 뒤 화면 이름, 아니면 null — authoring-slots.ts 의 「표시뒤」와 같은 꼴이다
+const 버튼화면 = (출처: string): string | null => {
+  const 맞음 = /버튼 반응\s*[—–]\s*([^·]*)/.exec(출처);
+  return 맞음 === null ? null : (맞음[1] ?? '').trim().replace(/\s+/g, ' ');
+};

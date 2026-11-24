@@ -71,6 +71,8 @@ export function 케이스문장들읽기(글: string): 케이스문장[] {
   return 케이스조각들(글).flatMap((c) => {
     const 문장 = 케이스문장읽기(c.글);
     if (문장 === null || c.프로시저 === undefined) return 문장 ?? [];
+    // 구간을 못 가른 파일은 맞춰 볼 절차 · 확인이 없다 — 줄마다 「없다」를 내면 진짜 원인(K19 · K20 — 케이스 형식 검사가 짚는다)이 묻힌다
+    if (!c.프로시저.갈림) return [];
     const 결과판정 = 케이스문장읽기(c.프로시저.구간글)?.판정 ?? [];
     // 번호를 아직 안 매긴 프로시저도 파일 안 케이스끼리는 같은 묶음이다
     const 열쇠 = c.프로시저.procId ?? `파일:${케이스조각들(글)[0]?.tcId ?? c.tcId}`;
@@ -128,10 +130,13 @@ export function 맞춰보기(표글: string, 케이스들: readonly 케이스문
   // 같은 프로시저 안에서는 걸지 않는다 — 앞 케이스의 결과가 뒤 케이스의 시작 상태인 것이 흐름이다 (작성 §3.6 「★ 테스트 프로시저 작성」 「관문」 2)
   const 결과들 = new Map<string, Set<string>>();
   for (const 줄 of 줄들) if (줄.결과 !== '') 결과들.set(줄.tcId, new Set([...(결과들.get(줄.tcId) ?? []), 줄.결과]));
-  const 같은프로시저 = (c: 케이스문장, 주인: Set<string>) => c.프로시저 !== undefined && [...주인].some((t) => 케이스.get(t)?.프로시저?.열쇠 === c.프로시저?.열쇠);
+  // 준비하는 케이스와 다른 프로시저(또는 옛 꼴)의 결과 주인만 남긴다 — 한 주인이 같은 프로시저라고 다른 주인과의 어긋남까지 가리지 않게
+  const 밖주인 = (c: 케이스문장, 주인: Set<string>) => [...주인].filter((t) => c.프로시저 === undefined || 케이스.get(t)?.프로시저?.열쇠 !== c.프로시저.열쇠);
   for (const [문장, 주인] of 문장주인) {
-    const 준비쪽 = 케이스들.filter((c) => !주인.has(c.tcId) && c.판정.includes(문장) && !(결과들.get(c.tcId)?.has(문장) ?? false) && !같은프로시저(c, 주인)).map((c) => c.tcId);
-    if (준비쪽.length > 0 && 보나([...주인, ...준비쪽])) 틀림.push(`결과 문장이 다른 케이스의 준비 판정이다 「${문장}」 — 결과 ${[...주인].sort().join(' · ')} · 준비 ${준비쪽.sort().join(' · ')} — 결과 쪽을 고친다`);
+    const 준비 = 케이스들.filter((c) => !주인.has(c.tcId) && c.판정.includes(문장) && !(결과들.get(c.tcId)?.has(문장) ?? false)).map((c) => ({ c, 밖: 밖주인(c, 주인) })).filter((x) => x.밖.length > 0);
+    const 준비쪽 = 준비.map((x) => x.c.tcId);
+    const 걸린주인 = [...new Set(준비.flatMap((x) => x.밖))];
+    if (준비쪽.length > 0 && 보나([...걸린주인, ...준비쪽])) 틀림.push(`결과 문장이 다른 케이스의 준비 판정이다 「${문장}」 — 결과 ${걸린주인.sort().join(' · ')} · 준비 ${준비쪽.sort().join(' · ')} — 결과 쪽을 고친다`);
   }
   return 틀림;
 }

@@ -156,7 +156,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
  * 프로시저 절 — 이번 작성이 바꾼 케이스 파일을 절과 맞댄다. 스위치는 에이전트가 넘긴 `AUTHORING_PROCEDURE` 다.
  * 스위치가 꺼졌고 걸린 것도 없으면 줄을 안 낸다 — 웹 · API 작성의 출력은 그대로다 (작성 §3.6 「★ 테스트 프로시저 작성」 「프로시저 절 · 프로시저 번호」)
  */
-function 절결과(트리: string, 표: string, 폴더: string, 바뀐: string[] | { 까닭: string } | null, env: NodeJS.ProcessEnv): 결과[] {
+export function 절결과(트리: string, 표: string, 폴더: string, 바뀐: string[] | { 까닭: string } | null, env: NodeJS.ProcessEnv): 결과[] {
   const 켬 = env.AUTHORING_PROCEDURE === '1';
   if (바뀐 === null || '까닭' in 바뀐) return 켬 ? [{ 이름: '프로시저 절', ok: true, 경고: true, 줄들: [`바뀐 파일을 못 읽어 절 검사를 건너뛰었다${바뀐 === null ? '' : ` — ${바뀐.까닭}`}`] }] : [];
   const 기준 = 기준경로들(env.AUTHORING_BASE_LIST);
