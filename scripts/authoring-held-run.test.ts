@@ -77,4 +77,9 @@ describe('실행대상들 — 채운 파일마다', () => {
       { 파일: 'tests/xq/XQ-FN-201.spec.ts', tcIds: null },
     ]);
   });
+
+  it('제거만 한 프로시저 파일은 돌리지 않는다 — 걷은 구간은 건너뛰던 것이라 흐름이 같다', () => {
+    const 프로 = 프로시저글(구간('글자수초과', 'b'), { 선언들: 선언('글자수초과', 'XQ-FN-102'), cases: '[글자수초과]' });
+    expect(실행대상들(new Map([['tests/xq/XQ-TP-001.spec.ts', 프로]]), { 'XQ-FN-101': { removed: true } })).toEqual([]);
+  });
 });

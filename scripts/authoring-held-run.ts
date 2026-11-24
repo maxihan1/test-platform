@@ -74,7 +74,11 @@ export function 세번판정(낸것: string, 대상들: readonly 실행대상[])
 /** 채운(적은) 파일마다 3회 실행 대상 — 프로시저 파일은 이번에 값을 채운 케이스만, 옛 꼴은 tcIds 가 null */
 export function 실행대상들(채운글: ReadonlyMap<string, string>, held: Record<string, 보류입력>): 실행대상[] {
   const 채운번호 = Object.entries(held).flatMap(([tcId, 입력]) => (입력.removed === true ? [] : [tcId]));
-  return [...채운글].flatMap(([파일, 글]) =>
-    !파일.endsWith('.spec.ts') ? [] : [{ 파일, tcIds: 프로시저글읽기(글) === null ? null : 채운번호.filter((t) => 케이스tcId들(글).includes(t)) }],
-  );
+  return [...채운글].flatMap(([파일, 글]): 실행대상[] => {
+    if (!파일.endsWith('.spec.ts')) return [];
+    if (프로시저글읽기(글) === null) return [{ 파일, tcIds: null }];
+    const tcIds = 채운번호.filter((t) => 케이스tcId들(글).includes(t));
+    // 제거만 한 프로시저는 돌리지 않는다 — 걷은 구간은 건너뛰던 것이라 흐름이 같다(작성 §3.6 「보류 「제거」」)
+    return tcIds.length === 0 ? [] : [{ 파일, tcIds }];
+  });
 }
