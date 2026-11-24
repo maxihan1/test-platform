@@ -5,8 +5,8 @@ import { z } from 'zod';
 const 리스크줄 = z.object({
   text: z.string().trim().min(1).max(300),
   // 근거 케이스 · 이슈 · 실행 번호. 재료 밖에서 MCP 로 찾은 번호도 있어 있는지까지는 안 본다.
-  // 실패가 많은 실행에서 AI 가 10개를 넘겨 달면 결과가 통째로 버려졌다(일 #108 · #109 · #116 · #118) — 앞 10개만 쓴다
-  refs: z.array(z.string().trim().min(1).max(50)).default([]).transform((refs) => refs.slice(0, 10)),
+  // 실패가 많은 실행에서 AI 가 10개를 넘겨 달면 결과가 통째로 버려졌다(일 #108 · #109 · #116 · #118) — 앞 10개만 쓰고, 비었거나 50자를 넘는 것은 번호가 아니라 뺀다
+  refs: z.array(z.string()).default([]).transform((refs) => refs.map((x) => x.trim()).filter((x) => x !== '' && x.length <= 50).slice(0, 10)),
 });
 
 export const 리스크모양 = z.object({

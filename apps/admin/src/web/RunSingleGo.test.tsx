@@ -7,8 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, type RunItemPage } from './api.js';
 import { ItemDetail } from './ItemDetail.js';
 import { RunResult } from './RunResult.js';
-import { RUN_ID, 실행까지 } from './RunResult.fixture.js';
+import { RUN_ID, 도는중응답, 실행까지 } from './RunResult.fixture.js';
 import { 끝난실행, 항목줄 } from './RunResultAssemble.fixture.js';
+import { 지켜보는실행, 지켜본다 } from './runWatchStore.js';
 
 const 붙은 = 40;
 const 한건 = (rerunOf: number | null) => ({
@@ -17,6 +18,11 @@ const 한건 = (rerunOf: number | null) => ({
   origin: 'SINGLE' as const,
   rerunOf,
 });
+
+/** 한 건은 붙은 실행에 붙었고 그 실행에는 넘긴 줄만 있다 */
+function 실행들(붙은줄: ReturnType<typeof 항목줄>[]): void {
+  vi.spyOn(api, 'run').mockImplementation((id) => Promise.resolve(id === 붙은 ? { ...끝난실행(붙은줄), runId: 붙은 } : 한건(붙은)));
+}
 
 const 항목 = (바꿀것: Partial<RunItemPage> = {}): RunItemPage => ({
   trace: null,
@@ -51,7 +57,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  window.location.hash = '';
+  지켜본다(null);
+  window.history.replaceState(null, '', '#');
 });
 
 describe('한 건 실행 번호의 결과 화면 주소', () => {
@@ -66,21 +73,44 @@ describe('한 건 실행 번호의 결과 화면 주소', () => {
   });
 
   it('붙은 곳이 있으면 그 실행의 케이스로 옮기고 주소가 짚은 케이스를 편다', async () => {
-    vi.spyOn(api, 'run').mockResolvedValue(한건(붙은));
-    window.location.hash = `#/runs/${String(RUN_ID)}?tc=ZSG-FN-002`;
+    실행들([항목줄(8, 'ZSG-FN-002', 'desktop', 'FAIL')]);
+    // 방문 기록의 칸 번호가 남아야 떠나기 막기가 어긋나지 않는다
+    window.history.replaceState({ navIndex: 4 }, '', `#/runs/${String(RUN_ID)}?tc=ZSG-FN-002`);
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 
     await waitFor(() => expect(window.location.hash).toBe(`#/runs/${String(붙은)}?tc=ZSG-FN-002`));
+    expect(window.history.state).toEqual({ navIndex: 4 });
+  });
+
+  it('붙은 실행에 짚은 케이스가 없으면 케이스 상세로, 안 짚었으면 붙은 실행에 든 케이스로 간다', async () => {
+    실행들([항목줄(8, 'ZSG-FN-002', 'desktop', 'FAIL')]);
+    window.location.hash = `#/runs/${String(RUN_ID)}?tc=ZSG-FN-001`;
+    const { unmount } = render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
+    await waitFor(() => expect(window.location.hash).toContain('case=ZSG-FN-001'));
+    unmount();
+
+    window.location.hash = `#/runs/${String(RUN_ID)}`;
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
+    await waitFor(() => expect(window.location.hash).toBe(`#/runs/${String(붙은)}?tc=ZSG-FN-002`));
+  });
+
+  it('도는 한 건이면 진행 창을 열고 옮긴다 — 멈출 길을 잃지 않게', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue({ ...도는중응답, ...한건(null), status: 'RUNNING', finishedAt: null });
+    window.location.hash = `#/runs/${String(RUN_ID)}`;
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
+
+    await waitFor(() => expect(window.location.hash).toContain('case=ZSG-FN-001'));
+    expect(지켜보는실행()).toEqual({ runId: RUN_ID, 열림: true });
   });
 });
 
 describe('한 건 실행의 항목 상세', () => {
-  it('「실행 결과」는 보던 케이스의 상세로 가고 리포트 단추 · 실패 카드 찾기가 없다', async () => {
+  it('「실행 결과」는 보던 케이스를 짚어 보내고 리포트 단추 · 실패 카드 찾기가 없다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue(한건(null));
     vi.spyOn(api, 'item').mockResolvedValue(항목());
     render(<ItemDetail runId={RUN_ID} historyId={2} 판정하기={() => 실행까지} />);
 
-    await waitFor(() => expect(screen.getByRole('link', { name: '실행 결과' }).getAttribute('href')).toContain('case=ZSG-FN-002'));
+    await waitFor(() => expect(screen.getByRole('link', { name: '실행 결과' }).getAttribute('href')).toBe(`#/runs/${String(RUN_ID)}?tc=ZSG-FN-002`));
     expect(screen.queryByText(/리포트 생성/)).toBeNull();
     expect(api.failures).not.toHaveBeenCalled();
   });

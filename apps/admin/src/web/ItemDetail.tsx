@@ -19,7 +19,7 @@ import { 막힌항목 } from './runFlow.js';
 import { 미실행사유 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
 import type { RunDetail } from './runProgress.js';
-import { 한건갈곳, 한건인가 } from './RunSingleDone.js';
+import { 한건인가 } from './RunSingleDone.js';
 import { RunWindow } from './RunWindow.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
 
@@ -48,7 +48,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
   // 막은 케이스가 같은 실행 · 같은 디바이스 · 같은 회차에서 어떻게 끝났는지 알 때만 까닭을 붙인다
   const 막은항목 = 항목들.find((i) => i.tcId === item.blockedBy && i.platform === item.platform && i.attempt === item.attempt);
   const 막은판정 = 막은항목?.status;
-  // 한 건 실행은 결과 화면이 없다 — 「실행 결과」는 붙은 실행의 그 케이스나 케이스 상세로, 막은 케이스는 같은 실행의 그 항목으로 간다 (도메인/실행 §7)
+  // 한 건 실행은 결과 화면이 없다 — 「실행 결과」는 보던 케이스를 짚어 보내고(그 주소가 붙은 실행이나 케이스 상세로 옮긴다) 막은 케이스는 같은 실행의 그 항목으로 간다 (도메인/실행 §7)
   const 한건 = 실행 !== null && 한건인가(실행);
   // 판정이 다 난 뒤 프로세스가 실패로 끝난 사유다. 러너에 못 보내고 닫은 사유는 케이스 줄 사유와 같은 글이라 한 번만 보인다 (도메인/실행 §3.2 「돌리기 · 저장」)
   const 단위오류 = item.execError == null || item.execError.message === item.error?.message ? null : item.execError;
@@ -143,7 +143,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
 
       <div className="actions">
         <span className="note">{t말('이 화면의 구성이 리포트에 그대로 출력됩니다.')}</span>
-        <a className="btn ghost" href={한건 ? 한건갈곳(실행, item.tcId) : 실행결과주소(item.runId)}>
+        <a className="btn ghost" href={실행결과주소(item.runId, 한건 ? { 펼칠: item.tcId } : {})}>
           {t말('실행 결과')}
         </a>
         {/* 이 항목에서 쓴 값으로 실행 창을 연다. 비밀값 칸은 응답이 가려 주므로 비워서 연다 (도메인/실행 §8.10) */}

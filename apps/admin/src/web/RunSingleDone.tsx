@@ -11,8 +11,23 @@ import { useAsync } from './ui.js';
 
 export const 한건인가 = (data: RunDetail): boolean => data.origin === 'SINGLE';
 
-export function 한건갈곳(data: RunDetail, tcId: string = data.items[0]?.tcId ?? ''): string {
+export function 한건갈곳(data: RunDetail): string {
+  const tcId = data.items[0]?.tcId ?? '';
   return data.rerunOf == null ? 케이스주소(tcId) : 실행결과주소(data.rerunOf, { 펼칠: tcId });
+}
+
+/**
+ * 결과 화면 주소로 온 한 건이 갈 곳 — 짚은 케이스(`tc=`)가 있으면 그 케이스, 없으면 그 한 건의 케이스 가운데 붙은 실행에 든 것이다.
+ * 프로시저 한 건은 붙은 실행에 없던 케이스도 지나가서, 붙은 실행을 읽어 그 줄이 있을 때만 그리로 가고 아니면 케이스 상세로 간다
+ */
+export async function 한건자리(data: RunDetail, 짚은?: string): Promise<string> {
+  const 짚은줄 = data.items.filter((i) => i.tcId === 짚은);
+  const 후보 = 짚은줄.length > 0 ? 짚은줄 : data.items;
+  const 붙은 = data.rerunOf ?? null;
+  // 붙은 실행을 못 읽어도(지워짐 · 권한) 케이스 상세에는 남아 있다
+  const 줄들 = 붙은 === null ? [] : await api.run(붙은).then((r) => r.items, () => []);
+  const 든것 = 후보.find((i) => 줄들.some((x) => x.tcId === i.tcId && x.platform === i.platform));
+  return 붙은 !== null && 든것 !== undefined ? 실행결과주소(붙은, { 펼칠: 든것.tcId }) : 케이스주소(후보[0]?.tcId ?? '');
 }
 
 /**
