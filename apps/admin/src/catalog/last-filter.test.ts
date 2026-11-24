@@ -18,7 +18,7 @@ describe('마지막읽기', () => {
 });
 
 const 결과 = (tcId: string, platform: Platform, status: ItemStatus): LastResult => ({
-  tcId, platform, status, historyId: 1, runId: 1, durationMs: 1, finishedAt: '2026-10-19T00:00:00Z', recent: [status],
+  tcId, platform, status, historyId: 1, runId: 1, durationMs: 1, finishedAt: '2026-10-19T00:00:00Z', recent: [status], blockedBy: null,
 });
 
 describe('판정으로', () => {

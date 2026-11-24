@@ -14,6 +14,7 @@ const 결과 = (platform: LastResult['platform'], status: LastResult['status'], 
   durationMs: 10,
   finishedAt,
   recent: [],
+  blockedBy: null,
 });
 
 describe('결과칸', () => {
