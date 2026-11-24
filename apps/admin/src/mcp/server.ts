@@ -16,7 +16,8 @@ import { 노트읽기 } from './note.js';
 import { 질문열쇠사람, 질문열쇠인가 } from './questionKey.js';
 import { 실행보기, 실행찾기 } from './runs.js';
 import { Scout도구등록 } from './scout.js';
-import { BTS찾기, prd찾기, 글답, 쪽, 지도찾기, type BTS주인 } from './tools.js';
+import { 지도찾기 } from './mapSearch.js';
+import { BTS찾기, prd찾기, 글답, 쪽, type BTS주인 } from './tools.js';
 
 export interface MCP설정 {
   부르기?: 부르기함수;
@@ -49,6 +50,7 @@ export const 안내문 = [
   '- 판정값 PASS · FAIL · NA 는 사람이 읽는 글에 Pass · Fail · Not tested 로 적는다. 통과율 · 회귀 실패 · 실패 이유 같은 이름은 한글 그대로다',
   '- 찾기 도구(prd_search · map_search · bts_search · run_result · run_list · issue_list)는 한 번에 30줄까지 준다(note_read 목차는 문서 전부 · run_list 의 page 는 5 까지 — 5 에서도 truncated 면 더 오래된 실행은 실행 기록 화면에서 본다). total 이 (page + 1) × 30 보다 크거나 truncated 가 있으면 잘린 것이다. 낱말을 좁히거나 page 를 하나 올려 다음 30줄을 본다. 긴 글은 끝에 「…(이하 생략)」을 달고 자른다',
   '- map_search · run_search 의 empty 는 빈 결과의 까닭이다. NOT_FOUND 는 그 요구 · 케이스가 지금 판에 없다는 뜻이다',
+  '- Blocked 는 실패가 아니다. 프로시저(케이스 여럿을 한 흐름으로 돌리는 테스트)에서 앞 케이스(선행 케이스)가 통과하지 못해 못 돈 것이다. 판정값은 NA 이고 오류 메시지가 BLOCKED 다. Fail 수에 더해 말하지 않고 「Not tested 3 (Blocked 2)」 꼴로 말하며, 막은 케이스(blockedBy)를 같이 말한다. 프로시저 안 케이스 하나만 따로 돌리는 길은 없다 — 한 건 실행도 프로시저가 통째로 돈다. 테스트를 고치거나 게임을 고치려고 실패 자료를 찾을 때 대상 케이스가 Blocked 로 끝난 실행은 그 케이스의 실패 자료가 아니니, 막은 케이스(blockedBy)의 줄을 본다',
   '- bts_search 의 commentsError 는 이슈는 읽었지만 댓글을 못 읽었다는 뜻이다. 댓글 없이 일하고 못 읽었다고 적는다',
   '',
   '오류마다 할 일 — 같은 인자로 되풀이하지 않는다',
@@ -92,7 +94,7 @@ function 서버세우기(사람: 사용자, authSub: BTS주인, 부르기?: 부�
   서버.registerTool(
     'map_search',
     {
-      description: '지도 찾기 — 요구 번호(reqId) · 케이스 번호(tcId) · 화면 주소 일부(url) 중 하나로 살아 있는 케이스와 그 케이스가 덮는 요구 · 거치는 화면을 찾는다. 케이스 30개씩(다음이 있으면 truncated — page 를 올린다) · 케이스마다 요구 · 화면 10개까지. 비면 empty 에 까닭이 온다(PRD 에 없는 요구는 NOT_FOUND)',
+      description: '지도 찾기 — 요구 번호(reqId) · 케이스 번호(tcId) · 화면 주소 일부(url) 중 하나로 살아 있는 케이스와 그 케이스가 덮는 요구 · 거치는 화면을 찾는다. 케이스 30개씩(다음이 있으면 truncated — page 를 올린다) · 케이스마다 요구 · 화면 10개까지. 프로시저 안 케이스는 procId · procName · procSeq(프로시저 번호 · 이름 · 차례)가 붙는다 — 혼자 못 돌고 그 프로시저와 같이 돈다. 비면 empty 에 까닭이 온다(PRD 에 없는 요구는 NOT_FOUND)',
       inputSchema: {
         service: 이름,
         reqId: z.string().max(40).optional(),
@@ -123,7 +125,7 @@ function 서버세우기(사람: 사용자, authSub: BTS주인, 부르기?: 부�
   서버.registerTool(
     'run_search',
     {
-      description: '실행 찾기 — 케이스 번호(tcId) 나 Issue Bunker 이슈 키(issueKey) 하나로 그 케이스가 든 최근 케이스 실행 10개(늦은 것부터)를 찾는다. 실행마다 runId · 제목 · 상태 · 대상 서버 · 시각과 찾는 케이스의 항목(10개까지)을 준다. 이슈 키는 실패를 Issue Bunker 에 올릴 때 남긴 짝 기록으로 케이스를 찾는다. 10개를 넘으면 truncated — page 가 없으니 더 오래된 실행은 실행 기록 화면에서 본다. 비면 empty 에 까닭이 온다. runId 를 run_result 에 넣는다',
+      description: '실행 찾기 — 케이스 번호(tcId) 나 Issue Bunker 이슈 키(issueKey) 하나로 그 케이스가 든 최근 케이스 실행 10개(늦은 것부터)를 찾는다. 실행마다 runId · 제목 · 상태 · 대상 서버 · 시각과 찾는 케이스의 항목(10개까지)을 준다 — 항목의 blockedBy 는 그 케이스가 그 실행에서 앞 케이스에 막혀(Blocked) 끝났을 때만 오고 막은 케이스 번호다. 이슈 키는 실패를 Issue Bunker 에 올릴 때 남긴 짝 기록으로 케이스를 찾는다. 10개를 넘으면 truncated — page 가 없으니 더 오래된 실행은 실행 기록 화면에서 본다. 비면 empty 에 까닭이 온다. runId 를 run_result 에 넣는다',
       inputSchema: {
         service: 이름,
         tcId: z.string().max(60).optional(),
@@ -137,7 +139,7 @@ function 서버세우기(사람: 사용자, authSub: BTS주인, 부르기?: 부�
   서버.registerTool(
     'run_result',
     {
-      description: '실행 하나의 결과 — 실행 머리 · 결과 수(counts) · Fail 과 Not tested 항목(Fail 먼저, 30줄씩 — 다음이 있으면 truncated, page 를 올린다 · 오류는 잘라서) · 증적 목록. Pass 항목은 줄로 주지 않고 수로만 센다. 케이스 실행만 — 시나리오 실행은 NOT_FOUND',
+      description: '실행 하나의 결과 — 실행 머리 · 결과 수(counts) · Fail 과 Not tested 항목(Fail 먼저, 30줄씩 — 다음이 있으면 truncated, page 를 올린다 · 오류는 잘라서) · 증적 목록. Pass 항목은 줄로 주지 않고 수로만 센다. counts.blocked 는 Not tested 가운데 Blocked 수이고, 프로시저 안 항목은 procId · procName 이, Blocked 항목은 막은 케이스 blockedBy 가 붙는다. 케이스 실행만 — 시나리오 실행은 NOT_FOUND',
       inputSchema: { runId: z.number().int().positive().describe('실행 번호 — run_search 의 runId 나 실행 결과 주소 /runs/<번호> 의 번호'), page: 쪽 },
       annotations: 읽기만,
     },

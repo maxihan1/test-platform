@@ -113,4 +113,14 @@ describe.skipIf(연결 === undefined)('MCP 실행 찾기', () => {
     expect(await 실행찾기(칸없는사람, 'XMS', { tcId: 'XMS-FN-001' })).toMatchObject({ ok: false, error: 'FORBIDDEN', detail: 'runs:read' });
     expect(await 실행찾기(나, 'XMS', {})).toMatchObject({ ok: false, error: 'BAD_INPUT' });
   });
+
+  it('프로시저에 막혀 끝난 줄은 items 에 blockedBy 가 붙고 옛 꼴 줄에는 칸이 없다', async () => {
+    const 막힌실행 = await 실행('2026-11-03T00:00:00Z');
+    await 항목(막힌실행, 'XMS-FN-004', 'desktop', 'NA', true);
+    await q(`UPDATE run_item SET error = '{"message":"BLOCKED"}', blocked_by = 'XMS-FN-001' WHERE run_id = $1`, [막힌실행]);
+    const 답 = (await 실행찾기(나, 'XMS', { tcId: 'XMS-FN-004' })) as { data: { runs: { items: Record<string, unknown>[] }[] } };
+    expect(답.data.runs[0]!.items).toMatchObject([{ tcId: 'XMS-FN-004', status: 'NA', blockedBy: 'XMS-FN-001' }]);
+    const 옛 = (await 실행찾기(나, 'XMS', { tcId: 'XMS-FN-001' })) as { data: { runs: { items: Record<string, unknown>[] }[] } };
+    for (const 줄 of 옛.data.runs[0]!.items) expect(줄).not.toHaveProperty('blockedBy');
+  });
 });

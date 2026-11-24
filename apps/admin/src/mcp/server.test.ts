@@ -14,7 +14,7 @@ import mcpRoutes from './server.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 계정들 = ['xmc-me', 'xmc-part'];
-const 케이스들 = ['XMC-FN-001', 'XMC-FN-002'];
+const 케이스들 = ['XMC-FN-001', 'XMC-FN-002', 'XMC-TP-001'];
 
 const spec = (tcId: string, name: string): CaseSpec => ({
   tcId,
@@ -116,7 +116,8 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ('xmc-me', $1, 'read', 'read', 'read')`, [내프로젝트]);
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ('xmc-part', $1, 'read', 'none', 'none')`, [내프로젝트]);
 
-    await save([spec('XMC-FN-001', '다섯 번 틀리면 잠금'), spec('XMC-FN-002', '비밀번호 길이')], false, 'XMC');
+    await save([spec('XMC-FN-001', '다섯 번 틀리면 잠금'), spec('XMC-FN-002', '비밀번호 길이'), spec('XMC-TP-001', '글쓰기 첫 단계')], false, 'XMC');
+    await q(`UPDATE test_case SET proc_id = 'XMC-TP-001', proc_seq = 2, proc_name = '글쓰기' WHERE tc_id = 'XMC-TP-001'`);
     await q(
       `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name) VALUES ($1, 1, $2, 2, 'PERSON', 'xmc', 'xmc')`,
       [
@@ -178,6 +179,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     const 목록 = (await 부르기MCP(내토큰, 'tools/list')).json() as 답몸;
     expect(목록.result!.tools!.map((t) => t.name).sort()).toEqual(['bts_search', 'compat_result', 'e2e_result', 'issue_list', 'map_search', 'note_read', 'perf_result', 'prd_search', 'run_list', 'run_result', 'run_search']);
     expect(인사.json()).toMatchObject({ result: { instructions: expect.stringContaining('쓰는 쪽은 셋이다') } });
+    expect(인사.json()).toMatchObject({ result: { instructions: expect.stringContaining('Blocked 는 실패가 아니다') } });
   });
 
   it('PRD 요구 찾기 — 낱말이 든 요구와 덮는 케이스, 배정 밖 애플리케이션은 FORBIDDEN', async () => {
@@ -201,6 +203,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-FN-001' })).json()).toEqual(기대);
     expect((await 도구('map_search', { service: 'XMC', url: 'login' })).json()).toEqual(기대);
     expect((await 도구('map_search', { service: 'XMC', url: '/edit' })).json()).toEqual(기대);
+    expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-TP-001' })).json()).toEqual({ cases: [{ tcId: 'XMC-TP-001', reqs: [], screens: [], procId: 'XMC-TP-001', procName: '글쓰기', procSeq: 2 }] });
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-FN-002' })).글).toContain('NOT_FOUND');
     expect((await 도구('map_search', { service: 'XMC', reqId: 'XMC-REQ-002' })).json()).toEqual({ cases: [], empty: 'XMC-REQ-002 를 덮는 살아 있는 케이스가 아직 없다' });
     expect((await 도구('map_search', { service: 'XMC', reqId: 'XMC-REQ-999' })).글).toContain('NOT_FOUND — XMC-REQ-999 는 지금 PRD 판에 없는 요구다');
@@ -221,7 +224,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
 
   it('실행 결과 보기 — 통과는 수로만, 실패 · 미실행만 줄로 잘라서 싣고, 남의 실행은 FORBIDDEN, 없는 번호는 NOT_FOUND', async () => {
     const 몸 = (await 도구('run_result', { runId: 내실행 })).json();
-    expect(몸).toMatchObject({ runId: 내실행, triggeredBy: 'xmc', counts: { total: 4, pass: 1, fail: 1, running: 1 }, evidence: [] });
+    expect(몸).toMatchObject({ runId: 내실행, triggeredBy: 'xmc', counts: { total: 4, pass: 1, fail: 1, blocked: 0, running: 1 }, evidence: [] });
     for (const 뺀칸 of ['itemsTotal', 'installedApps', 'triggeredByName', 'truncated']) expect(몸).not.toHaveProperty(뺀칸);
     const 줄 = 몸.items as Record<string, unknown>[];
     expect(줄.map((i) => [i.tcId, i.status])).toEqual([['XMC-FN-001', 'FAIL'], ['XMC-FN-002', 'NA']]);
