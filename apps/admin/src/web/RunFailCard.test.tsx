@@ -5,7 +5,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 
 import { 판정흐름 } from './Summary.js';
 import type { StepResult } from './api.js';
-import { RUN_ID, 그리기, 기본단계, 단계, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
+import { RUN_ID, 그리기, 기본단계, 단계, 장치, 줄, 쪽, 케이스 } from './RunFailCard.fixture.js';
 
 afterEach(() => {
   cleanup();

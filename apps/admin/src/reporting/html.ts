@@ -84,7 +84,7 @@ function 미확정줄(c: 케이스): string[] {
   return c.미확정 === null ? [] : [`  <div class="u-reason">미확정 · ${안전(c.미확정)}</div>`];
 }
 
-// 화면 결과 줄의 거터 색과 같은 규칙이다 — 실패가 없고 전부 통과가 아니면 미실행 (web/RunResultRow.tsx worst)
+// 화면 결과 표의 줄 대표 판정과 같은 규칙이다 — 실패가 없고 전부 통과가 아니면 미실행 (web/runFlow.ts 줄판정of)
 function 가장나쁜(칸들: 칸[]): EvidenceItem['status'] {
   if (칸들.some((k) => k.item.status === 'FAIL')) return 'FAIL';
   return 칸들.every((k) => k.item.status === 'PASS') ? 'PASS' : 'NA';

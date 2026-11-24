@@ -8,7 +8,7 @@ import { ApiError, type FailureJudgment } from './api.js';
 import { decideApi } from './decideApi.js';
 import { prdApi } from './prdApi.js';
 import type { 판정 } from './role.js';
-import { RUN_ID, 그리기, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
+import { RUN_ID, 그리기, 장치, 줄, 쪽, 케이스 } from './RunFailCard.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -127,17 +127,14 @@ describe('판정 줄 — 화면이 맞음으로 바꾸기', () => {
     expect(버튼('화면이 맞음으로 변경')).toBeNull();
   });
 
-  it('누른 뒤 카드 재료를 다시 읽어 서버 값으로 맞춘다', async () => {
+  it('누르면 카드를 가진 쪽에 다시 읽으라고 알린다 — 서버 값으로 맞추는 건 그 쪽이 한다', async () => {
     진행을흉내();
-    const 부름 = 열기(버그판정).부름;
-    부름.mockResolvedValue(
-      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)], { reqs: 요구, judgment: { kind: 'SCREEN', requestId: 88, byName: '이순신', at: '2026-10-11T02:00:00.000Z' } })]),
-    );
+    const 남김 = vi.fn();
+    그리기(쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)], { reqs: 요구, judgment: 버그판정 })]), [줄(1, 'ZZI-0001', 'desktop', 'FAIL')], 'ALL', 모두, false, 남김);
 
     await 바꾸고확인();
 
-    await screen.findByText(/이순신/);
-    expect(부름.mock.calls.length).toBeGreaterThanOrEqual(2);
+    await waitFor(() => expect(남김).toHaveBeenCalledTimes(1));
   });
 
   it('서버가 거절하면 까닭을 사람 말로 보이고 버튼은 남는다', async () => {

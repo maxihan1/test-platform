@@ -1,11 +1,13 @@
 // 정식 실행 완료 창의 항목 목록 — 케이스 × 디바이스 한 줄, 실패를 위로 · 서른 줄까지 (도메인/실행 §8.16 ⑤ · 점검표 U3)
 
-import { api, type FailureCase, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
+import type { ItemStatus, Platform, RunItemSummary } from './api.js';
 import { groupByCase, 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { 항목실행번호 } from './RerunTag.js';
 import { 걸린글 } from './trialView.js';
-import { PLATFORM_LABEL, useAsync, Verdict } from './ui.js';
+import { 판정표시 } from './proc.js';
+import { 막힌항목 } from './runFlow.js';
+import { PLATFORM_LABEL } from './ui.js';
 
 const 최대줄 = 30;
 const 판정차례: Record<ItemStatus, number> = { FAIL: 0, NA: 1, PASS: 2 };
@@ -15,6 +17,8 @@ interface 줄 {
   tcName: string;
   platform: Platform;
   status: ItemStatus;
+  /** 앞 케이스에 막혀 못 간 줄 — 판정 글자가 「Blocked」다 */
+  blocked: boolean;
   회차글: string | null;
   ms: number | null;
   /** 가장 먼저 돌린 깨진 회차 — 누르면 그 항목 상세로 간다 */
@@ -31,6 +35,7 @@ function 줄들(items: RunItemSummary[]): 줄[] {
         tcName: 묶음.tcName,
         platform,
         status: 요약.status,
+        blocked: 요약.status === 'NA' && 칸.some(막힌항목),
         회차글: 요약.글,
         ms: 칸.reduce<number | null>((합, i) => (i.durationMs === null ? 합 : (합 ?? 0) + i.durationMs), null),
         깨진: 칸.filter((i) => i.status === 'FAIL').sort((a, b) => a.historyId - b.historyId)[0],
@@ -41,35 +46,18 @@ function 줄들(items: RunItemSummary[]): 줄[] {
   return 모두.sort((a, b) => 판정차례[a.status] - 판정차례[b.status]);
 }
 
-/** 목록은 서른 줄까지라 실패 케이스도 서른 건이면 된다 — 한 쪽이 스무 건이라 넘치면 둘째 쪽까지 받는다 */
-async function 실패카드들(runId: number): Promise<{ items: FailureCase[] }> {
-  const 첫쪽 = await api.failures(runId, 1);
-  if (!(첫쪽.total > 첫쪽.pageSize)) return 첫쪽;
-  const 둘쪽 = await api.failures(runId, 2);
-  return { items: [...첫쪽.items, ...둘쪽.items] };
-}
-
 export function RunDoneItems({ runId, items, onClose }: { runId: number; items: RunItemSummary[]; onClose: () => void }) {
   const t = use말();
   const 언어 = use언어();
   const 보일 = 줄들(items);
-  const 실패있음 = 보일.some((줄) => 줄.status === 'FAIL');
-  // 항목 요약에는 사람 말 이유가 없다 — 실패 카드와 같은 응답에서 한 줄 이유만 가져온다. 못 읽어도 목록은 그대로 선다
-  const 카드 = useAsync(() => (실패있음 ? 실패카드들(runId) : Promise.resolve(null)), [runId, 실패있음]);
-  const 이유: Record<string, string> = {};
-  for (const 케이스 of 카드.data?.items ?? []) {
-    for (const 칸 of 케이스.devices) {
-      const 글 = 칸.item.failure?.reason;
-      if (글 !== undefined && 글 !== '') 이유[`${케이스.tcId}:${칸.platform}`] = 글;
-    }
-  }
   if (보일.length === 0) return null;
 
   return (
     <>
       <ul className="trial-res done-items">
         {보일.slice(0, 최대줄).map((줄) => {
-          const 사유 = 이유[`${줄.tcId}:${줄.platform}`];
+          // 사람 말 이유는 실행 응답의 Fail 줄에 실려 온다 (도메인/실행 §7 `GET /api/runs/:runId` 의 failure)
+          const 사유 = 줄.깨진?.failure?.reason || undefined;
           return (
             <li key={`${줄.tcId}:${줄.platform}`} className={줄.status === 'FAIL' ? 'bad' : undefined}>
               <div className="top">
@@ -86,7 +74,7 @@ export function RunDoneItems({ runId, items, onClose }: { runId: number; items: 
                 </span>
                 <span className="tag">{t(PLATFORM_LABEL[줄.platform])}</span>
                 <span className="dur">{줄.ms === null ? '' : 걸린글(줄.ms, 언어)}</span>
-                <Verdict status={줄.status} />
+                <판정표시 결과={줄} />
               </div>
               {사유 === undefined ? null : (
                 <div className="why">

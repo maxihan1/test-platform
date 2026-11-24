@@ -8,6 +8,7 @@ import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 글자표, 윈도우접기, 지난값글자 } from './pickRun.js';
 import { RunPickModal } from './RunPickModal.js';
+import { type 담은줄, 프로시저채우기 } from './pickProc.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { schemaToFields } from './schema.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
@@ -16,7 +17,9 @@ import { useRunStart } from './useRunStart.js';
 type 값들 = Record<string, unknown>;
 
 interface 연것 {
-  케이스들: CaseRow[];
+  케이스들: 담은줄[];
+  /** 같은 프로시저의 나머지 케이스를 못 받아 받은 줄로 연다 */
+  프로시저못받음: boolean;
   빠진: string[];
   user: User;
   service: ServiceRow | null;
@@ -102,10 +105,13 @@ export function RunWindow({
         expected: 지난값글자(schemaToFields(c.expectedSchema, c.savedInput?.expected, c.savedInput?.savedSecrets.expected), 값.expected),
       };
     }
+    // 실패한 케이스가 든 프로시저는 통과했던 케이스까지 다 보인다 — 서버가 프로시저를 통째로 다시 돌린다 (도메인/실행 §3.2 「한 건 · 다시 돌리기 · 시험 실행」)
+    const 채움 = await 프로시저채우기(읽은.filter((c) => c.isActive));
     const 기준 = 기준시각 === undefined ? null : new Date(기준시각).getTime();
     return {
       // 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다. 빼고 그 사실을 창에 적는다
-      케이스들: 읽은.filter((c) => c.isActive).map((c) => 디바이스칸(c, 디바이스?.[c.tcId], 지원패드)).filter((c) => c.platforms.length > 0),
+      프로시저못받음: 채움.못받음,
+      케이스들: 채움.줄들.map((c) => 디바이스칸(c, 디바이스?.[c.tcId], 지원패드)).filter((c) => c.platforms.length > 0),
       바뀐저장값:
         기준 === null
           ? []
@@ -155,6 +161,7 @@ export function RunWindow({
 
   const 안내들 = [
     읽기오류,
+    연.프로시저못받음 ? t('같은 프로시저의 케이스를 불러오지 못했습니다') : undefined,
     연.빠진.length === 0 ? undefined : t('비활성이거나 없어 뺀 케이스 {목록}', { 목록: 연.빠진.join(', ') }),
     연.바뀐저장값.length === 0 ? undefined : t('실행 뒤에 저장값이 변경된 케이스 {목록} — 실패 때와 다른 값으로 실행됩니다', { 목록: 연.바뀐저장값.join(', ') }),
     연.위치못읽음 === null || !케이스들.some((c) => c.platforms.includes('mobile'))

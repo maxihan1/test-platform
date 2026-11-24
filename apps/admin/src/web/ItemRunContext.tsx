@@ -42,7 +42,7 @@ function use실패카드(runId: number, tcId: string, 찾을까: boolean) {
     let 살아있다 = true;
     카드찾기(runId, tcId).then(
       (찾음) => {
-        if (살아있다) set카드(찾음?.카드 ?? null);
+        if (살아있다) set카드(찾음);
       },
       (err: unknown) => {
         // 판정은 덤이다 — 못 찾아도 항목 상세는 선다. 원인은 콘솔에 남긴다
@@ -56,10 +56,14 @@ function use실패카드(runId: number, tcId: string, 찾을까: boolean) {
   return { 카드, 다시읽기: () => set다시((값) => 값 + 1) };
 }
 
-export function 항목실행줄({ item, 판정하기 }: { item: RunItemDetail; 판정하기: 판정하기 }) {
+/** @param on항목들 읽은 실행의 항목을 항목 상세에 넘긴다 — 프로시저 건수와 막은 케이스의 판정을 같은 응답에서 찾는다(실행을 두 번 읽지 않는다) */
+export function 항목실행줄({ item, 판정하기, on항목들 }: { item: RunItemDetail; 판정하기: 판정하기; on항목들?: (항목들: RunItemSummary[]) => void }) {
   const t = use말();
   const 실행 = useAsync(() => api.run(item.runId), [item.runId]);
   const 데이터 = 실행.data;
+  useEffect(() => {
+    if (데이터 !== null) on항목들?.(데이터.items);
+  }, [데이터]);
   const 권한 = 실행판정(판정하기, 데이터);
   const 증적칸 = use증적(데이터, 권한, 실행.reload);
   // 리포트는 뒤에서 만들어진다. 다 될 때까지 다시 묻는다 — 안 그러면 「리포트 생성 중」에 굳고 다 된 파일도 안 받아진다 (RunResult 와 같다)

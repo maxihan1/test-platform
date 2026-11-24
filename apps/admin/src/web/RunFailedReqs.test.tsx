@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
-// 카드의 관련 요구사항 줄 검사 — 번호 고리 · 요약 띠 아래 칸이 없다 (도메인/리포팅 「실패 요구사항」)
+// 카드의 관련 요구사항 줄 검사 — 번호 고리 · 없는 번호 · 읽기 권한 (도메인/리포팅 「실패 요구사항」)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
 import { 관련요구줄 } from './RunFailedReqs.js';
-import { 견줌, 섞인항목, 연다 } from './RunResultAssemble.fixture.js';
 import type { 판정 } from './role.js';
 
 afterEach(() => {
@@ -39,15 +38,5 @@ describe('카드의 관련 요구사항 줄', () => {
 
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.getByText('R-1')).toBeDefined();
-  });
-});
-
-describe('요약 띠 아래 실패 요구사항 칸', () => {
-  it('결과 화면에 칸이 없다 — 카드의 관련 요구사항과 같은 내용이었다', async () => {
-    연다(섞인항목, 견줌);
-    await screen.findAllByRole('article');
-
-    expect(document.querySelector('.fr')).toBeNull();
-    expect(screen.queryByText(/실패 요구사항/)).toBeNull();
   });
 });

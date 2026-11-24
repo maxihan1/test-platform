@@ -228,28 +228,27 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(screen.queryByText('외 5건')).not.toBeNull();
   });
 
-  it('실패 줄에는 실패 카드가 쓰는 한 줄 이유가 붙는다', async () => {
-    vi.spyOn(api, 'failures').mockResolvedValue({
-      items: [{ tcId: 'ZZR-0012', devices: [{ platform: 'desktop', item: { failure: { type: 'notFound', reason: '구매하기 단추를 찾지 못했습니다' } } }] }],
-    } as never);
-    render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
+  it('실패 줄에는 실행 응답 항목의 실패 이유 한 줄이 붙고 카드 통로는 부르지 않는다', () => {
+    const 카드 = vi.spyOn(api, 'failures');
+    const 이유 = { type: 'notFound' as const, reason: '구매하기 단추를 찾지 못했습니다' };
+    render(
+      <RunProgressModal
+        data={{ ...끝난실행, items: 끝난실행.items.map((it) => (it.historyId === 12 ? { ...it, failure: 이유 } : it)) }}
+        진행목록={[]}
+        onClose={() => {}}
+      />,
+    );
 
-    expect(await screen.findByText('구매하기 단추를 찾지 못했습니다')).toBeTruthy();
+    expect(screen.getByText('구매하기 단추를 찾지 못했습니다')).toBeTruthy();
+    expect(카드).not.toHaveBeenCalled();
   });
 
-  it('실패가 한 쪽(20건)을 넘으면 둘째 쪽 이유도 받아 붙인다', async () => {
-    const 케이스 = (tcId: string, reason: string) => ({ tcId, devices: [{ platform: 'desktop', item: { failure: { type: 'notFound', reason } } }] });
-    const 스파이 = vi.spyOn(api, 'failures').mockImplementation((_runId, page) =>
-      Promise.resolve(
-        (page === 1
-          ? { items: [케이스('ZZR-0012', '첫째 쪽 이유')], total: 21, page: 1, pageSize: 20 }
-          : { items: [케이스('ZZR-0013', '둘째 쪽 이유')], total: 21, page: 2, pageSize: 20 }) as never,
-      ),
-    );
-    render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
+  it('앞 케이스에 막힌 줄은 판정 글자가 Blocked 이다', () => {
+    const 막힘 = { ...항목(13, 분(13), 'NA'), blockedBy: 'ZZR-0012' };
+    render(<RunProgressModal data={실행('FINISHED', [항목(12, 분(12), 'FAIL'), 막힘], { total: 2, pass: 0, fail: 1, na: 1, running: 0 })} 진행목록={[]} onClose={() => {}} />);
 
-    expect(await screen.findByText('둘째 쪽 이유')).toBeTruthy();
-    expect(스파이).toHaveBeenCalledWith(expect.anything(), 2);
+    const 줄 = [...document.querySelectorAll('.done-items > li')].find((li) => li.textContent?.includes('케이스 13'));
+    expect(줄?.textContent).toContain('Blocked');
   });
 
   it('사람이 멈춘 실행은 끝났다고 적지 않는다', () => {
@@ -347,4 +346,16 @@ describe('RunProgressModal (SPEC §8.9)', () => {
 
     expect(본문()).toContain('그중 미확정 2건');
   });
+
+  it('한 건 실행의 제목은 옛 꼴 케이스면 케이스 번호, 프로시저면 프로시저 번호 · 이름이다', () => {
+    const 한건 = { ...끝난실행, origin: 'SINGLE' as const };
+    const { unmount } = render(<RunProgressModal data={{ ...한건, items: [항목(1, 분(1), 'PASS')] }} 진행목록={[]} onClose={() => {}} />);
+    expect(document.querySelector('.modal-title, .modal h2, h2')?.textContent).toContain('ZZR-0001 실행이 완료되었습니다');
+    unmount();
+
+    const 프로시저 = { ...항목(1, 분(1), 'PASS'), procId: 'ZZR-TP-1', procName: '글쓰기' };
+    render(<RunProgressModal data={{ ...한건, items: [프로시저, 항목(2, 분(2), 'PASS')] }} 진행목록={[]} onClose={() => {}} />);
+    expect(document.querySelector('.modal-title, .modal h2, h2')?.textContent).toContain('ZZR-TP-1 · 글쓰기 실행이 완료되었습니다');
+  });
 });
+

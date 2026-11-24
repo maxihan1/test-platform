@@ -81,14 +81,14 @@ describe('시나리오 실행 번호면 E2E 결과 화면으로 갈아탄다', (
   });
 });
 
-// 판정 칸과 디바이스 칩은 그 실행에 든 디바이스를 따른다 (도메인/실행 §8.3)
-describe('디바이스 칸은 그 실행에 든 디바이스로 정한다 (도메인/실행 §8.3)', () => {
+// 표의 칸과 디바이스 칩은 그 실행에서 실제로 돈 디바이스를 따른다 — 앞 판은 웹이면 늘 PC · 모바일 두 칸이었다 (도메인/실행 §8.3)
+describe('디바이스 칸은 실제로 돈 디바이스로 정한다 (도메인/실행 §8.3)', () => {
   type 기기 = 'desktop' | 'mobile' | 'android';
 
   function 줄(tcId: string, platform: 기기) {
     return {
       historyId: 1, tcId, tcName: tcId, platform, attempt: 1, params: {}, paramSchema: {},
-      status: 'PASS' as const, durationMs: 1, error: null, startedAt: '2026-09-15T17:13:00.000Z', finishedAt: null,
+      status: 'PASS' as const, durationMs: 1, error: null, startedAt: '2026-09-15T17:13:00.000Z', finishedAt: '2026-09-15T17:14:00.000Z',
     };
   }
 
@@ -99,30 +99,32 @@ describe('디바이스 칸은 그 실행에 든 디바이스로 정한다 (도�
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
     await screen.findAllByText('PAY-001');
     return {
-      칸: [...new Set([...document.querySelectorAll('.device-name')].map((el) => el.textContent))],
+      머리: [...document.querySelectorAll('.rf-head span')].map((el) => el.textContent).filter((글) => 글 !== '' && 글 !== 'TC ID' && 글 !== '케이스명'),
       칩: [...document.querySelectorAll('button.chip')].map((el) => el.textContent),
     };
   }
 
-  it('브라우저 항목만 있으면 PC · 모바일 두 칸이다 — 한쪽만 돌았어도 둘 다 둔다', async () => {
-    const { 칸, 칩 } = await 본다(['desktop']);
-    expect(칸).toEqual(['PC', '모바일']);
-    expect(칩).toContain('PC');
-    expect(칩).toContain('모바일');
-    expect(칩).not.toContain('Android 앱');
+  it('PC 만 돌았으면 칸 하나이고 디바이스 칩이 없다 — 안 돈 모바일 칸을 두지 않는다', async () => {
+    const { 머리, 칩 } = await 본다(['desktop']);
+    expect(머리).toEqual(['결과', '소요 시간']);
+    expect(칩).toEqual([]);
   });
 
-  it('Android 앱 항목만 있으면 칸 하나이고 PC · 모바일 칸과 칩이 없다', async () => {
-    const { 칸, 칩 } = await 본다(['android']);
-    expect(칸).toEqual(['Android 앱']);
-    expect(칩).toContain('Android 앱');
-    expect(칩).not.toContain('PC');
-    expect(칩).not.toContain('모바일');
+  it('Android 앱 항목만 있으면 칸 하나이고 칩이 없다', async () => {
+    const { 머리, 칩 } = await 본다(['android']);
+    expect(머리).toEqual(['결과', '소요 시간']);
+    expect(칩).toEqual([]);
   });
 
-  it('둘이 섞이면 PC · 모바일 · Android 앱 차례로 셋이다', async () => {
-    const { 칸, 칩 } = await 본다(['desktop', 'android']);
-    expect(칸).toEqual(['PC', '모바일', 'Android 앱']);
-    expect(칩.filter((글) => 글 === 'PC' || 글 === '모바일' || 글 === 'Android 앱')).toEqual(['PC', '모바일', 'Android 앱']);
+  it('PC · 모바일이 다 돌았으면 칸이 둘이고 칩은 전체 · PC · 모바일이다', async () => {
+    const { 머리, 칩 } = await 본다(['desktop', 'mobile']);
+    expect(머리).toEqual(['PC', '모바일']);
+    expect(칩).toEqual(['전체', 'PC', '모바일']);
+  });
+
+  it('둘이 섞이면 돈 것만 PC · 모바일 · Android 앱 차례로 칸이 된다', async () => {
+    const { 머리, 칩 } = await 본다(['android', 'desktop']);
+    expect(머리).toEqual(['PC', 'Android 앱']);
+    expect(칩).toEqual(['전체', 'PC', 'Android 앱']);
   });
 });

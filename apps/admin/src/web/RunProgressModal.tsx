@@ -68,9 +68,11 @@ function 제목(data: RunDetail, 언어: 언어): string {
     : t('RUN {번호} 실행이 완료되었습니다', 언어, { 번호: data.runId });
 }
 
-/** 한 건 실행이면 그 케이스 번호, 아니면 null */
+/** 한 건 실행이면 그 이름, 아니면 null. 프로시저 한 건은 첫 케이스가 아니라 프로시저의 번호 · 이름이다 — 사람이 누른 것은 프로시저다 */
 export function 한건이름(data: RunDetail): string | null {
-  return data.origin === 'SINGLE' ? (data.items[0]?.tcId ?? null) : null;
+  if (data.origin !== 'SINGLE') return null;
+  const 첫 = data.items[0];
+  return 첫?.procId == null ? (첫?.tcId ?? null) : [첫.procId, 첫.procName].filter((글) => 글 != null && 글 !== '').join(' · ');
 }
 
 export function RunProgressModal({

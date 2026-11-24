@@ -9,6 +9,7 @@ import { api, type CaseQuery, type CaseRow, type Platform, type ServiceRow, type
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
 import { 담을것, 디바이스만, 윈도우접기 } from './pickRun.js';
+import { type 담은줄, 프로시저채우기 } from './pickProc.js';
 import type { 실행요청 } from './pickRun.js';
 import { message } from './ui.js';
 import { useRunStart } from './useRunStart.js';
@@ -45,6 +46,11 @@ function 빠진안내(
   return undefined;
 }
 
+/** 같은 프로시저의 케이스를 못 받았다는 말을 빠진 안내 뒤에 붙인다 — 받은 줄로 그대로 열고 서버가 펼친다 */
+function 못받음덧붙임(안내: string | undefined, 못받음: boolean, t: 말하기): string | undefined {
+  return 못받음 ? [안내, t('같은 프로시저의 케이스를 불러오지 못했습니다')].filter((글) => 글 !== undefined).join(' · ') : 안내;
+}
+
 export function useRunPick(옵션: {
   service: string;
   조건: CaseQuery;
@@ -61,7 +67,7 @@ export function useRunPick(옵션: {
   const 기준 = useRef<string | null>(null);
   const [모으는중, set모으는중] = useState(false);
   // 모은 결과. null 이면 모달이 닫힌 것이다 — 닫으면 모은 것을 버린다 (SPEC §8.10)
-  const [담은것, set담은것] = useState<CaseRow[] | null>(null);
+  const [담은것, set담은것] = useState<담은줄[] | null>(null);
   // 대상 서버 목록은 배정 응답에만 실려 온다. 이 화면은 접두사만 받으므로 걸기 직전에 한 번 읽는다
   const [서비스, set서비스] = useState<ServiceRow | null>(null);
   // 한 건 창이 묶음 · 저장값 권한을 이 사람으로 본다 — 같은 응답에서 같이 받는다
@@ -110,7 +116,9 @@ export function useRunPick(옵션: {
       // 고른 것이 있으면 손에 이미 다 있다. 실체를 찾으러 쪽을 되돌 이유가 없다
       const { 모은, 잘렸나 } = 지목.size > 0 ? { 모은: [], 잘렸나: false } : await 쪽모으기();
       const 다 = 담을것(모은, 지목);
-      const 담을 = 디바이스 === undefined ? 다 : 디바이스만(다, 디바이스);
+      // 고른 케이스가 든 프로시저의 나머지 케이스를 실행 차례대로 채운다 — 서버가 펼치는 것을 창이 먼저 보인다
+      const 채움 = await 프로시저채우기(다);
+      const 담을 = 디바이스 === undefined ? 채움.줄들 : 디바이스만(채움.줄들, 디바이스);
       if (담을.length === 0) {
         // 빈 모달을 열지 않는다. 열어 봐야 실행이 서버에서 400 으로 되돌아온다
         알림(t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다'));
@@ -118,7 +126,7 @@ export function useRunPick(옵션: {
       }
       const 앱 = await 사람읽기();
       // 디바이스로 좁혀 빠진 것은 단추 이름의 건수가 이미 말했다 — 비활성으로 빠진 것만 따로 적는다
-      set안내(빠진안내({ 고른수: 지목.size, 담을수: 다.length, 잘렸나, 모은수: 모은.length }, t));
+      set안내(못받음덧붙임(빠진안내({ 고른수: 지목.size, 담을수: 다.length, 잘렸나, 모은수: 모은.length }, t), 채움.못받음, t));
       // 지원 패드에 남은 패드가 없는 버튼 그림 케이스는 돌 값이 없어 뺀다 (pickRun 윈도우접기)
       const 접은 = 담을.map((c) => 윈도우접기(c, 앱?.gamePads ?? [])).filter((c) => c.platforms.length > 0);
       if (접은.length === 0) {
@@ -143,7 +151,7 @@ export function useRunPick(옵션: {
 
   /**
    * 줄의 ▶ 는 한 건을, 프로시저 헤더의 「실행」 · 상세의 「프로시저 실행」은 그 프로시저의 케이스를 담아 같은 창을 연다. 실행 문은 하나다 (도메인/실행 §8.10, 2026-10-09 UI 개편 묶음 4).
-   * 프로시저는 서버가 통째로 펼치므로 받은 줄만 담아도 다 돈다 (도메인/실행 §3.2 「테스트 프로시저 실행」).
+   * 프로시저는 서버가 통째로 펼치지만 창이 그 케이스를 먼저 받아 실행 차례대로 다 보인다 — 못 받으면 받은 줄만으로 연다 (pickProc.ts).
    * `디바이스` 는 줄의 디바이스 칸마다 붙은 ▶ 다 — 그 디바이스로만 돈다 (시안 ①). 상세 칸의 실행은 주지 않아 선언한 디바이스 전부다
    */
   async function 여럿열기(rows: readonly CaseRow[], 디바이스?: Platform) {
@@ -154,8 +162,9 @@ export function useRunPick(옵션: {
     if (산것.length === 0) return 알림(없음);
     try {
       const 앱 = await 사람읽기();
-      set안내(undefined);
-      const 담을 = 산것.map((row) => (디바이스 === undefined ? 윈도우접기(row, 앱?.gamePads ?? []) : { ...row, platforms: [디바이스] })).filter((c) => c.platforms.length > 0);
+      const 채움 = await 프로시저채우기(산것);
+      set안내(못받음덧붙임(undefined, 채움.못받음, t));
+      const 담을 = 채움.줄들.map((row) => (디바이스 === undefined ? 윈도우접기(row, 앱?.gamePads ?? []) : { ...row, platforms: [디바이스] })).filter((c) => c.platforms.length > 0);
       if (담을.length === 0) return 알림(없음);
       set담은것(담을);
     } catch (err) {
@@ -169,7 +178,7 @@ export function useRunPick(옵션: {
     try {
       const 새 = await api.caseOf(tcId);
       // 디바이스는 창을 연 ▶ 가 좁혀 둔 그대로 둔다 — 새로 읽은 선언으로 되돌리면 「PC ▶」로 연 창에 모바일이 다시 낀다
-      set담은것((전) => 전?.map((c) => (c.tcId === tcId ? { ...새, platforms: c.platforms, 윈도우선언: c.윈도우선언 } : c)) ?? 전);
+      set담은것((전) => 전?.map((c) => (c.tcId === tcId ? { ...새, platforms: c.platforms, 윈도우선언: c.윈도우선언, 자동포함: c.자동포함 } : c)) ?? 전);
     } catch (err) {
       알림(message(err, 언어));
     }

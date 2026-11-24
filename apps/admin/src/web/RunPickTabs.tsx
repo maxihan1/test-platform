@@ -11,7 +11,7 @@ import { PLATFORM_LABEL, 디바이스순서 as 차례 } from './ui.js';
  * 한 건 · 여러 건이 같은 체크칸을 쓴다 — 앞 판은 한 건만 창 안 다른 칸에서 골라 줄이 둘이었다.
  * 고를 디바이스가 하나뿐이면 체크칸은 서되 잠근다 — 줄이 늘 같은 자리에 있어야 옆 칸이 밀리지 않는다 (점검표 B8)
  */
-export function use디바이스고르기(케이스들: CaseRow[]) {
+export function use디바이스고르기<C extends CaseRow>(케이스들: C[]) {
   const [끈것, set끈것] = useState<ReadonlySet<Platform>>(new Set());
   const 있는것 = 차례.filter((d) => 케이스들.some((c) => c.platforms.includes(d)));
   // 그릴 때마다 새 배열이면 값 칸에 한 글자 칠 때마다 시험 큐 · 건수 계산이 다시 돈다

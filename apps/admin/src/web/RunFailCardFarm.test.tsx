@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 
-import { RUN_ID, 그리기, 단계, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
+import { RUN_ID, 그리기, 단계, 장치, 줄, 쪽, 케이스 } from './RunFailCard.fixture.js';
 
 afterEach(() => {
   cleanup();

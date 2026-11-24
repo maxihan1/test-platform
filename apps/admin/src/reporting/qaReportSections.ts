@@ -18,7 +18,7 @@ export interface 구획 {
 const 실행없음: 덩이 = { 꼴: '글', 글: '실행한 케이스 없음' };
 const 판정말 = { PASS: 'Pass', FAIL: 'Fail', NA: 'Not tested', NOT_RUN: 'Not tested' } as const;
 
-// 화면 결과 줄의 거터 색과 같은 규칙이다 — 하나라도 실패면 실패, 전부 통과면 통과, 나머지 미실행 (web/RunResultRow.tsx worst)
+// 화면 결과 표의 줄 대표 판정과 같은 규칙이다 — 하나라도 실패면 실패, 전부 통과면 통과, 나머지 미실행 (web/runFlow.ts 줄판정of)
 function 가장나쁜(items: EvidenceItem[]): EvidenceItem['status'] {
   if (items.some((i) => i.status === 'FAIL')) return 'FAIL';
   return items.length > 0 && items.every((i) => i.status === 'PASS') ? 'PASS' : 'NA';

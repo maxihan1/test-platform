@@ -135,7 +135,7 @@ function 실패서랍({ 실패, 이동, onClose }: { 실패: 실패줄; 이동: 
           <p className="empty">{t('이 실행에서 실패 카드를 찾지 못했습니다')}</p>
         ) : (
           <실패카드
-            c={응답.data[1].카드}
+            c={응답.data[1]}
             runId={실패.runId}
             env={응답.data[0].env}
             items={응답.data[0].items}

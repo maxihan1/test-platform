@@ -16,6 +16,8 @@ export interface 진행막대 {
 export interface 도는것 {
   항목: RunItemSummary;
   절차: 항목진행 | null;
+  /** 항목이 프로시저 안 케이스면 그 프로시저와 차례 — 「5건 중 3번째」 (DESIGN.md 「진행 화면」) */
+  프로시저?: { procId: string; procName: string; 전체: number; 번째: number };
 }
 
 export interface 진행 {
@@ -61,8 +63,12 @@ export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진
   // 답이 비는 때가 있다 — 러너가 아직 첫 절차를 안 흘렸거나 진행 조회가 실패한 순간이다.
   // 그때 빈칸을 두지 않고 안 끝난 첫째를 이름만 내보낸다. 사람이 러너 로그를 여는 이유가
   // 「무엇이 도는지」를 모르기 때문이라, 절차를 모르는 것과 아무것도 모르는 것은 다르다
-  const 지금도는것들: 도는것[] =
-    러너가답한것.length > 0 ? 러너가답한것 : 안끝난것.slice(0, 1).map((항목) => ({ 항목, 절차: null }));
+  const 지금도는것들: 도는것[] = (러너가답한것.length > 0 ? 러너가답한것 : 안끝난것.slice(0, 1).map((항목) => ({ 항목, 절차: null }))).map((것) => {
+    const { procId, execId, execSeq } = 것.항목;
+    if (procId == null || execSeq == null) return 것;
+    // 같은 실행 단위의 케이스 줄 수가 그 프로시저의 건수다 — 실행을 만들 때 펼친 수라 지금 카탈로그와 달라도 이 실행에는 맞다
+    return { ...것, 프로시저: { procId, procName: 것.항목.procName ?? '', 전체: data.items.filter((i) => i.execId === execId).length, 번째: execSeq } };
+  });
   const 도는중인historyId = new Set(지금도는것들.map((것) => 것.항목.historyId));
 
   return {

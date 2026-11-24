@@ -1,7 +1,7 @@
-// 결과 화면 조립 검사들이 나눠 쓰는 도우미 — 항목 · 카드 · 견줌 자료와 화면 열기
+// 결과 화면 조립 검사들이 나눠 쓰는 도우미 — 항목 · 카드 · 견줌 자료와 화면 열기. 카드 통로는 줄을 펼칠 때 그 케이스 것만 준다
 
 import { vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 
 import {
   api,
@@ -78,8 +78,14 @@ export const 견줌: 비교값 = {
 export const 앞선가 = (앞: Element | null, 뒤: Element | null) =>
   앞 !== null && 뒤 !== null && (앞.compareDocumentPosition(뒤) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
-export const 판정칸 = (이름: string) =>
-  [...document.querySelectorAll('.rs-fbtn')].find((b) => b.textContent?.startsWith(이름)) as HTMLElement;
+/** 요약 한 줄의 판정 칩 — 이름이 「Fail」이면 「Fail 3」 단추다 */
+export const 칩 = (이름: string) => within(screen.getByRole('group', { name: '판정별 보기 · 항목 수' })).getByRole('button', { name: new RegExp(`^${이름}`) });
+
+/** 이전 실행 대비 단추 — 견줌 응답이 와야 선다 */
+export const 대비단추 = (이름: string) => screen.findByRole('button', { name: new RegExp(`^${이름}`) });
+
+/** 표의 케이스 줄 번호들 — 화면에 선 차례 그대로다 */
+export const 줄번호들 = () => [...document.querySelectorAll('.rf-row .rf-id')].map((el) => el.textContent);
 
 export const 섞인항목 = [
   항목줄(1, 'ZRR-001', 'desktop', 'FAIL'),
@@ -94,9 +100,9 @@ export const 섞인항목 = [
 export function 연다(items: RunItemSummary[], 인사이트: 비교값 = 첫실행, 칸안 = false, 증적들: EvidenceRow[] = []) {
   vi.spyOn(api, 'run').mockResolvedValue(끝난실행(items, 증적들));
   vi.spyOn(api, 'insights').mockResolvedValue(인사이트);
-  const 실패부름 = vi.spyOn(api, 'failures').mockResolvedValue({
-    items: [카드응답('ZRR-001'), 카드응답('ZRR-005', 'desktop', '기획서에 값이 없습니다')], total: 2, page: 1, pageSize: 5,
-  });
+  const 실패부름 = vi.spyOn(api, 'failures').mockImplementation((_id, _쪽, _디바이스, _자동수정, tc) =>
+    Promise.resolve({ items: tc === undefined ? [] : [카드응답(tc)], total: 1, page: 1, pageSize: 5 }),
+  );
   render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안={칸안} />);
   return 실패부름;
 }

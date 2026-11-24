@@ -7,6 +7,7 @@ import type { RunItemSummary } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 실행남은글 } from './remainText.js';
 import { 짧은단계글 } from './RunLiveCards.js';
+import { 막힌항목 } from './runFlow.js';
 import type { RunDetail, 진행 } from './runProgress.js';
 import { PLATFORM_LABEL, STATUS_LABEL } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
@@ -15,10 +16,11 @@ import { 그중미확정글 } from './unconfirmed.js';
 const 줄최대 = 30;
 
 /** 판정 알약 하나 — 0 은 점선 회색이라 실패가 없을 때 빨간색이 안 보인다 (시안 A ④ · trialResult.css) */
-export function 셈알약({ 종류, 이름, 수 }: { 종류: 'pass' | 'fail' | 'na'; 이름: string; 수: number }) {
+export function 셈알약({ 종류, 이름, 수, 덧 }: { 종류: 'pass' | 'fail' | 'na'; 이름: string; 수: number; 덧?: string }) {
   return (
     <span className={수 === 0 ? 'pill zero' : `pill ${종류}`}>
       {이름} <b>{수}</b>
+      {덧 === undefined ? null : ` ${덧}`}
     </span>
   );
 }
@@ -79,7 +81,8 @@ export function 진행왼쪽({ data, 진행: 지금, 남은ms }: { data: RunDeta
         <div className="rl-pills">
           <셈알약 종류="pass" 이름={t('Pass')} 수={막대.통과} />
           <셈알약 종류="fail" 이름={t('Fail')} 수={막대.실패} />
-          <셈알약 종류="na" 이름={t('Not tested')} 수={막대.미실행} />
+          {/* Blocked 는 Not tested 의 사유다 — 0 이면 괄호를 안 적는다 (WORDS 「Not tested 3 (Blocked 2)」) */}
+          <셈알약 종류="na" 이름={t('Not tested')} 수={막대.미실행} 덧={(data.counts.blocked ?? 0) === 0 ? undefined : `(Blocked ${String(data.counts.blocked)})`} />
         </div>
         {미확정 === '' ? null : <p className="hint">{미확정}</p>}
       </div>
@@ -91,7 +94,7 @@ export function 진행왼쪽({ data, 진행: 지금, 남은ms }: { data: RunDeta
         </묶음>
         <묶음 이름={t('종료')} 수={끝난것들.length}>
           {끝난것들.slice(0, 줄최대).map((항목) => (
-            <줄 key={항목.historyId} 항목={항목} 오른쪽={<span className={`pill ${알약종류[항목.status]}`}>{t(STATUS_LABEL[항목.status])}</span>} />
+            <줄 key={항목.historyId} 항목={항목} 오른쪽={<span className={`pill ${알약종류[항목.status]}`}>{막힌항목(항목) ? 'Blocked' : t(STATUS_LABEL[항목.status])}</span>} />
           ))}
         </묶음>
         <넘침 수={끝난것들.length - 줄최대} />

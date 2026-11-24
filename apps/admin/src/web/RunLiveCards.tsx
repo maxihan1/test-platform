@@ -51,9 +51,13 @@ export function 짧은단계글(절차: 항목진행 | null, t: 말): string | n
  * 「2초 / 제한 30초」 — 앞 시간은 항목 경과다. 단계 경과는 단계마다 0초로 돌아가 항목 제한과 짝이 안 맞았다(점검표 B13).
  * 옛 응답처럼 항목 경과가 없으면 단계 경과로 물러선다
  */
-export function 제한경과글(절차: 항목진행 | null, 언어: 언어, t: 말): string | null {
+export function 제한경과글(절차: 항목진행 | null, 언어: 언어, t: 말, 프로시저 = false): string | null {
+  // 프로시저는 케이스마다 시계가 0초에서 다시 시작한다 — 실제로 끊기는 한도가 케이스마다라서다 (도메인/러너 §5.2 「케이스별 한도」)
+  if (절차?.caseElapsedMs !== undefined) return t('케이스 {경과} / 제한 {제한}', { 경과: 시간글자(절차.caseElapsedMs, 언어), 제한: 시간글자(절차.timeoutMs, 언어) });
   const 경과 = 절차?.itemElapsedMs ?? 절차?.elapsedMs;
   if (절차 === null || 경과 === undefined) return null;
+  // 케이스 경과를 안 주는 옛 서버 테스트 실행기다 — 프로시저 전체 경과를 케이스 한도와 짝지으면 경과가 제한을 넘어 보여 경과만 둔다
+  if (프로시저) return 시간글자(경과, 언어);
   // 0 은 한도 없음(게임 시나리오) — 남은 시간을 그릴 수 없어 경과만 둔다 (도메인/실행 §7 진행 응답)
   if (절차.timeoutMs === 0) return 시간글자(경과, 언어);
   return t('{경과} / 제한 {제한}', { 경과: 시간글자(경과, 언어), 제한: 시간글자(절차.timeoutMs, 언어) });
@@ -98,7 +102,7 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
   const PC = PC항목인가(항목.platform);
   const PC영상 = PC && 절차?.vision !== undefined;
   const 지금단계 = 단계(절차);
-  const 시간 = 제한경과글(절차, 언어, t);
+  const 시간 = 제한경과글(절차, 언어, t, 것.프로시저 !== undefined);
 
   return (
     <section className={크게 ? 'lc big' : 'lc'} aria-label={`${항목.tcId} ${t('실시간 화면')}`}>
@@ -138,6 +142,12 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
           {/* 경과와 제한을 나란히 둬야 「느린 것」과 「멈춘 것」이 갈린다 (게이트 1 화면 규칙) */}
           {시간 === null ? null : <span className="lim">{시간}</span>}
         </div>
+        {/* 지금 케이스가 어느 프로시저의 몇 번째인지 — 단계 수는 프로시저 전체라 케이스 줄만으로는 어디쯤인지 안 읽힌다 */}
+        {것.프로시저 === undefined ? null : (
+          <span className="hint one-line">
+            <span className="mono">{것.프로시저.procId}</span> {것.프로시저.procName} · {t('{전체}건 중 {번째}번째', { 전체: 것.프로시저.전체, 번째: 것.프로시저.번째 })}
+          </span>
+        )}
         <span className="hint one-line">
           <span className="mono">{항목.tcId}</span> {항목.tcName}
         </span>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-import type { FailureCase, Platform, RunItemSummary } from './api.js';
+import type { FailureCase, Platform, RunItemSummary, 항목실패 } from './api.js';
 import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { ItemExpand } from './ItemExpand.js';
@@ -64,15 +64,6 @@ export function 실패카드({
   const 깨진 = new Set(c.devices.map((d) => d.platform));
   // 「실패 → 통과」는 다시 실행에서 그 디바이스가 실제로 통과했을 때만 — 다시 실행이 그 디바이스를 안 돌렸으면 그대로 실패다
   const 통과로바뀐 = [...깨진].filter((p) => c.autoFix?.devices.some((d) => d.platform === p && d.status === 'PASS') === true);
-  // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
-  // 실패가 「통과 · 미실행」 줄처럼 접혀 보이면 안 된다
-  const 나머지 = 디바이스순서.flatMap((칸디바이스) => {
-    if (깨진.has(칸디바이스) || (platform !== 'ALL' && platform !== 칸디바이스)) return [];
-    const 칸 = items
-      .filter((i) => i.tcId === c.tcId && i.platform === 칸디바이스)
-      .sort((a, b) => a.attempt - b.attempt);
-    return 칸.length === 0 || 칸.some((i) => i.status === 'FAIL') ? [] : [칸];
-  });
   // 사유는 실행 때 박제한 값이다 — 케이스 줄과 같은 꼬리 글이다 (도메인/실행 §8.3)
   const 미확정사유 = c.devices.map((d) => d.item.unconfirmed).find((글) => typeof 글 === 'string') ?? null;
   const 머리이유 = c.devices[0]?.item.failure;
@@ -115,22 +106,62 @@ export function 실패카드({
           )}
         </summary>
 
-        <div className="fc-body">
-          <관련요구줄 reqs={c.reqs} 권한={권한} />
-
-          {같은실패끼리(c.devices).map((묶음) => (
-            <RunFailDevice key={묶음.map((d) => d.platform).join('-')} runId={runId} devices={묶음} env={env} items={items} 머리이유={머리이유} />
-          ))}
-
-          {나머지.map((칸) => (
-            <통과줄 key={칸[0]!.platform} 칸={칸} runId={runId} />
-          ))}
-
-          <RunFailJudge c={c} runId={runId} 권한={권한} on남김={on남김} />
-          <RunFailBts c={c} runId={runId} env={env} 권한={권한} />
-        </div>
+        <실패본문 c={c} runId={runId} env={env} items={items} platform={platform} 권한={권한} on남김={on남김} 머리이유={머리이유} />
       </details>
     </article>
+  );
+}
+
+/**
+ * 실패한 케이스의 증거 · 판정 · 이슈 등록 — 깨진 디바이스 칸, 그 케이스의 통과 · 미실행 디바이스 줄, 판정 줄, Issue Bunker 등록.
+ * 실행 결과 표의 펼친 Fail 줄과 대시보드 서랍의 카드가 같이 쓴다 (도메인/실행 §8.3)
+ * @param 머리이유 이미 위에 적은 이유 — 같은 이유는 디바이스 줄에 또 적지 않는다
+ */
+export function 실패본문({
+  c,
+  runId,
+  env,
+  items,
+  platform,
+  권한,
+  on남김,
+  머리이유,
+}: {
+  c: FailureCase;
+  runId: number;
+  env: string;
+  items: RunItemSummary[];
+  platform: Platform | 'ALL';
+  권한: 판정;
+  on남김: () => void;
+  머리이유: 항목실패 | null | undefined;
+}) {
+  const 깨진 = new Set(c.devices.map((d) => d.platform));
+  // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
+  // 실패가 「통과 · 미실행」 줄처럼 접혀 보이면 안 된다
+  const 나머지 = 디바이스순서.flatMap((칸디바이스) => {
+    if (깨진.has(칸디바이스) || (platform !== 'ALL' && platform !== 칸디바이스)) return [];
+    const 칸 = items
+      .filter((i) => i.tcId === c.tcId && i.platform === 칸디바이스)
+      .sort((a, b) => a.attempt - b.attempt);
+    return 칸.length === 0 || 칸.some((i) => i.status === 'FAIL') ? [] : [칸];
+  });
+
+  return (
+    <div className="fc-body">
+      <관련요구줄 reqs={c.reqs} 권한={권한} />
+
+      {같은실패끼리(c.devices).map((묶음) => (
+        <RunFailDevice key={묶음.map((d) => d.platform).join('-')} runId={runId} devices={묶음} env={env} items={items} 머리이유={머리이유} />
+      ))}
+
+      {나머지.map((칸) => (
+        <통과줄 key={칸[0]!.platform} 칸={칸} runId={runId} />
+      ))}
+
+      <RunFailJudge c={c} runId={runId} 권한={권한} on남김={on남김} />
+      <RunFailBts c={c} runId={runId} env={env} 권한={권한} />
+    </div>
   );
 }
 

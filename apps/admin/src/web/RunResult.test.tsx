@@ -36,14 +36,14 @@ describe('실행 결과 화면의 리포트 메뉴 (SPEC §8.4)', () => {
     expect(['PDF', '엑셀', 'HTML'].map((글) => screen.getByRole('button', { name: 글 }).textContent)).toEqual(['PDF', '엑셀', 'HTML']);
   });
 
-  it('요약 띠가 머리 바로 아래에 오고 머리에는 판정 숫자가 없다', async () => {
+  it('요약 한 줄이 머리 바로 아래에 오고 머리에는 판정 숫자가 없다', async () => {
     const { container } = 그리기('FINISHED');
 
     await screen.findByRole('button', { name: '리포트 생성' });
 
-    // 머리의 집계 숫자는 요약 띠로 옮겼다 — 같은 숫자를 두 번 두지 않는다 (도메인/실행 §8.3)
+    // 머리의 집계 숫자는 요약 한 줄로 옮겼다 — 같은 숫자를 두 번 두지 않는다 (도메인/실행 §8.3)
     const 머리 = container.querySelector('.head');
-    const 띠 = container.querySelector('.rs');
+    const 띠 = container.querySelector('.rf-sum');
     expect(띠).not.toBeNull();
     expect(머리?.nextElementSibling?.firstElementChild).toBe(띠);
     expect(container.querySelector('.tally')?.textContent).not.toContain('Pass');

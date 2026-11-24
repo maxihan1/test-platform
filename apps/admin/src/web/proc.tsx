@@ -1,7 +1,7 @@
 // 테스트 프로시저 화면이 같이 쓰는 판단과 작은 부품 — 판정 점과 글자 · 판정 점 줄 · Blocked 가르기 (DESIGN.md 「테스트 프로시저 · 목록 · 결과」 「판정」)
 // 글자의 정본은 docs/WORDS.md 「판정과 테스트 프로시저 화면에서 쓰는 말」이다. 판정 글자는 영어 화면에서도 같다
 
-import type { CaseRow, LastResult } from './api.js';
+import type { CaseRow, ItemStatus, LastResult } from './api.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { use말 } from './i18n.js';
 import { STATUS_LABEL } from './ui.js';
@@ -52,11 +52,22 @@ export function 판정점줄({ 결과들 }: { 결과들: readonly (결과 | unde
  * 막은 케이스 번호가 없는 줄은 사유가 없다(null)
  */
 export function use막힘사유(): (r: LastResult, 마지막: LastMap) => string | null {
-  const t = use말();
+  const 글 = use막힘사유글();
   return (r, 마지막) => {
     if (r.blockedBy == null) return null;
     const 막은 = 마지막[keyOf(r.blockedBy, r.platform)];
-    if (막은 === undefined || 막은.runId !== r.runId || 막은.status === 'PASS') return t('선행 케이스 {케이스}', { 케이스: r.blockedBy });
-    return 막은.status === 'NA' ? t('선행 케이스 {케이스} 제한 시간 초과', { 케이스: r.blockedBy }) : t('선행 케이스 {케이스} 실패', { 케이스: r.blockedBy });
+    return 글(r.blockedBy, 막은 === undefined || 막은.runId !== r.runId ? undefined : 막은.status);
+  };
+}
+
+/**
+ * 사유 글자 하나 — 막은 케이스가 같은 실행에서 어떻게 끝났는지 알 때만 까닭을 붙인다(모르면 undefined).
+ * 실행 결과 · 항목 상세는 같은 실행의 항목에서, 케이스 목록 · 상세는 마지막 결과에서 그 판정을 찾아 넘긴다
+ */
+export function use막힘사유글(): (blockedBy: string, 막은판정: ItemStatus | undefined) => string {
+  const t = use말();
+  return (blockedBy, 막은판정) => {
+    if (막은판정 === undefined || 막은판정 === 'PASS') return t('선행 케이스 {케이스}', { 케이스: blockedBy });
+    return 막은판정 === 'NA' ? t('선행 케이스 {케이스} 제한 시간 초과', { 케이스: blockedBy }) : t('선행 케이스 {케이스} 실패', { 케이스: blockedBy });
   };
 }

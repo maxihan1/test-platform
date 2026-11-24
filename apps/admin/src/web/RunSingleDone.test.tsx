@@ -164,12 +164,33 @@ describe('한 건을 걸면 (도메인/실행 §3.2 「저장」)', () => {
     expect(window.location.hash).toBe('#/runs/fn?run=51');
   });
 
-  it('여러 건이면 실행을 읽지 않고 실행 기록으로 간다', async () => {
+  it('여러 건이어도 서버가 한 건으로 만들었으면(같은 프로시저) 진행 창을 연다', async () => {
+    vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 52, attachedTo: null });
+    vi.spyOn(api, 'run').mockResolvedValue({ ...끝난응답, runId: 52, origin: 'SINGLE' });
+    const { result } = renderHook(() => useRunStart());
+    await act(async () => {
+      await result.current.걸기(요청(['ZRS-001', 'ZRS-002']));
+    });
+    expect(지켜보는실행()).toEqual({ runId: 52, 열림: true });
+    expect(window.location.hash).toBe('');
+  });
+
+  it('여러 건을 걸어 서버가 묶음 실행으로 만들었으면 실행 기록으로 간다', async () => {
+    vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 52, attachedTo: null });
+    vi.spyOn(api, 'run').mockResolvedValue({ ...끝난응답, runId: 52, origin: 'MANUAL' });
+    const { result } = renderHook(() => useRunStart());
+    await act(async () => {
+      await result.current.걸기(요청(['ZRS-001', 'ZRS-002']));
+    });
+    expect(window.location.hash).toBe('#/runs/fn?run=52');
+  });
+
+  it('반복이 1 이 아니면 실행을 읽지 않고 실행 기록으로 간다', async () => {
     vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 52, attachedTo: null });
     const 읽기 = vi.spyOn(api, 'run');
     const { result } = renderHook(() => useRunStart());
     await act(async () => {
-      await result.current.걸기(요청(['ZRS-001', 'ZRS-002']));
+      await result.current.걸기(요청(['ZRS-001'], 3));
     });
     expect(읽기).not.toHaveBeenCalled();
     expect(window.location.hash).toBe('#/runs/fn?run=52');

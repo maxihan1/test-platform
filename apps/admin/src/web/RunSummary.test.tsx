@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 결과 화면 요약 띠 검사 — 통과율 도넛 · 실패 수 · 판정별 보기 · 직전 실행 대비 (도메인/실행 §8.3)
+// 결과 화면 요약 한 줄 검사 — 통과율 · 판정 막대와 칩 · 직전 실행 대비 (도메인/실행 §8.3)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -48,56 +48,41 @@ function 그린다(
   insights: RunInsights | null = null,
   판정: ItemStatus | 'ALL' = 'ALL',
   on판정: (v: ItemStatus | 'ALL') => void = () => undefined,
-  실패케이스수 = counts.fail,
   거르개: { 변화?: 변화칸 | null; on변화?: (v: 변화칸 | null) => void; 항목들?: RunItemSummary[] } = {},
 ) {
-  return render(<RunSummary counts={counts} 실패케이스수={실패케이스수} insights={insights} 판정={판정} on판정={on판정} {...거르개} />);
+  return render(<RunSummary counts={counts} insights={insights} 판정={판정} on판정={on판정} {...거르개} />);
 }
 
-describe('요약 띠 — 통과율과 숫자', () => {
+describe('요약 한 줄 — 통과율과 숫자', () => {
   it('통과율은 통과 ÷ (통과 + 실패 + 미실행) 이고 소수 한 자리다', () => {
     const { container } = 그린다(집계(47, 2, 1));
-    expect(container.querySelector('.rs-big')?.textContent).toBe('94.0%');
+    expect(container.querySelector('.rf-rate b')?.textContent).toBe('94.0%');
+    expect(container.querySelector('.rf-rate')?.textContent).toContain('통과율');
   });
 
-  it('도넛에 통과 · 실패 · 미실행 세 호가 있고 길이가 몫이다', () => {
+  it('판정 막대에 통과 · 실패 · 미실행 세 칸이 있고 길이가 그 수다', () => {
     const { container } = 그린다(집계(40, 5, 5));
-    const 길이 = (칸: string) => container.querySelector(`.rs-seg.${칸}`)?.getAttribute('stroke-dasharray');
-    expect(길이('p')).toBe('80 20');
-    expect(길이('f')).toBe('10 90');
-    expect(길이('n')).toBe('10 90');
+    const 막대 = container.querySelector('.rf-bar') as HTMLElement;
+    expect(막대.getAttribute('aria-hidden')).toBe('true');
+    expect([...막대.querySelectorAll('i')].map((칸) => (칸 as HTMLElement).style.flexGrow)).toEqual(['40', '5', '5']);
   });
 
   it('항목이 없으면 「—」와 「항목 없음」이다', () => {
     const { container } = 그린다(집계(0, 0, 0));
-    expect(container.querySelector('.rs-big')?.textContent).toBe('—');
+    expect(container.querySelector('.rf-rate b')?.textContent).toBe('—');
     expect(screen.getByText('항목 없음')).toBeTruthy();
-    expect(screen.queryByText(/중 .*건 Pass/)).toBeNull();
   });
 
   it('중단 실행처럼 미실행만 있으면 0.0% 를 그대로 보인다', () => {
     const { container } = 그린다(집계(0, 0, 8));
-    expect(container.querySelector('.rs-big')?.textContent).toBe('0.0%');
+    expect(container.querySelector('.rf-rate b')?.textContent).toBe('0.0%');
     expect(screen.queryByText('항목 없음')).toBeNull();
-  });
-
-  it('「실패 케이스 N건」은 케이스 수이고 「항목 N건 중 M건 통과」는 항목 수다', () => {
-    const { container } = 그린다(집계(47, 3, 0), null, 'ALL', () => undefined, 2);
-    expect(screen.getByText('Fail 케이스 2건')).toBeTruthy();
-    expect(container.querySelector('.v-fail')).not.toBeNull();
-    expect(screen.getByText('항목 50건 중 47건 Pass')).toBeTruthy();
-  });
-
-  it('실패가 0건이면 실패 색을 안 쓴다', () => {
-    const { container } = 그린다(집계(10, 0, 0));
-    expect(screen.getByText('Fail 케이스 0건')).toBeTruthy();
-    expect(container.querySelector('.v-fail')).toBeNull();
   });
 
   it('미확정 항목도 통과율과 숫자에 들어가고 「그중 미확정 N건」 한 줄만 단다', () => {
     const { container } = 그린다(집계(47, 3, 0, 2));
-    expect(container.querySelector('.rs-big')?.textContent).toBe('94.0%');
-    expect(screen.getByText('항목 50건 중 47건 Pass')).toBeTruthy();
+    expect(container.querySelector('.rf-rate b')?.textContent).toBe('94.0%');
+    expect(screen.getByRole('button', { name: /^전체/ }).textContent).toBe('전체 50');
     expect(screen.getByText('그중 미확정 2건')).toBeTruthy();
   });
 
@@ -105,13 +90,31 @@ describe('요약 띠 — 통과율과 숫자', () => {
     그린다(집계(47, 3, 0));
     expect(screen.queryByText(/미확정/)).toBeNull();
   });
+
+  it('걷어낸 글이 없다 — 「Fail 케이스 N건」 · 「항목 N건 중 M건 Pass」는 서지 않는다', () => {
+    그린다(집계(47, 3, 0));
+    expect(screen.queryByText(/Fail 케이스/)).toBeNull();
+    expect(screen.queryByText(/건 중 .*건 Pass/)).toBeNull();
+  });
 });
 
-describe('요약 띠 — 판정별 보기', () => {
+describe('요약 한 줄 — 판정 칩', () => {
   it('네 칸이 버튼이고 수는 항목 수다', () => {
     그린다(집계(47, 3, 1));
     const 칸 = within(screen.getByRole('group', { name: /판정별 보기/ })).getAllByRole('button');
-    expect(칸.map((b) => b.textContent)).toEqual(['전체51', 'Pass47', 'Fail3', 'Not tested1']);
+    expect(칸.map((b) => b.textContent)).toEqual(['전체 51', 'Pass 47', 'Fail 3', 'Not tested 1']);
+  });
+
+  it('Blocked 는 칩이 아니라 Not tested 칩 안의 괄호다 — 0 이면 괄호가 없다', () => {
+    그린다({ ...집계(47, 3, 4), blocked: 2 });
+    expect(screen.getByRole('button', { name: /^Not tested/ }).textContent).toBe('Not tested 4(Blocked 2)');
+    expect(within(screen.getByRole('group', { name: /판정별 보기/ })).getAllByRole('button')).toHaveLength(4);
+    cleanup();
+    그린다({ ...집계(47, 3, 4), blocked: 0 });
+    expect(screen.getByRole('button', { name: /^Not tested/ }).textContent).toBe('Not tested 4');
+    cleanup();
+    그린다(집계(47, 3, 4));
+    expect(screen.queryByText(/Blocked/)).toBeNull();
   });
 
   it('고른 칸만 aria-pressed 가 true 이고 누르면 on판정 이 그 값으로 불린다', () => {
@@ -126,42 +129,47 @@ describe('요약 띠 — 판정별 보기', () => {
   });
 });
 
-describe('요약 띠 — 직전 실행 대비', () => {
+describe('요약 한 줄 — 이전 실행 대비', () => {
   it('직전 실행 번호와 회귀 실패 · 기존 실패 · 해결 수를 보인다', () => {
     그린다(집계(47, 3, 0), 견줌());
     const 고리 = screen.getByRole('link', { name: 'RUN 1038' });
     expect(고리.getAttribute('href')).toBe('#/runs/1038');
-    expect(고리.closest('.rs-axis')?.textContent).toBe('이전 실행 RUN 1038 대비 · 케이스 수');
-    const 수 = (이름: string) =>
-      within(screen.getByText(이름).closest('.rs-stat') as HTMLElement).getByText(/^\d+$/).textContent;
-    expect(수('회귀 실패')).toBe('2');
-    expect(수('기존 실패')).toBe('1');
-    expect(수('해결')).toBe('3');
+    expect(고리.parentElement?.textContent).toBe('이전 실행 RUN 1038 대비');
+    const 수 = (이름: string) => screen.getByRole('button', { name: new RegExp(`^${이름}`) }).textContent;
+    expect(수('회귀 실패')).toBe('회귀 실패 2');
+    expect(수('기존 실패')).toBe('기존 실패 1');
+    expect(수('해결')).toBe('해결 3');
   });
 
   it('회귀 실패를 누르면 그 변화로 거르고 한 번 더 누르면 푼다 (점검 2.20)', () => {
     const on변화 = vi.fn();
-    그린다(집계(47, 3, 0), 견줌(), 'ALL', undefined, undefined, { 변화: null, on변화 });
+    그린다(집계(47, 3, 0), 견줌(), 'ALL', undefined, { 변화: null, on변화 });
     fireEvent.click(screen.getByRole('button', { name: /^회귀 실패/ }));
     expect(on변화).toHaveBeenLastCalledWith('새로깨짐');
     cleanup();
-    그린다(집계(47, 3, 0), 견줌(), 'ALL', undefined, undefined, { 변화: '새로깨짐', on변화 });
+    그린다(집계(47, 3, 0), 견줌(), 'ALL', undefined, { 변화: '새로깨짐', on변화 });
     expect(screen.getByRole('button', { name: /^회귀 실패/ }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: /^회귀 실패/ }));
     expect(on변화).toHaveBeenLastCalledWith(null);
   });
 
   it('수가 0 이거나 거르는 길이 없으면 회귀 · 기존 실패 칸은 눌리지 않는다', () => {
-    그린다(집계(47, 3, 0), 견줌({ 케이스들: [] }), 'ALL', undefined, undefined, { on변화: vi.fn() });
+    그린다(집계(47, 3, 0), 견줌({ 케이스들: [] }), 'ALL', undefined, { on변화: vi.fn() });
     expect((screen.getByRole('button', { name: /^회귀 실패/ }) as HTMLButtonElement).disabled).toBe(true);
     cleanup();
     그린다(집계(47, 3, 0), 견줌());
     expect((screen.getByRole('button', { name: /^회귀 실패/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('해결이 0 이면 해결 칸도 눌리지 않는다', () => {
+    그린다(집계(47, 3, 0), 견줌({ 케이스들: 견줌().케이스들.filter((c) => c.판정 !== '고쳐짐') }));
+    expect((screen.getByRole('button', { name: /^해결/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: /^해결/ }).textContent).toBe('해결 0');
+  });
+
   it('해결을 누르면 아래 해결 목록이 펴진다', () => {
     const { container } = 그린다(집계(47, 3, 0), 견줌());
-    const 접이 = container.querySelector('details.rr-fold') as HTMLDetailsElement;
+    const 접이 = container.querySelector('details') as HTMLDetailsElement;
     expect(접이.open).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: /^해결/ }));
     expect(접이.open).toBe(true);
@@ -170,12 +178,11 @@ describe('요약 띠 — 직전 실행 대비', () => {
   it('직전 대비 수는 케이스 수다 — 한 케이스가 디바이스 둘에서 새로 깨져도 1이다', () => {
     const 둘 = (['desktop', 'mobile'] as const).map((platform) => ({ tcId: 'ZRS-1', tcName: '케이스', platform, 판정: '새로깨짐' as const }));
     그린다(집계(47, 3, 0), 견줌({ 케이스들: 둘 }));
-    const 수 = within(screen.getByText('회귀 실패').closest('.rs-stat') as HTMLElement).getByText(/^\d+$/).textContent;
-    expect(수).toBe('1');
+    expect(screen.getByRole('button', { name: /^회귀 실패/ }).textContent).toBe('회귀 실패 1');
   });
 
   it('주소가 바뀌었으면 한 줄로 알리고 빠진 케이스가 있으면 건수를 적는다', () => {
-    그린다(집계(47, 3, 0), 견줌({ 주소바뀜: true, 빠진건수: 3 }), 'ALL', undefined, undefined, { 항목들: ['ZRS-001', 'ZRS-002', 'ZRS-003', 'ZRS-004'].map((id, i) => 항목줄(i, id)) });
+    그린다(집계(47, 3, 0), 견줌({ 주소바뀜: true, 빠진건수: 3 }), 'ALL', undefined, { 항목들: ['ZRS-001', 'ZRS-002', 'ZRS-003', 'ZRS-004'].map((id, i) => 항목줄(i, id)) });
     expect(screen.getByText('이전 실행은 다른 주소에서 실행됐습니다')).toBeTruthy();
     expect(screen.getByText(/이전 실행에 있었으나 이번에 실행되지 않은 케이스 3건/)).toBeTruthy();
   });
@@ -190,7 +197,7 @@ describe('요약 띠 — 직전 실행 대비', () => {
       startedAt: '2026-10-01T00:00:00Z', finishedAt: '2026-10-01T00:01:00Z', counts: { total: 3, pass: 3, fail: 0, na: 0, running: 0 },
       items: [줄(1, 'ZRS-001'), 줄(2, 'ZRS-002'), 줄(3, 'ZRS-003')], evidence: [],
     });
-    그린다(집계(2, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, undefined, { 항목들: [줄(11, 'ZRS-001'), 줄(12, 'ZRS-002')] });
+    그린다(집계(2, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, { 항목들: [줄(11, 'ZRS-001'), 줄(12, 'ZRS-002')] });
     expect(직전).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /이번에 실행되지 않은 케이스 1건/ }));
@@ -206,7 +213,7 @@ describe('요약 띠 — 직전 실행 대비', () => {
       startedAt: '2026-10-01T00:00:00Z', finishedAt: '2026-10-01T00:01:00Z', counts: { total: 3, pass: 3, fail: 0, na: 0, running: 0 },
       items: [항목줄(1, 'ZRS-001'), 항목줄(2, 'ZRS-003'), 항목줄(3, 'ZRS-003', 'mobile')], evidence: [],
     });
-    그린다(집계(3, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, undefined, { 항목들: [항목줄(11, 'ZRS-001'), 항목줄(12, 'ZRS-002')] });
+    그린다(집계(3, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, { 항목들: [항목줄(11, 'ZRS-001'), 항목줄(12, 'ZRS-002')] });
 
     fireEvent.click(screen.getByRole('button', { name: /이번에 실행되지 않은 케이스 1건/ }));
 
@@ -214,18 +221,18 @@ describe('요약 띠 — 직전 실행 대비', () => {
   });
 
   it('일부만 골라 돌린 실행(빠진 케이스 수가 이번에 돈 케이스 수보다 많다)이면 빠진 케이스 줄을 감춘다 (점검표 B15e)', () => {
-    그린다(집계(6, 0, 0), 견줌({ 빠진건수: 598 }), 'ALL', undefined, undefined, { 항목들: [항목줄(1, 'ZRS-001')] });
+    그린다(집계(6, 0, 0), 견줌({ 빠진건수: 598 }), 'ALL', undefined, { 항목들: [항목줄(1, 'ZRS-001')] });
     expect(screen.queryByText(/이번에 실행되지 않은/)).toBeNull();
   });
 
   it('빠진 케이스 수가 이번에 돈 케이스 수와 같아도 감춘다 — 케이스 2건 × 디바이스 2 × 2회 = 8항목이어도 케이스로 센다 (WEB-F9-20)', () => {
     const 항목들 = ['ZRS-001', 'ZRS-002'].flatMap((id, i) => (['desktop', 'mobile'] as const).flatMap((p, j) => [항목줄(i * 10 + j * 2, id, p), 항목줄(i * 10 + j * 2 + 1, id, p)]));
-    그린다(집계(8, 0, 0), 견줌({ 빠진건수: 2 }), 'ALL', undefined, undefined, { 항목들 });
+    그린다(집계(8, 0, 0), 견줌({ 빠진건수: 2 }), 'ALL', undefined, { 항목들 });
     expect(screen.queryByText(/이번에 실행되지 않은/)).toBeNull();
   });
 
   it('빠진 케이스가 이번에 돈 케이스보다 적으면 줄이 선다', () => {
-    그린다(집계(3, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, undefined, { 항목들: [항목줄(1, 'ZRS-001'), 항목줄(2, 'ZRS-002')] });
+    그린다(집계(3, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, { 항목들: [항목줄(1, 'ZRS-001'), 항목줄(2, 'ZRS-002')] });
     expect(screen.getByText(/이번에 실행되지 않은 케이스 1건/)).toBeTruthy();
   });
 
@@ -237,55 +244,13 @@ describe('요약 띠 — 직전 실행 대비', () => {
 
   it('insights 가 null 이면 대비 칸이 아예 없다', () => {
     const { container } = 그린다(집계(47, 3, 0), null);
-    expect(container.querySelector('.rs-diff')).toBeNull();
+    expect(container.querySelector('.rf-diff')).toBeNull();
     expect(screen.queryByText(/이전 실행/)).toBeNull();
   });
 
   it('previous 가 null 이면 대비 칸이 아예 없다', () => {
     const { container } = 그린다(집계(47, 3, 0), 견줌({ previous: null, 케이스들: [] }));
-    expect(container.querySelector('.rs-diff')).toBeNull();
+    expect(container.querySelector('.rf-diff')).toBeNull();
     expect(screen.queryByText(/이전 실행/)).toBeNull();
-  });
-});
-
-describe('요약 띠 — 디바이스별 실패 단추 (도메인/실행 §8.3 표 1번 줄)', () => {
-  const 나눔 = [
-    { platform: 'desktop' as const, 수: 4 },
-    { platform: 'mobile' as const, 수: 6 },
-    { platform: 'android' as const, 수: 0 },
-  ];
-  const 띠 = (device: 'ALL' | 'desktop' | 'android', on디바이스: (v: string) => void) => (
-    <RunSummary counts={집계(595, 10, 1)} 실패케이스수={6} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={나눔} device={device} on디바이스={on디바이스} />
-  );
-
-  it('디바이스마다 실패 케이스 수 단추를 둔다 — 누르면 그 디바이스, 다시 누르면 전체, 0건은 누를 수 없다', () => {
-    const on디바이스 = vi.fn();
-    const { rerender } = render(띠('ALL', on디바이스));
-    const 묶음 = screen.getByRole('group', { name: '디바이스별 Fail 케이스' });
-    expect(within(묶음).getAllByRole('button').map((b) => b.textContent)).toEqual(['PC 4건', '모바일 6건', 'Android 앱 0건']);
-    expect(within(묶음).getByRole('button', { name: 'Android 앱 0건' }).hasAttribute('disabled')).toBe(true);
-
-    fireEvent.click(within(묶음).getByRole('button', { name: 'PC 4건' }));
-    expect(on디바이스).toHaveBeenLastCalledWith('desktop');
-
-    rerender(띠('desktop', on디바이스));
-    const PC = screen.getByRole('button', { name: 'PC 4건' });
-    expect(PC.getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(PC);
-    expect(on디바이스).toHaveBeenLastCalledWith('ALL');
-
-    rerender(띠('android', on디바이스));
-    const 앱 = screen.getByRole('button', { name: 'Android 앱 0건' });
-    expect(앱.hasAttribute('disabled')).toBe(false);
-    fireEvent.click(앱);
-    expect(on디바이스).toHaveBeenLastCalledWith('ALL');
-  });
-
-  it('디바이스가 하나이거나 실패가 없으면 단추가 없다', () => {
-    render(<RunSummary counts={집계(9, 1, 0)} 실패케이스수={1} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={[{ platform: 'desktop', 수: 1 }]} />);
-    expect(screen.queryByRole('group', { name: '디바이스별 Fail 케이스' })).toBeNull();
-    cleanup();
-    render(<RunSummary counts={집계(10, 0, 0)} 실패케이스수={0} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={나눔.map((d) => ({ ...d, 수: 0 }))} />);
-    expect(screen.queryByRole('group', { name: '디바이스별 Fail 케이스' })).toBeNull();
   });
 });

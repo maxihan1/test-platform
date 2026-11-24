@@ -5,9 +5,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import type { CaseResult } from '@platform/kit';
 import { api, ApiError, type Platform, type RunRequestItem, type TrialResult, type TrialStep, type 모바일위치, type 항목실패 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { message, 디바이스순서 } from './ui.js';
+
+/**
+ * 시험 큐가 받는 항목. 같은 프로시저의 케이스는 프로시저가 통째로 돌아 한 번만 걸고 나머지 줄은 답의 케이스별 결과로 채운다 (도메인/실행 §3.2 「한 건 · 다시 돌리기 · 시험 실행」).
+ * `함께` 는 사람이 고르지 않은 자동 포함 줄이다 — 값을 보내지 않으므로 걸 때 대표가 되지 않는다
+ */
+export type 시험항목 = RunRequestItem & { procId?: string | null; 함께?: boolean };
 
 export type 시험줄 =
   | { 종류: 'wait' }
@@ -98,9 +105,17 @@ export function useTrialQueue(간격: number = 기본간격) {
     }
   };
 
-  /** 이어 돌면 null, 멈추면 남은 칸에 붙일 글 */
-  async function 한번(항목: RunRequestItem, platform: Platform, env: string, mobileOn: 모바일위치, 차례: number, 전체: number): Promise<string | null> {
-    쓴다(항목.tcId, platform, { 종류: 'run' });
+  /** 이어 돌면 null, 멈추면 남은 칸에 붙일 글. `따라` 는 같은 프로시저라 이 시험 하나로 같이 도는 줄들이다 */
+  async function 한번(항목: 시험항목, 따라: string[], platform: Platform, env: string, mobileOn: 모바일위치, 차례: number, 전체: number): Promise<string | null> {
+    /** 대표 줄과 따라오는 줄에 같이 쓴다. 끝난 줄은 따라오는 줄마다 답의 자기 결과로 채운다 — 답에 없으면 미실행이다 */
+    const 쓰기 = (줄: 시험줄, 케이스들?: CaseResult[]) => {
+      쓴다(항목.tcId, platform, 줄);
+      for (const tcId of 따라) {
+        const 것 = 케이스들?.find((r) => r.tcId === tcId);
+        쓴다(tcId, platform, 줄.종류 !== 'done' ? 줄 : { 종류: 'done', 결과: { status: 것?.status ?? 'NA', durationMs: 것?.durationMs ?? 0, steps: 것?.steps ?? [], ...(것?.error !== undefined && { error: 것.error }) }, 실패: null, 제목들: null });
+      }
+    };
+    쓰기({ 종류: 'run' });
     const 누른때 = Date.now();
     // 처음 받은 RUNNING 의 제목을 끝까지 쓴다. undefined 는 아직 못 받았다는 뜻이다
     let 제목: string[] | null | undefined;
@@ -118,7 +133,7 @@ export function useTrialQueue(간격: number = 기본간격) {
         if (멈춤.current) return '';
         if (답.status === 'DONE') {
           링크(null);
-          쓴다(항목.tcId, platform, { 종류: 'done', 결과: 답.result, 실패: 답.failure ?? null, 걸린ms: Date.now() - 누른때, 제목들: 제목 ?? null });
+          쓰기({ 종류: 'done', 결과: 답.result, 실패: 답.failure ?? null, 걸린ms: Date.now() - 누른때, 제목들: 제목 ?? null }, 답.results);
           return null;
         }
         링크(답.vision?.url ?? null);
@@ -137,35 +152,46 @@ export function useTrialQueue(간격: number = 기본간격) {
       if (!멈춤.current) set지금((앞) => (앞 === null || 앞.vision === null ? 앞 : { ...앞, vision: null }));
       if (err instanceof ApiError && err.code === 'TRIAL_BUSY') {
         const 글 = t('이미 시험 실행이 진행 중입니다');
-        쓴다(항목.tcId, platform, { 종류: 'notice', 글 });
+        쓰기({ 종류: 'notice', 글 });
         return 글;
       }
       if (err instanceof ApiError && (err.code === 'DEVICE_BUSY' || err.code === 'FARM_OFF')) {
         // 디바이스 하나가 바쁘거나 이 서버에 디바이스 팜이 없을 뿐이라 그 칸만 안내하고 다음 칸은 이어 돈다 — 브라우저 케이스는 돌 수 있다
-        쓴다(항목.tcId, platform, { 종류: 'notice', 글: message(err, 언어) });
+        쓰기({ 종류: 'notice', 글: message(err, 언어) });
         return null;
       }
       if (err instanceof ApiError && err.violations.length > 0) {
         // 그 케이스만 안 맞는다. 다음 칸은 이어 돈다
-        쓴다(항목.tcId, platform, { 종류: 'notice', 글: t('입력값이 명세와 맞지 않습니다.') });
+        쓰기({ 종류: 'notice', 글: t('입력값이 명세와 맞지 않습니다.') });
         return null;
       }
-      쓴다(항목.tcId, platform, { 종류: 'notice', 글: message(err, 언어) });
+      쓰기({ 종류: 'notice', 글: message(err, 언어) });
       return t('앞 케이스 오류로 실행하지 않았습니다');
     }
   }
 
   /** mobileOn 은 실행 창의 모바일 웹 「가상 기기 · 실제 기기」다 — mobile 칸만 싣는다 (도메인/실행 §3.2 「테스트 모드」) */
-  async function 시작(항목들: RunRequestItem[], env: string, mobileOn: 모바일위치 = 'server'): Promise<void> {
+  async function 시작(항목들: 시험항목[], env: string, mobileOn: 모바일위치 = 'server'): Promise<void> {
     // 두 번 눌러도 큐가 둘 생기지 않게 막는다
     if (도는.current) return;
     도는.current = true;
     set도는중(true);
     // 고른 디바이스를 차례로 다 돈다 — 앞 판은 첫째만 돌아 웹 케이스의 모바일이 안 돌았다 (도메인/실행 §8.2 「케이스 테스트 실행」)
-    const 차례들 = 항목들.flatMap((항목) => 디바이스차례(항목.platforms).map((platform) => ({ 항목, platform })));
-    // 줄의 칸도 같은 차례들에서 만든다 — 따로 세면 칸 차례와 도는 차례가 어긋날 수 있다
+    // 같은 프로시저의 케이스는 디바이스마다 한 번만 건다 — 대표는 사람이 고른 첫 줄(값을 보내는 줄)이고 나머지는 답으로 채운다
+    const 차례들 = 항목들.flatMap((항목) =>
+      디바이스차례(항목.platforms).flatMap((platform) => {
+        if (항목.procId == null) return [{ 항목, platform, 따라: [] as string[] }];
+        const 식구 = 항목들.filter((it) => it.procId === 항목.procId && it.platforms.includes(platform));
+        const 대표 = 식구.find((it) => it.함께 !== true) ?? 식구[0];
+        return 대표 === 항목 ? [{ 항목, platform, 따라: 식구.filter((it) => it !== 항목).map((it) => it.tcId) }] : [];
+      }),
+    );
+    // 줄의 칸은 항목마다 고른 디바이스로 만든다 — 따라오는 줄도 칸이 있어야 답이 채운다
     const 첫줄들: Record<string, 디바이스칸[]> = {};
-    for (const { 항목, platform } of 차례들) (첫줄들[항목.tcId] ??= []).push({ platform, 줄: { 종류: 'wait' } });
+    for (const 항목 of 항목들) for (const platform of 디바이스차례(항목.platforms)) (첫줄들[항목.tcId] ??= []).push({ platform, 줄: { 종류: 'wait' } });
+    const 모두쓴다 = (차례: (typeof 차례들)[number], 줄: 시험줄) => {
+      for (const tcId of [차례.항목.tcId, ...차례.따라]) 쓴다(tcId, 차례.platform, 줄);
+    };
     set줄들(첫줄들);
     중단.current = false;
     set중단함(false);
@@ -174,19 +200,20 @@ export function useTrialQueue(간격: number = 기본간격) {
     try {
       for (let i = 0; i < 차례들.length; i += 1) {
         if (멈춤.current) return;
-        const { 항목, platform } = 차례들[i]!;
+        const 지금차례 = 차례들[i]!;
+        const { 항목, platform } = 지금차례;
         if (중단.current) {
-          쓴다(항목.tcId, platform, { 종류: 'skip' });
+          모두쓴다(지금차례, { 종류: 'skip' });
           continue;
         }
-        const 멈춘글 = await 한번(항목, platform, env, mobileOn, i + 1, 차례들.length);
+        const 멈춘글 = await 한번(항목, 지금차례.따라, platform, env, mobileOn, i + 1, 차례들.length);
         if (멈춘글 === null) continue;
         // 서버 전체에 걸린 사정이나 러너 고장이면 남은 칸도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다.
         // 같은 케이스의 남은 디바이스에 「앞 케이스」라고 적으면 없는 앞 케이스를 찾게 된다
         const 앞오류 = t('앞 케이스 오류로 실행하지 않았습니다');
         for (const 남은 of 차례들.slice(i + 1)) {
           const 글 = 멈춘글 === 앞오류 && 남은.항목.tcId === 항목.tcId ? t('앞 디바이스 오류로 실행하지 않았습니다') : 멈춘글;
-          쓴다(남은.항목.tcId, 남은.platform, { 종류: 'notice', 글 });
+          모두쓴다(남은, { 종류: 'notice', 글 });
         }
         break;
       }
