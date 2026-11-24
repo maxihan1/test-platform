@@ -108,7 +108,7 @@ describe.skipIf(연결 === undefined)('notifyRun — 먼저 차지하고 보낸�
 
     expect(await notifyRun(runId)).toBe(true);
     const 글 = (JSON.parse(보냄.mock.calls[0]![1].body) as { text: string }).text.split('\n');
-    expect(글[0]).toBe(`[Fail] XNF · RUN ${runId} · UI 테스트 3건`);
+    expect(글[0]).toBe(`[Fail] XNF · RUN ${runId} · 직접 실행 · UI 테스트 3건`);
     expect(글[1]).toContain('Pass 0 · Fail 1 · Not tested 2 (Blocked 2)');
   });
 });

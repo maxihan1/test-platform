@@ -95,9 +95,11 @@ async function 기록읽기(pool: Pool, historyId: number): Promise<{ 네트워�
  */
 async function 폰로그읽기(runId: number, historyId: number, 마감: number): Promise<실패재료['폰로그']> {
   try {
+    // 폴더는 실행 단위마다 하나다 — 프로시저 줄은 케이스 줄 번호로 찾으면 빈 폴더다(execution/execRead.ts 실행단위번호)
+    const 폴더 = (await 실행단위번호(runId, historyId)) ?? historyId;
     for (;;) {
-      const 받는중 = await 팜증적받는중(runId, historyId);
-      const 글 = await 팜logcat읽기(runId, historyId);
+      const 받는중 = await 팜증적받는중(runId, 폴더);
+      const 글 = await 팜logcat읽기(runId, 폴더);
       if (글 !== null) return logcat오류줄(글);
       if (!받는중) return '없음';
       if (Date.now() >= 마감) {
@@ -159,11 +161,7 @@ async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: numb
     reqs: c.reqs,
     ...첫재료,
     // 웹 항목(실제 폰 Chrome 포함)은 지금 그대로 네트워크 · 콘솔이다
-    // 폴더는 실행 단위마다 하나다 — 프로시저 줄은 케이스 줄 번호로 찾으면 빈 폴더다(execution/execRead.ts 실행단위번호)
-    폰로그:
-      d.platform === 'android' && 마감 !== null
-        ? await 폰로그읽기(d.item.runId, (await 실행단위번호(d.item.runId, d.item.historyId)) ?? d.item.historyId, 마감)
-        : null,
+    폰로그: d.platform === 'android' && 마감 !== null ? await 폰로그읽기(d.item.runId, d.item.historyId, 마감) : null,
     // 화면은 hash 주소다. 항목 상세는 실행 번호가 맞아야 찾아(execution/queries.ts findItem) 한 건 실행이 덮은 항목은 그 한 건 실행 번호로 간다
     결과주소: 공개주소 === '' ? null : `${공개주소}/#/runs/${String(d.item.runId)}/items/${String(d.item.historyId)}`,
     // 최근 흐름 맨 앞은 이번 실행이다 — 섞임은 앞 실행들로만 본다(이번 FAIL 을 넣으면 새로 깨진 회귀가 다 흔들림이 된다)

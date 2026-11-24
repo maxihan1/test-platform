@@ -5,7 +5,7 @@
 
 import type { Pool } from 'pg';
 
-import { 무엇을 } from '../web/runName.js';
+import { 무엇을, 시작방식글 } from '../web/runName.js';
 import { Blocked줄 } from './notVerdict.js';
 import type { RunSummary } from './runTypes.js';
 
@@ -31,6 +31,7 @@ interface NotifyRow {
   // 실행명의 「무엇을」을 가르는 칸 — 박제 제목 그대로는 맨 앞 케이스 번호만 보인다 (도메인/실행 §8.7 「실행명」)
   origin: NonNullable<RunSummary['origin']>;
   kind: RunSummary['kind'];
+  build_no: string | null;
   // 위 셋에 이미 들어 있는 항목 중 미확정인 수 — 「그중 미확정 N건」 (SPEC 실행 §3.2)
   unconfirmed: number;
   /** 준비 실패 까닭 — status PREP_FAILED 일 때만 찬다(가린 뒤 300자). 없는 행은 undefined 로 둬도 된다 */
@@ -46,7 +47,7 @@ interface FailedCase {
 
 // 「보낼 생각이 없었던 것」과 「보내려다 실패한 것」을 가르려면 notify_slack 과 notified_at 이 둘 다 필요하다 (§6)
 const TARGET = `
-  SELECT r.title, r.origin, r.kind, r.status, r.env, r.service_name, r.triggered_by, r.triggered_by_name, r.prep_note,
+  SELECT r.title, r.origin, r.kind, r.build_no, r.status, r.env, r.service_name, r.triggered_by, r.triggered_by_name, r.prep_note,
          s.slack_webhook,
          EXTRACT(EPOCH FROM (r.finished_at - r.started_at)) * 1000 AS duration_ms,
          count(i.history_id) FILTER (WHERE i.status = 'PASS')::int AS pass,
@@ -80,6 +81,16 @@ function 미확정꼬리(run: NotifyRow): string {
 const 한글로 = (키: string, 값?: Record<string, string | number>): string =>
   키.replace(/§[^§]*$/u, '').replace(/\{([^}]+)\}/gu, (원, 이름: string) => (값 !== undefined && 이름 in 값 ? String(값[이름]) : 원));
 
+/**
+ * Slack 은 시작 방식 · 빌드 칸이 따로 없다 — 「무엇을」이 떼는 「정기 · 」 · 「빌드 124 · 」 대신 시작 방식을(빌드 실행은 빌드 번호를) 앞에 적는다.
+ * 케이스 실행(UI · 기능)만 「무엇을」로 바꾼다 — 그 밖의 종류는 「외 N건」을 기능 테스트로 읽으면 안 된다
+ */
+function 실행명글(run: NotifyRow): string {
+  const 방식 = run.origin === 'BUILD' && run.build_no !== null ? `빌드 ${run.build_no}` : 시작방식글(run.origin, 한글로);
+  const 무엇 = run.kind === 'UI' || run.kind === 'FN' ? 무엇을({ title: run.title, origin: run.origin, kind: run.kind }, 한글로) : run.title;
+  return `${방식} · ${무엇}`;
+}
+
 // Blocked 는 Not tested 의 사유다 — 0 이면 괄호를 안 적는다
 const 미실행글 = (run: NotifyRow): string => `Not tested ${run.na}${run.blocked > 0 ? ` (Blocked ${run.blocked})` : ''}`;
 
@@ -94,7 +105,7 @@ export function 본문(run: NotifyRow, 실패: FailedCase[], publicUrl: string, 
   const 실행자 = run.triggered_by_name ?? run.triggered_by;
 
   const 줄 = [
-    `${머리} ${run.service_name} · RUN ${runId} · ${무엇을({ title: run.title, origin: run.origin, kind: run.kind === 'UI' ? 'UI' : 'FN' }, 한글로)}`,
+    `${머리} ${run.service_name} · RUN ${runId} · ${실행명글(run)}`,
     `Pass ${run.pass} · Fail ${run.fail} · ${미실행글(run)}${미확정꼬리(run)} · ${걸린시간(run.duration_ms)} · 대상 서버 ${run.env} · 실행자 ${실행자}`,
   ];
 

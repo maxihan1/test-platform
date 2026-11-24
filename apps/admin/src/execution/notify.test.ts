@@ -19,6 +19,7 @@ const 실행 = {
   blocked: 0,
   origin: 'MANUAL' as const,
   kind: 'FN' as const,
+  build_no: null,
   unconfirmed: 0,
 };
 
@@ -40,7 +41,7 @@ describe('걸린시간', () => {
 
 describe('본문', () => {
   it('머리에 판정을 글자로 적는다', () => {
-    expect(본문(실행, 실패하나, '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · 결제 회귀');
+    expect(본문(실행, 실패하나, '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · 직접 실행 · 결제 회귀');
   });
 
   it('전부 통과했을 때만 통과로 적는다', () => {
@@ -62,7 +63,7 @@ describe('본문', () => {
   it('준비 실패 실행은 [실패]가 아니라 [준비 실패]이고 까닭 한 줄을 단다', () => {
     const 준비실패 = { ...실행, status: 'PREP_FAILED', pass: 0, fail: 0, na: 4, prep_note: 'HTTP 500 · seed failed' };
     const 줄 = 본문(준비실패, [], '', 2111).split('\n');
-    expect(줄[0]).toBe('[준비 실패] 결제 서비스 · RUN 2111 · 결제 회귀');
+    expect(줄[0]).toBe('[준비 실패] 결제 서비스 · RUN 2111 · 직접 실행 · 결제 회귀');
     expect(줄).toContain('테스트 데이터 준비에 실패해 테스트를 실행하지 않았습니다 · HTTP 500 · seed failed');
   });
 
@@ -78,8 +79,15 @@ describe('본문', () => {
 
   it('머리의 실행명은 「무엇을」이다 — 맨 앞 케이스 번호 대신 종류와 건수', () => {
     const 외건 = { ...실행, title: 'MTA-UI-168 외 19건' };
-    expect(본문({ ...외건, kind: 'UI' }, [], '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · UI 테스트 20건');
-    expect(본문(외건, [], '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · 기능 테스트 20건');
+    expect(본문({ ...외건, kind: 'UI' }, [], '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · 직접 실행 · UI 테스트 20건');
+    expect(본문(외건, [], '', 2111).split('\n')[0]).toBe('[Fail] 결제 서비스 · RUN 2111 · 직접 실행 · 기능 테스트 20건');
+  });
+
+  it('Slack 은 시작 방식 칸이 없어 「무엇을」 앞에 시작 방식을, 빌드 실행은 빌드 번호를 적는다 · 케이스 실행이 아니면 박제 제목 그대로다', () => {
+    const 첫줄 = (덮: Partial<Parameters<typeof 본문>[0]>) => 본문({ ...실행, ...덮 }, [], '', 2111).split('\n')[0];
+    expect(첫줄({ origin: 'BUILD', build_no: '124', title: '빌드 124 · 스모크 · MTA-FN-265 외 11건' })).toBe('[Fail] 결제 서비스 · RUN 2111 · 빌드 124 · 스모크 12건');
+    expect(첫줄({ origin: 'SCHEDULED', title: '정기 · 기능 전체 208건' })).toBe('[Fail] 결제 서비스 · RUN 2111 · 정기 실행 · 기능 테스트 전체 208건');
+    expect(첫줄({ kind: 'COMPAT', title: 'ABC-001 외 3건' })).toBe('[Fail] 결제 서비스 · RUN 2111 · 직접 실행 · ABC-001 외 3건');
   });
 
   it('박제된 이름이 없으면 로그인 아이디로 적는다', () => {
@@ -122,9 +130,9 @@ describe('본문 — 미확정 항목 (SPEC 실행 §3.2)', () => {
   const 머리 = (run: typeof 실행): string => 본문(run, [], '', 2111).split('\n')[0] ?? '';
 
   it('미확정이 섞여도 머리는 미확정이 없을 때와 같다 — 미확정 변형이 없다', () => {
-    expect(머리({ ...실행, pass: 8, fail: 0, na: 0, unconfirmed: 3 })).toBe('[Pass] 결제 서비스 · RUN 2111 · 결제 회귀');
+    expect(머리({ ...실행, pass: 8, fail: 0, na: 0, unconfirmed: 3 })).toBe('[Pass] 결제 서비스 · RUN 2111 · 직접 실행 · 결제 회귀');
     expect(머리({ ...실행, pass: 0, fail: 0, na: 0, unconfirmed: 0 })).toContain('[Pass] ');
-    expect(머리({ ...실행, pass: 0, fail: 1, na: 0, unconfirmed: 1 })).toBe('[Fail] 결제 서비스 · RUN 2111 · 결제 회귀');
+    expect(머리({ ...실행, pass: 0, fail: 1, na: 0, unconfirmed: 1 })).toBe('[Fail] 결제 서비스 · RUN 2111 · 직접 실행 · 결제 회귀');
   });
 
   it('미확정 항목의 실패와 미실행도 실패로 센다', () => {

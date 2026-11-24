@@ -43,7 +43,7 @@ export async function 프로시저재료읽기(pool: Pool, historyId: number): P
       앞케이스: 앞.map((r) => ({
         tcId: r.tc_id,
         tcName: r.tc_name,
-        판정: 판정글[r.status] ?? r.status,
+        판정: 판정아닌까닭을가른다(r.status, r.message) === 'BLOCKED' ? 'Blocked' : (판정글[r.status] ?? r.status),
         steps: 절차.filter((s) => s.history_id === r.history_id).map((s) => s.title),
       })),
       앞실패: 앞.filter((r) => r.status === 'FAIL').map((r) => r.tc_id),

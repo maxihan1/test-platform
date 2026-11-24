@@ -33,9 +33,14 @@ export function 실행표시(실행: { run_id: string; origin: string; rerun_of:
   return 주소 === '' || (한건 && 실행.rerun_of === null) ? `RUN ${번호}` : `RUN ${번호}\n${주소}/#/runs/${번호}`;
 }
 
-/** 확인 실행에서 대상 케이스가 앞 케이스에 막혀(Blocked) 끝났으면 막은 케이스 번호 — 판정이 아닌 결과는 notVerdict 한 곳에서 가른다 */
+/**
+ * 확인 실행에서 대상 케이스가 앞 케이스에 막혀(Blocked) 끝났으면 막은 케이스 번호 — 판정이 아닌 결과는 notVerdict 한 곳에서 가른다.
+ * 통과하지 못한 줄이 모두 Blocked 일 때만이다 — 한 디바이스라도 진짜 Fail 이면 그 Fail 을 「막혔다」로 가리면 안 된다
+ */
 export function 막힌대상(항목: readonly { status: string; message: string | null; blocked_by: string | null }[]): string | null {
-  return 항목.find((i) => 판정아닌까닭을가른다(i.status, i.message) === 'BLOCKED' && i.blocked_by !== null)?.blocked_by ?? null;
+  const 못 = 항목.filter((i) => i.status !== 'PASS');
+  const 막힘 = 못.filter((i) => 판정아닌까닭을가른다(i.status, i.message) === 'BLOCKED' && i.blocked_by !== null);
+  return 못.length > 0 && 막힘.length === 못.length ? 막힘[0]!.blocked_by : null;
 }
 
 /** 닫기 댓글 끝 한 줄 — 프로시저가 통째로 돌아 같이 돈 다른 케이스 가운데 통과하지 못한 것. 없으면 빈 글 */

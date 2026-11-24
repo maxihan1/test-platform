@@ -4,6 +4,7 @@ import { 문판정 } from '../auth/gate.js';
 import { 필요권한 } from '../auth/routeTable.js';
 import { 서비스없음, 자원의서비스, 케이스의서비스 } from '../auth/scope.js';
 import type { 사용자 } from '../auth/store.js';
+import { Blocked줄 } from '../execution/notVerdict.js';
 import { findRun } from '../execution/queries.js';
 import { 글상한, 막힘, 문막힘, 안목록, 없음, 열기, 자르기, 최대줄, type 도구답 } from './tools.js';
 
@@ -48,8 +49,8 @@ export async function 실행찾기(사람: 사용자, service: string, 찾을것
   );
   const 실을것 = 실행.rows.slice(0, 최대실행);
   if (실을것.length === 0) return { ok: true, data: { runs: [], empty: `${케이스들.slice(0, 안목록).join(' · ')} 가 든 실행이 없다` } };
-  const 항목 = await pool.query<{ run_id: string; tc_id: string; platform: string; attempt: number; status: string; finished_at: Date | null; blocked_by: string | null }>(
-    `SELECT run_id, tc_id, platform, attempt, status, finished_at, blocked_by FROM run_item
+  const 항목 = await pool.query<{ run_id: string; tc_id: string; platform: string; attempt: number; status: string; finished_at: Date | null; blocked_by: string | null; blocked: boolean }>(
+    `SELECT run_id, tc_id, platform, attempt, status, finished_at, blocked_by, ${Blocked줄()} AS blocked FROM run_item
       WHERE run_id = ANY($1) AND tc_id = ANY($2) ORDER BY run_id, tc_id, platform, attempt`,
     [실을것.map((x) => x.run_id), 케이스들],
   );
@@ -65,7 +66,7 @@ export async function 실행찾기(사람: 사용자, service: string, 찾을것
           env: x.env,
           startedAt: x.started_at,
           finishedAt: x.finished_at,
-          items: 줄.slice(0, 안목록).map((i) => ({ tcId: i.tc_id, platform: i.platform, attempt: i.attempt, status: i.status, finishedAt: i.finished_at, ...(i.blocked_by !== null && { blockedBy: i.blocked_by }) })),
+          items: 줄.slice(0, 안목록).map((i) => ({ tcId: i.tc_id, platform: i.platform, attempt: i.attempt, status: i.status, finishedAt: i.finished_at, ...(i.blocked && { blocked: true }), ...(i.blocked_by !== null && { blockedBy: i.blocked_by }) })),
           ...(줄.length > 안목록 && { moreItems: 줄.length - 안목록 }),
         };
       }),
