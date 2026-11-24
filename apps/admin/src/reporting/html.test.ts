@@ -215,7 +215,7 @@ describe('증적 문서 HTML', () => {
         },
       ],
     };
-    const 깨진html = renderHtml(문서([항목({ status: 'FAIL', steps: [여러검증] })]), 옵션);
+    const 깨진html = renderHtml(문서([항목({ status: 'FAIL', verifyStatements: [], steps: [여러검증] })]), 옵션);
     const 사진 = 깨진html.indexOf(화면);
 
     // 어느 확인에서 깨졌는지와 그때 화면이 나란히 붙어야 의미가 있다 (SPEC §8.4)
@@ -228,7 +228,7 @@ describe('증적 문서 HTML', () => {
       screenshotPath: 화면,
       assertions: [여러검증.assertions[0] ?? 깨진스텝.assertions[0]!],
     };
-    const 통과html = renderHtml(문서([항목({ steps: [통과스텝] })]), 옵션);
+    const 통과html = renderHtml(문서([항목({ verifyStatements: [], steps: [통과스텝] })]), 옵션);
     expect(통과html.indexOf('응답 코드가 정상이다')).toBeLessThan(
       통과html.indexOf(화면),
     );
@@ -311,6 +311,42 @@ describe('증적 문서 HTML', () => {
 
     // 빈 칸을 두지 않는다 (SPEC §4.1 「없으면 없다고 적는다」)
     expect(html).toContain('입력 없음');
+  });
+
+  describe('기대 결과 — 케이스 코드의 확인 문장', () => {
+    const 기대칸 = (html: string): string => html.split('<div class="row-k">기대 결과</div>')[1]!.split('<div class="row-k">')[0]!;
+
+    it('박제한 확인 문장을 한 줄씩 먼저 적고 그 아래 값 칸을 둔다 — 글자는 이스케이프한다', () => {
+      const html = renderHtml(문서([항목({ verifyStatements: ['하단 「홈」 탭이 보인다', '<b>합계</b> & 개수'] })]), 옵션);
+      const 칸 = 기대칸(html);
+
+      expect(칸).toContain('<div class="pre">· 하단 「홈」 탭이 보인다</div>');
+      expect(칸).toContain('<div class="pre">· &lt;b&gt;합계&lt;/b&gt; &amp; 개수</div>');
+      expect(칸.indexOf('하단 「홈」')).toBeLessThan(칸.indexOf('토큰 발급'));
+      expect(칸).not.toContain('기대 결과 없음');
+    });
+
+    it('문장도 값 칸도 없을 때만 「기대 결과 없음」이다', () => {
+      expect(기대칸(renderHtml(문서([항목({ expected: [], verifyStatements: [] })]), 옵션))).toContain('기대 결과 없음');
+      expect(기대칸(renderHtml(문서([항목({ expected: [], verifyStatements: ['보인다'] })]), 옵션))).not.toContain('기대 결과 없음');
+    });
+
+    it('박제가 null 인 옛 항목은 돈 절차에서 판정이 난 문장을 쓴다 — 참고(NA)는 빼고 같은 문장은 한 번', () => {
+      const 단계 = (문장들: [string, 'PASS' | 'FAIL' | 'NA'][]): EvidenceStep => ({
+        ...깨진스텝,
+        assertions: 문장들.map(([statement, status]) => ({ statement, expected: '', actual: '', status, blocker: false })),
+      });
+      const html = renderHtml(
+        문서([항목({ expected: [], verifyStatements: null, steps: [단계([['로그인된다', 'PASS'], ['참고 기록', 'NA']]), 단계([['로그인된다', 'FAIL'], ['토큰이 있다', 'PASS']])] })]),
+        옵션,
+      );
+      const 칸 = 기대칸(html);
+
+      expect(칸.match(/class="pre"/g)).toHaveLength(2);
+      expect(칸).toContain('· 로그인된다');
+      expect(칸).toContain('· 토큰이 있다');
+      expect(칸).not.toContain('참고 기록');
+    });
   });
 
   it('디바이스는 PC / 모바일로 적는다', () => {

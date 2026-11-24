@@ -186,6 +186,16 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     expect(item?.steps[1]?.assertions[0]?.statement).toBe('토큰이 발급된다');
   });
 
+  it('findItem — 실행을 만들 때 박제한 확인 문장을 싣고 박제가 없는 줄은 null 이다', async () => {
+    expect((await findItem(나중, 실패항목))?.verifyStatements).toBeNull();
+    await pool.query("UPDATE run_item SET verify_statements = ARRAY['토큰이 발급된다', '하단 「홈」 탭이 보인다'] WHERE history_id = $1", [실패항목]);
+    try {
+      expect((await findItem(나중, 실패항목))?.verifyStatements).toEqual(['토큰이 발급된다', '하단 「홈」 탭이 보인다']);
+    } finally {
+      await pool.query('UPDATE run_item SET verify_statements = NULL WHERE history_id = $1', [실패항목]);
+    }
+  });
+
   it('findItem — 다른 실행의 항목 번호를 넣으면 null이다', async () => {
     expect(await findItem(먼저, 실패항목)).toBeNull();
   });

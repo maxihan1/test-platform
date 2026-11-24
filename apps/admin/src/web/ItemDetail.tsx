@@ -10,10 +10,11 @@ import { use말, use언어 } from './i18n.js';
 import { 항목실행줄 } from './ItemRunContext.js';
 import { Step } from './ItemSteps.js';
 import { ItemTraceSection } from './ItemTrace.js';
+import { 기대문장 } from './expectedLines.js';
 import { fieldsOf, type Field } from './mask.js';
 import { 케이스서비스 } from './role.js';
 import { use막힘사유글 } from './proc.js';
-import { 실행기록주소 } from './route.js';
+import { 실행결과주소 } from './route.js';
 import { 막힌항목 } from './runFlow.js';
 import { 미실행사유 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
@@ -81,7 +82,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
           </p>
           {item.blockedBy == null ? null : (
             <p>
-              <a href={실행기록주소(item.blockedBy, item.runId, true)}>{t말(막은판정 === 'FAIL' ? '{케이스} 실패 보기' : '{케이스} 결과 보기', { 케이스: item.blockedBy })}</a>
+              <a href={실행결과주소(item.runId, { 펼칠: item.blockedBy })}>{t말(막은판정 === 'FAIL' ? '{케이스} 실패 보기' : '{케이스} 결과 보기', { 케이스: item.blockedBy })}</a>
             </p>
           )}
         </div>
@@ -117,7 +118,8 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
       </div>
 
       <값칸 머리={t말('입력값')} 없음={t말('입력 없음')} 칸={params} />
-      <값칸 머리={t말('기대 결과')} 없음={t말('기대 결과 없음')} 칸={expected} />
+      {/* 기대 결과는 케이스의 성공 조건이라 안 돈 항목에도 선다 — 확인 문장을 먼저 적고 값 칸은 그 아래다 (도메인/리포팅 §8.4 「기대 결과」) */}
+      <값칸 머리={t말('기대 결과')} 없음={t말('기대 결과 없음')} 칸={expected} 문장={기대문장(item.verifyStatements, item.steps)} />
 
       <div className="sec">
         <div className="sec-h">{t말('시험 절차')}</div>
@@ -135,8 +137,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
 
       <div className="actions">
         <span className="note">{t말('이 화면의 구성이 리포트에 그대로 출력됩니다.')}</span>
-        {/* 실행 기록에서 그 실행을 고른 채 연다 — 결과 화면을 새로 열면 목록으로 돌아갈 길이 없다 (도메인/실행 §8.7 「A안」) */}
-        <a className="btn ghost" href={실행기록주소(item.tcId, item.runId)}>
+        <a className="btn ghost" href={실행결과주소(item.runId)}>
           {t말('실행 결과')}
         </a>
         {/* 이 항목에서 쓴 값으로 실행 창을 연다. 비밀값 칸은 응답이 가려 주므로 비워서 연다 (도메인/실행 §8.10) */}
@@ -158,12 +159,17 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
   );
 }
 
-function 값칸({ 머리, 없음, 칸 }: { 머리: string; 없음: string; 칸: Field[] }) {
+function 값칸({ 머리, 없음, 칸, 문장 = [] }: { 머리: string; 없음: string; 칸: Field[]; 문장?: string[] }) {
   return (
     <div className="sec">
       <div className="sec-h">{머리}</div>
+      {문장.map((줄) => (
+        <div className="pre" key={줄}>
+          {줄}
+        </div>
+      ))}
       {칸.length === 0 ? (
-        <p className="hint">{없음}</p>
+        문장.length > 0 ? null : <p className="hint">{없음}</p>
       ) : (
         칸.map((field) => (
           <div className="field" key={field.key}>

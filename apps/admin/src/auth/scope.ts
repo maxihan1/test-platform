@@ -99,6 +99,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/runs/:runId/evidence': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/bts/resend': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/insights': { 종류: '실행', 칸: 'runId' },
+  '/api/runs/:runId/neighbors': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/failures': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/items/:historyId': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/progress': { 종류: '실행', 칸: 'runId' },

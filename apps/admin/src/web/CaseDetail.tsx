@@ -125,6 +125,7 @@ export function CaseDetail({
 
   const 입력값 = schemaToFields(row.paramSchema, row.savedInput?.params, row.savedInput?.savedSecrets.params);
   const 기대결과 = schemaToFields(row.expectedSchema, row.savedInput?.expected, row.savedInput?.savedSecrets.expected);
+  const 확인문장 = row.verifyStatements ?? [];
   const 기법들 = row.techniques ?? [];
   const 묶음 = 이력 == null ? 이력 : 실행마다묶기(이력);
   const 같은 = use같은프로시저(row, 기억);
@@ -187,7 +188,7 @@ export function CaseDetail({
 
       <시험절차칸 row={row} 마지막={마지막} 결과={결과} 절차={절차} 고른기기={고른기기} on기기={set고른기기} />
 
-      {입력값.length === 0 && 기대결과.length === 0 ? null : (
+      {입력값.length === 0 && 기대결과.length === 0 && 확인문장.length === 0 ? null : (
         <div className="dsec">
           {입력값.length === 0 ? null : (
             <>
@@ -201,9 +202,17 @@ export function CaseDetail({
               />
             </>
           )}
+          {기대결과.length === 0 && 확인문장.length === 0 ? null : <div className="dlabel">{t('기대 결과')}</div>}
+          {/* 기대 결과는 실행 전부터 있는 성공 조건이다 — 케이스 코드의 확인 문장을 적고 고칠 수 있는 값 칸은 그 아래 둔다 (도메인/카탈로그 §8.1 「상세 칸」) */}
+          {확인문장.length === 0 ? null : (
+            <ul className="dlist">
+              {확인문장.map((줄) => (
+                <li key={줄}>{줄}</li>
+              ))}
+            </ul>
+          )}
           {기대결과.length === 0 ? null : (
             <>
-              <div className="dlabel">{t('기대 결과')}</div>
               <Form
                 idPrefix={`detail-${row.tcId}-e`}
                 fields={기대결과}

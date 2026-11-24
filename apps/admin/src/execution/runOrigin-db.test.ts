@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { findRun, listRuns } from './queries.js';
+import { 앞뒤실행 } from './runNeighbors.js';
 import { createRun, RunInputError } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -155,6 +156,32 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     const 이름으로 = await listRuns('XBO', 1, 50, { q: 'XBO-003 이름' });
     expect(이름으로.items.map((r) => r.runId)).toEqual(번호로.items.map((r) => r.runId));
     expect(이름으로.items.find((r) => r.runId === 오래된)?.platforms).toEqual(['desktop', 'mobile']);
+  });
+
+  it('앞뒤 실행은 목록에 건 조건 그대로의 차례다 — 다른 종류 · 한 건 실행은 건너뛰고 끝에서는 null', async () => {
+    const 번호들 = async (거르개: Parameters<typeof 앞뒤실행>[1]) => (await listRuns('XBO', 1, 50, { ...거르개, kind: 'fn' })).items.map((r) => r.runId);
+    const 기대 = (목록: number[], 실행: number) => ({
+      prev: 목록.filter((n) => n < 실행).at(0) ?? null,
+      next: 목록.filter((n) => n > 실행).at(-1) ?? null,
+    });
+    // 목록은 번호가 큰 것부터다
+    const 전체 = await 번호들({});
+    expect(전체.length).toBeGreaterThan(3);
+    const 가운데 = 전체[2]!;
+    expect(await 앞뒤실행(가운데, {})).toEqual({ prev: 전체[3]!, next: 전체[1]! });
+    expect(await 앞뒤실행(전체[0]!, {})).toEqual({ prev: 전체[1]!, next: null });
+    expect(await 앞뒤실행(전체.at(-1)!, {})).toEqual({ prev: null, next: 전체.at(-2)! });
+
+    // 조건을 걸면 그 조건에 맞는 실행만 앞뒤다 — 보고 있는 실행이 조건 밖이어도 같다
+    const 다시 = await 번호들({ origin: 'RERUN' });
+    expect(다시.length).toBeGreaterThan(0);
+    expect(await 앞뒤실행(가운데, { origin: 'RERUN' })).toEqual(기대(다시, 가운데));
+    const 실패 = await 번호들({ state: 'failed' });
+    expect(실패.length).toBeGreaterThan(0);
+    expect(await 앞뒤실행(가운데, { state: 'failed' })).toEqual(기대(실패, 가운데));
+    expect(await 앞뒤실행(가운데, { q: 'xbo-003' })).toEqual(기대(await 번호들({ q: 'xbo-003' }), 가운데));
+
+    expect(await 앞뒤실행(999_999_999, {})).toBeNull();
   });
 
   it('목록 줄은 디바이스마다 실패한 케이스 수를 싣는다 — 회차를 접고 실패 없는 디바이스도 0', async () => {

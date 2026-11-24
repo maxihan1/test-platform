@@ -48,12 +48,4 @@ describe('실패 N건 다시 실행 (도메인/실행 §8.3)', () => {
     await screen.findByText('실행 중단');
     expect(screen.queryByRole('button', { name: /다시 실행$/ })).toBeNull();
   });
-
-  it('실행 기록의 결과 칸에도 있다 — 목록에서 결과로 가는 주된 길이 거기서 끊기지 않는다', async () => {
-    vi.spyOn(api, 'run').mockResolvedValue(끝난실패);
-    vi.spyOn(api, 'insights').mockRejectedValue(new Error('견줄 앞 실행이 없다'));
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
-
-    expect(await screen.findByRole('button', { name: 'Fail 1건 다시 실행' })).toBeTruthy();
-  });
 });

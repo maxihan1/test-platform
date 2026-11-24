@@ -98,11 +98,11 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
     expect(상자라벨()).toContain('완료되었습니다');
   });
 
-  // 결과 칸에서 그 실행을 보고 있으면 「그 실행을 보고 있을 때」다 (도메인/실행 §8.9)
-  it('결과 칸에서 보던 실행이 끝나면 상자를 연 적 없어도 완료 상자가 뜬다', async () => {
+  // 그 실행의 결과 화면을 보고 있으면 「그 실행을 보고 있을 때」다 (도메인/실행 §8.9)
+  it('결과 화면에서 보던 실행이 끝나면 상자를 연 적 없어도 완료 상자가 뜬다', async () => {
     vi.useFakeTimers();
     vi.spyOn(api, 'run').mockResolvedValueOnce(도는중응답).mockResolvedValue(끝난응답);
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
     await act(async () => {});
     expect(screen.queryByRole('dialog')).toBeNull();
 
@@ -139,26 +139,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
 
   const 첫실행 = { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [] };
 
-  it('결과 칸에서는 증적 문서 정보가 RUN 머리 줄에 있다', async () => {
-    vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
-    vi.spyOn(api, 'run').mockResolvedValue({
-      ...실행,
-      status: 'FINISHED',
-      items: [],
-      evidence: [증적('PDF', 'READY')],
-    });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
-    await screen.findByRole('button', { name: '리포트 생성' });
-
-    const 머리 = document.querySelector('.box-head');
-    expect(머리?.textContent, '머리에 증적 문서 줄이 없다').toMatch(/만듦/);
-    // 같은 말을 두 번 하지 않는다 — 머리에 올렸으면 본문에 블록으로 또 서지 않는다.
-    // **접기(`.sec.fold`)는 빼고 본다** — 그것은 견줌 칸이고 증적과 상관이 없다.
-    // 안 빼면 견줌이 있는 실행에서 엉뚱한 이유로 빨개진다 (2026-09-22 자기검토)
-    expect(document.querySelector('.screen .sec:not(.fold)')).toBeNull();
-  });
-
-  it('화면 전체에서도 증적 문서 줄이 머리에 선다 — 옆 칸은 없다', async () => {
+  it('증적 문서 줄이 머리에 서고 옆 칸은 없다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     그리기('FINISHED', [증적('PDF', 'READY')]);
     await screen.findByRole('button', { name: '리포트 생성' });
@@ -187,7 +168,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   it('첫 실행에서는 견줌이 아예 없다 — 빈 접기 줄도 없다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
     await screen.findByRole('button', { name: '리포트 생성' });
 
     expect(screen.queryByText(/직전 실행과 비교/)).toBeNull();
@@ -195,24 +176,8 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   });
 });
 
-describe('결과 칸은 머리를 고정하고 요약 한 줄부터 스크롤한다 (도메인/실행 §8.3 · §8.7 「A안」)', () => {
-  it('칸안 이면 머리는 스크롤 칸 밖에, 요약 한 줄 · 본문은 .rows-scroll 안에 있다', async () => {
-    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
-
-    await screen.findByRole('button', { name: '리포트 생성' });
-
-    const 면 = document.querySelector('.screen');
-    expect(면?.classList.contains('pane-results')).toBe(true);
-    expect(면?.children).toHaveLength(1);
-    const 스크롤칸 = 면?.firstElementChild;
-    expect(스크롤칸?.classList.contains('rows-scroll')).toBe(true);
-    expect(스크롤칸?.querySelector('.box-head')).toBeNull();
-    expect(document.querySelector('.box-head .pane-title')?.textContent).toContain(`RUN ${String(RUN_ID)}`);
-    expect(스크롤칸?.querySelector('.rf-sum')).not.toBeNull();
-  });
-
-  it('칸안 이 아니면(화면 전체) 스크롤칸을 따로 두지 않는다 — 페이지가 그대로 스크롤한다', async () => {
+describe('결과 화면은 페이지가 그대로 스크롤한다 (도메인/실행 §8.3 · §8.7 「목록 화면과 결과 화면을 따로」)', () => {
+  it('스크롤칸을 따로 두지 않는다 — 머리를 고정하는 칸이 없다', async () => {
     그리기('FINISHED');
     await screen.findByRole('button', { name: '리포트 생성' });
 
@@ -233,7 +198,7 @@ describe('보고 있는 실행을 알림 줄에 알린다 (공통/5-화면공통
     const { unmount } = render(
       <>
         <엿보기 />
-        <RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />
+        <RunResult runId={RUN_ID} 판정하기={() => 실행까지} />
       </>,
     );
     await screen.findByRole('button', { name: /완료 · / });

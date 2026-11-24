@@ -60,7 +60,7 @@ describe('Blocked 항목', () => {
     expect(document.querySelector('.bar .verdict, .bar .vd')?.textContent).toBe('Blocked');
     await waitFor(() => expect(사유칸().textContent).toContain('Blocked 선행 케이스 ZID-003 실패'));
     const 고리 = screen.getByRole('link', { name: 'ZID-003 실패 보기' });
-    expect(고리.getAttribute('href')).toContain('ZID-003');
+    expect(고리.getAttribute('href')).toBe(`#/runs/${String(RUN_ID)}?tc=ZID-003`);
     expect(screen.queryByText('실패 이유')).toBeNull();
   });
 

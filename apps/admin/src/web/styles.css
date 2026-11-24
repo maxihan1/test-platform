@@ -5341,14 +5341,6 @@ details.raw {
   container-type: inline-size;
 }
 
-/* 상자 안: 제목 · 닫기만 고정하고 이 칸 하나가 스크롤한다 */
-.rr-scroll {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding-bottom: 8px;
-}
-
 .rr-fixed {
   font-size: 14px;
 }

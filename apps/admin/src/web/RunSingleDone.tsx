@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { api } from './api.js';
 import { use말 } from './i18n.js';
-import { 실행기록주소, 케이스주소 } from './route.js';
+import { 실행결과주소, 케이스주소 } from './route.js';
 import type { RunDetail } from './runProgress.js';
 import { useAsync } from './ui.js';
 
@@ -13,7 +13,7 @@ export const 한건인가 = (data: RunDetail): boolean => data.origin === 'SINGL
 
 export function 한건갈곳(data: RunDetail): string {
   const tcId = data.items[0]?.tcId ?? '';
-  return data.rerunOf == null ? 케이스주소(tcId) : 실행기록주소(tcId, data.rerunOf, true);
+  return data.rerunOf == null ? 케이스주소(tcId) : 실행결과주소(data.rerunOf, { 펼칠: tcId });
 }
 
 /**

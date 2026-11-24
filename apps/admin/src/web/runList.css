@@ -1,17 +1,4 @@
-/* 실행 기록 A안 — 왼쪽 목록 + 오른쪽 결과 칸 (도메인/실행 §8.7 「A안」). 색은 토큰만 쓴다 */
-
-/* `.main` 이 남는 높이를 이 칸에 다 주고, 두 단이 저마다 스크롤한다 — 목록을 내려도 결과 칸이 안 밀린다 */
-.runs-split {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-  gap: 16px;
-}
-
-.runs-split > .runs-list {
-  min-width: 0;
-}
+/* 실행 기록 — 목록 화면의 표와 결과 화면 위의 길 (도메인/실행 §8.7 「목록 화면과 결과 화면을 따로」 · DESIGN.md 「실행 기록」). 색은 토큰만 쓴다 */
 
 .runs-list .toolbar {
   padding: 12px 16px;
@@ -28,236 +15,286 @@
   gap: 6px;
 }
 
-.runs-out {
-  margin: 0;
-  padding: 8px 16px;
-  font-size: 12.5px;
-  color: var(--ink-muted);
-  border-bottom: 1px solid var(--line);
-}
-
-/* 줄 — 띠 · 제목과 작은 글 · 판정 덩어리. 목록 칸이 좁아 RUN 번호는 작은 글 맨 앞에 둔다 */
-.run-rowhead,
-.run-row {
-  grid-template-columns: 4px minmax(0, 1fr) 156px;
-}
-
-.run-rowhead {
-  padding-right: 16px;
-}
-
-.run-row {
+/* 표 — 한 줄에 실행 하나. 칸은 띠 · RUN · 실행 · 시작 방식 · 빌드 · 시작 · 소요 시간 · 통과율 · Pass · Fail · Not tested 다 */
+.rt-row {
+  display: grid;
+  grid-template-columns: 3px 48px minmax(160px, 1fr) 86px 146px 104px 64px 100px 44px 40px 100px;
+  gap: 0 12px;
+  align-items: center;
   width: 100%;
   padding: 0 16px 0 0;
-  background: none;
-  border: 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
   color: inherit;
-  font: inherit;
+  font-size: 13px;
   text-align: left;
+  text-decoration: none;
+}
+
+/* E2E 는 판정이 실행에 하나라 칸이 다르다 — 띠 · RUN · 시나리오 · 대상 서버 · 시작 · 소요 시간 · 판정 · 단계 */
+.rt-row.rt-e2e {
+  grid-template-columns: 3px 48px minmax(180px, 1fr) 96px 104px 64px 96px minmax(120px, 200px);
+}
+
+.rt-head {
+  height: 36px;
+  border-bottom-color: var(--line);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.rt-row .r {
+  text-align: right;
+}
+
+/* 손가락 영역 44px — 휴대폰에서 여는 화면이다 (공통/5-화면공통 §8 「휴대폰 화면」) */
+.rt-line {
+  min-height: 44px;
   cursor: pointer;
 }
 
-/* 고른 줄. 판정 색이 아니라 「지금 고른 것」의 대표색이다 (DESIGN.md 원칙 1) */
-.run-row[aria-current='true'] {
-  background: var(--accent-soft);
-  box-shadow: inset -3px 0 0 var(--accent-mark);
+.rt-line:hover {
+  background: var(--well);
 }
 
-.run-verdict {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  padding: 12px 0;
+.rt-gutter {
+  align-self: stretch;
 }
 
-.run-verdict .stripe {
-  margin: 0;
-  border-radius: 3px;
-  /* 화면을 열면 결과 띠가 왼쪽부터 자란다. 줄은 다시 읽어도 같은 요소라 한 번만 돈다 (DESIGN 원칙 4 「숫자 · 막대 · 선」) */
-  transform-origin: left;
-  animation: 자람가로 var(--t3) var(--ease) 0.1s backwards;
+/* 띠는 Fail 이 있는 줄에만 선다 — 모든 줄에 판정 색이 서면 실패가 묻힌다 (DESIGN.md 「판정」) */
+.rt-line.fail .rt-gutter {
+  background: var(--fail);
 }
 
-.run-verdict .tally {
-  gap: 8px;
-  font-size: 12px;
-}
-
-/* E2E 줄의 판정 칩 · 「미확정」 꼬리표는 세로 쌓기에 늘어나지 않고 왼쪽 끝에 칩 모양으로 선다 */
-.run-verdict > .verdict,
-.run-verdict > .case-tag {
-  align-self: flex-start;
-  margin-left: 0;
-}
-
-.run-verdict .unconf-line {
-  font-size: 11.5px;
+.rt-run {
+  font-size: 12.5px;
   color: var(--ink-muted);
 }
 
-.run-tags {
+.rt-title {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  font-size: 11.5px;
-}
-
-/* 결과 칸 — 머리(제목 · 부제 · 「실패 N건 다시 실행」 · 증적)는 고정, 요약 띠부터 스크롤한다 (도메인/실행 §8.3) */
-.run-pane {
+  align-items: center;
+  gap: 8px;
   min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  overflow: hidden;
 }
 
-.run-pane .box-head {
-  flex-shrink: 0;
-}
-
-.run-pane .box-head .tally {
-  margin-top: 10px;
-}
-
-.pane-title {
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.3;
+.rt-name {
+  flex: 0 1 auto;
+  min-width: 4em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
   color: var(--ink);
-  overflow-wrap: anywhere;
 }
 
-.pane-run {
-  margin-left: 6px;
+/* 자리가 모자라면 제목이 아니라 꼬리표가 먼저 줄어든다 */
+.rt-title > :not(.rt-name) {
+  flex: 0 100 auto;
+  min-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 상태 꼬리표(진행 중 · 중단 · 준비 실패)만은 안 줄어든다 — 제목이 길어도 끝난 실행인지는 보여야 한다 */
+.rt-title > .case-tag {
+  flex: none;
+}
+
+.rt-reg {
+  padding: 1px 7px;
+  border: 1px solid var(--fail);
+  border-radius: 4px;
+  font-size: 11.5px;
+  color: var(--fail-text);
+  white-space: nowrap;
+}
+
+.rt-sub {
   font-size: 12.5px;
-  font-weight: 400;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.rt-steps {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rt-build {
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rt-rate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rt-rate b {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rt-bar {
+  display: flex;
+  gap: 1px;
+  flex: none;
+  width: 40px;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.rt-p {
+  color: var(--pass-text);
+  font-weight: 600;
+}
+
+.rt-f {
+  color: var(--fail-text);
+  font-weight: 700;
+}
+
+/* Fail 0 은 흐리게 — 숫자가 있는 줄만 눈에 걸린다 (DESIGN.md 원칙 3) */
+.rt-zero {
   color: var(--ink-faint);
 }
 
-.screen.pane-results {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 0;
+.rt-n {
+  color: var(--na-text);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.screen.rr.pane-results {
-  overflow: hidden;
+.rt-n small {
+  font-size: 11.5px;
+  font-weight: 400;
 }
 
-/* E2E 결과는 단계 목록 하나라 칸 머리 아래 본문 전체가 스크롤한다 */
-.screen.scn-pane {
-  overflow: auto;
-}
-
-.pane-results .rr-scroll {
-  padding-right: 4px;
-}
-
-.pane-back {
-  display: none;
-  align-self: flex-start;
-}
-
-/* 창이 좁으면 한 단으로 접는다 — 고르기 전에는 목록, 고르면 결과와 「목록으로」 (도메인/실행 §8.7 「A안」) */
-@media (max-width: 1180px) {
-  .runs-split {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .runs-split:not(.picked) > .run-pane,
-  .runs-split.picked > .runs-list {
+/* 휴대폰은 한 줄을 세 줄로 쌓고 판정 수 앞에 이름을 붙인다 (도메인/실행 §8.7 「칸마다 이름을 단다」). 격자 대신 줄바꿈하는 가로 줄이고 앞뒤 가짜 요소 둘(폭 100%)이 줄을 끊는다 — 줄마다 격자를 잡으면 긴 글이 든 줄만 판정 수 사이가 벌어진다 */
+@media (max-width: 620px) {
+  .rt-head {
     display: none;
   }
 
-  .pane-back {
-    display: inline-flex;
-  }
-}
-
-/* 휴대폰에서는 판정 칸(156px)을 제목 아래로 내린다 — 세 칸 그대로면 제목이 왼쪽 절반 폭만 써 대여섯 글자씩 꺾였다 (2026-10-31 시험 f9).
-   styles.css 의 620px `.row` 두 칸 규칙을 이 파일의 `.run-row` 세 칸이 같은 특정도로 덮어서 여기서 되돌린다 */
-@media (max-width: 620px) {
-  .run-row {
-    grid-template-columns: 4px minmax(0, 1fr);
+  .rt-row.rt-line {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 10px;
+    padding: 10px 12px 10px 13px;
   }
 
-  .run-verdict {
-    grid-row: 3;
-    grid-column: 2;
-    padding: 0 0 12px;
-  }
-}
-
-/* 진행 알약 — 진행 창을 닫은 실행 (DESIGN.md 「창이 아닌 떠 있는 것」). 창(.modal-back 100)보다 아래, 화면 위에 뜬다 */
-.run-pill {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 14px 7px 12px;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--ink);
-  box-shadow: var(--shadow);
-  font: inherit;
-  font-size: 12.5px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  animation: 떠오름 var(--t2) var(--ease) backwards;
-}
-
-.run-pill .pulse {
-  margin-right: 0;
-}
-
-.run-pill-bar {
-  width: 70px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--well);
-  overflow: hidden;
-}
-
-.run-pill-bar i {
-  display: block;
-  height: 100%;
-  background: var(--accent-mark);
-  transition: width var(--t2) linear;
-}
-
-/* 알약이 떠 있으면 본문 아래에 그 높이만큼 자리를 둔다 — 목록 판 오른쪽 아래 「이전 · 1 / 7쪽 · 다음」을 가렸다 (2026-10-31 시험 f18) */
-.wrap:has(.run-pill) > .main {
-  padding-bottom: 64px;
-}
-
-/* 휴대폰은 아래 탭 바로 위에 폭을 다 쓰고 선다. 실행 결과의 「실패 N건 다시 실행」 판(72px)이 있으면 그 위다 */
-@media (max-width: 620px) {
-  .run-pill {
-    right: 12px;
-    bottom: calc(var(--ph-tabs) + 12px);
-    left: 12px;
-    border-radius: 12px;
+  .rt-line::before,
+  .rt-line::after {
+    content: '';
+    flex-basis: 100%;
   }
 
-  .run-pill-bar {
-    flex: 1;
+  .rt-line::before {
+    order: 4;
   }
 
-  body:has(.rerun-dock) .run-pill {
-    bottom: calc(var(--ph-tabs) + 84px);
+  .rt-line::after {
+    order: 8;
   }
-}
 
-/* 자동 수정 카드의 고치기 전 실패 원인 — 지운 것이 아니라 고치기 전 기록이라 흐리게 줄만 긋는다 (도메인/BTS §8.15 「자동 수정 표시」 B) */
-.fc-card.fc-fixed .fc-head .fail-reason {
-  text-decoration: line-through;
-  color: var(--ink-muted);
+  .rt-line .rt-gutter {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+  }
+
+  .rt-line .rt-run {
+    order: 1;
+    flex: none;
+    width: 42px;
+  }
+
+  .rt-line .rt-title {
+    order: 2;
+    flex: 1 1 0;
+  }
+
+  .rt-line .rt-rate,
+  .rt-line .rt-verdict {
+    order: 3;
+    flex: none;
+  }
+
+  /* 둘째 · 셋째 줄은 번호 칸만큼 들여 제목과 왼쪽을 맞춘다 */
+  .rt-line .rt-p,
+  .rt-line .rt-steps {
+    order: 5;
+    margin-left: 52px;
+  }
+
+  .rt-line .rt-f,
+  .rt-line .rt-zero {
+    order: 6;
+  }
+
+  .rt-line .rt-n {
+    order: 7;
+  }
+
+  .rt-line > :nth-child(4) {
+    order: 9;
+    margin-left: 52px;
+  }
+
+  /* 빌드는 결과 화면 머리에서 본다 */
+  .rt-line:not(.rt-e2e) > :nth-child(5) {
+    display: none;
+  }
+
+  .rt-line > :nth-child(5),
+  .rt-line > :nth-child(6) {
+    order: 10;
+    text-align: left;
+  }
+
+  .rt-line:not(.rt-e2e) > :nth-child(7) {
+    order: 11;
+    text-align: left;
+  }
+
+  /* E2E 는 두 줄이다 — 번호 · 시나리오 · 판정 / 시작 · 소요 시간. 단계와 대상 서버는 결과 화면에서 본다 (2026-11-24 사용자) */
+  .rt-e2e.rt-line .rt-steps,
+  .rt-e2e.rt-line > :nth-child(4) {
+    display: none;
+  }
+
+  .rt-e2e.rt-line > :nth-child(5) {
+    margin-left: 52px;
+  }
+
+  .rt-p::before,
+  .rt-f::before,
+  .rt-zero::before,
+  .rt-n::before {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--ink-muted);
+  }
+
+  .rt-p::before {
+    content: 'Pass ';
+  }
+
+  .rt-f::before,
+  .rt-zero::before {
+    content: 'Fail ';
+  }
+
+  .rt-n::before {
+    content: 'Not tested ';
+  }
 }

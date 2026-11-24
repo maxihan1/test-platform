@@ -1,0 +1,69 @@
+/* 실행 결과 화면 위의 길과 머리 — 「← 실행 기록」 · 「‹ 이전 실행 · 다음 실행 ›」 · 휴대폰 머리 (도메인/실행 §8.7 · §8.3 「머리와 길」). 색은 토큰만 쓴다 */
+
+/* 결과 화면 위의 길 — 왼쪽 「← 실행 기록」, 오른쪽 「‹ 이전 실행 · 다음 실행 ›」 */
+.run-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* `.main` 은 위 여백이 없고 머리(.head)가 제 위 여백을 든다 — 머리 위에 서는 이 줄도 같은 여백을 든다 */
+  padding-top: 16px;
+  flex-shrink: 0;
+}
+
+.run-nav + .head {
+  padding-top: 10px;
+}
+
+.run-nav-sp {
+  flex: 1;
+}
+
+.run-nav a.btn {
+  text-decoration: none;
+}
+
+/* 결과 화면 머리의 부제 — 넓은 창에서는 한 줄로 다 적고 펼침 단추는 없다 */
+.rm-more {
+  display: none;
+}
+
+/* 휴대폰의 결과 화면 머리 — 길 · 실행명 · 부제 한 줄과 단추. 부제를 다 적으면 세 줄을 넘기고 단추가 한 줄을 더 써서 결과가 화면 밖으로 밀렸다 (2026-11-24 사용자) */
+@media (max-width: 620px) {
+  .run-meta:not(.open) > span:not(.rm-key) {
+    display: none;
+  }
+
+  .rm-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink-muted);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  /* 제목 칸을 풀어 실행명은 한 줄을 다 쓰고 부제와 단추가 같은 줄에 선다. 휴대폰 머리는 세로로 쌓는 것이 기본이라(styles.css) 이 화면만 가로 줄로 되돌린다 */
+  .head.run-head {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px 10px;
+  }
+
+  .head.run-head .head-title {
+    display: contents;
+  }
+
+  .head.run-head h1 {
+    flex: 1 1 100%;
+  }
+
+  .head.run-head .head-meta {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+}

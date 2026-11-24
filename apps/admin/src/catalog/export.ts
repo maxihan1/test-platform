@@ -12,6 +12,8 @@ import { PC디바이스글 } from '../execution/pcPlatform.js';
 
 export interface ExportCase
   extends Pick<CaseSpec, 'tcId' | 'name' | 'platforms' | 'precondition' | 'paramSchema' | 'expectedSchema' | 'techniques'> {
+  /** 케이스 코드의 확인 문장 — 기대 결과 칸 맨 위에 줄로 적는다 */
+  verifyStatements?: string[] | null;
   unconfirmed?: string | null;
   /** at 은 표에 그대로 적는 글자다 — 시간대 변환은 부르는 쪽 몫 */
   lastResult?: { status: ItemStatus; at: string } | null;
@@ -93,7 +95,7 @@ function 케이스행(c: ExportCase, input: ExportInput): (string | null)[] {
     기기.map((p) => 디바이스[p]).join(' · '),
     c.precondition.join('\n'),
     스키마글(c.paramSchema),
-    스키마글(c.expectedSchema),
+    [...(c.verifyStatements ?? []), 스키마글(c.expectedSchema)].filter((줄) => 줄 !== '').join('\n'),
     상태(c, input.canSeeAuthoring),
     input.canSeeRuns ? 결과 : null,
   ];

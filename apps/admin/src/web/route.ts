@@ -75,12 +75,35 @@ export type Route =
 export const UI케이스인가 = (tcId: string): boolean => /-UI-\d{3}$/.test(tcId);
 
 /**
- * 실행 기록에서 그 실행을 고른 주소 (도메인/실행 §8.7 「A안」).
- * `카드열기` 를 켜면 그 케이스의 실패 카드가 펼쳐진 채 열린다 — 대시보드 · 항목 상세에서 원인까지 곧장 내려가려고 (도메인/실행 §8.3)
+ * 실행 결과 화면 주소. 결과 화면은 이 주소 하나다 — 실행 기록의 줄 · 알림 · 대시보드 · 다른 화면의 고리가 모두 이리로 온다 (도메인/실행 §8.7 「목록 화면과 결과 화면을 따로」).
+ * `펼칠` 을 주면 그 케이스 줄이 펼쳐진 채 열린다 — 대시보드 · 항목 상세에서 원인까지 곧장 내려가려고 (도메인/실행 §8.3).
+ * `목록` 은 실행 기록에서 넘어올 때 걸어 둔 조건이다 — 「← 실행 기록」과 「이전 · 다음 실행」이 그 조건을 쓴다
  */
-export function 실행기록주소(tcId: string, runId: number, 카드열기 = false): string {
-  const 주소 = `#/runs/${UI케이스인가(tcId) ? 'ui' : 'fn'}?run=${String(runId)}`;
-  return 카드열기 ? `${주소}&tc=${encodeURIComponent(tcId)}` : 주소;
+export function 실행결과주소(runId: number, { 펼칠, 목록 }: { 펼칠?: string; 목록?: string } = {}): string {
+  const 조건 = new URLSearchParams();
+  if (펼칠 !== undefined) 조건.set('tc', 펼칠);
+  if (목록 !== undefined && 목록 !== '') 조건.set('list', 목록);
+  const 글 = 조건.toString();
+  return 글 === '' ? `#/runs/${String(runId)}` : `#/runs/${String(runId)}?${글}`;
+}
+
+/**
+ * 실행 기록에서 실행을 고른 옛 주소(`#/runs/fn?run=130&state=failed&tc=…` — 2026-11-24 전의 좌우 칸)를 결과 화면 주소로 옮긴다.
+ * 이미 붙여 둔 고리가 썩지 않게 한다. 결과 화면의 칸(판정 · 디바이스 · 쪽 · 펼친 줄)은 그대로 넘기고 목록 조건은 `list=` 로 접는다. 고른 실행이 없으면 null
+ */
+export function 옛실행주소(조건: URLSearchParams): string | null {
+  const run = 조건.get('run');
+  if (run === null || !/^\d{1,10}$/.test(run)) return null;
+  const 결과칸 = new Set(['tc', 'status', 'device', 'change', 'rowpage', 'open']);
+  const 결과 = new URLSearchParams();
+  const 목록 = new URLSearchParams();
+  for (const [칸, 값] of 조건) {
+    if (칸 === 'run') continue;
+    (결과칸.has(칸) ? 결과 : 목록).set(칸, 값);
+  }
+  if (목록.toString() !== '') 결과.set('list', 목록.toString());
+  const 글 = 결과.toString();
+  return 글 === '' ? `#/runs/${run}` : `#/runs/${run}?${글}`;
 }
 
 /**

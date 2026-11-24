@@ -54,7 +54,6 @@ export function 실패다시실행({
   시작,
   된다,
   자동수정 = [],
-  on걸었다,
 }: {
   runId: number;
   items: RunItemSummary[];
@@ -64,7 +63,6 @@ export function 실패다시실행({
   된다: boolean;
   /** 실행 응답의 autoFixedCases — 「수정 후 통과」 카드의 케이스. 이미 고쳐 통과해 다시 돌릴 실패가 아니다 (도메인/BTS §8.15 B) */
   자동수정?: string[];
-  on걸었다?: (runId: number) => void;
 }) {
   const t = use말();
   const [열림, set열림] = useState(false);
@@ -91,7 +89,6 @@ export function 실패다시실행({
           rerunOf={runId}
           디바이스={{ ...끊긴, ...실패디바이스(남은) }}
           기준시각={시작}
-          on걸었다={on걸었다}
           onClose={() => set열림(false)}
         />
       )}

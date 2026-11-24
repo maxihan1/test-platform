@@ -4,8 +4,9 @@ import { useState } from 'react';
 
 import { api } from './api.js';
 import { use언어 } from './i18n.js';
-import { 실행기록주소 } from './route.js';
+import { 실행결과주소 } from './route.js';
 import type { 실행요청 } from './pickRun.js';
+import { 목록조건읽기 } from './RunNav.js';
 import { 지켜본다 } from './runWatchStore.js';
 import { message } from './ui.js';
 
@@ -27,11 +28,7 @@ async function 한건이었나(요청: 실행요청, runId: number, attachedTo: 
  * 그래서 지어내지 않고 서버가 준 한 줄을 **창 안으로** 돌려보내고 창은 열어 둔다.
  * 거절당해도 `거는중` 을 반드시 풀어 다시 누를 수 있게 한다.
  */
-/**
- * @param on걸었다 있으면 주소를 옮기지 않고 새 실행 번호를 넘긴다 — 실행 기록의 결과 칸에서 건 「실패 다시」는
- * 같은 목록에 남아 그 실행만 고른다(주소를 옮기면 목록이 조건을 다시 그려 고른 것을 덮는다)
- */
-export function useRunStart(on걸었다?: (runId: number) => void) {
+export function useRunStart() {
   const 언어 = use언어();
   // 걸었다 거절당한 사유. **목록 줄에 적으면 창 뒤에 깔린다** — 창 안에 적는다 (SPEC §8.10)
   const [사유, set사유] = useState<string | undefined>(undefined);
@@ -52,9 +49,9 @@ export function useRunStart(on걸었다?: (runId: number) => void) {
         지켜본다({ runId, 열림: true });
         return true;
       }
-      // 결과 화면 대신 실행 기록에서 그 실행을 고른 채 연다 — 뒤로 가면 떠난 목록의 조건이 그대로다 (도메인/실행 §8.7 「A안」)
-      if (on걸었다 !== undefined) on걸었다(runId);
-      else window.location.hash = 실행기록주소(요청.items[0]?.tcId ?? '', runId);
+      // 그 실행의 결과 화면으로 간다 — 뒤로 가면 떠난 목록의 조건이 그대로다 (도메인/실행 §8.7 「목록 화면과 결과 화면을 따로」)
+      // 결과 화면에서 걸었으면(「Fail N건 다시 실행」) 그 화면이 쥔 목록 조건을 넘긴다 — 「← 실행 기록」이 같은 목록으로 돌아간다
+      window.location.hash = 실행결과주소(runId, { 목록: 목록조건읽기() });
       // 옮긴 뒤에도 진행 창을 바로 연다 — 앞 판은 알약 「N/12 완료」를 눌러야 열려 시험에서 못 찾았다 (점검표 B7 · §8.16 ⑤)
       지켜본다({ runId, 열림: true });
       return true;

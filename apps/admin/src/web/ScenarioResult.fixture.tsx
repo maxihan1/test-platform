@@ -2,6 +2,7 @@
 
 import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { api } from './api.js';
 import { scenarioApi, type ScenarioRunPart, type ScenarioRunResult } from './scenarioApi.js';
 import { ScenarioResult } from './ScenarioResult.js';
 
@@ -74,9 +75,10 @@ export function 결과(덮: Partial<ScenarioRunResult> = {}): ScenarioRunResult 
   };
 }
 
-export function 연다(답: ScenarioRunResult, 칸안 = false) {
+export function 연다(답: ScenarioRunResult) {
   const 부름 = vi.spyOn(scenarioApi, 'result').mockResolvedValue(답);
-  render(<ScenarioResult runId={77} 판정하기={() => () => true} 칸안={칸안} />);
+  vi.spyOn(api, 'runNeighbors').mockResolvedValue({ prev: null, next: null });
+  render(<ScenarioResult runId={77} 판정하기={() => () => true} />);
   return 부름;
 }
 

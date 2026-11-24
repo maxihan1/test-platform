@@ -35,6 +35,8 @@ import './bts.css';
 import './itemTrace.css';
 import './runEvidence.css';
 import './runList.css';
+import './runNav.css';
+import './runPill.css';
 import './caseList.css';
 import './runFlow.css';
 import './casePick.css';

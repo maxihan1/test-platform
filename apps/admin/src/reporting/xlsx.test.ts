@@ -111,6 +111,20 @@ describe('증적 문서 엑셀', () => {
     expect(셀(ws, 2, 27)).toBe('기능 테스트');
   });
 
+  it('기대 결과 칸은 확인 문장을 줄바꿈으로 잇고 값 칸 글이 있으면 그 뒤에 붙인다 — 박제가 null 이면 돈 절차의 판정 문장이다', async () => {
+    const 칸 = async (덮을것: Partial<EvidenceItem>): Promise<string> => 셀(await 편다(문서([항목(덮을것)])), 2, 17);
+
+    expect(await 칸({ verifyStatements: ['하단 「홈」 탭이 보인다', '목록이 두 건이다'] })).toBe('하단 「홈」 탭이 보인다\n목록이 두 건이다\n토큰 발급: true');
+    expect(await 칸({ expected: [], verifyStatements: [] })).toBe('');
+    expect(
+      await 칸({
+        expected: [],
+        verifyStatements: null,
+        steps: [스텝({ assertions: [{ statement: '토큰이 발급된다', expected: 'true', actual: 'true', status: 'PASS', blocker: false }, { statement: '참고', expected: '', actual: '', status: 'NA', blocker: false }] })],
+      }),
+    ).toBe('토큰이 발급된다');
+  });
+
   it('검증 문장 2개짜리 절차는 2행이 된다', async () => {
     const ws = await 편다(
       문서([

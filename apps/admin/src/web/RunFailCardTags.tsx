@@ -3,7 +3,7 @@
 import type { FailureJudgment, Platform, RunItemSummary } from './api.js';
 import { 회차요약 } from './group.js';
 import { use말 } from './i18n.js';
-import { 실행기록주소 } from './route.js';
+import { 실행결과주소 } from './route.js';
 import { PLATFORM_LABEL, Verdict, 돈디바이스들 } from './ui.js';
 import type { 다시돌린결과 } from './useRerunResults.js';
 
@@ -58,7 +58,7 @@ export function 다시돌림꼬리표({ tcId, 결과 }: { tcId: string; 결과: 
         ? t('RUN {번호}에서도 Fail', { 번호: 결과.runId })
         : t('RUN {번호}에서 Not tested', { 번호: 결과.runId });
   return (
-    <a className="fc-tag" href={실행기록주소(tcId, 결과.runId, true)}>
+    <a className="fc-tag" href={실행결과주소(결과.runId, { 펼칠: tcId })}>
       {글}
     </a>
   );

@@ -39,6 +39,7 @@ export function 증적(format: string, status: string, error: string | null = nu
 
 export function 그리기(status: string, 문서들: EvidenceRow[] = []) {
   vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status, items: [], evidence: 문서들 });
+  vi.spyOn(api, 'runNeighbors').mockResolvedValue({ prev: null, next: null });
   return render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 }
 

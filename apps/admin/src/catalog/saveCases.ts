@@ -20,8 +20,8 @@ async function db(): Promise<Pool> {
 const UPSERT = `
   INSERT INTO test_case
     (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at,
-     techniques, api_doc, elements, smoke, step_titles, proc_id, proc_seq, proc_name)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[], $9, $10::text[], $11, $12::text[], $13, $14, $15)
+     techniques, api_doc, elements, smoke, step_titles, proc_id, proc_seq, proc_name, verify_statements)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[], $9, $10::text[], $11, $12::text[], $13, $14, $15, $16::text[])
   ON CONFLICT (tc_id) DO UPDATE SET
     name            = EXCLUDED.name,
     platforms       = EXCLUDED.platforms,
@@ -37,16 +37,18 @@ const UPSERT = `
     proc_id         = EXCLUDED.proc_id,
     proc_seq        = EXCLUDED.proc_seq,
     proc_name       = EXCLUDED.proc_name,
+    verify_statements = EXCLUDED.verify_statements,
     is_active       = true,
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
 
-/** 제목들 — tcId 마다 케이스 코드에서 읽은 단계 제목(catalog/steps.ts `caseSteps`). 없거나 null 이면 NULL 로 덮는다 (카탈로그 §3.1 「단계 제목」) */
+/** 제목들 — tcId 마다 케이스 코드에서 읽은 단계 제목(catalog/steps.ts `caseSteps`). 없거나 null 이면 NULL 로 덮는다 (카탈로그 §3.1 「단계 제목」). 문장들은 확인 문장(verifyLines.ts)이고 같다 */
 export async function save(
   specs: ScannedSpec[],
   deactivateMissing: boolean,
   prefix: string,
   제목들: ReadonlyMap<string, string[] | null> = new Map(),
+  문장들: ReadonlyMap<string, string[] | null> = new Map(),
 ): Promise<SaveResult> {
   const client = await (await db()).connect();
   try {
@@ -77,6 +79,8 @@ export async function save(
         spec.procId ?? null,
         spec.procId === undefined ? null : (spec.procSeq ?? null),
         spec.procId === undefined ? null : (spec.procName ?? null),
+        // 코드의 확인 문장 — 못 읽었으면 NULL 로 덮는다. 문장이 없으면 '{}' 다 (카탈로그 §3.1 「확인 문장」)
+        문장들.get(spec.tcId) ?? null,
       ]);
       if (upserted.rows[0]?.inserted === true) added += 1;
     }

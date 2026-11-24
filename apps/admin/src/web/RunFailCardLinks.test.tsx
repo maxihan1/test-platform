@@ -46,7 +46,7 @@ describe('다시 돌린 결과 꼬리표 (점검 2.17)', () => {
     그리기(두장(), 두줄, 'ALL', () => true, false, () => undefined, new Map([['ZZI-0002', { runId: 130, status: 'PASS' as const }]]));
 
     const 고리 = await screen.findByRole('link', { name: 'RUN 130에서 Pass' });
-    expect(고리.getAttribute('href')).toBe('#/runs/fn?run=130&tc=ZZI-0002');
+    expect(고리.getAttribute('href')).toBe('#/runs/130?tc=ZZI-0002');
   });
 
   it('다시 돌려도 실패면 「에서도 실패」라고 적는다', async () => {

@@ -8,6 +8,7 @@ import { 정리제목 } from '@platform/kit/protocol';
 
 import { 프로시저글읽기 } from './procedure.js';
 import { caseSteps } from './steps.js';
+import { 케이스확인문장, 프로시저확인문장 } from './verifyLines.js';
 
 /**
  * 프로시저 파일의 케이스마다(cases 차례대로) 단계 제목 — kit 이 돌릴 때 절차를 케이스에 붙이는 규칙 그대로다 (카탈로그 §3.1 「케이스 구간」).
@@ -63,32 +64,43 @@ export function 프로시저단계제목(글: string, 보류: readonly (boolean 
 }
 
 /**
- * 케이스마다 단계 제목 — 글로만 읽어 import 하지 않는다(지도 ② 와 같다). 못 읽은 케이스는 모른다(null)로 두고 까닭을 돌려준다 —
- * 스캔은 계속하고 화면이 한 줄씩 늘어나는 쪽으로 받친다. 수천 건을 한꺼번에 열지 않게 하나씩 읽는다
+ * 케이스마다 단계 제목 · 확인 문장 — 글로만 읽어 import 하지 않는다(지도 ② 와 같다). 못 읽은 케이스는 모른다(null)로 두고 까닭을 돌려준다 —
+ * 스캔은 계속하고 화면이 한 줄씩 늘어나는 쪽으로 받친다. 수천 건을 한꺼번에 열지 않게 하나씩 읽는다.
+ * 확인 문장은 단계 제목과 같은 글을 같이 읽는다 — 파일을 두 번 열지 않는다 (카탈로그 §3.1 「확인 문장」)
  */
-export async function 단계제목들(root: string, specs: readonly CaseSpec[]): Promise<{ 제목들: Map<string, string[] | null>; 문제: string[] }> {
+export async function 단계제목들(
+  root: string,
+  specs: readonly CaseSpec[],
+): Promise<{ 제목들: Map<string, string[] | null>; 문장들: Map<string, string[] | null>; 문제: string[] }> {
   const 제목들 = new Map<string, string[] | null>();
+  const 문장들 = new Map<string, string[] | null>();
   const 문제: string[] = [];
   // 프로시저 파일은 케이스 여럿이 한 파일이라 한 번만 읽는다
-  const 프로시저 = new Map<string, (string[] | null)[] | null>();
+  const 프로시저 = new Map<string, { 제목: (string[] | null)[] | null; 문장: string[][] | null }>();
   for (const s of specs) {
     try {
       if (s.procSeq === undefined) {
-        제목들.set(s.tcId, caseSteps(await readFile(join(root, s.filePath), 'utf8')).stepTitles);
+        const 글 = await readFile(join(root, s.filePath), 'utf8');
+        제목들.set(s.tcId, caseSteps(글).stepTitles);
+        문장들.set(s.tcId, 케이스확인문장(글));
         continue;
       }
       if (!프로시저.has(s.filePath)) {
         // 못 읽으면 문제 줄은 한 번만 남기고 그 파일의 나머지 케이스는 모른다로 둔다
-        프로시저.set(s.filePath, null);
+        프로시저.set(s.filePath, { 제목: null, 문장: null });
         const 보류: (boolean | undefined)[] = [];
         for (const c of specs) if (c.filePath === s.filePath && c.procSeq !== undefined) 보류[c.procSeq - 1] = c.held !== undefined;
-        프로시저.set(s.filePath, 프로시저단계제목(await readFile(join(root, s.filePath), 'utf8'), 보류));
+        const 글 = await readFile(join(root, s.filePath), 'utf8');
+        프로시저.set(s.filePath, { 제목: 프로시저단계제목(글, 보류), 문장: 프로시저확인문장(글) });
       }
-      제목들.set(s.tcId, 프로시저.get(s.filePath)?.[s.procSeq - 1] ?? null);
+      const 읽음 = 프로시저.get(s.filePath);
+      제목들.set(s.tcId, 읽음?.제목?.[s.procSeq - 1] ?? null);
+      문장들.set(s.tcId, 읽음?.문장?.[s.procSeq - 1] ?? null);
     } catch (err) {
       제목들.set(s.tcId, null);
+      문장들.set(s.tcId, null);
       문제.push(`${s.filePath}의 단계 제목을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
-  return { 제목들, 문제 };
+  return { 제목들, 문장들, 문제 };
 }

@@ -58,19 +58,6 @@ describe('실패 안내 줄', () => {
     await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'qa', 'vision'));
   });
 
-  it('실행 기록 결과 칸에서 다시 실행하면 주소를 옮기지 않고 새 실행 번호를 넘긴다', async () => {
-    vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과());
-    vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 90 });
-    const 받음 = vi.fn();
-    window.location.hash = '#/runs/e2e';
-    render(<ScenarioResult runId={77} 판정하기={() => () => true} 칸안 on새실행={받음} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
-    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
-    await waitFor(() => expect(받음).toHaveBeenCalledWith(90));
-    expect(window.location.hash).toBe('#/runs/e2e');
-    expect(await screen.findByRole('dialog', { name: /RUN 90/ })).toBeTruthy();
-  });
-
   it('통과한 결과는 안내 줄 없이 머리에 다시 실행만 있다', async () => {
     연다(결과({ parts: [로그인, 부품(2, {})] }));
     expect(await screen.findByRole('button', { name: 'qa에서 다시 실행' })).toBeTruthy();
@@ -108,5 +95,17 @@ describe('돌아갈 곳', () => {
     const 창 = await screen.findByRole('dialog', { name: /RUN 89/ });
     fireEvent.click(await within(창).findByRole('button', { name: '결과 보기' }));
     expect(window.location.hash).toBe('#/runs/89?from=scenarios');
+  });
+
+  it('실행 기록에서 온 결과에서 다시 실행하면 새 결과에도 그 목록 조건을 넘긴다', async () => {
+    window.location.hash = '#/runs/77?list=state%3Dfailed%26service%3DZSR';
+    연다(결과());
+    vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 89 });
+    fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
+    vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과({ status: 'FINISHED', finishedAt: '2026-11-06T00:00:00.000Z' }));
+    const 창 = await screen.findByRole('dialog', { name: /RUN 89/ });
+    fireEvent.click(await within(창).findByRole('button', { name: '결과 보기' }));
+    expect(window.location.hash).toBe('#/runs/89?list=state%3Dfailed%26service%3DZSR');
   });
 });

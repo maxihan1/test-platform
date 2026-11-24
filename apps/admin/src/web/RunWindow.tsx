@@ -47,7 +47,6 @@ function 디바이스칸(c: CaseRow, 돌릴: Platform[] | undefined, 지원패�
  * @param 서버 미리 고를 대상 서버. 다시 실행은 같은 서버가 자연스럽다
  * @param on걸림 걸고 나서. 없으면 onClose 다 — 옛 주소 화면은 닫힘이 목록으로 보내므로 따로 받는다(안 그러면 실행 결과 대신 목록이 뜬다)
  * @param rerunOf 「실패 N건 다시 실행」의 원래 실행. 실으면 서버가 시작 방식을 「실패 다시」로 남긴다 (도메인/실행 §7)
- * @param on걸었다 useRunStart 의 그것 — 실행 기록 결과 칸에서 열었으면 주소를 옮기지 않고 새 실행을 고른다
  * @param 디바이스 케이스마다 돌릴 디바이스. 있으면 그 케이스가 선언한 것 가운데 이것만 담는다 — 실패 다시 실행이 실패한 디바이스만 돌리게
  * @param 기준시각 이 시각 뒤에 저장값이 바뀐 케이스를 창 위에 알린다 — 원래 실행과 다른 값으로 돌 수 있어서다
  * @param 위치실행 모바일 실행 위치를 이 실행이 돈 곳으로 미리 고른다 — 없으면 rerunOf, 둘 다 없으면 서버 흉내다.
@@ -63,7 +62,6 @@ export function RunWindow({
   rerunOf,
   디바이스,
   기준시각,
-  on걸었다,
   위치실행 = rerunOf,
 }: {
   tcIds: string[];
@@ -74,12 +72,11 @@ export function RunWindow({
   rerunOf?: number;
   디바이스?: Record<string, Platform[]>;
   기준시각?: string;
-  on걸었다?: (runId: number) => void;
   위치실행?: number;
 }) {
   const t = use말();
   const 언어 = use언어();
-  const 걸기 = useRunStart(on걸었다);
+  const 걸기 = useRunStart();
   // 저장값을 바꿔 새로 읽은 케이스. 여러 건 창도 줄마다 저장한다 (도메인/실행 §8.10)
   const [다시, set다시] = useState<Record<string, CaseRow>>({});
   const [읽기오류, set읽기오류] = useState<string | undefined>(undefined);

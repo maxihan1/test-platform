@@ -24,11 +24,12 @@ export interface CaseRow {
   proc_id: string | null;
   proc_seq: number | null;
   proc_name: string | null;
+  verify_statements: string[] | null;
 }
 
 // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
 // 미확정 사유도 여기서 박제한다 — 확인 필요 항목이 나중에 확정돼도 그날 확정이 아니었다는 사실은 남아야 한다 (SPEC 실행 §3.2)
-const 케이스칸 = `tc_id, name, precondition, file_path, param_schema, expected_schema, ${미확정사유SQL('c')} AS unconfirmed, platforms, is_active, proc_id, proc_seq, proc_name`;
+const 케이스칸 = `tc_id, name, precondition, file_path, param_schema, expected_schema, ${미확정사유SQL('c')} AS unconfirmed, platforms, is_active, proc_id, proc_seq, proc_name, verify_statements`;
 
 export async function 케이스를읽는다(client: 질의, tcIds: string[]): Promise<Map<string, CaseRow>> {
   const found = await client.query<CaseRow>(`SELECT ${케이스칸} FROM test_case c WHERE tc_id = ANY($1::text[])`, [tcIds]);
@@ -76,15 +77,16 @@ const INSERT_EXEC = `
   VALUES ($1, $2, $3, $4, $5, $6, $7)
   RETURNING exec_id`;
 
+// 확인 문장도 같은 까닭으로 박제한다 — 기대 결과는 실행 전부터 있던 성공 조건이다.
 // 라벨·제한 시간·파일 경로도 실행 시점 값으로 박제한다. 카탈로그는 스캔 때마다 덮어쓰는 캐시라
 // 나중에 읽으면 그날 무엇으로 돌렸는지가 달라진다 (SPEC §3.3 · §6).
 // 옛 꼴 케이스 줄은 번호를 새로 뽑지 않고 실행 단위 번호를 그대로 쓴다($18) — 러너에 가는 번호 · 폴더 · trace 길이 안 바뀐다
 const INSERT_ITEM = `
   INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status,
                         file_path, param_schema, expected_schema, timeout_ms, attempt, unconfirmed, tests_commit, case_sha256,
-                        exec_id, exec_seq, history_id)
+                        exec_id, exec_seq, history_id, verify_statements)
   VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13, $14, $15,
-          $16, $17, COALESCE($18::bigint, nextval('run_item_history_id_seq')))
+          $16, $17, COALESCE($18::bigint, nextval('run_item_history_id_seq')), $19::text[])
   RETURNING history_id`;
 
 /** 같이 도는 케이스 묶음 — 프로시저면 그 프로시저의 케이스들, 옛 꼴 케이스면 하나다. 펼친 목록은 프로시저 케이스가 붙어 있다 */
@@ -155,6 +157,7 @@ export async function 실행단위를넣는다(client: 질의, 것: 넣을것): 
             execId,
             k + 1,
             단위.번호 === null ? execId : null,
+            spec.verify_statements,
           ]);
           items.push({
             historyId: Number(row.rows[0]!.history_id),

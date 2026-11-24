@@ -108,6 +108,12 @@ describe('renderCatalogXlsx', () => {
     ]);
   });
 
+  it('기대 결과 칸은 케이스의 확인 문장을 줄바꿈으로 잇고 스키마 글이 있으면 그 뒤에 붙인다', async () => {
+    const 케이스 = (await 읽기({ ...기본, cases: [{ ...로그인, verifyStatements: ['하단 「홈」 탭이 보인다', '주소가 홈이다'] }, { ...미확정, verifyStatements: ['잠금 문구가 보인다'] }] })).worksheets[0];
+    expect(줄(케이스, 2)[5]).toBe('하단 「홈」 탭이 보인다\n주소가 홈이다\n가 있을 주소 = /');
+    expect(줄(케이스, 3)[5]).toBe('잠금 문구가 보인다');
+  });
+
   it('상태 — 미확정 사유 · 모킹 · 사람이 값 채움, 결과 없으면 —', async () => {
     const 케이스 = (await 읽기(기본)).worksheets[0];
     const 셋째 = 줄(케이스, 3);

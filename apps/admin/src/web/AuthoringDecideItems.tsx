@@ -6,7 +6,7 @@ import { 무슨테스트, 올릴테스트수 } from './authoringSummary.js';
 import type { 결정항목, 고르기, 막힘, 판정자동수정 } from './decideApi.js';
 import type { 고른값 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
-import { 실행기록주소 } from './route.js';
+import { 실행결과주소 } from './route.js';
 import { when } from './ui.js';
 
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
@@ -200,7 +200,7 @@ export function 실패판정({ x, 고른, on고름 }: { x: 항목of<'FAIL'>; 고
         )}
         <span className="hint">{t('테스트')}</span>
         <span>
-          <span className="prd-id">{x.tcId}</span> · RUN {x.runId} · <a href={실행기록주소(x.tcId, x.runId, true)}>{t('실패 화면 보기')}</a>
+          <span className="prd-id">{x.tcId}</span> · RUN {x.runId} · <a href={실행결과주소(x.runId, { 펼칠: x.tcId })}>{t('실패 화면 보기')}</a>
         </span>
         {x.autoFix == null ? null : (
           <>

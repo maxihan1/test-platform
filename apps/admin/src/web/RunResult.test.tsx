@@ -122,15 +122,95 @@ describe('실행 결과 머리의 종류 (PR #132)', () => {
 });
 
 describe('RunResult 화면 머리 (2026-09-22)', () => {
-  // 큰 제목은 실행 제목이고 번호는 부제 맨 앞에 작게 둔다 (점검 2.22)
-  it('실행 제목이 h1 이고 RUN 번호는 부제에 있으며 본문 면 바깥에 선다', async () => {
+  // 큰 제목은 실행명(언제 · 어떻게 · 무엇을)이고 번호는 부제 맨 앞에 작게 둔다 (점검 2.22 · 도메인/실행 §8.7 「실행명」)
+  it('실행명이 h1 이고 RUN 번호는 부제에 있으며 본문 면 바깥에 선다', async () => {
     const { container } = 그리기('FINISHED');
     await screen.findByText(/RUN/);
 
     const 머리 = container.querySelector('.head');
-    expect(머리?.querySelector('h1')?.textContent).toBe('결제 회귀');
+    expect(머리?.querySelector('h1')?.textContent).toMatch(/월 \d+일 \d{2}:\d{2} · 직접 실행 · 결제 회귀$/);
     expect(머리?.querySelector('.head-meta')?.textContent).toMatch(/^RUN \d+ · /);
     expect(container.querySelector('.screen .head')).toBeNull();
+  });
+
+  it('시작 시각과 시작 방식은 제목이 말하니 부제에 또 적지 않고 빌드 번호는 부제에 남는다', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, origin: 'SCHEDULED', buildNo: '124', status: 'FINISHED', items: [], evidence: [] });
+    const { container } = render(<RunResult runId={실행.runId} 판정하기={() => 실행까지} />);
+    await screen.findByText(/RUN/);
+
+    expect(container.querySelector('.head h1')?.textContent).toMatch(/ · 정기 실행 · 결제 회귀$/);
+    const 부제 = container.querySelector('.head-meta')?.textContent ?? '';
+    expect(부제).toContain('빌드 124');
+    expect(부제).not.toContain('정기 실행');
+    expect(부제).not.toMatch(/\d{2}:\d{2}/);
+  });
+
+  it('머리 위에 「← 실행 기록」과 이전 · 다음 실행 단추가 선다', async () => {
+    const { container } = 그리기('FINISHED');
+    await screen.findByText(/RUN/);
+
+    expect(container.querySelector('nav.run-nav')).not.toBeNull();
+    expect(screen.getByRole('link', { name: '← 실행 기록' }).getAttribute('href')).toMatch(/^#\/runs\/fn/);
+    expect(screen.getByRole('button', { name: '‹ 이전 실행' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '다음 실행 ›' })).toBeTruthy();
+  });
+
+  it('머리에 run-head 클래스가 서고 부제는 조각 span 으로 나뉘어 글자와 차례가 그대로다', async () => {
+    const { container } = 그리기('FINISHED');
+    await screen.findByText(/RUN/);
+
+    expect(container.querySelector('.head.run-head')).not.toBeNull();
+    const 조각 = [...container.querySelectorAll('.head-meta .run-meta > span')].map((el) => el.textContent);
+    expect(조각[0]).toBe(`RUN ${String(실행.runId)}`);
+    const 글 = container.querySelector('.head-meta .run-meta')?.textContent ?? '';
+    expect(글.indexOf('결제')).toBeLessThan(글.indexOf('대상 서버 qa'));
+    expect(글.indexOf('대상 서버 qa')).toBeLessThan(글.indexOf('실행자 김철수'));
+    expect(글.indexOf('실행자 김철수')).toBeLessThan(글.indexOf('12분'));
+  });
+
+  it('휴대폰 한 줄에 남는 조각(rm-key)은 RUN 번호 · 대상 서버 · 소요와 끝까지 못 돈 상태뿐이다', async () => {
+    const 키 = (c: HTMLElement) => [...c.querySelectorAll('.run-meta .rm-key')].map((el) => el.textContent?.replace(/^ · /, ''));
+    const { container } = 그리기('FINISHED');
+    await screen.findByText(/RUN/);
+    expect(키(container)).toEqual([`RUN ${String(실행.runId)}`, '대상 서버 qa', '12분']);
+    cleanup();
+
+    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'ABORTED', items: [], evidence: [] });
+    const 중단 = render(<RunResult runId={실행.runId} 판정하기={() => 실행까지} />);
+    await screen.findByText(/RUN/);
+    expect(키(중단.container)).toEqual([`RUN ${String(실행.runId)}`, '대상 서버 qa', '12분', '중단']);
+  });
+
+  it('펼침 단추는 부제 끝에 서고 누르면 이름과 aria-expanded 가 바뀌고 run-meta 에 open 이 붙는다', async () => {
+    const { container } = 그리기('FINISHED');
+    await screen.findByText(/RUN/);
+
+    const 메타 = container.querySelector('.run-meta')!;
+    const 단추 = screen.getByRole('button', { name: '펼치기' });
+    expect(메타.lastElementChild).toBe(단추);
+    expect(단추.getAttribute('aria-expanded')).toBe('false');
+    expect(메타.classList.contains('open')).toBe(false);
+
+    fireEvent.click(단추);
+
+    const 접기 = screen.getByRole('button', { name: '접기' });
+    expect(접기.getAttribute('aria-expanded')).toBe('true');
+    expect(메타.classList.contains('open')).toBe(true);
+    fireEvent.click(접기);
+    expect(screen.getByRole('button', { name: '펼치기' }).getAttribute('aria-expanded')).toBe('false');
+    expect(메타.classList.contains('open')).toBe(false);
+  });
+
+  it('앞뒤 실행을 못 받아도 결과는 그대로 서고 두 단추만 꺼진다', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
+    const 이웃 = vi.spyOn(api, 'runNeighbors').mockRejectedValue(new Error('502'));
+    const { container } = render(<RunResult runId={실행.runId} 판정하기={() => 실행까지} />);
+    await screen.findByText(/RUN/);
+    await waitFor(() => expect(이웃).toHaveBeenCalled());
+
+    expect(container.querySelector('.head h1')?.textContent).toMatch(/결제 회귀$/);
+    expect(screen.getByRole('button', { name: '‹ 이전 실행' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: '다음 실행 ›' }).hasAttribute('disabled')).toBe(true);
   });
 
   it('머리 부제에 대상 서버가 그대로 있다', async () => {

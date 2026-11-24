@@ -76,6 +76,9 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
       [runId],
     )).rows;
 
+  const 박제 = async (runId: number) =>
+    (await q<{ tc_id: string; verify_statements: string[] | null }>('SELECT tc_id, verify_statements FROM run_item WHERE run_id = $1 ORDER BY history_id', [runId])).rows;
+
   beforeAll(async () => {
     await 치운다();
     await q(
@@ -93,6 +96,9 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     await 케이스('XPC-FN-201', '옛 꼴 앱 케이스', ['android'], 'xpc/XPC-FN-201.spec.ts', null);
     await 케이스('XPCW-FN-001', '옛 꼴 웹 케이스', ['desktop', 'mobile'], 'xpcw/XPCW-FN-001.spec.ts', null);
     await 케이스('XPCW-UI-001', '옛 꼴 웹 UI 케이스', ['desktop'], 'xpcw/XPCW-UI-001.spec.ts', null);
+    await q("UPDATE test_case SET verify_statements = ARRAY['본문이 비었다', '경고가 보인다'] WHERE tc_id = 'XPC-FN-101'");
+    await q("UPDATE test_case SET verify_statements = '{}' WHERE tc_id = 'XPC-FN-102'");
+    await q("UPDATE test_case SET verify_statements = ARRAY['웹 화면이 열린다'] WHERE tc_id = 'XPCW-FN-001'");
     await q(`INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ('XPC-FN-104', '{"본문":"저장한 본문"}', '{}', 'xpc')`);
   });
 
@@ -124,6 +130,7 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     );
     expect(items.map((i) => String(i.historyId))).toEqual(줄.map((r) => r.history_id));
     expect(procSkipped).toBe(0);
+    expect((await 박제(runId)).map((r) => r.verify_statements)).toEqual([['웹 화면이 열린다'], ['웹 화면이 열린다'], ['웹 화면이 열린다'], ['웹 화면이 열린다']]);
     // 프로시저 안 케이스가 없으면 러너에 묻지 않는다
     expect(능력).not.toHaveBeenCalled();
   });
@@ -144,6 +151,13 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
       ['XPC-FN-104', 4, 300_000],
     ]);
     expect(new Set(줄.map((r) => r.exec_id))).toEqual(new Set([단위[0]!.exec_id]));
+    // 실행을 만들 때 그 케이스의 확인 문장을 박제한다 — 읽었는데 없는 케이스는 [] 이고 스캔 전 줄은 null 이다
+    expect((await 박제(runId)).map((r) => [r.tc_id, r.verify_statements])).toEqual([
+      ['XPC-FN-101', ['본문이 비었다', '경고가 보인다']],
+      ['XPC-FN-102', []],
+      ['XPC-UI-103', null],
+      ['XPC-FN-104', null],
+    ]);
     // 새 번호는 프로시저 실행 단위만 뽑는다 — 케이스 줄 번호와 겹치지 않는다
     expect(줄.map((r) => r.history_id)).not.toContain(단위[0]!.exec_id);
     // 고른 케이스는 보낸 값, 펼쳐서 든 케이스는 저장값이다. 저장값도 없는 칸은 비워 둔다 — 코드 기본값은 kit 이 돌 때 채운다

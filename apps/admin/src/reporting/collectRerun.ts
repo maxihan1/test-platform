@@ -7,7 +7,7 @@ import type { RawItem } from './collect.js';
 /** run_item 에서 증적이 읽는 열. 지금 결과(파생 표 `i`)와 원래 항목(run_item 그대로)이 같은 목록을 쓴다 */
 const 열들 = [
   'history_id', 'tc_id', 'tc_name', 'platform', 'attempt', 'status', 'duration_ms', 'finished_at', 'error',
-  'unconfirmed', 'precondition', 'params', 'expected', 'param_schema', 'expected_schema', 'device',
+  'unconfirmed', 'precondition', 'params', 'expected', 'param_schema', 'expected_schema', 'device', 'verify_statements',
 ];
 export const 지금열 = 열들.map((c) => `i.${c}`).join(', ');
 

@@ -12,7 +12,7 @@ import { findCase, listCases, save } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 번호들 = ['XTS-001', 'XTS-FN-101', 'XTS-FN-102', 'XTS-FN-103'];
-const 프로시저 = 프로시저글(절차('글쓰기 화면을 연다') + 구간('본문없음', '본문을 비운다') + 구간('글자수초과', '본문에 501자를 넣는다') + 구간('게시확인', '타임라인을 연다'), {
+const 프로시저 = 프로시저글(절차('글쓰기 화면을 연다', ` await verify('준비 화면이 열렸다', true, true); `) + 구간('본문없음', '본문을 비운다', ` await verify('본문이 비었다', true, true); `) + 구간('글자수초과', '본문에 501자를 넣는다') + 구간('게시확인', '타임라인을 연다'), {
   procId: 'XTS-TP-001',
   선언들: 선언('본문없음', 'XTS-FN-101') + 선언('글자수초과', 'XTS-FN-102') + 선언('게시확인', 'XTS-FN-103'),
 });
@@ -39,7 +39,7 @@ describe.skipIf(연결 === undefined)('프로시저 파일 스캔과 저장', ()
   };
   const 훑기 = async (): Promise<string[]> => (await runScan(조용히, (s) => s.prefix === 'XTS')).서비스별.get('XTS')?.problems ?? [];
   const 줄들 = async () =>
-    (await q<{ tc_id: string }>('SELECT tc_id, is_active, proc_id, proc_seq, proc_name, precondition, step_titles FROM test_case WHERE tc_id = ANY($1) ORDER BY tc_id', [번호들])).rows;
+    (await q<{ tc_id: string }>('SELECT tc_id, is_active, proc_id, proc_seq, proc_name, precondition, step_titles, verify_statements FROM test_case WHERE tc_id = ANY($1) ORDER BY tc_id', [번호들])).rows;
   const 스위치 = (켬: boolean) => q("UPDATE service SET procedure_mode = $1 WHERE prefix = 'XTS'", [켬]);
 
   beforeAll(async () => {
@@ -62,22 +62,24 @@ describe.skipIf(연결 === undefined)('프로시저 파일 스캔과 저장', ()
 
   it('스위치가 꺼진 애플리케이션의 프로시저 파일은 올리지 않고 문제 줄로 알린다 — 옛 꼴 파일은 그대로 올린다', async () => {
     expect(await 훑기()).toContain(`${join('xts', 'XTS-TP-001.spec.ts')}은 프로시저 파일인데 XTS 애플리케이션은 「프로시저 작성」이 꺼져 있어 올리지 않았다`);
-    expect(await 줄들()).toMatchObject([{ tc_id: 'XTS-001', is_active: true, proc_id: null, proc_seq: null, proc_name: null, step_titles: ['연다'] }]);
+    expect(await 줄들()).toMatchObject([{ tc_id: 'XTS-001', is_active: true, proc_id: null, proc_seq: null, proc_name: null, step_titles: ['연다'], verify_statements: ['맞다'] }]);
   });
 
   it('스위치를 켜면 케이스마다 한 줄씩 올리고 프로시저 번호 · 차례 · 이름 · 구간별 단계 제목 · 합친 사전조건을 담는다', async () => {
     await 스위치(true);
     expect((await 훑기()).filter((p) => p.includes('프로시저'))).toEqual([]);
     expect((await 줄들()).slice(1)).toMatchObject([
-      { tc_id: 'XTS-FN-101', is_active: true, proc_id: 'XTS-TP-001', proc_seq: 1, proc_name: '글쓰기 — 입력 제한부터 게시까지', precondition: ['일반 회원으로 로그인해 있다'], step_titles: ['글쓰기 화면을 연다', '본문을 비운다'] },
-      { tc_id: 'XTS-FN-102', proc_id: 'XTS-TP-001', proc_seq: 2, step_titles: ['본문에 501자를 넣는다'] },
-      { tc_id: 'XTS-FN-103', proc_id: 'XTS-TP-001', proc_seq: 3, step_titles: ['타임라인을 연다'] },
+      { tc_id: 'XTS-FN-101', is_active: true, proc_id: 'XTS-TP-001', proc_seq: 1, proc_name: '글쓰기 — 입력 제한부터 게시까지', precondition: ['일반 회원으로 로그인해 있다'], step_titles: ['글쓰기 화면을 연다', '본문을 비운다'], verify_statements: ['본문이 비었다'] },
+      { tc_id: 'XTS-FN-102', proc_id: 'XTS-TP-001', proc_seq: 2, step_titles: ['본문에 501자를 넣는다'], verify_statements: ['맞다'] },
+      { tc_id: 'XTS-FN-103', proc_id: 'XTS-TP-001', proc_seq: 3, step_titles: ['타임라인을 연다'], verify_statements: ['맞다'] },
     ]);
   });
 
   it('케이스 상세와 목록 응답에 프로시저 번호 · 차례 · 이름 · 케이스 수가 실린다 — 옛 꼴 케이스는 넷 다 null 이다', async () => {
     expect(await findCase('XTS-FN-102')).toMatchObject({ procId: 'XTS-TP-001', procSeq: 2, procName: '글쓰기 — 입력 제한부터 게시까지', procCount: 3 });
     expect(await findCase('XTS-001')).toMatchObject({ procId: null, procSeq: null, procName: null, procCount: null });
+    expect(await findCase('XTS-FN-101')).toMatchObject({ verifyStatements: ['본문이 비었다'] });
+    expect(await findCase('XTS-001')).toMatchObject({ verifyStatements: ['맞다'] });
     const 목록 = (await listCases({ service: 'XTS', q: '', activeOnly: true, page: 1, pageSize: 50 })).items;
     expect(목록.map((c) => [c.tcId, c.procId, c.procSeq, c.procCount])).toEqual([
       ['XTS-001', null, null, null],

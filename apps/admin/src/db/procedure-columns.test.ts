@@ -105,6 +105,16 @@ describe.skipIf(연결 === undefined)('테스트 프로시저 표', () => {
     expect(await 칸들('service', ['procedure_mode'])).toEqual([['procedure_mode', 'boolean', 'NO', true]]);
   });
 
+  it('확인 문장 칸은 케이스 · 케이스 줄 모두 글자 목록이고 비워 둘 수 있다 — NULL 은 못 읽었거나 이 칸 전의 줄이다', async () => {
+    for (const 표 of ['test_case', 'run_item']) {
+      const r = await q<{ udt_name: string; is_nullable: string; column_default: string | null }>(
+        `SELECT udt_name, is_nullable, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'verify_statements'`,
+        [표],
+      );
+      expect(r.rows).toEqual([{ udt_name: '_text', is_nullable: 'YES', column_default: null }]);
+    }
+  });
+
   it('실행 단위 번호는 케이스 줄 번호와 같은 번호 줄에서 나와 서로 겹치지 않는다', async () => {
     const run = await 실행();
     const 앞 = await 줄(run, 'XTP-FN-001');
