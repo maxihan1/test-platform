@@ -136,7 +136,7 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       // 읽지 못한 파일이 있으면 무엇이 정말 사라졌는지 가릴 수 없다. 비활성 처리는 건너뛰고 읽은 것만 갱신한다
       const 단계 = await 단계제목들(root, 내것);
       결과.problems.push(...단계.문제);
-      const saved = await save(내것, found.failures.length === 0, service.prefix, 단계.제목들);
+      const saved = await save(내것, found.failures.length === 0, service.prefix, 단계.제목들, 단계.문장들);
       결과.added = saved.added;
       결과.updated = saved.updated;
       결과.deactivated = saved.deactivated;

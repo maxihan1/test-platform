@@ -28,6 +28,7 @@ export type CaseRow = Omit<CaseSpec, 'techniques' | 'smoke' | 'procId' | 'procSe
   procSeq: number | null;
   procName: string | null;
   procCount: number | null;
+  verifyStatements: string[] | null; // 코드의 확인 문장 — 못 읽었거나 이 칸 전의 줄이면 null, 없으면 []
   // 실제로 쓰는 값 COALESCE(smoke_set, smoke). smokeSet 은 사람이 고친 값 — null 이면 코드 값을 따른다
   smoke: boolean;
   smokeSet: boolean | null;
@@ -67,6 +68,7 @@ interface RawRow {
   proc_seq: number | null;
   proc_name: string | null;
   proc_count: number;
+  verify_statements: string[] | null;
   saved_params: Record<string, unknown> | null;
   saved_expected: Record<string, unknown> | null;
   saved_by: string | null;
@@ -106,14 +108,14 @@ function toCase(row: RawRow): CaseRow {
     procName: row.proc_name,
     // 내려간 케이스는 지금 그 프로시저의 케이스가 아니다 — 칸에 옛 번호가 남아 있어도 「0건 중 3번째」를 내지 않는다
     procCount: row.proc_id === null || !row.is_active ? null : row.proc_count,
-    savedInput: toSaved(row),
+    verifyStatements: row.verify_statements, savedInput: toSaved(row),
   };
 }
 
 const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
   + `${미확정사유SQL('test_case')} AS unconfirmed, techniques, COALESCE(smoke_set, smoke) AS smoke, smoke_set, `
   // 화면의 「5건 중 4번째」가 쓴다 — 칸으로 두지 않고 그때 센다(다시 스캔하면 달라진다). ponytail: 줄마다 test_case 를 한 번 더 훑는다 — 케이스 수만 건에서 느려지면 proc_id 색인
-  + 'proc_id, proc_seq, proc_name, (SELECT count(*)::int FROM test_case p WHERE p.proc_id = test_case.proc_id AND p.is_active) AS proc_count, '
+  + 'verify_statements, proc_id, proc_seq, proc_name, (SELECT count(*)::int FROM test_case p WHERE p.proc_id = test_case.proc_id AND p.is_active) AS proc_count, '
   // 사람 눈에는 아이디(maxi)보다 이름(맥시)이다. 계정이 지워졌으면 적힌 아이디를 그대로 둔다
   + 'ci.params AS saved_params, ci.expected AS saved_expected, '
   + 'COALESCE((SELECT u.display_name FROM app_user u WHERE u.username = ci.saved_by), ci.saved_by) AS saved_by, ci.saved_at';

@@ -6,6 +6,7 @@ import type { ShapeCheck } from '@platform/kit';
 import type { EvidenceTrace } from './apiTrace.js';
 import type { EvidenceAssertion, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
 import { PC디바이스글 } from '../execution/pcPlatform.js';
+import { 기대문장 } from './expectedLines.js';
 
 /** 화면 표기는 PC / 모바일이다. desktop / mobile 은 코드 안에서만 쓴다 (SPEC §2 · web/ui.tsx) */
 export const 디바이스: Record<EvidenceItem['platform'], string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱', ...PC디바이스글 };
@@ -122,6 +123,14 @@ function 필드행(라벨: string, 칸: EvidenceField[], 빈말: string): string
   return [`    <div class="row">`, `      <div class="row-k">${라벨}</div>`, `      <div class="row-v">`, 값, `      </div>`, `    </div>`];
 }
 
+// 기대 결과 — 확인 문장을 한 줄씩 먼저 적고 그 아래 값 칸을 지금처럼 둔다. 문장도 값 칸도 없을 때만 「기대 결과 없음」
+function 기대행(item: EvidenceItem): string[] {
+  const 문장 = 기대문장(item).map((m) => `      <div class="pre">· ${안전(m)}</div>`);
+  const 값 = item.expected.map((f) => `      <div class="field"><span class="f-label">${안전(f.label)}</span><span class="f-value">${안전(f.value)}</span></div>`);
+  const 줄들 = [...문장, ...값];
+  return [`    <div class="row">`, `      <div class="row-k">기대 결과</div>`, `      <div class="row-v">`, ...(줄들.length === 0 ? [`      <div class="none">기대 결과 없음</div>`] : 줄들), `      </div>`, `    </div>`];
+}
+
 /** 한 건 실행이 덮은 항목의 머리 문구 — 이 블록이 다시 돈 결과이고 처음에는 어땠는지 같이 적는다 (도메인/리포팅 §8.4 「다시 실행이 붙은 실행」) */
 function 다시실행글(item: EvidenceItem): string {
   const r = item.rerun;
@@ -164,7 +173,7 @@ export function 본문(item: EvidenceItem, 원문고리?: (seq: number) => strin
     `      </div>`,
     `    </div>`,
     ...필드행('입력', item.params, '입력 없음'),
-    ...필드행('기대 결과', item.expected, '기대 결과 없음'),
+    ...기대행(item),
     ...절차,
     ...(item.farm == null ? [] : [`    <div class="row">`, `      <div class="row-k">Device VISION 기록</div>`, `      <div class="row-v">${안전(item.farm)}</div>`, `    </div>`]),
   ];

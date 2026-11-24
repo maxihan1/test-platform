@@ -260,8 +260,8 @@ function toStep(row: RawStep, 비밀: string[]): StepResult {
 
 export async function findItem(runId: number, historyId: number): Promise<RunItemDetail | null> {
   const pool = await db();
-  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; exec_error: RawItem['error'] }>(
-    `SELECT ${ITEM_COLUMNS}, i.run_id, r.title AS run_title, i.precondition, e.error AS exec_error
+  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; exec_error: RawItem['error']; verify_statements: string[] | null }>(
+    `SELECT ${ITEM_COLUMNS}, i.run_id, r.title AS run_title, i.precondition, i.verify_statements, e.error AS exec_error
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id ${단위붙이기}
       WHERE i.run_id = $1 AND i.history_id = $2`,
     [runId, historyId],
@@ -284,6 +284,7 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     precondition: row.precondition,
     expected: 가린값들(row.expected, row.expected_schema),
     expectedSchema: row.expected_schema,
+    verifyStatements: row.verify_statements,
     steps: 절차들,
     // 케이스 판정 밖의 사유 — 케이스는 다 판정이 났는데 테스트 파일이 오류로 끝났거나 프로세스가 통째로 끊겼다. 옛 꼴 케이스는 사유가 케이스 줄에 있어 null 이다
     execError: row.proc_id === null || row.exec_error === null ? null : (가린다(row.exec_error, 비밀) as RawItem['error']),

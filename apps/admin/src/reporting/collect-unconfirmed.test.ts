@@ -68,6 +68,15 @@ describe.skipIf(연결 === undefined)('증적 자료 — 미확정 사유', () =
     ]);
   });
 
+  it('항목마다 박제된 확인 문장을 싣고 박제가 없는 줄은 null 이다', async () => {
+    await pool.query("UPDATE run_item SET verify_statements = ARRAY['저장 버튼이 보인다'] WHERE run_id = $1 AND tc_id = 'XDU-001'", [실행]);
+    const 문서 = await collectRun(실행);
+    expect(문서?.items.map((i) => [i.tcId, i.verifyStatements])).toEqual([
+      ['XDU-001', ['저장 버튼이 보인다']],
+      ['XDU-002', null],
+    ]);
+  });
+
   it('요구가 나중에 확정돼도 그날의 증적은 박제값 그대로다 — 리포팅은 표준 기획서를 안 읽는다', async () => {
     const 서비스 = "(SELECT id FROM service WHERE prefix = 'XDU')";
     await pool.query(

@@ -125,6 +125,7 @@ export async function 엑셀자료(입력: 맥락조건 & {
       precondition: c.precondition,
       paramSchema: c.paramSchema,
       expectedSchema: c.expectedSchema,
+      verifyStatements: c.verifyStatements,
       unconfirmed: c.unconfirmed,
       lastResult: 결과칸(c.platforms, 마지막.get(c.tcId) ?? []),
       filledBy: 채운이.get(c.tcId) ?? null,

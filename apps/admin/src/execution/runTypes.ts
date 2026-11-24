@@ -97,6 +97,8 @@ export interface RunItemDetail extends RunItemSummary {
   // 기대결과 칸의 라벨. 카탈로그는 스캔 때마다 덮어쓰는 캐시라 못 믿는다 (SPEC §3.3 · §6).
   // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다 (§8.3)
   expectedSchema: Record<string, unknown>;
+  /** 실행을 만들 때 박제한 케이스 코드의 확인 문장 — 못 읽었거나 이 칸 전의 줄이면 null (도메인/실행 §7 항목 상세) */
+  verifyStatements: string[] | null;
   steps: StepResult[];
   /** 실패 · 미실행 항목이 왜 통과하지 못했나 — 통과 · 안 끝남 · 멈춰 닫힌 미실행은 null (도메인/실행 §7 항목 상세) */
   failure: 항목실패 | null;

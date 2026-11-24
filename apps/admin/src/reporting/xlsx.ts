@@ -7,6 +7,7 @@ import ExcelJS from 'exceljs';
 
 import type { EvidenceAssertion, EvidenceDocument, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
 import type { E2E단계, E2E증적 } from './collectScenario.js';
+import { 기대문장 } from './expectedLines.js';
 import { 절차판정글자, 참고글자 } from './htmlItem.js';
 import { PC디바이스글 } from '../execution/pcPlatform.js';
 
@@ -85,7 +86,7 @@ function 케이스칸(item: EvidenceItem): 칸값[] {
     item.unconfirmed,
     item.precondition.join('\n'),
     라벨값(item.params),
-    라벨값(item.expected),
+    [...기대문장(item), 라벨값(item.expected)].filter((줄) => 줄 !== '').join('\n'),
   ];
 }
 

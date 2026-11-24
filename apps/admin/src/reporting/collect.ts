@@ -60,6 +60,8 @@ export interface EvidenceItem {
   precondition: string[];
   params: EvidenceField[];
   expected: EvidenceField[];
+  /** 실행을 만들 때 박제한 케이스 코드의 확인 문장. null 이거나 없으면 이 칸 전의 줄이다 — 문서는 돈 절차의 문장을 쓴다 (reporting/expectedLines.ts) */
+  verifyStatements?: string[] | null;
   steps: EvidenceStep[];
   /** 한 건 실행이 덮은 항목만 — 이 항목이 다시 돈 결과이고 원래 항목이 여기 남는다 (도메인/리포팅 §8.4 「다시 실행이 붙은 실행」) */
   rerun?: { finishedAt: string; triggeredBy: string; original: EvidenceItem };
@@ -124,6 +126,7 @@ export interface RawItem {
   param_schema: unknown;
   expected_schema: unknown;
   device: DeviceInfo | null;
+  verify_statements?: string[] | null;
 }
 
 interface RawAssertion {
@@ -353,6 +356,7 @@ export async function collectRun(runId: number, 고른?: string[]): Promise<Evid
       precondition: row.precondition,
       params: toFields(row.params, row.param_schema),
       expected: toFields(row.expected, row.expected_schema),
+      verifyStatements: row.verify_statements ?? null,
       steps: 절차들.map((s) => toStep(s, 비밀, run.service_kind === 'API')),
     };
   };
