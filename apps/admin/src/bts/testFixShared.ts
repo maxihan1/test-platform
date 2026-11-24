@@ -4,6 +4,7 @@
 import type { Pool } from 'pg';
 
 import { 사슬식 } from '../authoring/chainSql.js';
+import { 판정아닌까닭을가른다 } from '../execution/notVerdict.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -30,4 +31,15 @@ export function 실행표시(실행: { run_id: string; origin: string; rerun_of:
   const 번호 = 한건 ? (실행.rerun_of ?? 실행.run_id) : 실행.run_id;
   const 주소 = (process.env.PLATFORM_PUBLIC_URL ?? '').replace(/\/+$/, '');
   return 주소 === '' || (한건 && 실행.rerun_of === null) ? `RUN ${번호}` : `RUN ${번호}\n${주소}/#/runs/${번호}`;
+}
+
+/** 확인 실행에서 대상 케이스가 앞 케이스에 막혀(Blocked) 끝났으면 막은 케이스 번호 — 판정이 아닌 결과는 notVerdict 한 곳에서 가른다 */
+export function 막힌대상(항목: readonly { status: string; message: string | null; blocked_by: string | null }[]): string | null {
+  return 항목.find((i) => 판정아닌까닭을가른다(i.status, i.message) === 'BLOCKED' && i.blocked_by !== null)?.blocked_by ?? null;
+}
+
+/** 닫기 댓글 끝 한 줄 — 프로시저가 통째로 돌아 같이 돈 다른 케이스 가운데 통과하지 못한 것. 없으면 빈 글 */
+export function 통과못한다른케이스(전부: readonly { tc_id: string; status: string }[], 대상: string): string {
+  const 못 = [...new Set(전부.filter((i) => i.tc_id !== 대상 && i.status !== 'PASS').map((i) => i.tc_id))].sort();
+  return 못.length === 0 ? '' : `\n같은 프로시저의 다른 테스트 ${String(못.length)}건은 통과하지 못했어요 — ${못.join(' · ')}`;
 }

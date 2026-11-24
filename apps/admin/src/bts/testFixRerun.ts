@@ -9,7 +9,7 @@ import { BTS부르기, type 부르기함수 } from './client.js';
 import { BTS요청자, 실패한실행 } from './close.js';
 import { 게임다시걸기, 게임끝보기, 게임줄끝내기 } from './gameFixRerun.js';
 import { 그만두기, 다시받을, 도는상태, 되돌림넣기, 이슈잠그고, 이슈확인, 줄넣기, type 이슈자리 } from './testFixIssue.js';
-import { 디바이스이름, 반영끝났나, 실행표시 } from './testFixShared.js';
+import { 디바이스이름, 막힌대상, 반영끝났나, 실행표시, 통과못한다른케이스 } from './testFixShared.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -151,7 +151,8 @@ async function 해결번호(줄: 줄, 부르기: 부르기함수): Promise<strin
 }
 
 /**
- * 다시 실행이 끝난 줄 — 모든 항목이 통과면 「닫힘 · 테스트 문제」로 닫고 짝 줄을 TEST_PROBLEM 으로, 하나라도 실패 · 미실행이면 되돌린다.
+ * 다시 실행이 끝난 줄 — 대상 케이스 항목이 모두 통과면 「닫힘 · 테스트 문제」로 닫고 짝 줄을 TEST_PROBLEM 으로, 하나라도 실패 · 미실행이면 되돌린다.
+ * 같이 돈 같은 프로시저의 다른 케이스가 실패해도 닫는다 — 그 실패는 이 이슈가 고치려던 것이 아니고 실패 등록이 따로 올린다
  * 같은 이슈의 다른 테스트가 아직 돌면 이 줄만 통과로 두고 닫기는 마지막 줄이 한다
  */
 export async function 다시실행끝(id: number | string, 부르기: 부르기함수 = BTS부르기): Promise<void> {
@@ -168,11 +169,17 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
     줄.rerun_id === null ? undefined : (await pool.query<{ run_id: string; status: string; origin: string; rerun_of: string | null; prep_note: string | null }>('SELECT run_id, status, origin, rerun_of, prep_note FROM test_run WHERE run_id = $1', [줄.rerun_id]))
           .rows[0];
   if (실행?.status === 'RUNNING') return;
-  const 항목 =
+  // 프로시저 안 케이스면 프로시저가 통째로 돌아 다른 케이스 줄도 있다 — 닫을지는 대상 케이스 줄만 본다 (도메인/BTS 「테스트 수정 바퀴」 5)
+  const 전부 =
     실행 === undefined
       ? []
-      : (await pool.query<{ platform: string; status: string; real: boolean }>('SELECT platform, status, device IS NOT NULL AS real FROM run_item WHERE run_id = $1 ORDER BY platform DESC', [줄.rerun_id]))
-          .rows;
+      : (
+          await pool.query<{ tc_id: string; platform: string; status: string; real: boolean; message: string | null; blocked_by: string | null }>(
+            `SELECT tc_id, platform, status, device IS NOT NULL AS real, error->>'message' AS message, blocked_by FROM run_item WHERE run_id = $1 ORDER BY platform DESC`,
+            [줄.rerun_id],
+          )
+        ).rows;
+  const 항목 = 전부.filter((i) => i.tc_id === 줄.tc_id);
   const 통과 = 항목.length > 0 && 항목.every((i) => i.status === 'PASS');
   const 다른줄도나 = async (손: Pick<PoolClient, 'query'>) =>
     ((await 손.query('SELECT 1 FROM bts_test_fix WHERE project_id = $1 AND issue_key = $2 AND id <> $3 AND state = ANY($4)', [줄.project_id, 이슈, 줄.id, 도는상태])).rowCount ?? 0) > 0;
@@ -190,6 +197,11 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
     return 되돌리기(줄, 실행.prep_note === null ? 까닭 : `${까닭}\n${실행.prep_note}`);
   }
   const 디바이스 = [...new Set(항목.filter((i) => 통과 || i.status !== 'PASS').map((i) => 디바이스이름(i.platform, i.real)))].join(' · ');
+  // 고친 테스트가 틀린 것이 아닐 수 있다 — 준비 실패처럼 까닭을 갈라 되돌리고 스스로 다시 걸지 않는다
+  const 막음 = 실행 === undefined ? null : 막힌대상(항목);
+  if (!통과 && 막음 !== null && 실행 !== undefined) {
+    return 되돌리기(줄, `선행 케이스 ${막음} 가 통과하지 못해 확인하지 못했어요. 수정한 테스트는 반영됐어요 — 선행 케이스가 통과하면 다시 실행해 주세요 · ${실행표시(실행)}`);
+  }
   if (!통과) {
     return 되돌리기(줄, 실행 === undefined || 항목.length === 0 ? '다시 실행 기록이 없어 확인하지 못했어요' : `${디바이스} 에서 통과하지 못했어요 · ${실행표시(실행)}`);
   }
@@ -204,7 +216,7 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
     await 줄넣기(손, 줄.project_id, 'TRANSITION', 이슈, {
       toStatusKey: 줄.status_map?.CLOSED ?? '',
       ...(해결 !== null && { resolutionId: 해결 }),
-      comment: `${디바이스} 에서 통과했어요 · ${실행 === undefined ? '' : 실행표시(실행)}`,
+      comment: `${디바이스} 에서 통과했어요 · ${실행 === undefined ? '' : 실행표시(실행)}${통과못한다른케이스(전부, 줄.tc_id)}`,
     });
   });
 }

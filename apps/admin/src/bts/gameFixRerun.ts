@@ -8,7 +8,7 @@ import { 팜을본다 } from '../execution/location.js';
 import { 게임수정요청자 } from './gameFixShared.js';
 import { 도는상태 } from './testFixIssue.js';
 import type { 줄 } from './testFixRerun.js';
-import { 디바이스이름, 반영끝났나, 실행표시 } from './testFixShared.js';
+import { 디바이스이름, 막힌대상, 반영끝났나, 실행표시 } from './testFixShared.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -96,7 +96,12 @@ export async function 게임끝보기(줄: 줄): Promise<void> {
   const 항목 =
     실행 === undefined
       ? []
-      : (await pool.query<{ platform: string; status: string; real: boolean }>('SELECT platform, status, device IS NOT NULL AS real FROM run_item WHERE run_id = $1 AND tc_id = $2 ORDER BY platform DESC', [줄.rerun_id, 줄.tc_id])).rows;
+      : (
+          await pool.query<{ platform: string; status: string; real: boolean; message: string | null; blocked_by: string | null }>(
+            `SELECT platform, status, device IS NOT NULL AS real, error->>'message' AS message, blocked_by FROM run_item WHERE run_id = $1 AND tc_id = $2 ORDER BY platform DESC`,
+            [줄.rerun_id, 줄.tc_id],
+          )
+        ).rows;
   const 통과 = 항목.length > 0 && 항목.every((i) => i.status === 'PASS');
   if (통과) return 게임줄끝내기([줄.id], 'PASSED', null);
   // 고친 테스트가 틀린 것이 아니라 데이터 준비가 안 됐다 — 스스로 다시 걸지 않는다
@@ -104,6 +109,9 @@ export async function 게임끝보기(줄: 줄): Promise<void> {
     const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 고친 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요';
     return 게임줄끝내기([줄.id], 'FAILED', 실행.prep_note === null ? 까닭 : `${까닭}\n${실행.prep_note}`);
   }
+  // 고친 케이스가 앞 케이스에 막혔으면 다시 고치지 않고 사람에게 넘기되 막은 케이스를 적는다 (도메인/게임 §3.10 「실패 자동 수정」 5)
+  const 막음 = 막힌대상(항목);
+  if (막음 !== null && 실행 !== undefined) return 게임줄끝내기([줄.id], 'FAILED', `선행 케이스 ${막음} 가 통과하지 못해 확인하지 못했어요 · ${실행표시(실행)}`);
   const 디바이스 = [...new Set(항목.filter((i) => i.status !== 'PASS').map((i) => 디바이스이름(i.platform, i.real)))].join(' · ');
   await 게임줄끝내기([줄.id], 'FAILED', 실행 === undefined || 항목.length === 0 ? '다시 실행 기록이 없어 확인하지 못했어요' : `${디바이스} 에서 통과하지 못했어요 · ${실행표시(실행)}`);
 }

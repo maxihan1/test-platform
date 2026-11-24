@@ -6,6 +6,7 @@ import { setTimeout as 잠깐 } from 'node:timers/promises';
 import type { BrowserPlatform } from '@platform/kit';
 import type { Pool } from 'pg';
 
+import { 단위비밀들, 실행단위번호 } from '../execution/execRead.js';
 import { 팜logcat읽기, 팜증적받는중 } from '../execution/farmEvidence.js';
 import { trace줄끝 } from '../execution/traceIngest.js';
 import { 종류조건 } from '../execution/runKind.js';
@@ -15,6 +16,7 @@ import { 실패카드, type FailureCase, type FailureDevice } from '../reporting
 import { 디바이스순서 } from '../reporting/failuresShape.js';
 import { logcat오류줄, 같은곳에서깨짐, 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료, type 화면재료 } from './failBody.js';
 import { 재검증실패넘기기 } from './bugfix.js';
+import { 프로시저재료읽기 } from './failProc.js';
 import { 보낼줄넣기 } from './outbox.js';
 
 async function db(): Promise<Pool> {
@@ -146,6 +148,7 @@ async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: numb
         .sort((x, y) => 디바이스순서.indexOf(x) - 디바이스순서.indexOf(y))
     : [];
   const 공개주소 = (process.env.PLATFORM_PUBLIC_URL ?? '').replace(/\/+$/, '');
+  const 프로시저 = await 프로시저재료읽기(pool, d.item.historyId);
   const 날재료: 실패재료 = {
     애플리케이션: 실행.service_name,
     tcId: c.tcId,
@@ -156,13 +159,18 @@ async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: numb
     reqs: c.reqs,
     ...첫재료,
     // 웹 항목(실제 폰 Chrome 포함)은 지금 그대로 네트워크 · 콘솔이다
-    폰로그: d.platform === 'android' && 마감 !== null ? await 폰로그읽기(d.item.runId, d.item.historyId, 마감) : null,
+    // 폴더는 실행 단위마다 하나다 — 프로시저 줄은 케이스 줄 번호로 찾으면 빈 폴더다(execution/execRead.ts 실행단위번호)
+    폰로그:
+      d.platform === 'android' && 마감 !== null
+        ? await 폰로그읽기(d.item.runId, (await 실행단위번호(d.item.runId, d.item.historyId)) ?? d.item.historyId, 마감)
+        : null,
     // 화면은 hash 주소다. 항목 상세는 실행 번호가 맞아야 찾아(execution/queries.ts findItem) 한 건 실행이 덮은 항목은 그 한 건 실행 번호로 간다
     결과주소: 공개주소 === '' ? null : `${공개주소}/#/runs/${String(d.item.runId)}/items/${String(d.item.historyId)}`,
     // 최근 흐름 맨 앞은 이번 실행이다 — 섞임은 앞 실행들로만 본다(이번 FAIL 을 넣으면 새로 깨진 회귀가 다 흔들림이 된다)
     꼬리표: 꼬리표고르기(d.item.failure?.type ?? null, d.recent.slice(1)),
     화면: null,
     둘째: 둘재료 !== null && !같은곳에서깨짐(첫재료, 둘재료) ? 둘재료 : null,
+    프로시저: 프로시저?.재료 ?? null,
   };
   // 항목 상세는 이미 가렸지만 단계 제목 · 요구 문장 · 기록까지 밖으로 나가는 재료 전부를 한 번 더 가린다 — 되비친 비밀값(리포팅 「되비친 비밀값」).
   // 본문을 만들기 전에 가린다 — 만든 뒤 가리면 별표가 글을 늘려 크기 상한을 넘을 수 있다.
@@ -175,9 +183,11 @@ async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: numb
     )
   ).rows;
   if (원본들.length !== 번호들.length) throw new Error(`실패 등록 중 항목 ${번호들.join(' · ')} 가운데 사라진 것이 있다`);
+  // 프로시저 안 케이스는 재현 단계에 앞 케이스의 절차가 들고 로그도 실행 단위에 한 벌이다 — 그 실행 단위의 모든 케이스 줄 값으로 가린다(공통/4 「테스트 프로시저 표」)
+  const 단위 = 프로시저 === null ? [] : ((await 단위비밀들([프로시저.execId])).get(프로시저.execId) ?? []);
   // 화면 이름은 가린 뒤에 붙인다 — 짧은 비밀값이 desktop · mobile 안에 들면 이름이 별표로 깨져 본문을 못 만든다
   const 재료: 실패재료 = {
-    ...(가린다(날재료, 긴것부터(원본들.flatMap((r) => 항목비밀(r)))) as 실패재료),
+    ...(가린다(날재료, 긴것부터([...new Set([...원본들.flatMap((r) => 항목비밀(r)), ...단위])])) as 실패재료),
     화면: 웹 ? { 깨짐, 통과 } : null,
   };
   // 산출물 폴더 기준 경로. 보낼 때 outbox 가 파일을 읽어 올린다. 러너가 만든 모양이 아니면 싣지 않는다 — 파일시스템을 읽는 자리다.
@@ -198,6 +208,19 @@ async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: numb
 }
 
 /**
+ * 「테스트 수정」 확인 실행에서 올리지 않을 케이스 — 대상 케이스(끝 판정이 닫거나 되돌린다)와 지금 테스트 수정 중인 케이스(그 줄의 다시 실행이 가른다).
+ * 같이 돈 다른 케이스의 실패는 보통 한 건처럼 올린다 — 수정 확인이 다른 케이스의 실패를 가리지 않게 (도메인/BTS 「테스트 수정 바퀴」 4)
+ */
+async function 확인실행케이스(pool: Pool, runId: number, 서비스: number, env: string): Promise<Set<string>> {
+  const 대상 = (await pool.query<{ tc_id: string }>('SELECT tc_id FROM bts_test_fix WHERE rerun_id = $1', [runId])).rows;
+  if (대상.length === 0) return new Set();
+  const 고치는중 = (
+    await pool.query<{ tc_id: string }>(`SELECT tc_id FROM bts_test_fix WHERE service_id = $1 AND env = $2 AND state IN ('FIXING', 'WAIT_MERGE', 'RERUNNING')`, [서비스, env])
+  ).rows;
+  return new Set([...대상, ...고치는중].map((r) => r.tc_id));
+}
+
+/**
  * 넣은 줄 수. BTS 를 안 이은 프로젝트 · 시나리오면 0.
  * 한 건 실행은 붙는 실행(부모)의 카드로 그 한 건만 올린다 — 카드가 부모 자리에 서고, 부모에서 통과했던 케이스가 새로 깨질 수 있다
  */
@@ -206,8 +229,7 @@ export async function 실패등록(runId: number, 기다림상한ms = trace기�
   const pool = await db();
   const 실행 = (await pool.query<실행행>(실행SQL, [runId])).rows[0];
   if (실행 === undefined) return 0;
-  // 「테스트 수정」 바퀴의 다시 실행은 올리지 않는다 — 끝 판정이 닫거나 되돌린다. 올리면 「또 실패」 댓글과 되돌리기 댓글이 같이 달린다 (도메인/BTS 「테스트 수정 바퀴」 4)
-  if (((await pool.query('SELECT 1 FROM bts_test_fix WHERE rerun_id = $1 LIMIT 1', [runId])).rowCount ?? 0) > 0) return 0;
+  const 건너뛸 = await 확인실행케이스(pool, runId, Number(실행.service_id), 실행.env);
   // trace 풀기 · 팜 증적 받기를 기다리는 마감은 하나다 — 실행 끝에서 길어야 상한만큼 늦는다
   const 마감 = Date.now() + 기다림상한ms;
   // trace 는 실행과 따로 한 줄로 푼다. 실행이 막 끝나면 마지막 항목들이 아직 줄에 있어 이슈에 네트워크 · 콘솔이 빠진다 — 지금 줄 끝까지 기다린다.
@@ -216,15 +238,16 @@ export async function 실패등록(runId: number, 기다림상한ms = trace기�
   if (늦음) console.warn(`[bts] 실행 ${String(runId)} — trace 풀기가 ${String(기다림상한ms / 1000)}초 안에 안 끝나 기다리지 않고 올린다`);
   const 한건 = 실행.origin === 'SINGLE' && 실행.rerun_of !== null;
   const 카드실행 = 한건 ? Number(실행.rerun_of) : runId;
+  // 한 건에서 실패한 케이스만 — 프로시저 한 건은 통째로 돌아 여러 케이스 줄이 남는다. Blocked · 그 밖의 미실행은 부모의 옛 Fail 카드가 그대로라 「또 실패」로 잘못 읽힌다
   const 그것만 = 한건
-    ? new Set((await pool.query<{ tc_id: string }>('SELECT DISTINCT tc_id FROM run_item WHERE run_id = $1', [runId])).rows.map((r) => r.tc_id))
+    ? new Set((await pool.query<{ tc_id: string }>(`SELECT DISTINCT tc_id FROM run_item WHERE run_id = $1 AND status = 'FAIL'`, [runId])).rows.map((r) => r.tc_id))
     : null;
   const 서비스 = Number(실행.service_id);
   let 넣음 = 0;
   for (let page = 1; ; page++) {
     const 쪽 = await 실패카드(카드실행, page);
     for (const c of 쪽.items) {
-      if (그것만 !== null && !그것만.has(c.tcId)) continue;
+      if ((그것만 !== null && !그것만.has(c.tcId)) || 건너뛸.has(c.tcId)) continue;
       const 짝 = (await pool.query<{ issue_key: string; open: boolean; resolution: string | null; released: boolean }>(짝SQL, [서비스, c.tcId, 실행.env])).rows[0];
       // 흔들림 · 화면이 맞음으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 사람이 판정했고 테스트를 고칠 일만 남았다.
       // 그 케이스를 고친 작성이 병합되면 다시 올린다(도메인/BTS 「판정은 BTS 에서」)
