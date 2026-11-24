@@ -8,6 +8,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PC화면경로, PC화면을건넨다, PC화면을단다, 길이를붙인다, 화면소켓을연다, 화면통로주소, type 화면소켓 } from './pcScreen.js';
 import { 시작한다 } from './trial.js';
 
+// 실행 단위 번호는 DB 에서 읽는다 — DB 없이 돌려고 「줄이 없다」로 답한다
+vi.mock('./execRead.js', () => ({ 실행단위번호: vi.fn(async () => null), 실행단위자리: vi.fn(async () => null) }));
+
 class 가짜소켓 implements 화면소켓 {
   binaryType = 'blob';
   onopen: (() => void) | null = null;
