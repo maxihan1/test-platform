@@ -6,7 +6,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
 
-import { 실행단위자리 } from './execRead.js';
+import { 실행단위번호 } from './execRead.js';
 import { PC화면경로 } from './pcScreen.js';
 import { runnerUrl, 러너머리 } from './runnerAddr.js';
 
@@ -40,6 +40,8 @@ export interface 보낸것 {
   runId: number;
   timeoutMs: number;
   보낸때: number;
+  /** 프로시저 실행 단위만 — 그 실행 단위의 케이스 줄 번호(도는 차례대로). 진행 조회가 지금 도는 케이스 줄을 기본 키로 찾는다 */
+  줄들?: number[];
 }
 
 type 화면 = { 열쇠?: string; vision?: string; 폰이름?: string; 보냄?: 보낸것 };
@@ -102,8 +104,8 @@ export async function 항목장면경로(app: FastifyInstance): Promise<void> {
     const historyId = 정수(req.params.historyId);
     if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
     const 없음 = () => reply.code(404).send({ error: 'LIVE_NOT_FOUND', detail: String(historyId) });
-    const 자리 = await 실행단위자리(runId, historyId);
-    const 열쇠 = 자리 === null ? undefined : 항목화면(자리.번호)?.열쇠;
+    const 번호 = await 실행단위번호(runId, historyId);
+    const 열쇠 = 번호 === null ? undefined : 항목화면(번호)?.열쇠;
     if (열쇠 === undefined) return 없음();
     return 장면을건넨다(reply, 열쇠);
   });

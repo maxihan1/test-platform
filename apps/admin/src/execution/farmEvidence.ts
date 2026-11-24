@@ -13,7 +13,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { 정수 } from '../routeParams.js';
 import { 볼륨목록, 볼륨파일, 볼륨파일읽기 } from '../artifactFile.js';
 
-import { 실행단위자리 } from './execRead.js';
+import { 실행단위번호, 실행단위자리 } from './execRead.js';
 import { 팜머리, 팜주소 } from './farm.js';
 import { 서버팜토큰, 실행팜토큰 } from './farmToken.js';
 
@@ -163,7 +163,7 @@ export async function 팜영상경로(app: FastifyInstance): Promise<void> {
     if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
     const 없음 = (까닭: keyof typeof 영상글) => reply.code(404).send({ error: 'GONE', detail: 영상글[까닭] });
     // 팜 연결은 실행 단위에 하나다 — 케이스 줄 번호로 물으면 그 줄이 든 실행 단위의 것을 준다
-    const sessionId = await 연결번호(runId, (await 실행단위자리(runId, historyId))?.번호 ?? historyId);
+    const sessionId = await 연결번호(runId, (await 실행단위번호(runId, historyId)) ?? historyId);
     if (sessionId === null) return 없음('기록없음');
     const 팜 = 팜주소();
     if (팜 === undefined) return 없음('팜없음');
@@ -234,7 +234,7 @@ export async function 팜증적경로(app: FastifyInstance): Promise<void> {
       const historyId = 정수(req.params.historyId);
       if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
       // 증적 폴더는 실행 단위에 하나다 (도메인/러너 §5.2 「프로시저 실행」 「폴더」)
-      return 내준다(reply, req.url, 폴더(runId, (await 실행단위자리(runId, historyId))?.번호 ?? historyId), req.params.name);
+      return 내준다(reply, req.url, 폴더(runId, (await 실행단위번호(runId, historyId)) ?? historyId), req.params.name);
     },
   );
 

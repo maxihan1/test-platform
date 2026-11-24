@@ -159,6 +159,24 @@ describe('dispatch 의 프로시저 실행 단위', () => {
     ]);
   });
 
+  it('같은 프로시저의 실행 단위(반복 회차)는 앞 것이 끝난 뒤에 간다', async () => {
+    가짜팜([{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }]);
+    let 첫회차를끝낸다 = (): void => undefined;
+    const 시작: number[] = [];
+    vi.mocked(케이스들을보낸다).mockImplementation(async (요청) => {
+      시작.push(요청.historyId);
+      if (요청.historyId === 50) await new Promise<void>((done) => { 첫회차를끝낸다 = done; });
+      return 답(요청);
+    });
+
+    const 끝 = dispatch(9306, [케이스(51, 'XDP-FN-101'), 케이스(52, 'XDP-FN-102'), 케이스(61, 'XDP-FN-101', { execId: 60 }), 케이스(62, 'XDP-FN-102', { execId: 60 })]);
+    await vi.waitFor(() => expect(시작).toEqual([50]));
+    첫회차를끝낸다();
+    await 끝;
+
+    expect(시작).toEqual([50, 60]);
+  });
+
   it('옛 꼴 케이스와 섞인 실행은 옛 꼴은 옛 요청으로, 프로시저는 새 꼴 요청으로 간다', async () => {
     가짜팜([{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }]);
     vi.mocked(callRunner).mockImplementation(async (_runId, item) => ({ historyId: item.historyId, status: 'PASS', durationMs: 1, steps: [] }));

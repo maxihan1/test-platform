@@ -11,14 +11,24 @@ async function db(): Promise<Pool> {
 }
 
 /**
- * 케이스 줄이 든 실행 단위의 번호와, 그 실행 단위의 케이스가 모두 통과했나. 러너에 가는 번호 · 장면 열쇠 · 폴더(`artifacts/runs/{runId}/{번호}/`)가 이 번호다.
- * 옛 꼴 케이스는 케이스 줄 번호와 같고 실행 단위 칸 전의 줄도 케이스 줄 번호다. 통과가 아닌 케이스가 하나라도 있으면 러너가 영상 · logcat 을 남긴다.
- * 그 실행의 줄이 아니면 null — 주소의 runId 로 문이 권한을 봤으니 남의 실행 것이 새지 않게 한다
+ * 케이스 줄이 든 실행 단위의 번호 — 러너에 가는 번호 · 장면 열쇠 · 폴더(`artifacts/runs/{runId}/{번호}/`)가 이 번호다.
+ * 옛 꼴 케이스는 케이스 줄 번호와 같고 실행 단위 칸 전의 줄도 케이스 줄 번호다.
+ * 그 실행의 줄이 아니면 null — 주소의 runId 로 문이 권한을 봤으니 남의 실행 것이 새지 않게 한다.
+ * 화면이 장면을 짧은 주기로 묻는 길이라 케이스 줄 번호(기본 키) 한 줄만 읽는다
+ */
+export async function 실행단위번호(runId: number, historyId: number): Promise<number | null> {
+  const r = await (await db()).query<{ 번호: string }>('SELECT COALESCE(exec_id, history_id) AS "번호" FROM run_item WHERE run_id = $1 AND history_id = $2', [runId, historyId]);
+  return r.rows[0] === undefined ? null : Number(r.rows[0].번호);
+}
+
+/**
+ * 실행 단위 번호와, 그 실행 단위의 케이스가 모두 통과했나 — 통과가 아닌 케이스가 하나라도 있으면 러너가 영상 · logcat 을 남긴다.
+ * run_item 에는 exec_id 색인이 없다 — 같은 실행의 줄로 좁혀(run_id 색인) 찾는다
  */
 export async function 실행단위자리(runId: number, historyId: number): Promise<{ 번호: number; 통과: boolean } | null> {
   const r = await (await db()).query<{ 번호: string; 통과: boolean }>(
     `SELECT COALESCE(i.exec_id, i.history_id) AS "번호",
-            i.status = 'PASS' AND NOT EXISTS (SELECT 1 FROM run_item x WHERE x.exec_id = i.exec_id AND x.status <> 'PASS') AS "통과"
+            i.status = 'PASS' AND NOT EXISTS (SELECT 1 FROM run_item x WHERE x.run_id = i.run_id AND x.exec_id = i.exec_id AND x.status <> 'PASS') AS "통과"
        FROM run_item i WHERE i.run_id = $1 AND i.history_id = $2`,
     [runId, historyId],
   );
@@ -34,7 +44,10 @@ export async function 단위비밀들(execIds: readonly number[]): Promise<Map<n
   const 모음 = new Map<number, string[]>();
   if (execIds.length === 0) return 모음;
   const r = await (await db()).query<{ exec_id: string; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }>(
-    'SELECT exec_id, params, expected, param_schema, expected_schema FROM run_item WHERE exec_id = ANY($1::bigint[])',
+    // 실행 단위(기본 키)에서 그 실행을 찾아 같은 실행의 줄로 좁힌다 — run_item 에는 exec_id 색인이 없다
+    `SELECT i.exec_id, i.params, i.expected, i.param_schema, i.expected_schema
+       FROM run_exec e JOIN run_item i ON i.run_id = e.run_id AND i.exec_id = e.exec_id
+      WHERE e.exec_id = ANY($1::bigint[])`,
     [execIds],
   );
   for (const row of r.rows) 모음.set(Number(row.exec_id), [...(모음.get(Number(row.exec_id)) ?? []), ...항목비밀(row)]);

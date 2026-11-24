@@ -41,14 +41,16 @@ export async function 진행경로(app: FastifyInstance): Promise<void> {
     // **러너가 답한 것 · admin 이 보낸 것만 물어본다.** run_id 로만 좁히면 5000건짜리 실행에서 보는 사람마다
     // 2초에 한 번 5000행을 읽는다 — 정작 쓰는 것은 동시 실행 수만큼(기본 2)뿐이다.
     // 러너의 번호는 실행 단위 번호다 — 그 실행 단위의 케이스 줄을 도는 차례대로 읽어 지금 도는 케이스 줄로 바꿔 싣는다 (도메인/실행 §3.2 「테스트 프로시저 실행」 「한도 · 폰」).
+    // 프로시저의 케이스 줄 번호는 보낼 때 메모리에 둔 것을 쓴다 — run_item 에는 exec_id 색인이 없어 실행 단위 번호로 찾으면 그 실행의 줄을 다 읽는다.
+    // 옛 꼴 케이스는 실행 단위 번호가 곧 케이스 줄 번호다. admin 이 다시 떠 잃은 프로시저는 싣지 않는다(재기동 복구가 그 실행을 닫는다)
     // 단계 제목은 실행에 박제하지 않고 지금 케이스 칸에서 읽는다 (공통/4-데이터모델 「단계 제목 칸」)
     const { pool } = await import('../db/index.js');
     const 줄들 = await pool.query<{ 번호: string; history_id: string; tc_id: string; timeout_ms: number; step_titles: string[] | null }>(
       `SELECT COALESCE(ri.exec_id, ri.history_id) AS "번호", ri.history_id, ri.tc_id, ri.timeout_ms, tc.step_titles
          FROM run_item ri LEFT JOIN test_case tc ON tc.tc_id = ri.tc_id
-        WHERE ri.run_id = $1 AND COALESCE(ri.exec_id, ri.history_id) = ANY($2)
+        WHERE ri.run_id = $1 AND ri.history_id = ANY($2)
         ORDER BY ri.exec_seq NULLS FIRST, ri.history_id`,
-      [runId, [...돌고있는것들.map((it) => it.historyId), ...보낸것들.map((칸) => 칸.번호)]],
+      [runId, [...돌고있는것들.map((it) => it.historyId), ...보낸것들.map((칸) => 칸.번호)].flatMap((번호) => 항목화면(번호)?.보냄?.줄들 ?? [번호])],
     );
     const 내것 = new Map<number, typeof 줄들.rows>();
     for (const r of 줄들.rows) 내것.set(Number(r.번호), [...(내것.get(Number(r.번호)) ?? []), r]);

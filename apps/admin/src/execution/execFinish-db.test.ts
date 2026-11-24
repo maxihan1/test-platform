@@ -6,12 +6,14 @@ import Fastify from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { finishExec, 실행단위를시작한다 } from './execFinish.js';
-import { 실행단위자리 } from './execRead.js';
+import { 실행남은시간 } from './eta.js';
+import { 실행단위번호, 실행단위자리 } from './execRead.js';
+import { 항목화면을닫는다, 항목화면을연다 } from './live.js';
 import { 준비실패로닫는다 } from './prep.js';
 import { 진행경로 } from './progressRoute.js';
 import { findItem, findRun } from './queries.js';
 import { 러너진행 } from './runnerProgress.js';
-import { abortRun, createRun, finishItem, unfinishedItems, type PendingItem } from './store.js';
+import { abortRun, createRun, finishItem, finishRun, unfinishedItems, type PendingItem } from './store.js';
 
 vi.mock('./runnerProgress.js', async (원본) => ({ ...(await 원본<typeof import('./runnerProgress.js')>()), 러너진행: vi.fn(async () => ({ items: [], scenarios: [] })) }));
 
@@ -114,7 +116,7 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
     await pool.end();
   });
 
-  it('케이스마다 판정 · 절차 · 케이스 시각을 적고 기기 정보는 모든 줄에 같은 값을, FPS 는 절차 번호로 갈라 넣은 뒤 실행 단위를 닫는다', async () => {
+  it('케이스마다 판정 · 절차 · 케이스 시각을 적고 기기 정보는 모든 줄에 같은 값을, FPS 는 절차 번호로 갈라(결과에 안 실린 절차의 표본은 돌던 케이스에) 넣은 뒤 실행 단위를 닫는다', async () => {
     const { runId, execId } = await 실행을만든다();
     await 실행단위를시작한다(execId);
 
@@ -127,7 +129,7 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
           { tcId: 'XEU-FN-102', status: 'FAIL', durationMs: 200, startedAt: '2026-11-24T01:00:05.000Z', steps: [{ ...절차(2, 'XEU-FN-102'), status: 'FAIL' }], error: { message: '기대와 다르다' } },
           { tcId: 'XEU-FN-103', status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 'XEU-FN-102' },
         ],
-        { device: { model: 'SM-G996N', osVersion: '14', appVersion: '1.0' }, fps: [{ seq: 1, fps: 60 }, { seq: 2, fps: 30 }, { seq: 2, fps: 31 }] },
+        { device: { model: 'SM-G996N', osVersion: '14', appVersion: '1.0' }, fps: [{ seq: 1, fps: 60 }, { seq: 2, fps: 30 }, { seq: 2, fps: 31 }, { seq: 5, fps: 4 }] },
       ),
     );
 
@@ -138,7 +140,7 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
       ['XEU-FN-103', 'NA', true, 'BLOCKED', 'XEU-FN-102', 0],
     ]);
     expect(줄들.map((r) => r.device?.model)).toEqual(['SM-G996N', 'SM-G996N', 'SM-G996N']);
-    expect(줄들.map((r) => r.fps)).toEqual([[{ seq: 1, fps: 60 }], [{ seq: 2, fps: 30 }, { seq: 2, fps: 31 }], null]);
+    expect(줄들.map((r) => r.fps)).toEqual([[{ seq: 1, fps: 60 }], [{ seq: 2, fps: 30 }, { seq: 2, fps: 31 }, { seq: 5, fps: 4 }], null]);
     // 돌다 끊긴 케이스는 끝난 때가 없고 못 간 케이스는 둘 다 없다
     expect(줄들.map((r) => [r.case_started_at?.toISOString() ?? null, r.case_finished_at?.toISOString() ?? null])).toEqual([
       ['2026-11-24T01:00:00.000Z', '2026-11-24T01:00:05.000Z'],
@@ -165,7 +167,7 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
   it('답에 빠진 케이스는 미실행으로 닫고, 날짜가 아닌 케이스 시각은 비운다 — 하나 때문에 실행 단위의 판정을 다 잃지 않는다', async () => {
     const { runId, execId } = await 실행을만든다();
 
-    await finishExec(execId, 답(execId, [{ ...통과('XEU-FN-101', 1), startedAt: '어제쯤' }, 통과('XEU-FN-103', 3)]));
+    await finishExec(execId, 답(execId, [{ ...통과('XEU-FN-101', 1), startedAt: '어제쯤' }, 통과('XEU-FN-103', 3)], { error: { message: 'TIMEOUT' } }));
 
     const 줄들 = (await 줄읽기(runId)).filter((r) => r.tc_id !== 'XEU-FN-201');
     expect(줄들.map((r) => [r.status, r.error?.message ?? null])).toEqual([['PASS', null], ['NA', '러너 답에 이 케이스의 결과가 없습니다'], ['PASS', null]]);
@@ -243,9 +245,11 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
     await finishItem(옛.historyId, { historyId: 옛.historyId, status: 'PASS', durationMs: 5, steps: [] });
 
     expect(await 실행단위자리(runId, 줄['XEU-FN-101']!)).toEqual({ 번호: execId, 통과: false });
+    expect(await 실행단위번호(runId, 줄['XEU-FN-103']!)).toBe(execId);
     expect(await 실행단위자리(runId, 옛.historyId)).toEqual({ 번호: 옛.historyId, 통과: true });
     // 남의 실행 번호로는 못 찾는다
     expect(await 실행단위자리(runId + 1, 줄['XEU-FN-101']!)).toBeNull();
+    expect(await 실행단위번호(runId + 1, 줄['XEU-FN-101']!)).toBeNull();
   });
 
   it('진행 조회는 러너가 실행 단위 번호로 알린 진행을 지금 도는 케이스 줄로 바꿔 싣고, 단계 제목은 프로시저 전체를 차례대로 잇는다', async () => {
@@ -257,6 +261,8 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
       { historyId: 999_999_999, seq: 1, title: '남의 단계', elapsedMs: 10 } as RunningStep,
     ];
     vi.mocked(러너진행).mockResolvedValueOnce({ items: 도는것, scenarios: [] });
+    // 프로시저의 케이스 줄 번호는 보낼 때 메모리에 둔 것으로 찾는다
+    항목화면을연다(execId, false, { runId, timeoutMs: 900_000, 줄들: [줄['XEU-FN-101']!, 줄['XEU-FN-102']!, 줄['XEU-FN-103']!] });
     const app = Fastify();
     await app.register(진행경로, { prefix: '/api' });
     try {
@@ -273,7 +279,21 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
       });
       expect(items[1]).toMatchObject({ historyId: 옛.historyId, execId: 옛.execId, stepTitles: ['옛 꼴 단계'] });
     } finally {
+      항목화면을닫는다(execId);
       await app.close();
     }
+  });
+
+  it('남은 시간은 같은 프로시저의 케이스를 한 줄로 본다 — 차례로 돌아 칸을 나눠 써도 그 합보다 빨리 못 끝난다', async () => {
+    const 앞 = await 실행을만든다();
+    await finishExec(앞.execId, 답(앞.execId, ['XEU-FN-101', 'XEU-FN-102', 'XEU-FN-103'].map((tcId, k) => ({ ...통과(tcId, k + 1), durationMs: 60_000 }))));
+    await finishItem(앞.옛.historyId, { historyId: 앞.옛.historyId, status: 'PASS', durationMs: 60_000, steps: [] });
+    await finishRun(앞.runId);
+
+    const { runId } = await 실행을만든다();
+    const 시작 = (await q<{ started_at: Date }>('SELECT started_at FROM test_run WHERE run_id = $1', [runId])).rows[0]!.started_at;
+
+    // 케이스마다 1분 — 넷을 두 칸에 나누면 2분인데 프로시저의 셋은 한 줄이라 3분보다 빨리 못 끝난다
+    expect(await 실행남은시간(runId, 시작)).toBeGreaterThanOrEqual(180_000);
   });
 });

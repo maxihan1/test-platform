@@ -101,7 +101,7 @@ export async function 단위를돌린다(runId: number, 단위: 실행단위, �
     ...실행칸(첫),
   };
   // 장면 · 폰 화면 칸의 열쇠는 실행 단위 번호다 — 러너가 그 번호로 진행을 알린다
-  const 열쇠 = 항목화면을연다(단위.execId, true, { runId, timeoutMs: 요청.timeoutMs });
+  const 열쇠 = 항목화면을연다(단위.execId, true, { runId, timeoutMs: 요청.timeoutMs, 줄들: 단위.케이스들.map((c) => c.historyId) });
   let 답: CasesExecuteResponse;
   try {
     답 = await 폰에보낸다(
