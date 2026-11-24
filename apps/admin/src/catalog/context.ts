@@ -155,25 +155,45 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
 
 const 빈자리: 자리 = { 차례: Infinity, 화면차례: '', screen: null, screenUrl: null, screenName: null, part: null, partName: null, endpoint: null };
 
-/** 목록 순서 — 기능 묶음(판 차례) → 화면(주소) · 엔드포인트(경로) → 화면 조각 → 번호. 화면 없는 케이스가 그 묶음 맨 앞이다 — 머리 줄 없이 묶음 바로 아래 선다 */
-export function 줄세우기(tcIds: string[], 표: 맥락표): { 차례: string[]; groups: CaseGroup[] } {
+/** 프로시저 안 활성 케이스마다 — 그 프로시저의 머리 케이스(활성 케이스 가운데 proc_seq 가 가장 작은 것)와 자기 proc_seq. 조건과 상관없이 짓는다 */
+export type 프로시저표 = Map<string, { 머리: string; seq: number }>;
+
+export function 프로시저표짓기(줄들: { tc_id: string; proc_id: string; proc_seq: number }[]): 프로시저표 {
+  const 머리 = new Map<string, { id: string; seq: number }>();
+  for (const r of 줄들) {
+    const 지금 = 머리.get(r.proc_id);
+    if (지금 === undefined || r.proc_seq < 지금.seq) 머리.set(r.proc_id, { id: r.tc_id, seq: r.proc_seq });
+  }
+  return new Map(줄들.map((r) => [r.tc_id, { 머리: 머리.get(r.proc_id)!.id, seq: r.proc_seq }]));
+}
+
+/**
+ * 목록 순서 — 기능 묶음(판 차례) → 화면(주소) · 엔드포인트(경로) → 화면 조각 → 번호. 화면 없는 케이스가 그 묶음 맨 앞이다 — 머리 줄 없이 묶음 바로 아래 선다.
+ * 프로시저 안 케이스는 머리 케이스 자리에 proc_seq 차례로 붙는다 — 한 프로시저가 목록에 흩어지지 않고, 머리가 조건에 빠져도 남은 케이스가 그 자리에 선다.
+ * 표에 없는 케이스(옛 꼴 · 비활성)는 자기가 머리다
+ */
+export function 줄세우기(tcIds: string[], 표: 맥락표, 프로시저: 프로시저표 = new Map()): { 차례: string[]; groups: CaseGroup[] } {
   const 자리of = (id: string) => 표.get(id)?.자리 ?? 빈자리;
+  const 머리of = (id: string) => 프로시저.get(id)?.머리 ?? id;
   const 차례 = [...tcIds].sort((a, b) => {
-    const x = 자리of(a);
-    const y = 자리of(b);
+    const [ha, hb] = [머리of(a), 머리of(b)];
+    const x = 자리of(ha);
+    const y = 자리of(hb);
     if (x.차례 !== y.차례) return x.차례 < y.차례 ? -1 : 1;
     return (
       x.화면차례.localeCompare(y.화면차례) ||
       (x.screen ?? '').localeCompare(y.screen ?? '') ||
       (x.part ?? '').localeCompare(y.part ?? '') ||
+      ha.localeCompare(hb) ||
+      (프로시저.get(a)?.seq ?? 0) - (프로시저.get(b)?.seq ?? 0) ||
       a.localeCompare(b)
     );
   });
 
   const groups: CaseGroup[] = [];
   for (const id of 차례) {
-    const 곳 = 자리of(id);
-    const feature = 표.get(id)?.feature ?? null;
+    const 곳 = 자리of(머리of(id));
+    const feature = 표.get(머리of(id))?.feature ?? null;
     const 끝 = groups.at(-1);
     if (끝 !== undefined && 끝.feature === feature && 끝.screen === 곳.screen && 끝.part === 곳.part && 끝.endpoint === 곳.endpoint) 끝.tcIds.push(id);
     else groups.push({ feature, screen: 곳.screen, screenUrl: 곳.screenUrl, screenName: 곳.screenName, part: 곳.part, partName: 곳.partName, endpoint: 곳.endpoint, tcIds: [id] });
