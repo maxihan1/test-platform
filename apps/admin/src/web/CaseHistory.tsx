@@ -3,7 +3,8 @@
 import type { 이력묶음 } from './caseDetailView.js';
 import { use말, use언어 } from './i18n.js';
 import { 지켜본다 } from './runWatchStore.js';
-import { PLATFORM_LABEL, Verdict, when } from './ui.js';
+import { 판정표시 } from './proc.js';
+import { PLATFORM_LABEL, when } from './ui.js';
 
 /** 묶음 — undefined 는 받는 중, null 은 받기 실패 */
 export function 실행이력칸({ 묶음 }: { 묶음: 이력묶음[] | null | undefined }) {
@@ -49,7 +50,7 @@ export function 실행이력칸({ 묶음 }: { 묶음: 이력묶음[] | null | un
                   {줄.도는중 ? (
                     t('진행 중')
                   ) : 줄.회수 === 1 ? (
-                    <Verdict status={줄.실패 > 0 ? 'FAIL' : 줄.통과 > 0 ? 'PASS' : 'NA'} />
+                    <판정표시 결과={{ status: 줄.실패 > 0 ? 'FAIL' : 줄.통과 > 0 ? 'PASS' : 'NA', blocked: 줄.막힘 > 0 }} />
                   ) : (
                     t('{회수}번 · Fail {실패} · Pass {통과}', { 회수: 줄.회수, 실패: 줄.실패, 통과: 줄.통과 })
                   )}

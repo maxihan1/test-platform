@@ -9,7 +9,8 @@ import { use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 아이콘 } from './icons.js';
-import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when, 월일 } from './ui.js';
+import { 판정표시 } from './proc.js';
+import { PLATFORM_LABEL, seconds, STATUS_COLOR, when, 월일 } from './ui.js';
 
 // 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
 export const 결과라벨: Record<ItemStatus | 'ALL', string> = {
@@ -67,6 +68,7 @@ export function 케이스줄({
   고름,
   뒤집기,
   열림 = false,
+  프로시저안 = false,
   on실행,
   테스트만 = false,
   on열기,
@@ -79,6 +81,8 @@ export function 케이스줄({
   뒤집기: (row: CaseRow, 사이: boolean) => void;
   /** 오른쪽 상세 칸에 이 케이스가 열려 있나 */
   열림?: boolean;
+  /** 프로시저 헤더 아래에 선 줄이다 — 번호 앞에 실행 차례가 선다 (DESIGN.md 「테스트 목록」) */
+  프로시저안?: boolean;
   /** 디바이스 칸마다의 ▶ — 그 한 건을 그 디바이스로 실행 창을 연다. 고른 서비스에서 실행 쓰기가 아니면 오지 않고 버튼도 없다 (화면공통 §8 · 시안 ①) */
   on실행?: (row: CaseRow, 디바이스: Platform) => void;
   /** 실행 칸이 `trial` 이다 — ▶ 가 기록 없는 테스트 실행 창을 연다 (도메인/인증 §3.5 「테스트 모드」) */
@@ -94,7 +98,8 @@ export function 케이스줄({
   return (
     // 한 건이 한 줄이다 — 요구 · 종류 · 화면 · 설계 기법 · 최근 5회는 상세 서랍에서 본다 (2026-11-11 시안 B · 앞 판은 세 줄이라 한 화면에 4건이었다)
     <div className={열림 ? 'row pickable case-line row-open' : 'row pickable case-line'}>
-      <div className="gutter" style={{ background: STATUS_COLOR[마지막판정(row, 마지막)] }} />
+      {/* 왼쪽 띠는 Fail 줄에만 선다 — 모든 줄에 판정 색이 서면 통과가 대부분인 목록이 초록으로 차 실패가 묻힌다 (2026-11-24 사용자 · 시안 5판) */}
+      <div className="gutter" style={마지막판정(row, 마지막) === 'FAIL' ? { background: STATUS_COLOR.FAIL } : undefined} />
       {/* 고르는 칸은 왼쪽 거터 칸 안이다. 줄 내용 쪽 첫 요소로 두면 목록이 좁아
           줄이 쌓일 때 케이스명 위에 체크박스만 홀로 한 줄이 된다 (SPEC §8.1).
           label 로 감싸 칸 전체가 누르는 자리가 된다 — 15px 네모만 노리게 두지 않는다 */}
@@ -108,7 +113,14 @@ export function 케이스줄({
           onChange={(e) => 뒤집기(row, (e.nativeEvent as MouseEvent).shiftKey === true)}
         />
       </label>
-      <div className="tcid">{row.tcId}</div>
+      <div className="tcid">
+        {!프로시저안 || row.procSeq == null ? null : (
+          <span className="proc-seq" title={row.procCount == null ? undefined : t('{전체}건 중 {번째}번째', { 전체: row.procCount, 번째: row.procSeq })}>
+            {row.procSeq}
+          </span>
+        )}
+        {row.tcId}
+      </div>
       {/* 입력 칸은 줄에서 뺐다 — 값은 오른쪽 상세 칸에서 고친다 (⑫ 시안 A · 도메인/카탈로그 §8.1).
           이름을 누르면 그 칸이 열린다. 따로 「상세」 버튼을 두면 같은 일을 하는 자리가 둘이다 */}
       <div className="title">
@@ -154,7 +166,7 @@ export function 케이스줄({
                       href={`#/runs/${result.runId}/items/${result.historyId}`}
                       title={`${when(result.finishedAt, 언어)} · ${seconds(result.durationMs, 언어)}`}
                     >
-                      <Verdict status={result.status} />
+                      <판정표시 결과={result} />
                     </a>
                   )}
                   {/* ▶ 는 디바이스마다다 — 하나만 두면 모바일만 돌리고 싶어도 PC 가 같이 낀다 (시안 ①).

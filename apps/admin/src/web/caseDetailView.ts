@@ -4,6 +4,7 @@ import type { Platform } from '@platform/kit/types';
 
 import type { CaseRow, HistoryRow, RunItemDetail } from './api.js';
 import { keyOf, type LastMap } from './catalogView.js';
+import { 막혔나 } from './proc.js';
 
 /**
  * 칸이 받아 온 것. 목록이 들고 있어 칸을 닫아도 남는다 — 이력은 (케이스, 마지막 항목)마다, 절차는 실행 항목마다.
@@ -12,9 +13,11 @@ import { keyOf, type LastMap } from './catalogView.js';
 export interface 상세기억 {
   이력: Map<string, HistoryRow[] | null>;
   절차: Map<number, RunItemDetail | null>;
+  /** 프로시저 번호마다 그 프로시저의 케이스(실행 차례). 서랍은 케이스 하나만 찾아 열릴 때가 많아 목록이 받은 줄로는 못 채운다 */
+  프로시저: Map<string, CaseRow[] | null>;
 }
 
-export const 빈기억 = (): 상세기억 => ({ 이력: new Map(), 절차: new Map() });
+export const 빈기억 = (): 상세기억 => ({ 이력: new Map(), 절차: new Map(), 프로시저: new Map() });
 
 /** 이력 열쇠 — 케이스와 디바이스들 가운데 가장 늦은 마지막 항목 번호 */
 export function 이력열쇠(row: CaseRow, 마지막: LastMap): string {
@@ -37,6 +40,8 @@ export interface 이력묶음 {
   회수: number;
   통과: number;
   실패: number;
+  /** Blocked 로 끝난 수 — 판정값은 미실행이라 통과 · 실패에 안 든다 */
+  막힘: number;
   끝난때: string | null;
   /** 한 건 실행 줄 — 붙은 실행(없으면 null)을 같이 적는다 (도메인/실행 §3.2) */
   한건: boolean;
@@ -58,6 +63,7 @@ export function 실행마다묶기(이력: HistoryRow[]): 이력묶음[] {
       회수: 0,
       통과: 0,
       실패: 0,
+      막힘: 0,
       끝난때: 줄.finishedAt,
       한건: 줄.origin === 'SINGLE',
       붙은: 줄.rerunOf ?? null,
@@ -68,6 +74,7 @@ export function 실행마다묶기(이력: HistoryRow[]): 이력묶음[] {
     것.회수 += 1;
     if (줄.status === 'PASS') 것.통과 += 1;
     if (줄.status === 'FAIL') 것.실패 += 1;
+    if (막혔나(줄)) 것.막힘 += 1;
     if (줄.finishedAt === null) 것.도는중 = true;
     묶음.set(줄.runId, 것);
   }

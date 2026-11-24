@@ -145,26 +145,27 @@ export function useRunPick(옵션: {
    * 목록 줄의 ▶ — 그 한 건으로 같은 창을 연다. 실행 문은 하나다 (도메인/실행 §8.10, 2026-10-09 UI 개편 묶음 4).
    * `디바이스` 는 줄의 디바이스 칸마다 붙은 ▶ 다 — 그 디바이스로만 돈다 (시안 ①). 상세 칸의 실행은 주지 않아 선언한 디바이스 전부다
    */
-  async function 하나열기(row: CaseRow, 디바이스?: Platform) {
+  /**
+   * 줄의 ▶ 는 한 건을, 프로시저 헤더의 「실행」 · 상세의 「프로시저 실행」은 그 프로시저의 케이스를 담아 실행 창을 연다.
+   * 프로시저는 서버가 통째로 펼치므로 받은 줄만 담아도 다 돈다 (도메인/실행 §3.2 「테스트 프로시저 실행」)
+   */
+  async function 여럿열기(rows: readonly CaseRow[], 디바이스?: Platform) {
     알림(null);
-    if (!row.isActive) {
-      // 빈 창을 열지 않는다. 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다
-      알림(t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다'));
-      return;
-    }
+    // 빈 창을 열지 않는다. 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다
+    const 없음 = t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다');
+    const 산것 = rows.filter((row) => row.isActive);
+    if (산것.length === 0) return 알림(없음);
     try {
       const 앱 = await 사람읽기();
       set안내(undefined);
-      const 담을 = 디바이스 === undefined ? 윈도우접기(row, 앱?.gamePads ?? []) : { ...row, platforms: [디바이스] };
-      if (담을.platforms.length === 0) {
-        알림(t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다'));
-        return;
-      }
-      set담은것([담을]);
+      const 담을 = 산것.map((row) => (디바이스 === undefined ? 윈도우접기(row, 앱?.gamePads ?? []) : { ...row, platforms: [디바이스] })).filter((c) => c.platforms.length > 0);
+      if (담을.length === 0) return 알림(없음);
+      set담은것(담을);
     } catch (err) {
       알림(message(err, 언어));
     }
   }
+  const 하나열기 = (row: CaseRow, 디바이스?: Platform) => 여럿열기([row], 디바이스);
 
   /** 한 건 창에서 저장값을 바꿨다. 「저장값 · 누가 · 언제」가 지금 것을 말하게 그 줄만 새로 읽는다 */
   async function 다시읽기(tcId: string) {
@@ -230,6 +231,15 @@ export function useRunPick(옵션: {
     });
   }
 
+  /** 프로시저 헤더의 체크박스 — 그 프로시저의 보이는 줄을 다 골랐으면 풀고 아니면 다 고른다. 모두 고른 채면 뒤집기처럼 이 쪽에서 그 줄들을 뺀 것이 남는다 */
+  function 묶음뒤집기(줄들: readonly CaseRow[], 이쪽: readonly CaseRow[]) {
+    if (!모두) return 모두뒤집기([...줄들]);
+    const 뺄 = new Set(줄들.map((r) => r.tcId));
+    set모두조건(null);
+    기준.current = null;
+    set고른(new Map(이쪽.filter((r) => !뺄.has(r.tcId)).map((r) => [r.tcId, r])));
+  }
+
   /** 서비스를 바꾸면 고른 것도 버린다. 남겨 두면 버튼이 「고른 2건」이라 말하고 사실이 아닌 이유를 보여준다 */
   function 비우기() {
     set고른(new Map());
@@ -257,10 +267,12 @@ export function useRunPick(옵션: {
     조건모으기: () => 모으기(false),
     고른모으기: (디바이스?: Platform) => 모으기(true, 디바이스),
     하나열기,
+    여럿열기,
     다시읽기,
     실행걸기,
     뒤집기,
     모두뒤집기,
+    묶음뒤집기,
     모두고르기,
     비우기,
     닫기,
