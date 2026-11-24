@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { ApiError, type EnvRow } from './api.js';
-import { compatApi } from './compatApi.js';
+import { compatApi, 자동케이스 } from './compatApi.js';
 import { CompatRunWindow } from './CompatRunWindow.js';
 import { t as 번역, use말, use언어 } from './i18n.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
@@ -41,8 +41,8 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
   }
 
   const 상세 = 세트.data;
-  const 자동 = new Set((상세?.auto ?? []).map((a) => a.tcId));
-  const 케이스수 = 상세 === null ? 0 : 상세.auto.length + 상세.addedCases.filter((c) => !자동.has(c)).length;
+  const 자동 = new Set(자동케이스(상세?.auto ?? []));
+  const 케이스수 = 상세 === null ? 0 : 자동.size + 상세.addedCases.filter((c) => !자동.has(c)).length;
 
   return (
     <Modal

@@ -122,4 +122,13 @@ describe('결과셈', () => {
       { seq: 2, value: 'UNCHECKED', reason: 'MTA-FN-279 Blocked · 선행 케이스 MTA-FN-278 제한 시간 초과' },
     ]);
   });
+
+  it('프로시저가 끊겨 못 간 케이스(막힌 것 아님)가 지날 화면은 점검 까닭보다 못 돈 까닭이 먼저다', () => {
+    const r = 결과셈(재료({
+      상태들: [상태(1)],
+      케이스들: [케이스(1, 1, 'MTA-FN-280', { status: 'NA', 까닭: 'TIMEOUT', execId: 9 })],
+      지나는: new Map([['MTA-FN-280', ['app:Main/설정']]]),
+    }));
+    expect(r.rows.find((x) => x.key === 'app:Main/설정')?.cells).toEqual([{ seq: 1, value: 'UNCHECKED', reason: 'TIMEOUT' }]);
+  });
 });

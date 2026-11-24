@@ -36,6 +36,9 @@ export interface CompatAuto {
   tcIds?: string[];
 }
 
+/** 자동 선택이 실제로 돌리는 케이스 — 프로시저를 골랐으면 그 케이스 전부다. 그 안의 직접 추가는 자동 선택 쪽으로 센다 */
+export const 자동케이스 = (auto: readonly CompatAuto[]): string[] => auto.flatMap((a) => a.tcIds ?? [a.tcId]);
+
 export interface CompatScreen {
   key: string;
   name: string;

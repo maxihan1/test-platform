@@ -100,7 +100,8 @@ function 칸(재: 결과재료, 상태: 상태줄, key: string, 화면: 저장�
     const 시간초과 = 막은 !== undefined && 판정아닌까닭을가른다(막은.status, 막은.까닭) === 'TIMEOUT';
     return { value: 'UNCHECKED', reason: `${막힌.tcId} Blocked · ${막힘사유(막힌.blockedBy, 막은 === undefined ? undefined : { status: 막은.status, notRunReason: 시간초과 ? 시간초과글 : null })}` };
   }
-  const 못돈 = 지난케이스.find((c) => !c.started || (c.status === 'NA' && c.checkState === null));
+  // 프로시저 안 케이스는 못 간 줄도 그 프로시저의 점검 상태를 같이 든다 — 미실행이면 점검 까닭보다 못 돈 까닭이 먼저다
+  const 못돈 = 지난케이스.find((c) => !c.started || (c.status === 'NA' && (c.checkState === null || c.execId !== null)));
   if (못돈 !== undefined) return { value: 'UNCHECKED', reason: (못돈.started ? 못돈.까닭 : null) ?? 상태.skipReason ?? 못돈.까닭 ?? '케이스를 돌리지 못했습니다' };
   // 여러 케이스가 지나면 limit → failed → missing 차례로 앞엣것 하나다
   const 점검 = (['limit', 'failed', 'missing'] as const).find((v) => 지난케이스.some((c) => c.checkState === v));

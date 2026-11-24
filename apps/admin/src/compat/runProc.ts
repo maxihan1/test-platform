@@ -4,6 +4,7 @@
 import type { CasesExecuteRequest, ExecuteRequest, StepResult } from '@platform/kit';
 
 import { 엔진칸 } from '../execution/engineField.js';
+import { 잡기를늘린다 } from '../execution/farm.js';
 import { 케이스들을보낸다 } from '../execution/runnerCases.js';
 import { Chrome켜기, 프로시저점검기다리기 } from './runCheck.js';
 import type { 도는실행, 실행재료 } from './runEngine.js';
@@ -46,6 +47,7 @@ export async function 연결칸(
 }
 
 const 없어짐 = '케이스가 없어졌거나 폰에서 돌지 않습니다';
+const 늘리는ms = 5 * 60_000;
 
 /** compat_run_case.steps 에 남기는 꼴 */
 export const 단계꼴 = (steps: readonly StepResult[]) => steps.map((x) => ({ seq: x.seq, title: x.title, status: x.status, durationMs: x.durationMs, ...(x.startedAt === undefined ? {} : { startedAt: x.startedAt }) }));
@@ -81,7 +83,14 @@ export async function 프로시저돌기(재: 실행재료, s: 도는실행, seq
   if (s.멈춤) return;
   for (const c of 있는) await 케이스시작(c.id);
   s.도는케이스 = execId;
-  const 답 = await 케이스들을보낸다(요청);
+  // 프로시저 하나가 케이스 수 × 5분까지 돈다 — 보내기 전 한 번으로는 모자라 도는 동안에도 늘린다. 팜은 끝나기 10분 전부터만 받는다 (실행 execUnit.ts 도는동안늘린다와 같다)
+  const 늘리기 = setInterval(() => void 잡기를늘린다(재.팜, serial, fetch, 재.토큰).catch(() => undefined), 늘리는ms);
+  let 답: Awaited<ReturnType<typeof 케이스들을보낸다>>;
+  try {
+    답 = await 케이스들을보낸다(요청);
+  } finally {
+    clearInterval(늘리기);
+  }
   s.도는케이스 = null;
   const 끝 = Date.now();
   const 점검받나 = 첫.platform === 'android' || 연결.Chrome세션 !== undefined;

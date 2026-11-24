@@ -121,7 +121,7 @@ async function 점검남기기(곳: 팜곳, 번호: number, ids: readonly number
     // 상태 · 화면은 줄마다 따로 쓴다 — 마지막 줄을 쓸 때 그 점검 상태가 DONE 으로 닫힌다
     for (const [id, 줄들] of 나누기(점검)) await 점검저장(id, 점검.status as Exclude<점검파일['status'], 'checking'>, 줄들);
   } catch (e) {
-    console.error(`[compat] ${번호} 점검 결과를 받다 깨져 미점검으로 닫는다: ${글(e)}`);
+    console.error(`[compat] 실행 ${곳.runId} 의 ${ids.length === 1 && ids[0] === 번호 ? '케이스 줄' : '프로시저 실행 단위'} ${번호} 점검 결과를 받다 깨져 미점검으로 닫는다: ${글(e)}`);
     for (const id of ids) await 점검저장(id, 'missing', []).catch((x: unknown) => console.error(`[compat] 케이스 ${id} 를 미점검으로도 못 닫았다(다시 켜기 정리가 닫는다): ${글(x)}`));
   }
 }

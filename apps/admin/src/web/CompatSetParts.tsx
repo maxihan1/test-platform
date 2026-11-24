@@ -1,6 +1,6 @@
 // 호환성 세트 화면의 구획 넷 — 디바이스 · 케이스 · 화면 커버리지 · 예상 소요 시간 (도메인/호환성 §8.17 ②). 상태는 CompatSet.tsx 가 든다
 
-import type { CompatAuto, CompatDevice, CompatPreview, CompatSetDetail, CompatSetDevice } from './compatApi.js';
+import { type CompatAuto, type CompatDevice, type CompatPreview, type CompatSetDetail, type CompatSetDevice, 자동케이스 } from './compatApi.js';
 import { 디바이스요약글, 요약, 커버율 } from './compatView.js';
 import { use말 } from './i18n.js';
 
@@ -91,7 +91,7 @@ export function 케이스구획({
   return (
     <section className="compat-panel" aria-labelledby="cs-case">
       <div className="compat-ph">
-        <h2 id="cs-case">{t('케이스 {수}', { 수: auto.reduce((n, a) => n + (a.tcIds?.length ?? 1), 0) + 도는직접.length })}</h2>
+        <h2 id="cs-case">{t('케이스 {수}', { 수: 자동케이스(auto).length + 도는직접.length })}</h2>
         <small className="compat-faint">{t('자동 선택은 실행할 때마다 다시 계산합니다')}</small>
       </div>
       {auto.length + 도는직접.length === 0 ? (

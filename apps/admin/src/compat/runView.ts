@@ -21,7 +21,8 @@ async function 프로시저지금(devices: 상태보임[], 케이스들: readonl
     return c === undefined ? [] : [[d.seq, c.execId!] as const];
   }));
   if (도는.size === 0) return devices;
-  const 줄들 = await 진행().catch(() => []);
+  // 결과 화면이 자주 묻는다 — 러너가 늦으면 1초만 기다리고 DB 값으로 보인다
+  const 줄들 = await 진행(undefined, 1_000).catch(() => []);
   return devices.map((d) => {
     const p = 줄들.find((x) => x.historyId === 도는.get(d.seq));
     const c = p?.tcId === undefined ? undefined : 케이스들.find((x) => x.seq === d.seq && x.tcId === p.tcId);
@@ -55,7 +56,8 @@ export async function 호환성결과(runId: number, 캐시: 재료캐시 = new 
     이름: new Map(재.전체.map((u) => [u.key, u.name])),
   });
   // 미커버 화면은 그때 박제한 케이스(상태마다 같다)로 지금 전체 화면 목록을 다시 센다
-  const uncovered = 요약만 ? [] : 셈하기(재.전체, 재.후보들, 쓴, 재.fallback, []).uncovered;
+  // 그 뒤 프로시저에 더해진 케이스까지 펴지 않게 박제한 케이스만 후보로 준다
+  const uncovered = 요약만 ? [] : 셈하기(재.전체, 재.후보들.filter((c) => 쓴.includes(c.tcId)), 쓴, 재.fallback, []).uncovered;
   const { affected, devices: _devices, ...보임 } = 셈;
   return {
     // 잡은 폰의 VISION 링크는 엔진 메모리에 있다 — 놓았거나 admin 이 다시 켜졌으면 null (§7 「결과」)
