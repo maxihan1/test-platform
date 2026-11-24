@@ -13,6 +13,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { 정수 } from '../routeParams.js';
 import { 볼륨목록, 볼륨파일, 볼륨파일읽기 } from '../artifactFile.js';
 
+import { 실행단위번호, 실행단위자리 } from './execRead.js';
 import { 팜머리, 팜주소 } from './farm.js';
 import { 서버팜토큰, 실행팜토큰 } from './farmToken.js';
 
@@ -36,6 +37,15 @@ export async function 팜증적목록(runId: number, historyId: number | 'scenar
   // 정식 실행을 터널로 이은 맥 러너가 돌렸으면 그 러너의 것도 합친다 — 이름과 크기만 받고 내용은 내려받을 때 받는다 (SPEC 공통/3 §5.3 「러너 여러 대」).
   // 바로가기 · 폴더는 볼륨목록이 뺀다 — 통로가 이 목록에 있는 이름만 내준다
   return (await 볼륨목록(곳)).filter((f) => !(통과 && (f.name === 'logcat.txt' || f.name === GAME_ERRORS_FILE))).sort((a, b) => 차례.compare(a.name, b.name));
+}
+
+/**
+ * 항목 상세에 싣는 팜 증적 — 폴더는 실행 단위에 하나라 프로시저의 케이스 줄들이 같은 목록을 본다.
+ * 그 실행 단위에 통과가 아닌 케이스가 하나라도 있으면 logcat 까지 싣는다 (공통/4 「테스트 프로시저 표」 「증적은 실행 단위에 단다」)
+ */
+export async function 항목팜증적(runId: number, historyId: number): Promise<팜파일[]> {
+  const 자리 = await 실행단위자리(runId, historyId);
+  return 자리 === null ? [] : 팜증적목록(runId, 자리.번호, 자리.통과);
 }
 
 /** 증적 문서용 한 줄. 문서에는 영상을 넣을 수 없어 어디서 보는지만 적는다. 받은 것이 없으면 null */
@@ -152,7 +162,8 @@ export async function 팜영상경로(app: FastifyInstance): Promise<void> {
     const historyId = 정수(req.params.historyId);
     if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
     const 없음 = (까닭: keyof typeof 영상글) => reply.code(404).send({ error: 'GONE', detail: 영상글[까닭] });
-    const sessionId = await 연결번호(runId, historyId);
+    // 팜 연결은 실행 단위에 하나다 — 케이스 줄 번호로 물으면 그 줄이 든 실행 단위의 것을 준다
+    const sessionId = await 연결번호(runId, (await 실행단위번호(runId, historyId)) ?? historyId);
     if (sessionId === null) return 없음('기록없음');
     const 팜 = 팜주소();
     if (팜 === undefined) return 없음('팜없음');
@@ -222,7 +233,8 @@ export async function 팜증적경로(app: FastifyInstance): Promise<void> {
       const runId = 정수(req.params.runId);
       const historyId = 정수(req.params.historyId);
       if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
-      return 내준다(reply, req.url, 폴더(runId, historyId), req.params.name);
+      // 증적 폴더는 실행 단위에 하나다 (도메인/러너 §5.2 「프로시저 실행」 「폴더」)
+      return 내준다(reply, req.url, 폴더(runId, (await 실행단위번호(runId, historyId)) ?? historyId), req.params.name);
     },
   );
 

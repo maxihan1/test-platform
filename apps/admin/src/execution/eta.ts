@@ -91,7 +91,12 @@ async function 지난기록읽기(runId: number): Promise<Map<string, number>> {
 export async function 실행남은시간(runId: number, 지금?: Date): Promise<number | null> {
   const { pool } = await import('../db/index.js');
   const [미완, 집계, 도는실행] = await Promise.all([
-    pool.query<{ tc_id: string; platform: string }>('SELECT tc_id, platform FROM run_item WHERE run_id = $1 AND finished_at IS NULL', [runId]),
+    // 줄 — 하나씩 도는 묶음. 옛 꼴은 같은 케이스의 항목들이고 프로시저는 그 프로시저의 케이스 줄 전부다(실행 단위 하나가 차례로 돈다)
+    pool.query<{ tc_id: string; platform: string; 줄: string }>(
+      `SELECT i.tc_id, i.platform, COALESCE(e.proc_id, i.tc_id) AS "줄"
+         FROM run_item i LEFT JOIN run_exec e ON e.exec_id = i.exec_id WHERE i.run_id = $1 AND i.finished_at IS NULL`,
+      [runId],
+    ),
     pool.query<{ avg: string | null; last_finished: Date | null; started_at: Date; now: Date }>(
       `SELECT avg(duration_ms) FILTER (WHERE finished_at IS NOT NULL AND duration_ms > 0) AS avg,
               max(finished_at) AS last_finished,
@@ -109,11 +114,11 @@ export async function 실행남은시간(runId: number, 지금?: Date): Promise<
   const 기록 = await 지난기록읽기(runId);
   const 줄 = 집계.rows[0]!;
   const 끝난평균 = 줄.avg == null ? null : Number(줄.avg);
-  const 미완예상 = 미완.rows.map((r) => ({ tcId: r.tc_id, 예상: 기록.get(키(r.tc_id, r.platform)) ?? null }));
+  const 미완예상 = 미완.rows.map((r) => ({ tcId: r.줄, 예상: 기록.get(키(r.tc_id, r.platform)) ?? null }));
   const 나눈셈 = 남은시간계산(
     미완예상.map((m) => m.예상),
     끝난평균,
-    칸수(limit(), new Set(미완.rows.map((r) => r.tc_id)).size, 도는실행.rows[0]!.n),
+    칸수(limit(), new Set(미완.rows.map((r) => r.줄)).size, 도는실행.rows[0]!.n),
   );
   const 셈 = 나눈셈 === null ? null : Math.max(나눈셈, 가장긴케이스(미완예상, 끝난평균));
   return 줄어든남은시간(셈, (줄.last_finished ?? 줄.started_at).getTime(), (지금 ?? 줄.now).getTime());

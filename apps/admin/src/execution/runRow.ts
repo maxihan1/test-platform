@@ -1,6 +1,7 @@
 // 실행 묶음 한 줄 — 칸 목록과 응답 모양으로 옮기기. queries.ts 가 300줄을 넘어 떼어 냈다 (SPEC 도메인/실행 §7)
 
 import { PC_PLATFORMS, type ItemStatus, type Platform } from '@platform/kit';
+import { BLOCKED } from '@platform/kit/protocol';
 
 import type { RunKind } from './runKind.js';
 import type { 시작방식 } from './runOrigin.js';
@@ -22,6 +23,8 @@ export const RUN_COLUMNS = `
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS')::int AS pass,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL')::int AS fail,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA')::int AS na,
+  -- 미실행 가운데 앞 케이스에 막힌 것 — na 에 이미 들어 있다 (SPEC 실행 §3.2 「판정이 아닌 결과」)
+  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA' AND i.error->>'message' = '${BLOCKED}')::int AS blocked,
   count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running,
   count(i.history_id) FILTER (WHERE i.unconfirmed IS NOT NULL)::int AS u_total`;
 
@@ -64,6 +67,7 @@ export interface RawRun {
   pass: number;
   fail: number;
   na: number;
+  blocked: number;
   running: number;
   u_total: number;
   grand_total?: number;
@@ -92,6 +96,7 @@ export function toRun(row: RawRun): RunSummary {
       pass: row.pass,
       fail: row.fail,
       na: row.na,
+      blocked: row.blocked,
       running: row.running,
       unconfirmed: row.u_total,
     },

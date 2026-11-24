@@ -1,8 +1,9 @@
 // 실행 항목의 결과를 되쓰고 실행 묶음을 닫는다 — 항목 완료 · 중단 · 재기동 복구 (SPEC §3.2 · §7)
 
-import type { ElementCheck, ExecuteResponse, FpsSample, Platform, StepResult } from '@platform/kit';
+import type { CaseResult, ElementCheck, ExecuteResponse, FpsSample, Platform, StepResult } from '@platform/kit';
+import { BLOCKED } from '@platform/kit/protocol';
 
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import { jsonb에맞춘다 } from '../jsonbText.js';
 import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
@@ -94,42 +95,69 @@ export function 받은API(steps: readonly StepResult[]): { method: string; path:
   return [...줄.values()];
 }
 
+/** 케이스 줄 하나에 적을 결과 — 옛 꼴 답 그대로이거나, 프로시저 답의 케이스 한 건에 실행 단위에 한 벌인 것(기기 · FPS)을 붙인 것이다 */
+export type 줄결과 = ExecuteResponse & Pick<CaseResult, 'blockedBy' | 'startedAt' | 'finishedAt'>;
+
+// kit 이 ISO 로 적지만 러너 답은 밖에서 온 값이다 — 날짜가 아닌 글이 오면 그 칸만 비운다. 그대로 넣으면 형 변환 오류로 실행 단위의 판정이 통째로 되돌려진다
+const 시각 = (v: string | undefined): string | null => (v !== undefined && !Number.isNaN(Date.parse(v)) ? v : null);
+
+/**
+ * 케이스 줄 하나를 닫고 절차 · 받은 API · 게임 기록을 넣는다. 이미 닫힌 줄이면 아무것도 안 넣고 false 다 — 먼저 닫힌 쪽이 이긴다.
+ * 트랜잭션은 부르는 쪽이 연다 — 옛 꼴은 줄 하나, 프로시저는 실행 단위의 줄 전부가 한 묶음이다 (공통/4 「테스트 프로시저 표」)
+ */
+export async function 케이스줄을닫는다(client: PoolClient, historyId: number, result: 줄결과): Promise<boolean> {
+  // 아래 CLOSE_UNFINISHED와 같은 규칙이다 — 닫는 UPDATE에는 언제나 AND finished_at IS NULL 을 붙인다.
+  // 사람이 멈춘 직후에는 그 항목의 러너 호출이 이미 나가 있어 응답이 뒤늦게 도착한다
+  const closed = await client.query(
+    `UPDATE run_item SET status = $2, duration_ms = $3, error = $4, device = $5, element_checks = $6, fps = $7,
+            blocked_by = $8, case_started_at = $9, case_finished_at = $10, finished_at = now()
+      WHERE history_id = $1 AND finished_at IS NULL`,
+    [
+      historyId,
+      result.status,
+      result.durationMs,
+      result.error === undefined ? null : JSON.stringify(result.error),
+      기기칸(result.device),
+      대조칸(result.elementChecks),
+      FPS칸(result.fps),
+      // 막은 케이스는 Blocked 줄에만 적는다 (공통/4 「테스트 프로시저 표」 run_item.blocked_by)
+      result.status === 'NA' && result.error?.message === BLOCKED ? (result.blockedBy ?? null) : null,
+      시각(result.startedAt),
+      시각(result.finishedAt),
+    ],
+  );
+  // 절차 기록도 넣지 않는다 — 묶음은 ABORTED인데 절차만 PASS로 쌓이면 증적이 어긋난다
+  if (closed.rowCount === 0) return false;
+  for (const step of result.steps) {
+    await client.query(INSERT_STEP, stepValues(historyId, step));
+  }
+  // 통과면 그 케이스 줄을 이번 것으로 갈아 끼운다 — 케이스를 고쳐 더 안 부르는 API 가 남지 않게.
+  // 실패면 지운다 — 깨진 케이스가 지난 통과로 덮은 것처럼 남지 않게. 미실행은 알 수 없어 그대로 둔다
+  if (result.status !== 'NA') {
+    await client.query(API호출지우기, [historyId]);
+    const 받은것 = result.status === 'PASS' ? 받은API(result.steps) : [];
+    if (받은것.length > 0) await client.query(API호출넣기, [historyId, JSON.stringify(받은것)]);
+  }
+  await 게임결과를넣는다(client, historyId, result);
+  return true;
+}
+
 export async function finishItem(historyId: number, 받은결과: ExecuteResponse): Promise<void> {
   // 바이너리 응답의 NUL · 잘린 이모지 반쪽이 kit 기록에 그대로 실린다. 하나라도 남으면 판정까지 되돌려진다
   const result = jsonb에맞춘다(받은결과);
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
-    // 아래 CLOSE_UNFINISHED와 같은 규칙이다 — 닫는 UPDATE에는 언제나 AND finished_at IS NULL 을 붙인다.
-    // 사람이 멈춘 직후에는 그 항목의 러너 호출이 이미 나가 있어 응답이 뒤늦게 도착한다
-    const closed = await client.query(
-      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, device = $5, element_checks = $6, fps = $7, finished_at = now() WHERE history_id = $1 AND finished_at IS NULL',
-      [
-        historyId,
-        result.status,
-        result.durationMs,
-        result.error === undefined ? null : JSON.stringify(result.error),
-        기기칸(result.device),
-        대조칸(result.elementChecks),
-        FPS칸(result.fps),
-      ],
-    );
-    if (closed.rowCount === 0) {
-      // 먼저 닫힌 쪽이 이긴다. 절차 기록도 넣지 않는다 — 묶음은 ABORTED인데 절차만 PASS로 쌓이면 증적이 어긋난다
+    // 먼저 닫힌 쪽이 이긴다
+    if (!(await 케이스줄을닫는다(client, historyId, result))) {
       await client.query('ROLLBACK');
       return;
     }
-    for (const step of result.steps) {
-      await client.query(INSERT_STEP, stepValues(historyId, step));
-    }
-    // 통과면 그 케이스 줄을 이번 것으로 갈아 끼운다 — 케이스를 고쳐 더 안 부르는 API 가 남지 않게.
-    // 실패면 지운다 — 깨진 케이스가 지난 통과로 덮은 것처럼 남지 않게. 미실행은 알 수 없어 그대로 둔다
-    if (result.status !== 'NA') {
-      await client.query(API호출지우기, [historyId]);
-      const 받은것 = result.status === 'PASS' ? 받은API(result.steps) : [];
-      if (받은것.length > 0) await client.query(API호출넣기, [historyId, JSON.stringify(받은것)]);
-    }
-    await 게임결과를넣는다(client, historyId, result);
+    // 옛 꼴 케이스는 케이스 하나짜리 실행 단위다 — 그 줄이 닫히면 실행 단위도 끝났다. 사유는 케이스 줄에 있어 실행 단위에 또 적지 않는다
+    await client.query(
+      'UPDATE run_exec e SET finished_at = now() FROM run_item i WHERE i.history_id = $1 AND e.exec_id = i.exec_id AND e.finished_at IS NULL',
+      [historyId],
+    );
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
@@ -142,11 +170,19 @@ export async function finishItem(historyId: number, 받은결과: ExecuteRespons
 // 모든 항목이 끝나야 FINISHED다 (SPEC §3.2). 그 조건을 SQL에 박아 부르는 쪽이 세지 않게 한다
 // 닫는 UPDATE에는 언제나 AND finished_at IS NULL 을 붙인다. 중단 처리와 러너 응답이 겹칠 수 있고,
 // 조건이 없으면 나중에 온 쪽이 먼저 기록된 판정을 덮어쓴다 (SPEC §7.1)
+// 안 끝난 케이스 줄을 닫을 때 그 줄이 든 실행 단위도 같이 닫는다 — 이번에 닫은 줄의 것만이다.
+// 실행 단위의 끝난 때를 채우기 전(TP-F2-11 전)에 만든 줄은 다 돌았어도 비어 있어, 그 칸만 보고 닫으면 끝까지 돈 것까지 ABORTED 가 된다 (도메인/실행 §3.2 「테스트 프로시저 실행」)
 const CLOSE_UNFINISHED = `
-  UPDATE run_item
-     SET status = 'NA', finished_at = now(), duration_ms = COALESCE(duration_ms, 0),
-         error = jsonb_build_object('message', $2::text)
-   WHERE run_id = $1 AND finished_at IS NULL`;
+  WITH c AS (
+    UPDATE run_item
+       SET status = 'NA', finished_at = now(), duration_ms = COALESCE(duration_ms, 0),
+           error = jsonb_build_object('message', $2::text)
+     WHERE run_id = $1 AND finished_at IS NULL
+     RETURNING exec_id),
+  e AS (
+    UPDATE run_exec SET finished_at = now(), error = jsonb_build_object('message', $2::text)
+     WHERE exec_id IN (SELECT exec_id FROM c) AND finished_at IS NULL)
+  SELECT count(*)::int AS n FROM c`;
 
 // 케이스 쪽 CLOSE_UNFINISHED 와 같은 조건이다 — 먼저 온 기록을 덮지 않는다
 const CLOSE_UNFINISHED_PARTS = `
@@ -180,12 +216,12 @@ export async function abortRun(runId: number): Promise<AbortResult | null | 'SCE
       return null;
     }
 
-    const closed = await client.query(CLOSE_UNFINISHED, [runId, 'ABORTED']);
+    const closed = await client.query<{ n: number }>(CLOSE_UNFINISHED, [runId, 'ABORTED']);
     // 끝까지 돌아서 끝난 것과 사람이 끊어서 끝난 것은 증적에서 구분돼야 한다 (SPEC §3.2)
     await client.query("UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1", [runId]);
 
     await client.query('COMMIT');
-    return { aborted: closed.rowCount ?? 0 };
+    return { aborted: closed.rows[0]?.n ?? 0 };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -194,13 +230,14 @@ export async function abortRun(runId: number): Promise<AbortResult | null | 'SCE
   }
 }
 
-// 아직 끝나지 않은 항목의 historyId. 러너에 끊어 달라고 할 대상이다 (SPEC §5.2).
+// 아직 끝나지 않은 항목이 든 실행 단위의 번호. 러너에 끊어 달라고 할 대상이다 — 러너는 실행 단위 번호로 자식을 안다 (SPEC §5.2 「프로시저 실행」 「중단」).
+// 옛 꼴 케이스는 케이스 줄 번호와 같은 값이고, 프로시저는 케이스 줄 여럿이 번호 하나다. 실행 단위 칸 전의 줄은 케이스 줄 번호다.
 // 대기 중인지 도는 중인지 DB로는 갈리지 않으므로 전부에 보낸다 — 러너가 모르는 것은 false를 돌려준다.
 // platform 은 맡은 러너를 고르는 데 쓴다 (SPEC 실행 §7)
 export async function unfinishedItems(runId: number): Promise<{ historyId: number; platform: Platform }[]> {
   const pool = await db();
   const rows = await pool.query<{ history_id: string; platform: Platform }>(
-    'SELECT history_id, platform FROM run_item WHERE run_id = $1 AND finished_at IS NULL',
+    'SELECT DISTINCT COALESCE(exec_id, history_id) AS history_id, platform FROM run_item WHERE run_id = $1 AND finished_at IS NULL',
     [runId],
   );
   return rows.rows.map((r) => ({ historyId: Number(r.history_id), platform: r.platform }));

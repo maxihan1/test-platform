@@ -159,7 +159,7 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
     await 끝낸다(runId, 'XBU-002', 'desktop', 'PASS');
     await 끝낸다(runId, 'XBU-002', 'mobile', 'FAIL');
 
-    const 기대 = { total: 5, pass: 2, fail: 2, na: 0, running: 1, unconfirmed: 3 };
+    const 기대 = { total: 5, pass: 2, fail: 2, na: 0, blocked: 0, running: 1, unconfirmed: 3 };
     expect((await findRun(runId))?.counts).toEqual(기대);
     const 목록 = await listRuns('XBU', 1, 50);
     expect(목록.items.find((r) => r.runId === runId)?.counts).toEqual(기대);

@@ -14,6 +14,7 @@ import { 엔진칸 } from './engineField.js';
 import { 선언밖디바이스, 윈도우를펼친다, 플랫폼밖인가 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 케이스를읽는다, 프로시저로펼친다, 프로시저에서빠졌나, 실행단위를넣는다 } from './runExec.js';
+import { 프로시저못도는러너인가 } from './runnerAddr.js';
 import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 import { 시작방식정하기 } from './single.js';
@@ -88,6 +89,10 @@ export interface CreateRunInput {
 // 디스패처가 러너를 부르는 데 필요한 것만 담는다 (SPEC §5.1 ExecuteRequest)
 export interface PendingItem {
   historyId: number;
+  // 그 케이스 줄이 든 실행 단위 — 러너에 가는 번호다. 옛 꼴 케이스는 historyId 와 같고 프로시저는 그 케이스들이 같은 번호를 든다 (공통/4 「테스트 프로시저 표」)
+  execId: number;
+  // 프로시저 안 케이스만. 디스패처가 같은 execId 줄을 요청 하나로 묶어 새 꼴로 보낸다 (도메인/러너 §5.2 「프로시저 실행」)
+  procId?: string;
   tcId: string;
   platform: Platform;
   filePath: string;
@@ -141,14 +146,10 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-// dispatcher 가 새 꼴 요청으로 보내는 것은 TP-F2-11 이다 — 그 전에는 러너가 돌 수 있어도 정식 실행이 프로시저를 못 보낸다.
-// 11 이 이 기본값을 runnerAddr.ts 의 프로시저못도는러너인가 로 바꾼다
-const 아직못보낸다 = async (): Promise<boolean> => true;
-
 /** @param 못보내나 프로시저 안 케이스가 든 실행을 만들 때만 묻는다 — 러너가 프로시저를 못 도나 (도메인/실행 §3.2 「러너 능력」) */
 export async function createRun(
   요청: CreateRunInput,
-  못보내나: () => Promise<boolean> = 아직못보낸다,
+  못보내나: () => Promise<boolean> = 프로시저못도는러너인가,
 ): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[]; procSkipped: number }> {
   let input = 요청;
   if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');

@@ -158,6 +158,8 @@ export async function 실행단위를넣는다(client: 질의, 것: 넣을것): 
           ]);
           items.push({
             historyId: Number(row.rows[0]!.history_id),
+            execId,
+            ...(단위.번호 !== null && { procId: 단위.번호 }),
             tcId: item.tcId,
             platform,
             filePath: spec.file_path,

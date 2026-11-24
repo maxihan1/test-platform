@@ -18,6 +18,7 @@ vi.mock('./farmToken.js', () => ({ 실행팜토큰: vi.fn(async () => undefined)
 
 const 항목: PendingItem = {
   historyId: 42,
+  execId: 42,
   tcId: 'DEMO-001',
   platform: 'desktop',
   filePath: 'demo/DEMO-001.spec.ts',

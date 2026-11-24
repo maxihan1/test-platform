@@ -1,8 +1,8 @@
-// 실행 항목을 러너에 분배하고 결과를 되쓴다 (SPEC §3.2)
+// 실행 항목을 실행 단위로 묶어 러너에 분배한다 — 보내고 결과를 되쓰는 것은 execUnit.ts 다 (SPEC §3.2)
 // 대기줄은 모듈 전역이다. 실행 묶음마다 2개씩 돌면 두 사람이 동시에 누를 때 4개가 돈다 —
 // 대상 서버가 2코어라 그 이상은 느려지기만 한다 (SPEC §9)
 
-import { PC항목인가, type ExecuteResponse } from '@platform/kit';
+import { PC항목인가 } from '@platform/kit';
 
 import { 실행문서견주기 } from '../apidoc/runCompare.js';
 import { 배포실행뒤 } from '../bts/deployFlow.js';
@@ -13,15 +13,15 @@ import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 import { 안정화집계를맡긴다 } from '../stability/aggregate.js';
 
 import { 스모크뒤 } from './buildRun.js';
+import { 단위로묶는다, 단위를닫는다, 단위를돌린다, 도는동안늘린다, type 실행단위 } from './execUnit.js';
 import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { notifyRun } from './notify.js';
 import { PC로, PC기다림_ms } from './pcFarm.js';
 import { Chrome차례, PC차례, 폰차례 } from './phone.js';
 import { 준비를끊는다, 준비실패로닫는다, 준비하고돌린다 } from './prep.js';
-import { callRunner, na, type 잡은폰 } from './runner.js';
-import { finishItem, finishRun, type PendingItem } from './store.js';
-import { trace적재를맡긴다 } from './traceIngest.js';
+import type { 잡은폰 } from './runner.js';
+import { finishRun, type PendingItem } from './store.js';
 
 const 대기줄: (() => Promise<void>)[] = [];
 let 도는중 = 0;
@@ -69,40 +69,21 @@ export function markAborted(runId: number): void {
   준비를끊는다(runId);
 }
 
-async function runOne(runId: number, item: PendingItem, 잡은폰?: 잡은폰): Promise<void> {
-  if (멈춘실행.has(runId)) return;
-
-  await 저장한다(item, await callRunner(runId, item, () => 멈춘실행.has(runId), 잡은폰));
-}
-
-async function 저장한다(item: PendingItem, result: ExecuteResponse): Promise<void> {
-  try {
-    await finishItem(item.historyId, result);
-    // 기다리지 않는다 — 풀기는 실행을 늦추지 않게 따로 한 줄로 돈다 (SPEC 실행 §3.2 「trace」)
-    void trace적재를맡긴다(item.historyId);
-  } catch (err) {
-    // 결과를 못 적었다고 나머지 항목까지 버리지 않는다
-    const reason = err instanceof Error ? err.message : String(err);
-    console.error(`[execution] ${item.tcId}/${item.platform}(history ${item.historyId}) 결과를 저장하지 못했다: ${reason}`);
-    // 안 닫으면 finishRun 이 그 실행을 재기동 때까지 RUNNING 에 둔다. 판정은 잃었으니 미실행으로 닫는다
-    try {
-      await finishItem(item.historyId, na(item, '결과를 저장하지 못했습니다', reason));
-    } catch (닫기실패) {
-      console.error(`[execution] history ${item.historyId} 를 미실행으로 닫지도 못했다(재기동 복구가 닫는다)`, 닫기실패);
-    }
-  }
-}
+const runOne = (runId: number, 단위: 실행단위, 잡은폰?: 잡은폰): Promise<void> => 단위를돌린다(runId, 단위, () => 멈춘실행.has(runId), 잡은폰);
 
 // 게임 항목은 실행 하나 동안 폰을 한 번 잡고 한 번 깐다 — 앱은 항목마다 놓으면 지워져 APK 가 큰 게임은 항목마다 다시 깐다 (도메인/게임 §3.10 결정 12).
 // 120분은 팜이 받는 가장 긴 잡기고, 항목을 시작할 때마다 늘려 회귀 실행이 몇 시간이어도 끊기지 않게 한다
 const 게임잡는_분 = 120;
 
-async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<void> {
+async function 게임실행(runId: number, 단위들: 실행단위[]): Promise<void> {
+  const 닫는다 = async (까닭: string, stack?: string): Promise<void> => {
+    for (const 단위 of 단위들) if (!멈춘실행.has(runId)) await 단위를닫는다(단위, 까닭, stack);
+  };
   await 폰차례(async () => {
     const 팜 = 팜주소();
-    // 팜 주소가 없으면 callRunner 가 항목마다 NA 로 닫는다
+    // 팜 주소가 없으면 러너 호출이 실행 단위마다 NA 로 닫는다
     if (팜 === undefined) {
-      for (const item of 항목들) await runOne(runId, item);
+      for (const 단위 of 단위들) await runOne(runId, 단위);
       return;
     }
     // 실행 하나의 주인은 처음 고른 사람이다. 대신 PAT 는 3시간이라 항목마다 · 놓을 때 다시 받는다 — 기억이 남은 시간 2시간 밑이면 같은 주인의 새 토큰을 준다.
@@ -111,8 +92,7 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
     try {
       토큰 = await 실행팜토큰(runId);
     } catch (err) {
-      const 까닭 = err instanceof Error ? err.message : String(err);
-      for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, '누른 사람의 팜 토큰을 고르지 못했습니다', 까닭));
+      await 닫는다('누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
       return;
     }
     const 처음토큰 = 토큰;
@@ -120,16 +100,14 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
     await 팜폰으로(
       팜,
       async (udid, 화면, 이름) => {
-        for (const item of 항목들) {
+        for (const 단위 of 단위들) {
           if (멈춘실행.has(runId)) return;
           const 지금 = await 다시받기();
           await 잡기를늘린다(팜, udid, fetch, 지금);
-          await runOne(runId, item, { udid, 토큰: 지금, 화면, 이름 });
+          await 도는동안늘린다(단위, async () => 잡기를늘린다(팜, udid, fetch, await 다시받기()), () => runOne(runId, 단위, { udid, 토큰: 지금, 화면, 이름 }));
         }
       },
-      async (까닭) => {
-        for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, 까닭));
-      },
+      (까닭) => 닫는다(까닭),
       undefined,
       undefined,
       게임잡는_분,
@@ -147,15 +125,15 @@ async function 빌드파일(buildId: number): Promise<string | null> {
  * 윈도우 PC 항목 — PC 줄에 서서 VISION 에서 PC 를 잡고(빈 PC 가 없으면 1분마다 120분까지) 고정한 zip 을 한 번 깐 뒤
  * 항목을 차례로 돌리고 놓는다. 폰 게임 실행과 같은 꼴이고 폰 디바이스 줄은 안 쓴다 (도메인/게임 §3.10 「실행 하나의 흐름」)
  */
-async function PC실행(runId: number, 항목들: PendingItem[]): Promise<void> {
+async function PC실행(runId: number, 단위들: 실행단위[]): Promise<void> {
   const 닫는다 = async (까닭: string): Promise<void> => {
-    for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, 까닭));
+    for (const 단위 of 단위들) if (!멈춘실행.has(runId)) await 단위를닫는다(단위, 까닭);
   };
   await PC차례(async () => {
     const 팜 = 팜주소();
     if (팜 === undefined) return 닫는다('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
     // 실행 하나의 빌드는 하나다 — 실행을 만들 때 고정했다(PC 게임의 빌드는 늘 zip)
-    const buildId = 항목들[0]!.buildId;
+    const buildId = 단위들[0]!.케이스들[0]!.buildId;
     const zip = buildId === undefined ? null : await 빌드파일(buildId);
     if (zip === null) return 닫는다('Windows 빌드가 없습니다');
     let 처음토큰: string | undefined;
@@ -170,11 +148,15 @@ async function PC실행(runId: number, 항목들: PendingItem[]): Promise<void> 
       zip,
       { 기다림ms: PC기다림_ms, 멈췄나: () => 멈춘실행.has(runId), 토큰: 다시받기 },
       async (pc) => {
-        for (const item of 항목들) {
+        for (const 단위 of 단위들) {
           if (멈춘실행.has(runId)) return;
           const 지금 = await 다시받기();
           await 잡기를늘린다(팜, pc.serial, fetch, 지금);
-          await runOne(runId, item, { udid: pc.serial, 토큰: 지금, 화면: pc.화면, 이름: pc.serial, 게임: pc.게임 });
+          await 도는동안늘린다(
+            단위,
+            async () => 잡기를늘린다(팜, pc.serial, fetch, await 다시받기()),
+            () => runOne(runId, 단위, { udid: pc.serial, 토큰: 지금, 화면: pc.화면, 이름: pc.serial, 게임: pc.게임 }),
+          );
         }
       },
       닫는다,
@@ -190,25 +172,30 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   });
   // 같은 케이스 항목(반복 회차 · PC · 모바일)은 하나씩 돈다. 나란히 돌면 같은 데이터를 두고 부딪힌다 —
   // run 20903 에서 재고 1개 상품 · 서버 초기화 케이스가 짝 회차와 같은 시각에 깨졌다 (SPEC 실행 §3.2 · PRD-F9-36).
-  // 케이스마다 앞 항목이 끝나야 다음을 대기줄에 넣으므로 회차는 케이스 순서로 한 바퀴씩 돌고, 다른 케이스는 상한까지 나란히 돈다
-  const 게임인가 = (i: PendingItem): boolean => i.engine === 'GAME' && i.platform === 'android';
-  const 케이스줄 = new Map<string, PendingItem[]>();
-  for (const item of items.filter((i) => !게임인가(i) && !PC항목인가(i.platform))) {
-    const 줄 = 케이스줄.get(item.tcId);
-    if (줄 === undefined) 케이스줄.set(item.tcId, [item]);
-    else 줄.push(item);
+  // 케이스마다 앞 항목이 끝나야 다음을 대기줄에 넣으므로 회차는 케이스 순서로 한 바퀴씩 돌고, 다른 케이스는 상한까지 나란히 돈다.
+  // 돌리는 단위는 실행 단위다 — 프로시저는 케이스 줄 여럿이 차례 하나이고 같은 프로시저의 실행 단위도 하나씩 돈다 (SPEC 실행 §3.2 「테스트 프로시저 실행」)
+  const 단위들 = 단위로묶는다(items);
+  const 첫 = (단위: 실행단위): PendingItem => 단위.케이스들[0]!;
+  const 게임인가 = (단위: 실행단위): boolean => 첫(단위).engine === 'GAME' && 첫(단위).platform === 'android';
+  const PC인가 = (단위: 실행단위): boolean => PC항목인가(첫(단위).platform);
+  const 케이스줄 = new Map<string, 실행단위[]>();
+  for (const 단위 of 단위들.filter((u) => !게임인가(u) && !PC인가(u))) {
+    const 열쇠 = 단위.procId ?? 첫(단위).tcId;
+    const 줄 = 케이스줄.get(열쇠);
+    if (줄 === undefined) 케이스줄.set(열쇠, [단위]);
+    else 줄.push(단위);
   }
   // android 는 전역 상한 밖의 디바이스 줄이다. 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로채고,
   // 전역 상한은 컨테이너 러너의 CPU 를 지키는 값이라 그 러너에서 돌지 않는 앱 항목이 자리를 쓸 이유가 없다 (SPEC 실행 §3.2)
-  const 게임들 = items.filter(게임인가);
-  const PC들 = items.filter((i) => PC항목인가(i.platform));
+  const 게임들 = 단위들.filter(게임인가);
+  const PC들 = 단위들.filter(PC인가);
   const 항목을돌린다 = async (): Promise<void> => {
     await Promise.all([
       ...[...케이스줄.values()].map(async (줄) => {
-        for (const item of 줄) {
+        for (const 단위 of 줄) {
           // 실제 폰 모바일 항목은 Chrome 줄 → 동시성 자리 차례다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
-          const 돌기 = () => enqueue(() => runOne(runId, item));
-          await (item.platform === 'android' ? 폰차례(() => runOne(runId, item)) : item.실제폰 === true ? Chrome차례(돌기) : 돌기());
+          const 돌기 = () => enqueue(() => runOne(runId, 단위));
+          await (첫(단위).platform === 'android' ? 폰차례(() => runOne(runId, 단위)) : 첫(단위).실제폰 === true ? Chrome차례(돌기) : 돌기());
         }
       }),
       ...(게임들.length > 0 ? [게임실행(runId, 게임들)] : []),
