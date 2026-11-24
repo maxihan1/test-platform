@@ -364,7 +364,7 @@ describe('test', () => {
     expect(body).not.toHaveBeenCalled();
   });
 
-  it('프로시저는 폰 테스트 하나로 등록된다 — 시나리오 부품으로는 아직 올리지 않고 알린다', () => {
+  it('프로시저는 폰 테스트 하나로 등록되고, 시나리오 모드에서는 케이스 번호마다 부품으로 오른다', () => {
     const 흐름 = () => defineProcedure({ procId: 'DEMO-TP-902', name: '흐름', platforms: ['android'], precondition: [], cases: [androidSpec()] });
 
     test(흐름(), vi.fn());
@@ -373,10 +373,11 @@ describe('test', () => {
 
     vi.stubEnv('PLATFORM_SCENARIO_MODE', '1');
     try {
-      expect(() => { test(흐름(), vi.fn()); }).toThrow('DEMO-TP-902: 이 kit 은 프로시저를 E2E 단계로 아직 돌리지 못한다');
+      test(흐름(), vi.fn());
     } finally {
       vi.unstubAllEnvs();
     }
     expect(pw.appRegistered).toHaveLength(1);
+    expect(scenarioCase(androidSpec().tcId)).toBeTypeOf('function');
   });
 });

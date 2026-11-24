@@ -81,6 +81,58 @@ describe('앱 · 게임 단계', () => {
   });
 });
 
+describe('프로시저 단계', () => {
+  const 프로시저 = (tcId: string): Part => ({
+    ...케이스(tcId, true),
+    procId: 'XAP-TP-001',
+    cases: [{ tcId: 'XAP-001', params: {}, expected: {} }, { tcId, params: {}, expected: {} }, { tcId: 'XAP-003', params: {}, expected: {} }],
+  } as Part);
+
+  it('케이스 한도를 kit 에 넘기고 kit 이 낸 케이스 판정을 그대로 싣는다', async () => {
+    const parts = [프로시저('XAP-002')];
+    const { deps, 줄 } = 창들(parts);
+    const cases = [{ tcId: 'XAP-001', status: 'PASS' as const, durationMs: 3 }, { tcId: 'XAP-002', status: 'FAIL' as const, durationMs: 4 }, { tcId: 'XAP-003', status: 'PASS' as const, durationMs: 5 }];
+    const runCase = vi.fn<단계창['runCase']>(async (_part, seq) => ({ seq, steps: [], failed: true, cases }));
+    const { appWindow } = 앱자리들(runCase);
+
+    await runParts(parts, { ...deps, appWindow, appPartTimeoutMs: 2000 });
+
+    expect(runCase).toHaveBeenCalledWith(expect.objectContaining({ procId: 'XAP-TP-001' }), 0, expect.anything(), {}, 2000);
+    expect(줄[0]).toMatchObject({ status: 'FAIL', cases });
+  });
+
+  it('kit 이 안 돌아오면 한도 × (케이스 수 + 1) 뒤에 단계를 끊는다', async () => {
+    vi.useFakeTimers();
+    try {
+      const parts = [프로시저('XAP-002')];
+      const { deps, 줄 } = 창들(parts);
+      const { appWindow } = 앱자리들(vi.fn(() => new Promise<never>(() => {})));
+
+      const 끝 = runParts(parts, { ...deps, appWindow, appPartTimeoutMs: 2000 });
+      await vi.advanceTimersByTimeAsync(7000);
+      expect(줄).toHaveLength(0);
+      await vi.advanceTimersByTimeAsync(20_000);
+      await 끝;
+
+      expect(줄[0]).toMatchObject({ status: 'FAIL', error: { message: '단계 제한 시간 8000ms 를 넘었다' } });
+      expect(줄[0]?.cases).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('옛 꼴 케이스 단계에는 케이스 한도를 안 넘긴다', async () => {
+    const parts = [케이스('XAP-001', true)];
+    const { deps } = 창들(parts);
+    const runCase = vi.fn<단계창['runCase']>(async (_part, seq) => ({ seq, steps: [], failed: false }));
+    const { appWindow } = 앱자리들(runCase);
+
+    await runParts(parts, { ...deps, appWindow, appPartTimeoutMs: 2000 });
+
+    expect(runCase.mock.calls[0]).toHaveLength(4);
+  });
+});
+
 describe('폰 자리', () => {
   const 폰 = { driver: {} as never, device: { model: 'SM-S918N', osVersion: '14', appVersion: null, appBuild: null } };
 

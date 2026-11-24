@@ -118,7 +118,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
   // 웹 단계 · 앱 단계가 같이 쓴다. 부품 request 를 감싸 값 꽂기용 응답 적기 · 뒷정리 미루기를 거는 것은 둘이 같다 (SPEC 도메인/러너 §5.2 「앱 · 게임 단계」)
   const 케이스돌리기 = async (
     part: CasePart, 이번: 지금부품, 부품요청: APIRequestContext, 쪽: 단계쪽,
-    seq: number, phase: ScenarioCaseInput['phase'], params: Record<string, unknown>,
+    seq: number, phase: ScenarioCaseInput['phase'], params: Record<string, unknown>, 케이스한도?: number,
   ) => {
     // 같은 케이스를 두 번 쓰면 두 번째 import 는 캐시다. 등록부가 안 지우므로 그대로 꺼내진다
     await import(pathToFileURL(part.filePath ?? '').href);
@@ -135,6 +135,9 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
         // 그 부품 판으로 응답 모양을 본다. 없으면 안 본다 (도메인/API §3.8 「응답 모양 확인」)
         ...(part.apiDocFile !== undefined && { apiDoc: JSON.parse(readFileSync(part.apiDocFile, 'utf8')) as unknown }),
         tokenRequest: 부품요청,
+        // 프로시저 단계 — 그 프로시저의 케이스 값과 케이스 하나의 한도 (SPEC 도메인/시나리오 §3.7 결정 17)
+        ...(part.cases !== undefined && { cases: part.cases }),
+        ...(케이스한도 !== undefined && { caseTimeoutMs: 케이스한도 }),
       });
       // 창을 닫으면 본문을 못 읽는다 — 이 부품이 잡은 자리를 다 읽을 때까지 기다린다(부품 한도 경주 안). 자리는 못 읽으면 사유 글자라 던지지 않는다
       await Promise.all(이음값.응답.values());
@@ -158,7 +161,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
         return { driver, ...(game && { game }), ...(설정.adminKey && { adminKey: 설정.adminKey }), platform: 'android' };
       };
       return {
-        runCase: (part, seq, phase, params) => 케이스돌리기(part, 이번, 부품요청, 폰쪽, seq, phase, params),
+        runCase: (part, seq, phase, params, 케이스한도) => 케이스돌리기(part, 이번, 부품요청, 폰쪽, seq, phase, params, 케이스한도),
         state: () => 부품요청.storageState(),
         async close() {
           if (닫음) return;

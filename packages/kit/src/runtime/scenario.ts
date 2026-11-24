@@ -3,7 +3,7 @@
 
 import type { APIRequestContext, Page } from '@playwright/test';
 
-import type { ApiAuth, DeviceInfo, StepResult } from '../types.js';
+import type { ApiAuth, DeviceInfo, ExecuteCase, ScenarioCaseResult, StepResult } from '../types.js';
 import { closeApp, type AppDriver } from './app.js';
 import type { ScenarioPhase } from './context.js';
 import type { KitGame } from './game.js';
@@ -39,6 +39,10 @@ export interface ScenarioCaseInput {
   apiDoc?: unknown;
   // 토큰 받기에만 쓰는 감싸지 않은 도구 — request 는 이어 주기 · 모킹을 거쳐 토큰 요청이 가짜 응답이나 이어 주기 값이 될 수 있다
   tokenRequest?: APIRequestContext;
+  // 프로시저 단계에만 — 그 프로시저의 케이스마다 값(도는 차례)과 케이스 하나의 한도(ms, 0 이면 없음). 고른 케이스 값은 위 params · expected 가 이긴다 —
+  // 러너가 값 꽂기로 채운 값이다 (도메인/시나리오 §3.7 결정 17)
+  cases?: readonly ExecuteCase[];
+  caseTimeoutMs?: number;
 }
 
 export interface ScenarioCaseOutcome {
@@ -46,6 +50,8 @@ export interface ScenarioCaseOutcome {
   steps: StepResult[];
   failed: boolean;
   error?: { message: string; stack?: string };
+  // 프로시저 단계에만 — 케이스마다의 판정. 판정은 kit 이 정하고 러너는 옮기기만 한다
+  cases?: ScenarioCaseResult[];
 }
 
 export type ScenarioCaseRunner = (input: ScenarioCaseInput) => Promise<ScenarioCaseOutcome>;
