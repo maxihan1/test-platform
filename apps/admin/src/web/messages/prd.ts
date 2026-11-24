@@ -29,7 +29,7 @@ export const 기획서말: Record<string, string> = {
 
   // 「PRD 에 없는 화면」 카드 (PRD-F6-03)
 
-  'UI 실패 {건수}건 보기': 'View {건수} failing UI cases',
+  'UI Fail {건수}건 보기': 'View {건수} Fail UI cases',
 
   // 전체 요구
   '전체 요구사항': 'All requirements',
@@ -81,8 +81,8 @@ export const 기획서말: Record<string, string> = {
   '보류 — {역할} 계정 등록됨 · 이어 작성 전': 'On hold — {역할} account added, not resumed yet',
   '기능 {건수}건': '{건수} functional',
   'UI {건수}건': '{건수} UI',
-  '실패 {건수} / {전체}': '{건수} of {전체} failed',
-  '미실행 {건수} / {전체}': '{건수} of {전체} not run',
+  'Fail {건수} / {전체}': 'Fail {건수} / {전체}',
+  'Not tested {건수} / {전체}': 'Not tested {건수} / {전체}',
   '마지막 결과를 못 읽었습니다 — {까닭}': 'Could not load the latest results — {까닭}',
 
   // 고치기 · 더하기 칸

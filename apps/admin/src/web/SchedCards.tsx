@@ -29,7 +29,7 @@ export const 리포트기간글: Record<'WEEK' | 'MONTH', string> = { WEEK: '프
 export const 종류글: Record<string, string> = { FN: '기능', UI: 'UI', E2E: 'E2E', SCENARIO: 'E2E', COMPAT: '호환성' };
 
 export function 판정알약({ 판정, t }: { 판정: 'PASS' | 'FAIL' | 'NONE' | 'RUNNING'; t: 말 }) {
-  const [모양, 글] = { PASS: ['pass', '통과'], FAIL: ['fail', '실패 있음'], NONE: ['none', '결과 없음'], RUNNING: ['run', '실행 중'] }[판정];
+  const [모양, 글] = { PASS: ['pass', 'Pass'], FAIL: ['fail', 'Fail 있음'], NONE: ['none', '결과 없음'], RUNNING: ['run', '실행 중'] }[판정];
   return <span className={`sched-pill ${모양}`}>{t(글)}</span>;
 }
 

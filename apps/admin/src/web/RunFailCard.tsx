@@ -93,7 +93,7 @@ export function 실패카드({
       >
         <summary className="fc-sum">
           <div className="fc-head">
-            {c.autoFix == null ? <Verdict status="FAIL" /> : <span className="fix-tag">{t('수정 후 통과')}</span>}
+            {c.autoFix == null ? <Verdict status="FAIL" /> : <span className="fix-tag">{t('수정 후 Pass')}</span>}
             {c.autoFixing == null ? null : (c.autoFixing.state === 'FAILED' || c.autoFixing.state === 'GAVE_UP') ? (
               <span className="fix-tag">{t('자동 수정 실패')}</span>
             ) : c.autoFixing.state === 'FIXING' || c.autoFixing.state === 'WAIT_MERGE' || c.autoFixing.state === 'RERUNNING' ? (

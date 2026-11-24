@@ -18,7 +18,7 @@ describe('기능 묶음 이름표', () => {
     그리기();
     await screen.findByText('ZCL-FN-003');
     expect(이름표들()).toEqual([
-      ['회원가입', '2건', '실패 1'],
+      ['회원가입', '2건', 'Fail 1'],
       ['기능 묶음 없음', '1건', 'PRD 에 연결되지 않은 케이스'],
     ]);
   });
@@ -42,7 +42,7 @@ describe('기능 묶음 이름표', () => {
     그리기({ 받을쪽: 쪽나눔 });
     await screen.findByText('ZCL-FN-001');
     expect(screen.queryByText('ZCL-FN-003')).toBeNull();
-    expect(이름표들()).toEqual([['회원가입', '2건', '실패 1']]);
+    expect(이름표들()).toEqual([['회원가입', '2건', 'Fail 1']]);
   });
 
   it('PRD 를 안 쓰는 애플리케이션은 이름표도 목차도 없고 줄만 선다', async () => {
@@ -69,9 +69,9 @@ describe('기능 묶음 이름표', () => {
     render(<CaseList kind="FN" service="ZCL" 할수={전부된다} 결과보나 요구보나 />);
     await screen.findByText('ZCL-FN-003');
 
-    fireEvent.click(screen.getByRole('button', { name: /^실패 \d+$/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Fail \d+$/ }));
 
-    await waitFor(() => expect(이름표들()).toEqual([['회원가입', '1건', '실패 1']]));
+    await waitFor(() => expect(이름표들()).toEqual([['회원가입', '1건', 'Fail 1']]));
     expect(screen.queryByText('ZCL-FN-002')).toBeNull();
     expect(마지막조건(스파이)).toMatchObject({ last: 'FAIL' });
   });
@@ -82,7 +82,7 @@ describe('기능 묶음 목차', () => {
     그리기();
     await screen.findByText('ZCL-FN-003');
     expect(목차줄들()).toEqual([
-      ['회원가입', '실패 1', '2'],
+      ['회원가입', 'Fail 1', '2'],
       ['기능 묶음 없음', '1'],
     ]);
     await waitFor(() => expect(within(목차()!).getAllByRole('button').filter((줄) => 줄.getAttribute('aria-current') === 'true')).toHaveLength(1));
@@ -92,7 +92,7 @@ describe('기능 묶음 목차', () => {
     그리기({ 받을쪽: { ...쪽, items: [겹침, 비번], total: 2, groups: 묶음들.slice(0, 2) } });
     await screen.findByText('ZCL-FN-001');
     expect(목차()).toBeNull();
-    expect(이름표들()).toEqual([['회원가입', '2건', '실패 1']]);
+    expect(이름표들()).toEqual([['회원가입', '2건', 'Fail 1']]);
   });
 
   it('실행 결과 읽기 권한이 없어도 목차 건수는 서고 실패 수만 빠진다', async () => {
@@ -113,7 +113,7 @@ describe('기능 묶음 목차', () => {
 
     expect(await screen.findByText('ZCL-FN-003')).toBeTruthy();
     expect(이름표들()).toEqual([
-      ['회원가입', '2건', '실패 1'],
+      ['회원가입', '2건', 'Fail 1'],
       ['기능 묶음 없음', '1건', 'PRD 에 연결되지 않은 케이스'],
     ]);
     expect(스파이.mock.calls.map(([q]) => q.page)).toEqual([1, 2]);
@@ -166,6 +166,6 @@ describe('이어 불러오기 (쪽 넘기기 없음)', () => {
 
     expect(document.querySelectorAll('section[data-toc="회원가입"] .row')).toHaveLength(2);
     expect(document.querySelectorAll('section[data-toc=""] .row')).toHaveLength(1);
-    expect(목차줄들()).toEqual([['회원가입', '실패 1', '2'], ['기능 묶음 없음', '1']]);
+    expect(목차줄들()).toEqual([['회원가입', 'Fail 1', '2'], ['기능 묶음 없음', '1']]);
   });
 });

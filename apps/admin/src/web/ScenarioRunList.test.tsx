@@ -143,7 +143,7 @@ describe('ScenarioRunList 줄', () => {
     expect(첫.querySelector('.title small')?.textContent).toContain('실행자 김검사');
     expect(첫.querySelector('.title small')?.textContent).toContain('완료');
     expect(within(첫).getByText('단계 5개')).toBeTruthy();
-    expect(within(첫).getByText('모두 통과')).toBeTruthy();
+    expect(within(첫).getByText('모두 Pass')).toBeTruthy();
 
     expect(within(줄들[1] as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
   });
@@ -156,7 +156,7 @@ describe('ScenarioRunList 줄', () => {
     await screen.findByText(/ZSL 시나리오 13/);
 
     const 행 = container.querySelector('.run-row') as HTMLElement;
-    expect(within(행).queryByText('모두 통과')).toBeNull();
+    expect(within(행).queryByText('모두 Pass')).toBeNull();
     expect(행.querySelector('.title small')?.textContent).toContain('진행 중');
     expect(행.querySelector('.run-verdict')?.firstElementChild?.textContent).toBe('진행 중');
     expect(행.querySelector('.v-pass, .v-fail, .v-na')).toBeNull();
@@ -172,8 +172,8 @@ describe('ScenarioRunList 줄', () => {
     const [실패, 없음] = Array.from(container.querySelectorAll('.run-row')) as HTMLElement[];
     expect(within(실패 as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
     expect(within(없음 as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
-    expect(실패?.querySelector('.v-fail')?.textContent).toBe('실패');
-    expect(없음?.querySelector('.v-na')?.textContent).toBe('미실행');
+    expect(실패?.querySelector('.v-fail')?.textContent).toBe('Fail');
+    expect(없음?.querySelector('.v-na')?.textContent).toBe('Not tested');
     expect(없음?.querySelector('.title small')?.textContent).toContain('대상 서버 stage');
   });
 
@@ -181,7 +181,7 @@ describe('ScenarioRunList 줄', () => {
     const { container } = await 그리기();
     await screen.findByText(/ZSL 시나리오 11/);
 
-    expect(container.querySelector('.run-row .v-pass')?.textContent).toBe('통과');
+    expect(container.querySelector('.run-row .v-pass')?.textContent).toBe('Pass');
   });
 
   it('미확정이면 판정과 상관없이 「미확정」 꼬리표를 단다', async () => {

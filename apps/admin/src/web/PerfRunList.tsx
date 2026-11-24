@@ -29,8 +29,8 @@ function 수치글(kind: string, 게임: boolean, m: 측정수치 | null, t: 말
 
 const 거르개들: { 값: 판정종류 | ''; 이름: string }[] = [
   { 값: '', 이름: '전체' },
-  { 값: 'PASS', 이름: '통과' },
-  { 값: 'FAIL', 이름: '실패' },
+  { 값: 'PASS', 이름: 'Pass' },
+  { 값: 'FAIL', 이름: 'Fail' },
   { 값: 'STOP', 이름: '중단' },
   { 값: 'ERROR', 이름: '오류' },
 ];

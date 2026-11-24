@@ -108,7 +108,7 @@ export function ScenarioRunList({ service, 판정하기 }: { service: string; �
               <select value={state ?? ''} onChange={(e) => 상태고르기(상태들.find((값) => 값 === e.target.value))}>
                 <option value="">{t('전체')}</option>
                 <option value="running">{t('진행 중')}</option>
-                <option value="failed">{t('실패§실행')}</option>
+                <option value="failed">{t('Fail')}</option>
               </select>
             </label>
           </form>

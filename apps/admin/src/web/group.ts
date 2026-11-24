@@ -69,7 +69,7 @@ export function 회차요약(칸: RunItemSummary[], 언어: 언어 = 기본언�
   return {
     회차수: 칸.length,
     status,
-    글: 칸.length <= 1 ? null : t('{통과}/{전체} 통과', 언어, { 통과, 전체: 칸.length }),
+    글: 칸.length <= 1 ? null : t('{통과}/{전체} Pass', 언어, { 통과, 전체: 칸.length }),
     평균소요ms,
   };
 }

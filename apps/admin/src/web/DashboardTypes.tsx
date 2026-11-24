@@ -43,13 +43,13 @@ export function 실패유형칸({ 값, 이동 }: { 값: 자료; 이동?: 이동�
 
       {/* 멈춘 미실행뿐이면 「없습니다」를 띄우지 않는다 — 멈춘 수 한 줄만 둔다 */}
       {전체 === 0 ? (
-        stopped > 0 ? null : <p className="dash-calm good">{t('최근 {일}일 실패 · 미실행이 없습니다', { 일: 값.window.days })}</p>
+        stopped > 0 ? null : <p className="dash-calm good">{t('최근 {일}일 Fail · Not tested 가 없습니다', { 일: 값.window.days })}</p>
       ) : (
         <>
           <div className="dash-ft">
             {types.map((유형, i) => {
               const 수 = 유형.fail + 유형.notRun;
-              const 나눔 = t('실패 {수}', { 수: 유형.fail }) + ' · ' + t('미실행 {수}', { 수: 유형.notRun });
+              const 나눔 = t('Fail {수}', { 수: 유형.fail }) + ' · ' + t('Not tested {수}', { 수: 유형.notRun });
               return (
                 <div key={유형.type} className="dash-ftr" title={t(설명[유형.type])}>
                   <div className="hd">
@@ -73,8 +73,8 @@ export function 실패유형칸({ 값, 이동 }: { 값: 자료; 이동?: 이동�
             })}
           </div>
           <div className="dash-legend">
-            <span><i className="f" />{t('실패')}</span>
-            <span><i className="n" />{t('미실행')}</span>
+            <span><i className="f" />{t('Fail')}</span>
+            <span><i className="n" />{t('Not tested')}</span>
           </div>
         </>
       )}

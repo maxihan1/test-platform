@@ -67,7 +67,7 @@ describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실�
     );
     await screen.findByText('회원가입');
 
-    expect([...container.querySelectorAll('.fc-devs')].map((e) => e.textContent)).toEqual(['PC 미실행모바일 실패', 'PC 실패모바일 미실행']);
+    expect([...container.querySelectorAll('.fc-devs')].map((e) => e.textContent)).toEqual(['PC Not tested모바일 Fail', 'PC Fail모바일 Not tested']);
   });
 
   it('디바이스가 하나인 실행이면 카드 머리에 디바이스 꼬리표가 없다', async () => {
@@ -118,7 +118,7 @@ describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실�
 
     expect(await screen.findByText('ZZI-0003')).toBeDefined();
     expect(부름.mock.calls[1]).toEqual([RUN_ID, 2, undefined]);
-    const 머리 = screen.getByRole('heading', { name: /실패한 케이스/ });
+    const 머리 = screen.getByRole('heading', { name: /Fail 케이스/ });
     await waitFor(() => expect(document.activeElement).toBe(머리));
     expect((screen.getByRole('button', { name: '다음' }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -145,12 +145,12 @@ describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실�
   it('항목이 하나도 없으면 통로를 부르지 않고, 서버가 빈 쪽을 줘도 같은 한 줄을 적는다', async () => {
     const 부름 = vi.spyOn(api, 'failures').mockResolvedValue(쪽([]));
     render(<RunFailCards runId={RUN_ID} env="qa" items={[]} platform="ALL" />);
-    expect(screen.getByText('실패한 케이스가 없습니다')).toBeDefined();
+    expect(screen.getByText('Fail 케이스가 없습니다')).toBeDefined();
     expect(부름).not.toHaveBeenCalled();
 
     cleanup();
     render(<RunFailCards runId={RUN_ID} env="qa" items={[줄(1, 'ZZI-0001', 'desktop', 'PASS')]} platform="ALL" />);
-    expect(await screen.findByText('실패한 케이스가 없습니다')).toBeDefined();
+    expect(await screen.findByText('Fail 케이스가 없습니다')).toBeDefined();
   });
 
   it('카드에는 코드 뷰가 없다 — 코드는 상세에만 둔다', async () => {

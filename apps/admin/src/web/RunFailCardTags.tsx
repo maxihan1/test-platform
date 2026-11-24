@@ -53,10 +53,10 @@ export function 다시돌림꼬리표({ tcId, 결과 }: { tcId: string; 결과: 
   if (결과 === undefined) return null;
   const 글 =
     결과.status === 'PASS'
-      ? t('RUN {번호}에서 통과', { 번호: 결과.runId })
+      ? t('RUN {번호}에서 Pass', { 번호: 결과.runId })
       : 결과.status === 'FAIL'
-        ? t('RUN {번호}에서도 실패', { 번호: 결과.runId })
-        : t('RUN {번호}에서 미실행', { 번호: 결과.runId });
+        ? t('RUN {번호}에서도 Fail', { 번호: 결과.runId })
+        : t('RUN {번호}에서 Not tested', { 번호: 결과.runId });
   return (
     <a className="fc-tag" href={실행기록주소(tcId, 결과.runId, true)}>
       {글}

@@ -130,11 +130,11 @@ export function 답풀기(답: string, btsUrl: string | null): 덩이[] {
   return 덩이들;
 }
 
-/** 구분 배지의 색 — 판정 낱말을 화면 다른 곳과 같은 색으로 (회귀 실패 · 실패는 빨강, 해결 · 통과는 초록, 나머지는 회색) */
+/** 구분 배지의 색 — 판정 낱말을 화면 다른 곳과 같은 색으로 (회귀 실패 · Fail 는 빨강, 해결 · Pass 는 초록, 나머지는 회색) */
 export function 배지색(배지: string): 'fail' | 'pass' | 'na' {
   if (배지 === '기존 실패') return 'na';
-  if (배지.includes('실패')) return 'fail';
-  if (배지 === '해결' || 배지 === '통과') return 'pass';
+  if (배지.includes('실패') || 배지 === 'Fail') return 'fail';
+  if (배지 === '해결' || 배지 === 'Pass') return 'pass';
   return 'na';
 }
 

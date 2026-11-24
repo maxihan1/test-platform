@@ -44,7 +44,7 @@ export function 실행디바이스들(items: { platform: Platform }[]): Platform
   return [...(브라우저 ? PLATFORMS : []), ...(앱 ? (['android'] as Platform[]) : []), ...PC];
 }
 
-export const STATUS_LABEL: Record<ItemStatus, string> = { PASS: '통과', FAIL: '실패', NA: '미실행' };
+export const STATUS_LABEL: Record<ItemStatus, string> = { PASS: 'Pass', FAIL: 'Fail', NA: 'Not tested' };
 const STATUS_CLASS: Record<ItemStatus, string> = { PASS: 'v-pass', FAIL: 'v-fail', NA: 'v-na' };
 export const STATUS_COLOR: Record<ItemStatus, string> = {
   PASS: 'var(--pass)',

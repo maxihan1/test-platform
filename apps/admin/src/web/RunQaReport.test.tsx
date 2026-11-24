@@ -53,10 +53,10 @@ describe('실행 결과 화면의 QA 리포트 고리', () => {
     expect(띠.textContent).toContain('빌드 124 QA 리포트');
     expect(띠.textContent).toContain('승인 전');
     expect(띠.textContent).toContain('실행 4개 · 버전 1');
-    expect(띠.textContent).toContain('기능 통과 45 · 실패 3 · 미실행 1 (그중 미확정 2건)');
+    expect(띠.textContent).toContain('기능 Pass 45 · Fail 3 · Not tested 1 (그중 미확정 2건)');
     expect(띠.textContent).toContain('UI 이번 빌드에 실행 없음');
     expect(띠.textContent).toContain('호환성 디바이스 12대 · 화면 9개 · UI 결함 의심 2곳');
-    expect(띠.textContent).toContain('성능 성능 목표 통과 4 · 미달 1 (실행 2회)');
+    expect(띠.textContent).toContain('성능 성능 목표 Pass 4 · 미달 1 (실행 2회)');
     expect(띠.textContent).toContain('안정화 판정은 통과했지만 오류가 난 케이스 3건 / 기록이 있는 케이스 120건');
     expect(띠.textContent).not.toContain('잔여 오류');
   });

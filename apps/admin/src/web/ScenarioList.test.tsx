@@ -131,8 +131,8 @@ describe('ScenarioList 줄', () => {
     const 첫 = 행(container, 0);
     expect(첫.querySelector('.title small')?.textContent).not.toContain('실행 전');
     expect(첫.querySelector('.title small')?.textContent).toContain('2026');
-    expect(within(첫).getByText('통과')).toBeTruthy();
-    expect(within(첫).getByRole('link', { name: /통과/ }).getAttribute('href')).toBe('#/runs/90?from=scenarios');
+    expect(within(첫).getByText('Pass')).toBeTruthy();
+    expect(within(첫).getByRole('link', { name: /Pass/ }).getAttribute('href')).toBe('#/runs/90?from=scenarios');
   });
 
   it('도는 중이면 마지막 실행 칸도 결과 칸도 실행 중이고 판정 배지가 아니다', async () => {
@@ -156,9 +156,9 @@ describe('ScenarioList 줄', () => {
     ]);
     await screen.findByText(/ZSM 시나리오 1/);
 
-    expect(행(container, 0).querySelector('.verdict.v-pass')?.textContent).toBe('통과');
-    expect(within(행(container, 1)).getByText('실패')).toBeTruthy();
-    expect(within(행(container, 2)).getByText('미실행')).toBeTruthy();
+    expect(행(container, 0).querySelector('.verdict.v-pass')?.textContent).toBe('Pass');
+    expect(within(행(container, 1)).getByText('Fail')).toBeTruthy();
+    expect(within(행(container, 2)).getByText('Not tested')).toBeTruthy();
   });
 
   it('미확정이 섞여도 통과는 통과 배지이고 「미확정」 꼬리표만 곁들인다', async () => {
@@ -170,9 +170,9 @@ describe('ScenarioList 줄', () => {
 
     const 첫 = 행(container, 0);
     expect(첫.querySelector('.case-tag')?.textContent).toBe('미확정');
-    expect(within(첫).getByText('통과')).toBeTruthy();
+    expect(within(첫).getByText('Pass')).toBeTruthy();
     expect(첫.querySelector('a[href="#/runs/90?from=scenarios"]')).toBeTruthy();
-    expect(within(행(container, 1)).getByText('실패')).toBeTruthy();
+    expect(within(행(container, 1)).getByText('Fail')).toBeTruthy();
     expect(행(container, 1).querySelector('.case-tag')?.textContent).toBe('미확정');
   });
 

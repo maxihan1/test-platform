@@ -104,7 +104,7 @@ describe('실패 카드의 실패 이유 · 실패 원인 판 (실행 §8.3)', (
 
     fireEvent.click(await screen.findByRole('button', { name: /타임아웃/ }));
     expect(screen.getByText('이 페이지에 0건 · 이 유형 전체 2건 — 나머지는 다른 페이지에 있습니다')).toBeTruthy();
-    expect(screen.queryByText('실패한 케이스가 없습니다')).toBeNull();
+    expect(screen.queryByText('Fail 케이스가 없습니다')).toBeNull();
   });
 
   it('디바이스를 거른 동안에는 「실패 원인」 판이 없다 — 카드 머리 칩과 어긋난다', async () => {

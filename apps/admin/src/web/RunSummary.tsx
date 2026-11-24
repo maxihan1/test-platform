@@ -64,9 +64,9 @@ export function RunSummary({
 
   const 칸들 = [
     { 값: 'ALL', 종류: 'a', 이름: t('전체'), 수: 전체 },
-    { 값: 'PASS', 종류: 'p', 이름: t('통과'), 수: counts.pass },
-    { 값: 'FAIL', 종류: 'f', 이름: t('실패'), 수: counts.fail },
-    { 값: 'NA', 종류: 'n', 이름: t('미실행'), 수: counts.na },
+    { 값: 'PASS', 종류: 'p', 이름: t('Pass'), 수: counts.pass },
+    { 값: 'FAIL', 종류: 'f', 이름: t('Fail'), 수: counts.fail },
+    { 값: 'NA', 종류: 'n', 이름: t('Not tested'), 수: counts.na },
   ] as const;
 
   return (
@@ -114,12 +114,12 @@ export function RunSummary({
           </div>
           <div className="rs-lines">
             {실패케이스수 > 0 ? (
-              <span className="verdict v-fail rs-fails">{t('실패 케이스 {수}건', { 수: 실패케이스수 })}</span>
+              <span className="verdict v-fail rs-fails">{t('Fail 케이스 {수}건', { 수: 실패케이스수 })}</span>
             ) : (
-              <span className="rs-fails none">{t('실패 케이스 {수}건', { 수: 0 })}</span>
+              <span className="rs-fails none">{t('Fail 케이스 {수}건', { 수: 0 })}</span>
             )}
             {실패케이스수 === 0 || 디바이스실패.length < 2 ? null : (
-              <div className="rs-devs" role="group" aria-label={t('디바이스별 실패 케이스')}>
+              <div className="rs-devs" role="group" aria-label={t('디바이스별 Fail 케이스')}>
                 {디바이스실패.map(({ platform, 수 }) => (
                   // 한 번 더 누르면 「전체」로 돌아간다. 0건이면 걸러 봐야 빈 칸이라 누를 수 없다 — 칩으로 이미 고른 때만은 풀 수 있게 둔다
                   <button
@@ -138,7 +138,7 @@ export function RunSummary({
             <span className="rs-of">
               {전체 === 0
                 ? t('항목 없음')
-                : t('항목 {전체}건 중 {통과}건 통과', { 전체, 통과: counts.pass })}
+                : t('항목 {전체}건 중 {통과}건 Pass', { 전체, 통과: counts.pass })}
             </span>
             {미확정 === '' ? null : <span className="rs-axis">{미확정}</span>}
           </div>

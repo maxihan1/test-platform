@@ -21,8 +21,8 @@ const 시간글 = (분: number, t: 말) => {
 export function 결과글(c: 칩, t: 말): string {
   if (c.상태 === 'plan') return c.대기분 > 0 ? t('{시각} 시작 예상', { 시각: 시각글(c.시작분) }) : t('{시각} 예정', { 시각: 시각글(c.정한분) });
   if (c.상태 === 'running') return t('실행 중');
-  if (c.상태 === 'pass') return t('통과');
-  if (c.상태 === 'fail') return t('실패 {수}', { 수: c.실패 });
+  if (c.상태 === 'pass') return t('Pass');
+  if (c.상태 === 'fail') return t('Fail {수}', { 수: c.실패 });
   if (c.상태 === 'report') return t('리포트§달력');
   // 판정할 실행이 없으면 결과 없이 의심 화면 수만 보인다 (§3.16 「회차의 결과」) — 호환성만 담은 세트
   return c.의심 > 0 ? t('의심 {수}', { 수: c.의심 }) : t('결과 없음');
@@ -44,8 +44,8 @@ const 실행있나 = (c: 칩) => c.회차 !== null && c.상태 !== 'plan';
 function 실행알약({ r, t }: { r: 회차실행; t: 말 }) {
   const 도는중 = r.status === 'RUNNING' || r.status === 'QUEUED';
   if (r.kind === 'COMPAT' && !도는중) return (r.suspects ?? 0) > 0 ? <span className="sched-pill sus">{t('의심 {수}', { 수: r.suspects ?? 0 })}</span> : <span className="sched-pill none">{t('의심 없음')}</span>;
-  if (r.failed > 0) return <span className="sched-pill fail">{t('실패 {수}', { 수: r.failed })}</span>;
-  if (r.passed > 0) return <span className="sched-pill pass">{t('통과')}</span>;
+  if (r.failed > 0) return <span className="sched-pill fail">{t('Fail {수}', { 수: r.failed })}</span>;
+  if (r.passed > 0) return <span className="sched-pill pass">{t('Pass')}</span>;
   return <span className="sched-pill none">{도는중 ? t('실행 중') : t('결과 없음')}</span>;
 }
 

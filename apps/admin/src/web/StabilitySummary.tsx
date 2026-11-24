@@ -79,7 +79,7 @@ export function 요약판({ 요약, run, tz }: { 요약: 실행요약 | null; ru
         <div className="stab-blk stab-gap">
           <h3>{t('판정과의 차이')}</h3>
           <span className="stab-big">{t('{수}건', { 수: run.passErrorCases })}</span>
-          <span>{t('통과 판정이지만 오류 발생')}</span>
+          <span>{t('Pass 판정이지만 오류 발생')}</span>
           {/* 오류 목록이 아니라 그 실행 결과 화면이다 — 묶음의 뒤 실행(기능 실행)을 연다 (§8.19 · STAB-F1-08 시작 질문 승인) */}
           <a href={`#/runs/${String(run.runId)}`}>{t('케이스 보기')}</a>
         </div>

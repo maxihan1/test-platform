@@ -113,7 +113,7 @@ describe('통과 · 알림 (도메인/실행 §8.3)', () => {
   it('알림이 있으면 접힌 줄 하나로 세고 펼치면 문장 · 알림 · 항목 상세 주소가 있다', () => {
     render(<통과알림목록 runId={RUN_ID} insights={비교({ 통과알림들: [알림, { ...알림, historyId: 78 }] })} />);
 
-    expect(screen.getByText('통과 · 알림 2건')).toBeDefined();
+    expect(screen.getByText('Pass · 알림 2건')).toBeDefined();
     expect(document.querySelector('details')?.open).toBe(false);
     expect(screen.getAllByText(알림.notice)).toHaveLength(2);
     expect(screen.getAllByText(알림.statement)).toHaveLength(2);
@@ -123,7 +123,7 @@ describe('통과 · 알림 (도메인/실행 §8.3)', () => {
   it('서버가 상한에서 잘랐으면 전체 수를 적고 잘렸다고 알린다', () => {
     render(<통과알림목록 runId={RUN_ID} insights={비교({ 통과알림들: [알림], 통과알림수: 250 })} />);
 
-    expect(screen.getByText('통과 · 알림 250건')).toBeDefined();
+    expect(screen.getByText('Pass · 알림 250건')).toBeDefined();
     expect(screen.getByText('앞 1건만 보입니다 — 나머지는 항목 상세에서 확인하세요')).toBeDefined();
   });
 

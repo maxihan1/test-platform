@@ -30,7 +30,7 @@ export const 케이스말: Record<string, string> = {
   '한 건 실행': 'Single-case run',
   'RUN {번호}에 다시 실행으로 붙음': 'Attached to RUN {번호} as a rerun',
   '이력을 불러오지 못했습니다': 'Could not load the history',
-  '{회수}번 · 실패 {실패} · 통과 {통과}': '{회수} attempts · {실패} failed · {통과} passed',
+  '{회수}번 · Fail {실패} · Pass {통과}': '{회수} attempts · Fail {실패} · Pass {통과}',
   '만드는 중': 'Building…',
   '케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다':
     'Collecting the case list. Run stays disabled until it finishes.',
@@ -60,9 +60,6 @@ export const 케이스말: Record<string, string> = {
   // 표머리 (2026-09-22)
   케이스명: 'Case',
   '전체': 'All',
-  '통과': 'Passed',
-  '실패': 'Failed',
-  '미실행': 'Not run',
   '미확정 {건수}건': '{건수} unconfirmed',
   // 설계 기법 — 값은 kit 식별자 그대로 질의에 가고 글자만 여기서 바뀐다 (도메인/카탈로그 §8.1)
   '설계 기법': 'Design technique',
@@ -93,6 +90,7 @@ export const 케이스말: Record<string, string> = {
   '창': 'Window',
   '창 조각': 'Window part',
   '실패 {건수}': '{건수} failed',
+  'Fail {건수}': 'Fail {건수}',
   // 목록 왼쪽 목차 (ListToc.tsx · 2026-11-11 시안 B)
   '기능 묶음 목차': 'Feature contents',
   '정리 필요': 'Needs tidying',
@@ -169,7 +167,7 @@ export const 케이스말: Record<string, string> = {
   '코드 기본값': 'code default',
 
   // 실행 결과 회차 요약 (group.ts)
-  '{통과}/{전체} 통과': '{통과}/{전체} passed',
+  '{통과}/{전체} Pass': '{통과}/{전체} Pass',
 
   // Android 앱 애플리케이션의 빈 목록 (도메인/카탈로그 §8.1 「디바이스」)
   '아직 Android 앱 케이스가 없습니다': 'No Android app cases yet',
@@ -179,9 +177,9 @@ export const 케이스말: Record<string, string> = {
 
   // Issue Bunker 테스트 수정 바퀴로 통과한 케이스 (도메인/BTS §8.15 「자동 수정 표시」 A)
   '자동 수정': 'Auto-fixed',
-  'Issue Bunker {키} · {날짜} · 수정 후 다시 실행에서 통과': 'Issue Bunker {키} · {날짜} · passed on rerun after the fix',
+  'Issue Bunker {키} · {날짜} · 수정 후 다시 실행에서 Pass': 'Issue Bunker {키} · {날짜} · Pass on rerun after the fix',
   '수정 후': 'After fix',
-  '조작 실패 자동 수정 · {날짜} · 수정 후 다시 실행에서 통과': 'Input-failure auto-fix · {날짜} · passed on rerun after the fix',
+  '조작 실패 자동 수정 · {날짜} · 수정 후 다시 실행에서 Pass': 'Input-failure auto-fix · {날짜} · Pass on rerun after the fix',
   '조작 실패': 'Input failure',
   '반영을 기다리는 중 — 사람 확인이 필요해요 · {까닭}': 'Waiting to be applied — a person needs to check · {까닭}',
   '다시 실행하니 통과해서 수정하지 않았어요': 'Passed when run again, so nothing was changed',

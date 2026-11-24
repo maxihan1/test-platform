@@ -22,11 +22,11 @@ describe('실패 카드 (덮인 디바이스가 다시 실행해서도 실패)',
     const 원래 = vi.spyOn(api, 'item').mockResolvedValue({ ...상세(3, 'desktop'), runId: RUN_ID });
     그리기(쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 9, { rerun: 덮음 }, { runId: 한건번호 })])]), [줄(9, 'ZZI-0001', 'desktop', 'FAIL', { rerun: 덮음 })]);
 
-    expect(await screen.findByText(/^다시 실행해서도 실패 · .* · 김실행$/)).toBeTruthy();
+    expect(await screen.findByText(/^다시 실행해서도 Fail · .* · 김실행$/)).toBeTruthy();
     expect(screen.getByRole('link', { name: '상세' }).getAttribute('href')).toBe(`#/runs/${String(한건번호)}/items/9`);
 
     const 접힘 = document.querySelector('details.fc-orig') as HTMLDetailsElement;
-    expect(접힘.querySelector('summary')?.textContent).toMatch(/^지난 결과 보기 실패 /);
+    expect(접힘.querySelector('summary')?.textContent).toMatch(/^지난 결과 보기 Fail /);
     expect(원래).not.toHaveBeenCalled();
     접힘.open = true;
     fireEvent(접힘, new Event('toggle'));
@@ -47,7 +47,7 @@ describe('결과 줄 (다시 실행해서 통과)', () => {
     const group = groupByCase([줄(9, 'ZZI-0001', 'desktop', 'PASS', { rerun: 덮음 })])[0]!;
     render(<결과줄 group={group} columns={['desktop']} runId={RUN_ID} />);
 
-    expect(screen.getByText(/^다시 실행해서 통과 · /)).toBeTruthy();
+    expect(screen.getByText(/^다시 실행해서 Pass · /)).toBeTruthy();
     const 주소들 = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
     expect(주소들).toEqual([`#/runs/${String(한건번호)}/items/9`, `#/runs/${String(한건번호)}/items/9`]);
 

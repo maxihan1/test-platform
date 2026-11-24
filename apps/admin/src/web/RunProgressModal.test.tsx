@@ -126,7 +126,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
 
     const 목록 = document.querySelector('.rl-items')!;
     expect(목록.textContent).toContain('종료 1');
-    expect(목록.querySelector('.pill.fail')?.textContent).toBe('실패');
+    expect(목록.querySelector('.pill.fail')?.textContent).toBe('Fail');
     expect(본문()).not.toContain('기대값 200, 실제 500');
     // 2초마다 다시 그리는 창이 끝난 항목마다 상세를 묻지 않는다
     expect(상세).not.toHaveBeenCalled();
@@ -224,7 +224,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     const 줄들 = [...document.querySelectorAll('.done-items > li')];
     expect(줄들).toHaveLength(30);
     expect(줄들[0]?.textContent).toContain('케이스 35');
-    expect(줄들[0]?.querySelector('.verdict')?.textContent).toBe('실패');
+    expect(줄들[0]?.querySelector('.verdict')?.textContent).toBe('Fail');
     expect(screen.queryByText('외 5건')).not.toBeNull();
   });
 
@@ -265,7 +265,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       const 알약들 = [...document.querySelectorAll('.rl-pills .pill')];
       expect(알약들.length).toBe(3);
       for (const 알약 of 알약들) expect(알약.querySelector('b')?.textContent ?? '').not.toBe('');
-      expect(알약들.map((알약) => 알약.firstChild?.textContent?.trim())).toEqual(['통과', '실패', '미실행']);
+      expect(알약들.map((알약) => 알약.firstChild?.textContent?.trim())).toEqual(['Pass', 'Fail', 'Not tested']);
 
       unmount();
     }

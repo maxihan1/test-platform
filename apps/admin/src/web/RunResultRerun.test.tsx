@@ -38,7 +38,7 @@ describe('실패 N건 다시 실행 (도메인/실행 §8.3)', () => {
     vi.spyOn(api, 'insights').mockRejectedValue(new Error('견줄 앞 실행이 없다'));
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 
-    expect(await screen.findByRole('button', { name: '실패 1건 다시 실행' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Fail 1건 다시 실행' })).toBeTruthy();
   });
 
   it('도는 동안에는 없다 — 아직 판정이 다 안 들어왔다', async () => {
@@ -54,6 +54,6 @@ describe('실패 N건 다시 실행 (도메인/실행 §8.3)', () => {
     vi.spyOn(api, 'insights').mockRejectedValue(new Error('견줄 앞 실행이 없다'));
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
 
-    expect(await screen.findByRole('button', { name: '실패 1건 다시 실행' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Fail 1건 다시 실행' })).toBeTruthy();
   });
 });

@@ -35,7 +35,7 @@ export function 판정종류(실행: { status: 실행상태; verdict: 실행판�
   return 'LIVE';
 }
 
-const 판정글자: Record<끝판정, string> = { PASS: '통과', FAIL: '실패', STOP: '중단', ERROR: '오류' };
+const 판정글자: Record<끝판정, string> = { PASS: 'Pass', FAIL: 'Fail', STOP: '중단', ERROR: '오류' };
 export const 판정꼴: Record<끝판정, string> = { PASS: 'v-pass', FAIL: 'v-fail', STOP: 'v-na', ERROR: 'v-na' };
 export function 판정이름(종류: 끝판정, t: 말): string {
   return t(판정글자[종류]);

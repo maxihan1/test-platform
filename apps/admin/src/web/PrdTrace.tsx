@@ -21,7 +21,7 @@ function 성능줄({ 성능 }: { 성능: 성능칸 | undefined }) {
   const t = use말();
   if (성능 === undefined) return null;
   const 판정 = 성능.verdict;
-  const 글 = 판정 === null ? t('미실행') : 판정 === 'PASS' ? t('통과') : t('실패');
+  const 글 = 판정 === null ? t('Not tested') : 판정 === 'PASS' ? t('Pass') : t('Fail');
   const 꼴 = `verdict ${판정꼴[판정 ?? 'NA']}`;
   return (
     <span className="prd-perf">
@@ -79,21 +79,21 @@ export function 추적칸({ reqId, 추적, 보류, 성능, 케이스보나 }: { 
         // 실패한 케이스만 거른 목록으로 간다 (점검 8.7). 기능 · UI 양쪽에 실패가 있으면 UI 쪽 고리를 하나 더 단다
         <>
           <a className={`verdict ${판정꼴[판정]}`} href={`${케이스주소(추적.실패갈래.기능 > 0 ? 'fn' : 'ui', reqId)}?last=FAIL`}>
-            {t('실패 {건수} / {전체}', { 건수: 셈.실패, 전체 })}
+            {t('Fail {건수} / {전체}', { 건수: 셈.실패, 전체 })}
           </a>
           {추적.실패갈래.기능 > 0 && 추적.실패갈래.UI > 0 ? (
-            <a href={`${케이스주소('ui', reqId)}?last=FAIL`}>{t('UI 실패 {건수}건 보기', { 건수: 추적.실패갈래.UI })}</a>
+            <a href={`${케이스주소('ui', reqId)}?last=FAIL`}>{t('UI Fail {건수}건 보기', { 건수: 추적.실패갈래.UI })}</a>
           ) : null}
         </>
       ) : (
         <span className={`verdict ${판정꼴[판정]}`}>
           {판정 === 'FAIL'
-            ? t('실패 {건수} / {전체}', { 건수: 셈.실패, 전체 })
+            ? t('Fail {건수} / {전체}', { 건수: 셈.실패, 전체 })
             : 판정 === 'PASS'
-              ? t('통과')
+              ? t('Pass')
               : 셈.미실행 === 전체
-                ? t('미실행')
-                : t('미실행 {건수} / {전체}', { 건수: 셈.미실행, 전체 })}
+                ? t('Not tested')
+                : t('Not tested {건수} / {전체}', { 건수: 셈.미실행, 전체 })}
         </span>
       )}
       <성능줄 성능={성능} />

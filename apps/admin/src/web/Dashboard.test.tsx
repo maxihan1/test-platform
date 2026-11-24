@@ -232,7 +232,7 @@ describe('실행 중 줄', () => {
     expect(링크.textContent).toContain('ZDA 점검 12');
     expect(링크.textContent).toContain('ZDA 결제 · RUN 12');
     expect(링크.textContent).toContain('3 / 8건');
-    expect(링크.textContent).toContain('실패 1');
+    expect(링크.textContent).toContain('Fail 1');
     expect(screen.getByText('실행 중 1건').querySelector('.pulse')).not.toBeNull();
   });
 
@@ -256,9 +256,9 @@ describe('맨 위 다섯 칸', () => {
     expect(칸들.textContent).toContain('기능 12 · UI 2');
     // 케이스마다 마지막 결과 — 통과 11 / 14 = 78.57 을 내린다
     expect(within(칸들).getByText('78.5')).toBeTruthy();
-    expect(칸들.textContent).toContain('통과율 · 실패 2');
+    expect(칸들.textContent).toContain('통과율 · Fail 2');
     expect(within(칸들).getByText('50.0')).toBeTruthy();
-    expect(칸들.textContent).toContain('통과 1 · 실패 1 · 시나리오 3개');
+    expect(칸들.textContent).toContain('Pass 1 · Fail 1 · 시나리오 3개');
     expect(within(칸들).getByText('22')).toBeTruthy();
     expect(칸들.textContent).toContain('에러율 0% · 최대 TPS 50');
     expect(within(칸들).queryAllByRole('link')).toHaveLength(0);
@@ -279,8 +279,8 @@ describe('요구사항 추적 · 테스트 케이스', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 칸 = (await screen.findByRole('heading', { name: '요구사항 추적 (RTM)' })).closest('section')!;
     expect(within(칸).getByText('80.0')).toBeTruthy();
-    expect(칸.textContent).toContain('통과 6');
-    expect(칸.textContent).toContain('일부 미실행 1');
+    expect(칸.textContent).toContain('Pass 6');
+    expect(칸.textContent).toContain('일부 Not tested 1');
     expect(칸.textContent).toContain('테스트 없음 2');
     expect(칸.textContent).toContain('ZDA 결제');
     expect(칸.textContent).not.toContain('ZDA 회원');
@@ -346,7 +346,7 @@ describe('E2E · 성능 · 결정 필요', () => {
     expect(줄.querySelector('.mv')).not.toBeNull();
     const 실패줄 = screen.getByText('주문 · 결제').closest('a')!;
     expect(실패줄.querySelector('.mv')).toBeNull();
-    expect(실패줄.textContent).toContain('실패');
+    expect(실패줄.textContent).toContain('Fail');
   });
 
   it('페이지 성능은 페이지마다 한 줄이고 목표를 넘은 숫자는 실패 색이다', async () => {

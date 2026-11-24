@@ -88,7 +88,7 @@ export function RunFailDevice({
             {변화 === null ? null : <span className={d.change === '새로깨짐' ? 'fc-tag fc-new' : 'fc-tag'}>{변화}</span>}
             {d.rerun == null ? null : <다시실행꼬리표 rerun={d.rerun} status="FAIL" />}
             {d.attempts > 1 ? (
-              <span>{t('{회수}회 중 {실패}회 실패', { 회수: d.attempts, 실패: d.failedAttempts })}</span>
+              <span>{t('{회수}회 중 {실패}회 Fail', { 회수: d.attempts, 실패: d.failedAttempts })}</span>
             ) : null}
             <span>{소요글(d)}</span>
             {같은이유(d.item.failure, 머리이유) ? null : <실패이유 failure={d.item.failure} />}

@@ -85,7 +85,7 @@ describe('시험 실행 중 — 시안 A ③', () => {
     시험시작();
 
     const 대기열 = await screen.findByRole('list', { name: '시험 차례' });
-    await waitFor(() => expect(within(대기열).getByText('통과 1')).toBeTruthy(), { timeout: 4000 });
+    await waitFor(() => expect(within(대기열).getByText('Pass 1')).toBeTruthy(), { timeout: 4000 });
     expect(within(대기열).getAllByText('PC').length).toBeGreaterThan(0);
     expect(within(대기열).getByText('진행 중')).toBeTruthy();
   });
@@ -217,7 +217,7 @@ describe('중단 확인', () => {
     expect(api.startTrial).toHaveBeenCalledTimes(1);
     const 결과 = within(document.querySelector('.trial-res') as HTMLElement);
     expect(결과.getByText('중단')).toBeTruthy();
-    expect(결과.getByText('미실행')).toBeTruthy();
+    expect(결과.getByText('Not tested')).toBeTruthy();
     expect(document.querySelector('.trial-sum .pill.na b')?.textContent).toBe('2');
   });
 

@@ -68,7 +68,7 @@ export function 멈춘단계글자(줄: ScenarioRunRow, 언어: 언어): string 
   if (줄.status === 준비실패) return t('준비 실패', 언어);
   if (줄.stoppedAt !== null) return t('{번호}번에서 종료', 언어, { 번호: 줄.stoppedAt });
   // 단계 기록 없이 닫힌 실행도 stoppedAt 이 비어 있다 — 판정 칩 「미실행」 아래 「모두 통과」가 서면 거짓이다
-  return 줄.verdict === 'PASS' ? t('모두 통과', 언어) : '';
+  return 줄.verdict === 'PASS' ? t('모두 Pass', 언어) : '';
 }
 
 /** 판정이 아닌 것(도는 중 · 판정 없음)에는 판정 색을 안 쓴다. 미확정이 섞여도 통과는 통과 색이다 */

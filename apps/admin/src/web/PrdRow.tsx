@@ -10,7 +10,7 @@ import { use나이글 } from './prdWords.js';
 
 export const prd줄아이디 = (reqId: string) => `prd-item-${reqId}`;
 
-const 판정꼴 = { PASS: ['통과', 'verdict v-pass'], FAIL: ['실패', 'verdict v-fail'], NA: ['미실행', 'verdict v-na'] } as const;
+const 판정꼴 = { PASS: ['Pass', 'verdict v-pass'], FAIL: ['Fail', 'verdict v-fail'], NA: ['Not tested', 'verdict v-na'] } as const;
 
 /** 줄 끝과 서랍 머리의 결과 꼬리표. 테스트가 있는데 결과를 못 읽었으면 꼬리표가 없다 */
 export function 결과꼬리(t: (키: string) => string, 추적: 추적, 보류: 줄보류 | null): { 글: string; 꼴: string } | null {

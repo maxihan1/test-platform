@@ -118,7 +118,7 @@ function 대기열알약칸({ 칸들 }: { 칸들: Parameters<typeof 대기열알
   if (칸들.length === 0) return null;
   const { 종류, 수 } = 대기열알약(칸들);
   const 글 =
-    종류 === 'run' ? t('진행 중') : 종류 === 'pass' ? t('통과 {수}', { 수 }) : 종류 === 'fail' ? t('실패 {수}', { 수 }) : 종류 === 'wait' ? t('대기 {수}', { 수 }) : t('미실행 {수}', { 수 });
+    종류 === 'run' ? t('진행 중') : 종류 === 'pass' ? t('Pass {수}', { 수 }) : 종류 === 'fail' ? t('Fail {수}', { 수 }) : 종류 === 'wait' ? t('대기 {수}', { 수 }) : t('Not tested {수}', { 수 });
   return <span className={`pill ${종류}`}>{글}</span>;
 }
 

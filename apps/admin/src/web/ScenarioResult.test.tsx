@@ -35,7 +35,7 @@ describe('머리', () => {
   it('실패는 판정 배지 · 끝난 실행은 「리포트 생성」 메뉴에 형식마다 한 줄', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');
-    expect(document.querySelector('.head .verdict')?.textContent).toBe('실패');
+    expect(document.querySelector('.head .verdict')?.textContent).toBe('Fail');
     fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
     for (const 글 of ['PDF', '엑셀', 'HTML']) expect(screen.getByRole('button', { name: 글 })).toBeTruthy();
   });
@@ -69,7 +69,7 @@ describe('머리', () => {
     await screen.findByText('단계별 결과');
     const 칩 = document.querySelector('.head .case-tag');
     expect(칩?.textContent).toBe('미확정');
-    expect(document.querySelector('.head .verdict')?.textContent).toBe('통과');
+    expect(document.querySelector('.head .verdict')?.textContent).toBe('Pass');
   });
 
   it('도는 중이어도 미확정 단계가 있으면 머리에 미확정 꼬리표가 뜬다', async () => {
@@ -97,12 +97,12 @@ describe('머리', () => {
   it('실패 머리는 미확정 단계가 있을 때만 미확정 꼬리표를 곁들인다', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');
-    expect(document.querySelector('.head .verdict')?.textContent).toBe('실패');
+    expect(document.querySelector('.head .verdict')?.textContent).toBe('Fail');
     expect(document.querySelector('.head .case-tag')?.textContent).toBe('미확정');
     cleanup();
     연다(결과({ parts: [부품(1, { status: 'FAIL', error: { message: '깨짐' } })] }));
     await screen.findByText('단계별 결과');
-    expect(document.querySelector('.head .verdict')?.textContent).toBe('실패');
+    expect(document.querySelector('.head .verdict')?.textContent).toBe('Fail');
     expect(document.querySelector('.head .case-tag')).toBeNull();
   });
 
@@ -130,10 +130,10 @@ describe('도는 중 아직 안 돈 단계', () => {
     expect(줄들).toHaveLength(3);
     for (const 줄 of [줄들[1]!, 줄들[2]!]) {
       expect(줄.querySelector('.verdict')).toBeNull();
-      expect(줄.textContent).not.toContain('미실행');
+      expect(줄.textContent).not.toContain('Not tested');
       expect(줄.textContent).not.toContain('– 실행 안 함');
     }
-    expect(줄들[0]!.querySelector('.verdict')?.textContent).toBe('통과');
+    expect(줄들[0]!.querySelector('.verdict')?.textContent).toBe('Pass');
   });
 
   it('끝난 뒤 NOT_RUN 은 – 실행 안 함을 보인다', async () => {

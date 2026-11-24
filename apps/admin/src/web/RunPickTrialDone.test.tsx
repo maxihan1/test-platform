@@ -24,11 +24,11 @@ describe('완료 창', () => {
     expect(await screen.findByRole('dialog', { name: '시험 실행 결과' }, { timeout: 4000 })).toBeTruthy();
     expect(document.querySelector('.trial-sum .pill.pass b')?.textContent).toBe('1');
     expect(document.querySelector('.trial-sum .pill.fail b')?.textContent).toBe('1');
-    expect(document.querySelector('.trial-sum .pill.zero')?.textContent).toBe('미실행 0');
+    expect(document.querySelector('.trial-sum .pill.zero')?.textContent).toBe('Not tested 0');
     expect(screen.getByText('2단계 · 수량을 3으로 바꾼다')).toBeTruthy();
     expect(screen.getByText('수량 칸을 찾지 못했습니다')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: '실패 1건 다시 시험' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 1건 다시 시험' }));
     await waitFor(() => expect(api.startTrial).toHaveBeenCalledTimes(3));
     expect(vi.mocked(api.startTrial).mock.calls[2]?.[0]).toBe('ZRS-002');
   });

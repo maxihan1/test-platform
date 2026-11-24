@@ -150,7 +150,7 @@ describe('PRD 관리 — 전체 요구', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
     expect(screen.getByRole('button', { name: '전체 4' }).getAttribute('aria-pressed')).toBe('true');
-    expect((screen.getByRole('button', { name: '실패 0' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Fail 0' }) as HTMLButtonElement).disabled).toBe(true);
     const 미작성 = screen.getByRole('button', { name: '미작성 4' });
     fireEvent.click(screen.getByRole('button', { name: '확인 필요 2' }));
     expect(screen.queryByRole('button', { name: /MKT-REQ-031/ })).toBeNull();

@@ -56,8 +56,8 @@ function 카드({ a, 차례, 흐름, 서비스열기 }: { a: 앱; 차례: number
             <굴림숫자 글={율} 늦춤={0.5 + (차례 % 카드묶음) * 0.12} />%
           </span>
           <span className="dash-lab">
-            {t('통과 {통과} · 실패 {실패}', { 통과: 수글(a.last.pass), 실패: 수글(a.last.fail) })}
-            {a.last.notRun > 0 ? <> · {t('미실행 {수}', { 수: 수글(a.last.notRun) })}</> : null}
+            {t('Pass {통과} · Fail {실패}', { 통과: 수글(a.last.pass), 실패: 수글(a.last.fail) })}
+            {a.last.notRun > 0 ? <> · {t('Not tested {수}', { 수: 수글(a.last.notRun) })}</> : null}
           </span>
         </div>
       )}
@@ -106,7 +106,7 @@ export function 앱카드들({ 값, 서비스열기 }: { 값: 자료; 서비스�
     <>
       <div className="dash-sec dash-rise" style={떠오름(7)}>
         <h2>{t('애플리케이션 {수}개', { 수: 앱들.length })}</h2>
-        <span className="dash-lab">{t('케이스마다 마지막 결과 · 흐름은 최근 실행 (초록 통과 · 빨강 실패가 있음 · 회색 그 밖)')}</span>
+        <span className="dash-lab">{t('케이스마다 마지막 결과 · 흐름은 최근 실행 (초록 Pass · 빨강 Fail 있음 · 회색 그 밖)')}</span>
       </div>
       <div className="dash-apps">
         {앱들.slice(0, 보임).map((a, i) => (

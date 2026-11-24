@@ -32,7 +32,7 @@ export function 실행중줄({ 목록 }: { 목록: 자료['running'] }) {
             </span>
             <span className="dash-live-count">
               <b className="num">{t('{끝난} / {전체}건', { 끝난: 실행.doneItems, 전체: 실행.totalItems })}</b>
-              {실행.failedItems > 0 ? <span className="dash-live-fail">{t('실패 {수}', { 수: 실행.failedItems })}</span> : null}
+              {실행.failedItems > 0 ? <span className="dash-live-fail">{t('Fail {수}', { 수: 실행.failedItems })}</span> : null}
             </span>
             <span className="dash-stack" aria-hidden="true">
               <i className="p" style={{ width: 몫(통과) }} />

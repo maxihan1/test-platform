@@ -19,7 +19,7 @@ export function 다시실행꼬리표({ rerun, status }: { rerun: 다시실행; 
   const 언어 = use언어();
   return (
     <span className="fc-tag">
-      {status === 'PASS' ? t('다시 실행해서 통과') : t('다시 실행해서도 실패')} · {when(rerun.finishedAt, 언어)}
+      {status === 'PASS' ? t('다시 실행해서 Pass') : t('다시 실행해서도 Fail')} · {when(rerun.finishedAt, 언어)}
       {rerun.triggeredBy === '' ? null : ` · ${rerun.triggeredBy}`}
     </span>
   );

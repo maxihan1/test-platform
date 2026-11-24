@@ -84,20 +84,20 @@ export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고�
         )}
         <span className="tally">
           <span>
-            <b style={{ color: 'var(--pass-text)' }}>{pass}</b> <span>{t('통과')}</span>
+            <b style={{ color: 'var(--pass-text)' }}>{pass}</b> <span>{t('Pass')}</span>
           </span>
           {나눈다 ? null : (
             <span>
-              <b style={{ color: 'var(--fail-text)' }}>{fail}</b> <span>{t('실패')}</span>
+              <b style={{ color: 'var(--fail-text)' }}>{fail}</b> <span>{t('Fail')}</span>
             </span>
           )}
           <span>
-            <b style={{ color: 'var(--na-text)' }}>{na}</b> <span>{t('미실행')}</span>
+            <b style={{ color: 'var(--na-text)' }}>{na}</b> <span>{t('Not tested')}</span>
           </span>
         </span>
         {!나눈다 ? null : (
           <span className="tally">
-            <span>{t('실패')}</span>
+            <span>{t('Fail')}</span>
             {나눈실패.map((p) => (
               <span key={p}>
                 {t(짧은디바이스글(p))} <b style={{ color: 'var(--fail-text)' }}>{run.failCases?.[p]}</b>

@@ -69,7 +69,7 @@ describe('결과 탭 줄 끝 「자동 수정 N」', () => {
 
   it('누르면 그 케이스만 거르고 결과 탭은 풀린다 · 다른 결과 탭을 누르면 자동 수정이 풀린다', () => {
     const { 조건 } = 탭그리기(1);
-    fireEvent.click(screen.getByRole('button', { name: '실패 0' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 0' }));
     expect(조건()).toMatchObject({ last: 'FAIL' });
 
     fireEvent.click(screen.getByRole('button', { name: '자동 수정 1' }));
@@ -79,7 +79,7 @@ describe('결과 탭 줄 끝 「자동 수정 N」', () => {
     expect(screen.getByRole('button', { name: '자동 수정 1' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: '전체 8' }).getAttribute('aria-pressed')).toBe('false');
 
-    fireEvent.click(screen.getByRole('button', { name: '통과 8' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pass 8' }));
     expect(조건()).toMatchObject({ last: 'PASS' });
     expect(조건()).not.toHaveProperty('autoFix');
   });
@@ -94,7 +94,7 @@ describe('서랍 「자동 수정 기록」', () => {
     expect(screen.getByRole('link', { name: 'Issue Bunker MQA-168' }).getAttribute('href')).toBe('https://bts.example.com/issues/MQA-168');
     expect(screen.getByText('새 창을 만들던 요청을 열린 페이지로 바꿨어요')).toBeTruthy();
     expect(screen.getByText(/자동 반영/).textContent).toContain('(PR #713)');
-    expect(screen.getByText(/PC 통과 · 모바일 통과/)).toBeTruthy();
+    expect(screen.getByText(/PC Pass · 모바일 Pass/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'RUN 21109' }).getAttribute('href')).toBe('#/runs/21109');
   });
 

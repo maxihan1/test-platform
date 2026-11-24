@@ -63,7 +63,7 @@ describe('멈춘단계글자 · E2E띠색', () => {
 
   it('멈춘단계글자', () => {
     expect(멈춘단계글자(줄({ status: 'RUNNING' }), 'ko')).toBe('');
-    expect(멈춘단계글자(줄({}), 'ko')).toBe('모두 통과');
+    expect(멈춘단계글자(줄({}), 'ko')).toBe('모두 Pass');
     expect(멈춘단계글자(줄({ stoppedAt: 3 }), 'ko')).toBe('3번에서 종료');
     expect(멈춘단계글자(줄({ stoppedAt: 3 }), 'en')).toBe('Ended at step 3');
   });

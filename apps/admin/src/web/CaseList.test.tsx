@@ -141,30 +141,30 @@ describe('CaseList 마지막 결과 칩', () => {
 
     expect(document.querySelector('.stats')).toBeNull();
     expect(결과칩('전체').textContent).toBe('전체 3');
-    expect(결과칩('통과').textContent).toBe('통과 1');
-    expect(결과칩('실패').textContent).toBe('실패 1');
-    expect(결과칩('미실행').textContent).toBe('미실행 1');
+    expect(결과칩('Pass').textContent).toBe('Pass 1');
+    expect(결과칩('Fail').textContent).toBe('Fail 1');
+    expect(결과칩('Not tested').textContent).toBe('Not tested 1');
   });
 
   it('건수는 이 쪽의 줄 수가 아니라 응답의 lastCounts 다', async () => {
     await 그리기(() => Promise.resolve({ ...쪽1, lastCounts: { total: 120, pass: 100, fail: 7, na: 13 } }));
 
     expect(결과칩('전체').textContent).toBe('전체 120');
-    expect(결과칩('실패').textContent).toBe('실패 7');
+    expect(결과칩('Fail').textContent).toBe('Fail 7');
   });
 
   it('실패가 있을 때만 실패 칩에 경고 색 표시가 붙는다', async () => {
     const { unmount } = await 그리기();
-    expect(결과칩('실패').classList.contains('tab-fail')).toBe(true);
+    expect(결과칩('Fail').classList.contains('tab-fail')).toBe(true);
     unmount();
     await 그리기(() => Promise.resolve({ ...쪽1, lastCounts: { total: 3, pass: 3, fail: 0, na: 0 } }));
-    expect(결과칩('실패').classList.contains('tab-fail')).toBe(false);
+    expect(결과칩('Fail').classList.contains('tab-fail')).toBe(false);
   });
 
   it('lastCounts 가 null 이면(실행 읽기 권한 없음) 마지막 결과 칩 묶음을 안 그린다', async () => {
     await 그리기(() => Promise.resolve({ ...쪽1, lastCounts: null }));
 
-    expect(screen.queryByRole('button', { name: /^(통과|실패|미실행) / })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(Pass|Fail|Not tested) / })).toBeNull();
     expect(screen.queryByRole('group', { name: '마지막 결과' })).toBeNull();
     expect(document.querySelector('.toolbar .filter-label')?.textContent).not.toBe('마지막 결과');
   });
@@ -175,17 +175,17 @@ describe('CaseList 마지막 결과 칩', () => {
     await screen.findByText('ZPK-003');
     expect(끝질의(스파이).page).toBe(2);
 
-    fireEvent.click(결과칩('실패'));
+    fireEvent.click(결과칩('Fail'));
 
     await waitFor(() => expect(끝질의(스파이)).toMatchObject({ last: 'FAIL', page: 1 }));
     await waitFor(() => expect(screen.queryByText('ZPK-003')).toBeNull());
-    expect(결과칩('실패').getAttribute('aria-pressed')).toBe('true');
+    expect(결과칩('Fail').getAttribute('aria-pressed')).toBe('true');
     expect(window.location.hash).toContain('last=FAIL');
   });
 
   it('전체 칩으로 돌리면 질의에 last 를 안 싣는다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.click(결과칩('통과'));
+    fireEvent.click(결과칩('Pass'));
     await waitFor(() => expect(끝질의(스파이).last).toBe('PASS'));
 
     fireEvent.click(결과칩('전체'));
@@ -196,9 +196,9 @@ describe('CaseList 마지막 결과 칩', () => {
   it('받은 줄을 화면이 다시 거르지 않는다 — 서버가 거른 대로 그린다', async () => {
     await 그리기();
 
-    fireEvent.click(결과칩('실패'));
+    fireEvent.click(결과칩('Fail'));
 
-    await waitFor(() => expect(결과칩('실패').getAttribute('aria-pressed')).toBe('true'));
+    await waitFor(() => expect(결과칩('Fail').getAttribute('aria-pressed')).toBe('true'));
     expect(screen.getByText('ZPK-001')).toBeTruthy();
     expect(screen.getByText('ZPK-002')).toBeTruthy();
     expect(screen.queryByText(/이 쪽에는 .* 케이스가 없습니다/)).toBeNull();
@@ -206,7 +206,7 @@ describe('CaseList 마지막 결과 칩', () => {
 
   it('칩을 걸고 조건 초기화를 누르면 last 가 빠진다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.click(결과칩('미실행'));
+    fireEvent.click(결과칩('Not tested'));
     await waitFor(() => expect(끝질의(스파이).last).toBe('NA'));
 
     fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
@@ -394,7 +394,7 @@ describe('CaseList 여러 건 고르기', () => {
 
   it('마지막 결과 칩을 걸고 누르면 모으는 쪽마다 같은 last 조건이 실린다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.click(결과칩('실패'));
+    fireEvent.click(결과칩('Fail'));
     await waitFor(() => expect(끝질의(스파이).last).toBe('FAIL'));
     스파이.mockClear();
 
@@ -456,7 +456,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
     fireEvent.click(고르기칸()[1]!);
 
     // 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다. 서버가 거른 새 목록이 와도 고른 것은 줄 통째로 들고 있다
-    fireEvent.click(결과칩('실패'));
+    fireEvent.click(결과칩('Fail'));
     expect(바글()).toBe('2건 선택');
     fireEvent.click(바실행());
 

@@ -52,7 +52,7 @@ export function 상세숫자칸({ 상세 }: { 상세: 오류상세 }) {
   const 웹 = 상세.source.startsWith('WEB_');
   const 칸들: [string, string, string][] = [
     [t('발생 케이스'), t('{수}건', { 수: k.cases }), t('{수}건 중', { 수: k.runCases })],
-    [t('통과 판정'), t('{수}건', { 수: k.passCases }), t('판정은 통과 · 오류 발생')],
+    [t('Pass 판정'), t('{수}건', { 수: k.passCases }), t('판정은 Pass · 오류 발생')],
     ...(웹 ? [] : ([[t('크래시 연결'), t('{수}건', { 수: k.crashCases }), k.firstCrashTcId ?? '—']] as [string, string, string][])),
     [t('발생 횟수'), t('{수}회', { 수: k.hits }), t('이전 실행 {수}회', { 수: k.previousHits })],
   ];

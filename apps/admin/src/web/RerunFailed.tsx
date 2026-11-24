@@ -61,7 +61,7 @@ export function 실패다시실행({
       {/* 휴대폰에서는 아래 탭 바로 위에 붙는다 — PC 에서는 머리 행동 줄의 버튼 하나다 (화면공통 §8 「휴대폰 화면」 · phone.css) */}
       <div className="rerun-dock">
         <button className="btn" onClick={() => set열림(true)}>
-          {t('실패 {건수}건 다시 실행', { 건수: 실패.length })}
+          {t('Fail {건수}건 다시 실행', { 건수: 실패.length })}
         </button>
       </div>
       {/* 원래 실행 번호를 실어 서버가 「RUN N의 실패 M건 다시」로 제목을 짓게 한다 (도메인/실행 §8.3) */}

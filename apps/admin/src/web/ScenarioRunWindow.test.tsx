@@ -183,7 +183,7 @@ describe('E2E 정식 실행 창 — 끝남', () => {
     const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행이 완료되었습니다 · RUN 21045' }));
     expect(await 창.findByText('실행 중단됨')).toBeTruthy();
     expect(창.getByText('실행 안 함')).toBeTruthy();
-    expect([...screen.getByRole('dialog').querySelectorAll('.trial-sum .pill')].map((알약) => 알약.textContent)).toEqual(['통과 1', '실패 0', '미실행 2']);
+    expect([...screen.getByRole('dialog').querySelectorAll('.trial-sum .pill')].map((알약) => 알약.textContent)).toEqual(['Pass 1', 'Fail 0', 'Not tested 2']);
 
     fireEvent.click(창.getByRole('button', { name: '결과 보기' }));
 

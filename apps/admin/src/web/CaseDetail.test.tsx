@@ -229,8 +229,8 @@ describe('디바이스 칩으로 절차를 고른다 (점검 7.7)', () => {
     await waitFor(() => expect(screen.getByText('모바일 결제를 연다')).toBeTruthy());
     expect(항목스파이).toHaveBeenCalledWith(3, 6);
     expect(screen.queryByText('PC 결제를 연다')).toBeNull();
-    expect(screen.getByRole('button', { name: 'PC 통과' }).getAttribute('aria-pressed')).toBe('false');
-    expect(screen.getByRole('button', { name: '모바일 실패' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'PC Pass' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: '모바일 Fail' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('칩을 누르면 그 디바이스 절차를 불러 바꿔 보인다', async () => {
@@ -238,12 +238,12 @@ describe('디바이스 칩으로 절차를 고른다 (점검 7.7)', () => {
     그린다({ row: 두기기케이스, 마지막: 두기기마지막 });
     await waitFor(() => expect(screen.getByText('모바일 결제를 연다')).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: 'PC 통과' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PC Pass' }));
 
     await waitFor(() => expect(screen.getByText('PC 결제를 연다')).toBeTruthy());
     expect(항목스파이).toHaveBeenCalledWith(2, 5);
     expect(screen.queryByText('모바일 결제를 연다')).toBeNull();
-    expect(screen.getByRole('button', { name: 'PC 통과' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'PC Pass' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('돈 디바이스가 하나면 칩을 안 그린다', async () => {
@@ -333,7 +333,7 @@ describe('실행 이력은 실행 하나에 한 줄이다 (점검 N7)', () => {
 
     await waitFor(() => expect(screen.getByText('ZZD-001 실행 7')).toBeTruthy());
     expect(container.querySelectorAll('.dhist tr')).toHaveLength(2);
-    expect(screen.getByText('3번 · 실패 1 · 통과 2')).toBeTruthy();
+    expect(screen.getByText('3번 · Fail 1 · Pass 2')).toBeTruthy();
     expect(screen.getByText('최근 실행 2번')).toBeTruthy();
     expect(screen.getByText('ZZD-001 실행 7').getAttribute('href')).toBe('#/runs/7/items/9');
   });
@@ -344,7 +344,7 @@ describe('실행 이력은 실행 하나에 한 줄이다 (점검 N7)', () => {
     const { container } = 그린다();
 
     await waitFor(() => expect(screen.getByText('ZZD-001 실행 2')).toBeTruthy());
-    expect(container.querySelector('.dhist .verdict')?.textContent).toBe('통과');
+    expect(container.querySelector('.dhist .verdict')?.textContent).toBe('Pass');
   });
 
   it('기록이 없으면 그 사실을 적는다', async () => {

@@ -116,7 +116,7 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
     await screen.findByText('ZRL 실행 2120');
 
     const 글 = container.querySelector('.run-row small')?.textContent ?? '';
-    for (const 조각 of ['RUN 2120', '실패 다시 실행', 'qa', '김검사', '10분']) expect(글).toContain(조각);
+    for (const 조각 of ['RUN 2120', 'Fail 다시 실행', 'qa', '김검사', '10분']) expect(글).toContain(조각);
   });
 
   it('직전 대비 꼬리표 — 0 인 것은 빼고, change 가 null 이면 없다', async () => {
@@ -189,17 +189,17 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
     await screen.findByText('ZRL 실행 20932');
 
     const 칸 = (i: number) => [...(줄(container)[i]?.querySelectorAll('.tally') ?? [])].map((e) => e.textContent);
-    expect(칸(0)).toEqual(['595 통과1 미실행', '실패PC 4모바일 6']);
-    expect(칸(1)).toEqual(['3 통과0 실패0 미실행']);
-    expect(칸(2)).toEqual(['1 통과2 실패0 미실행']);
+    expect(칸(0)).toEqual(['595 Pass1 Not tested', 'FailPC 4모바일 6']);
+    expect(칸(1)).toEqual(['3 Pass0 Fail0 Not tested']);
+    expect(칸(2)).toEqual(['1 Pass2 Fail0 Not tested']);
   });
 
   it('판정을 색만으로 전달하지 않는다 — 통과 · 실패 · 미실행이 글자로 적힌다', async () => {
     await 그리기();
     await screen.findByText('ZRL 실행 2113');
 
-    expect(screen.getAllByText('통과').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('미실행').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Pass').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Not tested').length).toBeGreaterThan(0);
   });
 });
 

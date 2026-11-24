@@ -160,7 +160,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
 
     const 창 = 결과창();
     const 점수 = screen.getByRole('dialog').querySelector('.trial-sum')!;
-    expect([...점수.querySelectorAll('.pill')].map((알약) => 알약.textContent)).toEqual(['통과 1', '실패 1', '미실행 1']);
+    expect([...점수.querySelectorAll('.pill')].map((알약) => 알약.textContent)).toEqual(['Pass 1', 'Fail 1', 'Not tested 1']);
     expect(창.getByText(/stg · 총 3초/)).toBeTruthy();
 
     fireEvent.click(창.getByRole('button', { name: '닫기' }));
@@ -228,7 +228,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
     expect(줄들).toHaveLength(2);
     for (const 줄 of 줄들) {
       expect(within(줄).getByText('적용됨')).toBeTruthy();
-      expect(within(줄).queryByText('통과')).toBeNull();
+      expect(within(줄).queryByText('Pass')).toBeNull();
     }
   });
 
@@ -257,7 +257,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
   it('모두 통과면 그 글자를 보인다', async () => {
     await 끝낸것(통과결과);
 
-    expect(screen.getByText('모두 통과')).toBeTruthy();
+    expect(screen.getByText('모두 Pass')).toBeTruthy();
     expect(screen.queryByText(/번에서 중단/)).toBeNull();
   });
 
@@ -267,10 +267,10 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
 
     const 줄들 = 단계줄들();
     expect(줄들).toHaveLength(3);
-    expect(within(줄들[0]!).getByText('통과')).toBeTruthy();
+    expect(within(줄들[0]!).getByText('Pass')).toBeTruthy();
     expect(within(줄들[0]!).getByText('케이스')).toBeTruthy();
     expect(within(줄들[0]!).getByText('1초')).toBeTruthy();
-    expect(within(줄들[1]!).getByText('실패')).toBeTruthy();
+    expect(within(줄들[1]!).getByText('Fail')).toBeTruthy();
     expect(줄들[1]!.querySelector('pre.scn-error')?.textContent).toBe('기대 a\n실제 b');
     const 사진 = within(줄들[1]!).getByRole('link', { name: '실패 화면 보기' });
     expect(사진.getAttribute('href')).toBe(scenarioApi.trialShot('t-1', 5));

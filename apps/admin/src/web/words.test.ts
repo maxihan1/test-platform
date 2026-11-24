@@ -11,7 +11,8 @@ const 정본 = join(dirname(fileURLToPath(import.meta.url)), '../../../../docs/W
 
 // API 가 주는 값이라 바꾸지 않는다(CLAUDE.md §3). 화면에는 「회귀 실패」 · 「기존 실패」로 옮겨 나간다(RunFailDevice.tsx)
 // 「러너」는 runState.ts 가 서버 글 속 그 낱말을 찾아 「테스트 실행기」로 바꾸는 데만 쓴다 — 화면에 그대로 나가지 않는다
-const 예외 = new Set(['새로깨짐', '계속깨짐', '고쳐짐', '러너']);
+// 「실패 {건수}」는 기록(trace) 탭의 요청 · 조작 실패 수다 — 케이스 판정값이 아니라 Fail 로 안 바꾼다(ItemTrace.tsx · WORDS 「테스트 판정이 아닌 일의 성패」)
+const 예외 = new Set(['새로깨짐', '계속깨짐', '고쳐짐', '러너', '실패 {건수}']);
 
 interface 낱말줄 {
   쓰는말: string;

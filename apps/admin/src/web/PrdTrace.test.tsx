@@ -85,7 +85,7 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     await vi.waitFor(() => expect(아이디줄.querySelector('.prd-res .verdict')?.className).toBe('verdict v-fail'));
     expect(부름).toHaveBeenCalledOnce();
     expect(아이디줄.querySelector('.prd-tests')?.textContent).toBe('기능 2 · UI 1');
-    expect(아이디줄.querySelector('.prd-res')?.textContent).toBe('실패');
+    expect(아이디줄.querySelector('.prd-res')?.textContent).toBe('Fail');
     expect(줄of('MKT-REQ-032').querySelector('.prd-res')?.textContent).toBe('미작성');
     expect(줄of('MKT-REQ-032').querySelector('.prd-tests')?.textContent).toBe('테스트 없음');
     expect(줄of('MKT-REQ-040').querySelector('.prd-res .verdict')?.className).toBe('verdict v-pass');
@@ -94,11 +94,11 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     const 아이디 = 열기('MKT-REQ-031');
     expect(within(아이디).getByRole('link', { name: '기능 2건' }).getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031');
     expect(within(아이디).getByRole('link', { name: 'UI 1건' }).getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031');
-    expect(within(아이디).getByText('실패 1 / 3').className).toBe('verdict v-fail');
+    expect(within(아이디).getByText('Fail 1 / 3').className).toBe('verdict v-fail');
     // 실패 숫자를 누르면 실패한 케이스만 거른 목록이 열린다 (점검 8.7)
-    expect(within(아이디).getByText('실패 1 / 3').getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031?last=FAIL');
+    expect(within(아이디).getByText('Fail 1 / 3').getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031?last=FAIL');
     expect(열기('MKT-REQ-032').querySelector('.prd-trace')?.textContent).toBe('미작성');
-    expect(열기('MKT-REQ-040').querySelector('.prd-trace .verdict')?.textContent).toBe('통과');
+    expect(열기('MKT-REQ-040').querySelector('.prd-trace .verdict')?.textContent).toBe('Pass');
     expect(열기('MKT-REQ-041').querySelector('.prd-trace .verdict')?.className).toBe('verdict v-na');
   });
 
@@ -109,7 +109,7 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
     const 아이디 = 열기('MKT-REQ-031');
-    await vi.waitFor(() => expect(within(아이디).getByText('실패 1 / 3').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL'));
+    await vi.waitFor(() => expect(within(아이디).getByText('Fail 1 / 3').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL'));
   });
 
   it('기능 · UI 양쪽에 실패가 있으면 UI 쪽 고리를 하나 더 단다', async () => {
@@ -119,8 +119,8 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
     const 아이디 = 열기('MKT-REQ-031');
-    await vi.waitFor(() => expect(within(아이디).getByText('실패 2 / 3').getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031?last=FAIL'));
-    expect(within(아이디).getByText('UI 실패 1건 보기').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL');
+    await vi.waitFor(() => expect(within(아이디).getByText('Fail 2 / 3').getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031?last=FAIL'));
+    expect(within(아이디).getByText('UI Fail 1건 보기').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL');
   });
 
   it('케이스 read 가 없으면 실패 숫자도 고리가 아니다', async () => {
@@ -128,7 +128,7 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     render(<Prd service="MKT" 할수={보는사람} 결과보나 />);
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
     const 아이디 = 열기('MKT-REQ-031');
-    await vi.waitFor(() => expect(within(아이디).getByText(/^실패 \d+ \/ 3$/).tagName).toBe('SPAN'));
+    await vi.waitFor(() => expect(within(아이디).getByText(/^Fail \d+ \/ 3$/).tagName).toBe('SPAN'));
   });
 
   it('서랍을 열면 종류 · 기법 숫자를 설계 미리보기 앞에 보인다', async () => {
@@ -191,14 +191,14 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
 
     const 아이디 = 열기('MKT-REQ-031');
-    const 실패 = within(아이디).getByText('실패', { selector: '.prd-perf *' });
+    const 실패 = within(아이디).getByText('Fail', { selector: '.prd-perf *' });
     expect(아이디.querySelector('.prd-perf')!.textContent).toContain('성능 목표 2개');
     expect(실패.tagName).toBe('A');
     expect(실패.getAttribute('href')).toBe('#/perf/runs/12');
     expect(실패.className).toContain('v-fail');
 
     const 미실행 = 열기('MKT-REQ-040').querySelector('.prd-perf .verdict')!;
-    expect(미실행.textContent).toBe('미실행');
+    expect(미실행.textContent).toBe('Not tested');
     expect(미실행.tagName).toBe('SPAN');
 
     expect(열기('MKT-REQ-041').querySelector('.prd-perf a')!.className).toContain('v-pass');
