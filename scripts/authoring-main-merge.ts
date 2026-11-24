@@ -4,9 +4,10 @@
 import { lstatSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
-import { 반영표시, 케이스tcId } from './authoring-held-apply.js';
+import { 반영표시 } from './authoring-held-apply.js';
 import type { 깃손 } from './authoring-ledger-io.js';
 import type { 부품합치기 } from './authoring-po-merge.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
 import { 새형식오류, 요구번호다시매기기, 표덩이풀기 } from './authoring-table-merge.js';
 
 export interface 합칠판 {
@@ -92,8 +93,8 @@ function 케이스들(트리: string, 폴더: string): Set<string> {
     return 결과;
   }
   for (const f of 파일들.filter((x) => x.endsWith('.spec.ts') && 안전한파일(트리, join('tests', 폴더, x)))) {
-    const id = 케이스tcId(readFileSync(join(트리, 'tests', 폴더, f), 'utf8'));
-    if (id !== null) 결과.add(id);
+    // 프로시저 파일은 케이스가 여럿이다 — 첫 선언만 세면 나머지 요구 줄이 「케이스 파일 없음」으로 읽힌다
+    for (const c of 케이스조각들(readFileSync(join(트리, 'tests', 폴더, f), 'utf8'))) 결과.add(c.tcId);
   }
   return 결과;
 }

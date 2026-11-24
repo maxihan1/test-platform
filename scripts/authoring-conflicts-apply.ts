@@ -4,6 +4,8 @@
 import ts from 'typescript';
 
 import type { 결정, 겹침 } from '../apps/admin/src/authoring/conflicts.js';
+import { 파일프로시저번호, 프로시저파일인가 } from '../apps/admin/src/authoring/procFile.js';
+import { 다음프로시저번호, 절케이스번호바꾸기, 절프로시저바꾸기, 프로시저번호바꾸기 } from './authoring-conflicts-proc.js';
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 
 export type 번호꼴 = 'UI' | 'FN' | 'GS' | '옛';
@@ -35,9 +37,9 @@ export function 다음번호(쓴번호: Set<string>, 접두사: string, 개수: 
   return Array.from({ length: 개수 }, (_, i) => `${머리}-${String(큰 + 1 + i).padStart(3, '0')}`);
 }
 
-/** defineCase 의 tcId 리터럴만 바꾼다 — 글자를 통째로 바꾸면 절차 제목 속 같은 번호까지 바뀐다 */
+/** defineCase 의 tcId 리터럴만 바꾼다 — 글자를 통째로 바꾸면 절차 제목 속 같은 번호까지 바뀐다. 프로시저 파일은 그 번호를 적은 선언만 */
 export function 번호바꾸기(글: string, 옛: string, 새: string): string {
-  const 명세 = 명세글(읽기(글));
+  const 명세 = 명세글(읽기(글), 옛);
   const 값 = 명세 === undefined ? undefined : 속성(명세, 'tcId')?.initializer;
   if (값 === undefined || !ts.isStringLiteralLike(값) || 값.text !== 옛) return 글;
   const 따옴표 = 글.slice(값.getStart(), 값.getStart() + 1);
@@ -84,13 +86,20 @@ export interface 적용재료 {
   요청표: string;
   /** 지금 main 과 이 요청이 쓴 tc_id 전부 — 케이스 파일 · 표(「제거함」 포함) */
   쓴번호: Set<string>;
+  /** 이 요청이 새로 더한 프로시저 파일 가운데 main 에 같은 번호가 있는 것 */
+  프로시저겹침?: string[];
+  /** 지금 main 과 이 요청이 쓴 프로시저 번호 전부 — 파일 · 절 */
+  쓴프로시저?: Set<string>;
 }
 
 export interface 적용결과 {
   쓰기: { file: string; 글: string }[];
   지우기: string[];
   표: string;
+  /** 케이스 번호만 — 끝내기 `mergedAs` 가 케이스 번호를 받는다 */
   바뀐것: 바뀐것[];
+  /** 프로시저 번호 바꿈 — PR 본문 「겹침 처리」 줄에만 적는다 */
+  프로시저바뀜: { 옛: string; 새: string }[];
 }
 
 /**
@@ -103,13 +112,19 @@ export function 결정계산(재료: 적용재료): 적용결과 | { 사유: str
   if (모자람.length > 0) return { 사유: `겹치는 케이스 ${String(모자람.length)}건 — 케이스마다 고른 뒤 다시 반영한다` };
 
   const 차례 = [...재료.겹침].sort((a, b) => a.tcId.localeCompare(b.tcId));
+  // 서버가 막지만 옛 결정이 남았을 수 있다 — 파일을 지우면 그 프로시저의 다른 케이스까지 사라진다
+  const 못뺌 = 차례.filter((c) => 고른.get(c.tcId) === 'DROP' && 프로시저파일인가(c.file));
+  if (못뺌.length > 0) return { 사유: `프로시저 안 케이스는 「새 케이스 제외」를 고를 수 없다 — ${못뺌.map((c) => c.tcId).join(' · ')}. 「둘 다 유지」로 고른 뒤 다시 반영한다` };
   const 바꿀 = 차례.filter((c) => 고른.get(c.tcId) === 'KEEP' && c.kinds.includes('TCID'));
-  const 결과: 적용결과 = { 쓰기: [], 지우기: [], 표: 재료.요청표, 바뀐것: [] };
+  // 한 프로시저 파일에 바꿀 케이스가 여럿이다 — 앞 고침 위에 이어 적는다
+  const 글들 = new Map<string, string>();
+  const 지우기: string[] = [];
+  const 결과: 적용결과 = { 쓰기: [], 지우기, 표: 재료.요청표, 바뀐것: [], 프로시저바뀜: [] };
   // 차례대로 하나씩 받아 쓴 것으로 더한다 — 옛 꼴과 FN 이 한 번호열을 나눠 써도 같은 숫자가 두 번 안 나온다
   const 쓴 = new Set(재료.쓴번호);
   for (const c of 차례) {
     if (고른.get(c.tcId) === 'DROP') {
-      결과.지우기.push(c.file);
+      지우기.push(c.file);
       결과.표 = 표줄빼기(결과.표, c.tcId);
       결과.바뀐것.push({ 옛: c.tcId, 뺌: true });
       continue;
@@ -122,16 +137,32 @@ export function 결정계산(재료: 적용재료): 적용결과 | { 사유: str
     쓴.add(새);
     const 이름 = c.file.split('/').pop() ?? '';
     const 새파일 = 이름.includes(c.tcId) ? `${c.file.slice(0, c.file.length - 이름.length)}${이름.replace(c.tcId, 새)}` : c.file;
-    if (새파일 !== c.file) 결과.지우기.push(c.file);
-    결과.쓰기.push({ file: 새파일, 글: 번호바꾸기(재료.읽기(c.file), c.tcId, 새) });
-    결과.표 = 표번호바꾸기(결과.표, c.tcId, 새);
+    if (새파일 !== c.file) 지우기.push(c.file);
+    글들.set(새파일, 번호바꾸기(글들.get(c.file) ?? 재료.읽기(c.file), c.tcId, 새));
+    결과.표 = 절케이스번호바꾸기(표번호바꾸기(결과.표, c.tcId, 새), c.tcId, 새);
     결과.바뀐것.push({ 옛: c.tcId, 새 });
   }
+
+  const 쓴프 = new Set(재료.쓴프로시저 ?? []);
+  for (const file of [...(재료.프로시저겹침 ?? [])].sort()) {
+    const 옛 = 파일프로시저번호(file);
+    const 새 = 옛 === null ? null : 다음프로시저번호(쓴프, 옛.slice(0, 옛.lastIndexOf('-TP-')));
+    if (옛 === null || 새 === null) return { 사유: `${file} 의 새 프로시저 번호를 못 정했다 — 세 자리(999)를 넘는다` };
+    const 바꾼 = 프로시저번호바꾸기(글들.get(file) ?? 재료.읽기(file), 옛, 새);
+    if (바꾼 === null) return { 사유: `${file} 에서 procId ${옛} 를 못 찾았다 — 다시 작성한다` };
+    쓴프.add(새);
+    글들.delete(file);
+    글들.set(file.replace(`${옛}.spec.ts`, `${새}.spec.ts`), 바꾼);
+    지우기.push(file);
+    결과.표 = 절프로시저바꾸기(결과.표, 옛, 새);
+    결과.프로시저바뀜.push({ 옛, 새 });
+  }
+  결과.쓰기 = [...글들].map(([file, 글]) => ({ file, 글 }));
   return 결과;
 }
 
 /** PR 본문에 더하는 줄 — 관문 3 기록이 옛 tc_id 를 가리키지 않게. 처리한 것이 없으면 null */
-export function 처리줄(바뀐것: 바뀐것[]): string | null {
-  if (바뀐것.length === 0) return null;
-  return `겹침 처리: ${바뀐것.map((b) => ('새' in b ? `${b.옛} → ${b.새}` : `${b.옛} 뺌`)).join(' · ')}`;
+export function 처리줄(바뀐것: 바뀐것[], 프로시저바뀜: readonly { 옛: string; 새: string }[] = []): string | null {
+  const 조각 = [...바뀐것.map((b) => ('새' in b ? `${b.옛} → ${b.새}` : `${b.옛} 뺌`)), ...프로시저바뀜.map((b) => `${b.옛} → ${b.새}`)];
+  return 조각.length === 0 ? null : `겹침 처리: ${조각.join(' · ')}`;
 }

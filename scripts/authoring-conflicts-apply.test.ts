@@ -154,7 +154,7 @@ describe('결정 계산', () => {
       요청표,
       쓴번호,
     });
-    expect(결과).toEqual({ 쓰기: [], 지우기: [], 표: 요청표, 바뀐것: [] });
+    expect(결과).toEqual({ 쓰기: [], 지우기: [], 표: 요청표, 바뀐것: [], 프로시저바뀜: [] });
   });
 
   it('뺀다 → 그 케이스 파일을 지우고 그 tcId 의 표 줄을 뺀다', () => {
@@ -225,6 +225,41 @@ describe('결정 계산', () => {
   });
 });
 
+describe('결정 계산 — 프로시저', () => {
+  const 파일 = 'tests/pay/PAY-TP-001.spec.ts';
+  const 글 = [
+    "const 가 = defineCase({ tcId: 'PAY-FN-101', name: '가' });",
+    "const 나 = defineCase({ tcId: 'PAY-FN-102', name: '나' });",
+    "export const procedure = defineProcedure({ procId: 'PAY-TP-001', cases: [가, 나] });",
+    "test(procedure, async () => { await test.case(가, async () => {}); await test.case(나, async () => {}); });",
+  ].join('\n');
+  const 절표 = `${표([줄(1, 'PAY-FN-101'), 줄(2, 'PAY-FN-102')])}\n## 테스트 프로시저\n\n| 프로시저 | 흐름 | 케이스 |\n|---|---|---|\n| PAY-TP-001 | 글쓰기 | PAY-FN-101 → PAY-FN-102 |\n`;
+  const 재료 = { 읽기: () => 글, 요청표: 절표, 쓴번호: new Set(['PAY-FN-101', 'PAY-FN-102', 'PAY-FN-110']) };
+
+  it('한 프로시저에서 둘을 남기면 앞 고침 위에 이어 적어 둘 다 바뀌고 파일은 그대로다', () => {
+    const 결과 = 결정계산({
+      ...재료,
+      겹침: [겹침줄('PAY-FN-101', ['TCID'], 파일), 겹침줄('PAY-FN-102', ['TCID'], 파일)],
+      결정: [
+        { tcId: 'PAY-FN-101', action: 'KEEP' },
+        { tcId: 'PAY-FN-102', action: 'KEEP' },
+      ],
+    });
+    if ('사유' in 결과) throw new Error(결과.사유);
+    expect(결과.지우기).toEqual([]);
+    expect(결과.쓰기.map((w) => w.file)).toEqual([파일]);
+    expect(결과.쓰기[0]?.글).toContain("tcId: 'PAY-FN-111'");
+    expect(결과.쓰기[0]?.글).toContain("tcId: 'PAY-FN-112'");
+    expect(결과.표).toContain('| PAY-TP-001 | 글쓰기 | PAY-FN-111 → PAY-FN-112 |');
+    expect(결과.프로시저바뀜).toEqual([]);
+  });
+
+  it('프로시저 안 케이스를 「새 케이스 제외」로 골랐으면 파일을 지우지 않고 사유', () => {
+    const 결과 = 결정계산({ ...재료, 겹침: [겹침줄('PAY-FN-102', ['NAME'], 파일)], 결정: [{ tcId: 'PAY-FN-102', action: 'DROP' }] });
+    expect(결과).toEqual({ 사유: expect.stringContaining('PAY-FN-102') });
+  });
+});
+
 describe('PR 본문 처리 줄', () => {
   it('바꾼 번호와 뺀 케이스를 한 줄로', () => {
     expect(
@@ -234,5 +269,6 @@ describe('PR 본문 처리 줄', () => {
       ]),
     ).toBe('겹침 처리: MKT-042 → MKT-061 · MKT-050 뺌');
     expect(처리줄([])).toBeNull();
+    expect(처리줄([], [{ 옛: 'MTA-TP-012', 새: 'MTA-TP-031' }])).toBe('겹침 처리: MTA-TP-012 → MTA-TP-031');
   });
 });

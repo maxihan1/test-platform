@@ -174,6 +174,46 @@ describe('main 합치기', () => {
     expect(깃(['status', '--porcelain']).낸것).toBe('');
   });
 
+  describe('프로시저 절', () => {
+    const 절 = (줄들: string[]) => ['## 테스트 프로시저', '', '| 프로시저 | 흐름 | 케이스 |', '|---|---|---|', ...줄들, ''].join('\n');
+    const 프로시저 = (procId: string, 앞: string, 뒤: string) =>
+      [
+        `const 가 = defineCase({ tcId: '${앞}', name: '가' });`,
+        `const 나 = defineCase({ tcId: '${뒤}', name: '나' });`,
+        `export const procedure = defineProcedure({ procId: '${procId}', cases: [가, 나] });`,
+        'test(procedure, async () => { await test.case(가, async () => {}); await test.case(나, async () => {}); });',
+        '',
+      ].join('\n');
+    const 바탕줄 = '| PAY-TP-001 | 바탕 흐름 | PAY-001 |';
+    const 요청 = (바탕절: string[]) => (t: string) => {
+      쓰기(t, 'tests/pay/PAY-TP-002.spec.ts', 프로시저('PAY-TP-002', 'PAY-002', 'PAY-004'));
+      쓰기(t, 'docs/cases/PAY.md', `${표('요청 셈', [줄(1, 'PAY-001'), 줄(2, 'PAY-002'), 줄(3, 'PAY-004')])}\n${절([...바탕절, '| PAY-TP-002 | 요청 흐름 | PAY-002 → PAY-004 |'])}`);
+    };
+    const main = (바탕절: string[]) => (t: string) => {
+      쓰기(t, 'tests/pay/PAY-TP-003.spec.ts', 프로시저('PAY-TP-003', 'PAY-003', 'PAY-005'));
+      쓰기(t, 'docs/cases/PAY.md', `${표('main 셈', [줄(1, 'PAY-001'), 줄(2, 'PAY-003'), 줄(3, 'PAY-005')])}\n${절([...바탕절, '| PAY-TP-003 | main 흐름 | PAY-003 → PAY-005 |'])}`);
+    };
+
+    it('두 요청이 절 끝에 줄을 더하면 main 줄 → 이 요청 줄로 잇고 요구사항 표 줄은 표에 남는다', async () => {
+      const { 트리, 깃, mainSha } = 갈라놓기(요청([바탕줄]), main([바탕줄]), (t) => {
+        쓰기(t, 'tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '첫 케이스'));
+        쓰기(t, 'docs/cases/PAY.md', `${표('바탕', [줄(1, 'PAY-001')])}\n${절([바탕줄])}`);
+      });
+      expect(await main합치기({ 트리, 깃, mainSha, ...판값 })).toEqual({ 합침: true });
+      const 합친 = readFileSync(join(트리, 'docs/cases/PAY.md'), 'utf8');
+      expect(합친).toContain(`${바탕줄}\n| PAY-TP-003 | main 흐름 | PAY-003 → PAY-005 |\n| PAY-TP-002 | 요청 흐름 | PAY-002 → PAY-004 |`);
+      expect(합친.split('## 테스트 프로시저')[0]).toContain(줄(2, 'PAY-002').replace('| 2 |', '| 4 |'));
+    });
+
+    it('두 요청이 절을 각자 처음 만들었으면 합치지 않는다 — 한 덩이로 섞여 요구 줄이 절 밑에 들어간다', async () => {
+      const { 트리, 깃, mainSha } = 갈라놓기(요청([]), main([]));
+      const 머리전 = 깃(['rev-parse', 'HEAD']).낸것;
+      expect(await main합치기({ 트리, 깃, mainSha, ...판값 })).toEqual({ 사유: expect.stringContaining('## 테스트 프로시저') });
+      expect(깃(['rev-parse', 'HEAD']).낸것).toBe(머리전);
+      expect(readFileSync(join(트리, 'docs/cases/PAY.md'), 'utf8')).not.toContain('main 흐름');
+    });
+  });
+
   it('케이스 파일이 충돌하면 합치지 않고 그 경로를 까닭에 싣는다 — 트리는 원래대로', async () => {
     const { 트리, 깃, mainSha } = 갈라놓기(
       (t) => 쓰기(t, 'tests/pay/PAY-002.spec.ts', 케이스('PAY-002', '요청 쪽')),

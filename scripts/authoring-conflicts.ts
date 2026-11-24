@@ -7,9 +7,10 @@ import ts from 'typescript';
 import type { 겹침, 겹침종류, 상대 } from '../apps/admin/src/authoring/conflicts.js';
 import { 겹침상한 } from '../apps/admin/src/authoring/conflicts.js';
 import { TCID, 번호열쇠 } from '../apps/admin/src/catalog/rules.js';
-import { 명세글, 속성, 읽기, 케이스tcId } from './authoring-held-apply.js';
+import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 import { 번호찾기 } from './authoring-ledger.js';
 import { 표읽기 } from './authoring-ledger-check.js';
+import { 케이스조각들 } from './authoring-proc-pieces.js';
 
 export interface 케이스글 {
   /** 저장소 뿌리 기준 경로 */
@@ -40,9 +41,9 @@ export interface 견줄것 {
 // 문단 모드 번호는 요청마다 P-001 부터 다시 매긴다 — 서로 다른 기획서가 같은 번호를 갖는다 (작성 §3.6 「★ 원장」 문단 모드)
 const 문단번호 = /^P\d*-\d+$/;
 
-/** 케이스 이름(defineCase 의 name) — 코드를 실행하지 않고 구문 트리에서 읽는다. 자식이 쓴 코드다 */
-export function 케이스이름(글: string): string | null {
-  const 명세 = 명세글(읽기(글));
+/** 케이스 이름(defineCase 의 name) — 코드를 실행하지 않고 구문 트리에서 읽는다. 자식이 쓴 코드다. tcId 를 주면 그 번호의 선언(프로시저 파일) */
+export function 케이스이름(글: string, tcId?: string): string | null {
+  const 명세 = 명세글(읽기(글), tcId);
   const 값 = 명세 === undefined ? undefined : 속성(명세, 'name')?.initializer;
   return 값 !== undefined && ts.isStringLiteralLike(값) ? 값.text : null;
 }
@@ -94,13 +95,16 @@ interface 읽은케이스 {
   file: string;
 }
 
+// 프로시저 파일은 케이스가 여럿이다 — 선언마다 한 케이스로 견준다
 function 읽기들(케이스들: 케이스글[]): 읽은케이스[] {
-  return 케이스들.flatMap((c) => {
-    const tcId = 케이스tcId(c.글);
+  return 케이스들.flatMap((c) =>
     // 이름은 서버 상한(300자)에 맞춘다 — 넘으면 끝내기 목록이 통째로 400 이다
-    return tcId === null ? [] : [{ tcId, name: (케이스이름(c.글) ?? '').slice(0, 300), file: c.file }];
-  });
+    케이스번호들(c.글).map((tcId) => ({ tcId, name: (케이스이름(c.글, tcId) ?? '').slice(0, 300), file: c.file })),
+  );
 }
+
+/** 파일 안 케이스 번호 전부 — 옛 꼴은 하나, 프로시저 파일은 cases 차례대로 */
+export const 케이스번호들 = (글: string): string[] => 케이스조각들(글).map((c) => c.tcId);
 
 /** 겹침 목록. 한 케이스에 종류가 여럿이면 한 줄에 모은다. 상한을 넘는 뒤쪽은 버린다(끝내기 본문이 커지지 않게) */
 export function 겹침찾기(입력: 견줄것): 겹침[] {
