@@ -16,10 +16,10 @@ describe('답풀기', () => {
     expect(알릴말('S23', 1, 답)).toEqual([]);
   });
 
-  it('못 간 답은 케이스마다 같은 사유라 판정 밖 오류를 따로 안 적는다', () => {
-    const error = { message: '러너에 닿지 못했습니다' };
+  it('못 간 답은 케이스마다 같은 사유라 판정 밖 오류를 따로 안 적고, 사유 뒤에 원문을 붙인다', () => {
+    const error = { message: '러너에 닿지 못했습니다', stack: '러너가 5000ms 안에 답하지 않았다' };
     const 답 = 답풀기({ historyId: 1, durationMs: 0, error, results: [{ tcId: 'A', status: 'NA', durationMs: 0, steps: [], error }, { tcId: 'B', status: 'NA', durationMs: 0, steps: [], error }] });
-    expect(알릴말('S23', 2, 답)).toEqual(['S23 2회차 A 가 NA 로 끝났습니다 — 러너에 닿지 못했습니다', 'S23 2회차 B 가 NA 로 끝났습니다 — 러너에 닿지 못했습니다']);
+    expect(알릴말('S23', 2, 답)).toEqual(['A', 'B'].map((id) => `S23 2회차 ${id} 가 NA 로 끝났습니다 — 러너에 닿지 못했습니다 — 러너가 5000ms 안에 답하지 않았다`));
   });
 
   it('끊긴 프로시저는 남은 케이스에 실린 사유를 다시 적지 않고, 결과마다 겹친 절차는 하나만 남긴다', () => {

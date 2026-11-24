@@ -33,15 +33,18 @@ export function na(item: Pick<PendingItem, 'historyId'>, message: string, stack?
   return { historyId: item.historyId, status: 'NA', durationMs: 0, steps: [], error: { message, stack } };
 }
 
-/** 러너에 못 갔거나 러너가 안 받았다 — 케이스마다 같은 사유의 미실행으로 채운다 */
-export function 못간답(요청: Pick<ExecuteRequest, 'historyId' | 'cases'>, message: string, stack?: string): ExecuteResponse {
+/** 러너에 못 갔거나 러너가 안 받았다 — 케이스마다 같은 사유의 미실행으로 채운다. 흐른 시간은 케이스가 하나일 때만 그 케이스 것이다 */
+export function 못간답(요청: Pick<ExecuteRequest, 'historyId' | 'cases'>, message: string, stack?: string, durationMs = 0): ExecuteResponse {
   const error = { message, ...(stack !== undefined && { stack }) };
-  return { historyId: 요청.historyId, durationMs: 0, results: 요청.cases.map((c) => ({ tcId: c.tcId, status: 'NA', durationMs: 0, steps: [], error })), error };
+  const 케이스ms = 요청.cases.length === 1 ? durationMs : 0;
+  return { historyId: 요청.historyId, durationMs, results: 요청.cases.map((c) => ({ tcId: c.tcId, status: 'NA', durationMs: 케이스ms, steps: [], error })), error };
 }
+
+const 답없음 = '러너 답에 이 케이스의 결과가 없습니다';
 
 /** 케이스 하나짜리 실행 단위(옛 꼴 파일)의 답을 케이스 줄 하나의 결과로 푼다 — 기기 정보 · FPS 도 그 줄 것이다 */
 export function 한건(답: ExecuteResponse): 줄결과 {
-  const { tcId: _번호, ...것 } = 답.results[0] ?? { tcId: '', status: 'NA', durationMs: 답.durationMs, steps: [], error: 답.error ?? { message: '러너 답에 이 케이스의 결과가 없습니다' } };
+  const { tcId: _번호, ...것 } = 답.results[0] ?? { tcId: '', status: 'NA', durationMs: 답.durationMs, steps: [], error: 답.error ?? { message: 답없음 } };
   return { ...것, historyId: 답.historyId, ...(답.device !== undefined && { device: 답.device }), ...(답.fps !== undefined && { fps: 답.fps }) };
 }
 
@@ -263,15 +266,17 @@ export async function 보낸다(body: ExecuteRequest): Promise<ExecuteResponse> 
   const startedAt = Date.now();
   try {
     const res = await 러너에보낸다('/execute', body, httpTimeoutMs(body.timeoutMs));
-    if (res.status < 200 || res.status >= 300) return { ...못간답(body, 거절사유(res.status, res.json)), durationMs: Date.now() - startedAt };
-    return res.json as ExecuteResponse;
+    if (res.status < 200 || res.status >= 300) return 못간답(body, 거절사유(res.status, res.json), undefined, Date.now() - startedAt);
+    const 답 = res.json as ExecuteResponse | null;
+    // 러너가 아닌 것이 답했다 — 여기서 안 접으면 던져져 나머지 항목과 실행까지 끌고 내려간다
+    return 답 !== null && Array.isArray(답.results) ? 답 : 못간답(body, 답없음, undefined, Date.now() - startedAt);
   } catch (err) {
     // 연결 실패·응답 없음. 이 실행 단위만 NA로 접고 디스패처는 다음 항목으로 넘어간다.
     // 사람이 보는 문장은 사유 한 줄이고 원문(주소·포트)은 상세의 접힌 자리로 간다 (SPEC §8.3)
     const reason = err instanceof Error ? err.message : String(err);
     // 한도 없는 게임 시나리오는 러너가 스스로 안 끊는다 — 통신 상한(120분)에 닿았으면 폰을 쥔 자식이 남지 않게 멈춘다
     if (body.timeoutMs === 0) await abortRunner(body.historyId);
-    return { ...못간답(body, '러너에 닿지 못했습니다', reason), durationMs: Date.now() - startedAt };
+    return 못간답(body, '러너에 닿지 못했습니다', reason, Date.now() - startedAt);
   }
 }
 

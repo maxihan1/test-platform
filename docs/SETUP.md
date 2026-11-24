@@ -1038,7 +1038,7 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
    ```bash
    ssh qahub 'cd /opt/qahub && docker compose -p test_platform --env-file .env --profile authoring up -d --build author'
    ```
-2. **맥 러너** — §10 으로 켜 둔 맥 러너가 있으면 `git pull` 하고 `npm run runner:local` 을 다시 켠다. TP-F2-08 앞 판 러너는 새 요청을 400 으로 거절해 그 실행의 케이스가 「러너가 거절했다: INVALID_REQUEST …」 미실행으로 닫힌다.
+2. **맥 러너** — §10 으로 켜 둔 맥 러너가 있으면 `git pull` 하고 `npm run runner:local` 을 다시 켠다. TP-F2-08 앞 판 러너는 새 요청을 400 으로 거절하고 러너만 먼저 올려도 옛 admin 의 요청을 거절해 그 실행의 케이스가 「러너가 거절했다: INVALID_REQUEST …」 미실행으로 닫힌다.
 
 확인 — 웹 케이스 하나를 「시험 실행」으로 돌려 단계와 결과가 뜨면 정상이다. 「프로시저 작성」 스위치(설정 › 애플리케이션)는 기본이 꺼짐이라 배포만으로 케이스가 바뀌지 않는다.
 

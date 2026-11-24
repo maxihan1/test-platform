@@ -263,6 +263,22 @@ describe('callRunner', () => {
     expect(res.error?.message).toContain('demo/DEMO-001.spec.ts');
   });
 
+  it('러너가 도중에 끊기면 그때까지 흐른 시간을 걸린 시간으로 남긴다', async () => {
+    const app = Fastify();
+    app.post('/execute', async (req) => { await new Promise((done) => setTimeout(done, 120)); req.raw.socket.destroy(); });
+    await 붙인다(app);
+
+    const res = await callRunner(7, 항목);
+    expect(res.error?.message).toBe('러너에 닿지 못했습니다');
+    expect(res.durationMs).toBeGreaterThanOrEqual(100);
+  });
+
+  it('케이스 결과 목록이 없는 답이 와도 던지지 않고 미실행으로 닫는다 — 실행이 RUNNING 에 남지 않게', async () => {
+    await 띄운다(() => ({ ok: true }));
+
+    expect(await callRunner(7, 항목)).toMatchObject({ historyId: 42, status: 'NA', error: { message: '러너 답에 이 케이스의 결과가 없습니다' } });
+  });
+
   it('러너에 아예 못 붙어도 던지지 않는다. 나머지 항목이 계속 돌아야 한다', async () => {
     process.env.RUNNER_URL = 'http://127.0.0.1:9';
 

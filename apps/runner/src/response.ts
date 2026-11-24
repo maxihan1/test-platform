@@ -76,7 +76,7 @@ export function 케이스응답(historyId: number, cases: readonly ExecuteCase[]
   const 줄 = new Map(parseCaseResults(자식.stdout).map((r) => [r.tcId, r]));
   const 받은 = cases.map((c) => 줄.get(c.tcId));
   const 줄하나도없다 = 받은.every((r) => r === undefined);
-  // 판정을 하나도 못 받았는데 결과 줄까지 못 읽으면 러너 고장이라 던진다 — 종료 코드만 보고 통과로 적지 않는다
+  // 판정을 하나도 못 받았는데 결과 줄이 깨져 있으면 러너 고장이라 던진다 — 깨진 줄을 없는 것으로 치고 종료 코드로 가르지 않는다
   const 결과줄 = 줄하나도없다 && 자식.killedBy === null ? parseResult(자식.stdout) : 잘려도읽는다(자식.stdout);
   // 케이스 판정 줄이 하나도 없는 파일(옛 꼴 파일)의 결과와 기기 정보가 여기서 온다
   const 파일 = 파일결과(자식, 결과줄, 지금);

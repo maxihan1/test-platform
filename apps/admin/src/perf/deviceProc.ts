@@ -93,6 +93,8 @@ export interface 단위답 {
  */
 export function 답풀기(답: ExecuteResponse): 단위답 {
   const 오류 = 답.error?.message;
+  // 못 간 답의 원문(주소 · 시간 초과)은 답 맨 위 사유의 stack 이다. 성능 로그에는 접힌 자리가 없어 한 줄에 같이 적는다
+  const 원문 = 답.error?.stack === undefined ? '' : ` — ${답.error.stack}`;
   const 본 = new Set<number>();
   return {
     steps: 답.results
@@ -103,7 +105,7 @@ export function 답풀기(답: ExecuteResponse): 단위답 {
     끝들: 답.results.map((r) => ({
       tcId: r.tcId,
       status: r.status,
-      ...(r.error !== undefined && { 까닭: r.error.message }),
+      ...(r.error !== undefined && { 까닭: r.error.message === 오류 ? `${r.error.message}${원문}` : r.error.message }),
       ...(r.blockedBy !== undefined && { blockedBy: r.blockedBy }),
     })),
     ...(오류 !== undefined && !답.results.some((r) => r.error?.message === 오류) && { 오류 }),

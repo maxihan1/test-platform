@@ -65,7 +65,7 @@ async function 케이스돌리기(jobId: number, 줄: 대상줄, 케이스: Extr
     await rm(join(artifactsDir(), 'runs', '0', String(요청.historyId)), { recursive: true, force: true });
     if (res.status < 200 || res.status >= 300) throw new Error(`러너가 ${c.tcId} 녹화를 ${res.status}로 거절했습니다`);
     // 판정을 못 낸 실행은 중간에 끊겼을 수 있다 — 반쪽 녹화로 초안을 만들지 않는다. FAIL 은 요청이 다 오가서 쓴다
-    if (((res.json as ExecuteResponse).results[0]?.status ?? 'NA') === 'NA') throw new Error(`${c.tcId} 를 끝까지 돌리지 못했습니다`);
+    if (((res.json as Partial<ExecuteResponse> | null)?.results?.[0]?.status ?? 'NA') === 'NA') throw new Error(`${c.tcId} 를 끝까지 돌리지 못했습니다`);
   }
   return 비밀;
 }
