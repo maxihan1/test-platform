@@ -1,21 +1,18 @@
-// 실행 기록 — 왼쪽 목록 + 오른쪽 결과 칸 (도메인/실행 §8.7 「A안」 · §7 GET /api/runs)
+// 실행 기록 — 목록 화면. 줄을 누르면 결과 화면(`#/runs/<번호>`)으로 넘어간다 (도메인/실행 §8.7 「목록 화면과 결과 화면을 따로」 · §7 GET /api/runs)
 //
 // **거르는 일은 서버가 한다.** 목록이 쪽으로 나뉘어 오므로 받은 쪽만 거르면 뒤쪽이 조용히 빠진다.
-// **고른 실행과 거르개는 주소에 남긴다** — 항목 상세에 갔다 돌아오기 · 새로고침 · 뒤로 가기에 풀리지 않는다(점검 2.9).
+// **거르개와 쪽은 주소에 남긴다** — 결과 화면에 갔다 돌아오기 · 새로고침 · 뒤로 가기에 풀리지 않는다(점검 2.9).
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { api, type EnvRow, type RunListRow, type RunQuery } from './api.js';
 import { Head } from './Head.js';
 import { use말 } from './i18n.js';
-import { use주소조건, 주소조건 } from './leaveGuard.js';
+import { use주소조건, 주소덮기, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
-import { RunResult } from './RunResult.js';
-import { use실행보기, 결과칸들, 보기조건 } from './runResultView.js';
-import { 실행줄 } from './RunListRow.js';
-import { 케이스서비스 } from './role.js';
+import { 옛실행주소 } from './route.js';
+import { 실행표머리, 실행표줄 } from './RunListTable.js';
 import { 도는중 } from './runState.js';
-import type { 판정하기 } from './runJudge.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
 const 상태들 = ['running', 'failed'] as const;
@@ -30,24 +27,30 @@ function 번호(글: string | null): number | null {
   return 글 !== null && /^\d{1,10}$/.test(글) ? Number(글) : null;
 }
 
-// 판정하기 — 결과 칸이 그 실행의 서비스로 버튼을 가른다. 주소의 `?run=` 은 띠와 다른 서비스 실행일 수 있다 (화면공통 §8)
-/**
- * @param 서비스바꿈 주소의 `?run=` 이 다른 애플리케이션 실행이면 왼쪽 줄 · 목록을 그 애플리케이션으로 바꾸는 길 —
- * 안 바꾸면 사이드바 · 목록은 API 인데 오른쪽은 게임 결과로 섞였다 (2026-10-31 시험 d5)
- */
-export function RunList({
-  service,
-  envs,
-  판정하기,
-  kind,
-  서비스바꿈,
-}: {
+interface Props {
   service: string;
   envs: EnvRow[];
-  판정하기: 판정하기;
   kind: 'UI' | 'FN';
-  서비스바꿈?: (접두사: string) => void;
-}) {
+}
+
+/** 실행을 고른 옛 주소(`?run=`)로 왔으면 그 실행의 결과 화면으로 옮긴다 — 붙여 둔 고리가 썩으면 안 된다. E2E 실행 기록도 같이 쓴다 */
+export function 옛주소옮김({ children }: { children: ReactNode }) {
+  const [옮길] = useState(() => 옛실행주소(주소조건()));
+  useEffect(() => {
+    if (옮길 !== null) 주소덮기(옮길);
+  }, [옮길]);
+  return 옮길 !== null ? null : <>{children}</>;
+}
+
+export function RunList(props: Props) {
+  return (
+    <옛주소옮김>
+      <실행목록 {...props} />
+    </옛주소옮김>
+  );
+}
+
+function 실행목록({ service, envs, kind }: Props) {
   const t = use말();
   const [처음] = useState(주소조건);
   const [page, setPage] = useState(() => 번호(처음.get('page')) ?? 1);
@@ -57,17 +60,8 @@ export function RunList({
   const [env, setEnv] = useState(처음.get('env') ?? '');
   const [origin, setOrigin] = useState<RunQuery['origin']>(() => 고른값(처음.get('origin'), 방식들));
   const [days, setDays] = useState<number | undefined>(() => 기간들.find((일) => String(일) === 처음.get('days')));
-  // 사람이 고른 실행. 없으면 결과 칸은 맨 위 줄을 보인다 — 좁은 창에서는 고르기 전까지 목록만 보인다
-  const [고른, set고른] = useState(() => 번호(처음.get('run')));
-  // 주소로 곧장 내려온 케이스(`&tc=`) — 처음 연 그 실행에서만 그 실패 카드를 펼친다
-  const 처음실행 = 번호(처음.get('run'));
-  const 열카드 = 처음.get('tc') ?? undefined;
-  // 서비스를 바꾸면 건 조건 · 고른 실행을 버린다 — 남기면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
+  // 서비스를 바꾸면 건 조건을 버린다 — 남기면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
   const [본서비스, set본서비스] = useState(service);
-  // 주소의 실행을 따라 애플리케이션을 바꿨으면 그 실행은 버리지 않는다
-  const 따라간실행 = useRef<number | null>(null);
-  // 애플리케이션을 바꿔 고른 실행을 버리는 것은 사람이 연 것이 아니다 — 기록을 쌓지 않는다 (공통/5-화면공통 §8)
-  const 스스로비움 = useRef(false);
   if (본서비스 !== service) {
     set본서비스(service);
     setPage(1);
@@ -77,30 +71,7 @@ export function RunList({
     setEnv('');
     setOrigin(undefined);
     setDays(undefined);
-    // 한 번만 남긴다 — 그 뒤 사람이 애플리케이션을 바꾸면 고른 실행을 버린다
-    const 남길것 = 따라간실행.current;
-    따라간실행.current = null;
-    if (고른 !== null && 고른 !== 남길것) 스스로비움.current = true;
-    set고른((앞) => (앞 !== null && 앞 === 남길것 ? 앞 : null));
   }
-  useEffect(() => {
-    if (처음실행 === null || 서비스바꿈 === undefined) return undefined;
-    let 살아있음 = true;
-    // 못 읽으면 그대로 둔다 — 결과 칸이 읽기 실패를 스스로 말한다
-    // ponytail: 결과 칸도 같은 실행을 읽어 주소로 열 때 두 번 부른다. 큰 실행에서 느리면 결과 칸이 읽은 값으로 따라간다
-    api.run(처음실행).then(
-      (r) => {
-        const 접두사 = 케이스서비스(r.items[0]?.tcId ?? '');
-        if (!살아있음 || 접두사 === null || 접두사 === service) return;
-        따라간실행.current = 처음실행;
-        서비스바꿈(접두사);
-      },
-      () => undefined,
-    );
-    return () => {
-      살아있음 = false;
-    };
-  }, []);
 
   const 조건: RunQuery = {
     kind,
@@ -111,9 +82,8 @@ export function RunList({
     ...(days === undefined ? {} : { days }),
   };
   const runs = useAsync(() => api.runs(service, page, 조건), [service, page, q, state, env, origin, days]);
-  // 목록은 한 번 받고 말아 결과 칸만 따라갔다 — 실행이 끝나도 카드가 「진행 중」에 멈췄다 (GAME-F2-17).
-  // 도는 실행이 보이는 동안 3초마다(알림 줄과 같은 주기) 다시 받아 **보이는 줄의 숫자 · 상태만** 덮는다. 목록을 통째로 바꾸면
-  // 고르지 않았을 때의 결과 칸(맨 위 줄)이 새 실행이 위에 서거나 끝난 실행이 거르개 밖으로 나갈 때 말없이 바뀐다.
+  // 목록은 한 번 받고 말아 실행이 끝나도 줄이 「진행 중」에 멈췄다 (GAME-F2-17).
+  // 도는 실행이 보이는 동안 3초마다(알림 줄과 같은 주기) 다시 받아 **보이는 줄의 숫자 · 상태만** 덮는다 — 목록을 통째로 바꾸면 보던 줄이 밀린다.
   // 덮은 것은 그때 받은 목록(바탕)에만 붙인다 — 거르개 · 쪽을 바꿔 목록을 새로 받으면 버린다. 다시 받기가 실패해도 마지막 것을 둔다
   const [덮개, set덮개] = useState<{ 바탕: unknown; 줄: ReadonlyMap<number, RunListRow> } | null>(null);
   const 줄들 = (runs.data?.items ?? []).map((run) => (덮개?.바탕 === runs.data ? 덮개.줄.get(run.runId) : undefined) ?? run);
@@ -136,21 +106,17 @@ export function RunList({
     };
   }, [도는것있나, runs.data]);
 
-  const 보는실행 = 고른 ?? 줄들[0]?.runId ?? null;
-  // 결과 칸의 거르개 · 쪽 · 펼친 카드 — 보이는 실행에 딸려 주소에 남는다. 다른 실행이 보이면 처음으로 (공통/5-화면공통 §8)
-  const [보기, set보기] = use실행보기(처음, 보는실행);
-
   // 기본값인 조건은 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
-  use주소조건(`#/runs/${kind === 'UI' ? 'ui' : 'fn'}`, {
-    ...(고른 === null ? {} : { run: String(고른) }),
+  const 걸린조건: Record<string, string> = {
     ...(q === '' ? {} : { q }),
     ...(state === undefined ? {} : { state }),
     ...(env === '' ? {} : { env }),
     ...(origin === undefined ? {} : { origin }),
     ...(days === undefined ? {} : { days: String(days) }),
     ...(page === 1 ? {} : { page: String(page) }),
-    ...보기조건(보기),
-  }, { 쌓는칸: ['run'], 딸린칸: 결과칸들, 스스로: 스스로비움 });
+  };
+  // 애플리케이션을 늘 단다 — 받은 링크를 다른 애플리케이션을 고른 채 열어도 같은 목록이 선다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+  use주소조건(`#/runs/${kind === 'UI' ? 'ui' : 'fn'}`, { ...걸린조건, ...(service === '' ? {} : { service }) });
 
   if (runs.error !== null) return <Failed error={runs.error} />;
   if (runs.data === null) return <Loading />;
@@ -158,8 +124,8 @@ export function RunList({
   // 총건수로 페이지 수를 계산하지 않는다 (SPEC §8.7 — §8.1 과 같은 함정이다)
   const 더있나 = 다음이있나(runs.data);
   const 건조건 = q !== '' || state !== undefined || env !== '' || origin !== undefined || days !== undefined;
-  // 거르개를 바꿔도 고른 실행은 그대로 둔다 — 대신 목록에 없는 까닭을 한 줄 적는다
-  const 조건밖 = 고른 !== null && 건조건 && !줄들.some((run) => run.runId === 고른);
+  // 결과 화면이 이 조건으로 「← 실행 기록」 · 「이전 · 다음 실행」을 잡는다
+  const 목록조건 = new URLSearchParams(걸린조건).toString();
 
   // 거르개를 바꾸면 첫 쪽으로 간다
   function 거르기(바꾸기: () => void) {
@@ -186,132 +152,102 @@ export function RunList({
         부제={days === undefined ? t('모두 {건수}건', { 건수: runs.data.total }) : t('최근 {일}일 {건수}건', { 일: days, 건수: runs.data.total })}
       />
 
-      <div className={고른 === null ? 'runs-split' : 'runs-split picked'}>
-        <div className="screen list-screen runs-list">
-          <form
-            className="toolbar"
-            role="search"
-            onSubmit={(e) => {
-              e.preventDefault();
-              거르기(() => setQ(typed));
-            }}
-          >
-            <input
-              type="text"
-              aria-label={t('케이스 · 제목으로 검색')}
-              placeholder={t('케이스 번호 · 이름 · 실행 제목')}
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-            />
-            <button className="chip" type="submit">
-              {t('검색')}
-            </button>
-            <label className="run-filter">
-              <span className="filter-label">{t('상태')}</span>
-              <select value={state ?? ''} onChange={(e) => 거르기(() => setState(고른값(e.target.value, 상태들)))}>
-                <option value="">{t('전체')}</option>
-                <option value="failed">{t('Fail 있음')}</option>
-                <option value="running">{t('진행 중')}</option>
-              </select>
-            </label>
-            <label className="run-filter">
-              <span className="filter-label">{t('대상 서버')}</span>
-              <select value={env} onChange={(e) => 거르기(() => setEnv(e.target.value))}>
-                <option value="">{t('전체')}</option>
-                {envs.map((it) => (
-                  <option key={it.env} value={it.env}>
-                    {it.env}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="run-filter">
-              <span className="filter-label">{t('시작 방식')}</span>
-              <select value={origin ?? ''} onChange={(e) => 거르기(() => setOrigin(고른값(e.target.value, 방식들)))}>
-                <option value="">{t('전체')}</option>
-                <option value="manual">{t('직접 실행')}</option>
-                <option value="rerun">{t('Fail 다시 실행')}</option>
-                <option value="scheduled">{t('정기 실행')}</option>
-                <option value="build">{t('빌드 실행')}</option>
-              </select>
-            </label>
-            <label className="run-filter">
-              <span className="filter-label">{t('기간')}</span>
-              <select value={days ?? ''} onChange={(e) => 거르기(() => setDays(기간들.find((일) => String(일) === e.target.value)))}>
-                <option value="7">{t('최근 7일')}</option>
-                <option value="14">{t('최근 14일')}</option>
-                <option value="30">{t('최근 30일')}</option>
-                <option value="">{t('전체')}</option>
-              </select>
-            </label>
-          </form>
+      <div className="screen list-screen runs-list">
+        <form
+          className="toolbar"
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            거르기(() => setQ(typed));
+          }}
+        >
+          <input
+            type="text"
+            aria-label={t('케이스 · 제목으로 검색')}
+            placeholder={t('케이스 번호 · 이름 · 실행 제목')}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+          />
+          <button className="chip" type="submit">
+            {t('검색')}
+          </button>
+          <label className="run-filter">
+            <span className="filter-label">{t('상태')}</span>
+            <select value={state ?? ''} onChange={(e) => 거르기(() => setState(고른값(e.target.value, 상태들)))}>
+              <option value="">{t('전체')}</option>
+              <option value="failed">{t('Fail 있음')}</option>
+              <option value="running">{t('진행 중')}</option>
+            </select>
+          </label>
+          <label className="run-filter">
+            <span className="filter-label">{t('대상 서버')}</span>
+            <select value={env} onChange={(e) => 거르기(() => setEnv(e.target.value))}>
+              <option value="">{t('전체')}</option>
+              {envs.map((it) => (
+                <option key={it.env} value={it.env}>
+                  {it.env}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="run-filter">
+            <span className="filter-label">{t('시작 방식')}</span>
+            <select value={origin ?? ''} onChange={(e) => 거르기(() => setOrigin(고른값(e.target.value, 방식들)))}>
+              <option value="">{t('전체')}</option>
+              <option value="manual">{t('직접 실행')}</option>
+              <option value="rerun">{t('Fail 다시 실행')}</option>
+              <option value="scheduled">{t('정기 실행')}</option>
+              <option value="build">{t('빌드 실행')}</option>
+            </select>
+          </label>
+          <label className="run-filter">
+            <span className="filter-label">{t('기간')}</span>
+            <select value={days ?? ''} onChange={(e) => 거르기(() => setDays(기간들.find((일) => String(일) === e.target.value)))}>
+              <option value="7">{t('최근 7일')}</option>
+              <option value="14">{t('최근 14일')}</option>
+              <option value="30">{t('최근 30일')}</option>
+              <option value="">{t('전체')}</option>
+            </select>
+          </label>
+        </form>
 
-          {조건밖 ? <p className="runs-out">{t('선택한 실행은 지금 조건 밖입니다')}</p> : null}
-
-          <div className="rows-scroll">
-            {줄들.length === 0 ? (
-              <div className="empty">
-                {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다 (SPEC §8.7) */}
-                {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 애플리케이션에서 아직 실행한 기록이 없습니다')}
-                <small>{건조건 ? t('검색어나 필터를 변경해 보세요') : t('케이스를 선택해 실행하면 여기에 쌓입니다')}</small>
-                {건조건 ? (
-                  <button className="btn" style={{ marginTop: '14px' }} onClick={다지우기}>
-                    {t('조건 초기화')}
-                  </button>
-                ) : (
-                  <a className="btn" style={{ marginTop: '14px' }} href={kind === 'UI' ? '#/cases/ui' : '#/cases/fn'}>
-                    {t('케이스 목록으로')}
-                  </a>
-                )}
-              </div>
-            ) : (
-              <>
-                {/* 표머리는 좁은 화면에서도 감추지 않는다 — 휴대폰에서 여는 화면이다 (SPEC §8.7 「칸마다 이름을 단다」) */}
-                <div className="rowhead run-rowhead" role="row">
-                  <span aria-hidden="true" />
-                  <span role="columnheader">{t('실행')}</span>
-                  <span role="columnheader">{t('판정')}</span>
-                </div>
-                {줄들.map((run) => (
-                  <실행줄 key={run.runId} run={run} 고름={run.runId === 보는실행} on고르기={set고른} />
-                ))}
-              </>
-            )}
-          </div>
-
-          {page === 1 && !더있나 ? null : (
-            <div className="pager">
-              <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
-                {t('이전')}
-              </button>
-              <span>{t('{쪽}페이지', { 쪽: page })}</span>
-              <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
-                {t('다음')}
-              </button>
+        <div className="rows-scroll">
+          {줄들.length === 0 ? (
+            <div className="empty">
+              {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다 (SPEC §8.7) */}
+              {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 애플리케이션에서 아직 실행한 기록이 없습니다')}
+              <small>{건조건 ? t('검색어나 필터를 변경해 보세요') : t('케이스를 선택해 실행하면 여기에 쌓입니다')}</small>
+              {건조건 ? (
+                <button className="btn" style={{ marginTop: '14px' }} onClick={다지우기}>
+                  {t('조건 초기화')}
+                </button>
+              ) : (
+                <a className="btn" style={{ marginTop: '14px' }} href={kind === 'UI' ? '#/cases/ui' : '#/cases/fn'}>
+                  {t('케이스 목록으로')}
+                </a>
+              )}
             </div>
+          ) : (
+            <>
+              {/* 칸 이름 줄 — 휴대폰에서는 줄이 세 줄로 쌓여 숨기고 판정 수 앞에 이름을 붙인다 (SPEC §8.7 「칸마다 이름을 단다」) */}
+              <실행표머리 />
+              {줄들.map((run) => (
+                <실행표줄 key={run.runId} run={run} 목록조건={목록조건} />
+              ))}
+            </>
           )}
         </div>
 
-        {보는실행 === null ? null : (
-          <section className="run-pane" aria-label={t('실행 결과')}>
-            {/* 좁은 창에서는 목록과 결과가 한 단으로 접힌다 — 결과에서 목록으로 돌아가는 길이다 */}
-            <button type="button" className="btn small ghost pane-back" onClick={() => set고른(null)}>
-              {t('목록으로')}
+        {page === 1 && !더있나 ? null : (
+          <div className="pager">
+            <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
+              {t('이전')}
             </button>
-            <RunResult
-              key={보는실행}
-              runId={보는실행}
-              판정하기={판정하기}
-              열카드={보는실행 === 처음실행 ? 열카드 : undefined}
-              보기={보기}
-              on보기={set보기}
-              칸안
-              on새실행={(runId) => {
-                set고른(runId);
-                runs.reload();
-              }}
-            />
-          </section>
+            <span>{t('{쪽}페이지', { 쪽: page })}</span>
+            <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
+              {t('다음')}
+            </button>
+          </div>
         )}
       </div>
     </>

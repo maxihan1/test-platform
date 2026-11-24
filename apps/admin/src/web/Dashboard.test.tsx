@@ -390,7 +390,7 @@ describe('회귀 실패 목록', () => {
     const 칸 = (await screen.findByRole('heading', { name: '회귀 실패' })).closest('section')!;
     const 줄들 = within(칸).getAllByRole('link');
     expect(줄들).toHaveLength(2);
-    expect(줄들[0]!.getAttribute('href')).toBe('#/runs/fn?run=7&tc=ZDA-001');
+    expect(줄들[0]!.getAttribute('href')).toBe('#/runs/7?tc=ZDA-001');
     expect(줄들[0]!.textContent).toContain('PC · 모바일');
     expect(within(줄들[0]!).getByText('기대 결과 불일치').getAttribute('title')).toBe('결제 완료 문구가 보이지 않는다');
     expect(칸.querySelector('.num')!.textContent).toBe('2');

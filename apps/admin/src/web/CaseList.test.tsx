@@ -603,7 +603,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     await waitFor(() => expect(풀기).not.toBeNull());
     풀기!({ runId: 11 });
 
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=11'));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/11'));
   });
 
   it('성공하면 그 실행 결과 화면으로 간다', async () => {
@@ -613,7 +613,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     fireEvent.click(모달실행());
     시작누름();
 
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=7'));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/7'));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
@@ -652,7 +652,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     fireEvent.click(모달실행());
     시작누름();
 
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=9'));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/9'));
     expect(걸기).toHaveBeenCalledTimes(2);
   });
 

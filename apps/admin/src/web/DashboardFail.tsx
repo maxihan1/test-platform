@@ -11,7 +11,7 @@ import { 서비스를열며, 실행목록주소, 이동속성, 창실패종류, 
 import { 떠오름 } from './DashboardTop.js';
 import { 실패유형이름 } from './DashboardTypes.js';
 import { use말 } from './i18n.js';
-import { 실행기록주소 } from './route.js';
+import { 실행결과주소 } from './route.js';
 import { 실패카드 } from './RunFailCard.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync } from './ui.js';
 
@@ -69,7 +69,7 @@ export function 신규실패표({ 값, 이동 }: { 값: 자료; 이동: 이동�
             <a
               key={`${실패.serviceId}-${실패.tcId}`}
               className="dash-li"
-              href={실행기록주소(실패.tcId, 실패.runId, true)}
+              href={실행결과주소(실패.runId, { 펼칠: 실패.tcId })}
               title={`${실패.serviceName} · ${실패.env} · RUN ${String(실패.runId)}`}
               onAuxClick={서비스를열며(이동.서비스열기, 실패.serviceId).onAuxClick}
               onClick={(e) => {
@@ -149,7 +149,7 @@ function 실패서랍({ 실패, 이동, onClose }: { 실패: 실패줄; 이동: 
         )}
       </div>
       <p className="fail-drawer-foot">
-        <a className="dash-link" href={실행기록주소(실패.tcId, 실패.runId, true)} {...서비스를열며(이동.서비스열기, 실패.serviceId)}>
+        <a className="dash-link" href={실행결과주소(실패.runId, { 펼칠: 실패.tcId })} {...서비스를열며(이동.서비스열기, 실패.serviceId)}>
           {t('실행 기록에서 보기')}
         </a>
       </p>

@@ -30,6 +30,7 @@ const 항목: RunItemPage = {
   paramSchema: {},
   expected: {},
   expectedSchema: {},
+  verifyStatements: [],
   precondition: [],
   status: 'FAIL',
   durationMs: 400,
@@ -129,10 +130,41 @@ describe('항목 상세 (SPEC §8.4)', () => {
     expect(칸?.previousElementSibling?.textContent).toContain('입력값');
   });
 
-  it('기대값도 기본값도 없으면 「기대결과 없음」', async () => {
+  it('기대값도 기본값도 확인 문장도 없으면 「기대결과 없음」', async () => {
     그린다();
 
     expect(await screen.findByText('기대 결과 없음')).toBeTruthy();
+  });
+
+  it('박제한 확인 문장을 한 줄씩 먼저 적고 값 칸은 그 아래 둔다', async () => {
+    그린다({
+      verifyStatements: ['토큰이 발급된다', '유효기간이 3600초다'],
+      expected: {},
+      expectedSchema: { type: 'object', properties: { title: { type: 'string', description: '제목', default: 'AI 올인원' } } },
+    });
+
+    const 칸 = (await screen.findByText('기대 결과')).closest('.sec')!;
+    const 문장 = [...칸.querySelectorAll('.pre')].map((el) => el.textContent);
+    expect(문장).toEqual(['토큰이 발급된다', '유효기간이 3600초다']);
+    const 순서 = [...칸.querySelectorAll('*')];
+    expect(순서.indexOf(칸.querySelector('.pre')!)).toBeLessThan(순서.indexOf(칸.querySelector('.field')!));
+    expect(칸.textContent).toContain('AI 올인원');
+    expect(screen.queryByText('기대 결과 없음')).toBeNull();
+  });
+
+  it('값 칸이 없어도 문장이 있으면 「기대 결과 없음」을 쓰지 않는다', async () => {
+    그린다({ verifyStatements: ['토큰이 발급된다'], expected: {}, expectedSchema: {} });
+
+    const 칸 = (await screen.findByText('기대 결과')).closest('.sec')!;
+    expect(칸.querySelector('.pre')?.textContent).toBe('토큰이 발급된다');
+    expect(screen.queryByText('기대 결과 없음')).toBeNull();
+  });
+
+  it('박제한 문장이 없는 옛 항목은 돈 절차에서 판정이 난 문장을 쓰고 판정 없는 참고 줄은 뺀다', async () => {
+    그린다({ verifyStatements: null });
+
+    const 칸 = (await screen.findByText('기대 결과')).closest('.sec')!;
+    expect([...칸.querySelectorAll('.pre')].map((el) => el.textContent)).toEqual(['응답 코드가 정상이다', '토큰이 발급된다']);
   });
 });
 
@@ -174,11 +206,11 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
     expect(물은것).toContain('ZID');
   });
 
-  it('「실행 결과」는 실행 기록에서 그 실행을 고른 채 연다 — 결과 화면을 새로 열면 목록으로 돌아갈 길이 없다', async () => {
+  it('「실행 결과」는 그 실행의 결과 화면으로 간다', async () => {
     그린다({}, () => () => false);
 
     const 고리 = await screen.findByRole('link', { name: '실행 결과' });
-    expect(고리.getAttribute('href')).toMatch(/^#\/runs\/fn\?run=\d+$/);
+    expect(고리.getAttribute('href')).toBe(`#/runs/${String(RUN_ID)}`);
   });
 
   it('실행할 수 없으면 버튼이 없다', async () => {

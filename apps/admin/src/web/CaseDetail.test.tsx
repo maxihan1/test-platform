@@ -393,6 +393,40 @@ describe('입력값을 칸 안에서 바로 고친다 (SPEC §8.1)', () => {
     expect(screen.queryByText('입력값')).toBeNull();
     expect(screen.queryByText('기대 결과')).toBeNull();
   });
+
+  it('확인 문장은 「기대 결과」 아래 목록으로 먼저 서고 값 칸은 그 아래다', () => {
+    통로를막는다();
+
+    그린다({ row: { ...케이스, verifyStatements: ['주문이 접수된다', '결제 완료 문구가 보인다'] } });
+
+    const 라벨 = screen.getByText('기대 결과');
+    const 목록 = 라벨.nextElementSibling as HTMLElement;
+    expect([...목록.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['주문이 접수된다', '결제 완료 문구가 보인다']);
+    expect(screen.getAllByText('기대 결과')).toHaveLength(1);
+    const 순서 = [...document.querySelectorAll('*')];
+    expect(순서.indexOf(목록)).toBeLessThan(순서.indexOf(screen.getByLabelText('주문 상태')));
+  });
+
+  it('값 칸이 없어도 확인 문장이 있으면 기대 결과 구획이 선다 — 입력값 구획은 안 선다', () => {
+    통로를막는다();
+
+    그린다({ row: { ...값없는케이스, verifyStatements: ['주문이 접수된다'] } });
+
+    expect(screen.getByText('기대 결과')).toBeTruthy();
+    expect(screen.getByText('주문이 접수된다')).toBeTruthy();
+    expect(screen.queryByText('입력값')).toBeNull();
+  });
+
+  it('확인 문장을 못 읽었거나(null) 비었으면 문장 목록 없이 값 칸만 있다', () => {
+    통로를막는다();
+
+    그린다({ row: { ...케이스, verifyStatements: null } });
+    expect(screen.getByText('기대 결과')).toBeTruthy();
+    expect(document.querySelectorAll('ul.dlist')).toHaveLength(0);
+    cleanup();
+    그린다({ row: { ...케이스, verifyStatements: [] } });
+    expect(document.querySelectorAll('ul.dlist')).toHaveLength(0);
+  });
 });
 
 describe('값 저장 — 누르기 전에 누구에게 닿는지 적는다 (점검 7.6)', () => {

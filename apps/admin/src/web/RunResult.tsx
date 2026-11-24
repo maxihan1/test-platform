@@ -1,7 +1,7 @@
 // 실행 결과 (SPEC §8.3). 머리 · 단추 · 증적 줄을 그리고 본문(요약 한 줄 · 실행 차례 표)은 RunResultBody 가 맡는다
 // POST /api/runs는 끝나기 전에 돌아온다. status가 FINISHED가 될 때까지 화면이 다시 묻는다 (SPEC §7.1)
 
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { api, ApiError, type RunInsights as 비교 } from './api.js';
 import { Head } from './Head.js';
@@ -9,58 +9,45 @@ import { use증적, 증적만들기버튼들, 증적알림과목록 } from './Ev
 import { use말, use언어 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
-import { type 결과보기, type 보기바꿈, 바꾼보기, 보기읽기, 보기조건 } from './runResultView.js';
+import { type 보기바꿈, 바꾼보기, 보기읽기, 보기조건 } from './runResultView.js';
 import { 진행상황 } from './runProgress.js';
 import { 시간글자, 실행남은글 } from './remainText.js';
 import { RunAbortModal } from './RunAbortModal.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { 실패다시실행 } from './RerunFailed.js';
 import { 결과본문, 도는집계 } from './RunResultBody.js';
-import { 다른빌드알림, 시작빌드글 } from './RunBuild.js';
+import { 다른빌드알림 } from './RunBuild.js';
+import { 실행명 } from './runName.js';
+import { 목록조건읽기, 실행길 } from './RunNav.js';
+import { 케이스서비스 } from './role.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { RunPrepFailed } from './RunPrepFailed.js';
 import { use실행리포트, 리포트띠, 리포트열기 } from './RunQaReport.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름, 준비실패 } from './runState.js';
-import { Failed, Loading, PLATFORM_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
+import { Failed, Loading, PLATFORM_LABEL, useAsync, 실행디바이스들 } from './ui.js';
 import { useRunProgress } from './useRunProgress.js';
 import { 지켜보는실행, 지켜본다 } from './runWatchStore.js';
 import { use보는실행알림 } from './viewedRun.js';
 
 interface 결과바깥 {
-  /** 이 케이스의 실패 카드를 펼친 채 연다 — 대시보드 · 항목 상세에서 곧장 내려온 주소(`&tc=`) */
-  열카드?: string;
   runId: number;
   판정하기: 판정하기;
-  /**
-   * 이 화면이 **실행 기록의 오른쪽 결과 칸에서** 그려지는가 (도메인/실행 §8.7 「A안」).
-   * 참이면 머리를 칸 머리로 그리고 머리 아래 한 칸만 스크롤한다
-   */
-  칸안?: boolean;
-  /** 결과 칸에서 건 「실패 다시」 — 주소를 옮기지 않고 목록이 새 실행을 고른다 */
-  on새실행?: (runId: number) => void;
 }
 
-/** 거르개 · 쪽 · 펼친 카드. 주소에 담는 쪽(실행 기록 · 결과 화면 감싸개)이 든다 */
-interface 결과상태 {
-  보기: 결과보기;
-  on보기: Dispatch<SetStateAction<결과보기>>;
-}
-
-function 케이스결과({
-  runId,
-  판정하기,
-  칸안 = false,
-  on새실행,
-  on시나리오,
-  열카드,
-  보기,
-  on보기,
-}: 결과바깥 & 결과상태 & { on시나리오?: () => void }) {
+function 케이스결과({ runId, 판정하기, on시나리오 }: 결과바깥 & { on시나리오?: () => void }) {
   const t = use말();
   const 언어 = use언어();
+  // 거르개 · 쪽 · 펼친 줄은 주소에 담는다. 실행 기록에서 넘어올 때 걸어 둔 조건(`list=`)도 같이 남겨야 새로고침 뒤에 「← 실행 기록」이 그 조건으로 돌아간다
+  const [보기, set보기] = useState(() => 보기읽기(주소조건()));
+  // 다른 화면의 고리가 「이 줄을 펴서 열라」고 보낸 케이스(`tc=`) — 그 줄로 화면을 옮긴다
+  const [열카드] = useState(() => 주소조건().get('tc') ?? undefined);
+  const [목록조건] = useState(목록조건읽기);
+  use주소조건(`#/runs/${String(runId)}`, { ...보기조건(보기), ...(목록조건 === '' ? {} : { list: 목록조건 }) });
   function 바꾸기(바꿀: 보기바꿈) {
-    on보기((앞) => 바꾼보기(앞, 바꿀));
+    set보기((앞) => 바꾼보기(앞, 바꿀));
   }
+  // 휴대폰에서는 부제를 한 줄(번호 · 대상 서버 · 소요 · 상태)로 줄이고 나머지는 눌러서 편다 — 다 적으면 세 줄을 넘겨 결과가 화면 밖으로 밀린다 (2026-11-24 사용자)
+  const [정보펼침, set정보펼침] = useState(false);
   const [멈출까, set멈출까] = useState(false);
   const [멈추는중, set멈추는중] = useState(false);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
@@ -136,24 +123,26 @@ function 케이스결과({
 
   // 실행 정보는 이 한 줄이 전부다 — 앞 판은 같은 값을 옆 칸에 또 적었고 좁은 창에서 그 칸이 맨 아래로 묻혔다 (도메인/실행 §8.3 · 점검 2.2)
   const 부제 = (
-          <>
-            {칸안 ? null : <>RUN {data.runId} · </>}
-            {/* 실행 하나에 한 종류다 — 사이드바가 종류를 모르는 화면이라 머리에 적는다 (PR #132) */}
-            {종류 === null ? null : <>{종류} · </>}
-            {/* 알림은 서비스 전체에서 오고 결과는 고른 서비스와 상관없이 열린다 — 어느 서비스 실행인지 적는다 */}
-            {data.serviceName} · 
-            {when(data.startedAt, 언어)}
-            {시작빌드글(data, t)}
-            {' · '}
-            {t('대상 서버 {서버}', { 서버: data.env })}
-            {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
-            {' · '}
-            {t('실행자 {이름}', { 이름: 실행자이름(data, 언어) })}
-            {소요 === null ? null : <> · {소요}</>}
-            {디바이스들.length === 0 ? null : <> · {디바이스들.map((p) => PLATFORM_LABEL[p]).join(' · ')}</>}
-            {/* 도는 동안의 상태는 바로 아래 진행 글이 맡는다 — 「진행 중」을 또 적지 않는다 */}
-            {running ? null : <> · {상태라벨(data.status, 언어)}</>}
-          </>
+    <span className={정보펼침 ? 'run-meta open' : 'run-meta'}>
+      <span className="rm-key">RUN {data.runId}</span>
+      {/* 실행 하나에 한 종류다 — 사이드바가 종류를 모르는 화면이라 머리에 적는다 (PR #132) */}
+      {종류 === null ? null : <span> · {종류}</span>}
+      {/* 알림은 서비스 전체에서 오고 결과는 고른 서비스와 상관없이 열린다 — 어느 서비스 실행인지 적는다 */}
+      <span> · {data.serviceName}</span>
+      {/* 시작 시각 · 시작 방식은 제목(실행명)이 말한다 — 같은 값을 두 번 적지 않는다 */}
+      {data.buildNo == null ? null : <span> · {t('빌드 {번호}', { 번호: data.buildNo })}</span>}
+      <span className="rm-key"> · {t('대상 서버 {서버}', { 서버: data.env })}</span>
+      {data.baseUrl === '' ? null : <span>{` (${data.baseUrl})`}</span>}
+      <span> · {t('실행자 {이름}', { 이름: 실행자이름(data, 언어) })}</span>
+      {소요 === null ? null : <span className="rm-key"> · {소요}</span>}
+      {디바이스들.length === 0 ? null : <span> · {디바이스들.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>}
+      {/* 도는 동안의 상태는 바로 아래 진행 글이 맡는다 — 「진행 중」을 또 적지 않는다 */}
+      {/* 휴대폰의 한 줄에는 끝까지 못 돈 상태(중단 · 준비 실패)만 남긴다 — 「완료」는 소요 시간이 말한다 */}
+      {running ? null : <span className={data.status === 'FINISHED' ? undefined : 'rm-key'}> · {상태라벨(data.status, 언어)}</span>}
+      <button type="button" className="rm-more" aria-expanded={정보펼침} aria-label={t(정보펼침 ? '접기' : '펼치기')} onClick={() => set정보펼침(!정보펼침)}>
+        {정보펼침 ? '▴' : '▾'}
+      </button>
+    </span>
   );
 
   const 행동 = (
@@ -176,13 +165,13 @@ function 케이스결과({
           <리포트열기 리포트={리포트} />
             <증적만들기버튼들 칸={증적칸} />
             {running ? null : (
-              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 시작={data.startedAt} 된다={data.status !== 준비실패 && 실행판정(판정하기, data)('실행')} 자동수정={data.autoFixedCases} on걸었다={on새실행} />
+              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 시작={data.startedAt} 된다={data.status !== 준비실패 && 실행판정(판정하기, data)('실행')} 자동수정={data.autoFixedCases} />
             )}
           </div>
   );
 
   // 증적 안내·사유·문서 목록을 **머리 줄 안에서** 한 줄로 그린다 (2026-09-22).
-  // 블록으로 두면 130px 을 먹어 케이스 목록에 32px 밖에 안 남았다. 2026-10-19 ⑫ 에 옆 칸을 걷어 화면 전체도 여기다
+  // 블록으로 두면 130px 을 먹어 케이스 목록에 32px 밖에 안 남았다
   const 증적줄 = <증적알림과목록 칸={증적칸} 한줄로 />;
   // 실행이 쓴 판과 그 서버의 문서가 다르면 한 줄로 알린다 — 판단은 사람 몫이라 경고색을 쓰지 않는다 (도메인/API §3.8 「API 문서와 판」)
   const 문서줄 =
@@ -193,48 +182,32 @@ function 케이스결과({
     ) : null;
   const 빌드줄 = <다른빌드알림 buildNo={data.buildNo} apps={data.installedApps} />;
 
-  // 결과 칸의 머리 — 고른 줄과 같은 제목을 크게 단다. 스크롤 칸 밖에 둬 「실패 N건 다시 실행」 · 증적이 늘 보인다 (도메인/실행 §8.3)
-  const 머리 = (
-    <div className="box-head">
-      <h2 className="pane-title">
-        {data.title} <span className="pane-run">RUN {data.runId}</span>
-      </h2>
-      <div className="head-meta">{부제}</div>
-      {행동}
-      {증적줄}
-      {문서줄}
-      {빌드줄}
-    </div>
-  );
-
   return (
     <>
-      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8). 결과 칸에서는 칸 머리가 그 자리다.
-          큰 제목은 실행 제목이고 번호는 부제 맨 앞에 작게 둔다 (점검 2.22) */}
-      {칸안 ? (
-        머리
-      ) : (
-        <Head
-          제목={data.title}
-          부제={
-            <>
-              {부제}
-              {증적줄}
-              {문서줄}
-              {빌드줄}
-            </>
-          }
-          행동={행동}
-        />
-      )}
+      {/* 결과 화면은 목록과 따로 선다 — 목록으로 돌아가는 길과 옆 실행으로 넘어가는 길을 머리 위에 둔다 (도메인/실행 §8.7 「목록 화면과 결과 화면을 따로」) */}
+      <실행길 runId={data.runId} 목록={data.kind === 'UI' ? 'ui' : 'fn'} 접두사={케이스서비스(data.items[0]?.tcId ?? '')} />
+      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8). 큰 제목은 실행명(언제 · 어떻게 · 무엇을)이고 번호는 부제 맨 앞에 작게 둔다 (점검 2.22) */}
+      <Head
+        클래스="run-head"
+        제목={실행명(data, 언어, t)}
+        부제={
+          <>
+            {부제}
+            {증적줄}
+            {문서줄}
+            {빌드줄}
+          </>
+        }
+        행동={행동}
+      />
 
       <리포트띠 리포트={리포트} />
 
       {/* 도는 동안에도 같은 표다 — 판정 칸이 「진행 중」이고 요약 한 줄은 끝난 뒤에 선다 (도메인/실행 §8.3) */}
       {data.status === 준비실패 ? (
-        <RunPrepFailed prepNote={data.prepNote} 칸안={칸안} />
+        <RunPrepFailed prepNote={data.prepNote} />
       ) : (
-        <결과본문 data={data} running={running} insights={견줌.data} 판정하기={판정하기} 견줌오류={견줌.error} 칸안={칸안} 보기={보기} 바꾸기={바꾸기} 열카드={열카드} />
+        <결과본문 data={data} running={running} insights={견줌.data} 판정하기={판정하기} 견줌오류={견줌.error} 보기={보기} 바꾸기={바꾸기} 열카드={열카드} />
       )}
 
       {/* 진행 창은 바깥 틀(RunWatch)이 든다 — 닫으면 알약이 되어 화면을 옮겨도 남는다. 여기 남은 것은
@@ -267,26 +240,15 @@ function 케이스결과({
   );
 }
 
-type 결과props = 결과바깥 & Partial<결과상태>;
-
-/** 실행 기록의 결과 칸은 `보기` 를 주소와 함께 넘긴다. 안 주면(결과 화면 `#/runs/번호`) 감싸개가 그 주소에 담는다 */
-export function RunResult(props: 결과props) {
-  const { 보기, on보기 } = props;
-  if (보기 === undefined || on보기 === undefined) return <주소로보는결과 key={props.runId} {...props} />;
-  return <결과갈래 {...props} 보기={보기} on보기={on보기} />;
+// 번호마다 새로 선다(App 의 key 가 아니라 여기서 건다) — 「이전 실행」으로 옮기면 앞 실행의 거르개가 남지 않고 그 주소의 조건을 읽는다
+export function RunResult(props: 결과바깥) {
+  return <결과갈래 key={props.runId} {...props} />;
 }
 
-// 번호마다 새로 선다(위 key) — 「직전 실행 RUN N」으로 옮기면 앞 실행의 거르개가 남지 않고 그 주소의 조건을 읽는다
-function 주소로보는결과(props: 결과props) {
-  const [보기, set보기] = useState(() => 보기읽기(주소조건()));
-  use주소조건(`#/runs/${String(props.runId)}`, 보기조건(보기));
-  return <결과갈래 {...props} 보기={보기} on보기={set보기} />;
-}
-
-function 결과갈래(props: 결과바깥 & 결과상태) {
+function 결과갈래(props: 결과바깥) {
   const [시나리오, set시나리오] = useState<number | null>(null); // 시나리오 실행 번호는 404 SCENARIO_RUN 으로 알려 준다 — 갈래를 바깥에 둬 훅 순서를 지킨다
   // 머리가 진행을 적으니 알림 줄은 이 실행의 도는 줄을 뺀다 (공통/5-화면공통 §8 「알림」)
   use보는실행알림(props.runId);
-  if (시나리오 === props.runId) return <ScenarioResult runId={props.runId} 판정하기={props.판정하기} 칸안={props.칸안} on새실행={props.on새실행} />;
+  if (시나리오 === props.runId) return <ScenarioResult runId={props.runId} 판정하기={props.판정하기} />;
   return <케이스결과 {...props} on시나리오={() => set시나리오(props.runId)} />;
 }

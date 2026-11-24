@@ -1,12 +1,10 @@
 // @vitest-environment jsdom
 // 실행 결과의 거르개 · 쪽 · 펼친 줄이 주소에 남는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」 · ⑱ WEB-F8-03)
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api, type RunListRow, type RunTally } from './api.js';
-import { use이동 } from './leaveGuard.js';
-import { RunList } from './RunList.js';
+import { api } from './api.js';
 import { RunResult } from './RunResult.js';
 import { RUN_ID, 실행까지 } from './RunResult.fixture.js';
 import { 견줌, 끝난실행, 섞인항목, 첫실행, 칩, 항목줄 } from './RunResultAssemble.fixture.js';
@@ -131,109 +129,51 @@ describe('풀 길이 없는 거르개', () => {
   });
 });
 
-describe('실행 기록의 결과 칸', () => {
-  const 빈집계: RunTally = { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 };
-  function 실행줄(runId: number): RunListRow {
-    return {
-      runId,
-      title: `ZRR 실행 ${String(runId)}`,
-      triggeredBy: 'zrr',
-      triggeredByName: '김검사',
-      env: 'qa',
-      baseUrl: 'https://qa.example.com',
-      serviceName: 'ZRR',
-      status: 'FINISHED',
-      origin: 'MANUAL',
-      rerunOf: null,
-      startedAt: '2026-09-22T00:00:00.000Z',
-      finishedAt: '2026-09-22T00:10:00.000Z',
-      counts: { total: 3, pass: 2, fail: 1, na: 0, running: 0 },
-      change: null,
-    };
-  }
-  function 뿌리() {
-    const { 조건번 } = use이동();
-    return <RunList key={조건번} kind="FN" service="ZRR" envs={[]} 판정하기={() => 실행까지} />;
-  }
-
-  it('다른 실행을 고르면 거르개는 풀리고 기록이 쌓인다 — 뒤로 가면 앞 실행에 건 거르개가 다시 선다', async () => {
-    window.location.hash = '#/runs/fn?run=2112';
-    vi.spyOn(api, 'runs').mockResolvedValue({ items: [실행줄(2113), 실행줄(2112)], total: 2, page: 1, pageSize: 20, summary: 빈집계 });
-    render(<뿌리 />);
-    await waitFor(() => expect(api.run).toHaveBeenCalledWith(2112));
-
-    fireEvent.click(screen.getByRole('button', { name: 'PC' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2112&device=desktop'));
-    const 칸수 = window.history.length;
-
-    fireEvent.click(screen.getByText('ZRR 실행 2113').closest('.run-row')!);
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2113'));
-    expect(window.history.length).toBe(칸수 + 1);
-
-    await act(async () => {
-      window.history.back();
-      await new Promise((끝) => setTimeout(끝, 30));
-    });
-
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2112&device=desktop'));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'PC' }).getAttribute('aria-pressed')).toBe('true'));
-  });
-
-  it('결과 칸의 칩은 기록을 쌓지 않는다', async () => {
-    window.location.hash = '#/runs/fn?run=2112';
-    vi.spyOn(api, 'runs').mockResolvedValue({ items: [실행줄(2112)], total: 1, page: 1, pageSize: 20, summary: 빈집계 });
-    render(<뿌리 />);
+describe('실행 기록에서 넘어온 조건(list=)', () => {
+  it('칩을 눌러도 list= 가 주소에 남는다 — 새로고침한 뒤에도 「← 실행 기록」이 그 조건으로 돌아간다', async () => {
+    window.location.hash = '#/runs/2112?list=state%3Dfailed%26page%3D2';
+    render(<RunResult runId={2112} 판정하기={() => 실행까지} />);
     await screen.findByText('이름-ZRR-002');
-    const 칸수 = window.history.length;
 
     fireEvent.click(칩('Fail'));
+    expect(window.location.hash).toBe('#/runs/2112?status=FAIL&list=state%3Dfailed%26page%3D2');
+    fireEvent.click(screen.getByRole('button', { name: '모바일' }));
 
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2112&status=FAIL'));
-    expect(window.history.length).toBe(칸수);
+    expect(window.location.hash).toBe('#/runs/2112?status=FAIL&device=mobile&list=state%3Dfailed%26page%3D2');
+    expect(screen.getByRole('link', { name: '← 실행 기록' }).getAttribute('href')).toMatch(/^#\/runs\/fn\?state=failed&page=2/);
   });
 
-  it('실행을 안 고른 채 거르개를 바꿔 맨 위 줄이 다른 실행이 되면 결과 칸은 처음 보기다 — 앞 실행의 거르개가 남지 않는다', async () => {
-    window.location.hash = '#/runs/fn';
-    vi.spyOn(api, 'runs').mockImplementation((_s, _p, 조건) =>
-      Promise.resolve({ items: [실행줄(조건?.state === 'failed' ? 2111 : 2112)], total: 1, page: 1, pageSize: 20, summary: 빈집계 }),
-    );
-    render(<뿌리 />);
-    fireEvent.click(await screen.findByRole('button', { name: 'PC' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?device=desktop'));
+  it('쪽을 넘기고 줄을 펴도 list= 가 남는다', async () => {
+    window.location.hash = '#/runs/2112?list=state%3Dfailed';
+    vi.mocked(api.run).mockImplementation((id) => Promise.resolve({ ...끝난실행(예순), runId: id }));
+    vi.spyOn(api, 'item').mockRejectedValue(new Error('상세 없음'));
+    render(<RunResult runId={2112} 판정하기={() => 실행까지} />);
+    fireEvent.click(await screen.findByRole('button', { name: '다음' }));
+    await waitFor(() => expect(줄수()).toBe(10));
+    fireEvent.click(줄단추('K55'));
 
-    fireEvent.change(screen.getByRole('combobox', { name: '상태' }), { target: { value: 'failed' } });
+    expect(window.location.hash).toBe('#/runs/2112?rowpage=2&open=K55&list=state%3Dfailed');
+  });
+
+  it('옆 실행으로 넘어가면 앞 실행에 건 거르개는 풀리고 list= 만 따라온다', async () => {
+    window.location.hash = '#/runs/2112?status=FAIL&list=state%3Dfailed';
+    const { rerender } = render(<RunResult runId={2112} 판정하기={() => 실행까지} />);
+    await screen.findByText('이름-ZRR-001');
+    expect(칩('Fail').getAttribute('aria-pressed')).toBe('true');
+
+    window.location.hash = '#/runs/2111?list=state%3Dfailed';
+    rerender(<RunResult runId={2111} 판정하기={() => 실행까지} />);
 
     await waitFor(() => expect(api.run).toHaveBeenCalledWith(2111));
-    expect(window.location.hash).toBe('#/runs/fn?state=failed');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'PC' }).getAttribute('aria-pressed')).toBe('false'));
+    await waitFor(() => expect(칩('Fail').getAttribute('aria-pressed')).not.toBe('true'));
+    expect(window.location.hash).toBe('#/runs/2111?list=state%3Dfailed');
   });
 
-  it('애플리케이션을 바꿔 고른 실행을 버리면 기록을 쌓지 않고 지금 칸을 고친다', async () => {
-    window.location.hash = '#/runs/fn?run=2112&device=desktop';
-    vi.spyOn(api, 'runs').mockImplementation((서비스) =>
-      Promise.resolve({ items: [실행줄(서비스 === 'ZRR' ? 2112 : 3001)], total: 1, page: 1, pageSize: 20, summary: 빈집계 }),
-    );
-    const { rerender } = render(<RunList kind="FN" service="ZRR" envs={[]} 판정하기={() => 실행까지} />);
-    await waitFor(() => expect(api.run).toHaveBeenCalledWith(2112));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'PC' }).getAttribute('aria-pressed')).toBe('true'));
-    const 칸수 = window.history.length;
+  it('조건 없이 열면 주소에 list= 를 만들어 넣지 않는다', async () => {
+    window.location.hash = '#/runs/2112';
+    render(<RunResult runId={2112} 판정하기={() => 실행까지} />);
+    await screen.findByText('이름-ZRR-002');
 
-    rerender(<RunList kind="FN" service="ZRX" envs={[]} 판정하기={() => 실행까지} />);
-
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn'));
-    expect(window.history.length).toBe(칸수);
-  });
-
-  it('보이는 맨 위 줄을 눌러 고르면 걸어 둔 거르개가 그대로다', async () => {
-    window.location.hash = '#/runs/fn';
-    vi.spyOn(api, 'runs').mockResolvedValue({ items: [실행줄(2112)], total: 1, page: 1, pageSize: 20, summary: 빈집계 });
-    render(<뿌리 />);
-    fireEvent.click(await screen.findByRole('button', { name: 'PC' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?device=desktop'));
-
-    fireEvent.click(screen.getByText('ZRR 실행 2112').closest('.run-row')!);
-
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2112&device=desktop'));
-    expect(screen.getByRole('button', { name: 'PC' }).getAttribute('aria-pressed')).toBe('true');
+    expect(window.location.hash).toBe('#/runs/2112');
   });
 });

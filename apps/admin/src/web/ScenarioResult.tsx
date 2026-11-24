@@ -10,6 +10,7 @@ import { use말, use언어 } from './i18n.js';
 import { 주소조건 } from './leaveGuard.js';
 import type { 판정하기 } from './runJudge.js';
 import { 케이스서비스 } from './role.js';
+import { 실행길 } from './RunNav.js';
 import { 실행자이름, 준비실패 } from './runState.js';
 import { scenarioApi } from './scenarioApi.js';
 import { FailGuide, RerunButton, useRerun, 멈춘단계, type 들어온곳 } from './ScenarioResultNext.js';
@@ -20,22 +21,10 @@ import { 미확정있나, 접은판정 } from './scenarioResultView.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, when } from './ui.js';
 import { use보는실행알림 } from './viewedRun.js';
 
-export function ScenarioResult({
-  runId,
-  판정하기,
-  칸안 = false,
-  on새실행,
-}: {
-  runId: number;
-  판정하기: 판정하기;
-  /** 실행 기록 › E2E 의 오른쪽 결과 칸 안에 그린다 (도메인/실행 §8.7 「A안」) */
-  칸안?: boolean;
-  /** 칸 안에서 다시 실행하면 화면을 떠나지 않고 새 실행을 칸에 연다 */
-  on새실행?: (runId: number) => void;
-}) {
+export function ScenarioResult({ runId, 판정하기 }: { runId: number; 판정하기: 판정하기 }) {
   const t = use말();
   const 언어 = use언어();
-  // 머리가 진행을 적으니 알림 줄은 이 실행의 도는 줄을 뺀다 — 실행 기록 결과 칸도 같다 (공통/5-화면공통 §8 「알림」)
+  // 머리가 진행을 적으니 알림 줄은 이 실행의 도는 줄을 뺀다 (공통/5-화면공통 §8 「알림」)
   use보는실행알림(runId);
   const res = useAsync(() => scenarioApi.result(runId), [runId]);
   const data = res.data;
@@ -57,14 +46,12 @@ export function ScenarioResult({
   const 첫케이스 = data?.parts.find((p) => p.tcId !== null)?.tcId ?? null;
   const 할수 = 판정하기(첫케이스 === null ? null : 케이스서비스(첫케이스));
   const 증적칸 = use증적(data === null ? null : { runId, status: data.status, evidence: data.evidence }, 할수, reload);
-  // 결과 칸(실행 기록 › E2E)은 목록 옆이라 돌아갈 곳이 없다 — 주소를 안 본다
-  const 어디서 = 칸안 ? null : 들어온곳읽기();
+  const 어디서 = 들어온곳읽기();
   // 모바일 시나리오는 원래 실행이 돈 곳으로 다시 돈다 — 흉내는 기기 칸이 비고 실제 폰만 찬다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   const 다시실행 = useRerun(
     data?.scenarioId ?? 0,
     data?.env ?? '',
     어디서,
-    on새실행,
     data?.platform === 'mobile' && data.device != null ? 'vision' : 'server',
     data === null ? null : { 시나리오: data.title, 단계수: data.parts.length, platform: data.platform },
   );
@@ -112,45 +99,32 @@ export function ScenarioResult({
   return (
     <>
       {다시실행.창 === null ? null : <ScenarioRunWindow runId={다시실행.창} 어디서={다시실행.어디서} on닫기={다시실행.창닫기} />}
-      {칸안 ? (
-        // 케이스 결과 칸(RunResult)과 같은 머리 — 고른 줄과 같은 제목을 크게 단다
-        <div className="box-head">
-          <h2 className="pane-title">
-            {data.title} <span className="pane-run">RUN {runId}</span>
-          </h2>
-          <div className="head-meta">{부제}</div>
-          {칩}
-          {머리다시}
-          <증적만들기버튼들 칸={증적칸} />
-          <증적알림과목록 칸={증적칸} 한줄로 />
-        </div>
-      ) : (
-        <>
-          <div className="scn-back">
-            {어디서 === 'scenarios' ? (
-              <a href="#/scenarios">{t('← E2E 테스트')}</a>
-            ) : 어디서 === 'scenario' ? (
-              <a href={`#/scenarios/${data.scenarioId}`}>{t('← SC-{번호} 시나리오', { 번호: data.scenarioId })}</a>
-            ) : (
-              <a href="#/runs/e2e">{t('← 실행 기록 › E2E')}</a>
-            )}
-          </div>
-          <Head
-            제목={data.title}
-            부제={부제}
-            행동={
-              <>
-                {칩}
-                {머리다시}
-                <증적만들기버튼들 칸={증적칸} />
-              </>
-            }
-          />
-        </>
-      )}
+      {/* 실행 기록에서 왔으면 「← 실행 기록」, E2E 테스트 · 시나리오에서 왔으면 그리로 돌아간다. 옆 실행으로 넘어가는 단추는 늘 선다 (도메인/실행 §8.7 「목록 화면과 결과 화면을 따로」) */}
+      <실행길
+        runId={runId}
+        목록="e2e"
+        접두사={첫케이스 === null ? null : 케이스서비스(첫케이스)}
+        돌아갈={
+          어디서 === 'scenarios' ? (
+            <a className="btn small ghost" href="#/scenarios">{t('← E2E 테스트')}</a>
+          ) : 어디서 === 'scenario' ? (
+            <a className="btn small ghost" href={`#/scenarios/${data.scenarioId}`}>{t('← SC-{번호} 시나리오', { 번호: data.scenarioId })}</a>
+          ) : undefined
+        }
+      />
+      <Head
+        제목={data.title}
+        부제={부제}
+        행동={
+          <>
+            {칩}
+            {머리다시}
+            <증적만들기버튼들 칸={증적칸} />
+          </>
+        }
+      />
 
-      {/* 결과 칸에서는 머리를 고정하고 이 아래만 스크롤한다 (도메인/실행 §8.7 「A안」) */}
-      <div className={칸안 ? 'screen pane-results scn-pane' : 'screen'}>
+      <div className="screen">
         {!running ? null : (
           <>
             <p className="scn-running" role="status">
@@ -173,7 +147,7 @@ export function ScenarioResult({
             {다시실행.오류}
           </p>
         )}
-        {칸안 ? null : <증적알림과목록 칸={증적칸} />}
+        <증적알림과목록 칸={증적칸} />
         <dl className="scn-info">
           {칸들.map(([라벨, 값]) => (
             <div key={라벨}>

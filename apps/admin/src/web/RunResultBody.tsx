@@ -82,8 +82,6 @@ interface Props {
   판정하기: 판정하기;
   /** 견주기가 실패했을 때의 문장. 결과는 그대로 서되 조용히 사라지지는 않는다 */
   견줌오류: string | null;
-  /** 실행 기록의 결과 칸 안 — 한 단이고 머리 아래 이 칸 하나가 스크롤한다 (도메인/실행 §8.7 「A안」) */
-  칸안: boolean;
   /** 거르개 · 쪽 · 펼친 줄 — 주소에 담긴다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」) */
   보기: 결과보기;
   바꾸기: (바꿀: 보기바꿈) => void;
@@ -92,7 +90,7 @@ interface Props {
 }
 
 export function 결과본문(props: Props) {
-  const { data, running, insights, 판정하기, 견줌오류, 칸안, 보기, 바꾸기, 열카드 } = props;
+  const { data, running, insights, 판정하기, 견줌오류, 보기, 바꾸기, 열카드 } = props;
   const { 판정 } = 보기;
   const t = use말();
   // 주소로 온 줄로 화면을 옮기는 것은 한 번이다 — 디바이스 칩을 바꾸면 표가 새로 서는데 그때마다 그 줄로 되돌아가면 안 된다. 다른 고리로 다시 오면(값이 바뀌면) 다시 옮긴다
@@ -175,11 +173,5 @@ export function 결과본문(props: Props) {
     </>
   );
 
-  return 칸안 ? (
-    <div className="screen rr pane-results">
-      <div className="rows-scroll rr-scroll">{본문}</div>
-    </div>
-  ) : (
-    <div className="screen rr">{본문}</div>
-  );
+  return <div className="screen rr">{본문}</div>;
 }

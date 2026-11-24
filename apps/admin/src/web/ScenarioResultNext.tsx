@@ -28,14 +28,12 @@ export function 멈춘단계<P extends Pick<ScenarioRunPart, 'status'> & { error
 }
 
 /**
- * `on새실행` 을 주면 주소를 옮기지 않고 넘긴다 — 실행 기록 결과 칸은 목록을 떠나지 않고 새 실행을 연다.
  * `mobileOn` 은 원래 실행이 돈 모바일 실행 위치다 — 같은 서버로 다시 돌리는 것처럼 같은 곳에서 다시 돈다
  */
 export function useRerun(
   scenarioId: number,
   env: string,
   어디서: 들어온곳,
-  on새실행?: (runId: number) => void,
   mobileOn: 모바일위치 = 'server',
   /** 시작 확인 상자의 이름표 — `시나리오` 줄에 적을 실행 제목 · 디바이스 */
   이름표: { 시나리오: string; 단계수: number; platform: Platform } | null = null,
@@ -52,9 +50,8 @@ export function useRerun(
     set오류(null);
     try {
       const { runId } = await scenarioApi.run(scenarioId, env, mobileOn);
-      // 실행 기록 결과 칸(on새실행)도 목록에서 새 실행을 고르면서 창을 띄운다 — 결과의 「다시 실행」은 어디서나 창 ⑥ 이다 (시나리오 §8.11)
+      // 결과의 「다시 실행」은 어디서나 창 ⑥ 이다 (시나리오 §8.11)
       set창(runId);
-      on새실행?.(runId);
     } catch (err) {
       set오류(message(err, 언어));
     } finally {

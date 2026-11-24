@@ -7,7 +7,7 @@ import { api, type RunListRow } from './api.js';
 import { RunResult } from './RunResult.js';
 import { 끝난응답, RUN_ID, 실행, 실행까지 } from './RunResult.fixture.js';
 import { 다른빌드들 } from './RunBuild.js';
-import { 실행줄 } from './RunListRow.js';
+import { 실행표줄 } from './RunListTable.js';
 
 afterEach(() => {
   cleanup();
@@ -20,20 +20,18 @@ function 결과(칸: Partial<Awaited<ReturnType<typeof api.run>>>) {
   return render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 }
 
-describe('실행 기록 줄 — 빌드 실행', () => {
-  it('빌드 실행은 시작 방식 대신 빌드 번호를 적고 실행자 앞에 「빌드」를 붙인다', () => {
+describe('실행 기록 표 — 빌드 실행', () => {
+  it('빌드 실행은 시작 방식 칸에 「빌드 실행」, 빌드 칸에 빌드 번호를 적는다', () => {
     const 줄: RunListRow = { ...실행, origin: 'BUILD', buildNo: '124', triggeredByName: '김QA' };
-    render(<실행줄 run={줄} 고름={false} on고르기={() => undefined} />);
-    const 글 = screen.getByRole('button').textContent ?? '';
-    expect(글).toContain('빌드 124');
-    expect(글).toContain('빌드 · 김QA');
-    expect(글).not.toContain('빌드 실행');
+    const { container } = render(<실행표줄 run={줄} 목록조건="" />);
+    const 칸 = [...container.querySelector('a.rt-line')!.children].map((el) => el.textContent);
+    expect([칸[3], 칸[4]]).toEqual(['빌드 실행', '124']);
   });
 
-  it('사람이 건 실행도 고정된 빌드 번호를 적는다', () => {
-    render(<실행줄 run={{ ...실행, origin: 'MANUAL', buildNo: '124' }} 고름={false} on고르기={() => undefined} />);
-    const 글 = screen.getByRole('button').textContent ?? '';
-    expect([글.includes('직접 실행'), 글.includes('빌드 124'), 글.includes('빌드 · ')]).toEqual([true, true, false]);
+  it('사람이 건 실행도 고정된 빌드 번호를 적고 빌드 칸 말고는 빌드를 말하지 않는다', () => {
+    const { container } = render(<실행표줄 run={{ ...실행, origin: 'MANUAL', buildNo: '124' }} 목록조건="" />);
+    const 칸 = [...container.querySelector('a.rt-line')!.children].map((el) => el.textContent);
+    expect([칸[3], 칸[4]]).toEqual(['직접 실행', '124']);
   });
 });
 

@@ -32,7 +32,6 @@ export const 시나리오말: Record<string, string> = {
   '지난 실행 기록과 리포트는 그대로 남습니다.': 'Past runs and reports stay as they are.',
   '삭제한 시나리오는 되살릴 수 없습니다.': 'An archived scenario cannot be brought back.',
   '기능 테스트 스크립트를 단계로 이어 붙여 만듭니다': 'Build one by chaining functional test scripts as steps',
-  '← 실행 기록 › E2E': '← Run history › E2E',
   'E2E · 시나리오 v{버전} · {디바이스}': 'E2E · scenario v{버전} · {디바이스}',
   '실행 시각': 'Run at',
   '소요 시간': 'Duration',

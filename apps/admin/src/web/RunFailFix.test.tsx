@@ -1,14 +1,12 @@
 // @vitest-environment jsdom
-// 실행 기록의 「자동 수정」 표시 — 「수정 후 통과」 카드 · 다시 실행에서 빼기 · 실행 줄 (도메인/BTS §8.15 「자동 수정 표시」 B)
+// 실행 기록의 「자동 수정」 표시 — 「수정 후 통과」 카드 · 다시 실행에서 빼기 (도메인/BTS §8.15 「자동 수정 표시」 B)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
-import type { FailureBts, RunListRow, 카드자동수정, 카드자동수정중 } from './api.js';
+import type { FailureBts, 카드자동수정, 카드자동수정중 } from './api.js';
 import { 실패다시실행 } from './RerunFailed.js';
-import { 실행 } from './RunResult.fixture.js';
 import { 그리기, 장치, 줄, 쪽, 케이스 } from './RunFailCard.fixture.js';
-import { 실행줄 } from './RunListRow.js';
 
 afterEach(() => {
   cleanup();
@@ -80,16 +78,6 @@ describe('Fail 다시 실행', () => {
       <실패다시실행 runId={20914} items={[줄(1, 'ZZI-0001', 'mobile', 'FAIL'), 줄(2, 'ZZI-0002', 'desktop', 'FAIL')]} env="qa" 된다 자동수정={['ZZI-0001']} />,
     );
     expect(screen.getByRole('button', { name: 'Fail 1건 다시 실행' })).toBeTruthy();
-  });
-});
-
-describe('실행 기록 줄', () => {
-  it('판정 칸에 「자동 수정 N」 — 0 이면 안 그린다', () => {
-    render(<실행줄 run={{ ...실행, autoFixed: 2 } as RunListRow} 고름={false} on고르기={() => undefined} />);
-    expect(screen.getByText('자동 수정 2')).toBeTruthy();
-    cleanup();
-    render(<실행줄 run={{ ...실행, autoFixed: 0 } as RunListRow} 고름={false} on고르기={() => undefined} />);
-    expect(screen.queryByText(/자동 수정/)).toBeNull();
   });
 });
 

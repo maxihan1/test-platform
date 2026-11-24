@@ -1,17 +1,12 @@
 // @vitest-environment jsdom
-// 실행 기록 › E2E 화면 검사 (도메인/시나리오 §8.11 · 실행 §8.7 「A안」). 본보기 RunList.test.tsx 와 같은 꼴이다
+// 실행 기록 › E2E 화면 검사 (도메인/시나리오 §8.11 · 실행 §8.7 「목록 화면과 결과 화면을 따로」). 본보기 RunList.test.tsx 와 같은 꼴이다
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import type { RunTally } from './api.js';
-import type { 판정 } from './role.js';
-import { 결과 as 시나리오결과 } from './ScenarioResult.fixture.js';
-import { E2E띠색 } from './scenarioResultView.js';
 import { scenarioApi, type ScenarioRunList as 목록답, type ScenarioRunRow } from './scenarioApi.js';
 import { ScenarioRunList } from './ScenarioRunList.js';
-
-const 운영: 판정 = () => true;
 
 beforeEach(() => {
   window.location.hash = '#/runs/e2e';
@@ -70,19 +65,13 @@ const 빈쪽 = (summary: 목록답['summary']): 목록답 => ({ items: [], total
 async function 그리기(답: 목록답 = 한쪽) {
   const 스파이 = vi.spyOn(scenarioApi, 'runs').mockResolvedValue(답);
   const 결과 = vi.spyOn(scenarioApi, 'result').mockReturnValue(new Promise(() => {}));
-  const 것 = render(<ScenarioRunList service="ZSL" 판정하기={() => 운영} />);
+  const 것 = render(<ScenarioRunList service="ZSL" />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
   return { ...것, 스파이, 결과 };
 }
 
-const 줄들 = (container: HTMLElement) => [...container.querySelectorAll<HTMLElement>('.run-row')];
-
-describe('ScenarioRunList 머리', () => {
-  it('위치는 「실행 기록 › E2E」 다 — API 애플리케이션도 같다', async () => {
-    await 그리기();
-    expect(await screen.findByRole('heading', { level: 1, name: '실행 기록 › E2E' })).toBeTruthy();
-  });
-});
+const 줄들 = (container: HTMLElement) => [...container.querySelectorAll<HTMLElement>('.rt-line')];
+const 칸들 = (el: HTMLElement) => [...el.children].map((c) => c.textContent ?? '');
 
 describe('ScenarioRunList 호출 · 거르개', () => {
   it('애플리케이션과 1쪽으로 부른다', async () => {
@@ -111,6 +100,18 @@ describe('ScenarioRunList 호출 · 거르개', () => {
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, { state: 'failed' }));
     expect(window.location.hash).toBe('#/runs/e2e?state=failed&service=ZSL');
   });
+
+  it('애플리케이션을 바꾸면 건 조건을 버린다', async () => {
+    window.location.hash = '#/runs/e2e?state=failed&q=결제&page=2&service=ZSL';
+    const 스파이 = vi.spyOn(scenarioApi, 'runs').mockResolvedValue(한쪽);
+    const { rerender } = render(<ScenarioRunList service="ZSL" />);
+    await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 2, { q: '결제', state: 'failed' }));
+
+    rerender(<ScenarioRunList service="MKT" />);
+
+    await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('MKT', 1, {}));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/e2e?service=MKT'));
+  });
 });
 
 describe('ScenarioRunList 머리 · 표머리', () => {
@@ -123,65 +124,92 @@ describe('ScenarioRunList 머리 · 표머리', () => {
     expect(머리?.querySelector('.head-meta')?.textContent).toBe('모두 10건');
   });
 
-  it('표머리가 기능 · UI 탭과 같은 둘이다', async () => {
+  it('칸 이름이 RUN · 시나리오 · 대상 서버 · 시작 · 소요 시간 · 판정 · 단계 다', async () => {
     await 그리기();
-    const 이름들 = screen.getAllByRole('columnheader').map((el) => el.textContent);
-    expect(이름들).toEqual(['실행', '판정']);
+    await screen.findByText(/ZSL 시나리오 11/);
+    expect(screen.getAllByRole('columnheader').map((el) => el.textContent)).toEqual(['RUN', '시나리오', '대상 서버', '시작', '소요 시간', '판정', '단계']);
   });
 });
 
 describe('ScenarioRunList 줄', () => {
-  it('번호 · 이름과 버전 · 실행자 · 상태 · 단계 수 · 멈춘 단계를 적는다', async () => {
+  it('줄 전체가 그 실행의 결과 화면 고리다 — 번호 · 이름과 버전 · 대상 서버 · 소요 · 판정 · 단계 수 · 멈춘 단계', async () => {
     const { container } = await 그리기();
     await screen.findByText(/ZSL 시나리오 12/);
 
-    const 줄들 = container.querySelectorAll('.run-row');
-    const 첫 = 줄들[0] as HTMLElement;
-    expect(첫.querySelector('.title')?.textContent).toContain('ZSL 시나리오 11 v3');
-    expect(첫.querySelector('.title small')?.textContent).toMatch(/^RUN 11 · /);
-    expect(첫.querySelector('.title small')?.textContent).toContain('대상 서버 qa');
-    expect(첫.querySelector('.title small')?.textContent).toContain('실행자 김검사');
-    expect(첫.querySelector('.title small')?.textContent).toContain('완료');
-    expect(within(첫).getByText('단계 5개')).toBeTruthy();
-    expect(within(첫).getByText('모두 Pass')).toBeTruthy();
-
-    expect(within(줄들[1] as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
+    const [첫, 둘] = 줄들(container) as [HTMLElement, HTMLElement];
+    expect(첫.tagName).toBe('A');
+    expect(첫.getAttribute('href')).toBe('#/runs/11');
+    expect(둘.getAttribute('href')).toBe('#/runs/12');
+    const 칸 = 칸들(첫);
+    expect(칸).toHaveLength(8);
+    expect(칸[1]).toBe('11');
+    expect(칸[2]).toBe('ZSL 시나리오 11 v3');
+    expect(칸[3]).toBe('qa');
+    expect(칸[5]).toBe('10분');
+    expect(칸[6]).toBe('Pass');
+    expect(칸[7]).toBe('단계 5개 · 모두 Pass');
+    expect(칸들(둘)[7]).toBe('단계 5개 · 3번에서 종료');
   });
 
-  it('도는 중이면 멈춘 단계 글자가 비어 있다', async () => {
+  it('결과 화면에서 읽던 실행자 · 시작 방식 · 서버 주소는 줄에 없다', async () => {
+    const { container } = await 그리기();
+    await screen.findByText(/ZSL 시나리오 11/);
+
+    for (const 글 of ['김검사', 'https://qa.example.com', '대상 서버 qa']) expect(줄들(container)[0]?.textContent).not.toContain(글);
+  });
+
+  it('끝까지 돈 줄은 상태 꼬리표가 없다', async () => {
+    const { container } = await 그리기();
+    await screen.findByText(/ZSL 시나리오 11/);
+    expect(container.querySelector('.rt-line .case-tag')).toBeNull();
+  });
+
+  it('도는 중이면 판정 칸이 「진행 중」이고 소요 시간 · 멈춘 단계가 비어 있다', async () => {
     const { container } = await 그리기({
       ...한쪽,
       items: [줄(13, { status: 'RUNNING', finishedAt: null, verdict: null })],
     });
     await screen.findByText(/ZSL 시나리오 13/);
 
-    const 행 = container.querySelector('.run-row') as HTMLElement;
-    expect(within(행).queryByText('모두 Pass')).toBeNull();
-    expect(행.querySelector('.title small')?.textContent).toContain('진행 중');
-    expect(행.querySelector('.run-verdict')?.firstElementChild?.textContent).toBe('진행 중');
-    expect(행.querySelector('.v-pass, .v-fail, .v-na')).toBeNull();
+    const 행 = 줄들(container)[0]!;
+    const 칸 = 칸들(행);
+    expect(칸[5]).toBe('—');
+    expect(칸[6]).toBe('진행 중');
+    expect(칸[7]).toBe('단계 5개');
+    expect(행.querySelector('.vd-pass, .v-fail, .vd-na')).toBeNull();
+    expect(행.querySelector('.case-tag')).toBeNull();
+    expect(행.classList.contains('fail')).toBe(false);
   });
 
-  it('실패와 판정 없음은 멈춘 단계가 같아도 판정 칩으로 갈린다', async () => {
+  it('실패와 판정 없음은 멈춘 단계가 같아도 판정 글자로 갈린다', async () => {
     const { container } = await 그리기({
       ...한쪽,
       items: [줄(21, { verdict: 'FAIL', stoppedAt: 3 }), 줄(22, { verdict: 'NA', stoppedAt: 3, env: 'stage' })],
     });
     await screen.findByText(/ZSL 시나리오 22/);
 
-    const [실패, 없음] = Array.from(container.querySelectorAll('.run-row')) as HTMLElement[];
-    expect(within(실패 as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
-    expect(within(없음 as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
-    expect(실패?.querySelector('.v-fail')?.textContent).toBe('Fail');
-    expect(없음?.querySelector('.v-na')?.textContent).toBe('Not tested');
-    expect(없음?.querySelector('.title small')?.textContent).toContain('대상 서버 stage');
+    const [실패, 없음] = 줄들(container) as [HTMLElement, HTMLElement];
+    expect(within(실패).getByText('Fail')).toBeTruthy();
+    expect(within(없음).getByText('Not tested')).toBeTruthy();
+    expect(칸들(실패)[7]).toBe('단계 5개 · 3번에서 종료');
+    expect(칸들(없음)[7]).toBe('단계 5개 · 3번에서 종료');
+    expect(칸들(없음)[3]).toBe('stage');
   });
 
-  it('통과 줄은 통과 칩이다', async () => {
-    const { container } = await 그리기();
-    await screen.findByText(/ZSL 시나리오 11/);
+  it('왼쪽 띠는 Fail 줄에만 선다', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [
+        줄(21),
+        줄(22, { unconfirmed: true }),
+        줄(23, { verdict: 'FAIL', stoppedAt: 2 }),
+        줄(24, { verdict: 'NA' }),
+        줄(25, { status: 'RUNNING', finishedAt: null, verdict: null }),
+      ],
+    });
+    await screen.findByText(/ZSL 시나리오 21/);
 
-    expect(container.querySelector('.run-row .v-pass')?.textContent).toBe('Pass');
+    expect(줄들(container).map((el) => el.classList.contains('fail'))).toEqual([false, false, true, false, false]);
   });
 
   it('미확정이면 판정과 상관없이 「미확정」 꼬리표를 단다', async () => {
@@ -191,37 +219,53 @@ describe('ScenarioRunList 줄', () => {
     });
     await screen.findByText(/ZSL 시나리오 14/);
 
-    const 칩들 = container.querySelectorAll('.run-row .case-tag');
+    const 칩들 = container.querySelectorAll('.rt-line .case-tag');
     expect(칩들).toHaveLength(2);
     expect(칩들[0]?.textContent).toBe('미확정');
-    expect((container.querySelectorAll('.run-row')[0] as HTMLElement).contains(칩들[0] as Element)).toBe(true);
+    expect(줄들(container)[0]?.contains(칩들[0] as Element)).toBe(true);
+    expect(줄들(container)[1]?.querySelector('.case-tag')).toBeNull();
   });
 
-  it('왼쪽 띠가 E2E띠색 값과 같다', async () => {
-    const 줄들 = [
-      줄(21),
-      줄(22, { unconfirmed: true }),
-      줄(23, { verdict: 'FAIL', stoppedAt: 2 }),
-      줄(24, { verdict: 'NA' }),
-      줄(25, { status: 'RUNNING', finishedAt: null, verdict: null }),
-    ];
-    const { container } = await 그리기({ ...한쪽, items: 줄들 });
-    await screen.findByText(/ZSL 시나리오 21/);
+  it('중단 · 준비 실패는 상태 꼬리표로 선다', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [줄(31, { status: 'ABORTED', verdict: 'NA' }), 줄(32, { status: 'PREP_FAILED', verdict: 'NA' })],
+    });
+    await screen.findByText(/ZSL 시나리오 31/);
 
-    const 띠들 = [...container.querySelectorAll<HTMLElement>('.run-row .gutter')].map((el) => el.style.background);
-    expect(띠들).toEqual(줄들.map(E2E띠색));
-    expect(띠들[0]).toBe('var(--pass)');
-    expect(띠들[1]).toBe('var(--pass)');
-    expect(띠들[2]).toBe('var(--fail)');
+    expect([...container.querySelectorAll('.rt-line .case-tag')].map((el) => el.textContent)).toEqual(['중단', '준비 실패']);
   });
-});
 
-describe('ScenarioRunList 집계 띠', () => {
-  it('기능 · UI 탭처럼 머리 집계 띠가 없다 (실행 §8.7 「A안」)', async () => {
+  it('목록에 건 조건을 list= 로 실어 결과 화면이 그 조건으로 돌아가게 한다', async () => {
     const { container } = await 그리기();
     await screen.findByText(/ZSL 시나리오 11/);
 
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'failed' } });
+    await waitFor(() => expect(줄들(container)[0]?.getAttribute('href')).toBe('#/runs/11?list=state%3Dfailed'));
+  });
+});
+
+describe('ScenarioRunList 목록만 그린다', () => {
+  it('결과 칸이 없다 — 시나리오 결과를 부르지 않고 고른 줄 표시도 없다', async () => {
+    const { container, 결과 } = await 그리기();
+    await screen.findByText(/ZSL 시나리오 11/);
+
+    expect(결과).not.toHaveBeenCalled();
+    expect(container.querySelector('.runs-split')).toBeNull();
     expect(container.querySelector('.stats')).toBeNull();
+    expect(container.querySelector('[aria-current]')).toBeNull();
+    expect(screen.queryByRole('button', { name: '목록으로' })).toBeNull();
+    expect(window.location.hash).toBe('#/runs/e2e?service=ZSL');
+  });
+
+  it('실행을 고른 옛 주소는 그 실행의 결과 화면 주소로 옮기고 목록을 그리지 않는다', async () => {
+    window.location.hash = '#/runs/e2e?run=12&state=failed&service=ZSL';
+    const 스파이 = vi.spyOn(scenarioApi, 'runs').mockResolvedValue(한쪽);
+    const { container } = render(<ScenarioRunList service="ZSL" />);
+
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/12?list=state%3Dfailed%26service%3DZSL'));
+    expect(스파이).not.toHaveBeenCalled();
+    expect(container.textContent).toBe('');
   });
 });
 
@@ -231,6 +275,7 @@ describe('ScenarioRunList 빈 목록', () => {
 
     expect(await screen.findByText(/이 애플리케이션에서 아직 실행한 E2E 시나리오가 없습니다/)).toBeTruthy();
     expect(screen.getByRole('link', { name: '시나리오 목록으로' }).getAttribute('href')).toBe('#/scenarios');
+    expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
   });
 
   it('조건을 걸었으면 다른 문장과 조건 지우기를 준다', async () => {
@@ -245,87 +290,5 @@ describe('ScenarioRunList 빈 목록', () => {
     스파이.mockResolvedValue(한쪽);
     fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, {}));
-  });
-});
-
-describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () => {
-  it('주소에 실행이 없으면 맨 위 줄을 결과 칸에 연다 — 주소에는 적지 않는다', async () => {
-    const { container, 결과 } = await 그리기();
-    await screen.findByText(/ZSL 시나리오 11/);
-
-    expect(결과).toHaveBeenCalledWith(11);
-    expect(줄들(container)[0]?.getAttribute('aria-current')).toBe('true');
-    expect(container.querySelector('.runs-split.picked')).toBeNull();
-    expect(window.location.hash).toBe('#/runs/e2e?service=ZSL');
-  });
-
-  it('줄을 누르면 화면을 떠나지 않고 결과 칸이 그 실행으로 바뀌며 주소에 남는다 — 상자도 「결과 보기」도 없다', async () => {
-    const { container, 결과 } = await 그리기();
-    await screen.findByText(/ZSL 시나리오 12/);
-
-    expect(screen.queryByRole('button', { name: '결과 보기' })).toBeNull();
-    fireEvent.click(줄들(container)[1]!);
-
-    await waitFor(() => expect(결과).toHaveBeenCalledWith(12));
-    expect(window.location.hash).toBe('#/runs/e2e?run=12&service=ZSL');
-    expect(줄들(container)[1]?.getAttribute('aria-current')).toBe('true');
-    expect(container.querySelector('.runs-split.picked')).not.toBeNull();
-    expect(screen.queryByRole('dialog')).toBeNull();
-  });
-
-  it('줄을 누르면 방문 기록이 한 칸 쌓이고 거르개를 바꾸면 쌓이지 않는다 (WEB-F8-01)', async () => {
-    const { container } = await 그리기();
-    await screen.findByText(/ZSL 시나리오 12/);
-    const 길이 = window.history.length;
-
-    fireEvent.click(줄들(container)[1]!);
-    expect(window.history.length).toBe(길이 + 1);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'failed' } });
-    expect(window.history.length).toBe(길이 + 1);
-  });
-
-  it('주소의 실행과 거르개로 연다 — 조건 밖이면 까닭을 한 줄 적는다', async () => {
-    window.location.hash = '#/runs/e2e?run=5&state=failed&page=2';
-    const { 스파이, 결과 } = await 그리기();
-
-    expect(스파이).toHaveBeenCalledWith('ZSL', 2, { state: 'failed' });
-    await waitFor(() => expect(결과).toHaveBeenCalledWith(5));
-    expect(await screen.findByText('선택한 실행은 지금 조건 밖입니다')).toBeTruthy();
-  });
-
-  it('결과 칸에서 다시 실행하면 첫 쪽으로 돌아가 새 실행을 고른다 — 뒤쪽에 머물면 고른 줄이 목록에 없다', async () => {
-    window.location.hash = '#/runs/e2e?run=12&page=2';
-    const { 스파이, 결과 } = await 그리기();
-    결과.mockResolvedValue(시나리오결과());
-    vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 99 });
-    fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
-    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
-
-    await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, {}));
-    expect(window.location.hash).toBe('#/runs/e2e?run=99&service=ZSL');
-  });
-
-  it('「목록으로」를 누르면 고른 실행을 풀어 좁은 창에서 목록이 다시 보인다', async () => {
-    window.location.hash = '#/runs/e2e?run=12';
-    const { container } = await 그리기();
-    await screen.findByText(/ZSL 시나리오 12/);
-
-    fireEvent.click(screen.getByRole('button', { name: '목록으로' }));
-
-    expect(container.querySelector('.runs-split.picked')).toBeNull();
-    expect(window.location.hash).toBe('#/runs/e2e?service=ZSL');
-  });
-});
-
-describe('ScenarioRunList 결과 칸 권한', () => {
-  it('결과 칸 버튼은 띠가 아니라 그 시나리오 실행의 케이스 애플리케이션 권한으로 가른다', async () => {
-    window.location.hash = '#/runs/e2e?run=12';
-    vi.spyOn(scenarioApi, 'runs').mockResolvedValue(한쪽);
-    vi.spyOn(scenarioApi, 'result').mockResolvedValue(시나리오결과());
-    const 보기만: 판정 = () => false;
-    render(<ScenarioRunList service="ZSL" 판정하기={(접두사) => (접두사 === 'XSX' ? 보기만 : 운영)} />);
-
-    await screen.findAllByText(/결제 시나리오/);
-    expect(screen.queryByRole('button', { name: 'qa에서 다시 실행' })).toBeNull();
   });
 });

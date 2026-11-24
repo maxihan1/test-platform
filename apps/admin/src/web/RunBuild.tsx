@@ -1,19 +1,7 @@
-// 실행에 고정한 빌드 번호 한 조각과 「다른 빌드가 깔려 있었다」 한 줄 — 실행 기록 줄 · 실행 결과 머리가 같이 쓴다 (도메인/실행 §3.11 「실행에 빌드 번호를 남긴다」)
+// 「다른 빌드가 깔려 있었다」 한 줄 — 실행 결과 머리가 쓴다 (도메인/실행 §3.11 「실행에 빌드 번호를 남긴다」)
 
-import type { RunSummary, 폰에깔린앱 } from './api.js';
-import { use말, type 값들 } from './i18n.js';
-
-// 한 건 실행은 실행 기록 줄로 서지 않아(도메인/실행 §3.2) 그 번호의 결과 화면을 주소로 곧장 열 때만 이 글이 보인다
-const 시작방식글 = { MANUAL: '직접 실행', SCHEDULED: '정기 실행', RERUN: 'Fail 다시 실행', BUILD: '빌드 실행', SINGLE: '한 건 실행' } as const;
-
-/**
- * 시작 방식 · 빌드 번호 조각(앞에 ` · ` 가 붙는다). 빌드 실행은 시작 방식을 적지 않는다 — 실행자가 이미 「빌드 · <이름>」이다.
- * 사람 · 정기 실행도 그 줄의 최신 빌드를 고정해 빌드 번호가 붙는다
- */
-export function 시작빌드글(run: Pick<RunSummary, 'origin' | 'buildNo'>, t: (키: string, 값?: 값들) => string): string {
-  const 방식 = run.origin === undefined || run.origin === 'BUILD' ? '' : ` · ${t(시작방식글[run.origin])}`;
-  return run.buildNo == null ? 방식 : 방식 + ' · ' + t('빌드 {번호}', { 번호: run.buildNo });
-}
+import type { 폰에깔린앱 } from './api.js';
+import { use말 } from './i18n.js';
 
 /**
  * 폰이 읽은 빌드 코드(versionCode) 가운데 실행 빌드 번호와 다른 것. 앱 판(versionName)은 빌드마다 안 바뀌는 일이 많아 견주지 않는다.

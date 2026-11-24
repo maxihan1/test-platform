@@ -23,6 +23,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
   sessionStorage.clear();
+  window.location.hash = '';
 });
 
 // 끝난 실행은 요약 한 줄 → 실행 차례 표다. 미확정 항목은 제 차례에 꼬리표만 단다 (도메인/실행 §8.3, 2026-10-11)
@@ -94,7 +95,7 @@ describe('결과 화면 조립 — 머리 한 줄 · 요약 한 줄 · 표', () 
   });
 
   it('실행 정보 · 증적 문서는 머리 한 줄에 있고 옆 칸이 없다 (점검 2.2)', async () => {
-    연다(섞인항목, 견줌, false, [증적('PDF', 'READY')]);
+    연다(섞인항목, 견줌, [증적('PDF', 'READY')]);
     const 머리 = await waitFor(() => {
       const 칸 = document.querySelector('.head');
       expect(칸?.textContent).toContain('만듦');
@@ -108,15 +109,6 @@ describe('결과 화면 조립 — 머리 한 줄 · 요약 한 줄 · 표', () 
     expect(document.querySelector('.rr-side')).toBeNull();
     expect(screen.queryByText('실행 정보')).toBeNull();
     expect(screen.queryByText('같은 사유로 실패')).toBeNull();
-  });
-
-  it('결과 칸에서는 머리에 실행 제목과 번호 · 정보 한 줄이 서고 요약 한 줄부터 스크롤한다', async () => {
-    연다(섞인항목, 견줌, true);
-    const 제목 = await screen.findByRole('heading', { level: 2, name: /RUN/ });
-
-    expect(제목.closest('.box-head')?.querySelector('.head-meta')?.textContent).toContain('대상 서버 qa');
-    expect(document.querySelector('.rows-scroll .rf-sum')).not.toBeNull();
-    expect(document.querySelector('.rr-side')).toBeNull();
   });
 });
 
@@ -210,13 +202,15 @@ describe('주소의 케이스(`&tc=`)로 화면을 옮기는 것은 한 번이�
   });
 
   it('디바이스 칩을 바꿔 표가 새로 서도 그 줄로 다시 옮기지 않는다', async () => {
+    window.location.hash = `#/runs/${String(RUN_ID)}?tc=ZRR-001`;
     const 옮김 = vi.fn();
     Element.prototype.scrollIntoView = 옮김;
     vi.spyOn(api, 'run').mockResolvedValue(끝난실행(섞인항목));
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     vi.spyOn(api, 'failures').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 5 });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 열카드="ZRR-001" />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
     await screen.findByText('이름-ZRR-001');
+    expect(document.querySelector('button.rf-line[aria-expanded="true"]')?.closest('.rf-row')?.querySelector('.rf-id')?.textContent).toBe('ZRR-001');
     expect(옮김).toHaveBeenCalledTimes(1);
 
     fireEvent.click(within(screen.getByRole('group', { name: '디바이스 필터' })).getByRole('button', { name: '모바일' }));

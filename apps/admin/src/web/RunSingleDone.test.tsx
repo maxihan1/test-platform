@@ -60,7 +60,7 @@ describe('한 건 실행 진행 창 (도메인/실행 §8.9 「완료 모달」)
     // 무엇의 수인지 풀어 쓴다 — 앞 판 「실패 11 → 10」은 무엇을 센 수인지 몰랐다 (점검표 B15d)
     expect(screen.getByText('RUN 40 Fail 11건 → 10건')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '결과 보기' }));
-    expect(window.location.hash).toBe('#/runs/fn?run=40&tc=ZRS-001');
+    expect(window.location.hash).toBe('#/runs/40?tc=ZRS-001');
     expect(지켜보는실행()).toBeNull();
   });
 
@@ -152,16 +152,16 @@ describe('한 건을 걸면 (도메인/실행 §3.2 「저장」)', () => {
     expect(지켜보는실행()).toEqual({ runId: 51, 열림: true });
   });
 
-  it('한 건 모양이어도 서버가 새 RUN(RERUN)으로 만들었으면 실행 기록으로 간다', async () => {
+  it('한 건 모양이어도 서버가 새 RUN(RERUN)으로 만들었으면 그 실행의 결과 화면으로 간다', async () => {
     vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 51, attachedTo: null });
     vi.spyOn(api, 'run').mockResolvedValue({ ...끝난응답, runId: 51, origin: 'RERUN' });
     const { result } = renderHook(() => useRunStart());
     await act(async () => {
       await result.current.걸기({ ...요청(['ZRS-001']), rerunOf: 40 });
     });
-    // 실행 기록으로 옮기고 진행 창은 열어 둔다 (점검표 B7)
+    // 결과 화면으로 옮기고 진행 창은 열어 둔다 (점검표 B7)
     expect(지켜보는실행()).toEqual({ runId: 51, 열림: true });
-    expect(window.location.hash).toBe('#/runs/fn?run=51');
+    expect(window.location.hash).toBe('#/runs/51');
   });
 
   it('여러 건이어도 서버가 한 건으로 만들었으면(같은 프로시저) 진행 창을 연다', async () => {
@@ -175,17 +175,17 @@ describe('한 건을 걸면 (도메인/실행 §3.2 「저장」)', () => {
     expect(window.location.hash).toBe('');
   });
 
-  it('여러 건을 걸어 서버가 묶음 실행으로 만들었으면 실행 기록으로 간다', async () => {
+  it('여러 건을 걸어 서버가 묶음 실행으로 만들었으면 그 실행의 결과 화면으로 간다', async () => {
     vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 52, attachedTo: null });
     vi.spyOn(api, 'run').mockResolvedValue({ ...끝난응답, runId: 52, origin: 'MANUAL' });
     const { result } = renderHook(() => useRunStart());
     await act(async () => {
       await result.current.걸기(요청(['ZRS-001', 'ZRS-002']));
     });
-    expect(window.location.hash).toBe('#/runs/fn?run=52');
+    expect(window.location.hash).toBe('#/runs/52');
   });
 
-  it('반복이 1 이 아니면 실행을 읽지 않고 실행 기록으로 간다', async () => {
+  it('반복이 1 이 아니면 실행을 읽지 않고 그 실행의 결과 화면으로 간다', async () => {
     vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 52, attachedTo: null });
     const 읽기 = vi.spyOn(api, 'run');
     const { result } = renderHook(() => useRunStart());
@@ -193,6 +193,6 @@ describe('한 건을 걸면 (도메인/실행 §3.2 「저장」)', () => {
       await result.current.걸기(요청(['ZRS-001'], 3));
     });
     expect(읽기).not.toHaveBeenCalled();
-    expect(window.location.hash).toBe('#/runs/fn?run=52');
+    expect(window.location.hash).toBe('#/runs/52');
   });
 });

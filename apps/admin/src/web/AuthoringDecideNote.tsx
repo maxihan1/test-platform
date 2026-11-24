@@ -8,7 +8,7 @@ import { 막힘줄, type 고름하기 } from './AuthoringDecideItems.js';
 import type { 결정항목 } from './decideApi.js';
 import type { 고른값 } from './decideView.js';
 import { use말 } from './i18n.js';
-import { 실행기록주소 } from './route.js';
+import { 실행결과주소 } from './route.js';
 
 type 설명항목 = Extract<결정항목, { kind: 'NOTE' }>;
 
@@ -27,7 +27,7 @@ export function 설명판정({ x, 고른, on고름, 편집, on편집 }: { x: 설
       <div className="decide-box">
         <span className="hint">{t('미션')}</span>
         <span>
-          <span className="prd-id">{x.tcId}</span> {x.name} · RUN {x.runId} · <a href={실행기록주소(x.tcId, x.runId, true)}>{t('실행 결과 보기')}</a>
+          <span className="prd-id">{x.tcId}</span> {x.name} · RUN {x.runId} · <a href={실행결과주소(x.runId, { 펼칠: x.tcId })}>{t('실행 결과 보기')}</a>
         </span>
         <span className="hint">{t('기획서')}</span>
         <span>

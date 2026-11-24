@@ -2,10 +2,10 @@
 
 import { use말 } from './i18n.js';
 
-export function RunPrepFailed({ prepNote, 칸안 }: { prepNote: string | null | undefined; 칸안: boolean }) {
+export function RunPrepFailed({ prepNote }: { prepNote: string | null | undefined }) {
   const t = use말();
   return (
-    <div className={칸안 ? 'screen pane-results' : 'screen'}>
+    <div className="screen">
       <div className="empty">
         <p>{t('테스트 데이터 준비에 실패해 테스트를 실행하지 않았습니다')}</p>
         {/* 까닭은 서버가 가린 응답 원문이라 옮기지 않는다 */}

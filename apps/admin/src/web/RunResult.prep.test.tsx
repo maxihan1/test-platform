@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-// 준비 실패 실행의 결과 칸 · 실행 기록 줄 색을 본다 (도메인/실행 §3.2 「실행 전 준비」 「화면 · 집계」)
+// 준비 실패 실행의 결과 칸 · 실행 기록 줄을 본다 (도메인/실행 §3.2 「실행 전 준비」 「화면 · 집계」)
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from './api.js';
 import { RunResult } from './RunResult.js';
-import { 띠색 } from './RunListRow.js';
-import { 끝난응답, RUN_ID, 실행까지 } from './RunResult.fixture.js';
+import { 실행표줄 } from './RunListTable.js';
+import { 끝난응답, RUN_ID, 실행, 실행까지 } from './RunResult.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -32,7 +32,10 @@ describe('준비 실패 실행', () => {
     expect(screen.queryByRole('button', { name: /다시 실행$/ })).toBeNull();
   });
 
-  it('실행 기록 줄의 띠는 실패 색이 아니라 중립이다', () => {
-    expect(띠색({ status: 'PREP_FAILED', counts: { total: 2, pass: 0, fail: 0, na: 2, running: 0, unconfirmed: 0 } })).toBe('var(--na)');
+  it('실행 기록 줄에는 「준비 실패」 꼬리표가 서고 Fail 띠는 없다 — 판정이 없는 실행이다', () => {
+    const { container } = render(<실행표줄 run={{ ...실행, status: 'PREP_FAILED', counts: { total: 2, pass: 0, fail: 0, na: 2, running: 0, unconfirmed: 0 } }} 목록조건="" />);
+    const 줄 = container.querySelector('a.rt-line')!;
+    expect(줄.classList.contains('fail')).toBe(false);
+    expect(줄.querySelector('.case-tag')?.textContent).toBe('준비 실패');
   });
 });

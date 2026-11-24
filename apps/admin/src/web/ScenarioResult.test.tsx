@@ -21,15 +21,31 @@ describe('머리', () => {
     expect((await screen.findByRole('heading', { name: '결제 시나리오' })).textContent).toBe('결제 시나리오');
     expect(screen.getByText('E2E · 시나리오 v3 · PC')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'SC-12' }).getAttribute('href')).toBe('#/scenarios/12');
-    expect(screen.getByRole('link', { name: '← 실행 기록 › E2E' }).getAttribute('href')).toBe('#/runs/e2e');
+    expect(screen.getByRole('link', { name: '← 실행 기록' }).getAttribute('href')).toBe('#/runs/e2e?service=XSX');
   });
 
-  it('결과 칸에서는 뒤로 고리 없이 칸 머리에 제목과 RUN 번호가 선다', async () => {
-    연다(결과(), true);
+  it('실행 기록에서 건 조건(list=)을 그대로 들고 돌아간다 — 그 실행의 애플리케이션 목록으로', async () => {
+    window.location.hash = '#/runs/77?list=state%3Dfailed';
+    연다(결과());
     await screen.findByText('단계별 결과');
-    expect(screen.queryByRole('link', { name: '← 실행 기록 › E2E' })).toBeNull();
-    expect(document.querySelector('.box-head .pane-title')?.textContent).toBe('결제 시나리오 RUN 77');
-    expect(document.querySelector('.box-head .head-meta')?.textContent).toContain('SC-12');
+    expect(screen.getByRole('link', { name: '← 실행 기록' }).getAttribute('href')).toBe('#/runs/e2e?state=failed&service=XSX');
+  });
+
+  it('머리 위에 「이전 실행」 · 「다음 실행」 단추가 선다 — 이웃 번호가 있으면 결과 화면 고리, 없으면 꺼진 단추', async () => {
+    window.location.hash = '#/runs/77?list=state%3Dfailed';
+    vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과());
+    const 이웃 = vi.spyOn(api, 'runNeighbors').mockResolvedValue({ prev: 76, next: null });
+    render(<ScenarioResult runId={77} 판정하기={() => () => true} />);
+    expect((await screen.findByRole('link', { name: '‹ 이전 실행' })).getAttribute('href')).toBe('#/runs/76?list=state%3Dfailed');
+    expect(screen.getByRole('button', { name: '다음 실행 ›' }).hasAttribute('disabled')).toBe(true);
+    expect(이웃).toHaveBeenCalledWith(77, 'state=failed');
+  });
+
+  it('결과 칸 머리는 없다 — 제목은 한 번만 선다', async () => {
+    연다(결과());
+    await screen.findByText('단계별 결과');
+    expect(document.querySelector('.box-head')).toBeNull();
+    expect(screen.getAllByRole('heading', { name: '결제 시나리오' })).toHaveLength(1);
   });
 
   it('실패는 판정 배지 · 끝난 실행은 「리포트 생성」 메뉴에 형식마다 한 줄', async () => {

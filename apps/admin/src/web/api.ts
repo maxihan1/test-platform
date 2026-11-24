@@ -34,6 +34,8 @@ export interface Paged<T> {
 export interface CaseRow {
   tcId: string;
   name: string;
+  /** 스캐너가 케이스 코드에서 읽은 확인 문장 — 「기대 결과」다. 못 읽었거나 이 칸 전의 줄이면 null (도메인/카탈로그 §7) */
+  verifyStatements?: string[] | null;
   platforms: Platform[];
   /** 실행 창이 PC 게임 값을 「Windows」 하나로 접기 전의 선언. 화면만 쓴다 — 시험 실행이 값마다 차례로 보낸다 (RunWindow 디바이스칸) */
   윈도우선언?: Platform[];
@@ -481,6 +483,8 @@ export interface RunItemDetail extends RunItemSummary {
   // 기대결과 칸의 라벨. 카탈로그가 아니라 이것을 읽는다 (SPEC §3.3).
   // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다
   expectedSchema: JsonSchema;
+  /** 실행을 만들 때 박제한 그 케이스의 확인 문장. 이 칸 전의 항목은 null — 화면이 돈 절차의 문장으로 대신한다 (도메인/실행 §7) */
+  verifyStatements?: string[] | null;
   steps: StepResult[];
   /** 프로시저 판정이 다 난 뒤 프로세스가 실패로 끝난 사유 · 러너에 못 보내고 닫은 사유. 옛 꼴 케이스와 사유가 없는 실행 단위는 null (도메인/실행 §3.2 「돌리기 · 저장」) */
   execError?: { message: string; stack?: string } | null;
@@ -1394,6 +1398,9 @@ export const api = {
     call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null; installedApps?: 폰에깔린앱[]; mobileDevices?: string[]; autoFixedCases?: string[] }>(
       `/runs/${runId}`,
     ),
+
+  /** 그 실행의 앞뒤 실행 번호 — 조건글은 실행 기록 목록에 걸어 둔 조건(`q=…&state=…`) 그대로다 (도메인/실행 §7 `GET /api/runs/:runId/neighbors`) */
+  runNeighbors: (runId: number, query: string) => call<{ prev: number | null; next: number | null }>(`/runs/${runId}/neighbors${query === '' ? '' : `?${query}`}`),
 
   /** 직전 실행과 견준 결과. 실행 상세 응답과 별개의 조회다 (SPEC §7) */
   insights: (runId: number) => call<RunInsights>(`/runs/${runId}/insights`),

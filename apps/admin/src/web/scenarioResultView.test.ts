@@ -2,7 +2,7 @@ import type { ScenarioLink } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
 import type { ScenarioRunPart, ScenarioRunRow } from './scenarioApi.js';
-import { E2E띠색, 값연결글, 건너뜀번호, 멈춘단계글자, 멈춘사유글자, 미확정있나, 접은판정, 화면오류한줄 } from './scenarioResultView.js';
+import { 값연결글, 건너뜀번호, 멈춘단계글자, 멈춘사유글자, 미확정있나, 접은판정, 화면오류한줄 } from './scenarioResultView.js';
 
 describe('접은판정', () => {
   it('도는 중이면 부품이 NA 여도 null', () => {
@@ -57,7 +57,7 @@ describe('값연결글', () => {
   });
 });
 
-describe('멈춘단계글자 · E2E띠색', () => {
+describe('멈춘단계글자', () => {
   const 줄 = (extra: Partial<ScenarioRunRow>): ScenarioRunRow =>
     ({ status: 'FINISHED', stoppedAt: null, unconfirmed: false, verdict: 'PASS', ...extra }) as ScenarioRunRow;
 
@@ -72,19 +72,9 @@ describe('멈춘단계글자 · E2E띠색', () => {
     expect(멈춘단계글자(줄({ status: 'ABORTED', verdict: 'NA' }), 'ko')).toBe('');
   });
 
-  it('E2E띠색 다섯', () => {
-    expect(E2E띠색(줄({ status: 'RUNNING', verdict: null }))).toBe('var(--line-2)');
-    expect(E2E띠색(줄({}))).toBe('var(--pass)');
-    expect(E2E띠색(줄({ unconfirmed: true }))).toBe('var(--pass)');
-    expect(E2E띠색(줄({ verdict: 'FAIL' }))).toBe('var(--fail)');
-    expect(E2E띠색(줄({ verdict: 'NA' }))).toBe('var(--na)');
-    expect(E2E띠색(줄({ verdict: null }))).toBe('var(--line-2)');
-  });
-
-  it('준비 실패 실행은 판정이 없다 — 「1번에서 종료」 대신 「준비 실패」이고 판정 색을 안 쓴다', () => {
+  it('준비 실패 실행은 판정이 없다 — 「1번에서 종료」 대신 「준비 실패」', () => {
     expect(접은판정([{ status: 'NA' }, { status: 'NA' }], 'PREP_FAILED')).toBeNull();
     expect(멈춘단계글자(줄({ status: 'PREP_FAILED', stoppedAt: 1, verdict: 'NA' }), 'ko')).toBe('준비 실패');
-    expect(E2E띠색(줄({ status: 'PREP_FAILED', verdict: 'NA' }))).toBe('var(--line-2)');
   });
 });
 

@@ -27,7 +27,6 @@ export const 대시보드말: Record<string, string> = {
   // 서비스별 품질
   '마지막 실행': 'Last run',
   '회귀 실패 {수}': '{수} regressions',
-  '해결 {수}': '{수} fixed',
   '변화 없음': 'No change',
 
   // 그래프 칸 제목 (그래프는 DashboardCharts)

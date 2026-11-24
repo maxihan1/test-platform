@@ -71,15 +71,6 @@ export function 멈춘단계글자(줄: ScenarioRunRow, 언어: 언어): string 
   return 줄.verdict === 'PASS' ? t('모두 Pass', 언어) : '';
 }
 
-/** 판정이 아닌 것(도는 중 · 판정 없음)에는 판정 색을 안 쓴다. 미확정이 섞여도 통과는 통과 색이다 */
-export function E2E띠색(줄: ScenarioRunRow): string {
-  if (줄.status === 'RUNNING' || 줄.status === 준비실패) return 'var(--line-2)';
-  if (줄.verdict === 'PASS') return 'var(--pass)';
-  if (줄.verdict === 'FAIL') return 'var(--fail)';
-  if (줄.verdict === 'NA') return 'var(--na)';
-  return 'var(--line-2)';
-}
-
 /**
  * 잡히지 않은 오류(pageerror)의 stack 을 한 줄로 — 오류 문장과 처음 부른 자리(파일 이름:줄)만.
  * 실패 자리에서 원인을 바로 읽게 한다. 전체 stack 은 아래 콘솔 탭에 그대로 있다

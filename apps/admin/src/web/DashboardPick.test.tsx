@@ -172,14 +172,14 @@ describe('칸에서 내려가기', () => {
     render(<Dashboard 서비스열기={서비스열기} {...기본재료} />);
     const 칸 = (await screen.findByRole('heading', { name: '회귀 실패' })).closest('section')!;
     const 기능 = within(칸).getByRole('link', { name: /ZDA-001 이름/ });
-    expect(기능.getAttribute('href')).toBe('#/runs/fn?run=7&tc=ZDA-001');
+    expect(기능.getAttribute('href')).toBe('#/runs/7?tc=ZDA-001');
     const UI = within(칸).getByRole('link', { name: /ZDA-UI-014 이름/ });
-    expect(UI.getAttribute('href')).toBe('#/runs/ui?run=6&tc=ZDA-UI-014');
+    expect(UI.getAttribute('href')).toBe('#/runs/6?tc=ZDA-UI-014');
     fireEvent.click(UI);
     expect(서비스열기).not.toHaveBeenCalled();
     const 서랍 = document.getElementById('fail-drawer')!;
     const 고리 = within(서랍).getByRole('link', { name: '실행 기록에서 보기' });
-    expect(고리.getAttribute('href')).toBe('#/runs/ui?run=6&tc=ZDA-UI-014');
+    expect(고리.getAttribute('href')).toBe('#/runs/6?tc=ZDA-UI-014');
     fireEvent.click(고리);
     expect(서비스열기).toHaveBeenCalledWith(2);
   });

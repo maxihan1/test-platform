@@ -182,7 +182,7 @@ describe('다시 실행한 줄', () => {
   it('다시 돌린 결과가 있으면 줄 아래에 「RUN n에서 Pass」 고리가 붙고 없으면 줄이 없다', () => {
     흐름그리기([항목(1, 'A', 'android', 'FAIL'), 항목(2, 'B', 'android', 'FAIL')], { 다시돌림: new Map([['A', { runId: 130, status: 'PASS' as const }]]) });
 
-    expect(within(줄안('A')).getByRole('link', { name: 'RUN 130에서 Pass' }).getAttribute('href')).toBe('#/runs/fn?run=130&tc=A');
+    expect(within(줄안('A')).getByRole('link', { name: 'RUN 130에서 Pass' }).getAttribute('href')).toBe('#/runs/130?tc=A');
     expect(줄안('A').querySelector('.rf-tags')).not.toBeNull();
     expect(줄안('B').querySelector('.rf-tags')).toBeNull();
   });

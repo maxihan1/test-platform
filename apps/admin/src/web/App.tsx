@@ -148,21 +148,8 @@ function Screen({
       );
     case 'runs':
       // E2E 는 시나리오 실행만 모으는 별도 화면이다 — 줄 모양과 거르개가 UI · 기능 목록과 다르다
-      // 결과 칸은 `?run=` 의 실행 서비스로 버튼을 가른다 — 주소의 실행이 띠와 다른 서비스일 수 있다(항목 상세의 「실행 결과」 고리)
-      if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
-      return (
-        <RunList
-          key={current.kind}
-          kind={current.kind}
-          service={prefix}
-          envs={service?.envs ?? []}
-          판정하기={(접두사) => 판정을만든다(user, 접두사)}
-          서비스바꿈={(접두사) => {
-            const 번호 = user.services.find((서비스) => 서비스.prefix === 접두사)?.id;
-            if (번호 !== undefined) on서비스번호(번호);
-          }}
-        />
-      );
+      if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} />;
+      return <RunList key={current.kind} kind={current.kind} service={prefix} envs={service?.envs ?? []} />;
     case 'compatSets':
       // 애플리케이션마다 새로 그린다 — 앞 애플리케이션의 세트 목록이 남지 않게. API 는 화면이 없어 메뉴도 없다 — 주소로 와도 안내만 한다
       if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션에는 호환성 점검이 없습니다')}</div>;

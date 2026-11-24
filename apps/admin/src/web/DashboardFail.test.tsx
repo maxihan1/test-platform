@@ -67,7 +67,7 @@ describe('회귀 실패 서랍', () => {
     expect(within(서랍).getByRole('heading', { level: 2 }).textContent).toBe('회귀 실패 · RUN 7');
     expect(await within(서랍).findByRole('heading', { name: '카드로 결제한다' })).toBeTruthy();
     expect(서랍.querySelector('details')?.open).toBe(true);
-    expect(within(서랍).getByRole('link', { name: '실행 기록에서 보기' }).getAttribute('href')).toBe('#/runs/fn?run=7&tc=ZDA-001');
+    expect(within(서랍).getByRole('link', { name: '실행 기록에서 보기' }).getAttribute('href')).toBe('#/runs/7?tc=ZDA-001');
     expect(서비스열기).not.toHaveBeenCalled();
     expect(within(서랍).queryByRole('button', { name: '화면이 맞음' })).toBeNull();
     expect(within(서랍).queryByRole('button', { name: '결함' })).toBeNull();

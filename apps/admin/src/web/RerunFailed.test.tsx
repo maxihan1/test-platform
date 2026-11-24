@@ -156,15 +156,14 @@ describe('실패다시실행', () => {
     vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
-    const on걸었다 = vi.fn();
-    render(<실패다시실행 runId={20914} items={실패둘} env="stage" 된다 on걸었다={on걸었다} />);
+    render(<실패다시실행 runId={20914} items={실패둘} env="stage" 된다 />);
     fireEvent.click(screen.getByRole('button', { name: 'Fail 2건 다시 실행' }));
     await screen.findByRole('dialog');
 
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
     시작누름();
 
-    await waitFor(() => expect(on걸었다).toHaveBeenCalledWith(20915));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/20915'));
     expect(만들기.mock.calls[0]?.[0]).toMatchObject({ rerunOf: 20914, env: 'stage' });
   });
 
@@ -187,7 +186,7 @@ describe('실패다시실행', () => {
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
     const 일부만 = [항목('ZRS-001', 'PASS', 'desktop'), 항목('ZRS-001', 'FAIL', 'mobile'), 항목('ZRS-002', 'FAIL', 'desktop'), 항목('ZRS-002', 'FAIL', 'mobile')];
-    render(<실패다시실행 runId={20914} items={일부만} env="stage" 된다 on걸었다={vi.fn()} />);
+    render(<실패다시실행 runId={20914} items={일부만} env="stage" 된다 />);
     fireEvent.click(screen.getByRole('button', { name: 'Fail 2건 다시 실행' }));
     await screen.findByRole('dialog');
 
@@ -207,7 +206,7 @@ describe('실패다시실행', () => {
     vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
-    render(<실패다시실행 runId={20914} items={[항목('ZRS-001', 'FAIL', 'mobile')]} env="stage" 된다 on걸었다={vi.fn()} />);
+    render(<실패다시실행 runId={20914} items={[항목('ZRS-001', 'FAIL', 'mobile')]} env="stage" 된다 />);
     fireEvent.click(screen.getByRole('button', { name: 'Fail 1건 다시 실행' }));
     await screen.findByRole('dialog');
 
