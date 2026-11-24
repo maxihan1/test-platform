@@ -579,7 +579,7 @@ POST /mcp
     items 는 끝난 실패 · 미실행만(실패 먼저 · 30줄씩 page 로 넘긴다 · 그 쪽 다음이 있으면 truncated · 도는 중인 항목은 counts.running 으로만) { tcId, tcName, platform, status, attempt, durationMs, error, params, unconfirmed, rerunRunId? } — error 는 { message(500자), stack?(앞 1,000자) }, params 는 값마다 200자(글이 아닌 값은 JSON 글로 재서 넘으면 잘린 JSON 글로 바꾼다). 통과는 counts 숫자로만 센다. triggeredBy 는 박제한 이름(없으면 계정). evidence 는 { id, format, status, error(500자), generatedAt }
     실행 결과 화면 몸(GET /api/runs/:runId)과 다르다 — 입력 칸 모양 · 기록 번호 · 원래 결과(rerun.original) · 깔린 앱 · 서버 안 증적 경로 · counts.total 과 겹치는 itemsTotal 을 뺐다. 실행 뒤에 지운 케이스의 항목도 그대로 센다 (MCP 최적화 2026-11-02)
     테스트 프로시저 (2026-11-23 · TP-F1-04 — 반영 2026-11-24 TP-F3-19 · E2E 결과 줄은 TP-F4-24 · 정본은 챗봇.md §3.14 「테스트 프로시저」) — counts 에 blocked 가 는다(실행.md §7). items 한 줄에 procId · procName · blockedBy 가 는다(옛 꼴 케이스는 없다).
-      Blocked 줄도 미실행이라 items 에 든다 — error.message 는 'BLOCKED' 그대로이고 막은 케이스는 blockedBy 다. run_search 의 items[] 에도 blockedBy 가 는다(그 케이스가 그 실행에서 막혀 끝났나)
+      Blocked 줄도 미실행이라 items 에 든다 — error.message 는 'BLOCKED' 그대로이고 막은 케이스는 blockedBy 다. run_search 의 items[] 에도 blocked: true(Blocked 줄만 — 막은 케이스 칸이 빈 Blocked 줄도 가른다) · blockedBy 가 는다(그 케이스가 그 실행에서 막혀 끝났나 · 2026-11-24 TP-F3-19)
       map_search 의 케이스 줄에 procId · procName · procSeq 가 는다(카탈로그의 그 칸 그대로 — 실행.md §3.2 「테스트 프로시저 실행」 계약 블록). run_list 는 케이스 실행 줄의 summary(counts)에 blocked 가 는다 — 실행 기록 목록 줄의 숫자 그대로다. 계약 블록은 챗봇.md §7
   — note_read: 이름 없이 { version, savedAt, docs: [{ name, summary, length }] }(목차 — 문서 차례는 늘 있는 다섯 · 기능 문서 · 지난 기록) · name 을 주면 { version, savedAt, name, summary, body } · 노트가 아직 없거나 그 이름 문서가 없으면 NOT_FOUND · 이은 BTS 가 없으면 NOT_LINKED
 
