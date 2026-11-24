@@ -9,6 +9,7 @@ import { FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { 게임실패자료 } from '../prd/gameFailData.js';
 import type { 부르기함수 } from './client.js';
 import { 실패등록 } from './failReport.js';
 import { 테스트수정실행뒤 } from './testFixRerun.js';
@@ -181,6 +182,20 @@ describe.skipIf(연결 === undefined)('프로시저 안 케이스의 Issue Bunke
     expect(글).toContain('2. ******** 로 로그인한다 ← 여기서 실패');
     expect(글).toContain('F libc    : Fatal signal 6 — 비밀번호 ******** 거절');
     expect(글).not.toContain('XPB-PW-');
+  });
+
+  it('게임 고침의 실패 자료는 실행 단위 폴더에서 읽고 같은 프로시저 앞 케이스의 비밀값도 가린다', async () => {
+    const runId = await 실행([
+      { tcId: 'XPB-FN-101', status: 'PASS' },
+      { tcId: 'XPB-FN-102', status: 'FAIL' },
+    ]);
+    const 단위 = Number((await pool.query<{ exec_id: string }>('SELECT exec_id FROM run_item WHERE run_id = $1 LIMIT 1', [runId])).rows[0]!.exec_id);
+    const 폴더 = join(runDir(String(runId), String(단위)), FARM_EVIDENCE_DIR);
+    mkdirSync(폴더, { recursive: true });
+    writeFileSync(join(폴더, 'game-tree.txt'), '/Canvas/Login/XPB-PW-101');
+    const 자료 = await 게임실패자료(서비스, runId, 'XPB-FN-102');
+    expect(자료).toMatchObject({ game: { tree: '/Canvas/Login/********', errors: null } });
+    expect(JSON.stringify(자료)).not.toContain('XPB-PW-');
   });
 
   it('한 건에서 Blocked 로 끝난 케이스는 붙는 실행의 옛 Fail 로 「또 실패」 댓글을 달지 않고, 그 한 건에서 실패한 케이스만 올린다', async () => {
