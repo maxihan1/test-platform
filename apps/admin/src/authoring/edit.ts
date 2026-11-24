@@ -17,6 +17,8 @@ export interface 케이스정보 {
   tcId: string;
   active: boolean;
   expectedSchema: unknown;
+  /** 프로시저 안 케이스만 — 그 프로시저 번호(`test_case.proc_id`) */
+  procId?: string | null;
 }
 
 export interface 고치기판 {
@@ -26,7 +28,8 @@ export interface 고치기판 {
   비밀번호들: string[];
 }
 
-export type 고치기결과 = { edits: 고칠것[] } | { error: 'BAD_EDIT'; detail: string };
+/** procDelete — 고침이 모두 프로시저 안 케이스의 삭제다. 고치기 행 대신 작성 행이 선다 (도메인/작성 §3.6 「★ 테스트 프로시저 작성」 「삭제」) */
+export type 고치기결과 = { edits: 고칠것[] } | { procDelete: string[] } | { error: 'BAD_EDIT'; detail: string };
 
 /**
  * `별칭` 행이 「고치기 실행」인가 — SQL 참거짓 식. 케이스 고치기와 그 다시 적용 행만 `params.edits` 를 가진다.
@@ -44,6 +47,12 @@ export function 고치기실행인가(행: { params: unknown }): boolean {
 /** 행 params 의 edits. 고치기 실행이 아니면 null — 집기 응답과 반영 뒤 저장값 지우기가 같이 읽는다 */
 export function 행의고칠것(params: unknown): unknown[] | null {
   return isPlainObject(params) && Array.isArray(params.edits) ? params.edits : null;
+}
+
+/** 행 params 의 procDelete.cases — 프로시저 안 케이스의 삭제로 선 작성(과 그 재실행)이 아니면 null */
+export function 행의삭제케이스(params: unknown): string[] | null {
+  const 칸 = isPlainObject(params) ? params.procDelete : undefined;
+  return isPlainObject(칸) && Array.isArray(칸.cases) ? 칸.cases.filter((x): x is string => typeof x === 'string') : null;
 }
 
 // 정본은 catalog/rules.ts 의 SECRET_NAMES 다 — 그쪽은 검사기 묶음이라 import 하면 화면 쪽 의존이 딸려 온다.
@@ -149,7 +158,12 @@ export function 고칠것검사(본문: unknown, 판: 고치기판): 고치기�
 
   const 본것 = new Set<string>();
   try {
-    return { edits: items.map((item) => 줄검사(item, 판, 본것)) };
+    const edits = items.map((item) => 줄검사(item, 판, 본것));
+    const 프로시저삭제 = edits.filter((e) => 'delete' in e && 판.케이스들.get(e.tcId)?.procId != null).map((e) => e.tcId);
+    if (프로시저삭제.length === 0) return { edits };
+    // 행 하나가 자식 없이 도는 고치기이면서 자식이 도는 작성일 수 없다 — 화면이 둘로 나눠 보낸다
+    if (프로시저삭제.length < edits.length) throw new 거절(프로시저삭제[0]!);
+    return { procDelete: 프로시저삭제 };
   } catch (e) {
     if (e instanceof 거절) return { error: 'BAD_EDIT', detail: e.detail };
     throw e;

@@ -7,15 +7,18 @@ import { 뿌리최신식 } from './chainSql.js';
 import { 뿌리잠그고 } from './history.js';
 import { db } from './store.js';
 
+/** 작성을 세우는 자리들이 같이 잡는 서비스 잠금 — 트랜잭션이 끝나면 풀린다 */
+async function 열린작성잠금(손: PoolClient, 서비스: number): Promise<void> {
+  await 손.query(`SELECT pg_advisory_xact_lock(hashtext('authoring-open'), ($1::bigint % 2147483647)::int)`, [서비스]);
+}
+
 /**
  * 그 애플리케이션의 열린 작성 뿌리 번호들 — 폐기 안 됨 · 최신 실행이 대기 · 도는 중 · 끝났고 반영 전(작성 · 고치기 DONE) · 반영 중 · 반영 실패.
  * 반영 실패는 최신식이 실패한 머지를 건너뛰어 앞 DONE 이 최신이라 든다. 작성 실패 · 중단 · 초안 · 병합된 반영은 안 든다. `빼고` 는 그 뿌리 자신의 재실행 · 방금 병합한 뿌리처럼 셈에서 뺄 번호다.
  * `손`(트랜잭션)을 주면 서비스 잠금을 먼저 잡는다 — 확인과 넣기 사이에 다른 요청이 끼면 둘이 같이 열린다(#14679 꼴). 트랜잭션이 끝나면 풀린다
  */
 export async function 열린작성(서비스: number, 손?: PoolClient, 빼고 = 0): Promise<number[]> {
-  if (손 !== undefined) {
-    await 손.query(`SELECT pg_advisory_xact_lock(hashtext('authoring-open'), ($1::bigint % 2147483647)::int)`, [서비스]);
-  }
+  if (손 !== undefined) await 열린작성잠금(손, 서비스);
   const r = await (손 ?? (await db())).query<{ root_id: string }>(
     `WITH RECURSIVE ${뿌리최신식("service_id = $1 AND kind IN ('AUTHOR', 'EDIT') AND discarded_at IS NULL")}
      SELECT 뿌리.root_id FROM 뿌리 JOIN authoring_request m ON m.id = 뿌리.latest
@@ -39,16 +42,39 @@ export async function 막고제출(요청: number, 서비스: number): Promise<n
 
 /**
  * 고칠 tcId 가운데 하나라도 끝내기 `result.cases` 에 든 열린 작성 뿌리 — 케이스 고치기가 같은 케이스를 두 PR 로 고치지 않게(EDIT_OPEN).
+ * `프로시저들` 을 주면 그 프로시저 파일을 고친 작성도 든다 — 고친 작성이 파일 안 케이스를 다 싣지만, 그 케이스를 걷은 작성이면 번호로는 안 잡힌다.
  * 다 쓴 작성만 본다: 끝났고 반영 전 · 반영 실패는 최신 실행의 목록, 반영 중은 그 머지가 반영하는 실행의 목록. 도는 중인 작성은 무엇을 쓸지 몰라 안 막는다
  */
-export async function 케이스쓴열린작성(손: PoolClient, 서비스: number, tcIds: string[]): Promise<number[]> {
+export async function 케이스쓴열린작성(손: PoolClient, 서비스: number, tcIds: string[], 프로시저들: string[] = []): Promise<number[]> {
   const r = await 손.query<{ root_id: string }>(
     `WITH RECURSIVE ${뿌리최신식("service_id = $1 AND kind = 'AUTHOR' AND discarded_at IS NULL")}
      SELECT 뿌리.root_id FROM 뿌리
        JOIN authoring_request m ON m.id = 뿌리.latest
        JOIN authoring_request d ON d.id = CASE WHEN m.kind = 'MERGE' THEN m.source_id ELSE m.id END
       WHERE (m.kind = 'MERGE' AND m.status IN ('PENDING', 'RUNNING') OR m.kind <> 'MERGE' AND m.status = 'DONE')
-        AND EXISTS (SELECT 1 FROM unnest($2::text[]) t WHERE d.result->'cases' @> jsonb_build_array(jsonb_build_object('tcId', t)))
+        AND EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(d.result->'cases') = 'array' THEN d.result->'cases' ELSE '[]'::jsonb END) c
+                     WHERE c->>'tcId' = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($3::text[]) p WHERE c->>'file' LIKE '%/' || p || '.spec.ts'))
+      ORDER BY 뿌리.root_id`,
+    [서비스, tcIds, 프로시저들],
+  );
+  return r.rows.map((x) => Number(x.root_id));
+}
+
+/**
+ * 프로시저 안 케이스를 무엇을 고칠지 정해진 채 쥔 열린 작성 뿌리 — 삭제 작성(`params.procDelete`)과 테스트 수정(`params.testFix`). 대기 · 도는 중도 센다.
+ * 열림은 `열린작성` 과 같다. 확인과 넣기 사이에 그 요청이 서지 않게 같은 잠금을 잡는다 (도메인/작성 §3.6 「★ 테스트 프로시저 작성」 「겹치는 요청」)
+ */
+export async function 케이스쥔열린작성(손: PoolClient, 서비스: number, tcIds: string[]): Promise<number[]> {
+  await 열린작성잠금(손, 서비스);
+  const r = await 손.query<{ root_id: string }>(
+    `WITH RECURSIVE ${뿌리최신식("service_id = $1 AND kind = 'AUTHOR' AND discarded_at IS NULL AND (params ? 'procDelete' OR params ? 'testFix')")}
+     SELECT 뿌리.root_id FROM 뿌리
+       JOIN authoring_request m ON m.id = 뿌리.latest
+       JOIN authoring_request r ON r.id = 뿌리.root_id
+      WHERE (m.status IN ('PENDING', 'RUNNING') OR (m.status = 'DONE' AND m.kind <> 'MERGE'))
+        AND EXISTS (SELECT 1 FROM unnest($2::text[]) t
+                     WHERE r.params->'procDelete'->'cases' @> to_jsonb(t)
+                        OR r.params->'testFix'->'cases' @> jsonb_build_array(jsonb_build_object('tcId', t)))
       ORDER BY 뿌리.root_id`,
     [서비스, tcIds],
   );

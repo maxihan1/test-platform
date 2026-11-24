@@ -7,7 +7,7 @@ import { API서비스인가 } from './apiDoc.js';
 import { 행케이스 } from './cases.js';
 import { 사슬식 } from './chainSql.js';
 import { 행커버리지 } from './coverage.js';
-import { 행의고칠것 } from './edit.js';
+import { 행의고칠것, 행의삭제케이스 } from './edit.js';
 import { 보류들 } from './held.js';
 import { 결정수, 밖화면뿌리 } from './params.js';
 import { 기준판 } from '../prd/store.js';
@@ -75,6 +75,11 @@ function 수정케이스들(p: Record<string, unknown>): string[] {
   return [...new Set(줄들.flatMap((c) => (typeof (c as { tcId?: unknown } | null)?.tcId === 'string' ? [(c as { tcId: string }).tcId] : [])))];
 }
 
+/** 고치기의 고칠 것 — 프로시저 안 케이스의 삭제로 선 작성은 그 케이스들의 지우기로 읽는다 */
+function 줄의고칠것(p: Record<string, unknown>): unknown[] | null {
+  return 행의삭제케이스(p)?.map((tcId) => ({ tcId, delete: true })) ?? 행의고칠것(p);
+}
+
 /** 많은 차례로 셋과 나머지 수. 같으면 처음 나온 차례 — Map 은 넣은 차례를 지킨다 */
 function 많은차례(셈: Map<string, number>): { 위: string[]; 더: number } {
   const 줄들 = [...셈.entries()].sort((a, b) => b[1] - a[1]);
@@ -83,7 +88,8 @@ function 많은차례(셈: Map<string, number>): { 위: string[]; 더: number } 
 
 function 종류(x: 줄, api: boolean): 요약종류 {
   const p = x.root_params;
-  if (x.root_kind === 'EDIT') return 'EDIT';
+  // 프로시저 안 케이스의 삭제는 작성 행이지만 사람에게는 케이스 수정이다 (§3.6 「★ 테스트 프로시저 작성」 「삭제 작성 행」)
+  if (x.root_kind === 'EDIT' || 행의삭제케이스(p) !== null) return 'EDIT';
   // Issue Bunker 테스트 수정은 결정(decision)도 같이 달고 오지만 목록에서는 따로 보인다
   if (typeof p.testFix === 'object' && p.testFix !== null) return 'TEST_FIX';
   if (p.prdApply === true) return 결정수(p.decision) === null ? 'PRD_APPLY' : 'DECISION';
@@ -204,7 +210,7 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
       화면셈.set(이름, (화면셈.get(이름) ?? 0) + n);
     }
     const 화면 = 많은차례(화면셈);
-    const 고칠것 = kind === 'EDIT' ? 행의고칠것(x.root_params) : null;
+    const 고칠것 = kind === 'EDIT' ? 줄의고칠것(x.root_params) : null;
     const tcIds = kind === 'TEST_FIX' ? 수정케이스들(x.root_params) : (고칠것 ?? []).map((e) => (e as { tcId: string }).tcId);
     const 지우기수 = (고칠것 ?? []).filter((e) => (e as { delete?: unknown }).delete === true).length;
     결과표.set(Number(x.root_id), {
@@ -263,7 +269,7 @@ function 기능세기(항목들: PrdItem[]): Map<string, number> {
  * 지도에 없는 케이스(요구사항 번호가 없는 UI 케이스 등)는 세지 않는다
  */
 async function 고칠케이스기능들(서비스: number, 뿌리들: 줄[]): Promise<Map<string, Map<string, number>>> {
-  const 케이스들 = new Map(뿌리들.map((x) => [x.root_id, (행의고칠것(x.root_params) ?? []).map((e) => (e as { tcId: string }).tcId)]));
+  const 케이스들 = new Map(뿌리들.map((x) => [x.root_id, (줄의고칠것(x.root_params) ?? []).map((e) => (e as { tcId: string }).tcId)]));
   const 모든케이스 = [...new Set([...케이스들.values()].flat())];
   if (모든케이스.length === 0) return new Map();
   const pool = await db();
