@@ -9,7 +9,7 @@ import { FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 팜머리 } from '../execution/farm.js';
 import { 점검저장 } from './runStore.js';
-import { type 점검파일, type 화면파일, 그림이름, 점검읽기, 화면줄들 } from './uiCheck.js';
+import { type 점검파일, type 케이스단계, type 화면줄, type 화면파일, 그림이름, 점검읽기, 프로시저화면줄들, 화면줄들 } from './uiCheck.js';
 
 // 간격 · 상한은 한 곳에 둔다 — 검사가 짧게 줄여 쓴다
 export const 설정 = {
@@ -96,30 +96,56 @@ async function Chrome점검(곳: 팜곳, id: number, sid: string): Promise<점�
   return 점검;
 }
 
+/** 점검이 끝날 때까지 받는다 — 끝난 점검, 기다려도 안 오면 'missing'. 받다 깨지면 던진다. 번호는 러너 폴더 번호(옛 꼴 케이스 줄 · 프로시저 실행 단위)다 */
+async function 점검받기(곳: 팜곳, 번호: number, 끝: number, Chrome세션: string | undefined): Promise<점검파일 | 'missing'> {
+  for (;;) {
+    await 쉬기(설정.점검간격ms);
+    const 점검 = Chrome세션 === undefined ? await 러너점검(곳.runId, 번호) : await Chrome점검(곳, 번호, Chrome세션);
+    if (점검 === '없음') return 'missing';
+    if (점검 !== null && 점검.status !== 'checking') return 점검;
+    if (Date.now() - 끝 >= 설정.점검상한ms) return 'missing';
+  }
+}
+
 /**
- * 점검이 끝날 때까지 받아 화면 줄로 남긴다. 케이스가 끝난 뒤 60분이 지나면 미점검(missing)이다.
+ * 점검을 받아 케이스 줄마다 화면 줄로 남긴다. 케이스가 끝난 뒤 60분이 지나면 미점검(missing)이다.
  * 받다 깨지면 미점검으로 닫는다 — checking 에 남으면 그 상태 · 실행이 끝나지 않는다
  */
-export async function 점검기다리기(곳: 팜곳, c: { id: number; tcId: string }, 파일들: 화면파일[], 끝: number, 결과: ExecuteResponse, Chrome세션: string | undefined, 앱파일들: 화면파일[] = []): Promise<void> {
+async function 점검남기기(곳: 팜곳, 번호: number, ids: readonly number[], 끝: number, Chrome세션: string | undefined, 나누기: (점검: 점검파일) => [number, 화면줄[]][]): Promise<void> {
   try {
-    for (;;) {
-      await 쉬기(설정.점검간격ms);
-      const 점검 = Chrome세션 === undefined ? await 러너점검(곳.runId, c.id) : await Chrome점검(곳, c.id, Chrome세션);
-      if (점검 === '없음') {
-        await 점검저장(c.id, 'missing', []);
-        return;
-      }
-      if (점검 !== null && 점검.status !== 'checking') {
-        await 점검저장(c.id, 점검.status, 화면줄들(점검, c.tcId, 파일들, 끝, 결과.steps, 앱파일들));
-        return;
-      }
-      if (Date.now() - 끝 >= 설정.점검상한ms) {
-        await 점검저장(c.id, 'missing', []);
-        return;
-      }
+    const 점검 = await 점검받기(곳, 번호, 끝, Chrome세션);
+    if (점검 === 'missing') {
+      for (const id of ids) await 점검저장(id, 'missing', []);
+      return;
     }
+    // 상태 · 화면은 줄마다 따로 쓴다 — 마지막 줄을 쓸 때 그 점검 상태가 DONE 으로 닫힌다
+    for (const [id, 줄들] of 나누기(점검)) await 점검저장(id, 점검.status as Exclude<점검파일['status'], 'checking'>, 줄들);
   } catch (e) {
-    console.error(`[compat] 케이스 ${c.id} 점검 결과를 받다 깨져 미점검으로 닫는다: ${글(e)}`);
-    await 점검저장(c.id, 'missing', []).catch((x: unknown) => console.error(`[compat] 케이스 ${c.id} 를 미점검으로도 못 닫았다(다시 켜기 정리가 닫는다): ${글(x)}`));
+    console.error(`[compat] 실행 ${곳.runId} 의 ${ids.length === 1 && ids[0] === 번호 ? '케이스 줄' : '프로시저 실행 단위'} ${번호} 점검 결과를 받다 깨져 미점검으로 닫는다: ${글(e)}`);
+    for (const id of ids) await 점검저장(id, 'missing', []).catch((x: unknown) => console.error(`[compat] 케이스 ${id} 를 미점검으로도 못 닫았다(다시 켜기 정리가 닫는다): ${글(x)}`));
   }
+}
+
+/** 옛 꼴 케이스 한 번 — 점검 파일이 그 케이스 줄 하나 것이다 */
+export async function 점검기다리기(곳: 팜곳, c: { id: number; tcId: string }, 파일들: 화면파일[], 끝: number, 결과: ExecuteResponse, Chrome세션: string | undefined, 앱파일들: 화면파일[] = []): Promise<void> {
+  await 점검남기기(곳, c.id, [c.id], 끝, Chrome세션, (점검) => [[c.id, 화면줄들(점검, c.tcId, 파일들, 끝, 결과.steps, 앱파일들)]]);
+}
+
+/**
+ * 프로시저 한 번 — 폰 연결이 하나라 점검 파일도 하나다. 찍힌 화면은 찍은 시각에 든 절차의 케이스 줄로 나누고,
+ * 화면이 하나도 안 든 케이스 줄도 같은 점검 상태를 든다 (§3.13 「테스트 프로시저」 「점검 결과는 프로시저에 하나다」)
+ */
+export async function 프로시저점검기다리기(
+  곳: 팜곳,
+  execId: number,
+  줄들: readonly { id: number; tcId: string; 파일들: 화면파일[] }[],
+  끝: number,
+  단계들: readonly 케이스단계[],
+  Chrome세션: string | undefined,
+  앱파일들: 화면파일[] = [],
+): Promise<void> {
+  await 점검남기기(곳, execId, 줄들.map((c) => c.id), 끝, Chrome세션, (점검) => {
+    const 나눔 = 프로시저화면줄들(점검, 줄들, 끝, 단계들, 앱파일들);
+    return 줄들.map((c) => [c.id, 나눔.get(c.tcId) ?? []]);
+  });
 }

@@ -155,3 +155,33 @@ export function 화면줄들(점검: 점검파일, tcId: string, 파일들: read
     return { key: 찾음.key ?? `unknown:${tcId}#${step ?? 0}`, step, at: s.at, before: s.before, status: s.status, issues: s.issues, file: s.file ?? null };
   });
 }
+
+/** 프로시저의 절차 하나 — 절차 번호는 프로시저 전체에서 이어지고 tcId 는 그 절차가 든 케이스다 */
+export interface 케이스단계 extends 단계시간 {
+  tcId: string;
+}
+
+/**
+ * 프로시저 하나의 점검 파일을 케이스마다 나눈다. 찍은 시각이 든 절차의 케이스 것이고, 열쇠는 그 케이스의 화면 파일에서 찾는다.
+ * 절차가 없으면 첫 케이스 것이다. 못 찾은 화면은 unknown:<그 케이스>#<단계> 다
+ */
+export function 프로시저화면줄들(
+  점검: 점검파일,
+  케이스들: readonly { tcId: string; 파일들: readonly 화면파일[] }[],
+  끝: number,
+  단계들: readonly 케이스단계[],
+  앱파일들: readonly 화면파일[] = [],
+): Map<string, 화면줄[]> {
+  const 나눔 = new Map<string, 화면줄[]>(케이스들.map((c) => [c.tcId, []]));
+  let 앞파일: string | null = null;
+  for (const s of 점검.screens) {
+    const step = 단계찾기(Date.parse(s.at), 끝, 단계들);
+    const 든 = 단계들.find((x) => x.seq === step)?.tcId;
+    const c = 케이스들.find((x) => x.tcId === 든) ?? 케이스들[0];
+    if (c === undefined) break;
+    const 찾음 = 열쇠찾기(s, c.파일들, 앞파일, 앱파일들);
+    if (찾음.file !== null) 앞파일 = 찾음.file;
+    나눔.get(c.tcId)?.push({ key: 찾음.key ?? `unknown:${c.tcId}#${step ?? 0}`, step, at: s.at, before: s.before, status: s.status, issues: s.issues, file: s.file ?? null });
+  }
+  return 나눔;
+}

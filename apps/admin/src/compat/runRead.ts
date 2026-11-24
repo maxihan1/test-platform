@@ -57,15 +57,16 @@ export interface 실행케이스 extends 케이스줄 {
 export async function 케이스들읽기(runId: number): Promise<실행케이스[]> {
   const r = await (await db()).query<{
     id: string; seq: number; tc_id: string; tc_name: string; file_path: string; timeout_ms: number; status: 케이스줄['status']; failed_step: number | null;
-    check_state: 케이스줄['checkState']; started_at: Date | null; finished_at: Date | null; message: string | null;
+    check_state: 케이스줄['checkState']; started_at: Date | null; finished_at: Date | null; message: string | null; exec_id: string | null; blocked_by: string | null;
   }>(
-    `SELECT id, seq, tc_id, tc_name, file_path, timeout_ms, status, failed_step, check_state, started_at, finished_at, error->>'message' AS message
+    `SELECT id, seq, tc_id, tc_name, file_path, timeout_ms, status, failed_step, check_state, started_at, finished_at, error->>'message' AS message, exec_id, blocked_by
        FROM compat_run_case WHERE run_id = $1 ORDER BY seq, id`,
     [runId],
   );
   return r.rows.map((x) => ({
     id: Number(x.id), seq: x.seq, tcId: x.tc_id, name: x.tc_name, filePath: x.file_path, timeoutMs: x.timeout_ms, status: x.status, failedStep: x.failed_step,
     checkState: x.check_state, started: x.started_at !== null, startedAt: x.started_at?.toISOString() ?? null, finished: x.finished_at !== null, 까닭: x.message,
+    execId: x.exec_id === null ? null : Number(x.exec_id), blockedBy: x.blocked_by,
   }));
 }
 

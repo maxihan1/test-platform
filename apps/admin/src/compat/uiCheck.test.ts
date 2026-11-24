@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type 화면파일, 단계찾기, 열쇠찾기, 점검읽기, 화면줄들 } from './uiCheck.js';
+import { type 화면파일, 단계찾기, 열쇠찾기, 점검읽기, 프로시저화면줄들, 화면줄들 } from './uiCheck.js';
 
 const 앱파일들: 화면파일[] = [
   { file: 'tests/dma/pages/cart.page.ts', key: 'app:.MainActivity/cart_list', 글: "this.driver.$('id=select_all'); this.driver.$('id=title')" },
@@ -116,5 +116,36 @@ describe('화면줄들', () => {
       [{ seq: 1, durationMs: 2500 }, { seq: 2, durationMs: 1000 }],
     );
     expect(줄.map((x) => x.key)).toEqual(['app:.MainActivity/order', 'app:.MainActivity/order', 'unknown:DMA-UI-031#2']);
+  });
+});
+
+describe('프로시저화면줄들', () => {
+  it('찍은 시각이 든 절차의 케이스로 나누고 열쇠는 그 케이스의 화면 파일에서 찾는다', () => {
+    const 나눔 = 프로시저화면줄들(
+      {
+        status: 'done',
+        screens: [
+          화면({ at: '2026-11-07T00:00:01.500Z', locator: { using: 'id', value: 'select_all' } }),
+          화면({ at: '2026-11-07T00:00:03.500Z', locator: { using: 'id', value: 'title' } }),
+          화면({ at: '2026-11-07T00:00:04.500Z', before: 'actions' }),
+        ],
+      },
+      [
+        { tcId: 'DMA-FN-101', 파일들: [앱파일들[0]!] },
+        { tcId: 'DMA-FN-102', 파일들: [앱파일들[1]!] },
+        { tcId: 'DMA-FN-103', 파일들: [] },
+      ],
+      Date.parse('2026-11-07T00:00:05.000Z'),
+      [
+        { seq: 1, durationMs: 1000, startedAt: '2026-11-07T00:00:01.000Z', tcId: 'DMA-FN-101' },
+        { seq: 2, durationMs: 1000, startedAt: '2026-11-07T00:00:03.000Z', tcId: 'DMA-FN-102' },
+        { seq: 3, durationMs: 1000, startedAt: '2026-11-07T00:00:04.000Z', tcId: 'DMA-FN-102' },
+      ],
+    );
+    expect([...나눔].map(([t, 줄]) => [t, 줄.map((x) => x.key)])).toEqual([
+      ['DMA-FN-101', ['app:.MainActivity/cart_list']],
+      ['DMA-FN-102', ['app:.MainActivity/order', 'unknown:DMA-FN-102#3']],
+      ['DMA-FN-103', []],
+    ]);
   });
 });

@@ -9,7 +9,7 @@ import { 시리얼 } from '../perf/devices.js';
 import { 호환성디바이스목록 } from './devices.js';
 import { 세트최근실행 } from './runRead.js';
 import { 호환성요약들 } from './runView.js';
-import { type 고른것, 셈하기, 예상하기, 자동선택 } from './select.js';
+import { type 고른것, 고른케이스, 셈하기, 예상하기, 자동선택, 펼치기 } from './select.js';
 import { type 세트, type 세트디바이스, 세트고치기, 세트만들기, 세트목록, 세트치우기, 세트하나, 재료읽기, 최근소요, type 재료 } from './store.js';
 
 const 케이스번호 = z.string().min(1).max(100);
@@ -114,16 +114,15 @@ export default async function compatRoutes(app: FastifyInstance): Promise<void> 
     if (앱 === null) return 세트없음(reply);
     const 재 = await 재료읽기(앱.id, 앱.prefix);
     const 결과 = 셈(재, s.addedCases);
-    // 직접 추가가 자동 선택에도 들면 한 번만 돈다 — 자동 선택 쪽으로 센다
-    const 후보 = new Map(재.후보들.map((c) => [c.tcId, c]));
-    const 돌것 = [...new Set([...결과.auto.map((a) => a.tcId), ...s.addedCases])].flatMap((t) => { const c = 후보.get(t); return c === undefined ? [] : [c]; });
-    const 소요 = await 최근소요(돌것.map((c) => c.tcId));
+    // 직접 추가가 자동 선택에도 들면 한 번만 돈다. 프로시저 안 케이스면 그 프로시저가 통째로 돈다 — 단위마다 연결이 하나다
+    const 돌것 = 펼치기(재.후보들, [...고른케이스(결과.auto), ...s.addedCases]);
+    const 소요 = await 최근소요(돌것.flat().map((c) => c.tcId));
     return {
       ...목록줄(s, 결과.coverage, (await 최근실행들([s.id])).get(s.id) ?? null),
       auto: 결과.auto,
       uncovered: 결과.uncovered,
       // 원격 접기가 없어 폴더블도 상태 하나다 — 점검 상태 수 = 디바이스 수 (§3.13 「비전에 기대는 것」 3)
-      estimate: 예상하기(돌것.map((c) => ({ 화면수: c.화면수, 평균ms: 소요.get(c.tcId) ?? null })), s.devices.length),
+      estimate: 예상하기(돌것.map((u) => u.map((c) => ({ 화면수: c.화면수, 평균ms: 소요.get(c.tcId) ?? null }))), s.devices.length),
     };
   });
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import type { EnvRow } from './api.js';
-import { compatApi, type CompatSetRow } from './compatApi.js';
+import { compatApi, type CompatSetRow, 자동케이스 } from './compatApi.js';
 import { 결과주소 } from './CompatRunWindow.js';
 import { CompatStart } from './CompatStart.js';
 import { 커버율 } from './compatView.js';
@@ -56,7 +56,7 @@ export function CompatSets({ serviceId, service, envs, 쓰나 }: { serviceId: nu
   if (목록.error !== null) return <Failed error={목록.error} />;
   if (목록.data === null) return <Loading />;
   const [{ sets: 줄들 }, 셈] = 목록.data;
-  const 자동 = new Set((셈?.auto ?? []).map((a) => a.tcId));
+  const 자동 = new Set(자동케이스(셈?.auto ?? []));
 
   return (
     <>
@@ -103,7 +103,7 @@ export function CompatSets({ serviceId, service, envs, 쓰나 }: { serviceId: nu
                       {t('{수}대', { 수: s.devices.length })}
                       <div className="compat-faint">{s.devices.slice(0, 3).map((d) => d.name).join(' · ')}{s.devices.length > 3 ? ' ' + t('외 {수}대', { 수: s.devices.length - 3 }) : ''}</div>
                     </td>
-                    <td data-label={t('케이스')}>{셈 === null ? t('직접 추가 {수}', { 수: s.addedCases.length }) : 케이스글(셈.auto.length, s.addedCases.filter((c) => !자동.has(c)).length, t)}</td>
+                    <td data-label={t('케이스')}>{셈 === null ? t('직접 추가 {수}', { 수: s.addedCases.length }) : 케이스글(자동.size, s.addedCases.filter((c) => !자동.has(c)).length, t)}</td>
                     <td data-label={t('화면 커버리지')}>
                       <span className="mono">
                         {s.coverage.covered} / {s.coverage.total}

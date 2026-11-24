@@ -23,7 +23,7 @@ const 판정본문 = z.object({ key: z.string().min(1).max(2000), seq: z.number(
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
 const 실행없음 = (reply: FastifyReply, detail: string) => reply.code(404).send({ error: 'RUN_NOT_FOUND', detail });
 
-const 오류응답: Record<호환성실행오류['code'], number> = { ENV_NOT_FOUND: 400, NO_CASE: 400, NO_DEVICE: 400, FARM_OFF: 409 };
+const 오류응답: Record<호환성실행오류['code'], number> = { ENV_NOT_FOUND: 400, NO_CASE: 400, NO_DEVICE: 400, FARM_OFF: 409, RUNNER_NO_PROCEDURE: 409 };
 
 export default async function compatRunRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { id: string } }>('/compat-sets/:id/runs', async (req, reply) => {

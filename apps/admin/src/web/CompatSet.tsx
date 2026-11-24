@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { api, type EnvRow, type 앱종류 } from './api.js';
-import { compatApi, type CompatPreview, type CompatSetDetail, type CompatSetDevice } from './compatApi.js';
+import { compatApi, type CompatPreview, type CompatSetDetail, type CompatSetDevice, 자동케이스 } from './compatApi.js';
 import { CompatCasePick } from './CompatCasePick.js';
 import { CompatDevicePick } from './CompatDevicePick.js';
 import { CompatStart } from './CompatStart.js';
@@ -91,7 +91,7 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
   }
 
   const 바뀜 = !같나(지금, 저장본);
-  const 자동 = new Set(셈.auto.map((a) => a.tcId));
+  const 자동 = new Set(자동케이스(셈.auto));
   const 직접 = 지금.addedCases.filter((c) => !자동.has(c));
 
   async function 케이스바꾸기(다음: string[]) {
