@@ -1,11 +1,14 @@
 // 통과하지 못한 (실행, 케이스, 디바이스)를 원인 유형으로 나눈다 — 앱 대시보드 「실패 유형」 칸 (도메인/리포팅 §8.12)
 // 새 칸 없이 이미 저장된 값(실패한 확인 문장 · 오류 원문)만 본다
 
+import { 판정아닌까닭을가른다 } from '../execution/notVerdict.js';
+
 /** 화면 표시 차례와 같다 */
 export const 실패유형들 = ['mismatch', 'notFound', 'timeout', 'environment', 'other'] as const;
 export type 실패유형 = (typeof 실패유형들)[number];
 /** 실행이 멈춰 닫힌 미실행(ABORTED)은 유형에 넣지 않고 따로 센다 — 사람이 멈춘 것인지 서버가 다시 뜨며 닫은 것인지 DB 가 못 가른다(reporting/collect.ts 와 같은 판단) */
-export type 원인 = 실패유형 | 'stopped';
+/** 앞 케이스에 막힌 미실행(Blocked)도 유형 밖이고 멈춤과 따로 센다 — 사람이 멈춘 것과 앞 케이스에 막힌 것은 할 일이 다르다 (도메인/리포팅 §3.3 「테스트 프로시저」) */
+export type 원인 = 실패유형 | 'stopped' | 'blocked';
 
 export interface 원인재료 {
   /** 접은 판정이 고른 항목의 판정 — 실패가 있으면 실패 항목, 없으면 미실행 항목 */
@@ -52,6 +55,9 @@ const 게임시간초과 = /초 안에 (뜨지 |사라지지 |「.*」이 되지
 export function 원인을가른다(재료: 원인재료): 원인 {
   const 항목 = 재료.itemMessage.replace(색코드, '');
   const 글 = `${항목}\n${재료.stepMessage.replace(색코드, '')}`;
+  // Blocked 를 맨 먼저 가른다 — 막힌 케이스의 깨진 준비 절차 글(「waiting for locator …」)을 읽으면 고칠 곳 없는 케이스가 「요소를 찾지 못함」이 된다.
+  // 어느 줄이 Blocked 인지는 실행의 한 곳이 정한다 (도메인/실행 §3.2 「판정이 아닌 결과」)
+  if (판정아닌까닭을가른다(재료.status, 항목) === 'BLOCKED') return 'blocked';
   // STOPPED 는 사람이 멈춘 E2E 부품이다 — ABORTED 와 같은 갈래로 센다 (도메인/시나리오 §8.11). 준비 실패로 안 돈 항목도 결함이 아니라 같은 갈래다 (도메인/실행 §3.2 「실행 전 준비」)
   if (재료.status === 'NA' && /^(ABORTED|STOPPED|PREP_FAILED)\b/.test(항목)) return 'stopped';
   if (재료.assertFailed) return 'mismatch';
@@ -64,22 +70,28 @@ export function 원인을가른다(재료: 원인재료): 원인 {
 export interface 유형셈 {
   유형별: { type: 실패유형; 실패: number; 미실행: number }[];
   멈춤: number;
+  막힘: number;
 }
 
 export function 유형을센다(줄들: { verdict: 'PASS' | 'FAIL' | 'NA'; cause: 원인 | null }[]): 유형셈 {
   const 셈 = new Map(실패유형들.map((type) => [type, { type, 실패: 0, 미실행: 0 }]));
   let 멈춤 = 0;
+  let 막힘 = 0;
   for (const 줄 of 줄들) {
     if (줄.verdict === 'PASS' || 줄.cause === null) continue;
     if (줄.cause === 'stopped') {
       멈춤 += 1;
       continue;
     }
+    if (줄.cause === 'blocked') {
+      막힘 += 1;
+      continue;
+    }
     const 칸 = 셈.get(줄.cause)!;
     if (줄.verdict === 'FAIL') 칸.실패 += 1;
     else 칸.미실행 += 1;
   }
-  return { 유형별: [...셈.values()], 멈춤 };
+  return { 유형별: [...셈.values()], 멈춤, 막힘 };
 }
 
 /**

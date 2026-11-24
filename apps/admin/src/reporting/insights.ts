@@ -180,14 +180,14 @@ async function 유형으로묶는다(pool: Pool, runId: number): Promise<비교[
   );
   const 묶음 = new Map<실패유형, string[]>();
   for (const row of rows) {
-    // FAIL 만 고르므로 멈춤(stopped)은 안 나온다
+    // FAIL 만 고르므로 멈춤(stopped) · 막힘(blocked)은 안 나온다
     const 원인 = 원인을가른다({
       status: 'FAIL',
       assertFailed: row.assert_failed,
       itemMessage: row.item_message,
       stepMessage: row.step_message,
     });
-    if (원인 === 'stopped') continue;
+    if (원인 === 'stopped' || 원인 === 'blocked') continue;
     묶음.set(원인, [...(묶음.get(원인) ?? []), row.tc_id]);
   }
   return 실패유형들.flatMap((type) => {

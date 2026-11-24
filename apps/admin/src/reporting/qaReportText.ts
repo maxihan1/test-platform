@@ -47,13 +47,14 @@ export const 시각 = (iso: string): string => `${iso.slice(0, 16).replace('T', 
 export const 디바이스이름: Record<string, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 
 // 대시보드 「실패 유형」 이름(web/DashboardTypes.tsx 실패유형이름)과 같은 글자다 — 서버가 화면 모듈을 부르지 않게 옮겨 적었다
-const 원인이름: Record<실패유형 | 'stopped' | 'prepFailed', string> = {
+const 원인이름: Record<실패유형 | 'stopped' | 'blocked' | 'prepFailed', string> = {
   mismatch: '기대 결과 불일치',
   notFound: '요소를 찾지 못함',
   timeout: '타임아웃',
   environment: '환경 오류',
   other: '그 밖',
   stopped: '멈춤',
+  blocked: 'Blocked',
   prepFailed: '준비 실패',
 };
 const 분류이름 = { PRODUCT: '제품 결함', TEST: '테스트 문제', ENV: '환경', UNCLASSIFIED: '미분류' } as const;

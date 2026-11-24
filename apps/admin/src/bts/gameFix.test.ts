@@ -28,6 +28,7 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     status?: string;
     error?: string;
     실패확인?: string;
+    절차오류?: string;
     attempt?: number;
   }
 
@@ -55,6 +56,12 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
         await pool.query(`INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions) VALUES ($1, 1, '처치한다', 'FAIL', 10, $2)`, [
           번호,
           JSON.stringify([{ statement: i.실패확인, status: 'FAIL', actual: 1, expected: 2 }]),
+        ]);
+      }
+      if (i.절차오류 !== undefined) {
+        await pool.query(`INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, error) VALUES ($1, 1, '던전에 들어간다', 'FAIL', 10, '[]', $2)`, [
+          번호,
+          JSON.stringify({ message: i.절차오류 }),
         ]);
       }
     }
@@ -167,6 +174,15 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     const 번호 = await 게임자동수정실행뒤(runId);
     expect((await 줄들()).map((r) => r.tc_id)).toEqual(['XQZ-FN-004']);
     expect(번호).not.toBeNull();
+  });
+
+  it('앞 케이스에 막힌 항목(Blocked)은 안 맡는다 — 깨진 준비 절차가 요소를 못 찾았어도 고칠 곳이 그 케이스에 없다', async () => {
+    const runId = await 실행([
+      { tcId: 'XQZ-FN-003', error: 찾지못함 },
+      { tcId: 'XQZ-FN-004', status: 'NA', error: 'BLOCKED', 절차오류: 찾지못함 },
+    ]);
+    expect(await 게임자동수정실행뒤(runId)).not.toBeNull();
+    expect((await 줄들()).map((r) => r.tc_id)).toEqual(['XQZ-FN-003']);
   });
 
   it('BTS 를 이은 프로젝트 · 웹 애플리케이션 · 한 건 실행 · 반복 실행 · 안 끝난 실행은 안 세운다', async () => {

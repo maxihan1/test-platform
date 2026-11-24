@@ -90,6 +90,16 @@ describe('원인을가른다', () => {
     expect(미실행('PREP_FAILED')).toBe('stopped');
   });
 
+  it('앞 케이스에 막힌 미실행(BLOCKED)은 유형도 멈춤도 아니라 막힘이다 — 깨진 준비 절차 글이 있어도', () => {
+    expect(미실행('BLOCKED')).toBe('blocked');
+    expect(미실행('BLOCKED', "locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator('#post')")).toBe('blocked');
+    expect(미실행('BLOCKED', '켜진 오브젝트 중에 /Canvas/StartButton 이 없습니다')).toBe('blocked');
+  });
+
+  it('실패한 테스트가 던진 글이 BLOCKED 여도 실패는 막힘이 아니다', () => {
+    expect(실패('BLOCKED')).toBe('other');
+  });
+
   it('게임 드라이버가 켜진 오브젝트에서 못 찾은 것은 요소 미검출이다 (GAME-F1-09)', () => {
     expect(실패('켜진 오브젝트 중에 /Canvas/StartButton 이 없습니다')).toBe('notFound');
     expect(실패('켜진 오브젝트 중에 /Canvas/Shop 이 없습니다 (Shop 에서 끊김)')).toBe('notFound');
@@ -137,13 +147,15 @@ describe('원인을가른다', () => {
 });
 
 describe('유형을센다', () => {
-  it('유형마다 실패 · 미실행을 나눠 세고, 통과 줄과 원인 없는 줄은 건너뛰고, 멈춤은 따로 센다', () => {
+  it('유형마다 실패 · 미실행을 나눠 세고, 통과 줄과 원인 없는 줄은 건너뛰고, 멈춤과 막힘은 따로 센다', () => {
     const 셈 = 유형을센다([
       { verdict: 'FAIL', cause: 'mismatch' },
       { verdict: 'FAIL', cause: 'notFound' },
       { verdict: 'NA', cause: 'notFound' },
       { verdict: 'NA', cause: 'notFound' },
       { verdict: 'NA', cause: 'stopped' },
+      { verdict: 'NA', cause: 'blocked' },
+      { verdict: 'NA', cause: 'blocked' },
       { verdict: 'FAIL', cause: null },
       { verdict: 'PASS', cause: null },
     ]);
@@ -156,6 +168,7 @@ describe('유형을센다', () => {
         { type: 'other', 실패: 0, 미실행: 0 },
       ],
       멈춤: 1,
+      막힘: 2,
     });
   });
 });

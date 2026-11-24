@@ -10,14 +10,18 @@ import { 실행이앱맵을고친다 } from '../prd/appRoute.js';
 import { 실행이맵을고친다 } from '../prd/gameRoute.js';
 import { 원인을가른다 } from '../reporting/failureType.js';
 
+import { 판정아닌까닭을가른다 } from './notVerdict.js';
+
 /**
  * 항목 하나가 조작 맵에 남길 것 — 통과한 항목이면 지난 함수 이름, 조작이 실패한 절차가 있으면 그 동작이 지나던 함수 이름 (도메인/게임 §3.10 「정식 실행이 맵을 고친다」).
- * 조작 실패는 「요소를 찾지 못함」 · 「타임아웃」뿐이다 — 기대값이 다른 실패 · 연결 문제는 길이 틀린 것이 아니라 행을 안 건드린다 (2026-11-20 GAME-F5-06 시작 질문)
+ * 조작 실패는 「요소를 찾지 못함」 · 「타임아웃」뿐이다 — 기대값이 다른 실패 · 연결 문제는 길이 틀린 것이 아니라 행을 안 건드린다 (2026-11-20 GAME-F5-06 시작 질문).
+ * 앞 케이스에 막힌 케이스(Blocked)의 깨진 절차도 행을 안 건드린다 — 앞 케이스가 깨져 화면이 달라진 것이지 길이 틀린 것이 아니다. 막은 케이스의 깨진 절차가 맵을 고친다 (2026-11-24 TP-F3-14 시작 질문)
  */
-export function 맵재료(result: Pick<ExecuteResponse, 'status' | 'steps'>): { 지난: string[]; 실패: string[] } | null {
+export function 맵재료(result: Pick<ExecuteResponse, 'status' | 'steps' | 'error'>): { 지난: string[]; 실패: string[] } | null {
   const 지난 = result.status === 'PASS' ? [...new Set(result.steps.flatMap((s) => s.gameFns ?? []))] : [];
+  const 막힘 = 판정아닌까닭을가른다(result.status, result.error?.message) === 'BLOCKED';
   const 조작실패 = result.steps.filter((s) => {
-    if (s.gameFailedFns === undefined || s.error === undefined) return false;
+    if (막힘 || s.gameFailedFns === undefined || s.error === undefined) return false;
     const 원인 = 원인을가른다({ status: 'FAIL', assertFailed: false, itemMessage: '', stepMessage: s.error.message });
     return 원인 === 'notFound' || 원인 === 'timeout';
   });

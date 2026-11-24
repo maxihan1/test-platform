@@ -16,6 +16,11 @@ describe('항목실패를가른다', () => {
     expect(항목실패를가른다(재료({ status: 'NA', error: { message: 'ABORTED' } }), 그대로)).toBeNull();
   });
 
+  it('앞 케이스에 막힌 항목(Blocked)은 이유가 없다 — 깨진 준비 절차가 요소를 못 찾았어도', () => {
+    const 깨진절차 = { status: 'FAIL' as const, assertions: [], error: { message: "locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator('#post')" } };
+    expect(항목실패를가른다(재료({ status: 'NA', error: { message: 'BLOCKED' }, steps: [깨진절차] }), 그대로)).toBeNull();
+  });
+
   it('앞 부품이 실패해 안 돈 시나리오 부품은 이유가 없다', () => {
     expect(항목실패를가른다(재료({ status: 'NA', error: { message: 'NOT_RUN' } }), 그대로)).toBeNull();
   });

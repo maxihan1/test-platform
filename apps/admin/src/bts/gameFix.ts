@@ -41,6 +41,7 @@ const 실행SQL = `
 /**
  * 통과 못 한 케이스 가운데 조작 실패만. 항목마다 실패 카드와 같은 유형(항목실패를가른다)을 보고, 한 디바이스라도 notFound · timeout 이 아니면
  * 그 케이스는 뺀다 — 확인 문장이 깨진 디바이스가 하나라도 있으면 게임이 기획서와 다르게 움직인 것일 수 있다(mismatch 가 이긴다).
+ * 앞 케이스에 막힌 항목(Blocked)은 유형이 없어 여기서 빠진다 — 고칠 곳이 그 케이스에 없다(reporting/itemFailure.ts).
  * 맡을상한을 넘기는 순간 멈춘다 — 빌드나 폰이 깨져 수백 건이 실패한 실행을 항목마다 읽지 않게
  */
 async function 조작실패들(pool: Pool, runId: number): Promise<{ tcId: string; failure: 조작실패 }[] | '많음'> {
