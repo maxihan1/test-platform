@@ -11,8 +11,7 @@ import { useAsync } from './ui.js';
 
 export const 한건인가 = (data: RunDetail): boolean => data.origin === 'SINGLE';
 
-export function 한건갈곳(data: RunDetail): string {
-  const tcId = data.items[0]?.tcId ?? '';
+export function 한건갈곳(data: RunDetail, tcId: string = data.items[0]?.tcId ?? ''): string {
   return data.rerunOf == null ? 케이스주소(tcId) : 실행결과주소(data.rerunOf, { 펼칠: tcId });
 }
 
