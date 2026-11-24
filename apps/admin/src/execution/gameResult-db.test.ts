@@ -18,6 +18,7 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
     await pool.query(`DELETE FROM game_element WHERE service_id = ${서비스번호}`);
     await pool.query(`DELETE FROM game_route WHERE service_id = ${서비스번호}`);
     await pool.query(`DELETE FROM service_api WHERE service_id = ${서비스번호}`);
+    await pool.query(`DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
     await pool.query(`DELETE FROM test_run WHERE service_id = ${서비스번호}`);
     await pool.query('DELETE FROM test_case WHERE tc_id = $1', [번호]);
     await pool.query(`DELETE FROM service_env WHERE service_id = ${서비스번호}`);

@@ -15,6 +15,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
 
   async function 치운다(): Promise<void> {
     await pool.query(`DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
+    await pool.query(`DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
     await pool.query(`DELETE FROM test_run WHERE service_id = ${서비스번호}`);
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1::text[])', [케이스들]);
     await pool.query(`DELETE FROM service_env WHERE service_id = ${서비스번호}`);
@@ -106,6 +107,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     );
     const 남의번호 = Number(남의것.rows[0]!.run_id);
     const 말 = await 건다(['XBO-001'], { rerunOf: 남의번호 }).catch((e: unknown) => (e as Error).message);
+    await pool.query('DELETE FROM run_exec WHERE run_id = $1', [남의번호]);
     await pool.query('DELETE FROM test_run WHERE run_id = $1', [남의번호]);
     expect(말).toBe(`이 서비스에 실행 ${String(남의번호)}이 없다`);
     expect((await pool.query(`SELECT count(*)::int AS n FROM test_run WHERE service_id = ${서비스번호}`)).rows[0]).toEqual(앞수.rows[0]);
@@ -128,6 +130,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
 
     const 다시 = await 건다(['XBO-001', 'XBO-002'], { rerunOf: 원래 });
     await pool.query('DELETE FROM run_item WHERE run_id = $1', [원래]);
+    await pool.query('DELETE FROM run_exec WHERE run_id = $1', [원래]);
     await pool.query('DELETE FROM test_run WHERE run_id = $1', [원래]);
     expect(await 줄(다시)).toEqual([`RUN ${String(원래)}의 실패 2건 다시`, 'RERUN', null]);
     const 목록 = await listRuns('XBO', 1, 50, { origin: 'RERUN' });

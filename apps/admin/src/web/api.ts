@@ -738,6 +738,8 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
    * 서버는 늘 싣는다. 선택으로 둔 것은 이 칸을 모르는 기존 화면 검사의 가짜 행을 안 고치려고다 — 없으면 「안 넣음」으로 읽는다
    */
   hasFigmaToken?: boolean;
+  /** 「프로시저 작성」 스위치 — Android 앱 · 게임만 켠다. 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 꺼짐으로 읽는다 */
+  procedureMode?: boolean;
   testsRepo: string;
   /** 플랫폼이 실제로 훑을 폴더. 서비스마다 폴더가 다르다 (SPEC §9.2) */
   testsDir: string;
@@ -1610,6 +1612,8 @@ export const api = {
       apiDocEnv?: string | null;
       /** 안 보내면 그대로 두고 `[]` 면 비운다 (도메인/BTS §7) */
       codeRepos?: { name: string; url: string }[];
+      /** 「프로시저 작성」 스위치. 안 보내면 그대로 둔다. 켜는 것은 Android 앱 · 게임만이다 */
+      procedureMode?: boolean;
     },
   ) => call<{ ok: true }>(`/settings/services/${id}`, { ...json(body), method: 'PATCH' }),
 

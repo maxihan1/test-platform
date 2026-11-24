@@ -88,7 +88,9 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     await pool.query(`DELETE FROM authoring_request WHERE service_id = $1 AND kind = 'MERGE'`, [서비스]);
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [[서비스]]);
+    await pool.query('DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1) AND rerun_of IS NOT NULL)', [[서비스]]);
     await pool.query('DELETE FROM test_run WHERE service_id = ANY($1) AND rerun_of IS NOT NULL', [[서비스]]);
+    await pool.query('DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [[서비스]]);
     await pool.query('DELETE FROM test_run WHERE service_id = ANY($1)', [[서비스]]);
   };
 

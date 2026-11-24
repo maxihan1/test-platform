@@ -63,6 +63,16 @@ export async function 빌드실행을건다(빌드: 올린빌드, 로그: 로그
   return 분배를맡긴다(await 정기실행을만든다(빌드.prefix, 빌드.env, 로그, { ...빌드, stage: 'FULL' }), 빌드.buildNo, 로그).runIds;
 }
 
+/**
+ * 그 스모크 실행에 통과가 아닌 줄이 있나 — 배포 판정은 스모크 표시 케이스만 본다. 프로시저는 통째로 도니 같은 프로시저의 스모크 아닌 케이스가
+ * 실패해도 스모크는 통과다. 옛 꼴 케이스 줄은 전처럼 전부 본다(스모크 실행에는 스모크 케이스만 담긴다).
+ * 회귀로 넘어갈지(아래 스모크뒤)와 BTS 가 이슈를 맡을지(bts/deployFlow.ts)가 같은 조건을 쓴다 (도메인/실행 §3.2 「테스트 프로시저 실행」 「스모크」)
+ */
+export const 스모크안통과 = (실행 = 't'): string => `EXISTS (
+  SELECT 1 FROM run_item i LEFT JOIN run_exec e ON e.exec_id = i.exec_id
+   WHERE i.run_id = ${실행}.run_id AND i.status <> 'PASS'
+     AND NOT (e.proc_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM test_case c WHERE c.tc_id = i.tc_id AND COALESCE(c.smoke_set, c.smoke))))`;
+
 // 스모크 실행 둘(UI · 기능)이 거의 같이 끝나면 둘 다 「남은 스모크 없음」을 보고 회귀를 두 번 건다 — 빌드마다 한 줄로 세운다
 // ponytail: admin 프로세스 하나 안의 잠금이다. admin 을 여럿 띄우면 DB 잠금(pg_advisory_lock)으로 바꾼다
 const 줄 = new Map<number, Promise<void>>();
@@ -83,7 +93,7 @@ export async function 스모크뒤(runId: number, 로그: 로그 = 콘솔): Prom
   const 앞 = 줄.get(buildId) ?? Promise.resolve();
   const 이번 = 앞.then(async () => {
     const 스모크 = await pool.query<{ status: string; 안통과: boolean }>(
-      `SELECT t.status, EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.status <> 'PASS') AS "안통과"
+      `SELECT t.status, ${스모크안통과()} AS "안통과"
          FROM test_run t WHERE t.build_id = $1 AND t.build_stage = 'SMOKE'`,
       [buildId],
     );

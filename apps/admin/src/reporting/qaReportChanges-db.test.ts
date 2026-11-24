@@ -137,6 +137,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
     await pool.query('DELETE FROM prd_version WHERE service_id = $1', [앱]);
     await pool.query('DELETE FROM run_case_bug WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
+    await pool.query('DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [앱]);
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [앱]);
@@ -160,6 +161,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
     expect(줄.tests_commit).toBe('f'.repeat(40));
     expect(줄.case_sha256).toMatch(/^[0-9a-f]{64}$/);
     await pool.query('DELETE FROM run_item WHERE run_id = $1', [runId]);
+    await pool.query('DELETE FROM run_exec WHERE run_id = $1', [runId]);
     await pool.query('DELETE FROM test_run WHERE run_id = $1', [runId]);
   });
 

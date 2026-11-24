@@ -23,6 +23,7 @@ describe.skipIf(연결 === undefined)('한 건 실행이 붙은 실행의 지금
 
   async function 실행을치운다(): Promise<void> {
     await pool.query(`DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
+    await pool.query(`DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
     await pool.query(`DELETE FROM test_run WHERE service_id = ${서비스번호}`);
   }
 

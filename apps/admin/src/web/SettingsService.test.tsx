@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import { api, type SettingsServiceRow } from './api.js';
+import { api, ApiError, type SettingsServiceRow } from './api.js';
 import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { ServicePanel } from './SettingsService.js';
 
@@ -351,5 +351,52 @@ describe('적다 만 애플리케이션 칸 (공통/5-화면공통 §8 「화면
     await 옮긴다('#/settings/users');
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByTestId('hash').textContent).toBe('#/settings/users');
+  });
+});
+
+describe('프로시저 작성 칸 (도메인/실행 「프로시저 작성 스위치」)', () => {
+  it('웹 애플리케이션에는 칸이 없고 Android 앱 · 게임에는 있다', () => {
+    const 웹 = render(<ServicePanel row={서비스} onDone={() => {}} />);
+    expect(screen.queryByLabelText('테스트 프로시저로 작성')).toBeNull();
+    웹.unmount();
+    for (const kind of ['APP', 'GAME'] as const) {
+      const 그림 = render(<ServicePanel row={{ ...서비스, kind }} onDone={() => {}} />);
+      expect((screen.getByLabelText('테스트 프로시저로 작성') as HTMLInputElement).checked).toBe(false);
+      그림.unmount();
+    }
+  });
+
+  it('체크하고 저장하면 procedureMode: true 가 가고, 안 건드리면 안 간다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServicePanel row={{ ...서비스, kind: 'APP' }} onDone={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
+    expect(고침.mock.calls[0]?.[1]).not.toHaveProperty('procedureMode');
+
+    fireEvent.click(screen.getByLabelText('테스트 프로시저로 작성'));
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(2));
+    expect(고침.mock.calls[1]?.[1]).toMatchObject({ procedureMode: true });
+  });
+
+  it('켜져 있던 것을 끄고 저장하면 procedureMode: false 가 간다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServicePanel row={{ ...서비스, kind: 'GAME', procedureMode: true }} onDone={() => {}} />);
+    expect((screen.getByLabelText('테스트 프로시저로 작성') as HTMLInputElement).checked).toBe(true);
+
+    fireEvent.click(screen.getByLabelText('테스트 프로시저로 작성'));
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
+    expect(고침.mock.calls[0]?.[1]).toMatchObject({ procedureMode: false });
+  });
+
+  it('사용 중이라 서버가 409 로 막으면 까닭을 한국어로 보여 준다', async () => {
+    vi.spyOn(api, 'updateService').mockRejectedValue(new ApiError(409, 'PROCEDURE_IN_USE', ''));
+    render(<ServicePanel row={{ ...서비스, kind: 'APP', procedureMode: true }} onDone={() => {}} />);
+
+    fireEvent.click(screen.getByLabelText('테스트 프로시저로 작성'));
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(await screen.findByText('테스트 프로시저로 작성한 케이스가 있어 끌 수 없습니다')).toBeTruthy();
   });
 });

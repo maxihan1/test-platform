@@ -70,6 +70,7 @@ const 서비스수정 = z.object({
   // 정기 실행은 프로젝트 공통 세트로 옮겨 갔다. 안 막으면 zod 가 모르는 칸으로 버려 저장된 것처럼 보인다 (도메인/정기실행 §7, SCHED-F1-04)
   schedule: z.never().optional(),
   codeRepos: z.array(코드저장소).max(10).optional(),
+  procedureMode: z.boolean().optional(),
   ...API칸,
 });
 
@@ -133,6 +134,7 @@ const 코드별상태: Record<string, number> = {
   APPROVED_USER: 409,
   NOT_APPROVED: 409,
   NOT_FOUND: 404,
+  PROCEDURE_IN_USE: 409,
 };
 
 export default async function settingsRoutes(app: FastifyInstance): Promise<void> {
@@ -212,7 +214,14 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       if (지금 !== null && 게임패키지(지금.kind, parsed.data.envs)) return reply.code(400).send(게임패키지거절);
       const API오류 = 지금 === null ? null : API칸오류(parsed.data, 지금);
       if (API오류 !== null) return reply.code(400).send({ error: API오류 });
-      await 서비스고치기(id, parsed.data);
+      const 켜졌다 = await 서비스고치기(id, parsed.data);
+      // 스캔은 기동 · 「다시 스캔」 · 작성 병합 뒤에만 돌아, 꺼진 동안 안 올린 프로시저 파일이 계속 안 보인다.
+      // 부르는 자리에서 가져온다 — catalog 가 설정 모듈을 거쳐 이 파일로 돌아오는 고리를 만들지 않으려고 (importOrder.test.ts)
+      if (켜졌다) {
+        void import('../catalog/scanRun.js')
+          .then((m) => m.병합뒤훑기(id, app.log))
+          .catch((err: unknown) => app.log.error({ err }, `[settings] 프로시저 작성을 켠 서비스 ${String(id)} 의 스캔을 못 불렀다`));
+      }
       return { ok: true };
     },
   );

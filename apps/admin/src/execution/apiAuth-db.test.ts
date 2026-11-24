@@ -15,6 +15,7 @@ describe.skipIf(연결 === undefined)('정식 실행의 API 인증', () => {
 
   async function 치운다(): Promise<void> {
     await pool.query(`DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
+    await pool.query(`DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ${서비스번호})`);
     await pool.query(`DELETE FROM test_run WHERE service_id = ${서비스번호}`);
     await pool.query('DELETE FROM test_case WHERE tc_id = $1', [번호]);
     await pool.query(`DELETE FROM service_env WHERE service_id = ${서비스번호}`);

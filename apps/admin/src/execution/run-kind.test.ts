@@ -13,6 +13,11 @@ describe('실행종류', () => {
   it('섞이면 null 이다', () => {
     expect(실행종류(['PAY-UI-001', 'PAY-041'])).toBeNull();
   });
+
+  it('「프로시저 작성」을 켠 애플리케이션은 UI 번호가 섞여도 · UI 번호만이어도 FN 이다', () => {
+    expect(실행종류(['MTA-UI-001', 'MTA-FN-002'], true)).toBe('FN');
+    expect(실행종류(['MTA-UI-001'], true)).toBe('FN');
+  });
 });
 
 describe('케이스실행인가', () => {
@@ -30,6 +35,12 @@ describe('종류별로나눈다', () => {
     ]);
     expect(종류별로나눈다([{ tcId: 'A-001' }]).map((m) => m.kind)).toEqual(['FN']);
     expect(종류별로나눈다([])).toEqual([]);
+  });
+
+  it('「프로시저 작성」을 켠 애플리케이션은 나누지 않고 기능 한 묶음이다', () => {
+    const 묶음 = 종류별로나눈다([{ tcId: 'MTA-UI-001' }, { tcId: 'MTA-FN-002' }], true);
+    expect(묶음.map((m) => [m.kind, m.items.map((i) => i.tcId)])).toEqual([['FN', ['MTA-UI-001', 'MTA-FN-002']]]);
+    expect(종류별로나눈다([], true)).toEqual([]);
   });
 });
 

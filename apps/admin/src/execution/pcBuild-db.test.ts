@@ -36,6 +36,7 @@ describe.skipIf(연결 === undefined)('게임 하나에 플랫폼 하나 — 빌
   async function 치운다(): Promise<void> {
     const ids = `(SELECT id FROM service WHERE prefix = ANY($1))`;
     await pool.query(`DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id IN ${ids})`, [접두사들]);
+    await pool.query(`DELETE FROM run_exec WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id IN ${ids})`, [접두사들]);
     await pool.query(`DELETE FROM test_run WHERE service_id IN ${ids}`, [접두사들]);
     await pool.query(`DELETE FROM app_build WHERE service_id IN ${ids}`, [접두사들]);
     await pool.query(`DELETE FROM service_token WHERE service_id IN ${ids}`, [접두사들]);
