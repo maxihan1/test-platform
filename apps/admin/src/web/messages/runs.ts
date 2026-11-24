@@ -189,6 +189,8 @@ export const 실행말: Record<string, string> = {
   '테스트 프로시저는 케이스 전체를 실행합니다': 'A test procedure runs all of its cases',
   '결과는 케이스마다 남습니다': 'Results are saved per case',
   '선택 {선택}건 · 자동 포함 {자동}건 · 결과는 케이스마다 남습니다': '{선택} selected · {자동} auto-included · results are saved per case',
+  // 기기 성능은 케이스 결과를 남기지 않아 끝 조각을 뺐다 (도메인/성능 §3.9 「기기 성능」)
+  '선택 {선택}건 · 자동 포함 {자동}건': '{선택} selected · {자동} auto-included',
   '사유': 'Reason',
   '{케이스} 실패 보기': 'View {케이스} failure',
   '{케이스} 결과 보기': 'View {케이스} result',
