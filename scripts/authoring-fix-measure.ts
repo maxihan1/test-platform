@@ -60,12 +60,14 @@ function 기다리는값(n: ts.CallExpression, sf: ts.SourceFile): string | unde
 
 /**
  * 케이스 파일의 판정 — verify 문장 수와 기대값 칸들(verify 셋째 · verify.element 넷째 · verify.rates 셋째와 허용 오차, 그리고 실제 값 칸 안의 견주는 값), 게임 케이스의 기다리는 값, defineCase 의 expected.
- * defineCase 가 없으면 못 읽은 것이다
+ * 보류(held)는 켜면 그 케이스가 안 돈다 — 값이 바뀌었는지 보려고 글을 담는다. defineCase 가 없으면 못 읽은 것이다
  */
-export function 판정읽기(글: string): { 수: number; 기대값: string[]; expected: string } | null {
+export function 판정읽기(글: string): { 수: number; 기대값: string[]; expected: string; 보류: string } | null {
   const sf = ts.createSourceFile('case.ts', 글, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   let 수 = 0;
-  let expected: string | null = null;
+  // 프로시저 파일은 선언이 여럿이고 한 문에 둘을 적을 수도 있다 — 마지막 것만 담으면 앞 선언이 바뀐 것을 못 본다
+  const expected: string[] = [];
+  const 보류: string[] = [];
   const 기대값: string[] = [];
   const 훑기 = (n: ts.Node): void => {
     if (ts.isCallExpression(n)) {
@@ -78,14 +80,19 @@ export function 판정읽기(글: string): { 수: number; 기대값: string[]; e
         기대값.push(칸.map((i) => (n.arguments[i] === undefined ? '' : 꼴풀기(n.arguments[i]!, sf))).join(' ⟂ '), ...견주는값들(n.arguments[칸[0]! - 1], sf));
       }
       if (ts.isIdentifier(e) && e.text === 'defineCase' && n.arguments[0] !== undefined && ts.isObjectLiteralExpression(n.arguments[0])) {
-        const 칸값 = n.arguments[0].properties.find((p) => ts.isPropertyAssignment(p) && p.name.getText(sf) === 'expected');
-        expected = 칸값 === undefined ? '' : 꼴풀기((칸값 as ts.PropertyAssignment).initializer, sf);
+        const 인자 = n.arguments[0];
+        const 칸글 = (이름: string): string => {
+          const 칸값 = 옵션칸(인자, 이름);
+          return 칸값 === undefined ? '' : 꼴풀기(칸값, sf);
+        };
+        expected.push(칸글('expected'));
+        보류.push(칸글('held'));
       }
     }
     ts.forEachChild(n, 훑기);
   };
   훑기(sf);
-  return expected === null ? null : { 수, 기대값, expected };
+  return expected.length === 0 ? null : { 수, 기대값, expected: expected.join(' ⟂ '), 보류: 보류.join(' ⟂ ') };
 }
 
 /** 자식 결과 요약의 `테스트 고침 고장 내 보기: <tcId> · 고장 <N> · 그 자리 빨강 <M>` — 같은 케이스가 여럿이면 마지막 줄(tpx-author apply.md §7) */
@@ -104,11 +111,12 @@ export interface 잴건 {
   파일?: string;
 }
 
-/** 글 둘의 판정을 견준다 — 고치기 전 기대값이 하나도 빠지거나 바뀌지 않았나(더한 것은 괜찮다) · 확인 문장이 줄지 않았나 */
+/** 글 둘의 판정을 견준다 — 고치기 전 기대값이 하나도 빠지거나 바뀌지 않았나(더한 것은 괜찮다) · 확인 문장이 줄지 않았나 · 보류를 켜거나 끄지 않았나 */
 function 판정견주기(앞글: string | null, 뒤글: string | null): 걸린까닭[] {
   const 앞 = 앞글 === null ? null : 판정읽기(앞글);
   const 뒤 = 뒤글 === null ? null : 판정읽기(뒤글);
-  if (앞 === null || 뒤 === null) return ['NOT_MEASURED'];
+  // 보류를 켜면 그 케이스를 건너뛰어 앞을 막던 케이스를 꺼 버릴 수 있다 — 사람이 본다
+  if (앞 === null || 뒤 === null || 앞.보류 !== 뒤.보류) return ['NOT_MEASURED'];
   const 남은 = [...뒤.기대값];
   const 다있나 = 앞.기대값.every((v) => {
     const i = 남은.indexOf(v);

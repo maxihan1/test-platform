@@ -15,7 +15,7 @@ import { type 기준표, 기준결정만들기 } from './authoring-ledger-io.js'
 import { type 옮긴것, 보낼항목, 옛번호지도, 표준원장 } from './authoring-prd.js';
 import { type 서버, type 앞판, 거절말고, 결과읽기, 지금판읽기, 통로 } from './authoring-prd-io.js';
 import { type 반영입력, 게임실패자리, 반영뒤줄, 실패trace자리, 테스트고침읽기, 테스트고침줄, 화면이맞음읽기, 화면이맞음줄 } from './authoring-apply.js';
-import { 다시돌림글, 다시돌림세기 } from './authoring-test-fix.js';
+import { 다시돌림글, 다시돌림세기, 잴케이스들 } from './authoring-test-fix.js';
 
 // authoring-run.ts 가 300줄이라 가져오는 줄을 늘리지 않으려고 여기서 다시 내보낸다
 export { 반영요청인가, 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
@@ -89,11 +89,13 @@ export async function 안옮김뒤(
   api: readonly 원장항목[] = [],
   /** 종류 「게임」 — 원장 설계에 게임 관점 칸을 더한다 */
   게임 = false,
+  /** 자식 결과 요약 — 테스트 고침의 다시 돌린 횟수를 고친 케이스만 세려고 읽는다 */
+  자식출력 = '',
 ): Promise<뒤결과> {
   if (원장.반영 === undefined) return { 줄: [], 원장: 원장.원장, 기준: 원장.기준 };
   const 고침 = 원장.반영.계획.테스트고침;
   // 다시 돌린 횟수는 자식 말이 아니라 마지막 전체 돌려 보기 기록에서 센다 — 자식이 종료 코드를 횟수로 적었다(PR #713)
-  const 반영줄 = [...반영뒤줄(원장.반영.계획, 자리.트리, 폴더), ...(고침 === undefined ? [] : [테스트고침줄(고침, 다시돌림글(다시돌림세기(자리.임시, 고침.cases.map((x) => x.tcId), 자리.트리)))])];
+  const 반영줄 = [...반영뒤줄(원장.반영.계획, 자리.트리, 폴더), ...(고침 === undefined ? [] : [테스트고침줄(고침, 다시돌림글(다시돌림세기(자리.임시, 잴케이스들(고침, 자식출력), 자리.트리)))])];
   const 화면 = 원장.반영.계획.화면이맞음;
   if (화면 === undefined) return { 줄: 반영줄, 원장: 원장.원장, 기준: 원장.기준 };
   const 그대로 = { 줄: [...반영줄, 화면이맞음줄(화면, [])], 원장: 원장.원장, 기준: 원장.기준 };

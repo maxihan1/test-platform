@@ -5,7 +5,7 @@ import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { type 케이스끝, 케이스끝틀 } from '../apps/admin/src/bts/gameFixShared.js';
-import { 테스트고침읽기 } from './authoring-apply.js';
+import { type 테스트고침요청, 테스트고침읽기 } from './authoring-apply.js';
 import { 내용때 } from './authoring-file-times.js';
 import { type 걸린까닭, type 잴건, 고장줄읽기, 자동병합재기 } from './authoring-fix-measure.js';
 import { type 돌린판, 끝기록꼴, 돌린기록들, 판들읽기 } from './authoring-gate3.js';
@@ -100,6 +100,16 @@ export function 케이스끝들읽기(자식출력: string, tcIds: readonly stri
 }
 
 /**
+ * 재고 셀 케이스 — 게임 자동 수정은 케이스마다 끝이 있어 고친(FIXED) 것만, 끝 줄이 하나도 없거나 이슈로 온 고침이면 맡은 케이스 전부.
+ * 막혀서 못 고친 케이스까지 세면 다시 돌린 횟수가 0번이 된다
+ */
+export function 잴케이스들(고침: 테스트고침요청, 자식출력: string): string[] {
+  const tcIds = [...new Set(고침.cases.map((x) => x.tcId))];
+  const 끝들 = 고침.auto === true ? 케이스끝들읽기(자식출력, tcIds) : [];
+  return 끝들.length === 0 ? tcIds : 끝들.filter((x) => x.outcome === 'FIXED').map((x) => x.tcId);
+}
+
+/**
  * 「테스트 수정」 고침 줄이 DONE 으로 끝나면 result.testFix { summary, reruns, autoMerge, held } 를 싣는다. 다른 줄 · 다른 끝은 그대로다.
  * 고친 곳은 자식이 쓴 글이라 테스트 계정 비밀번호가 섞였으면 싣지 않는다 — 서버가 실패 실행의 비밀값으로 한 번 더 가린다
  */
@@ -130,7 +140,7 @@ export function 테스트고침싣는손(
       // 끝 줄이 하나도 없으면 칸을 안 싣는다 — 빈 목록이면 서버가 모든 케이스를 「결과에 없음」으로 그만두고 연 PR 째 폐기한다. 칸이 없으면 PR 이 연 고침을 다 반영 대기로 둔다(gameFix.ts)
       const 끝들 = 고침.auto === true ? 케이스끝들읽기(자식출력, tcIds, 비밀) : [];
       const cases = 끝들.length > 0 ? 끝들 : undefined;
-      const 잴것 = cases === undefined ? tcIds : cases.filter((x) => x.outcome === 'FIXED').map((x) => x.tcId);
+      const 잴것 = 잴케이스들(고침, 자식출력);
       const reruns = 다시돌림세기(결과폴더, 잴것, 트리).횟수;
       // 고친 케이스가 없으면 잴 것이 없다 — 빈 판정이 「자동 반영」으로 읽히지 않게 「재지 못함」
       const held = 잴것.length === 0 ? (['NOT_MEASURED'] as 걸린까닭[]) : 자동병합재기(잴것.map((tcId) => ({ tcId, ...파일(tcId) })), 자식출력, 바뀐());

@@ -11,7 +11,7 @@ import { 반영계획만들기, 반영절 } from './authoring-apply.js';
 import { 고침프로시저들 } from './authoring-apply-proc.js';
 import { 고치기전후, 자동병합재기 } from './authoring-fix-measure.js';
 import { 고칠케이스더하기 } from './authoring-run3-env.js';
-import { 다시돌림글, 다시돌림세기 } from './authoring-test-fix.js';
+import { 다시돌림글, 다시돌림세기, 잴케이스들 } from './authoring-test-fix.js';
 
 const 파일 = 'tests/xq/XQ-TP-001.spec.ts';
 const 대상 = 'XQ-FN-102';
@@ -46,6 +46,18 @@ describe('자동 병합 조건 — 프로시저는 케이스마다 잰다', () =
     expect(잼(프로시저({ 선언들 }))).toEqual(['EXPECTED_CHANGED']);
   });
 
+  it('어느 케이스든 보류(held)를 켜면 「재지 못함」 — 앞을 막던 케이스를 꺼서 통과시키지 못하게', () => {
+    const 선언들 = 선언('본문없음', 'XQ-FN-101', "\n  held: '보류 — 값 모름',") + 선언('글자수초과', 대상) + 선언('게시확인', 'XQ-FN-103');
+    expect(잼(프로시저({ 선언들 }))).toEqual(['NOT_MEASURED']);
+  });
+
+  it('한 문에 선언한 케이스 둘 가운데 앞 것의 expected 가 바뀌어도 걸린다', () => {
+    const 둘 = (값: string) =>
+      (선언('본문없음', 'XQ-FN-101').replace('expected: null', `expected: ${값}`) + 선언('글자수초과', 대상)).replace('});\nconst 글자수초과', '}), 글자수초과') + 선언('게시확인', 'XQ-FN-103');
+    expect(잼(프로시저({ 선언들: 둘('{ a: 2 }') }), 프로시저({ 선언들: 둘('{ a: 1 }') }))).toEqual(['EXPECTED_CHANGED']);
+    expect(잼(프로시저({ 선언들: 둘('{ a: 1 }') }), 프로시저({ 선언들: 둘('{ a: 1 }') }))).toEqual([]);
+  });
+
   it('맡지 않은 케이스의 기대값 · 확인 문장이 바뀌어도 걸린다', () => {
     expect(잼(프로시저({ 첫: ` await verify('게시 버튼이 꺼진다', true, false); ` }))).toEqual(['EXPECTED_CHANGED']);
     expect(잼(프로시저({ 끝: ` await verify('타임라인에 글이 보인다', true, true); ` }))).toEqual(['EXPECTED_CHANGED', 'VERIFY_FEWER']);
@@ -67,6 +79,11 @@ describe('자동 병합 조건 — 프로시저는 케이스마다 잰다', () =
     expect(잼(null)).toEqual(['NOT_MEASURED']);
     expect(잼(프로시저(), null)).toEqual(['NOT_MEASURED']);
     expect(잼("export const spec = defineCase({ tcId: 'XQ-FN-102', expected: null });")).toEqual(['NOT_MEASURED']);
+  });
+
+  it('cases 와 test.case 를 같이 바꿔 구간이 갈려도 차례가 달라졌으면 「재지 못함」', () => {
+    const 차례대로 = (이름들: string[]) => 프로시저글(이름들.map((이) => 구간(이, `${이} 를 본다`)).join(''), { cases: `[${이름들.join(', ')}]` });
+    expect(잼(차례대로(['글자수초과', '본문없음', '게시확인']), 차례대로(['본문없음', '글자수초과', '게시확인']))).toEqual(['NOT_MEASURED']);
   });
 
   it('고장 내 보기는 대상 케이스만 보고, 그 프로시저 말고 다른 테스트 파일이 바뀌었으면 「재지 못함」', () => {
@@ -125,6 +142,12 @@ describe('프로시저 파일 찾기', () => {
     }
   });
 
+  it('횟수를 셀 케이스 — 게임 자동 수정은 끝 줄이 있으면 고친(FIXED) 케이스만, 없으면 맡은 케이스 전부다', () => {
+    const 고침 = { auto: true as const, cases: ['XQ-FN-101', 대상].map((tcId) => ({ runId: 1, tcId, env: 'qa', failure: 'timeout' as const })), note: '' };
+    expect(잴케이스들(고침, `테스트 고침 끝: XQ-FN-101 · NOT_FOUND · 막힘\n테스트 고침 끝: ${대상} · FIXED`)).toEqual([대상]);
+    expect(잴케이스들(고침, '')).toEqual(['XQ-FN-101', 대상]);
+  });
+
   it('「그대로 한 번」은 맡긴 케이스가 든 프로시저 파일을 고른다', () => {
     const 파일들 = () => [{ 경로: 'xq/XQ-TP-001.spec.ts', 글: 프로시저() }, { 경로: 'xq/XQ-TP-002.spec.ts', 글: 프로시저글('', { 선언들: 선언('다른것', 'XQ-FN-201'), cases: '[다른것]', procId: 'XQ-TP-002' }) }];
     expect(고칠케이스더하기(['a'], 대상, 파일들)).toEqual(['a', 파일]);
@@ -136,7 +159,7 @@ describe('프로시저 파일 찾기', () => {
     const 기준들 = [...기준, { 파일: 'tests/xq/XQ-TP-002.spec.ts', procId: 'XQ-TP-002', 케이스: ['XQ-FN-201'] }];
     const 계획 = { ...반영계획만들기(판, 판, '', 'XQ', undefined, false, 고침), 고침프로시저: 고침프로시저들(고침, 기준들) };
     const 글 = 반영절({ 계획, 사본: '/자료/apply.json' }, [{ env: 'qa' }]).join('\n');
-    expect(글).toContain(`고칠 케이스가 든 테스트 프로시저: ${파일} (케이스 XQ-FN-101 · ${대상} · XQ-FN-103)`);
+    expect(글).toContain(`고칠 케이스가 든 테스트 프로시저: ${파일}(케이스 XQ-FN-101 · ${대상} · XQ-FN-103) —`);
     expect(글).not.toContain('XQ-TP-002');
     expect(고침프로시저들(undefined, 기준들)).toEqual([]);
   });
