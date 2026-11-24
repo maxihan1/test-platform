@@ -36,12 +36,14 @@ interface Props {
   바꿀번호: number | null;
   /** 추천 기준인 맨 뒤 케이스 단계. 없거나 케이스 바꾸기 중이면 null — 추천 칸을 안 그린다 */
   뒤: { tcId: string; 번호: number } | null;
+  /** 이미 시나리오에 든 프로시저 번호 — 그 프로시저의 케이스는 추천에서 뺀다 (도메인/시나리오 §3.7 결정 17) */
+  든프로시저?: ReadonlySet<string>;
   on케이스: (tcId: string) => void;
   on다른단계: (part: 다른단계) => void;
   on바꾸기취소: () => void;
 }
 
-export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀번호, 뒤, on케이스, on다른단계, on바꾸기취소 }: Props) {
+export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀번호, 뒤, 든프로시저, on케이스, on다른단계, on바꾸기취소 }: Props) {
   const t = use말();
   // 한 번에 한 애플리케이션의 케이스만 목록에 뜬다. 시나리오 서비스가 바뀌면 그 서비스로 돌아간다
   const [고른앱, set고른앱] = useState(서비스);
@@ -87,7 +89,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
   const 다폄 = 찾는중 && PRD씀;
   const 펴졌나 = (칸: 'group' | 'rest', feature: string | null) => 다폄 || 펼친.has(열쇠(칸, feature));
 
-  const 추천칸 = 읽음 === null || 추천.items === null ? [] : 추천줄들(읽음.목록, 도는디바이스, PRD씀, 추천.items).filter((x) => 걸린(x.row));
+  const 추천칸 = 읽음 === null || 추천.items === null ? [] : 추천줄들(읽음.목록, 도는디바이스, PRD씀, 추천.items, 든프로시저).filter((x) => 걸린(x.row));
 
   const 줄 = (c: CaseRow, 이어짐?: string) => (
     <li key={c.tcId} className="scn-pal-row">

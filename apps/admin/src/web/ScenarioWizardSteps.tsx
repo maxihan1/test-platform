@@ -7,12 +7,13 @@ import type { CaseRow, Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { ScenarioOtherPanel } from './ScenarioOtherPanel.js';
 import { 다른단계들 } from './ScenarioPalette.js';
+import { 든프로시저들 } from './scenarioProc.js';
 import { 단계디바이스, 단계디바이스안내, 뒤케이스, 빼기, 순서바꾸기, 종류글, 추천줄들, 카드요약, 케이스접두사, 팔레트차례, type 앱줄 } from './scenarioView.js';
 import { Failed, Loading } from './ui.js';
 import { use단계추천, use케이스목록 } from './useScenarioCases.js';
 
 /** 단계 줄에 보일 케이스 이름과 머무는 화면. 목록에서 읽었거나 AI 후보가 준 것 */
-export type 케이스줄들 = ReadonlyMap<string, { name: string; screens: string[] }>;
+export type 케이스줄들 = ReadonlyMap<string, { name: string; screens: string[]; /** 프로시저 안 케이스면 그 프로시저 — 그 단계는 프로시저를 통째로 실행한다 (도메인/시나리오 §3.7 결정 17) */ proc?: { id: string; count: number } }>;
 
 // 마법사는 끄기를 따로 안 낸다 — 켠 모킹은 시나리오 끝까지 간다(결정 6). 끄기는 조립 화면에서 한다
 const 마법사다른단계 = 다른단계들.filter((x) => x.이름 !== '모킹 끄기');
@@ -43,6 +44,7 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
   const 뒤 = 뒤케이스(단계들);
   const 뒤번호 = 뒤 !== null && 케이스접두사(뒤.tcId) === 고른앱 ? 뒤.tcId : null;
   const 추천 = use단계추천(고른앱, 뒤 === null ? '' : 뒤번호);
+  const 든프로시저 = 든프로시저들(단계들, (tcId) => 케이스줄.get(tcId)?.proc?.id);
 
   const PRD씀 = 읽음?.PRD씀 ?? false;
   // 섞은 앱 · 게임 케이스는 폰에서, android 시나리오의 웹 케이스는 PC 로 돈다 (도메인/시나리오 §3.7 결정 16)
@@ -51,7 +53,7 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
   const 소문자 = 찾기.trim().toLowerCase();
   const 걸린 = (c: CaseRow) =>
     소문자 === '' || [c.tcId, c.name, ...(c.reqs ?? []).flatMap((r) => [r.reqId, r.text ?? ''])].join(' ').toLowerCase().includes(소문자);
-  const 추천칸 = 읽음 === null || 추천.items === null ? null : 추천줄들(읽음.목록, 도는디바이스, PRD씀, 추천.items).filter((x) => 걸린(x.row));
+  const 추천칸 = 읽음 === null || 추천.items === null ? null : 추천줄들(읽음.목록, 도는디바이스, PRD씀, 추천.items, 든프로시저).filter((x) => 걸린(x.row));
   const 찾은 =
     읽음 === null || 소문자 === '' ? [] : 팔레트차례(읽음.목록, 도는디바이스, PRD씀).묶음들.flatMap((g) => [...g.흐름, ...g.입력값]).filter(걸린);
 
@@ -97,6 +99,9 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
                     <span className="scw-to">
                       {p.kind === 'case' ? [p.tcId, ...(줄정보?.screens ?? [])].join(' · ') : 카드요약(p, undefined, 언어)}
                     </span>
+                    {줄정보?.proc === undefined ? null : (
+                      <span className="scw-to">{t('프로시저 {번호} · {수}건을 통째로 실행', { 번호: 줄정보.proc.id, 수: 줄정보.proc.count })}</span>
+                    )}
                   </span>
                   <span className="scw-acts">
                     <button type="button" className="scw-icon" aria-label={t('{번호}번 위로', { 번호 })} disabled={i === 0} onClick={() => on단계들(순서바꾸기(단계들, 번호, 번호 - 1))}>

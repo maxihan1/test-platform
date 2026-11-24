@@ -99,7 +99,7 @@ function 원문(t: EvidenceTrace, 고리: string | undefined): string[] {
   return [`      <details class="trace-fold"><summary class="trace-line">요청 · 응답 원문</summary>`, ...원문몸(t), `      </details>`];
 }
 
-function 스텝(s: EvidenceStep, 원문고리?: (seq: number) => string): string[] {
+export function 스텝(s: EvidenceStep, 원문고리?: (seq: number) => string): string[] {
   const 줄들 = [
     ...s.assertions.map(검증),
     ...형식검사(s.shapeChecks ?? []),

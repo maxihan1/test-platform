@@ -16,6 +16,7 @@ import { 페이지줄읽기 } from '../perf/pages.js';
 import { 성능실행머리, 성능실행목록 } from '../perf/runs.js';
 import type { DeviceRunConfig, PageRunConfig } from '../perf/types.js';
 import { 시나리오결과 } from '../scenario/runRoutes.js';
+import type { ScenarioRunPart } from '../web/scenarioApi.js';
 import { 카드요약 } from '../web/scenarioView.js';
 import { 글답, 글상한, 막힘, 문막힘, 없음, 자르기, 쪽, 최근이슈, 최대줄, type BTS주인, type 도구답 } from './tools.js';
 
@@ -121,6 +122,23 @@ async function 번호문(사람: 사용자, 종류: '실행' | '성능실행', r
   return 판정 === null ? null : 문막힘(판정);
 }
 
+/** E2E 결과의 부품 한 줄 — 프로시저 단계는 procId · procName · cases 가 는다. Blocked 는 실패가 아니라 status 'NA' 에 blockedBy 로 말한다 (도메인/챗봇.md 「테스트 프로시저」) */
+export const E2E부품 = (p: ScenarioRunPart) => ({
+  seq: p.seq,
+  kind: p.kind,
+  tcId: p.tcId,
+  // 케이스 부품은 케이스 이름(지워져 이름이 없으면 번호), API · 대기 · 모킹 부품은 조립 화면 카드 글
+  name: p.tcName ?? (p.kind === 'case' ? p.tcId : 카드요약(p.part, undefined, 'ko')),
+  status: p.status,
+  durationMs: p.durationMs,
+  failure: p.failure,
+  ...(p.procId !== undefined && {
+    procId: p.procId,
+    procName: p.procName ?? null,
+    cases: (p.cases ?? []).map((c) => ({ tcId: c.tcId, name: c.name ?? '', status: c.status ?? 'NA', ...(c.blockedBy != null && { blockedBy: c.blockedBy }) })),
+  }),
+});
+
 /** E2E 결과 — GET /api/runs/:runId/scenario 의 가린 몸에서 부품마다 판정과 실패 한 줄만. 절차 · trace · bound · 사진은 싣지 않는다 */
 export async function E2E결과(사람: 사용자, runId: number): Promise<도구답> {
   const 문 = await 번호문(사람, '실행', runId, '/api/runs/:runId/scenario');
@@ -136,16 +154,7 @@ export async function E2E결과(사람: 사용자, runId: number): Promise<도�
       env: 본것.env,
       startedAt: 본것.startedAt,
       finishedAt: 본것.finishedAt,
-      parts: 본것.parts.slice(0, 최대줄).map((p) => ({
-        seq: p.seq,
-        kind: p.kind,
-        tcId: p.tcId,
-        // 케이스 부품은 케이스 이름(지워져 이름이 없으면 번호), API · 대기 · 모킹 부품은 조립 화면 카드 글
-        name: p.tcName ?? (p.kind === 'case' ? p.tcId : 카드요약(p.part, undefined, 'ko')),
-        status: p.status,
-        durationMs: p.durationMs,
-        failure: p.failure,
-      })),
+      parts: 본것.parts.slice(0, 최대줄).map(E2E부품),
       ...(본것.parts.length > 최대줄 && { truncated: true }),
     },
   };

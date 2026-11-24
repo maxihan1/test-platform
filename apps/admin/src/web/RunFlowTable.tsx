@@ -7,31 +7,35 @@ import type { Platform, RunInsights } from './api.js';
 import { use말 } from './i18n.js';
 import { 판정점줄 } from './proc.js';
 import { 케이스줄, type 줄바깥 } from './RunFlowRow.js';
-import { type 보이는묶음, 거른흐름, 줄판정of, 쪽으로나눈다, 케이스쪽, 흐름으로묶는다 } from './runFlow.js';
+import { type 보이는묶음, type 줄판정, 거른흐름, 줄판정of, 쪽으로나눈다, 케이스쪽, 흐름으로묶는다 } from './runFlow.js';
 import { type 결과보기, type 보기바꿈, 펼침바꾼보기 } from './runResultView.js';
 import { PLATFORM_LABEL } from './ui.js';
 
-function 프로시저머리({ b, columns }: { b: 보이는묶음; columns: readonly Platform[] }) {
+/** 프로시저 헤더 한 줄 — 번호 · 이름 · 판정 점 줄 · 건수. 실행 결과 표와 E2E 프로시저 단계(ScenarioProcCases.tsx)가 같이 쓴다 */
+export function 프로시저머리줄({ procId, procName, 판정들 }: { procId: string; procName: string | null; 판정들: readonly 줄판정[] }) {
   const t = use말();
-  const 판정들 = b.줄들.map((g) => 줄판정of(g, columns));
-  const 몇 = (맞나: (v: (typeof 판정들)[number]) => boolean) => 판정들.filter((v) => !v.도는중 && 맞나(v)).length;
+  const 몇 = (맞나: (v: 줄판정) => boolean) => 판정들.filter((v) => !v.도는중 && 맞나(v)).length;
   const 실패 = 몇((v) => v.status === 'FAIL');
   const 막힘 = 몇((v) => v.blocked);
   const 미실행 = 몇((v) => v.status === 'NA' && !v.blocked);
   return (
     <div className="rf-proc">
-      <span className="mono rf-proc-id">{b.procId}</span>
-      <b>{b.procName}</b>
+      <span className="mono rf-proc-id">{procId}</span>
+      <b>{procName}</b>
       {/* 어디서 흐름이 끊겼는지 헤더에서 읽힌다. 도는 중인 케이스는 아직 판정이 없어 점선 원이다 */}
       <판정점줄 결과들={판정들.map((v) => (v.도는중 ? undefined : v))} />
       <span className="rf-count">
-        {t('{건수}건', { 건수: b.줄들.length })}
+        {t('{건수}건', { 건수: 판정들.length })}
         {실패 === 0 ? null : <span className="f"> · Fail {실패}</span>}
         {막힘 === 0 ? null : <span> · Blocked {막힘}</span>}
         {미실행 === 0 ? null : <span> · Not tested {미실행}</span>}
       </span>
     </div>
   );
+}
+
+function 프로시저머리({ b, columns }: { b: 보이는묶음; columns: readonly Platform[] }) {
+  return <프로시저머리줄 procId={b.procId ?? ''} procName={b.procName} 판정들={b.줄들.map((g) => 줄판정of(g, columns))} />;
 }
 
 export function 흐름표({

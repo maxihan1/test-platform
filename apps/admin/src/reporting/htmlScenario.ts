@@ -1,9 +1,12 @@
 // E2E 시나리오 증적 — 케이스 증적과 같은 판에 단계 층이 하나 더 있다 (도메인/리포팅 §8.4 「E2E 시나리오 증적」)
 // 가공하지 않는다 — 글자 · 가리기는 collectScenario.ts 가 끝냈다. 문서에 실리는 글은 하나도 빠짐없이 안전() 을 거친다(routes.ts 의 inline HTML 근거)
 
-import type { E2E단계, E2E증적 } from './collectScenario.js';
+import type { Platform } from '@platform/kit';
+
+import { 프로시저요약, 프로시저항목들, type E2E단계, type E2E증적 } from './collectScenario.js';
+import type { EvidenceItem } from './collect.js';
 import { 머리말, 문서판 } from './html.js';
-import { 디바이스, 본문, 안전, 판정 } from './htmlItem.js';
+import { 디바이스, 본문, 스텝, 안전, 판정 } from './htmlItem.js';
 
 export interface RenderOptions {
   /** 렌더 입력으로 받는다 — 함수 안에서 new Date() 를 부르면 재현성이 깨진다 (SPEC §3.3) */
@@ -31,14 +34,36 @@ function 끝(d: E2E단계): string {
   return `${판정(d.status)}${d.durationMs === null ? '' : `<span class="ms">(${d.durationMs}ms)</span>`}`;
 }
 
-function 단계(d: E2E단계): string[] {
+function 절차행(item: EvidenceItem): string[] {
+  if (item.steps.length === 0) return [];
+  return [`    <div class="row">`, `      <div class="row-k">시험 절차</div>`, `      <div class="row-v">`, ...item.steps.flatMap((s) => 스텝(s)), `      </div>`, `    </div>`];
+}
+
+// 프로시저 단계 — 프로시저 이름 아래 케이스마다 판정 줄을 세운다. 실행 증적의 Blocked 배지와 사유 글자를 그대로 쓴다 (도메인/시나리오 §3.7 결정 17 · 도메인/리포팅 §8.4)
+function 프로시저몸(d: E2E단계, platform: Platform): string[] {
+  if (d.프로시저 == null) return [];
+  return [
+    `  <div class="proc-line">${안전(프로시저요약(d.프로시저))}</div>`,
+    ...프로시저항목들(d, platform).flatMap(({ item, 고른것 }) => [
+      `  <div class="dev">`,
+      `    <div class="dev-head">${판정(item.status, item.blocked !== undefined)}<span class="tc-id">${안전(item.tcId)}</span><span class="tc-name">${안전(item.tcName)}</span>${item.durationMs === null ? '' : `<span class="ms">(${item.durationMs}ms)</span>`}${item.notRunReason === null ? '' : `<span class="not-run">${안전(item.notRunReason)}</span>`}</div>`,
+      ...(d.안돌았다 ? [] : 고른것 ? 본문(item) : 절차행(item)),
+      `  </div>`,
+    ]),
+  ];
+}
+
+function 단계(d: E2E단계, platform: Platform): string[] {
   const 이름 =
-    d.item === null
+    d.프로시저 != null
+      ? `<span class="tc-id">${안전(d.프로시저.procId)}</span><span class="tc-name">${안전(d.프로시저.procName)}</span>`
+      : d.item === null
       ? `<span class="tc-name">${안전(d.요약)}</span>`
       : `<span class="tc-id">${안전(d.item.tcId)}</span><span class="tc-name">${안전(d.item.tcName)}</span>`;
   const 미확정사유 = d.item?.unconfirmed ?? null;
   const 칩들 = [
     미확정사유 === null ? '' : 칩('미확정'),
+    d.프로시저 == null ? '' : 칩('프로시저'),
     // 안 적으면 가짜 응답으로 통과한 것이 진짜로 읽힌다 — 검수 서류로서 치명적이다 (도메인/리포팅 §8.4)
     d.모킹구간.length === 0 ? '' : 칩('모킹 구간'),
     d.모킹안탐 ? 칩('모킹되지 않음') : '',
@@ -64,7 +89,7 @@ function 단계(d: E2E단계): string[] {
     ),
     ...줄(d.status === 'FAIL' ? '실패 사유' : '실행이 중단된 사유', 사유 === null ? [] : [안전(사유)]),
     // 안 돈 단계는 절차를 그리지 않는다 (도메인/리포팅 §8.4)
-    ...(d.item === null || d.안돌았다 ? [] : 본문(d.item)),
+    ...(d.프로시저 != null ? 프로시저몸(d, platform) : d.item === null || d.안돌았다 ? [] : 본문(d.item)),
     `</section>`,
   ];
 }
@@ -79,7 +104,7 @@ export function 시나리오몸(doc: E2E증적, 머리 = (글: string) => `<h2 c
   return [
     `<section class="band"><div class="card-head"><span class="tc-id">SC-${doc.scenarioId}</span><span class="tc-name">${안전(doc.header.title)}</span>${칩(`v${doc.version}`)}${칩(디바이스[doc.platform])}${doc.verdict === null ? '' : 판정(doc.verdict)}${미확정}</div></section>`,
     머리('단계별 결과'),
-    ...doc.parts.flatMap(단계),
+    ...doc.parts.flatMap((d) => 단계(d, doc.platform)),
     // 판정에는 안 든다 — 마지막 단계 뒤에 한 줄씩 (도메인/시나리오 §3.7 결정 12)
     ...(doc.정리.length === 0 ? [] : [`<section class="stage">`, ...doc.정리.map((글) => `  <div class="pre">${안전(글)}</div>`), `</section>`]),
   ];

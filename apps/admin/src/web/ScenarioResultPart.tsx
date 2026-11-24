@@ -1,6 +1,6 @@
 // E2E 실행 결과의 단계 한 줄. 판정만 판정 색을 쓰고 모킹 구간 세로선 · 응답 코드는 중립 색이다 (도메인/시나리오 §8.11)
 
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 
 import type { ItemTrace } from './api.js';
 import { use말, use언어 } from './i18n.js';
@@ -8,6 +8,7 @@ import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { ItemTraceSection } from './ItemTrace.js';
 import { 가린값들, 한줄로 } from './mask.js';
 import { scenarioApi, type ScenarioRunPart } from './scenarioApi.js';
+import { 프로시저결과 } from './ScenarioProcCases.js';
 import { 값연결글, 건너뜀번호, 멈춘사유글자, 화면오류한줄 } from './scenarioResultView.js';
 import { 카드요약, 종류글 } from './scenarioView.js';
 import { seconds, Verdict } from './ui.js';
@@ -68,7 +69,8 @@ export function ScenarioResultPart({
   const 모킹구간 = part.mocks.length > 0 && part.kind !== 'mock';
   const 모킹안탐 = 모킹구간 && part.kind === 'api';
   const 입력 = 케이스 === null ? '' : 한줄로({ ...케이스.params, ...part.bound }, part.paramSchema, 언어);
-  const 이름 = part.kind === 'case' ? (
+  const 프로시저 = part.procId !== undefined;
+  const 이름 = 프로시저 ? null : part.kind === 'case' ? (
     <>
       <b className="scn-id">{part.tcId}</b> <span>{part.tcName}</span>
     </>
@@ -80,8 +82,8 @@ export function ScenarioResultPart({
     <li className={모킹구간 ? 'scn-part mocked' : 'scn-part'}>
       <div className="scn-part-head">
         <span className="scn-seq">{part.seq}</span>
-        <span className="tech-tag">{t(종류글[part.kind])}</span>
-        <span className="scn-name">{이름}</span>
+        <span className="tech-tag">{프로시저 ? t('프로시저') : t(종류글[part.kind])}</span>
+        {이름 === null ? null : <span className="scn-name">{이름}</span>}
         {!섞임 || part.service == null ? null : <span className="scn-app-tag">{part.service}</span>}
         {part.unconfirmed === null ? null : <span className="case-tag">{t('미확정')}</span>}
         {모킹안탐 ? <span className="tech-tag">{t('모킹되지 않음')}</span> : null}
@@ -97,6 +99,8 @@ export function ScenarioResultPart({
           {part.durationMs === null ? null : <span className="scn-dur">{seconds(part.durationMs, 언어)}</span>}
         </span>
       </div>
+
+      {!프로시저 ? null : <프로시저결과 part={part} 실행중={실행중} />}
 
       {!모킹구간 ? null : (
         <p className="scn-mock-note">
@@ -167,8 +171,14 @@ export function ScenarioResultPart({
           </button>
           {!열림 ? null : (
             <ul className="scn-proc">
-              {part.steps.map((s) => (
-                <li key={s.seq}>
+              {part.steps.map((s, i) => (
+                <Fragment key={s.seq}>
+                  {!프로시저 || s.tcId === undefined || s.tcId === part.steps[i - 1]?.tcId ? null : (
+                    <li className="scn-proc-case">
+                      <b className="scn-id">{s.tcId}</b> <span>{part.cases?.find((c) => c.tcId === s.tcId)?.name ?? ''}</span>
+                    </li>
+                  )}
+                <li>
                   <span>{s.title}</span>
                   {s.skipped === true ? <span className="scn-skip">{t('건너뜀')}</span> : <Verdict status={s.status} />}
                   {s.status !== 'FAIL' ? null : (
@@ -178,6 +188,7 @@ export function ScenarioResultPart({
                   )}
                   {s !== 실패절차 ? null : <실패이유 failure={이유} />}
                 </li>
+                </Fragment>
               ))}
             </ul>
           )}

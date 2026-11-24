@@ -64,7 +64,11 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   const 읽음 = useCallback((rows: CaseRow[]) => {
     set케이스줄((앞) => {
       const 다음 = new Map(앞);
-      for (const c of rows) 다음.set(c.tcId, { name: c.name, screens: (c.screens ?? []).flatMap((s) => (s.url === null ? [] : [s.url])) });
+      for (const c of rows) 다음.set(c.tcId, {
+          name: c.name,
+          screens: (c.screens ?? []).flatMap((s) => (s.url === null ? [] : [s.url])),
+          ...(c.procId == null ? {} : { proc: { id: c.procId, count: c.procCount ?? 0 } }),
+        });
       return 다음;
     });
   }, []);

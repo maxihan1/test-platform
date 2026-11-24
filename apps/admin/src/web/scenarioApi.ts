@@ -19,6 +19,25 @@ import {
   type 팜파일,
 } from './api.js';
 
+/** 프로시저 단계의 케이스 한 건. 목록 · 상세는 지금 그 프로시저의 케이스(tcId · name)만, 결과 · 시험 실행 결과는 박제한 판정까지 싣는다 — status 가 없으면 안 돈 것이다 (도메인/시나리오 §3.7 결정 17).
+ * name 은 시험 실행 결과 타입이 kit 의 ScenarioCaseResult(이름 칸이 없다)를 그대로 받는 검사들 때문에 선택이다 — 서버는 늘 싣는다 */
+export interface 프로시저케이스 {
+  tcId: string;
+  name?: string;
+  status?: ItemStatus;
+  durationMs?: number;
+  /** Blocked 는 status 'NA' · message 'BLOCKED' 다 */
+  error?: { message: string };
+  blockedBy?: string;
+}
+
+/** 프로시저 안 케이스를 고른 case 부품에만 붙는 칸. 옛 꼴 케이스 · 웹 · API 부품에는 키가 없다 */
+export interface 프로시저칸 {
+  procId?: string;
+  procName?: string | null;
+  cases?: 프로시저케이스[];
+}
+
 export interface ScenarioRow {
   id: number;
   name: string;
@@ -43,10 +62,10 @@ export interface ScenarioDetail {
   name: string;
   platform: Platform;
   version: number;
-  parts: ScenarioPart[];
+  parts: (ScenarioPart & 프로시저칸)[];
   isActive: boolean;
   versions: { version: number; savedBy: string; savedByName: string; savedAt: string }[];
-  checks: { seq: number; reason: 'STEP_GONE' | 'CASE_INACTIVE' }[];
+  checks: { seq: number; reason: 'STEP_GONE' | 'CASE_INACTIVE' | 'PROC_DUP' | 'PROC_SKIP' }[];
 }
 
 export interface ScenarioVersionBody {
@@ -54,7 +73,7 @@ export interface ScenarioVersionBody {
   parts: ScenarioPart[];
 }
 
-export interface CasePartMaterial {
+export interface CasePartMaterial extends 프로시저칸 {
   tcId: string;
   name: string;
   platforms: Platform[];
@@ -66,7 +85,7 @@ export interface CasePartMaterial {
   unconfirmed: string | null;
 }
 
-export interface ScenarioRunPart {
+export interface ScenarioRunPart extends 프로시저칸 {
   seq: number;
   kind: ScenarioPart['kind'];
   tcId: string | null;
@@ -121,7 +140,7 @@ export interface ScenarioRunResult {
 }
 
 /** 시험 실행 결과 — 실패한 case 부품에만 trace 가 붙는다 */
-export type TrialResult = Omit<ScenarioExecuteResponse, 'parts'> & { parts: (ScenarioPartResult & { trace?: ItemTrace })[] };
+export type TrialResult = Omit<ScenarioExecuteResponse, 'parts'> & { parts: (Omit<ScenarioPartResult, 'cases'> & 프로시저칸 & { trace?: ItemTrace })[] };
 
 /** 폰을 잡은 동안 도는 중 응답에 그 폰 화면 주소가 실린다 (도메인/실행 §7 「테스트 모드 통로」) */
 export type TrialState =
@@ -150,6 +169,8 @@ interface TrialBody {
 export interface NextCase {
   tcId: string;
   screen: string;
+  /** 프로시저 안 케이스만 — 그 케이스가 든 프로시저 */
+  procId?: string;
 }
 
 /** 값 연결 제안 한 줄. toSeq 는 값 연결을 달 단계(1부터)다 (도메인/시나리오 §7 「마법사 통로」) */

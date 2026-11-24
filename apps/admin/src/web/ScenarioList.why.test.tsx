@@ -33,6 +33,14 @@ function 상세(checks: ScenarioDetail['checks']): ScenarioDetail {
 }
 
 describe('까닭글들', () => {
+  it('프로시저 점검 둘은 단계 번호와 까닭을 적는다', () => {
+    const 글 = 까닭글들({ runnable: true }, 상세([{ seq: 1, reason: 'PROC_DUP' }, { seq: 2, reason: 'PROC_SKIP' }]), 한국어);
+    expect(글).toEqual([
+      '1번 단계 케이스가 다른 단계와 같은 프로시저에 있어 그 프로시저가 두 번 실행됩니다 · 케이스 변경에서 한쪽을 다른 케이스로 선택하면 풀립니다',
+      '2번 단계가 프로시저 안 케이스가 되어 저장해 둔 사전 단계 건너뛰기를 무시하고 실행합니다',
+    ]);
+  });
+
   it('비활성 케이스는 단계 번호와 케이스 번호, 사라진 사전 단계는 단계 번호로 적는다', () => {
     const 글 = 까닭글들({ runnable: false }, 상세([{ seq: 1, reason: 'CASE_INACTIVE' }, { seq: 2, reason: 'STEP_GONE' }]), 한국어);
     expect(글).toEqual(['1번 단계 케이스가 비활성입니다 · ZSW-FN-001', '2번 단계에서 건너뛰게 둔 사전 단계를 이제 건너뛸 수 없습니다']);

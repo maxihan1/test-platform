@@ -7,6 +7,7 @@ import type { SavedInput } from './api.js';
 import { use말 } from './i18n.js';
 import type { CasePartMaterial } from './scenarioApi.js';
 import { ScenarioFields, 시작글자 } from './ScenarioFields.js';
+import type { 프로시저정보 } from './scenarioProc.js';
 import { 넘겨받기끄기, 이미실행, 조립값, type 재료들 } from './scenarioView.js';
 import { schemaToFields } from './schema.js';
 import { Loading } from './ui.js';
@@ -19,6 +20,8 @@ interface Props {
   단계: CasePart;
   단계들: ScenarioPart[];
   재료: 재료들;
+  /** 프로시저 안 케이스를 고른 단계면 그 프로시저 — 프로시저는 자기 시작 상태를 스스로 맞춰 준비 건너뛰기를 못 건다 (도메인/시나리오 §3.7 결정 17) */
+  프로시저?: 프로시저정보 | null;
   쓰나: boolean;
   on바꿈: (새단계: CasePart) => void;
   on케이스바꾸기: () => void;
@@ -56,6 +59,7 @@ function PanelBody({
   단계,
   단계들,
   재료,
+  프로시저 = null,
   쓰나,
   on바꿈,
   케이스,
@@ -158,7 +162,9 @@ function PanelBody({
         )}
       </div>
 
-      {!케이스.r16 ? (
+      {프로시저 !== null ? (
+        <p className="scn-set-note">{t('프로시저는 시작 상태를 스스로 맞추므로 사전 단계를 건너뛸 수 없습니다')}</p>
+      ) : !케이스.r16 ? (
         <p className="scn-set-note">{t('이 케이스는 사전 단계가 분리되어 있지 않아 건너뛸 수 없습니다')}</p>
       ) : (
         <fieldset className="scn-set-block scn-set-group">

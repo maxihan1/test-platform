@@ -84,7 +84,7 @@ function 단계판정(d: E2E단계): string {
   return 판정말[d.status];
 }
 
-const 단계이름 = (d: E2E단계): string => (d.item === null ? d.종류 : d.item.tcName);
+const 단계이름 = (d: E2E단계): string => (d.프로시저 != null ? d.프로시저.procName : d.item === null ? d.종류 : d.item.tcName);
 
 /** 흐름 한 줄 그림 — 「1 로그인 통과 → 2 장바구니 실패 → 3 결제 실행 안 함」 */
 export function 흐름(doc: E2E증적): 덩이 {
@@ -93,7 +93,7 @@ export function 흐름(doc: E2E증적): 덩이 {
 
 /** 워드의 E2E 단계 표 — HTML 은 증적 단계 카드를 그대로 쓴다 */
 export function 단계목록(doc: E2E증적): 덩이 {
-  return { 꼴: '표', 머리: ['단계', '종류', '내용', '판정'], 줄: doc.parts.map((d) => ({ 칸: [String(d.seq), d.종류, d.item === null ? d.요약 : `${d.item.tcId} ${d.item.tcName}`, 단계판정(d)] })) };
+  return { 꼴: '표', 머리: ['단계', '종류', '내용', '판정'], 줄: doc.parts.map((d) => ({ 칸: [String(d.seq), d.종류, d.프로시저 != null ? `${d.프로시저.procId} ${d.프로시저.procName}` : d.item === null ? d.요약 : `${d.item.tcId} ${d.item.tcName}`, 단계판정(d)] })) };
 }
 
 /** 기능 · UI · E2E → 「비기능 검증」 구분 → 호환성 · 성능 · 안정화. 그 묶음에 든 종류만 선다 */

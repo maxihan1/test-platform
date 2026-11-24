@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type TrialResult } from './scenarioApi.js';
+import { 프로시저결과 } from './ScenarioProcCases.js';
 import { PartTrace } from './ScenarioResultPart.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
@@ -186,8 +187,9 @@ export function TrialRow({
   const 언어 = use언어();
   const 종류 = 단계?.kind;
   // 실행 결과 화면의 단계 줄과 같은 이름이다. 재료가 없으면 번호만 보인다
+  const 프로시저 = part.procId !== undefined;
   const 이름 =
-    단계 === undefined ? null : 단계.kind === 'case' ? (
+    단계 === undefined || 프로시저 ? null : 단계.kind === 'case' ? (
       <>
         <b className="scn-id">{단계.tcId}</b> <span>{재료.get(단계.tcId)?.name ?? ''}</span>
       </>
@@ -203,7 +205,7 @@ export function TrialRow({
     <li className="scn-part">
       <div className="scn-part-head">
         <span className="scn-seq">{part.seq}</span>
-        {종류 === undefined ? null : <span className="tech-tag">{t(종류글[종류])}</span>}
+        {종류 === undefined ? null : <span className="tech-tag">{프로시저 ? t('프로시저') : t(종류글[종류])}</span>}
         {이름 === null ? null : <span className="scn-name">{이름}</span>}
         <span className="scn-end">
           {적용됨 ? (
@@ -217,6 +219,7 @@ export function TrialRow({
           {안돌았다 || part.durationMs === null ? null : <span className="scn-dur">{걸린글(part.durationMs, 언어)}</span>}
         </span>
       </div>
+      {!프로시저 ? null : <프로시저결과 part={part} />}
       {part.status !== 'FAIL' || 사유 === '' ? null : <pre className="scn-error">{사유}</pre>}
       {part.status !== 'FAIL' || part.trace === undefined ? null : <PartTrace trace={part.trace} />}
       {part.status !== 'NA' || 안돌았다 || 사유 === '' ? null : (

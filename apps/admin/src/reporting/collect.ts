@@ -34,6 +34,8 @@ export interface EvidenceAssertion {
 
 export interface EvidenceStep {
   seq: number;
+  /** E2E 프로시저 단계의 절차만 — 그 절차가 든 케이스. 절차를 케이스마다 묶는다 (도메인/시나리오 §3.7 결정 17) */
+  tcId?: string;
   title: string;
   status: ItemStatus;
   durationMs: number | null;
