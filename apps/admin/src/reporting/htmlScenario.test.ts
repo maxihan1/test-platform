@@ -219,8 +219,8 @@ describe('케이스 증적의 E2E 요약', () => {
     expect(글).not.toMatch(/SC-15.*모두 Pass/);
     expect(글).toContain('E2E 요약');
     expect(글).toContain('이 요약은 문서를 만든 때 기준이다');
-    expect(글).toContain('2026-10-16T05:20:00.000Z · 3번에서 종료');
-    expect(글).toContain('2026-10-15T01:00:00.000Z · 모두 Pass');
+    expect(글).toContain('2026-10-16 14:20 · 3번에서 종료');
+    expect(글).toContain('2026-10-15 10:00 · 모두 Pass');
     expect(글).toMatch(/SC-14.*실행 기록 없음/);
     expect(글).toContain('케이스 판정은 위 카드와 줄이 정본이다');
   });

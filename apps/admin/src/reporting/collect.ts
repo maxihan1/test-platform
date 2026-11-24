@@ -6,6 +6,7 @@ import type { DeviceInfo, ItemStatus, Platform, ShapeCheck } from '@platform/kit
 import type { Pool } from 'pg';
 import { 팜기록글 } from '../execution/farmEvidence.js';
 import { 종류조건 } from '../execution/runKind.js';
+import { 한국시각초 } from '../kst.js';
 import { 다시실행칸들, 다시실행칸으로, 지금항목, type 다시실행원재료 } from '../execution/single.js';
 import { 단위비밀들 } from '../execution/execRead.js';
 import { 항목비밀 } from '../execution/trial.js';
@@ -267,5 +268,5 @@ async function 팜글(돈실행: number, row: RawItem, 단위통과: boolean | u
   const 글 = await 팜기록글(돈실행, Number(row.exec_id ?? row.history_id), 단위통과 ?? row.status === 'PASS');
   // 프로시저 줄만 시각이 찬다(kit 이 잰 값). 끝을 못 쟀으면 「~ 」로 끝나는 줄이 되니 둘 다 있을 때만 붙인다
   if (글 === null || row.case_started_at == null || row.case_finished_at == null) return 글;
-  return `${글} · 이 케이스 ${row.case_started_at.toISOString()} ~ ${row.case_finished_at.toISOString()}`;
+  return `${글} · 이 케이스 ${한국시각초(row.case_started_at.toISOString())} ~ ${한국시각초(row.case_finished_at.toISOString())}`;
 }

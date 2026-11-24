@@ -1,6 +1,7 @@
 // QA 리포트 첫 장을 글 덩이(제목 · 문단 · 표)로 짓는다 — HTML · PDF(qaReportHtml.ts)와 워드(qaReportDocx.ts)가 같은 글을 그린다 (도메인/리포팅 §3.17 「첫 장 — 시안 B 차례」)
 // 빈 값을 무엇으로 적을지(「견줄 이전 빌드 없음」 · 「Issue Bunker 미연결」 …)는 여기 한 곳에서 정한다. 형식마다 따로 정하면 HTML 과 워드가 다른 말을 한다
 
+import { 한국시각 } from '../kst.js';
 import type { SecRow } from '../perf/judge.js';
 import type { 실패유형 } from './failureType.js';
 import type { 리포트응답 } from './qaReportDoc.js';
@@ -41,8 +42,8 @@ export type 덩이 =
   /** 성능 시간대별 추이 — HTML · PDF 는 성능 PDF 와 같은 그림, 워드는 그림 대신 안내 한 줄 */
   | { 꼴: '추이'; rows: SecRow[] };
 
-/** 문서 안 시각은 한 꼴이다 — 받는 사람마다 시간대가 달라 UTC 로 적고 그렇다고 밝힌다 */
-export const 시각 = (iso: string): string => `${iso.slice(0, 16).replace('T', ' ')} UTC`;
+/** 문서 안 시각은 한 꼴이다 — 받는 사람이 어디서 열어도 한국 시간으로 적는다 (저장은 UTC) */
+export const 시각 = 한국시각;
 
 export const 디바이스이름: Record<string, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 

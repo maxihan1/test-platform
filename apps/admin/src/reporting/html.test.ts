@@ -20,7 +20,7 @@ const 글꼴파일들 = [
   'IBMPlexMono-Medium.woff2',
 ].map((이름) => new URL(`../web/fonts/${이름}`, import.meta.url));
 
-const 옵션 = { generatedAt: '2026-09-19 10:00', format: 'HTML' } as const;
+const 옵션 = { generatedAt: '2026-09-19T01:00:00.000Z', format: 'HTML' } as const;
 
 const 머리말 = {
   serviceName: '커머스',
@@ -86,7 +86,7 @@ describe('증적 문서 HTML', () => {
       '커머스',
       'https://git.example.com/commerce-tests',
       '야간 회귀',
-      '2026-09-18T22:00:00.000Z',
+      '2026-09-19 07:00',
       '김검수',
       'qa',
       'https://qa.example.com',

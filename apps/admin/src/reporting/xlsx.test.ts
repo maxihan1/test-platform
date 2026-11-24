@@ -218,7 +218,7 @@ describe('증적 문서 엑셀', () => {
 
     for (const 행 of [2, 3]) {
       expect(셀(ws, 행, 1)).toBe('7');
-      expect(셀(ws, 행, 2)).toBe('2026-09-18T22:00:00.000Z');
+      expect(셀(ws, 행, 2)).toBe('2026-09-19 07:00');
       expect(셀(ws, 행, 3)).toBe('커머스');
       expect(셀(ws, 행, 4)).toBe('qa');
       expect(셀(ws, 행, 5)).toBe('https://qa.example.com');
