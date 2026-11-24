@@ -9,7 +9,7 @@ import { type 조작실패, 게임고침틀 } from '../apps/admin/src/bts/gameFi
 import { type 지도줄, 지도줄들 } from '../apps/admin/src/catalog/reqMap.js';
 import { 반영안됨 } from '../apps/admin/src/prd/rules.js';
 import { type 설계, 설계하기 } from './authoring-design.js';
-import { type 고칠프로시저, 사라진케이스, 삭제뒤줄, 삭제요청읽기, 트리케이스들, 프로시저절 } from './authoring-apply-proc.js';
+import { type 고칠프로시저, type 기준프로시저, 고침프로시저절, 사라진케이스, 삭제뒤줄, 삭제요청읽기, 트리케이스들, 프로시저절 } from './authoring-apply-proc.js';
 import { 경고줄 } from './authoring-design-check.js';
 
 /** 자식에게 주는 반영 계획 사본 — 자료 폴더 안. 지울 케이스 확인은 에이전트 메모리의 계획으로 한다 */
@@ -45,6 +45,8 @@ export interface 반영계획 {
   테스트고침?: 테스트고침요청;
   /** 고치거나 지울 케이스가 든 프로시저 — 통째로 다시 쓴다. 닿는 프로시저가 없으면 칸이 없다 */
   프로시저?: 고칠프로시저[];
+  /** 테스트 고침이 맡은 케이스가 든 프로시저 — 통째로 다시 쓰지 않고 그 파일만 고친다. 프로시저 안 케이스를 안 맡았으면 칸이 없다 */
+  고침프로시저?: 기준프로시저[];
   /** 프로시저 안 케이스의 삭제 작성(params.procDelete)이면 지울 케이스 — 요구는 그대로라 다시 씀 · 새 항목 · 지움이 빈다 */
   삭제?: string[];
 }
@@ -216,6 +218,7 @@ export function 반영절(입력: 반영입력, 서버들: readonly { env: strin
       ...(서버들.some((s) => s.env === x.env) ? [] : [`⚠️ 위 대상 서버 목록에 ${x.env} 가 없다 — 서비스 설정에서 그 줄이 빠졌다. 다시 돌려 볼 수 없으니 그 건의 요구는 고치지 말고 결과 요약에 그 사실을 적어라.`]),
     ]),
     ...(계획.테스트고침 === undefined ? [] : 테스트고침절(계획.테스트고침, 자료폴더, 서버들)),
+    ...고침프로시저절(계획.고침프로시저 ?? []),
     // 반영 · 화면이 맞음도 관문 3 의 로그인이 돌게 계정을 받는다 — 값은 환경 변수로만 (§3.6 「★ 역할별 계정」)
     '계정(운영 아닌 대상 서버 줄마다 일반 회원과 역할 계정)은 환경 변수 PLATFORM_ACCOUNTS(JSON)에 있다. playwright 를 PLATFORM_BASE_URL=<그 줄 주소> 로 돌리면 kit 이 비밀값 칸을 채운다 — PLATFORM_PARAMS 를 손으로 만들지 말고 값을 출력 · 인자 · 파일에 쓰지 마라.',
     '`.claude/skills/tpx-author/references/apply.md` 를 먼저 읽고 따라라. 맡은 번호가 아닌 표 줄과 케이스는 손대지 마라.',

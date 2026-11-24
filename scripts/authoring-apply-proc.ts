@@ -4,7 +4,7 @@
 import { lstatSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
-import type { 반영계획 } from './authoring-apply.js';
+import type { 반영계획, 테스트고침요청 } from './authoring-apply.js';
 import { 경고줄 } from './authoring-design-check.js';
 import { 케이스파일들 } from './authoring-progress.js';
 import { 케이스조각들 } from './authoring-proc-pieces.js';
@@ -44,6 +44,10 @@ export function 고칠프로시저들(계획: 반영계획, 기준: readonly 기
   });
 }
 
+/** 테스트 고침이 맡은 케이스가 든 프로시저 */
+export const 고침프로시저들 = (고침: 테스트고침요청 | undefined, 기준: readonly 기준프로시저[]): 기준프로시저[] =>
+  기준.filter((p) => (고침?.cases ?? []).some((x) => p.케이스.includes(x.tcId)));
+
 /** 삭제 작성을 자식 없이 FAILED 로 끝낼 까닭 — 반영이 끝난 삭제를 다시 돌렸거나 그 사이 다른 반영이 걷었다 */
 export function 삭제막힘(계획: 반영계획): string | null {
   if (계획.삭제 === undefined || (계획.프로시저 ?? []).some((p) => p.지울.length > 0)) return null;
@@ -55,6 +59,10 @@ export function 프로시저절(프로시저: readonly 고칠프로시저[]): st
   if (프로시저.length === 0) return [];
   return [`고치거나 지울 케이스가 든 프로시저 ${String(프로시저.length)}개: ${프로시저.map((p) => p.procId).join(' · ')} — 케이스 하나만 고쳐도 그 프로시저 파일을 통째로 다시 쓰고 통째로 돌려 본다(apply.json 의 프로시저 · apply.md 「프로시저 안 케이스」).`];
 }
+
+/** 테스트 고침 절의 프로시저 줄 — 케이스 번호로 파일을 찾지 못하니 어느 파일인지 짚는다 */
+export const 고침프로시저절 = (프로시저: readonly 기준프로시저[]): string[] =>
+  프로시저.map((p) => `고칠 케이스가 든 테스트 프로시저: ${p.파일} (케이스 ${p.케이스.join(' · ')}) — 테스트 파일은 이 파일만 고치고 통째로 돌린다. 맡지 않은 케이스의 기대값 · 확인 문장과 \`cases\` 차례는 그대로 둔다(apply.md §7 「프로시저 안 케이스」).`);
 
 /** 자식이 남긴 트리의 케이스 번호들 — 옛 꼴은 파일 이름도 센다(글을 못 읽어도 남은 파일이 보이게). 자식 폴더라 일반 파일만 읽는다 — 링크나 파이프를 심어 두면 트리 밖을 읽거나 멈춘다 */
 export function 트리케이스들(트리: string, 폴더: string): Set<string> {
