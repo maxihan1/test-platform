@@ -2,9 +2,9 @@
 
 import { lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
-import { stripVTControlCharacters } from 'node:util';
 
 import { 내용때, 내용때표 } from './authoring-file-times.js';
+import { type 끊긴판, type 케이스판, 첫줄, 케이스판읽기 } from './authoring-proc-run.js';
 import { type 파일글, 품질숫자, 품질줄 } from './authoring-quality.js';
 import { 살필케이스 } from './authoring-reach.js';
 
@@ -145,7 +145,7 @@ interface 시험글 {
   projectName?: unknown;
   status?: unknown;
   annotations?: 표시글[];
-  results?: { duration?: unknown; error?: { message?: unknown }; annotations?: 표시글[] }[];
+  results?: { duration?: unknown; error?: { message?: unknown }; annotations?: 표시글[]; attachments?: { name?: unknown; body?: unknown }[] }[];
 }
 
 /**
@@ -179,13 +179,15 @@ export interface 돌린판 {
   시간들: number[];
   /** 빨간 회차의 첫 오류 줄 */
   오류: string | null;
+  /** 프로시저 파일만 — kit 이 남긴 케이스마다 판정 (작성 §3.6 「★ 테스트 프로시저 작성」 「돌려 보기」) */
+  케이스들?: 케이스판[];
 }
 
 /**
  * 기록들을 `파일\0기기` 마다 돌린 판으로 모은다. 하위 묶음(describe)은 위 파일 이름을 물려받는다. 끝까지 못 돈 회차는 뺀다(돌았나).
  * 못 읽는 기록이 있으면 null — `깨진것빼기` 면 그 기록만 빼고 본다(돌려 보기 명령은 그 파일을 다시 돌리면 된다)
  */
-export function 판들읽기(기록들: 돌린기록[], 깨진것빼기 = false): { 판들: Map<string, 돌린판[]>; 동시: unknown } | null {
+export function 판들읽기(기록들: 돌린기록[], 깨진것빼기 = false): { 판들: Map<string, 돌린판[]>; 동시: unknown; 끊긴: Map<string, 끊긴판[]> } | null {
   const 읽은것: (결과글 & { 이름: string })[] = [];
   for (const r of 기록들) {
     try {
@@ -195,7 +197,10 @@ export function 판들읽기(기록들: 돌린기록[], 깨진것빼기 = false)
     }
   }
   const 판들 = new Map<string, 돌린판[]>();
+  // 회차 기록이 있는데 못 돈 것 — 시간 상한에 걸려 돌다 끊겼다. 끊긴 프로시저를 다음 부름에서 먼저 돌리려고 따로 모은다
+  const 끊긴 = new Map<string, 끊긴판[]>();
   for (const r of 읽은것) {
+    const 혼자 = (r.suites ?? []).filter((s) => typeof s.file === 'string').length === 1;
     const 끝 = 끝기록꼴.test(r.이름);
     const 머리 = { 기록: r.이름, 시작: Date.parse(String(r.stats?.startTime)), 느림: r.config?.metadata?.slowApi === true, 끝 };
     const 모으기 = (묶음: 묶음글, 담기: (t: 시험글) => void) => {
@@ -206,24 +211,26 @@ export function 판들읽기(기록들: 돌린기록[], 깨진것빼기 = false)
       if (typeof 묶음.file !== 'string') continue;
       const 이번 = new Map<string, 돌린판>();
       모으기(묶음, (t) => {
-        if (typeof t.projectName !== 'string' || !돌았나(t)) return;
+        if (typeof t.projectName !== 'string') return;
+        if (!돌았나(t)) {
+          const 열쇠 = `${묶음.file as string}\0${t.projectName}`;
+          if ((t.results ?? []).length > 0) 끊긴.set(열쇠, [...(끊긴.get(열쇠) ?? []), { 기록: r.이름, 시작: 머리.시작, 혼자 }]);
+          return;
+        }
         const 판 = 이번.get(t.projectName) ?? { ...머리, 상태들: [], 시간들: [], 오류: null };
         판.상태들.push(t.status);
         for (const 회 of t.results ?? []) if (typeof 회.duration === 'number') 판.시간들.push(회.duration);
         const 말 = t.results?.find((회) => typeof 회.error?.message === 'string')?.error?.message;
         if (판.오류 === null && t.status === 'unexpected' && typeof 말 === 'string') 판.오류 = 첫줄(말);
+        const 케이스들 = 케이스판읽기(t.results);
+        if (케이스들 !== undefined) 판.케이스들 = 케이스들;
         이번.set(t.projectName, 판);
       });
       for (const [기기, 판] of 이번) 판들.set(`${묶음.file}\0${기기}`, [...(판들.get(`${묶음.file}\0${기기}`) ?? []), 판]);
     }
   }
   // 마지막 전체 돌려 보기 기록만 하나씩인지 본다 — 보조 AI 는 넷이 나란히 도는 것이 처음부터 정해진 분담이고, 사람이 직접 돌린 묶음 기록은 둘일 수 있다
-  return { 판들, 동시: 읽은것.filter((r) => 끝기록꼴.test(r.이름)).map((r) => r.config?.workers).find((w) => w !== 1) };
-}
-
-/** 색 글자를 빼고 첫 줄만 — 오류 글 전체는 길고 대화 토큰을 먹는다 */
-function 첫줄(글: string): string {
-  return (stripVTControlCharacters(글).split('\n').find((줄) => 줄.trim() !== '') ?? '').trim().slice(0, 200);
+  return { 판들, 동시: 읽은것.filter((r) => 끝기록꼴.test(r.이름)).map((r) => r.config?.workers).find((w) => w !== 1), 끊긴 };
 }
 
 /** 한 파일 · 한 기기가 지금 판(마지막 수정 뒤)으로 어디까지 확인됐나 */

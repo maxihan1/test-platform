@@ -1,6 +1,7 @@
 // 케이스 품질을 숫자로 센다 — 작성을 나눠 맡긴 뒤 품질이 떨어졌는지 사람 손 없이 견주려고 (SPEC 도메인/작성 §3.6)
 
 import { CSS개수, 공용부품인가 } from '../apps/admin/src/catalog/cssLocator.js';
+import { 프로시저값읽기 } from './authoring-proc-pieces.js';
 
 export interface 파일글 {
   경로: string;
@@ -9,7 +10,9 @@ export interface 파일글 {
 
 export interface 품질 {
   케이스: number;
-  /** 케이스 파일마다 `verify(` 수의 평균 */
+  /** 케이스가 든 프로시저 파일 수 — 케이스 수 옆에 같이 적는다 */
+  프로시저: number;
+  /** 케이스마다 `verify(` 수의 평균 — 프로시저 안 케이스는 그 케이스 구간의 것만 */
   판정평균: number;
   /** 준비가 있는 케이스 가운데 `blocker: true` 판정이 하나라도 있는 비율 — 준비 단계마다 화면이 맞는지 확인했나 */
   전제확인비율: number;
@@ -49,11 +52,27 @@ const 도우미 = /^(?:export\s+)?(?:async\s+function\s+|function\s+|const\s+)([
 // 옮기지 않은 임시 도우미는 따로 ⚠️ 한 줄이 짚는다(남은임시도우미) — 옮기는 공용 도우미와 겹친 것으로 또 세지 않는다
 const 임시도우미 = /(^|\/)(components|helpers)\/draft-[^/]*\.ts$/;
 
+/** 케이스 하나를 세는 재료 — 프로시저 안 케이스는 판정은 케이스 구간, 전제 확인은 그 케이스의 준비 구간까지, 전제는 프로시저 것과 케이스 것을 같이 본다 (작성 §3.6 「★ 테스트 프로시저 작성」 「돌려 보기」) */
+interface 셀케이스 {
+  판정글: string;
+  준비글: string;
+  전제: string[];
+}
+
 export function 품질숫자(파일들: 파일글[]): 품질 {
-  const 케이스들 = 파일들.filter((f) => 케이스파일.test(f.경로));
-  const 판정수 = 케이스들.reduce((n, f) => n + (f.글.match(/\bverify\(/g)?.length ?? 0), 0);
-  const 준비있음 = 케이스들.filter((f) => 전제목록(f.글).some((p) => !준비없는상태.has(p)));
-  const 전제 = 준비있음.filter((f) => /blocker:\s*true/.test(f.글)).length;
+  let 프로시저 = 0;
+  const 케이스들 = 파일들
+    .filter((f) => 케이스파일.test(f.경로))
+    .flatMap((f): 셀케이스[] => {
+      // 글자를 먼저 봐 옛 꼴 파일은 구문 분석을 안 한다
+      const 프 = /\bdefineProcedure\s*\(/.test(f.글) ? 프로시저값읽기(f.글) : null;
+      if (프 === null) return [{ 판정글: f.글, 준비글: f.글, 전제: 전제목록(f.글) }];
+      프로시저 += 1;
+      return 프.조각.map((c) => ({ 판정글: c.프로시저?.구간글 ?? c.글, 준비글: c.글, 전제: [...프.전제, ...전제목록(c.글)] }));
+    });
+  const 판정수 = 케이스들.reduce((n, c) => n + (c.판정글.match(/\bverify\(/g)?.length ?? 0), 0);
+  const 준비있음 = 케이스들.filter((c) => c.전제.some((p) => !준비없는상태.has(p)));
+  const 전제 = 준비있음.filter((c) => /blocker:\s*true/.test(c.준비글)).length;
   const 밖CSS = 파일들
     .filter((f) => !공용부품인가(f.경로))
     .reduce((n, f) => n + CSS개수(f.글), 0);
@@ -64,14 +83,14 @@ export function 품질숫자(파일들: 파일글[]): 품질 {
 
   const n = 케이스들.length;
   const 분모 = 준비있음.length;
-  return { 케이스: n, 판정평균: n === 0 ? 0 : 판정수 / n, 전제확인비율: 분모 === 0 ? 0 : 전제 / 분모, 준비없음: n - 분모, 밖CSS, 겹친도우미 };
+  return { 케이스: n, 프로시저, 판정평균: n === 0 ? 0 : 판정수 / n, 전제확인비율: 분모 === 0 ? 0 : 전제 / 분모, 준비없음: n - 분모, 밖CSS, 겹친도우미 };
 }
 
 /** PR 본문 「작성 요약」 머리에 싣는 한 줄. 도우미 이름은 앞 다섯까지 */
 export function 품질줄(q: 품질): string {
   const 이름 = q.겹친도우미.length === 0 ? '' : `(${q.겹친도우미.slice(0, 5).join(' · ')}${q.겹친도우미.length > 5 ? ' …' : ''})`;
   return (
-    `품질 숫자: 케이스 ${q.케이스} · 판정 평균 ${q.판정평균.toFixed(1)} · 전제 확인 ${Math.round(q.전제확인비율 * 100)}%(준비 없는 케이스 ${q.준비없음} 제외) · ` +
+    `품질 숫자: 케이스 ${q.케이스}${q.프로시저 > 0 ? `(프로시저 ${q.프로시저}개)` : ''} · 판정 평균 ${q.판정평균.toFixed(1)} · 전제 확인 ${Math.round(q.전제확인비율 * 100)}%(준비 없는 케이스 ${q.준비없음} 제외) · ` +
     `공용 부품 밖 CSS·XPath ${q.밖CSS} · 여러 파일에 따로 만든 도우미 ${q.겹친도우미.length}개${이름}`
   );
 }
