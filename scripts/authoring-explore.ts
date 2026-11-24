@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { 올릴빌드 } from './authoring-app-crawl-route.js';
+import { 삭제요청읽기 } from './authoring-apply-proc.js';
 import { 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
 import { 게임자리, 글받기 } from './authoring-game.js';
 import { type 맵행, 경로, 맵행읽기, 목표풀기, 출발고르기 } from './authoring-game-route.js';
@@ -229,7 +230,7 @@ export async function 탐색끝줄(통로: 화면통로, 자료: string, 비밀:
  * (2026-11-20 사용자 — 케이스 하나를 고치려고 기능 단위 전체를 탐색하지 않는다. 고칠 때도 경로 검색은 쓴다)
  */
 export const 탐색하나 = (것: { params?: unknown }, 게임: boolean): boolean =>
-  게임 && 테스트고침읽기(것) === undefined && 화면이맞음읽기(것) === undefined;
+  게임 && 삭제요청읽기(것) === undefined && 테스트고침읽기(것) === undefined && 화면이맞음읽기(것) === undefined;
 
 export interface 띄운결과 {
   돌린것: 돌린결과;

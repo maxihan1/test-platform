@@ -102,14 +102,14 @@ describe('기준읽기 — 기준 SHA 의 표 · 케이스를 git 에서 (이어
       'tests/mkt/sub/b.spec.ts': 케이스('MKT-002'),
       'tests/mkt/helper.ts': 'x',
     });
-    expect(기준읽기(깃, 'abc123', 'MKT', 'mkt')).toEqual({ 표글: '표', 있는케이스: new Set(['MKT-001', 'MKT-002']), 있는프로시저: new Set() });
+    expect(기준읽기(깃, 'abc123', 'MKT', 'mkt')).toEqual({ 표글: '표', 있는케이스: new Set(['MKT-001', 'MKT-002']), 있는프로시저: new Set(), 프로시저파일: [] });
     expect(부른것[0]).toEqual(['ls-tree', '-r', '-z', '--name-only', 'abc123', '--', 'docs/cases/MKT.md', 'tests/mkt']);
     expect(부른것.slice(1).every((a) => a[0] === 'show' && a[1]?.startsWith('abc123:'))).toBe(true);
   });
 
   it('표가 없으면 빈 글이다 — 처음 작성하는 서비스', () => {
     const { 깃 } = 가짜깃({});
-    expect(기준읽기(깃, 'abc123', 'MKT', 'mkt')).toEqual({ 표글: '', 있는케이스: new Set(), 있는프로시저: new Set() });
+    expect(기준읽기(깃, 'abc123', 'MKT', 'mkt')).toEqual({ 표글: '', 있는케이스: new Set(), 있는프로시저: new Set(), 프로시저파일: [] });
   });
 
   it.each(['ls-tree', 'docs/cases/MKT.md', 'a.spec.ts'])('그 밖의 git 실패(%s)는 까닭이다 — 빈 표로 뭉개면 덮은 번호까지 다시 맡긴다', (자리) => {

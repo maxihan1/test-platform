@@ -3,7 +3,8 @@
 
 import ts from 'typescript';
 
-import { 값적기, 명세글, 사슬에서, 읽기, 칸묶음, 케이스tcId, 표고치기 } from './authoring-held-apply.js';
+import { 프로시저글읽기 } from '../apps/admin/src/catalog/procedure.js';
+import { 값적기, 명세글, 사슬에서, 읽기, 칸묶음, 케이스tcId들, 표고치기 } from './authoring-held-apply.js';
 
 /**
  * 어드민이 보낸 케이스 하나의 고칠 내용. 서버(apps/admin/src/authoring/edit.ts)가 이미 검사한 모양이다.
@@ -17,10 +18,10 @@ interface 글파일 {
   글: string;
 }
 
-/** expected 칸마다 지금 `.default(...)` 인자의 코드 글자 — 사람이 PR 에서 코드와 같은 모양으로 읽는다 */
-export function 기대기본값들(원문: string): Record<string, string> {
+/** expected 칸마다 지금 `.default(...)` 인자의 코드 글자 — 사람이 PR 에서 코드와 같은 모양으로 읽는다. 프로시저 파일은 선언이 여럿이라 그 번호의 선언을 본다 */
+export function 기대기본값들(원문: string, tcId?: string): Record<string, string> {
   const sf = 읽기(원문);
-  const 명세 = 명세글(sf);
+  const 명세 = 명세글(sf, tcId);
   const 묶음 = 명세 === undefined ? undefined : 칸묶음(명세, 'expected');
   const 값들: Record<string, string> = {};
   for (const p of 묶음?.properties ?? []) {
@@ -37,10 +38,10 @@ function 케이스고치기(tcId: string, 원문: string, e: Exclude<고칠것, 
   let 글 = 원문;
   const 기대 = e.expected ?? {};
   if (Object.keys(기대).length > 0) {
-    const r = 값적기(글, { expected: 기대 });
+    const r = 값적기(글, { expected: 기대 }, tcId);
     if ('사유' in r) return { 사유: `${tcId}: ${r.사유}` };
-    const 옛 = 기대기본값들(글);
-    const 새 = 기대기본값들(r.글);
+    const 옛 = 기대기본값들(글, tcId);
+    const 새 = 기대기본값들(r.글, tcId);
     // 이미 그 값이면 줄을 안 낸다 — 다시 적용(재실행)이 새 main 에서 일부만 바꾸는 일이 있다
     for (const 칸 of Object.keys(기대)) if (옛[칸] !== 새[칸]) 줄들.push(`- ${tcId} 기대값 ${칸}: ${옛[칸] ?? '없음'} → ${새[칸] ?? '없음'}`);
     글 = r.글;
@@ -63,9 +64,11 @@ export function 편집계산(
   const 지우기: string[] = [];
   const 줄들: string[] = [];
   for (const e of edits) {
-    const 파일 = 케이스들.find((f) => 케이스tcId(f.글) === e.tcId);
+    const 파일 = 케이스들.find((f) => 케이스tcId들(f.글).includes(e.tcId));
     if (파일 === undefined) return { 사유: `${e.tcId} 케이스 파일을 못 찾았다` };
     if ('delete' in e) {
+      // 서버가 프로시저 안 케이스의 삭제를 작성 요청으로 보낸다 — 여기서 지우면 파일째 다른 케이스까지 사라진다
+      if (프로시저글읽기(파일.글) !== null) return { 사유: `${e.tcId} 는 프로시저 안 케이스라 여기서 지우지 않는다 — 삭제 요청을 다시 보내면 작성 요청으로 선다` };
       지우기.push(파일.경로);
       줄들.push(`- ${e.tcId} 삭제`);
       continue;
