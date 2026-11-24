@@ -248,4 +248,14 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
     expect((await 부르기('xqb-reader', `/api/qa-reports/${String(빈칸)}`)).statusCode).toBe(403);
     expect((await 부르기('xqb-admin', `/api/qa-reports/${String(빈칸)}`)).statusCode).toBe(200);
   });
+
+  it('앞 케이스에 막힌 항목(Blocked)은 실패 분류에 안 들고 계획 대비 차이의 미실행 사유가 blocked 다', async () => {
+    const 하나 = await 실행만들기({ kind: 'FN', build: null, origin: 'MANUAL', by: 'xqb-a', 시작: '2026-11-13T10:00:00Z' });
+    await 항목(하나, 'XQB-FN-001', 'FAIL', '확인 문장이 깨졌다');
+    await 항목(하나, 'XQB-FN-002', 'NA', 'BLOCKED');
+    expect(await QA리포트를다시만든다({ runId: 하나 })).toBe('새 버전');
+    const [r] = await 리포트(`R:${하나}`);
+    expect(r!.summary.plan.cases.find((c) => c.kind === 'FN')!.notRun).toEqual([{ tcId: 'XQB-FN-002', name: 'XQB-FN-002', platform: 'desktop', cause: 'blocked' }]);
+    expect(r!.summary.failures.items.map((f) => f.tcId)).toEqual(['XQB-FN-001']);
+  });
 });

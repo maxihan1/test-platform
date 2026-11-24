@@ -167,10 +167,10 @@ export async function 기능재료읽기(pool: Pool, 묶음: 묶음재료): Prom
     };
   });
 
-  // 실패 분류 대상 — 통과 못 한 케이스 × 디바이스. 멈춤 · 준비 실패로 안 돈 것은 판정이 아니라 계획 대비 차이(미실행 사유)에 선다.
+  // 실패 분류 대상 — 통과 못 한 케이스 × 디바이스. 멈춤 · 준비 실패로 안 돈 것과 앞 케이스에 막힌 것(Blocked)은 판정이 아니라 계획 대비 차이(미실행 사유)에 선다.
   // E2E 는 실패한 케이스 부품만 — 앞 부품이 깨져 안 돈 부품(NA)까지 세면 한 실패가 여러 건이 된다
   const 대상: (Omit<실패줄, 'class' | 'by' | 'issueKey'> & { 환경: boolean })[] = 접은
-    .filter((r) => r.verdict !== 'PASS' && 원인들.get(r) !== 'stopped')
+    .filter((r) => r.verdict !== 'PASS' && 원인들.get(r) !== 'stopped' && 원인들.get(r) !== 'blocked')
     .map((r) => ({ kind: r.kind, tcId: r.tc_id, platform: r.platform, runId: Number(r.run_id), 환경: 원인들.get(r) === 'environment' }));
   const 부품 = (
     await pool.query<{ run_id: string; tc_id: string; message: string }>(

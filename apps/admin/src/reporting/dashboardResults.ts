@@ -117,8 +117,8 @@ export interface 대시보드응답 {
   coverage: 커버리지[];
   running: 실행중[];
   unconfirmed: number;
-  /** 이번 창 실패 · 미실행 줄을 원인으로 나눈 것. types 는 다섯 유형 전부 · 화면 차례대로, stopped 는 실행이 멈춰 닫힌(ABORTED) 미실행 수 */
-  failureTypes: { types: { type: 실패유형; fail: number; notRun: number }[]; stopped: number };
+  /** 이번 창 실패 · 미실행 줄을 원인으로 나눈 것. types 는 다섯 유형 전부 · 화면 차례대로, stopped 는 실행이 멈춰 닫힌(ABORTED) 미실행 수, blocked 는 앞 케이스에 막힌 미실행 수 */
+  failureTypes: { types: { type: 실패유형; fail: number; notRun: number }[]; stopped: number; blocked: number };
   /** 작성 read 인 서비스마다 테스트 작성 「결정 필요」 수 — 사람마다 달라 라우트가 센다 (§8.12 「검토할 것」) */
   decisions: { serviceId: number; count: number }[];
   /** 서비스 하나를 골랐을 때만 찬다 (§8.12 「종류별 칸」) */
@@ -345,6 +345,7 @@ export async function 대시보드(
     failureTypes: {
       types: 집계.실패유형.유형별.map((u) => ({ type: u.type, fail: u.실패, notRun: u.미실행 })),
       stopped: 집계.실패유형.멈춤,
+      blocked: 집계.실패유형.막힘,
     },
     byKind,
   };

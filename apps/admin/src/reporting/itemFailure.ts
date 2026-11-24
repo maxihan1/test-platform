@@ -53,7 +53,8 @@ export function 항목실패를가른다(항목: 항목재료, 가리기: (글: 
     stepMessage: 절차오류,
   });
   // 앞 부품이 실패해 안 돈 시나리오 부품(NOT_RUN)은 실패 원인이 아니다 (도메인/시나리오 §3.7 결정 9 — 케이스 항목에는 이 글이 없다)
-  if (원인 === 'stopped' || 항목.error?.message === 'NOT_RUN') return null;
+  // 앞 케이스에 막힌 항목(Blocked)도 실패 원인이 없다 — 고칠 것은 막은 케이스다 (도메인/리포팅 §3.3 「테스트 프로시저」)
+  if (원인 === 'stopped' || 원인 === 'blocked' || 항목.error?.message === 'NOT_RUN') return null;
   // 색 코드는 가리기 전에 걷는다 — 숫자 비밀(예: 31)이 색 코드 속 숫자를 덮으면 걷는 무늬가 안 맞는다
   const 오류에서 = 실패확인 === undefined && Boolean(항목.error?.message);
   const 재료 = 실패확인?.statement ?? (항목.error?.message || (모양실패 === undefined ? '' : 모양문장(모양실패)));

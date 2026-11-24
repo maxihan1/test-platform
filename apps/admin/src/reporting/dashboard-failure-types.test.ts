@@ -76,6 +76,7 @@ describe.skipIf(연결 === undefined)('대시보드 실패 유형 질의', () =>
     await 항목(이번, 'XDQF-004', 'NA', { attempt: 1, 오류: 'TIMEOUT' });
     await 항목(이번, 'XDQF-004', 'FAIL', { attempt: 2, 검증실패: true });
     await 항목(이번, 'XDQF-005', 'PASS');
+    await 항목(이번, 'XDQF-006', 'NA', { 오류: 'BLOCKED', 절차오류: "locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: '게시' })" });
     const 직전창 = await 실행(20 * 24);
     await 항목(직전창, 'XDQF-001', 'FAIL', { 오류: 'page.goto: net::ERR_CONNECTION_REFUSED' });
   });
@@ -85,7 +86,7 @@ describe.skipIf(연결 === undefined)('대시보드 실패 유형 질의', () =>
     await pool.end();
   });
 
-  it('이번 창 실패 · 미실행을 원인으로 나누고 멈춘 것은 따로 센다 — 직전 창은 안 센다', async () => {
+  it('이번 창 실패 · 미실행을 원인으로 나누고 멈춘 것 · 앞 케이스에 막힌 것은 따로 센다 — 직전 창은 안 센다', async () => {
     const 결과 = await 대시보드('UTC', [F], []);
     expect(Object.fromEntries(결과.failureTypes.types.map((t) => [t.type, [t.fail, t.notRun]]))).toEqual({
       mismatch: [1, 0],
@@ -95,12 +96,13 @@ describe.skipIf(연결 === undefined)('대시보드 실패 유형 질의', () =>
       other: [0, 0],
     });
     expect(결과.failureTypes.stopped).toBe(1);
+    expect(결과.failureTypes.blocked).toBe(1);
   });
 
-  it('유형 합계가 통과율 칸의 실패 · 미실행 수와 같다 — 멈춘 것은 미실행 쪽에 따로 있다', async () => {
+  it('유형 합계가 통과율 칸의 실패 · 미실행 수와 같다 — 멈춘 것과 막힌 것은 미실행 쪽에 따로 있다', async () => {
     const 결과 = await 대시보드('UTC', [F], []);
     const 합 = (칸: 'fail' | 'notRun') => 결과.failureTypes.types.reduce((n, t) => n + t[칸], 0);
     expect(합('fail')).toBe(결과.passRate.current.fail);
-    expect(합('notRun') + 결과.failureTypes.stopped).toBe(결과.passRate.current.notRun);
+    expect(합('notRun') + 결과.failureTypes.stopped + 결과.failureTypes.blocked).toBe(결과.passRate.current.notRun);
   });
 });

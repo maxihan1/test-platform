@@ -312,6 +312,15 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     expect((await 목록()).items.some((x) => x.key === `fail:${String(실패실행)}:${케이스}`)).toBe(true);
   });
 
+  it('실패 판정 — 앞 케이스에 막혀(Blocked) 끝난 줄로는 열리지 않고, 가장 늦은 실행에서 Blocked 면 앞 실행의 실패 판정도 내려간다', async () => {
+    await 케이스넣기();
+    await 실행넣기();
+    const 막힌실행 = await 실행넣기('FINISHED', 'NA');
+    await q(`UPDATE run_item SET error = '{"message":"BLOCKED"}', blocked_by = 'XWX-FN-000' WHERE run_id = $1`, [막힌실행]);
+
+    expect((await 목록()).items.filter((x) => x.kind === 'FAIL')).toEqual([]);
+  });
+
   it('BTS 를 이은 프로젝트는 실패 판정을 싣지 않고 실패를 고른 진행은 400 BAD_DECISION — 연결을 끊으면 다시 뜬다', async () => {
     await 케이스넣기();
     const runId = await 실행넣기();

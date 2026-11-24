@@ -119,7 +119,7 @@ export function 멈춘까닭(part: TrialResult['parts'][number]): 항목실패 |
     itemMessage: part.error?.message ?? '',
     stepMessage: 절차오류,
   });
-  if (원인 === 'stopped') return null;
+  if (원인 === 'stopped' || 원인 === 'blocked') return null;
   const 한줄 = 한줄로자른다(확인?.statement || part.error?.message || '');
   return { type: 원인, reason: 러너글자.test(한줄) ? '' : 한줄 };
 }
