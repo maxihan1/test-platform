@@ -41,8 +41,9 @@ export class RunInputError extends Error {
       // 정기 · 빌드 · 배포 신호 실행에서 플랫폼 밖 값 · 지원 패드 밖 패드 · 못 보내는 프로시저 케이스를 빼고 나니 돌 항목이 없다 — 실패가 아니다(그 종류 실행만 안 선다)
       | 'NO_ITEMS',
     message: string,
-    // TOO_MANY_ITEMS 는 응답에 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
-    readonly detail: { limit: number; requested: number } | undefined = undefined,
+    // TOO_MANY_ITEMS 는 응답에 상한과 요청 건수를 같이 싣는다 (SPEC §8.2).
+    // 러너가 프로시저를 못 돌아 비운 NO_ITEMS 는 뺀 수를 싣는다 — 정기 실행이 회차 기록에 까닭을 남긴다 (도메인/정기실행 §3.16 「테스트 프로시저」)
+    readonly detail: { limit: number; requested: number } | { procSkipped: number } | undefined = undefined,
   ) {
     super(message);
     this.name = 'RunInputError';
@@ -248,7 +249,7 @@ export async function createRun(
       if (input.origin === 'MANUAL') throw new RunInputError('RUNNER_NO_PROCEDURE', '러너가 테스트 프로시저를 돌리지 못한다');
       procSkipped = input.items.filter((i) => 프로시저안(i.tcId)).length;
       input = { ...input, items: input.items.filter((i) => !프로시저안(i.tcId)) };
-      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '러너가 테스트 프로시저를 돌리지 못해 돌 케이스가 없다');
+      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '러너가 테스트 프로시저를 돌리지 못해 돌 케이스가 없다', { procSkipped });
     }
     // 제목 · 「실패 다시」 검사 · 한 건 판정은 펼치기 전에 고른 케이스로 한다 (도메인/실행 §3.2 「테스트 프로시저 실행」)
     const tcIds = [...new Set(input.items.map((i) => i.tcId))].sort();

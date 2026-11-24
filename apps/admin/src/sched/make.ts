@@ -10,7 +10,7 @@ import { 앱케이스를뺀다 } from '../execution/location.js';
 import { createRun, MAX_ITEMS, RunInputError } from '../execution/store.js';
 import { 시나리오분배 } from '../scenario/runResult.js';
 import { 시나리오실행오류, 실행만들기 } from '../scenario/runStore.js';
-import { 빠진까닭, 줄앱, type 서버고름, type 재료, type 줄 } from './check.js';
+import { 빠진까닭, 줄앱, type 서버고름, type 앱, type 재료, type 줄 } from './check.js';
 
 // 사람이 아니므로 사람 이름을 받지 않는다. 이름 칸도 박는다 — 비우면 「실행자 미상」으로 읽힌다 (실행 §8.6)
 const 스케줄러 = { username: '스케줄러', displayName: '스케줄러' };
@@ -21,21 +21,30 @@ export interface 회차정보 {
   base: boolean;
 }
 
-/** 실행을 만들었으면 번호, 못 만들었으면 회차 notes 에 남길 까닭 */
-export type 줄결과 = { runId: number } | { reason: string };
+/** 실행을 만들었으면 번호, 못 만들었으면 회차 notes 에 남길 까닭. 앞말은 실행을 만들었어도 회차 notes 에 먼저 남길 까닭이다 */
+export type 줄결과 = ({ runId: number } | { reason: string }) & { 앞말?: string[] };
+
+const 프로시저못돎 = 'RUNNER_NO_PROCEDURE';
 
 const 글 = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-/** 기능 · UI — 「전체」는 지금의 활성 케이스 전부, 직접 고르기는 고른 번호 중 살아 있는 것 */
-async function 케이스실행(x: 줄, prefix: string, env: string, 회차: 회차정보, 로그: (말: string) => void): Promise<줄결과> {
+/**
+ * 기능 · UI — 「전체」는 지금의 활성 케이스 전부, 직접 고르기는 고른 번호 중 살아 있는 것.
+ * 「프로시저 작성」을 켠 애플리케이션의 기능 줄은 UI 번호 케이스까지 담는다 — 실행 종류가 하나다 (§3.16 「테스트 프로시저」)
+ */
+async function 케이스실행(x: 줄, 앱: 앱, env: string, 회차: 회차정보, 로그: (말: string) => void): Promise<줄결과> {
+  const prefix = 앱.prefix;
   const 목록 = await listCases({ service: prefix, q: '', activeOnly: true, page: 1, pageSize: MAX_ITEMS });
   const 고른 = x.tcIds === null ? null : new Set(x.tcIds);
-  const 담을 = 목록.items.filter((c) => tcId종류(c.tcId) === x.kind && (고른 === null || 고른.has(c.tcId)));
+  const 종류맞나 = (tcId: string) => tcId종류(tcId) === x.kind || (x.kind === 'FN' && 앱.procedureMode);
+  const 담을 = 목록.items.filter((c) => 종류맞나(c.tcId) && (고른 === null || 고른.has(c.tcId)));
   // 팜이 없으면 앱 케이스를 돌릴 곳이 없다 (공통/6-인프라 §9.2)
   const { 남은, 뺀수 } = 앱케이스를뺀다(담을, process.env);
   if (뺀수 > 0) 로그(`[sched] ${prefix} android 케이스 ${String(뺀수)}건은 뺐다 — Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다`);
   if (남은.length === 0) return { reason: 'NO_CASE' };
-  const { runId, items } = await createRun({
+  let 만든: Awaited<ReturnType<typeof createRun>>;
+  try {
+    만든 = await createRun({
     origin: 'SCHEDULED',
     triggeredBy: 스케줄러.username,
     triggeredByName: 스케줄러.displayName,
@@ -47,9 +56,15 @@ async function 케이스실행(x: 줄, prefix: string, env: string, 회차: 회�
     sched: 회차,
     // 빈 칸으로 보낸다. createRun 이 저장값 → 케이스 코드 기본값 순서로 채운다
     items: 남은.map((c) => ({ tcId: c.tcId, platforms: c.platforms, params: {}, expected: {} })),
-  });
+    });
+  } catch (err) {
+    // 러너가 프로시저를 못 돌아 다 빠졌으면 까닭 둘을 남긴다 — 뺀 까닭과 돌 케이스가 없다는 것 (§7 달력 notes)
+    if (err instanceof RunInputError && err.code === 'NO_ITEMS' && err.detail !== undefined && 'procSkipped' in err.detail) return { reason: 'NO_CASE', 앞말: [프로시저못돎] };
+    throw err;
+  }
+  const { runId, items, procSkipped } = 만든;
   void dispatch(runId, items).catch((err: unknown) => 로그(`[sched] 실행 ${String(runId)} 분배가 깨졌다: ${글(err)}`));
-  return { runId };
+  return procSkipped > 0 ? { runId, 앞말: [프로시저못돎] } : { runId };
 }
 
 /**
@@ -63,7 +78,7 @@ export async function 줄돌리기(x: 줄, 고름: 서버고름, 재: 재료, �
   const env = 고름.get(앱.id)!;
   const 정기 = { occurrenceId: 회차.occurrenceId, setName: 회차.setName };
   try {
-    if (x.kind === 'FN' || x.kind === 'UI') return await 케이스실행(x, 앱.prefix, env, 회차, 로그);
+    if (x.kind === 'FN' || x.kind === 'UI') return await 케이스실행(x, 앱, env, 회차, 로그);
     if (x.kind === 'E2E') {
       // 고르개가 없는 시작이라 모바일 웹 단계는 서버 흉내다 (실행 §8.2 「모바일 웹 실행 위치」)
       const { runId, 요청, 폰 } = await 실행만들기(x.scenarioId!, env, 스케줄러, 'server', 정기);

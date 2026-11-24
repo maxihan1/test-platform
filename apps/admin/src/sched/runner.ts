@@ -145,7 +145,8 @@ async function 회차밀기(occ: { id: number; set_id: number; planned_on: strin
     const 결과 = await 줄돌리기(x, set.고름, 재, { occurrenceId: occ.id, setName: set.name, base: set.isBase }, (말) => 로그.error(말));
     // ponytail: 실행을 만든 뒤 cur_seq 를 적기 전에 서버가 꺼지면 다시 켰을 때 그 줄을 한 번 더 만든다 — 줄 번호를 실행에 박는 칸이 생기면 그것으로 짝짓는다
     기억.만든 = seq;
-    const 남김 = 'reason' in 결과 ? [{ kind: x.kind, service: 줄앱(x, 재)?.prefix ?? null, reason: 결과.reason }] : [];
+    const 까닭들 = [...(결과.앞말 ?? []), ...('reason' in 결과 ? [결과.reason] : [])];
+    const 남김 = 까닭들.map((reason) => ({ kind: x.kind, service: 줄앱(x, 재)?.prefix ?? null, reason }));
     await pool.query('UPDATE sched_occurrence SET cur_seq = $2, notes = notes || $3::jsonb WHERE id = $1', [occ.id, seq, JSON.stringify(남김)]);
     if ('runId' in 결과) {
       로그.info(`[sched] 세트 ${set.name} 회차 ${String(occ.id)} 줄 ${String(seq)} → 실행 ${String(결과.runId)}`);

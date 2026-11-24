@@ -137,8 +137,8 @@ export async function 지난결과들(setIds: readonly number[]): Promise<Map<nu
 export async function 후보들(projectId: number) {
   const [앱, 시, 호] = await Promise.all([
     // UI 번호 꼴은 catalog/rules.ts tcId종류 와 같은 뜻이다
-    pool.query<{ id: string; prefix: string; name: string; kind: 앱['kind']; fn: number; ui: number }>(
-      `SELECT s.id, s.prefix, s.name, s.kind,
+    pool.query<{ id: string; prefix: string; name: string; kind: 앱['kind']; procedure_mode: boolean; fn: number; ui: number }>(
+      `SELECT s.id, s.prefix, s.name, s.kind, s.procedure_mode,
               count(c.tc_id) FILTER (WHERE c.tc_id !~ '-UI-[0-9]{3}$')::int AS fn,
               count(c.tc_id) FILTER (WHERE c.tc_id ~ '-UI-[0-9]{3}$')::int AS ui
          FROM service s LEFT JOIN test_case c ON c.tc_id LIKE s.prefix || '-%' AND c.is_active
@@ -159,10 +159,11 @@ export async function 후보들(projectId: number) {
       [projectId],
     ),
   ]);
-  const 앱들 = new Map(앱.rows.map((x) => [Number(x.id), { id: Number(x.id), prefix: x.prefix, name: x.name, kind: x.kind, isActive: true, projectId }]));
+  const 앱들 = new Map(앱.rows.map((x) => [Number(x.id), { id: Number(x.id), prefix: x.prefix, name: x.name, kind: x.kind, isActive: true, projectId, procedureMode: x.procedure_mode }]));
   const 가능 = await 실행가능붙이기(projectId, 앱들, 시.rows.map((x) => ({ id: Number(x.id), serviceId: Number(x.service_id), isActive: true, name: x.name, parts: x.parts })));
   return {
-    services: 앱.rows.map((x) => ({ prefix: x.prefix, name: x.name, kind: x.kind, fn: x.fn, ui: x.ui })),
+    // procedure — 「프로시저 작성」을 켠 애플리케이션은 마법사가 UI 탭에서 빼고 기능 「전체」를 둘의 합으로 보인다 (§3.16 「테스트 프로시저」)
+    services: 앱.rows.map((x) => ({ prefix: x.prefix, name: x.name, kind: x.kind, procedure: x.procedure_mode, fn: x.fn, ui: x.ui })),
     scenarios: 시.rows.map((x) => ({ id: Number(x.id), name: x.name, service: x.prefix, path: 쓰는접두사(x.parts, x.prefix), runnable: 가능.get(Number(x.id))?.runnable ?? false })),
     compatSets: 호.rows.map((x) => ({ id: Number(x.id), name: x.name, service: x.prefix })),
   };

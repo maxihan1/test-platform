@@ -100,11 +100,13 @@ export async function 재료읽기(projectId: number, 줄들: readonly 줄[]): P
 
 /** 섞인 E2E 의 케이스 단계는 접두사가 곧 애플리케이션이다 — 다른 프로젝트로 옮겨 간 것도 읽어야 「옮겨 감」으로 판정한다 */
 async function 앱들읽기(projectId: number, 번호들: readonly number[], 접두사들: readonly string[]): Promise<Map<number, 앱>> {
-  const r = await pool.query<{ id: string; prefix: string; name: string; kind: 앱['kind']; is_active: boolean; project_id: string }>(
-    'SELECT id, prefix, name, kind, is_active, project_id FROM service WHERE project_id = $1 OR id = ANY($2::bigint[]) OR prefix = ANY($3::text[])',
+  const r = await pool.query<{ id: string; prefix: string; name: string; kind: 앱['kind']; is_active: boolean; project_id: string; procedure_mode: boolean }>(
+    'SELECT id, prefix, name, kind, is_active, project_id, procedure_mode FROM service WHERE project_id = $1 OR id = ANY($2::bigint[]) OR prefix = ANY($3::text[])',
     [projectId, 번호들, 접두사들],
   );
-  return new Map(r.rows.map((x) => [Number(x.id), { id: Number(x.id), prefix: x.prefix, name: x.name, kind: x.kind, isActive: x.is_active, projectId: Number(x.project_id) }]));
+  return new Map(
+    r.rows.map((x) => [Number(x.id), { id: Number(x.id), prefix: x.prefix, name: x.name, kind: x.kind, isActive: x.is_active, projectId: Number(x.project_id), procedureMode: x.procedure_mode }]),
+  );
 }
 
 async function 서버들읽기(앱번호: readonly number[]): Promise<Map<number, Map<string, boolean>>> {
