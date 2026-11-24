@@ -56,7 +56,7 @@ describe('케이스 목록 조건을 주소에서 읽는다', () => {
 
     expect(처음조건(스파이)).toMatchObject({ q: '로그인', page: 1, platform: 'mobile', active: false, technique: '경계값 분석', axis: '경계', last: 'FAIL' });
     expect((screen.getByPlaceholderText('케이스 이름이나 ID로 검색') as HTMLInputElement).value).toBe('로그인');
-    expect(screen.getByRole('button', { name: '실패 7' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Fail 7' }).getAttribute('aria-pressed')).toBe('true');
     expect([...document.querySelectorAll('.filter-on')].map((el) => el.firstChild?.textContent)).toEqual(['표시 전체', '종류 경계', '설계 기법 경계값 분석', '디바이스 모바일']);
     expect(within(판조건('디바이스')).getByRole('button', { name: '모바일' }).getAttribute('aria-pressed')).toBe('true');
   });
@@ -144,7 +144,7 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
   it('마지막 결과 칩을 누르면 last 가 주소에 남고, 전체로 돌리면 빠진다', async () => {
     await 그리기('#/cases/fn');
 
-    fireEvent.click(screen.getByRole('button', { name: '미실행 13' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Not tested 13' }));
     expect(window.location.hash).toBe('#/cases/fn?last=NA&service=ZCA');
     fireEvent.click(screen.getByRole('button', { name: '전체 120' }));
     expect(window.location.hash).toBe('#/cases/fn?service=ZCA');

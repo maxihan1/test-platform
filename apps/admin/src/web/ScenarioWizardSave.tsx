@@ -50,7 +50,7 @@ export function 저장칸(p: Props) {
     결과 === null
       ? t('안 함')
       : 결과.status === 'PASS'
-        ? t('통과 · {서버} · {초}', { 서버: p.시험.env, 초: seconds(결과.durationMs, 언어) })
+        ? t('Pass · {서버} · {초}', { 서버: p.시험.env, 초: seconds(결과.durationMs, 언어) })
         : t('{번호}번에서 중단 · {서버}', { 번호: 결과.parts.find((x) => x.status === 'FAIL')?.seq ?? 결과.parts.length, 서버: p.시험.env });
   const 줄들: { 곳: 마법사단계; 값: ReactNode }[] = [
     { 곳: 'start', 값: p.후보이름 === null ? t('직접 선택함') : t('AI 추천 · {이름}', { 이름: p.후보이름 }) },

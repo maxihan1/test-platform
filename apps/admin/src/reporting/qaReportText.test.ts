@@ -90,7 +90,7 @@ describe('QA 리포트 첫 장 글', () => {
 
   it('미확정 · 판정이 필요한 실패 · 승인 상태를 적는다', () => {
     const 글 = 글들(첫장글(리포트(첫장재료(첫빌드))));
-    expect(글).toContain('통과 3 · 실패 1 · 미실행 0 (그중 미확정 2건)');
+    expect(글).toContain('Pass 3 · Fail 1 · Not tested 0 (그중 미확정 2건)');
     expect(글).toContain('판정이 필요한 실패 1건');
     expect(글).toContain('승인 전');
     expect(글).toContain('이번 빌드에 실행하지 않은 E2E 시나리오: 구매 흐름');

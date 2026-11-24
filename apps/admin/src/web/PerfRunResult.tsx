@@ -174,7 +174,7 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
                       <td className="r mono">{목표글자(목표, t)}</td>
                       <td className={목표.verdict === 'FAIL' ? 'r mono perf-err' : 'r mono'}>{측정글자(목표, 목표.measured, t)}</td>
                       <td>
-                        <span className={목표.verdict === 'PASS' ? 'verdict v-pass' : 'verdict v-fail'}>{목표.verdict === 'PASS' ? t('통과') : t('실패')}</span>
+                        <span className={목표.verdict === 'PASS' ? 'verdict v-pass' : 'verdict v-fail'}>{목표.verdict === 'PASS' ? t('Pass') : t('Fail')}</span>
                       </td>
                       <td>
                         {목표.source === 'PRD' ? <span className="perf-tag">{t('기획서')}</span> : 목표.source === 'AI' ? <span className="perf-ai">{t('AI 추천')}</span> : <span className="perf-tag">{t('직접 입력')}</span>}

@@ -126,7 +126,7 @@ export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on
     실패 !== undefined
       ? t('{번호}번에서 종료', { 번호: 실패.seq })
       : 결과.status === 'PASS'
-        ? t('모두 통과')
+        ? t('모두 Pass')
         : 멈춘사유글자(결과.error?.message ?? '', 언어);
   return (
     <div className="scn-trial-sum">

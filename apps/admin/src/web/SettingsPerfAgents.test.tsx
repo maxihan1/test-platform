@@ -63,7 +63,7 @@ describe('성능 테스트 › 시나리오 목록', () => {
     render(<PerfScenarioList serviceId={7} 할수={() => true} />);
     const 링크 = await screen.findByRole('link', { name: '주문하기' });
     expect(링크.getAttribute('href')).toBe('#/perf/scenarios/4');
-    expect(링크.closest('tr')!.textContent).toContain('실패');
+    expect(링크.closest('tr')!.textContent).toContain('Fail');
     expect(screen.getByRole('link', { name: '로그인' }).closest('tr')!.textContent).toContain('실행 전');
     expect(screen.getByRole('link', { name: '시나리오 만들기' }).getAttribute('href')).toBe('#/perf/scenarios/new');
   });

@@ -289,7 +289,7 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
   it('권한이 다 있으면 마지막 결과 · 사람이 값 채움 · 보류 기록이 실린다', async () => {
     const wb = await 책((await 받기('xcx-all')).rawPayload);
     const 첫줄 = 행들(wb, '테스트 케이스')[0]!;
-    expect(첫줄[7]).toBe('통과 · 2026-09-29 14:05');
+    expect(첫줄[7]).toBe('Pass · 2026-09-29 14:05');
     expect(첫줄[6]).toBe(`정식 · 사람이 값 채움 — 작성 요청 #${String(뿌리1)} · xcx-all`);
   });
 

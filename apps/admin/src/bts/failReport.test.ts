@@ -289,7 +289,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     );
 
     const 모바일만 = (await 줄('XBF-012')).payload;
-    expect(모바일만.description as string).toContain('**화면** — 모바일만(PC 는 통과)');
+    expect(모바일만.description as string).toContain('**화면** — 모바일만(PC 는 Pass)');
     expect(모바일만.description as string).not.toContain('### 실제 —');
   });
 

@@ -95,8 +95,8 @@ describe('안정화 지표 오류 상세', () => {
     expect(within(판).getByRole('link', { name: 'ARG-FN-112' }).getAttribute('href')).toContain('#/cases/fn?q=ARG-FN-112');
     expect(within(판).getByText('3단계 직후 · 크래시 발생')).toBeTruthy();
     expect(within(판).getByText('2단계 직후')).toBeTruthy();
-    expect(within(판).getByText('실패')).toBeTruthy();
-    expect(within(판).getByText('통과')).toBeTruthy();
+    expect(within(판).getByText('Fail')).toBeTruthy();
+    expect(within(판).getByText('Pass')).toBeTruthy();
   });
 
   it('스택 트레이스는 견본을 1 / 2 로 넘긴다', async () => {

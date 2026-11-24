@@ -211,7 +211,7 @@ function 계획대비차이(s: 첫장): 덩이[] {
     덩이들.push({ 꼴: '글', 글: `${종류이름[c.kind]} — 활성 케이스 ${c.planned}건 중 ${c.ran}건 실행` });
     const 줄: 표줄[] = [
       ...c.notIncluded.map((x) => ({ 칸: [`${x.tcId} ${x.name}`, '—', '실행에 안 담김 · 사유 기록 없음'] })),
-      ...c.notRun.map((x) => ({ 칸: [`${x.tcId} ${x.name}`, 디바이스이름[x.platform] ?? x.platform, `미실행 · ${원인이름[x.cause]}`] })),
+      ...c.notRun.map((x) => ({ 칸: [`${x.tcId} ${x.name}`, 디바이스이름[x.platform] ?? x.platform, `Not tested · ${원인이름[x.cause]}`] })),
     ];
     if (줄.length > 0) 덩이들.push({ 꼴: '표', 머리: ['케이스', '디바이스', '까닭'], 줄 });
   }

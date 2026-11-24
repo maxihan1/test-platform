@@ -97,9 +97,9 @@ export function 추적칸({ 요약 }: { 요약: 요약 }) {
               <div className="dash-lab">{t('커버리지 · 테스트가 있는 요구사항 {수} / {전체}', { 수: 수글(합.req - 합.none), 전체: 수글(합.req) })}</div>
             </div>
             <div className="dash-legend">
-              <span><i className="p" />{t('통과 {수}', { 수: 수글(합.pass) })}</span>
-              <span><i className="f" />{t('실패 {수}', { 수: 수글(합.fail) })}</span>
-              <span><i className="n" />{t('일부 미실행 {수}', { 수: 수글(합.notRun) })}</span>
+              <span><i className="p" />{t('Pass {수}', { 수: 수글(합.pass) })}</span>
+              <span><i className="f" />{t('Fail {수}', { 수: 수글(합.fail) })}</span>
+              <span><i className="n" />{t('일부 Not tested {수}', { 수: 수글(합.notRun) })}</span>
               <span><i className="none" />{t('테스트 없음 {수}', { 수: 수글(합.none) })}</span>
             </div>
           </div>
@@ -122,7 +122,7 @@ export function 추적칸({ 요약 }: { 요약: 요약 }) {
                     className="dash-stack dash-grow"
                     style={자람(i)}
                     role="img"
-                    aria-label={[t('통과 {수}', { 수: rtm.pass }), t('실패 {수}', { 수: rtm.fail }), t('일부 미실행 {수}', { 수: rtm.notRun }), t('테스트 없음 {수}', { 수: rtm.none })].join(' · ')}
+                    aria-label={[t('Pass {수}', { 수: rtm.pass }), t('Fail {수}', { 수: rtm.fail }), t('일부 Not tested {수}', { 수: rtm.notRun }), t('테스트 없음 {수}', { 수: rtm.none })].join(' · ')}
                   >
                     <i className="p" style={{ width: 몫(rtm.pass, 전체) }} />
                     <i className="f" style={{ width: 몫(rtm.fail, 전체) }} />

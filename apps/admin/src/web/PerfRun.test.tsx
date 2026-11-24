@@ -233,7 +233,7 @@ describe('결과', () => {
 
     const 머리 = container.querySelector('.head')!;
     expect(머리.querySelector('.verdict')!.className).toContain('v-fail');
-    expect(머리.querySelector('.verdict')!.textContent).toBe('실패');
+    expect(머리.querySelector('.verdict')!.textContent).toBe('Fail');
     expect(머리.textContent).toContain('성능 목표를 벗어나 자동 중단');
     expect(머리.textContent).toContain('22:40');
     expect(container.querySelector('.perf-hero-num')!.textContent).toContain('1,350');
@@ -246,7 +246,7 @@ describe('결과', () => {
     expect(표.textContent).toContain('AI 추천');
     expect(표.textContent).toContain('직접 입력');
     expect(표.textContent).toContain('측정값은 자동 중단 직전 10초 기준, TPS는 최대값');
-    expect(within(표).getAllByText('실패')).toHaveLength(2);
+    expect(within(표).getAllByText('Fail')).toHaveLength(2);
 
     expect(screen.getByRole('heading', { name: '트랜잭션별 결과 (가상 사용자 1,000명 시점)' })).toBeTruthy();
     const 결과표 = screen.getByRole('heading', { name: /^트랜잭션별 결과/ }).closest('section')!;

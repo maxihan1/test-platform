@@ -12,7 +12,7 @@ type 부하 = NonNullable<성능['load']>;
 type 기기 = NonNullable<성능['app']>;
 type 말 = ReturnType<typeof use말>;
 
-const 판정칩 = ({ v, t }: { v: 'PASS' | 'FAIL'; t: 말 }) => <span className={`dash-chip ${v === 'PASS' ? 'p' : 'f'} dash-r`}>{t(v === 'PASS' ? '통과' : '실패')}</span>;
+const 판정칩 = ({ v, t }: { v: 'PASS' | 'FAIL'; t: 말 }) => <span className={`dash-chip ${v === 'PASS' ? 'p' : 'f'} dash-r`}>{t(v === 'PASS' ? 'Pass' : 'Fail')}</span>;
 const 날 = (iso: string | null): string => (iso === null ? '' : 날짜글자(iso.slice(0, 10)));
 const 값글 = (v: number | null, 단위 = ''): string => (v === null ? '—' : `${수글(v)}${단위}`);
 

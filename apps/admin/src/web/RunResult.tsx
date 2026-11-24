@@ -192,15 +192,15 @@ function 케이스결과({
             <>
               <div>
                 <b style={{ color: 'var(--pass-text)' }}>{pass}</b>
-                <span>{t('통과')}</span>
+                <span>{t('Pass')}</span>
               </div>
               <div>
                 <b style={{ color: 'var(--fail-text)' }}>{fail}</b>
-                <span>{t('실패')}</span>
+                <span>{t('Fail')}</span>
               </div>
               <div>
                 <b style={{ color: 'var(--na-text)' }}>{na}</b>
-                <span>{t('미실행')}</span>
+                <span>{t('Not tested')}</span>
               </div>
               {/* 미확정은 위 숫자에 이미 센 항목이다 — 「그중 N건」 글자만 뒤에 붙는다. 없으면 안 쓴다 (도메인/실행 §8.3 · §3.2) */}
               {미확정 === '' ? null : (

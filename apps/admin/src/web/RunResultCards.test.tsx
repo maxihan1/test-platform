@@ -63,7 +63,7 @@ describe('요약 띠의 디바이스별 실패 단추는 디바이스 칩과 같
     연다([항목줄(1, 'ZRR-001', 'desktop', 'FAIL'), 항목줄(2, 'ZRR-002', 'desktop', 'PASS')]);
     await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
 
-    expect(screen.queryByRole('group', { name: '디바이스별 실패 케이스' })).toBeNull();
+    expect(screen.queryByRole('group', { name: '디바이스별 Fail 케이스' })).toBeNull();
   });
 });
 
@@ -126,26 +126,26 @@ describe('통과 · 미실행 구획 제목과 안내 (도메인/실행 §8.3)',
     연다(섞인항목);
     await screen.findByText('이름-ZRR-002');
 
-    expect(screen.getByRole('heading', { name: '통과 · 미실행 3' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Pass · Not tested 3' })).toBeTruthy();
   });
 
   it('판정별 보기 「통과」에서 카드 안에만 있는 통과 항목 수를 줄 목록 아래 한 줄로 알린다', async () => {
     연다(섞인항목);
     await screen.findByText('이름-ZRR-002');
-    expect(screen.queryByText(/실패한 케이스 안의 항목/)).toBeNull();
+    expect(screen.queryByText(/Fail 케이스 안의 항목/)).toBeNull();
 
-    fireEvent.click([...document.querySelectorAll('.rs-fbtn')].find((b) => b.textContent?.startsWith('통과')) as HTMLElement);
+    fireEvent.click([...document.querySelectorAll('.rs-fbtn')].find((b) => b.textContent?.startsWith('Pass')) as HTMLElement);
 
-    expect(screen.getByText('실패한 케이스 안의 항목 1건은 「전체」에서 카드로 봅니다')).toBeTruthy();
+    expect(screen.getByText('Fail 케이스 안의 항목 1건은 「전체」에서 카드로 봅니다')).toBeTruthy();
   });
 
   it('카드 안에 그 판정의 항목이 없으면 안내도 없다', async () => {
     연다(섞인항목);
     await screen.findByText('이름-ZRR-002');
 
-    fireEvent.click([...document.querySelectorAll('.rs-fbtn')].find((b) => b.textContent?.startsWith('미실행')) as HTMLElement);
+    fireEvent.click([...document.querySelectorAll('.rs-fbtn')].find((b) => b.textContent?.startsWith('Not tested')) as HTMLElement);
 
-    expect(screen.queryByText(/실패한 케이스 안의 항목/)).toBeNull();
+    expect(screen.queryByText(/Fail 케이스 안의 항목/)).toBeNull();
   });
 });
 
@@ -187,7 +187,7 @@ describe('도는 중에서 끝남으로 바뀌면 견주기 · 카드 통로를 
 });
 
 describe('통과 · 미실행으로 건너뛰기 (게이트 1 제안 15)', () => {
-  const 버튼이름 = '통과 · 미실행으로 건너뛰기';
+  const 버튼이름 = 'Pass · Not tested 로 건너뛰기';
 
   it('실패 카드 구획 앞에 있고 누르면 통과 · 미실행 구획 제목으로 포커스가 간다', async () => {
     연다(섞인항목);
@@ -197,12 +197,12 @@ describe('통과 · 미실행으로 건너뛰기 (게이트 1 제안 15)', () =>
     expect(앞선가(버튼, document.querySelector('.fc-list'))).toBe(true);
     fireEvent.click(버튼);
 
-    expect(document.activeElement).toBe(screen.getByRole('heading', { name: /^통과 · 미실행/ }));
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: /^Pass · Not tested/ }));
   });
 
   it('실패 카드가 없으면 건너뛸 곳이 없다', async () => {
     연다([항목줄(1, 'ZRR-002', 'desktop', 'PASS')]);
-    await screen.findByText('실패한 케이스가 없습니다');
+    await screen.findByText('Fail 케이스가 없습니다');
 
     expect(screen.queryByRole('button', { name: 버튼이름 })).toBeNull();
   });
@@ -211,9 +211,9 @@ describe('통과 · 미실행으로 건너뛰기 (게이트 1 제안 15)', () =>
     연다(섞인항목);
     await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
 
-    fireEvent.click(판정칸('통과'));
+    fireEvent.click(판정칸('Pass'));
     expect(screen.queryByRole('button', { name: 버튼이름 })).toBeNull();
-    fireEvent.click(판정칸('실패'));
+    fireEvent.click(판정칸('Fail'));
     expect(screen.queryByRole('button', { name: 버튼이름 })).toBeNull();
   });
 });

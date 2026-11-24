@@ -157,7 +157,7 @@ describe('결과', () => {
     const 실패줄 = within(표).getByText('Galaxy A23').closest('tr')!;
     expect(within(실패줄).getByText('31').className).toContain('perf-err');
     expect(within(실패줄).getByText('4.6초').className).toContain('perf-err');
-    expect(within(실패줄).getByText('실패').className).toContain('v-fail');
+    expect(within(실패줄).getByText('Fail').className).toContain('v-fail');
     const 통과줄 = within(표).getByText('Galaxy S24').closest('tr')!;
     expect(within(통과줄).getByText('59.4').className).not.toContain('perf-err');
 

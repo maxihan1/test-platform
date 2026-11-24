@@ -84,7 +84,7 @@ describe('회차 요약 (SPEC §8.3)', () => {
 
   it('N회 전부 통과면 5/5 통과이고 통과 색이다', () => {
     const 다섯 = [1, 2, 3, 4, 5].map((n) => item('DEMO-001', 'desktop', 'PASS', n));
-    expect(회차요약(다섯)).toMatchObject({ 회차수: 5, status: 'PASS', 글: '5/5 통과' });
+    expect(회차요약(다섯)).toMatchObject({ 회차수: 5, status: 'PASS', 글: '5/5 Pass' });
   });
 
   it('하나라도 실패면 실패 색이다. 다섯 중 셋만 통과한 테스트는 믿을 수 없다', () => {
@@ -95,7 +95,7 @@ describe('회차 요약 (SPEC §8.3)', () => {
       item('DEMO-001', 'desktop', 'PASS', 4),
       item('DEMO-001', 'desktop', 'PASS', 5),
     ];
-    expect(회차요약(섞임)).toMatchObject({ 회차수: 5, status: 'FAIL', 글: '4/5 통과' });
+    expect(회차요약(섞임)).toMatchObject({ 회차수: 5, status: 'FAIL', 글: '4/5 Pass' });
   });
 
   it('미실행이 섞여도 통과로 세지 않는다', () => {
@@ -103,7 +103,7 @@ describe('회차 요약 (SPEC §8.3)', () => {
       item('DEMO-001', 'desktop', 'PASS', 1),
       item('DEMO-001', 'desktop', 'NA', 2),
     ];
-    expect(회차요약(섞임)).toMatchObject({ status: 'NA', 글: '1/2 통과' });
+    expect(회차요약(섞임)).toMatchObject({ status: 'NA', 글: '1/2 Pass' });
   });
 
   it('소요시간은 회차 평균이다. 회차마다 다른데 하나만 적으면 어느 회차 것인지 알 수 없다', () => {

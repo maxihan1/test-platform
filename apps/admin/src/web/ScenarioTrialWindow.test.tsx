@@ -166,7 +166,7 @@ describe('E2E 시험 실행 창 — 결과', () => {
     그리기(끝남());
 
     const 창 = screen.getByRole('dialog', { name: 'E2E 시험 실행 결과' });
-    expect([...창.querySelectorAll('.trial-sum .pill')].map((알약) => 알약.textContent)).toEqual(['통과 1', '실패 0', '미실행 2']);
+    expect([...창.querySelectorAll('.trial-sum .pill')].map((알약) => 알약.textContent)).toEqual(['Pass 1', 'Fail 0', 'Not tested 2']);
     expect(within(창).getByText('실행 중단됨')).toBeTruthy();
     expect(within(창).getByText('– 실행 안 함')).toBeTruthy();
     expect(창.querySelector('.e2e-steps')).toBeNull();

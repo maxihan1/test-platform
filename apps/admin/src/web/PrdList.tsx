@@ -156,7 +156,7 @@ export function PrdList({
   const 정리묶음 = 정리 === null ? undefined : 전체묶음.find((g) => g.feature === 정리);
   const 칩들: [칩키, string][] = [
     ['전체', t('전체 {건수}', { 건수: 칩수.전체 })],
-    ['실패', t('실패 {건수}', { 건수: 칩수.실패 })],
+    ['실패', t('Fail {건수}', { 건수: 칩수.실패 })],
     ['미작성', t('미작성 {건수}', { 건수: 칩수.미작성 })],
     ['확인', t('확인 필요 {건수}', { 건수: 칩수.확인 })],
     ...(칩수.보류 === 0 ? [] : [['보류', t('보류 {건수}', { 건수: 칩수.보류 })] as [칩키, string]]),
@@ -211,7 +211,7 @@ export function PrdList({
                     <div className="toc-label">
                       <b title={g.feature}>{g.feature}</b>
                       <span>{t('{건수}건', { 건수: g.items.length })}</span>
-                      {실패수 === 0 ? null : <span className="toc-fail">{t('실패 {건수}', { 건수: 실패수 })}</span>}
+                      {실패수 === 0 ? null : <span className="toc-fail">{t('Fail {건수}', { 건수: 실패수 })}</span>}
                       {미작성수 === 0 ? null : <span>{t('미작성 {건수}', { 건수: 미작성수 })}</span>}
                       {보류수 === 0 ? null : <span>{t('보류 {건수}', { 건수: 보류수 })}</span>}
                       {확인수 === 0 ? null : <span>{t('확인 필요 {건수}', { 건수: 확인수 })}</span>}

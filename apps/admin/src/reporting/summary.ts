@@ -15,6 +15,6 @@ export function 판정줄(items: EvidenceItem[]): string {
   // 돌지 못한 항목(NOT_RUN)도 미실행이다 — 증적은 끝난 실행에서만 만든다
   const 미실행 = items.filter((i) => i.status === 'NA' || i.status === 'NOT_RUN').length;
   const 미확정 = items.filter((i) => i.unconfirmed !== null).length;
-  const 앞 = `통과 ${통과} · 실패 ${실패} · 미실행 ${미실행}`;
+  const 앞 = `Pass ${통과} · Fail ${실패} · Not tested ${미실행}`;
   return 미확정 === 0 ? 앞 : `${앞} · 그중 미확정 ${미확정}건`;
 }

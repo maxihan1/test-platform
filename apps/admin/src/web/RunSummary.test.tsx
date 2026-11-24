@@ -72,7 +72,7 @@ describe('요약 띠 — 통과율과 숫자', () => {
     const { container } = 그린다(집계(0, 0, 0));
     expect(container.querySelector('.rs-big')?.textContent).toBe('—');
     expect(screen.getByText('항목 없음')).toBeTruthy();
-    expect(screen.queryByText(/중 .*건 통과/)).toBeNull();
+    expect(screen.queryByText(/중 .*건 Pass/)).toBeNull();
   });
 
   it('중단 실행처럼 미실행만 있으면 0.0% 를 그대로 보인다', () => {
@@ -83,21 +83,21 @@ describe('요약 띠 — 통과율과 숫자', () => {
 
   it('「실패 케이스 N건」은 케이스 수이고 「항목 N건 중 M건 통과」는 항목 수다', () => {
     const { container } = 그린다(집계(47, 3, 0), null, 'ALL', () => undefined, 2);
-    expect(screen.getByText('실패 케이스 2건')).toBeTruthy();
+    expect(screen.getByText('Fail 케이스 2건')).toBeTruthy();
     expect(container.querySelector('.v-fail')).not.toBeNull();
-    expect(screen.getByText('항목 50건 중 47건 통과')).toBeTruthy();
+    expect(screen.getByText('항목 50건 중 47건 Pass')).toBeTruthy();
   });
 
   it('실패가 0건이면 실패 색을 안 쓴다', () => {
     const { container } = 그린다(집계(10, 0, 0));
-    expect(screen.getByText('실패 케이스 0건')).toBeTruthy();
+    expect(screen.getByText('Fail 케이스 0건')).toBeTruthy();
     expect(container.querySelector('.v-fail')).toBeNull();
   });
 
   it('미확정 항목도 통과율과 숫자에 들어가고 「그중 미확정 N건」 한 줄만 단다', () => {
     const { container } = 그린다(집계(47, 3, 0, 2));
     expect(container.querySelector('.rs-big')?.textContent).toBe('94.0%');
-    expect(screen.getByText('항목 50건 중 47건 통과')).toBeTruthy();
+    expect(screen.getByText('항목 50건 중 47건 Pass')).toBeTruthy();
     expect(screen.getByText('그중 미확정 2건')).toBeTruthy();
   });
 
@@ -111,16 +111,16 @@ describe('요약 띠 — 판정별 보기', () => {
   it('네 칸이 버튼이고 수는 항목 수다', () => {
     그린다(집계(47, 3, 1));
     const 칸 = within(screen.getByRole('group', { name: /판정별 보기/ })).getAllByRole('button');
-    expect(칸.map((b) => b.textContent)).toEqual(['전체51', '통과47', '실패3', '미실행1']);
+    expect(칸.map((b) => b.textContent)).toEqual(['전체51', 'Pass47', 'Fail3', 'Not tested1']);
   });
 
   it('고른 칸만 aria-pressed 가 true 이고 누르면 on판정 이 그 값으로 불린다', () => {
     const on판정 = vi.fn();
     그린다(집계(47, 3, 1), null, 'FAIL', on판정);
-    expect(screen.getByRole('button', { name: /^실패/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /^Fail/ }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: /^전체/ }).getAttribute('aria-pressed')).toBe('false');
-    fireEvent.click(screen.getByRole('button', { name: /^통과/ }));
-    fireEvent.click(screen.getByRole('button', { name: /^미실행/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Pass/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Not tested/ }));
     fireEvent.click(screen.getByRole('button', { name: /^전체/ }));
     expect(on판정.mock.calls.map((c) => c[0])).toEqual(['PASS', 'NA', 'ALL']);
   });
@@ -261,7 +261,7 @@ describe('요약 띠 — 디바이스별 실패 단추 (도메인/실행 §8.3 �
   it('디바이스마다 실패 케이스 수 단추를 둔다 — 누르면 그 디바이스, 다시 누르면 전체, 0건은 누를 수 없다', () => {
     const on디바이스 = vi.fn();
     const { rerender } = render(띠('ALL', on디바이스));
-    const 묶음 = screen.getByRole('group', { name: '디바이스별 실패 케이스' });
+    const 묶음 = screen.getByRole('group', { name: '디바이스별 Fail 케이스' });
     expect(within(묶음).getAllByRole('button').map((b) => b.textContent)).toEqual(['PC 4건', '모바일 6건', 'Android 앱 0건']);
     expect(within(묶음).getByRole('button', { name: 'Android 앱 0건' }).hasAttribute('disabled')).toBe(true);
 
@@ -283,9 +283,9 @@ describe('요약 띠 — 디바이스별 실패 단추 (도메인/실행 §8.3 �
 
   it('디바이스가 하나이거나 실패가 없으면 단추가 없다', () => {
     render(<RunSummary counts={집계(9, 1, 0)} 실패케이스수={1} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={[{ platform: 'desktop', 수: 1 }]} />);
-    expect(screen.queryByRole('group', { name: '디바이스별 실패 케이스' })).toBeNull();
+    expect(screen.queryByRole('group', { name: '디바이스별 Fail 케이스' })).toBeNull();
     cleanup();
     render(<RunSummary counts={집계(10, 0, 0)} 실패케이스수={0} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={나눔.map((d) => ({ ...d, 수: 0 }))} />);
-    expect(screen.queryByRole('group', { name: '디바이스별 실패 케이스' })).toBeNull();
+    expect(screen.queryByRole('group', { name: '디바이스별 Fail 케이스' })).toBeNull();
   });
 });

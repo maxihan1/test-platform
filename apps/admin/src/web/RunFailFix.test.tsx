@@ -45,13 +45,13 @@ describe('「수정 후 통과」 카드', () => {
     둘();
     await screen.findByText('주문 API 401');
     const 카드 = document.querySelector('.fc-card.fc-fixed')!;
-    expect(카드.querySelector('.fix-tag')?.textContent).toBe('수정 후 통과');
+    expect(카드.querySelector('.fix-tag')?.textContent).toBe('수정 후 Pass');
     const 칩 = 카드.querySelector('.fc-devs')?.textContent ?? '';
-    expect(칩).toMatch(/PC\s*통과/);
-    expect(칩).toMatch(/모바일\s*실패\s*→\s*통과/);
+    expect(칩).toMatch(/PC\s*Pass/);
+    expect(칩).toMatch(/모바일\s*Fail\s*→\s*Pass/);
 
     const 한줄 = 카드.querySelector('.fc-body')?.textContent ?? '';
-    expect(한줄).toContain('테스트 수정 요청으로 자동 수정했어요 — QA 맥시 · Issue Bunker MQA-168 → PR #713 자동 반영 → RUN 21109 PC 통과 · 모바일 통과');
+    expect(한줄).toContain('테스트 수정 요청으로 자동 수정했어요 — QA 맥시 · Issue Bunker MQA-168 → PR #713 자동 반영 → RUN 21109 PC Pass · 모바일 Pass');
     expect(screen.getByRole('link', { name: 'RUN 21109' }).getAttribute('href')).toBe('#/runs/21109');
     expect(screen.queryByRole('link', { name: 'Issue Bunker MQA-168 에서 확인 중' })).toBeNull();
   });
@@ -67,10 +67,10 @@ describe('「수정 후 통과」 카드', () => {
     );
     await screen.findByText('주문 API 401');
     const 칩 = document.querySelector('.fc-devs')?.textContent ?? '';
-    expect(칩).toMatch(/PC\s*실패\s*→\s*통과/);
-    expect(칩).not.toMatch(/모바일\s*실패\s*→/);
+    expect(칩).toMatch(/PC\s*Fail\s*→\s*Pass/);
+    expect(칩).not.toMatch(/모바일\s*Fail\s*→/);
     expect(screen.queryByRole('link', { name: 'RUN 21109' })).toBeNull();
-    expect(document.querySelector('.fc-body')?.textContent).toContain('RUN 21109 PC 통과');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('RUN 21109 PC Pass');
   });
 
   it('「판정 안 한 카드」 셈에서 빠지고, 「자동 수정 N」을 누르면 서버가 거른 쪽을 다시 받는다', async () => {
@@ -87,12 +87,12 @@ describe('「수정 후 통과」 카드', () => {
   });
 });
 
-describe('실패 다시 실행', () => {
+describe('Fail 다시 실행', () => {
   it('자동 수정으로 통과한 케이스는 다시 돌릴 실패에서 뺀다', () => {
     render(
       <실패다시실행 runId={20914} items={[줄(1, 'ZZI-0001', 'mobile', 'FAIL'), 줄(2, 'ZZI-0002', 'desktop', 'FAIL')]} env="qa" 된다 자동수정={['ZZI-0001']} />,
     );
-    expect(screen.getByRole('button', { name: '실패 1건 다시 실행' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Fail 1건 다시 실행' })).toBeTruthy();
   });
 });
 

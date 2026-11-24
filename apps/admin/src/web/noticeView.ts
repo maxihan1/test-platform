@@ -122,9 +122,9 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
 
   if (n.kind === 'run') {
     const { counts } = n;
-    const 집계 = [...실행덧말(n, 언어), t('{수} 통과', 언어, { 수: counts.pass })];
-    if (counts.fail > 0) 집계.push(t('{수} 실패', 언어, { 수: counts.fail }));
-    if (counts.na > 0) 집계.push(t('{수} 미실행', 언어, { 수: counts.na }));
+    const 집계 = [...실행덧말(n, 언어), t('Pass {수}', 언어, { 수: counts.pass })];
+    if (counts.fail > 0) 집계.push(t('Fail {수}', 언어, { 수: counts.fail }));
+    if (counts.na > 0) 집계.push(t('Not tested {수}', 언어, { 수: counts.na }));
     // 미확정은 이미 위 숫자에 센 항목이다 — 「그중 N건」 한 줄만 뒤에 붙인다 (도메인/실행 §3.2)
     const 미확정 = 그중미확정글(counts, 언어);
     if (미확정 !== '') 집계.push(미확정);
@@ -195,7 +195,7 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
         t('RUN {번호} 실행 중', 언어, { 번호: n.runId }),
         ...실행덧말(n, 언어),
         t('{끝난} / {전체} 완료', 언어, { 끝난: n.done, 전체: n.total }),
-        ...(counts.fail > 0 ? [t('실패 {수}', 언어, { 수: counts.fail })] : []),
+        ...(counts.fail > 0 ? [t('Fail {수}', 언어, { 수: counts.fail })] : []),
       ].join(' · '),
       막대: counts.total === 0 ? null : { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 남음: counts.running },
       뒷글: 실행남은글(n.remainingMs, 지금, 언어),

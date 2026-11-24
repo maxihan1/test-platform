@@ -46,7 +46,7 @@ describe('실행 결과 화면의 리포트 메뉴 (SPEC §8.4)', () => {
     const 띠 = container.querySelector('.rs');
     expect(띠).not.toBeNull();
     expect(머리?.nextElementSibling?.firstElementChild).toBe(띠);
-    expect(container.querySelector('.tally')?.textContent).not.toContain('통과');
+    expect(container.querySelector('.tally')?.textContent).not.toContain('Pass');
   });
 
   it('리포트 단추와 메뉴 줄은 색을 쓰지 않고 이유를 말풍선에 숨기지 않는다', async () => {

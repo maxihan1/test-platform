@@ -106,9 +106,9 @@ export function 점수알약({ 통과, 실패, 안함 }: { 통과: number; 실�
   const t = use말();
   return (
     <>
-      <span className={통과 === 0 ? 'pill zero' : 'pill pass'}>{t('통과')} <b>{통과}</b></span>
-      <span className={실패 === 0 ? 'pill zero' : 'pill fail'}>{t('실패')} <b>{실패}</b></span>
-      <span className={안함 === 0 ? 'pill zero' : 'pill na'}>{t('미실행')} <b>{안함}</b></span>
+      <span className={통과 === 0 ? 'pill zero' : 'pill pass'}>{t('Pass')} <b>{통과}</b></span>
+      <span className={실패 === 0 ? 'pill zero' : 'pill fail'}>{t('Fail')} <b>{실패}</b></span>
+      <span className={안함 === 0 ? 'pill zero' : 'pill na'}>{t('Not tested')} <b>{안함}</b></span>
     </>
   );
 }

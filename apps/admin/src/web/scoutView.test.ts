@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { t } from './i18n.js';
-import { 답풀기, 단계글, 링크주소, 조각붙이기, type 질문 } from './scoutView.js';
+import { 답풀기, 단계글, 링크주소, 배지색, 조각붙이기, type 질문 } from './scoutView.js';
 
 const 한국어 = (키: string, 값?: Record<string, string | number>) => t(키, 'ko', 값);
 const 영어 = (키: string, 값?: Record<string, string | number>) => t(키, 'en', 값);
@@ -91,5 +91,24 @@ describe('Scout 진행 줄 (§8.18 「진행 줄」)', () => {
         { tool: 'run_result', ref: '12', done: true },
       ],
     });
+  });
+});
+
+describe('Scout 구분 배지의 색 (docs/WORDS.md 판정 글자)', () => {
+  it.each([
+    ['Fail', 'fail'],
+    ['FAIL', 'fail'],
+    ['회귀 실패', 'fail'],
+    ['실패', 'fail'],
+    ['Pass', 'pass'],
+    ['PASS', 'pass'],
+    ['통과', 'pass'],
+    ['해결', 'pass'],
+    ['기존 실패', 'na'],
+    ['Not tested', 'na'],
+    ['Blocked', 'na'],
+    ['진행 중', 'na'],
+  ] as const)('%s 는 %s 색이다', (배지, 색) => {
+    expect(배지색(배지)).toBe(색);
   });
 });

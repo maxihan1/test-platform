@@ -9,7 +9,7 @@ export const 실행번호글 = (id: number) => `PRF-${String(id).padStart(4, '0'
 export const 유형글: Record<string, string> = { LOAD: '부하 테스트', STRESS: '스트레스 테스트', SPIKE: '스파이크 테스트', SOAK: '내구성 테스트' };
 export const 지표글: Record<Target['metric'], string> = { P95: '95% 응답시간', ERROR_RATE: '에러율', TPS: 'TPS' };
 export const 근거글: Record<Target['source'], string> = { PRD: '기획서', AI: 'AI 추천', MANUAL: '직접 입력' };
-export const 판정글 = (v: 'PASS' | 'FAIL' | null, status: string) => (v === 'PASS' ? '통과' : v === 'FAIL' ? '실패' : status === 'ERROR' ? '오류' : '중단');
+export const 판정글 = (v: 'PASS' | 'FAIL' | null, status: string) => (v === 'PASS' ? 'Pass' : v === 'FAIL' ? 'Fail' : status === 'ERROR' ? '오류' : '중단');
 
 export function 값글(metric: Target['metric'], v: number | null): string {
   if (v === null) return '—';

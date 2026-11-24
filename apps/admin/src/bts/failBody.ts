@@ -130,11 +130,11 @@ const 화면말: Record<BrowserPlatform, { 이름: string; 만: string; 은: str
   mobile: { 이름: '모바일', 만: '모바일만', 은: '모바일은' },
 };
 
-/** 「PC · 모바일 둘 다」 · 「모바일만(PC 는 통과)」 · 한 화면만 돌았으면 「모바일」 */
+/** 「PC · 모바일 둘 다」 · 「모바일만(PC 는 Pass)」 · 한 화면만 돌았으면 「모바일」 */
 function 화면글({ 깨짐, 통과 }: NonNullable<실패재료['화면']>): string {
   if (깨짐.length > 1) return `${깨짐.map((p) => 화면말[p].이름).join(' · ')} 둘 다`;
   const 말 = 화면말[깨짐[0]!];
-  return 통과.length === 0 ? 말.이름 : `${말.만}(${통과.map((p) => 화면말[p].은).join(' · ')} 통과)`;
+  return 통과.length === 0 ? 말.이름 : `${말.만}(${통과.map((p) => 화면말[p].은).join(' · ')} Pass)`;
 }
 
 /** 두 화면이 다르게 깨졌으면 화면 이름을 붙여 둘, 아니면 이름 없이 첫 화면 하나 */

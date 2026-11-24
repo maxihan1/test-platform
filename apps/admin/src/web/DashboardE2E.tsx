@@ -10,7 +10,7 @@ import { PLATFORM_LABEL } from './ui.js';
 
 type 자료 = 대시보드응답;
 
-const 판정칩: Record<string, [string, string]> = { PASS: ['p', '통과'], FAIL: ['f', '실패'], NA: ['n', '미실행'] };
+const 판정칩: Record<string, [string, string]> = { PASS: ['p', 'Pass'], FAIL: ['f', 'Fail'], NA: ['n', 'Not tested'] };
 
 export function E2E칸({ 값 }: { 값: 자료 }) {
   const t = use말();
@@ -27,7 +27,7 @@ export function E2E칸({ 값 }: { 값: 자료 }) {
       ) : (
         <div>
           {recent.map((s, i) => {
-            const [칩, 글] = 판정칩[s.verdict] ?? ['n', '미실행'];
+            const [칩, 글] = 판정칩[s.verdict] ?? ['n', 'Not tested'];
             return (
               <a key={s.scenarioId} className="dash-scn" href={`#/runs/${s.runId}`}>
                 <span className="mono dash-lab">SC-{s.scenarioId}</span>

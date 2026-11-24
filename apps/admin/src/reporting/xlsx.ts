@@ -20,10 +20,10 @@ const 디바이스: Record<EvidenceItem['platform'], string> = { desktop: 'PC', 
 
 // htmlItem.ts 의 같은 표와 낱말이 어긋나면 한 문서의 두 형식이 다른 말을 한다. 고칠 때 둘을 같이 고친다
 const 판정글자: Record<EvidenceItem['status'], string> = {
-  PASS: '통과',
-  FAIL: '실패',
-  NA: '미실행',
-  NOT_RUN: '미실행',
+  PASS: 'Pass',
+  FAIL: 'Fail',
+  NA: 'Not tested',
+  NOT_RUN: 'Not tested',
 };
 
 /** SPEC §8.4 가 정본이다. 칸 순서를 여기서만 정하고 행 만드는 쪽은 이 길이에 맞춘다 */
@@ -40,8 +40,8 @@ const 머리행 = [
   '회차',
   '판정',
   '소요(ms)',
-  // 판정 옆에 둔다. 「미실행」 · 「NA」 · 예외로 깨진 「FAIL」 모두 여기에 이유를 적는다 (collect.ts 의 notRunReason)
-  '미실행·판정불가 사유',
+  // 판정 옆에 둔다. 「Not tested」 · 「NA」 · 예외로 깨진 「FAIL」 모두 여기에 이유를 적는다 (collect.ts 의 notRunReason)
+  'Not tested·판정불가 사유',
   // 비면 확정 항목이다. 걸러 내기로 미확정만 골라 볼 수 있다 (도메인/리포팅 · 실행 §3.2)
   '미확정 사유',
   '사전 조건',

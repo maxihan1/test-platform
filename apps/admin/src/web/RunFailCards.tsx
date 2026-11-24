@@ -41,7 +41,7 @@ const 안본카드 = (c: FailureCase): boolean => c.judgment === null && c.autoF
 export function RunFailCards(props: Props) {
   const t = use말();
   // 항목이 없으면 실패도 없다. 통로를 부르지 않는다
-  if (props.items.length === 0) return <p className="empty">{t('실패한 케이스가 없습니다')}</p>;
+  if (props.items.length === 0) return <p className="empty">{t('Fail 케이스가 없습니다')}</p>;
   return <카드목록 {...props} />;
 }
 
@@ -119,7 +119,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
   return (
     <section className="fc-list">
       <h2 ref={머리} tabIndex={-1} className="fc-title">
-        {t('실패한 케이스')} <span className="fc-count">{응답.data.total}</span>
+        {t('Fail 케이스')} <span className="fc-count">{응답.data.total}</span>
       </h2>
 
       {/* 같은 원인끼리 훑는다 — 수는 카드(케이스) 수다. 앞 판의 「같은 사유로 실패」는 확인 문장마다 한 덩어리였다 (실행 §8.3 「실패 유형으로 묶는다」 · WEB-F7-13).
@@ -178,7 +178,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
       )}
 
       {보일카드.length === 0 ? (
-        유형칸 === null ? <p className="empty">{t('실패한 케이스가 없습니다')}</p> : null
+        유형칸 === null ? <p className="empty">{t('Fail 케이스가 없습니다')}</p> : null
       ) : (
         보일카드.map((c) => (
           <실패카드

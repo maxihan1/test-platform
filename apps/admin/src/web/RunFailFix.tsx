@@ -6,7 +6,7 @@ import type { 카드자동수정, 카드자동수정중 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { PLATFORM_LABEL, 월일 } from './ui.js';
 
-const 판정말 = { PASS: '통과', FAIL: '실패', NA: '미실행' } as const;
+const 판정말 = { PASS: 'Pass', FAIL: 'Fail', NA: 'Not tested' } as const;
 
 export function RunFailFix({ fix }: { fix: 카드자동수정 }) {
   const t = use말();

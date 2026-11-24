@@ -74,11 +74,11 @@ describe('성능 실행 기록 표', () => {
     expect(도는.textContent).toContain('400명');
 
     expect(within(열('PRF-0013')).getByText('정기')).toBeTruthy();
-    expect(within(열('PRF-0013')).getByText('통과').className).toContain('v-pass');
+    expect(within(열('PRF-0013')).getByText('Pass').className).toContain('v-pass');
     expect(열('PRF-0013').textContent).toContain('변화 없음');
 
     const 실패 = 열('PRF-0012');
-    expect(within(실패).getByText('실패').className).toContain('v-fail');
+    expect(within(실패).getByText('Fail').className).toContain('v-fail');
     expect(실패.textContent).toContain('1,350명');
     expect(실패.textContent).toContain('1.6초');
     expect(실패.textContent).toContain('1.1%');

@@ -30,7 +30,7 @@ export const 오류영어: Record<string, string> = {
   '아직 진행 중인 실행입니다. 완료된 뒤에 리포트를 만듭니다':
     'This run is still going. Generate the report after it finishes.',
   '한 실행에는 한 애플리케이션의 케이스만 담을 수 있습니다': 'A run holds cases from one application only',
-  '이 실행으로는 실패 다시 실행을 걸 수 없습니다': 'This run cannot start a failure rerun',
+  '이 실행으로는 Fail 다시 실행을 걸 수 없습니다': 'This run cannot start a Fail rerun',
   'UI 테스트와 기능 테스트는 따로 실행합니다. 둘 중 하나만 선택해 주세요': 'Run UI tests and functional tests separately. Pick one kind',
   '그 대상 서버가 이 애플리케이션에 없습니다. 설정에서 먼저 넣습니다':
     'That target server is not in this application. Add it in Settings first.',

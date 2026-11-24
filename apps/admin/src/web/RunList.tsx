@@ -210,7 +210,7 @@ export function RunList({
               <span className="filter-label">{t('상태')}</span>
               <select value={state ?? ''} onChange={(e) => 거르기(() => setState(고른값(e.target.value, 상태들)))}>
                 <option value="">{t('전체')}</option>
-                <option value="failed">{t('실패 있음')}</option>
+                <option value="failed">{t('Fail 있음')}</option>
                 <option value="running">{t('진행 중')}</option>
               </select>
             </label>
@@ -230,7 +230,7 @@ export function RunList({
               <select value={origin ?? ''} onChange={(e) => 거르기(() => setOrigin(고른값(e.target.value, 방식들)))}>
                 <option value="">{t('전체')}</option>
                 <option value="manual">{t('직접 실행')}</option>
-                <option value="rerun">{t('실패 다시 실행')}</option>
+                <option value="rerun">{t('Fail 다시 실행')}</option>
                 <option value="scheduled">{t('정기 실행')}</option>
                 <option value="build">{t('빌드 실행')}</option>
               </select>

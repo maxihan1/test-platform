@@ -48,7 +48,7 @@ describe.skipIf(연결 === undefined)('성능 Slack 알림', { timeout: 60_000 }
     await 웹훅('https://hooks.example.test/x');
     const 정기 = await f.실행넣기({ scenarioId: 끈것, origin: 'SCHEDULED', peakVus: 10, p95: 200 });
     expect(await 성능알림(정기, 보내기)).toBe(true);
-    expect(보낸것[0]).toMatch(/^\[통과\] 알림 끈 것 PRF-\d+ · 부하 테스트 · qa · 최대 동시 사용자 10명 · 95% 응답시간 0.2초/);
+    expect(보낸것[0]).toMatch(/^\[Pass\] 알림 끈 것 PRF-\d+ · 부하 테스트 · qa · 최대 동시 사용자 10명 · 95% 응답시간 0.2초/);
 
     보낸것.length = 0;
     const 사람저하끔 = await f.실행넣기({ scenarioId: 끈것, degraded: true });
@@ -59,7 +59,7 @@ describe.skipIf(연결 === undefined)('성능 Slack 알림', { timeout: 60_000 }
 
     const 사람저하켬 = await f.실행넣기({ scenarioId: 켠것, degraded: true });
     expect(await 성능알림(사람저하켬, 보내기)).toBe(true);
-    expect(보낸것[0]).toContain('[통과] [성능 저하] 알림 켠 것');
+    expect(보낸것[0]).toContain('[Pass] [성능 저하] 알림 켠 것');
   });
 
   it('성능 저하 알림 칸이 없는 시나리오는 마법사 기본처럼 켠 것으로 본다', async () => {
@@ -90,7 +90,7 @@ describe.skipIf(연결 === undefined)('성능 Slack 알림', { timeout: 60_000 }
     const [주소, 옵션] = 가짜.mock.calls[0] as unknown as [string, { method: string; body: string }];
     expect(주소).toBe('https://hooks.example.test/y');
     expect(옵션.method).toBe('POST');
-    expect(JSON.parse(옵션.body)).toEqual({ text: expect.stringMatching(/^\[통과\] 알림 끈 것 PRF-/) });
+    expect(JSON.parse(옵션.body)).toEqual({ text: expect.stringMatching(/^\[Pass\] 알림 끈 것 PRF-/) });
   });
 
   it('끝내기는 Slack 이 느려도 기다리지 않고 닫힌다 — 알림은 뒤에서 나간다', async () => {

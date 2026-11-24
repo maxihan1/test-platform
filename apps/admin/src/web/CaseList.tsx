@@ -226,7 +226,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
                           <div className="toc-label">
                             <b>{칸?.이름 ?? t('기능 묶음 없음')}</b>
                             <span>{t('{건수}건', { 건수: 칸?.건수 ?? 덩어리.rows.length })}</span>
-                            {!칸?.실패 ? null : <span className="toc-fail">{t('실패 {건수}', { 건수: 칸.실패 })}</span>}
+                            {!칸?.실패 ? null : <span className="toc-fail">{t('Fail {건수}', { 건수: 칸.실패 })}</span>}
                             {덩어리.feature === null ? <span>{t('PRD 에 연결되지 않은 케이스')}</span> : null}
                           </div>
                         )}

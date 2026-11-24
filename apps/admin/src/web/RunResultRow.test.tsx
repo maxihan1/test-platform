@@ -63,7 +63,7 @@ describe('결과줄 (SPEC §8.3)', () => {
       항목(3, 'desktop', 'FAIL', 3),
     ]);
 
-    expect(screen.queryByText('2/3 통과')).not.toBeNull();
+    expect(screen.queryByText('2/3 Pass')).not.toBeNull();
   });
 
   it('「상세」와 판정 고리는 통과한 첫 회차가 아니라 깨진 회차로 간다 (점검 3.4)', () => {

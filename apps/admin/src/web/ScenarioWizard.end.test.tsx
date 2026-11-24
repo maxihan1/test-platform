@@ -201,7 +201,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     expect(요약.textContent).toContain('직접 선택함');
     expect(요약.textContent).toContain('단계 2개');
     expect(요약.textContent).toContain('값 연결 1곳 · 로그인 이어받기');
-    expect(요약.textContent).toContain('통과 · stg');
+    expect(요약.textContent).toContain('Pass · stg');
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect((await screen.findByRole('alert')).textContent).toBe('시나리오 이름을 적어야 저장할 수 있습니다');

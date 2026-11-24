@@ -35,10 +35,10 @@ function 보류글(held: 보류모양 | undefined, reqId: string): string {
   return 보류.미등록.length > 0 ? `보류 — ${보류.미등록.join(' · ')} 계정 미등록` : `보류 — ${보류.등록됨.join(' · ')} 계정 등록됨 · 이어 작성 전`;
 }
 
-const 판정글 = { PASS: '통과', FAIL: '실패' } as const;
+const 판정글 = { PASS: 'Pass', FAIL: 'Fail' } as const;
 
 function 성능글(p: 요구성능 | undefined): string | null {
-  return p === undefined ? null : `${String(p.targets)}개 · ${p.verdict === null ? '미실행' : 판정글[p.verdict]}`;
+  return p === undefined ? null : `${String(p.targets)}개 · ${p.verdict === null ? 'Not tested' : 판정글[p.verdict]}`;
 }
 
 /** 워드와 같이 테스트 계정 비밀번호를 가린다 — 요구 문장 · 기능 묶음이 밖으로 나간다 (§3.6 「워드로 내려받기」) */
@@ -69,7 +69,7 @@ export async function 추적표만들기(자료: 추적표자료, 비밀번호�
       추적.종류.UI,
       추적.종류.미션,
       추적.기법.map(([기법, 수]) => `${기법} ${String(수)}`).join(' · ') || null,
-      추적.결과 === null || !덮나 ? null : `통과 ${String(추적.결과.통과)} · 실패 ${String(추적.결과.실패)} · 미실행 ${String(추적.결과.미실행)}`,
+      추적.결과 === null || !덮나 ? null : `Pass ${String(추적.결과.통과)} · Fail ${String(추적.결과.실패)} · Not tested ${String(추적.결과.미실행)}`,
       성능글(자료.perf?.[x.reqId]),
     ]);
     if (!덮나) {

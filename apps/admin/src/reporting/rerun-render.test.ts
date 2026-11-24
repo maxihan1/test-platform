@@ -51,7 +51,7 @@ describe('한 건 실행이 붙은 실행의 증적 HTML', () => {
 
   it('판정 한 줄 끝에 다시 실행 건수와 가장 늦은 시각이 붙고 수는 지금 결과다', () => {
     const html = renderHtml(문서들, { ...옵션, format: 'HTML' });
-    expect(html).toContain('통과 3 · 실패 0 · 미실행 0 · 다시 실행 2건 포함 · 마지막 2026-10-30T03:00:00.000Z');
+    expect(html).toContain('Pass 3 · Fail 0 · Not tested 0 · 다시 실행 2건 포함 · 마지막 2026-10-30T03:00:00.000Z');
   });
 
   it('덮인 항목이 없으면 꼬리도 다시 실행 문구도 없다', () => {
@@ -62,7 +62,7 @@ describe('한 건 실행이 붙은 실행의 증적 HTML', () => {
 
   it('블록 머리에 다시 실행 · 시각 · 실행자 · 원래 결과 판정이 서고 HTML 은 원래 결과를 그 자리에 펼친다', () => {
     const html = renderHtml(문서들, { ...옵션, format: 'HTML' });
-    expect(html).toContain('다시 실행 · 2026-10-30T01:00:00.000Z · 다시 돌린 사람 · 원래 결과 실패');
+    expect(html).toContain('다시 실행 · 2026-10-30T01:00:00.000Z · 다시 돌린 사람 · 원래 결과 Fail');
     expect(html).toContain('<summary class="fold-line"><span class="tc-name">원래 결과</span>');
     expect(html).toContain('처음 절차');
     expect(html).not.toContain('부록 — 원래 결과');
@@ -90,9 +90,9 @@ describe('한 건 실행이 붙은 실행의 증적 엑셀', () => {
     const 줄 = [2, 3, 4].map((행) => [ws.getRow(행).getCell(1).value, ws.getRow(행).getCell(7).value, ws.getRow(행).getCell(11).value, ws.getRow(행).getCell(끝).value ?? null]);
     expect(ws.getRow(1).getCell(끝).value).toBe('다시 실행');
     expect(줄).toEqual([
-      [7, 'XDZ-001', '실패', '원래 결과'],
-      [7, 'XDZ-001', '통과', '다시 실행 · 2026-10-30T01:00:00.000Z · 다시 돌린 사람'],
-      [7, 'XDZ-002', '통과', null],
+      [7, 'XDZ-001', 'Fail', '원래 결과'],
+      [7, 'XDZ-001', 'Pass', '다시 실행 · 2026-10-30T01:00:00.000Z · 다시 돌린 사람'],
+      [7, 'XDZ-002', 'Pass', null],
     ]);
     expect(ws.getRow(2).getCell(19).value).toBe('처음 절차');
     expect(ws.getRow(3).getCell(19).value).toBe('절차 하나');

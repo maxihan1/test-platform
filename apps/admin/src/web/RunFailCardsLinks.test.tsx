@@ -93,7 +93,7 @@ describe('다시 돌린 결과 꼬리표 (점검 2.17)', () => {
       />,
     );
 
-    const 고리 = await screen.findByRole('link', { name: 'RUN 130에서 통과' });
+    const 고리 = await screen.findByRole('link', { name: 'RUN 130에서 Pass' });
     expect(고리.getAttribute('href')).toBe('#/runs/fn?run=130&tc=ZZI-0002');
   });
 
@@ -110,6 +110,6 @@ describe('다시 돌린 결과 꼬리표 (점검 2.17)', () => {
       />,
     );
 
-    expect(await screen.findByRole('link', { name: 'RUN 131에서도 실패' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'RUN 131에서도 Fail' })).toBeTruthy();
   });
 });

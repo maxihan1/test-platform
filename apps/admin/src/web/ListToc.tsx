@@ -105,7 +105,7 @@ export function 묶음목차({ 칸들, 지금, on가기, on정리 }: { 칸들: �
       }}
     >
       <span className="toc-name">{칸.이름}</span>
-      {칸.실패 === 0 ? null : <span className="toc-fail">{t('실패 {건수}', { 건수: 칸.실패 })}</span>}
+      {칸.실패 === 0 ? null : <span className="toc-fail">{t('Fail {건수}', { 건수: 칸.실패 })}</span>}
       {칸.정리 ? <span className="toc-fix">{t('정리 필요')}</span> : null}
       <span className="toc-count">{칸.건수}</span>
     </button>

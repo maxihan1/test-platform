@@ -141,7 +141,7 @@ describe('실패 케이스 카드 (실행 §8.3)', () => {
     expect(within(카드들[0]!.querySelector('.fc-body')!).getByText('회귀 실패')).toBeDefined();
     expect(첫.getAllByText('기존 실패 · 2회 연속')).toHaveLength(2);
     expect(첫.getByText('기존 실패 · 5회 이상 연속')).toBeDefined();
-    expect(첫.getByText('5회 중 2회 실패')).toBeDefined();
+    expect(첫.getByText('5회 중 2회 Fail')).toBeDefined();
     expect(첫.getAllByText('qa 서버 · 이 실행까지')).toHaveLength(3);
     const 둘째 = within(카드들[1]!);
     expect(둘째.queryByText(/회귀 실패|기존 실패|회 중/)).toBeNull();

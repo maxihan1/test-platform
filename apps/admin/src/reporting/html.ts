@@ -67,7 +67,7 @@ function 케이스로(items: EvidenceItem[]): 케이스[] {
     );
     c.펼침 = (실패표.get(c.tcId)?.devices ?? []).flatMap((d) => {
       const 칸 = c.칸들.find((k) => k.번호 === d.firstFailedHistoryId);
-      const 회차글 = d.attempts > 1 ? `<span class="tries">${d.attempts}회 중 ${d.failedAttempts}회 실패</span>` : '';
+      const 회차글 = d.attempts > 1 ? `<span class="tries">${d.attempts}회 중 ${d.failedAttempts}회 Fail</span>` : '';
       return 칸 === undefined ? [] : [{ 칸, 회차글 }];
     });
   });
@@ -119,7 +119,7 @@ function 줄글(c: 케이스): string {
   const 디바이스글 = 디바이스들
     .map(({ p, 칸들 }) => {
       const 통과 = 칸들.filter((k) => k.item.status === 'PASS').length;
-      return `${디바이스[p]} ${칸들.length === 1 ? 판정글자[칸들[0]!.item.status] : `${통과}/${칸들.length} 통과`}`;
+      return `${디바이스[p]} ${칸들.length === 1 ? 판정글자[칸들[0]!.item.status] : `${통과}/${칸들.length} Pass`}`;
     })
     .join(' · ');
   // 디바이스마다 사유가 다를 수 있다 — 하나만 남기면 나머지는 부록까지 가야 보인다
@@ -185,8 +185,8 @@ function 요약(items: EvidenceItem[]): string[] {
     `<section class="band">`,
     `  <div class="rate"><span class="big">${전체 === 0 ? '—' : `${((통과 / 전체) * 100).toFixed(1)}%`}</span><span class="axis">통과율</span></div>`,
     `  <div class="tally">`,
-    `    <span class="${실패 > 0 ? 'verdict v-fail' : 'zero'}">실패 ${실패}건</span>`,
-    `    <span>${전체 === 0 ? '항목 없음' : `항목 ${전체}건 중 ${통과}건 통과`}</span>`,
+    `    <span class="${실패 > 0 ? 'verdict v-fail' : 'zero'}">Fail ${실패}건</span>`,
+    `    <span>${전체 === 0 ? '항목 없음' : `항목 ${전체}건 중 ${통과}건 Pass`}</span>`,
     `    <span class="axis">${안전(판정줄(items) + 다시실행꼬리(items))}</span>`,
     `  </div>`,
     `</section>`,
@@ -203,7 +203,7 @@ function E2E요약절(줄들: E2E요약줄[]): string[] {
       const 이름 = `<span class="tc-id">SC-${z.scenarioId}</span><span class="tc-name">${안전(z.name)}</span>`;
       if (z.startedAt === null || z.verdict === null) return `<div class="fold fold-line">${이름}<span class="devs">실행 기록 없음</span></div>`;
       // 단계 행 없이 멈춘 실행은 판정 없음인데 멈춘 단계도 없다 — 「모두 통과」는 통과에만 붙인다
-      const 멈춘곳 = z.stoppedAt !== null ? ` · ${z.stoppedAt}번에서 종료` : z.verdict === 'PASS' ? ' · 모두 통과' : '';
+      const 멈춘곳 = z.stoppedAt !== null ? ` · ${z.stoppedAt}번에서 종료` : z.verdict === 'PASS' ? ' · 모두 Pass' : '';
       const 미확정 = z.unconfirmed ? `<span class="badge">미확정</span>` : '';
       return `<div class="fold fold-line">${판정(z.verdict)}${이름}<span class="devs">${안전(z.startedAt)}${멈춘곳}</span>${미확정}</div>`;
     }),
@@ -257,13 +257,13 @@ function 카드와줄(케이스들: 케이스[], format: RenderOptions['format']
   const 실패들 = 케이스들.filter((c) => c.펼침.length > 0);
   const 줄들 = 케이스들.filter((c) => c.펼침.length === 0);
   return [
-    머리(`실패 케이스 ${실패들.length}건`),
-    ...(실패들.length === 0 ? [`<p class="none">실패한 케이스가 없습니다</p>`] : 실패들.flatMap((c) => 카드(c, format))),
+    머리(`Fail 케이스 ${실패들.length}건`),
+    ...(실패들.length === 0 ? [`<p class="none">Fail 케이스가 없습니다</p>`] : 실패들.flatMap((c) => 카드(c, format))),
     // 미확정도 따로 묶지 않고 제자리에 섞는다 — 줄마다 「미확정 · 사유」가 꼬리표 구실을 한다 (도메인/리포팅 · 실행 §3.2)
     ...(줄들.length === 0
       ? []
       : [
-          머리(`통과 · 미실행 케이스 ${줄들.length}건`),
+          머리(`Pass · Not tested 케이스 ${줄들.length}건`),
           ...줄들.flatMap((c) => 접힌줄(format, 줄글(c), `c-${c.차례}`, () => c.칸들.flatMap((k) => 펼친항목(k, format)))),
         ]),
   ];

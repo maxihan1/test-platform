@@ -20,7 +20,7 @@ export const 실행상태글자: Record<string, string> = {
 
 export function 마지막실행글자(run: PerfScenarioRow['lastRun']): string {
   if (run === null) return '실행 전';
-  if (run.status === 'DONE') return run.verdict === 'PASS' ? '통과' : '실패';
+  if (run.status === 'DONE') return run.verdict === 'PASS' ? 'Pass' : 'Fail';
   return 실행상태글자[run.status] ?? run.status;
 }
 

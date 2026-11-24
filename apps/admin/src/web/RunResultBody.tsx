@@ -153,12 +153,12 @@ export function 끝난결과(props: Props) {
               통과제목.current?.scrollIntoView?.({ block: 'start' });
             }}
           >
-            {t('통과 · 미실행으로 건너뛰기')}
+            {t('Pass · Not tested 로 건너뛰기')}
           </button>
         )}
 
         {!카드구획 ? null : data.counts.fail === 0 ? (
-          <p className="empty">{t('실패한 케이스가 없습니다')}</p>
+          <p className="empty">{t('Fail 케이스가 없습니다')}</p>
         ) : (
           <section className="rr-sec">
             {/* 칩이나 실행이 바뀌면 새로 그린다 — 앞 실행의 카드가 남으면 안 된다. 쪽 · 칩은 디바이스를 고를 때 보기가 같이 푼다 */}
@@ -169,7 +169,7 @@ export function 끝난결과(props: Props) {
         {!줄구획 ? null : (
           <section className="rr-sec rr-rows">
             <h2 ref={통과제목} tabIndex={-1} className="fc-title">
-              {t('통과 · 미실행')} <span className="rr-n">{줄들.length}</span>
+              {t('Pass · Not tested')} <span className="rr-n">{줄들.length}</span>
             </h2>
             {보이는줄.length === 0 ? (
               <div className="empty">{t('조건에 맞는 결과가 없습니다')}</div>
@@ -178,7 +178,7 @@ export function 끝난결과(props: Props) {
             )}
             <쪽넘김 쪽={보는쪽} 전체쪽={전체쪽} on쪽={(쪽) => 바꾸기({ 쪽 })} />
             {카드안항목수 === 0 ? null : (
-              <p className="rr-axis">{t('실패한 케이스 안의 항목 {건수}건은 「전체」에서 카드로 봅니다', { 건수: 카드안항목수 })}</p>
+              <p className="rr-axis">{t('Fail 케이스 안의 항목 {건수}건은 「전체」에서 카드로 봅니다', { 건수: 카드안항목수 })}</p>
             )}
           </section>
         )}

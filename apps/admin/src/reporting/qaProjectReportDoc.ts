@@ -13,7 +13,7 @@ import { 결과글, 종류이름, 품질특성 } from './qaReportWords.js';
 
 type 몸 = 프로젝트몸;
 
-const 판정글 = (v: { pass: number; fail: number; notRun: number }) => `통과 ${v.pass} · 실패 ${v.fail} · 미실행 ${v.notRun}`;
+const 판정글 = (v: { pass: number; fail: number; notRun: number }) => `Pass ${v.pass} · Fail ${v.fail} · Not tested ${v.notRun}`;
 const 비율 = (a: number, b: number) => (b === 0 ? '—' : `${Math.round((a / b) * 1000) / 10}%`);
 const 요일이름 = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -139,7 +139,7 @@ function 비기능품질(b: 몸): 덩이[] {
               {
                 꼴: '표',
                 머리: ['날짜', '실행', '성능 목표'],
-                줄: a.perf.map((p) => ({ 칸: [짧은날(p.day), `PRF-${String(p.runId).padStart(4, '0')} · ${성능종류[p.kind]}`, `통과 ${p.pass} · 미달 ${p.fail}`] })),
+                줄: a.perf.map((p) => ({ 칸: [짧은날(p.day), `PRF-${String(p.runId).padStart(4, '0')} · ${성능종류[p.kind]}`, `Pass ${p.pass} · 미달 ${p.fail}`] })),
               },
             ];
       const s = a.stab;

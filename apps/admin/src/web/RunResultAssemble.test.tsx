@@ -59,10 +59,10 @@ describe('결과 화면 조립 — 머리 한 줄 · 요약 띠 · 카드 · 줄
     await screen.findByText('이름-ZRR-002');
 
     const 요약 = document.querySelector('.rs')?.textContent ?? '';
-    expect(요약).toContain('항목 7건 중 3건 통과');
+    expect(요약).toContain('항목 7건 중 3건 Pass');
     expect(요약).toContain('그중 미확정 2건');
     expect(판정칸('전체').textContent).toContain('7');
-    expect(판정칸('실패').textContent).toContain('3');
+    expect(판정칸('Fail').textContent).toContain('3');
   });
 
   it('도는 실행은 카드 통로도 견주기 통로도 부르지 않고 진행 집계와 줄 목록을 그린다', async () => {
@@ -78,14 +78,14 @@ describe('결과 화면 조립 — 머리 한 줄 · 요약 띠 · 카드 · 줄
     expect(실패부름).not.toHaveBeenCalled();
     expect(견줌부름).not.toHaveBeenCalled();
     expect(container.querySelector('.rs')).toBeNull();
-    expect(container.querySelector('.tally')?.textContent).toContain('통과');
+    expect(container.querySelector('.tally')?.textContent).toContain('Pass');
     expect(screen.getByText('실행 중단')).toBeTruthy();
   });
 
   it('실패가 0건이면 카드 통로를 부르지 않고 한 줄만 적는다', async () => {
     const 실패부름 = 연다([항목줄(1, 'ZRR-002', 'desktop', 'PASS')]);
 
-    expect(await screen.findByText('실패한 케이스가 없습니다')).toBeTruthy();
+    expect(await screen.findByText('Fail 케이스가 없습니다')).toBeTruthy();
     expect(실패부름).not.toHaveBeenCalled();
   });
 
@@ -94,15 +94,15 @@ describe('결과 화면 조립 — 머리 한 줄 · 요약 띠 · 카드 · 줄
     await screen.findByText('이름-ZRR-002');
     await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
 
-    fireEvent.click(판정칸('실패'));
+    fireEvent.click(판정칸('Fail'));
     expect(document.querySelector('.fc-list')).not.toBeNull();
     expect(document.querySelector('.rr-rows')).toBeNull();
 
-    fireEvent.click(판정칸('통과'));
+    fireEvent.click(판정칸('Pass'));
     expect(document.querySelector('.fc-list')).toBeNull();
     expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).toEqual(['ZRR-002', 'ZRR-004']);
 
-    fireEvent.click(판정칸('미실행'));
+    fireEvent.click(판정칸('Not tested'));
     expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).toEqual(['ZRR-003']);
   });
 

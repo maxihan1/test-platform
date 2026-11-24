@@ -4,7 +4,7 @@ import { api, type 자동수정상세 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { PLATFORM_LABEL, useAsync, 월일 } from './ui.js';
 
-const 판정말 = { PASS: '통과', FAIL: '실패', NA: '미실행' } as const;
+const 판정말 = { PASS: 'Pass', FAIL: 'Fail', NA: 'Not tested' } as const;
 export const 조작실패말 = { notFound: '요소를 찾지 못함', timeout: '타임아웃' } as const;
 
 /** PASSED 가 아닌 줄의 지금 상태 한 줄 */

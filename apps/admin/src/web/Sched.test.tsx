@@ -91,14 +91,14 @@ describe('정기 실행 화면', () => {
     expect(카드.textContent).toContain('안정화 기준');
     expect(카드.textContent).toContain('평일 02:00 · 다음 11/16');
     expect(카드.textContent).toContain('MKT + ADM · 기능 · E2E');
-    expect(카드.textContent).toContain('마지막 11/12 실패 있음');
+    expect(카드.textContent).toContain('마지막 11/12 Fail 있음');
     expect(카드.textContent).toContain('빠진 케이스 2건');
   });
 
   it('달력은 지난 칸에 결과를, 앞으로의 칸에 예정을 단다', async () => {
     차리기([세트하나()], [회차하나()]);
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
-    expect(await screen.findByRole('button', { name: /결제 회귀\s*실패 2/u })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /결제 회귀\s*Fail 2/u })).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /결제 회귀\s*02:00 예정/u }).length).toBeGreaterThan(0);
     expect(schedApi.calendar).toHaveBeenCalledWith(10, '2026-10-26', '2026-12-06');
   });
@@ -106,7 +106,7 @@ describe('정기 실행 화면', () => {
   it('실행이 여럿인 칸은 창을 열어 실행 줄마다 그 실행으로 가는 링크를 단다', async () => {
     차리기([세트하나()], [회차하나()]);
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
-    fireEvent.click(await screen.findByRole('button', { name: /결제 회귀\s*실패 2/u }));
+    fireEvent.click(await screen.findByRole('button', { name: /결제 회귀\s*Fail 2/u }));
     const 창 = await screen.findByRole('dialog');
     expect(within(창).getByRole('link', { name: '#4701 →' }).getAttribute('href')).toBe('#/runs/4701');
     expect(within(창).getByRole('link', { name: '#4702 →' }).getAttribute('href')).toBe('#/compat/runs/4702');
@@ -127,7 +127,7 @@ describe('정기 실행 화면', () => {
   it('실행이 하나인 지난 칸은 창 없이 그 실행으로 간다', async () => {
     차리기([세트하나()], [회차하나({ runs: [회차하나().runs[0]!] })]);
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
-    fireEvent.click(await screen.findByRole('button', { name: /결제 회귀\s*실패 2/u }));
+    fireEvent.click(await screen.findByRole('button', { name: /결제 회귀\s*Fail 2/u }));
     expect(window.location.hash).toBe('#/runs/4701');
     expect(screen.queryByRole('dialog')).toBeNull();
   });
@@ -145,7 +145,7 @@ describe('정기 실행 화면', () => {
   it('일 보기는 창 없이 그날 실행 줄을 펼치고, 브라우저가 고른 보기를 기억한다', async () => {
     차리기([세트하나()], [회차하나()]);
     const { unmount } = render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
-    await screen.findByRole('button', { name: /결제 회귀\s*실패 2/u });
+    await screen.findByRole('button', { name: /결제 회귀\s*Fail 2/u });
     fireEvent.click(screen.getByRole('button', { name: '결과 →' }));
     expect(await screen.findByRole('link', { name: '#4701 →' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '일', pressed: true })).toBeTruthy();

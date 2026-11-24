@@ -97,8 +97,8 @@ describe('웹 화면', () => {
   });
 
   it('한 화면만 깨졌으면 통과한 화면도 적는다', () => {
-    expect(이슈본문(재료({ 화면: { 깨짐: ['mobile'], 통과: ['desktop'] } }))).toContain('**화면** — 모바일만(PC 는 통과)');
-    expect(이슈본문(재료({ 화면: { 깨짐: ['desktop'], 통과: ['mobile'] } }))).toContain('**화면** — PC 만(모바일은 통과)');
+    expect(이슈본문(재료({ 화면: { 깨짐: ['mobile'], 통과: ['desktop'] } }))).toContain('**화면** — 모바일만(PC 는 Pass)');
+    expect(이슈본문(재료({ 화면: { 깨짐: ['desktop'], 통과: ['mobile'] } }))).toContain('**화면** — PC 만(모바일은 Pass)');
   });
 
   it('한 화면만 돌았으면 그 화면만 적는다', () => {
@@ -143,7 +143,7 @@ describe('웹 화면', () => {
 
   it('또 실패 댓글도 깨진 화면을 적는다', () => {
     expect(또실패댓글(재료({ 화면: { 깨짐: ['mobile'], 통과: ['desktop'] } }), 813).split('\n')[0]).toBe(
-      'Test Commander 실행 #813 에서 또 실패했습니다 — 대상 서버 qa · 빌드 a1b2c3d-202610311530 · 화면 모바일만(PC 는 통과)',
+      'Test Commander 실행 #813 에서 또 실패했습니다 — 대상 서버 qa · 빌드 a1b2c3d-202610311530 · 화면 모바일만(PC 는 Pass)',
     );
   });
 });

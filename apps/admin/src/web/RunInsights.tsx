@@ -48,7 +48,7 @@ export function 통과알림목록({ insights, runId }: { insights: 비교 | nul
 
   return (
     <details className="rr-fold rr-notice">
-      <summary>{t('통과 · 알림 {건수}건', { 건수: 전체 })}</summary>
+      <summary>{t('Pass · 알림 {건수}건', { 건수: 전체 })}</summary>
       {전체 > 알림들.length ? <p className="hint">{t('앞 {보인}건만 보입니다 — 나머지는 항목 상세에서 확인하세요', { 보인: 알림들.length })}</p> : null}
       {알림들.map((a, i) => (
         <div className="rr-fixed" key={`${String(a.historyId)}\u0000${String(i)}`}>

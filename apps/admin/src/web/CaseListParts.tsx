@@ -14,9 +14,9 @@ import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when, 월일 } from './
 // 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
 export const 결과라벨: Record<ItemStatus | 'ALL', string> = {
   ALL: '전체',
-  PASS: '통과',
-  FAIL: '실패',
-  NA: '미실행',
+  PASS: 'Pass',
+  FAIL: 'Fail',
+  NA: 'Not tested',
 };
 
 /** 이름·ID 로 찾는 칸. 「조건 초기화」는 거른 것이 있을 때만 나온다 (SPEC §8.1) */
@@ -130,8 +130,8 @@ export function 케이스줄({
             className="fix-tag"
             title={
               row.autoFix.issueKey === null
-                ? t('조작 실패 자동 수정 · {날짜} · 수정 후 다시 실행에서 통과', { 날짜: 월일(row.autoFix.at, 언어) })
-                : t('Issue Bunker {키} · {날짜} · 수정 후 다시 실행에서 통과', { 키: row.autoFix.issueKey, 날짜: 월일(row.autoFix.at, 언어) })
+                ? t('조작 실패 자동 수정 · {날짜} · 수정 후 다시 실행에서 Pass', { 날짜: 월일(row.autoFix.at, 언어) })
+                : t('Issue Bunker {키} · {날짜} · 수정 후 다시 실행에서 Pass', { 키: row.autoFix.issueKey, 날짜: 월일(row.autoFix.at, 언어) })
             }
           >
             {t('자동 수정')}

@@ -43,18 +43,18 @@ describe('가장 최근 측정', () => {
 
     const 열 = (이름: string) => within(표).getByText(이름).closest('tr')!;
     const 메인 = 열('메인');
-    expect(within(메인).getByText('통과').className).toContain('v-pass');
+    expect(within(메인).getByText('Pass').className).toContain('v-pass');
     expect(within(메인).getByText('2.2초')).toBeTruthy();
     expect(within(메인).getByText('0.02')).toBeTruthy();
 
     const 목록 = 열('상품 목록');
-    expect(within(목록).getByText('실패').className).toContain('v-fail');
+    expect(within(목록).getByText('Fail').className).toContain('v-fail');
     expect(within(목록).getByText('부하 중')).toBeTruthy();
     expect(within(목록).getByText('3.8초').className).toContain('perf-err');
     expect(within(목록).getByText('1.2초').className).not.toContain('perf-err');
 
     const 상세줄 = 열('상품 상세');
-    expect(within(상세줄).getByText('실패').className).toContain('v-fail');
+    expect(within(상세줄).getByText('Fail').className).toContain('v-fail');
     expect(within(상세줄).queryByText('부하 중')).toBeNull();
     expect(within(상세줄).getByText('2.9초').className).toContain('perf-err');
     expect(within(상세줄).getByText('0.18').className).toContain('perf-err');

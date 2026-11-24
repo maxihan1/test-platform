@@ -91,7 +91,7 @@ export function 쓰였나(결과: TrialResult, 받는번호: number, l: Scenario
   const r = 결과.parts.find((p) => p.seq === 받는번호);
   if (r === undefined || (r.status === 'NA' && r.error?.message === 'NOT_RUN')) return t('실행 안 함', 말);
   if (l.kind === 'bind') return t(l.param in (r.bound ?? {}) ? '쓰임' : '안 쓰임', 말);
-  if (r.status === 'PASS') return t('통과 · 쓰였는지는 결과에 남지 않습니다', 말);
+  if (r.status === 'PASS') return t('Pass · 쓰였는지는 결과에 남지 않습니다', 말);
   const 꼬리 = (r.error?.message ?? '').split('\n').find((줄) => 줄.startsWith(꼬리머리));
   if (꼬리 === undefined) return t('중단 · 쓰였는지는 결과에 남지 않습니다', 말);
   return t(꼬리.slice(꼬리머리.length).split(' · ').includes(`${꼬리이름[l.kind]} ${l.method} ${l.urlPattern}`) ? '안 쓰임' : '쓰임', 말);

@@ -111,7 +111,7 @@ export const 리포트스타일 = `<style>
 }
 </style>`;
 
-const 판정꼴: Record<string, string> = { 통과: 'c-pass', 실패: 'c-fail', 미달: 'c-fail', 미실행: 'c-na', '실행 안 함': 'c-na', 적용됨: 'c-na' };
+const 판정꼴: Record<string, string> = { Pass: 'c-pass', Fail: 'c-fail', 미달: 'c-fail', 'Not tested': 'c-na', '실행 안 함': 'c-na', 적용됨: 'c-na' };
 const 격자꼴: Record<string, string> = { [격자칸.OK]: 'g-ok', [격자칸.PENDING]: 'g-sus', [격자칸.CONFIRMED]: 'g-def', [격자칸.NOT_DEFECT]: 'g-faint', [격자칸.UNCHECKED]: 'g-faint', [빈글.기록없음]: 'g-faint' };
 
 // 판정 칸의 줄은 「<케이스> <판정>」 이거나 판정 하나다 — 판정 낱말만 색 칩으로 뗀다
@@ -125,8 +125,8 @@ function 판정줄(줄: string): string {
 }
 
 // 0 이 아닌 실패 · 미달 수는 빨간 굵은 글자로 — 결과 요약에서 먼저 눈에 걸려야 한다(시안 B).
-// 결과 칸 꼴(「통과 N · 실패 N」 · 「성능 목표 통과 N · 미달 N」)일 때만 건다 — 요구사항 문장 「실패 5회 시 잠금」이 판정처럼 칠해지면 안 된다
-const 수강조 = (글: string): string => 글.replace(/^((?:성능 목표 )?통과 \d+ · )(실패|미달) ([1-9]\d*)/, '$1<span class="t-fail">$2 $3</span>');
+// 결과 칸 꼴(「Pass N · Fail N」 · 「성능 목표 Pass N · 미달 N」)일 때만 건다 — 요구사항 문장 「실패 5회 시 잠금」이 판정처럼 칠해지면 안 된다
+const 수강조 = (글: string): string => 글.replace(/^((?:성능 목표 )?Pass \d+ · )(Fail|미달) ([1-9]\d*)/, '$1<span class="t-fail">$2 $3</span>');
 
 function 표(d: Extract<덩이, { 꼴: '표' }>): string[] {
   const 폭 = Math.max(d.머리.length, ...d.줄.map((z) => z.칸.length));
@@ -174,7 +174,7 @@ export function 덩이로(d: 덩이, 절꼴 = 'sec'): string[] {
       return [
         `<div class="flow">${d.단계
           // 판정을 색만으로 전하지 않는다 — 흑백으로 뽑아도 읽히게 알약마다 판정 글자를 단다 (DESIGN.md 원칙 5)
-          .map((s) => `<span class="st${s.판정 === '실패' ? ' f' : s.판정 === '통과' ? '' : ' n'}">${안전(s.글)} · ${안전(s.판정)}</span>`)
+          .map((s) => `<span class="st${s.판정 === 'Fail' ? ' f' : s.판정 === 'Pass' ? '' : ' n'}">${안전(s.글)} · ${안전(s.판정)}</span>`)
           .join('<span class="ar">→</span>')}</div>`,
       ];
   }

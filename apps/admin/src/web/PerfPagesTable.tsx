@@ -77,7 +77,7 @@ export function PerfPagesTable({ 줄들, 비교, 고른, on고름 }: { 줄들: P
                     ) : (
                       <>
                         <span className={줄.verdict === 'PASS' && !부하넘음 ? 'verdict v-pass' : 'verdict v-fail'}>
-                          {줄.verdict === 'PASS' && !부하넘음 ? t('통과') : t('실패')}
+                          {줄.verdict === 'PASS' && !부하넘음 ? t('Pass') : t('Fail')}
                         </span>
                         {부하넘음 ? <span className="perf-faint"> {t('부하 중')}</span> : null}
                       </>

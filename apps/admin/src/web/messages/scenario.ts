@@ -13,7 +13,7 @@ export const 시나리오말: Record<string, string> = {
   '수정 요청으로 변경': 'Turn into update request',
   '{칸} ← {번호}번 {메서드} {무늬} 응답의 {경로}': '{칸} ← {경로} of step {번호} {메서드} {무늬} response',
   '{메서드} {무늬} ← {번호}번': '{메서드} {무늬} ← step {번호}',
-  '모두 통과': 'All passed',
+  '모두 Pass': 'All Pass',
   '{번호}번에서 종료': 'Ended at step {번호}',
   '단계 {수}개': '{수} steps',
   '시나리오 이름으로 검색': 'Search by scenario name',

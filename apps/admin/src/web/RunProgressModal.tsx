@@ -42,9 +42,9 @@ function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void 
       </p>
       {/* 점수는 한 줄 알약 — 시험 결과 ④ 와 같다. 0 은 점선 회색이다 (시안 A ④ · 점검표 B18) */}
       <div className="rl-pills">
-        <셈알약 종류="pass" 이름={t말('통과')} 수={data.counts.pass} />
-        <셈알약 종류="fail" 이름={t말('실패')} 수={data.counts.fail} />
-        <셈알약 종류="na" 이름={t말('미실행')} 수={data.counts.na} />
+        <셈알약 종류="pass" 이름={t말('Pass')} 수={data.counts.pass} />
+        <셈알약 종류="fail" 이름={t말('Fail')} 수={data.counts.fail} />
+        <셈알약 종류="na" 이름={t말('Not tested')} 수={data.counts.na} />
       </div>
       {그중미확정글(data.counts, 언어) === '' ? null : <p className="hint">{그중미확정글(data.counts, 언어)}</p>}
       <RunDoneItems runId={data.runId} items={data.items} onClose={onClose} />

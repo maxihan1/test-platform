@@ -92,7 +92,7 @@ describe('실패다시실행', () => {
   it('버튼 글자에 중복을 뺀 실패 케이스 건수가 든다', () => {
     render(<실패다시실행 runId={20914} items={실패둘} env="qa" 된다 />);
 
-    expect(screen.getByRole('button', { name: '실패 2건 다시 실행' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Fail 2건 다시 실행' })).toBeTruthy();
   });
 
   it('실행 권한이 없으면(된다=false) 버튼이 없다', () => {
@@ -113,7 +113,7 @@ describe('실패다시실행', () => {
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     render(<실패다시실행 runId={20914} items={실패둘} env="stage" 된다 />);
 
-    fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 2건 다시 실행' }));
 
     expect(await screen.findByRole('dialog', { name: '케이스 2건 실행' })).toBeTruthy();
     expect(읽기.mock.calls.map(([id]) => id)).toEqual(['ZRS-001', 'ZRS-002']);
@@ -127,7 +127,7 @@ describe('실패다시실행', () => {
     const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
     const on걸었다 = vi.fn();
     render(<실패다시실행 runId={20914} items={실패둘} env="stage" 된다 on걸었다={on걸었다} />);
-    fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 2건 다시 실행' }));
     await screen.findByRole('dialog');
 
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
@@ -142,7 +142,7 @@ describe('실패다시실행', () => {
     vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     render(<실패다시실행 runId={20914} items={실패둘} env="qa" 된다 />);
-    fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 2건 다시 실행' }));
     await screen.findByRole('dialog');
 
     fireEvent.click(screen.getByRole('button', { name: '취소' }));
@@ -157,7 +157,7 @@ describe('실패다시실행', () => {
     const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
     const 일부만 = [항목('ZRS-001', 'PASS', 'desktop'), 항목('ZRS-001', 'FAIL', 'mobile'), 항목('ZRS-002', 'FAIL', 'desktop'), 항목('ZRS-002', 'FAIL', 'mobile')];
     render(<실패다시실행 runId={20914} items={일부만} env="stage" 된다 on걸었다={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 2건 다시 실행' }));
     await screen.findByRole('dialog');
 
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
@@ -177,7 +177,7 @@ describe('실패다시실행', () => {
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
     render(<실패다시실행 runId={20914} items={[항목('ZRS-001', 'FAIL', 'mobile')]} env="stage" 된다 on걸었다={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: '실패 1건 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 1건 다시 실행' }));
     await screen.findByRole('dialog');
 
     expect((screen.getByRole('radio', { name: '실제 디바이스' }) as HTMLInputElement).checked).toBe(true);
@@ -197,7 +197,7 @@ describe('실패다시실행', () => {
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     render(<실패다시실행 runId={20914} items={실패둘} env="qa" 시작="2026-09-21T00:00:00.000Z" 된다 />);
 
-    fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 2건 다시 실행' }));
 
     expect(await screen.findByText('실행 뒤에 저장값이 변경된 케이스 ZRS-001 — 실패 때와 다른 값으로 실행됩니다')).toBeTruthy();
   });

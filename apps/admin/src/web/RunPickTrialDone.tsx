@@ -63,9 +63,9 @@ export function 시험결과({ 시험, 케이스들, env, mobileOn }: { 시험: 
     <>
       <div className="trial-sum">
         {/* 0 은 점선 회색이다 — 앞 판은 큰 칸 셋이라 어둡게에서 실패 0 칸이 탁한 빨강으로 무거웠다 (점검표 B18) */}
-        <span className={수.통과 === 0 ? 'pill zero' : 'pill pass'}>{t('통과')} <b>{수.통과}</b></span>
-        <span className={수.실패 === 0 ? 'pill zero' : 'pill fail'}>{t('실패')} <b>{수.실패}</b></span>
-        <span className={수.안함 === 0 ? 'pill zero' : 'pill na'}>{t('미실행')} <b>{수.안함}</b></span>
+        <span className={수.통과 === 0 ? 'pill zero' : 'pill pass'}>{t('Pass')} <b>{수.통과}</b></span>
+        <span className={수.실패 === 0 ? 'pill zero' : 'pill fail'}>{t('Fail')} <b>{수.실패}</b></span>
+        <span className={수.안함 === 0 ? 'pill zero' : 'pill na'}>{t('Not tested')} <b>{수.안함}</b></span>
         <span className="r">{[...디바이스, env, t('총 {시간}', { 시간: 걸린글(총, 언어) })].join(' · ')}</span>
       </div>
       <ul className="trial-res">
@@ -92,7 +92,7 @@ export function 시험결과({ 시험, 케이스들, env, mobileOn }: { 시험: 
 
 function 판정({ 줄 }: { 줄: 시험줄 }) {
   const t = use말();
-  if (줄.종류 !== 'done') return <span className="verdict v-na">{t('미실행')}</span>;
+  if (줄.종류 !== 'done') return <span className="verdict v-na">{t('Not tested')}</span>;
   if (중단됐나(줄.결과)) return <span className="verdict v-na">{t('중단')}</span>;
   return <Verdict status={줄.결과.status} />;
 }
@@ -171,7 +171,7 @@ export function 결과바닥({ 시험, 케이스들, 정식, on실행, on닫기 
       </button>
       {실패.length === 0 ? null : (
         <button className="btn ghost" onClick={() => 시험.실패다시(실패.map((칸) => ({ tcId: 칸.케이스.tcId, platform: 칸.platform })))}>
-          {t('실패 {수}건 다시 시험', { 수: 실패.length })}
+          {t('Fail {수}건 다시 시험', { 수: 실패.length })}
         </button>
       )}
       {/* 같은 케이스 · 같은 값으로 정식 실행을 건다 — 시작 확인 창을 거친다 */}
