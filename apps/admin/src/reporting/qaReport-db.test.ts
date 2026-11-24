@@ -127,8 +127,8 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
     expect(s.kinds).toEqual(['FN', 'UI']);
     expect(s.overview).toMatchObject({ buildNo: '1.0:1', env: 'qa', runs: 2, running: 0, testsRepo: 'https://git.xqb.test/tests' });
     expect(s.results.functional).toEqual([
-      { kind: 'FN', result: { pass: 0, fail: 2, notRun: 1, unconfirmed: 0 } },
-      { kind: 'UI', result: { pass: 1, fail: 1, notRun: 0, unconfirmed: 0 } },
+      { kind: 'FN', result: { pass: 0, fail: 2, notRun: 1, blocked: 0, unconfirmed: 0 } },
+      { kind: 'UI', result: { pass: 1, fail: 1, notRun: 0, blocked: 0, unconfirmed: 0 } },
       { kind: 'E2E', result: null },
     ]);
     expect(s.results.nonFunctional).toEqual([
@@ -146,7 +146,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
     expect(s.plan.cases.find((c) => c.kind === 'FN')).toEqual({
       kind: 'FN', planned: 4, ran: 3,
       notIncluded: [{ tcId: 'XQB-FN-004', name: 'XQB-FN-004 이름' }],
-      notRun: [{ tcId: 'XQB-FN-003', name: 'XQB-FN-003', platform: 'desktop', cause: 'stopped' }],
+      notRun: [{ tcId: 'XQB-FN-003', name: 'XQB-FN-003', platform: 'desktop', cause: 'stopped', blockedBy: null }],
     });
     // 사람 판정(결함) · 원인 규칙(환경) · 미분류. 멈춰 안 돈 FN-003 과 안정화 오류는 실패 분류에 안 든다
     expect(s.failures.counts).toEqual({ PRODUCT: 1, TEST: 0, ENV: 1, UNCLASSIFIED: 1 });
@@ -171,7 +171,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
     // 승인한 뒤 버전 2 를 세우기 전에 끝난 정기 실행은 담지 않는다
     expect(v2!.run_ids.map(Number)).toEqual([실행.기능, 실행.정기UI]);
     expect(v2!.performers).toEqual(['xqb-a', 'xqb-c']);
-    expect(v2!.summary.results.functional[0]).toEqual({ kind: 'FN', result: { pass: 1, fail: 1, notRun: 1, unconfirmed: 0 } });
+    expect(v2!.summary.results.functional[0]).toEqual({ kind: 'FN', result: { pass: 1, fail: 1, notRun: 1, blocked: 0, unconfirmed: 0 } });
   });
 
   it('도는 실행은 담지 않고 수만 센다', async () => {
@@ -189,7 +189,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
     await 항목(준비실패, 'XQB-FN-002', 'NA', 'PREP_FAILED');
     expect(await QA리포트를다시만든다({ runId: 준비실패 })).toBe('고침');
     const v2 = (await 리포트(열쇠()))[1]!;
-    expect(v2.summary.results.functional[0]).toEqual({ kind: 'FN', result: { pass: 1, fail: 1, notRun: 1, unconfirmed: 0 } });
+    expect(v2.summary.results.functional[0]).toEqual({ kind: 'FN', result: { pass: 1, fail: 1, notRun: 1, blocked: 0, unconfirmed: 0 } });
   });
 
   it('같은 빌드 성능 실행도 묶음에 들고 목표 통과 · 미달을 센다', async () => {
@@ -249,13 +249,19 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
     expect((await 부르기('xqb-admin', `/api/qa-reports/${String(빈칸)}`)).statusCode).toBe(200);
   });
 
-  it('앞 케이스에 막힌 항목(Blocked)은 실패 분류에 안 들고 계획 대비 차이의 미실행 사유가 blocked 다', async () => {
+  it('앞 케이스에 막힌 항목(Blocked)은 실패 분류에 안 들고 미실행 안에서 따로 세며 계획 대비 차이의 미실행 사유에 막은 케이스 번호가 선다', async () => {
     const 하나 = await 실행만들기({ kind: 'FN', build: null, origin: 'MANUAL', by: 'xqb-a', 시작: '2026-11-13T10:00:00Z' });
     await 항목(하나, 'XQB-FN-001', 'FAIL', '확인 문장이 깨졌다');
     await 항목(하나, 'XQB-FN-002', 'NA', 'BLOCKED');
+    await 항목(하나, 'XQB-FN-003', 'NA', 'TIMEOUT');
+    await pool.query("UPDATE run_item SET blocked_by = 'XQB-FN-001' WHERE run_id = $1 AND tc_id = 'XQB-FN-002'", [하나]);
     expect(await QA리포트를다시만든다({ runId: 하나 })).toBe('새 버전');
     const [r] = await 리포트(`R:${하나}`);
-    expect(r!.summary.plan.cases.find((c) => c.kind === 'FN')!.notRun).toEqual([{ tcId: 'XQB-FN-002', name: 'XQB-FN-002', platform: 'desktop', cause: 'blocked' }]);
-    expect(r!.summary.failures.items.map((f) => f.tcId)).toEqual(['XQB-FN-001']);
+    expect(r!.summary.results.functional[0]).toEqual({ kind: 'FN', result: { pass: 0, fail: 1, notRun: 2, blocked: 1, unconfirmed: 0 } });
+    expect(r!.summary.plan.cases.find((c) => c.kind === 'FN')!.notRun).toEqual([
+      { tcId: 'XQB-FN-002', name: 'XQB-FN-002', platform: 'desktop', cause: 'blocked', blockedBy: 'XQB-FN-001' },
+      { tcId: 'XQB-FN-003', name: 'XQB-FN-003', platform: 'desktop', cause: 'timeout', blockedBy: null },
+    ]);
+    expect(r!.summary.failures.items.map((f) => f.tcId)).toEqual(['XQB-FN-001', 'XQB-FN-003']);
   });
 });

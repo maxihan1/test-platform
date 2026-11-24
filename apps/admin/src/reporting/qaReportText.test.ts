@@ -14,8 +14,8 @@ const 첫장재료 = (changes: 변경사항 | null): 첫장 => ({
   },
   results: {
     functional: [
-      { kind: 'FN', result: { pass: 3, fail: 1, notRun: 0, unconfirmed: 2 } },
-      { kind: 'UI', result: { pass: 1, fail: 0, notRun: 0, unconfirmed: 0 } },
+      { kind: 'FN', result: { pass: 3, fail: 1, notRun: 0, blocked: 0, unconfirmed: 2 } },
+      { kind: 'UI', result: { pass: 1, fail: 0, notRun: 0, blocked: 0, unconfirmed: 0 } },
       { kind: 'E2E', result: null },
     ],
     nonFunctional: [
@@ -86,6 +86,37 @@ describe('QA 리포트 첫 장 글', () => {
     expect(글).toContain('제목 기록 없음');
     expect(글).toContain('테스트 커밋 aaaaaaa → 기록 없음');
     expect(글).toContain('PRD 버전 3 → 4');
+  });
+
+  it('Blocked 는 Not tested 뒤 괄호로 세고 계획 대비 차이에 막은 케이스 번호를, 앞 흐름만 바뀐 케이스는 「선행 케이스 변경」으로 강조 없이 적는다', () => {
+    const 재료 = 첫장재료({
+      ...첫빌드,
+      tests: {
+        recorded: true, fromCommit: null, toCommit: null, added: [], removed: [], modified: [],
+        flowChanged: [{ tcId: 'DM-FN-012', name: '글자 수', reason: { kind: 'AUTHOR', requestId: 9, issueKey: null, prUrl: null } }],
+      },
+    });
+    재료.results.functional[0] = { kind: 'FN', result: { pass: 3, fail: 1, notRun: 3, blocked: 2, unconfirmed: 0 } };
+    재료.plan.cases[0]!.notRun = [
+      { tcId: 'DM-FN-012', name: '글자 수', platform: 'android', cause: 'blocked', blockedBy: 'DM-FN-011' },
+      { tcId: 'DM-FN-013', name: '게시', platform: 'android', cause: 'blocked', blockedBy: null },
+    ];
+    const 덩이들 = 첫장글(리포트(재료));
+    const 글 = 글들(덩이들);
+    expect(글).toContain('Pass 3 · Fail 1 · Not tested 3 (Blocked 2)');
+    expect(글).toContain('Not tested · Blocked 선행 케이스 DM-FN-011');
+    expect(글).toContain('Not tested · Blocked');
+    const 테스트표 = 덩이들.find((d) => d.꼴 === '표' && d.머리[0] === '구분' && d.머리[3] === '까닭');
+    expect(테스트표).toMatchObject({ 줄: [{ 칸: ['선행 케이스 변경', 'DM-FN-012 글자 수', '—', '테스트 작성 (작성 요청 #9)'] }] });
+    expect(테스트표?.꼴 === '표' ? 테스트표.줄[0]!.결 : '표 없음').toBeUndefined();
+  });
+
+  it('이 칸 전에 굳힌 리포트(blocked · flowChanged 없음)는 괄호 · 선행 케이스 변경 줄 없이 그대로다', () => {
+    const 재료 = 첫장재료({ ...첫빌드, tests: { recorded: true, fromCommit: null, toCommit: null, added: [], removed: [], modified: [] } });
+    재료.results.functional[0] = { kind: 'FN', result: JSON.parse('{"pass":1,"fail":0,"notRun":2,"unconfirmed":0}') };
+    const 글 = 글들(첫장글(리포트(재료)));
+    expect(글).toContain('Pass 1 · Fail 0 · Not tested 2');
+    expect(글).toContain('바뀐 케이스 없음');
   });
 
   it('미확정 · 판정이 필요한 실패 · 승인 상태를 적는다', () => {
