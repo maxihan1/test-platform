@@ -4,6 +4,7 @@
 import type { Platform } from '@platform/kit';
 import type { PoolClient } from 'pg';
 
+import type { 구간지문값 } from '../catalog/procedure.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 
 import { 항목제한ms } from './location.js';
@@ -84,9 +85,9 @@ const INSERT_EXEC = `
 const INSERT_ITEM = `
   INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status,
                         file_path, param_schema, expected_schema, timeout_ms, attempt, unconfirmed, tests_commit, case_sha256,
-                        exec_id, exec_seq, history_id, verify_statements)
+                        exec_id, exec_seq, history_id, verify_statements, seg_sha256, flow_sha256)
   VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13, $14, $15,
-          $16, $17, COALESCE($18::bigint, nextval('run_item_history_id_seq')), $19::text[])
+          $16, $17, COALESCE($18::bigint, nextval('run_item_history_id_seq')), $19::text[], $20, $21)
   RETURNING history_id`;
 
 /** 같이 도는 케이스 묶음 — 프로시저면 그 프로시저의 케이스들, 옛 꼴 케이스면 하나다. 펼친 목록은 프로시저 케이스가 붙어 있다 */
@@ -109,6 +110,8 @@ export interface 넣을것 {
   cases: Map<string, CaseRow>;
   커밋: string | null;
   지문들: Map<string, string | null>;
+  /** 프로시저 안 케이스만 — 자기 구간 · 앞 흐름 지문. 옛 꼴 케이스와 구간을 못 가른 파일은 없다 */
+  구간지문들: Map<string, 구간지문값>;
   /** 디바이스마다 같은 칸 — 주소 · 앱 · 엔진처럼 케이스와 상관없이 실행과 디바이스로 정해지는 것 */
   줄칸: (platform: Platform) => Pick<PendingItem, 'baseUrl'> & Partial<PendingItem>;
 }
@@ -158,6 +161,8 @@ export async function 실행단위를넣는다(client: 질의, 것: 넣을것): 
             k + 1,
             단위.번호 === null ? execId : null,
             spec.verify_statements,
+            것.구간지문들.get(item.tcId)?.seg ?? null,
+            것.구간지문들.get(item.tcId)?.flow ?? null,
           ]);
           items.push({
             historyId: Number(row.rows[0]!.history_id),

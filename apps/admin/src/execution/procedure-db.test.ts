@@ -1,7 +1,14 @@
 // 실행 만들기가 고른 케이스를 프로시저로 펼치고 실행 단위(run_exec) 줄을 케이스 줄과 같이 만드는지 본다 (도메인/실행 §3.2 「테스트 프로시저 실행」 · DATABASE_URL 이 있을 때만)
 
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import Fastify from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { 구간지문 } from '../catalog/procedure.js';
+import { 구간, 기본선언, 선언, 정상본문, 프로시저글 } from '../catalog/procedure-fixture.js';
 
 import { 스모크안통과 } from './buildRun.js';
 import executionRoutes from './routes.js';
@@ -21,6 +28,14 @@ const 연결 = process.env.DATABASE_URL;
 const 프로시저 = 'XPC-TP-001';
 const 케이스들 = ['XPC-FN-101', 'XPC-FN-102', 'XPC-UI-103', 'XPC-FN-104', 'XPC-FN-201', 'XPC-FN-301', 'XPCW-FN-001', 'XPCW-UI-001'];
 const 서비스들 = "(SELECT id FROM service WHERE prefix IN ('XPC', 'XPCW'))";
+
+// 프로시저 파일 — 케이스 넷(XPC-TP-001 의 활성 케이스 수)이고 테스트 폴더는 임시 폴더다
+const 프로시저파일글 = 프로시저글(정상본문 + 구간('넷째', '타임라인을 다시 연다'), {
+  선언들: 기본선언 + 선언('넷째', 'XQ-FN-104'),
+  cases: '[본문없음, 글자수초과, 게시확인, 넷째]',
+});
+let 테스트폴더 = '';
+const 옛테스트폴더 = process.env.PLATFORM_TESTS_DIR;
 
 const 돈다 = async (): Promise<boolean> => false;
 const 못돈다 = async (): Promise<boolean> => true;
@@ -80,6 +95,10 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     (await q<{ tc_id: string; verify_statements: string[] | null }>('SELECT tc_id, verify_statements FROM run_item WHERE run_id = $1 ORDER BY history_id', [runId])).rows;
 
   beforeAll(async () => {
+    테스트폴더 = await mkdtemp(join(tmpdir(), 'xpc-tests-'));
+    await mkdir(join(테스트폴더, 'xpc'));
+    await writeFile(join(테스트폴더, 'xpc/XPC-TP-001.spec.ts'), 프로시저파일글);
+    process.env.PLATFORM_TESTS_DIR = 테스트폴더;
     await 치운다();
     await q(
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind, procedure_mode)
@@ -106,6 +125,9 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
 
   afterAll(async () => {
     await 치운다();
+    if (옛테스트폴더 === undefined) delete process.env.PLATFORM_TESTS_DIR;
+    else process.env.PLATFORM_TESTS_DIR = 옛테스트폴더;
+    await rm(테스트폴더, { recursive: true, force: true });
     const { pool } = await import('../db/index.js');
     await pool.end();
   });
@@ -166,6 +188,27 @@ describe.skipIf(연결 === undefined)('실행 만들기 — 테스트 프로시�
     const 실행 = (await q<{ kind: string; title: string }>('SELECT kind, title FROM test_run WHERE run_id = $1', [runId])).rows[0]!;
     // -UI- 케이스가 섞여도 기능 하나다. 프로시저 하나를 돌리는 한 건이라 제목은 프로시저 번호 · 이름이다 (TP-F3-16)
     expect(실행).toEqual({ kind: 'FN', title: 'XPC-TP-001 글쓰기 — 입력 제한부터 게시까지' });
+  });
+
+  it('프로시저 안 케이스 줄은 파일 지문에 더해 자기 구간 · 앞 흐름 지문을 박제하고 옛 꼴 케이스 줄은 둘 다 비운다', async () => {
+    const { runId } = await createRun(요청([앱항목('XPC-FN-101'), 앱항목('XPC-FN-201')]), 돈다);
+    const 줄 = (
+      await q<{ tc_id: string; case_sha256: string | null; seg_sha256: string | null; flow_sha256: string | null }>(
+        'SELECT tc_id, case_sha256, seg_sha256, flow_sha256 FROM run_item WHERE run_id = $1 ORDER BY history_id',
+        [runId],
+      )
+    ).rows;
+    const 기대 = 구간지문(프로시저파일글)!;
+    expect(줄.map((r) => [r.tc_id, r.seg_sha256, r.flow_sha256])).toEqual([
+      ['XPC-FN-101', 기대[0]!.seg, 기대[0]!.flow],
+      ['XPC-FN-102', 기대[1]!.seg, 기대[1]!.flow],
+      ['XPC-UI-103', 기대[2]!.seg, 기대[2]!.flow],
+      ['XPC-FN-104', 기대[3]!.seg, 기대[3]!.flow],
+      ['XPC-FN-201', null, null],
+    ]);
+    // 파일 지문의 뜻은 그대로다 — 프로시저 안 케이스 넷이 같은 파일 지문을 갖는다
+    expect(new Set(줄.slice(0, 4).map((r) => r.case_sha256)).size).toBe(1);
+    expect(줄[0]!.case_sha256).not.toBeNull();
   });
 
   it('프로시저와 옛 꼴 케이스가 한 실행에 섞이고 반복은 프로시저를 통째로 그 횟수만큼 돌린다', async () => {
