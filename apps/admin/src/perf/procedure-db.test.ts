@@ -36,6 +36,28 @@ describe.skipIf(연결 === undefined)('기기 성능 — 테스트 프로시저'
     expect(r.json()).toEqual({ error: 'RUNNER_NO_PROCEDURE' });
   });
 
+  it('프로시저에서 빠진 케이스로는 측정을 만들지 않고, 만든 뒤 빠졌으면 돌 때 빼고 로그에 남긴다', async () => {
+    f.상태.프로시저 = true;
+    try {
+      const r = await f.측정({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQDP-FN-104'], repeat: 1 });
+      expect([r.statusCode, r.json()]).toEqual([400, { error: 'INVALID_REQUEST', detail: '테스트 프로시저에서 빠진 케이스입니다: XQDP-FN-104' }]);
+
+      const 전 = f.러너.호출들.length;
+      const runId = await f.만들기({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQDP-FN-103', 'XQDP-001'], repeat: 1 }, 0);
+      await f.판.pool.query(`UPDATE test_case SET is_active = false WHERE tc_id = 'XQDP-FN-103'`);
+      try {
+        expect(await f.끝날때까지(runId)).toMatchObject({ status: 'DONE' });
+      } finally {
+        await f.판.pool.query(`UPDATE test_case SET is_active = true WHERE tc_id = 'XQDP-FN-103'`);
+      }
+      expect(f.러너.호출들.slice(전).filter((h) => h.path === '/execute').map((h) => h.body.tcId)).toEqual(['XQDP-001']);
+      const 로그 = (await f.판.pool.query<{ message: string }>(`SELECT message FROM perf_event WHERE run_id = $1 AND level = 'WARN'`, [runId])).rows.map((x) => x.message);
+      expect(로그).toEqual(['XQDP-FN-103 는 테스트 프로시저에서 빠져 실행하지 않습니다']);
+    } finally {
+      f.상태.프로시저 = false;
+    }
+  });
+
   it('고른 차례대로 프로시저는 활성 케이스 전부를 회차마다 한 번 보내고, 막힌 케이스는 구간 없이 로그에 막은 케이스와 남긴다', async () => {
     f.상태.프로시저 = true;
     f.상태.판정 = { 'XQDP-FN-102': 'FAIL', 'XQDP-FN-103': 'BLOCKED' };

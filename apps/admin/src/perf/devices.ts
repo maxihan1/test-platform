@@ -134,8 +134,8 @@ async function 앱없는폰(팜: string, 패키지: string, serials: string[]): 
 async function 케이스검사(serviceId: number, caseIds: string[], 이름: string): Promise<string | null> {
   const 접두사 = (await (await 표.풀()).query<{ prefix: string }>('SELECT prefix FROM service WHERE id = $1', [serviceId])).rows[0]?.prefix;
   if (접두사 === undefined) return '애플리케이션이 없습니다';
-  const r = await (await 표.풀()).query<{ tc_id: string; platforms: string[] }>(
-    `SELECT tc_id, platforms FROM test_case WHERE tc_id = ANY($1::text[]) AND split_part(tc_id, '-', 1) = $2`,
+  const r = await (await 표.풀()).query<{ tc_id: string; platforms: string[]; dropped: boolean }>(
+    `SELECT tc_id, platforms, proc_id IS NOT NULL AND NOT is_active AS dropped FROM test_case WHERE tc_id = ANY($1::text[]) AND split_part(tc_id, '-', 1) = $2`,
     [caseIds, 접두사],
   );
   const 행 = new Map(r.rows.map((x) => [x.tc_id, x]));
@@ -144,6 +144,8 @@ async function 케이스검사(serviceId: number, caseIds: string[], 이름: str
     if (게임시나리오인가(id)) return `게임 시나리오는 기기 성능에 쓰지 않습니다: ${id}`;
     if (x === undefined) return `이 애플리케이션의 케이스가 아닙니다: ${id}`;
     if (!x.platforms.includes('android')) return `${이름} 케이스가 아닙니다: ${id}`;
+    // 프로시저에서 빠져 내려간 케이스는 같이 돌 수도 혼자 돌 수도 없다 (실행 §3.2 「반영」)
+    if (x.dropped) return `테스트 프로시저에서 빠진 케이스입니다: ${id}`;
   }
   return null;
 }

@@ -22,6 +22,16 @@ describe('새답풀기', () => {
     expect(알릴말('S23', 2, 답)).toEqual(['S23 2회차 A 가 NA 로 끝났습니다 — 러너에 닿지 못했습니다', 'S23 2회차 B 가 NA 로 끝났습니다 — 러너에 닿지 못했습니다']);
   });
 
+  it('끊긴 프로시저는 남은 케이스에 실린 사유를 다시 적지 않고, 결과마다 겹친 절차는 하나만 남긴다', () => {
+    const error = { message: 'killed' };
+    const 답 = 새답풀기({ historyId: 1, durationMs: 100, error, results: [
+      { tcId: 'A', status: 'PASS', durationMs: 100, steps: [절차(1)] },
+      { tcId: 'B', status: 'NA', durationMs: 0, steps: [절차(1)], error },
+    ] });
+    expect(답.steps.map((x) => x.tcId)).toEqual(['A']);
+    expect(알릴말('S23', 1, 답)).toEqual(['S23 1회차 B 가 NA 로 끝났습니다 — killed']);
+  });
+
   it('판정이 다 난 뒤 프로세스가 실패로 끝났으면 그 사유를 한 줄 더 적는다', () => {
     const 답 = 새답풀기({ historyId: 1, durationMs: 100, error: { message: 'exit 1' }, results: [{ tcId: 'A', status: 'PASS', durationMs: 100, steps: [절차(1)] }] });
     expect(알릴말('S23', 1, 답)).toEqual(['S23 1회차 테스트 프로시저 실행 오류 — exit 1']);

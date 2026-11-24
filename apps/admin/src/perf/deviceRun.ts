@@ -4,13 +4,13 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
+import type { CasesExecuteRequest, ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
 import { type 대상줄, 대상줄읽기 } from '../authoring/reverse.js';
 import { 엔진칸 } from '../execution/engineField.js';
 import { artifactsDir } from '../execution/routes.js';
 import { abortRunner, httpTimeoutMs, 러너에보낸다 } from '../execution/runner.js';
-import { 케이스들을보낸다 } from '../execution/runnerCases.js';
+import { 못간답, 케이스들을보낸다 } from '../execution/runnerCases.js';
 import { type 도는단위, type 단위답, 단위로펼친다, 새답풀기, 알릴말, 옛답풀기 } from './deviceProc.js';
 import { type 기록기, 로컬기록기, 팜기록기 } from './deviceRecorder.js';
 import { 구간붙이기, 줄넣기, 실행시간채우기, type 구간표시 } from './deviceStore.js';
@@ -103,7 +103,10 @@ export function 기기실행시작(run: 표.실행행, onEnd: 도는기기['onEn
 async function 조작재료읽기(run: 표.실행행, cfg: DeviceRunConfig): Promise<조작재료> {
   const 줄 = await 대상줄읽기(run.serviceId, run.env);
   if (줄 === null || 줄.appPath === null) throw new Error('대상 서버 줄이나 앱 파일이 없어졌습니다');
-  return { 줄, 단위들: await 단위로펼친다(await 표.풀(), cfg.caseIds, 줄.계정들) };
+  const { 단위들, 뺀 } = await 단위로펼친다(await 표.풀(), cfg.caseIds, 줄.계정들);
+  for (const id of 뺀) await 표.로그(run.id, `${id} 는 테스트 프로시저에서 빠져 실행하지 않습니다`, 'WARN');
+  if (단위들.length === 0) throw new Error('고른 케이스가 모두 테스트 프로시저에서 빠져 돌릴 케이스가 없습니다');
+  return { 줄, 단위들 };
 }
 
 async function 시작하기(run: 표.실행행, s: 도는기기): Promise<void> {
@@ -212,6 +215,12 @@ async function 케이스하나보내기(요청: ExecuteRequest): Promise<단위�
   }
 }
 
+/** 만들 때 /health 를 못 읽어 지나친 옛 러너는 옛 꼴로 답한다 — 케이스마다 Not tested 로 접는다 */
+async function 프로시저보내기(요청: CasesExecuteRequest): Promise<단위답> {
+  const 답 = await 케이스들을보낸다(요청);
+  return 새답풀기(Array.isArray(답.results) ? 답 : 못간답(요청, '서버 테스트 실행기가 테스트 프로시저를 실행하지 못하는 버전입니다'));
+}
+
 /** 옛 꼴 케이스는 하나씩, 테스트 프로시저는 케이스 전부를 요청 하나로 보낸다 (§3.9 「기기 성능」 「프로시저 안 케이스를 고르면 그 프로시저가 통째로 돈다」) */
 async function 단위보내기(s: 도는기기, d: 기기상태, loop: number, u: 도는단위, { 줄 }: 조작재료): Promise<void> {
   const historyId = Date.now() * 100 + (보낸수++ % 100);
@@ -227,10 +236,10 @@ async function 단위보내기(s: 도는기기, d: 기기상태, loop: number, u
   let 답: 단위답;
   try {
     const c = u.케이스들[0]!;
-    // 프로시저 한도는 케이스 한도의 합이다 — kit 이 케이스마다 한도를 다시 걸어 합보다 짧으면 러너가 먼저 끊는다
+    // 프로시저 한도는 케이스 한도의 합이다 — 러너 한도가 kit 이 케이스마다 거는 한도의 합보다 짧으면 러너가 먼저 끊어 kit 정리가 안 돈다 (러너 §5.2 「케이스별 한도」)
     답 = u.procId === null
       ? await 케이스하나보내기({ ...공통, tcId: c.tcId, params: c.params, expected: c.expected, timeoutMs: 케이스제한ms })
-      : 새답풀기(await 케이스들을보낸다({ ...공통, procId: u.procId, cases: u.케이스들.map(({ tcId, params, expected }) => ({ tcId, params, expected })), timeoutMs: 케이스제한ms * u.케이스들.length }));
+      : await 프로시저보내기({ ...공통, procId: u.procId, cases: u.케이스들.map(({ tcId, params, expected }) => ({ tcId, params, expected })), timeoutMs: 케이스제한ms * u.케이스들.length });
   } finally {
     s.보낸것.delete(historyId);
     await rm(join(artifactsDir(), 'runs', '0', String(historyId)), { recursive: true, force: true }).catch(() => undefined);
