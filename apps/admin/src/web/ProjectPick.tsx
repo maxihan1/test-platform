@@ -104,7 +104,7 @@ export function ProjectPick({ user, 마지막, onPick, onLogout }: Props) {
         <section className="pp-others" aria-label={최근 === undefined ? t('프로젝트') : t('다른 프로젝트')}>
           <div className="pp-others-h">
             <h2 className="pp-h2">
-              {최근 === undefined ? t('프로젝트') : t('다른 프로젝트')} <span className="pp-count">{나머지.length}</span>
+              {최근 === undefined ? t('프로젝트') : t('다른 프로젝트')} <span className="pp-count">{보일것.length}</span>
             </h2>
             {나머지.length > 검색다는수 ? (
               <label className="pp-search">

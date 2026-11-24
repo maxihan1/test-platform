@@ -13,6 +13,7 @@ import './authoringList.css';
 import './decide.css';
 import './noticeBar.css';
 import './projectPick.css';
+import './projectPickCards.css';
 import './wizard.css';
 import './scenarioWizard.css';
 import './scenarioWizardEnd.css';

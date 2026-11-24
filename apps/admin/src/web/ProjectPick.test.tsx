@@ -112,8 +112,10 @@ describe('프로젝트 고르기 화면', () => {
     expect(고름).toHaveBeenCalledWith('DEMOA');
   });
 
-  it('다른 프로젝트가 적으면 검색 칸을 달지 않는다', () => {
+  it('다른 프로젝트가 여섯이면 아직 검색 칸을 달지 않는다', () => {
     그린다(null, () => {}, () => {}, 여럿인사람(5));
+
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('프로젝트 6');
 
     expect(screen.queryByRole('searchbox')).toBeNull();
   });
@@ -124,6 +126,7 @@ describe('프로젝트 고르기 화면', () => {
     const 검색 = screen.getByRole('searchbox', { name: '프로젝트 · 애플리케이션 이름 검색' });
     fireEvent.change(검색, { target: { value: '사내' } });
     expect(screen.getAllByRole('button', { name: /사내 포털|프로젝트 \d/ }).map((카드) => 카드.textContent)).toEqual([expect.stringContaining('사내 포털')]);
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('프로젝트 1');
 
     fireEvent.change(검색, { target: { value: '앱 3' } });
     expect(screen.getByRole('button', { name: /프로젝트 3/ })).toBeTruthy();
