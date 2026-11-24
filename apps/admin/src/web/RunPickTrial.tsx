@@ -81,8 +81,12 @@ export function use여러건시험(옵션: {
           케이스들.flatMap((c) => {
             const 디바이스 = 실패.filter((칸) => 칸.tcId === c.tcId).map((칸) => 칸.platform);
             if (디바이스.length > 0) return [{ ...c, platforms: 디바이스 }];
-            // 같은 프로시저는 통째로 다시 도니 안 실패한 줄도 따라오는 줄로 넣어 새 결과로 채운다
-            return c.procId != null && 실패프로시저.has(c.procId) ? [{ ...c, 자동포함: true }] : [];
+            // 같은 프로시저는 통째로 다시 도니 안 실패한 줄도 따라오는 줄로 넣어 새 결과로 채운다.
+            // 디바이스는 그 프로시저에서 실패한 것만이다 — 선언대로 두면 아무것도 안 깨진 디바이스에서도 프로시저가 다시 돈다
+            if (c.procId == null || !실패프로시저.has(c.procId)) return [];
+            const 깨진디바이스 = 실패.filter((칸) => 케이스들.find((o) => o.tcId === 칸.tcId)?.procId === c.procId).map((칸) => 칸.platform);
+            const 돌 = c.platforms.filter((p) => 깨진디바이스.includes(p));
+            return 돌.length === 0 ? [] : [{ ...c, platforms: 돌, 자동포함: true }];
           }),
           고친값,
         ),

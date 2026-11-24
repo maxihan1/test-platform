@@ -1,5 +1,7 @@
 // 실행 결과 본문 — 요약 한 줄 → 실행 차례 표. 도는 동안에도 같은 표이고 요약 자리에 진행 띠와 판정 칩이 선다. 늘 한 단이다 (도메인/실행 §8.3)
 
+import { useRef } from 'react';
+
 import type { api, ItemStatus, Platform, RunInsights as 비교 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 통과알림목록 } from './RunInsights.js';
@@ -93,6 +95,9 @@ export function 결과본문(props: Props) {
   const { data, running, insights, 판정하기, 견줌오류, 칸안, 보기, 바꾸기, 열카드 } = props;
   const { 판정 } = 보기;
   const t = use말();
+  // 주소로 온 줄로 화면을 옮기는 것은 한 번이다 — 디바이스 칩을 바꾸면 표가 새로 서는데 그때마다 그 줄로 되돌아가면 안 된다. 다른 고리로 다시 오면(값이 바뀌면) 다시 옮긴다
+  const 맞출 = useRef({ 받은: 열카드, 남은: 열카드 });
+  if (맞출.current.받은 !== 열카드) 맞출.current = { 받은: 열카드, 남은: 열카드 };
   // 주소로 온 직전 대비 거르개는 풀 단추가 있을 때만 건다 — 직전 실행이 없거나 그 건수가 0이면 단추가 없거나 꺼져 줄이 다 사라진 채 풀 길이 없다
   const 변화 = 보기.변화 !== null && insights !== null && insights.previous !== null && 칸수(insights, 보기.변화) > 0 ? 보기.변화 : null;
   const on판정 = (값: ItemStatus | 'ALL') => 바꾸기(판정고른보기(값));
@@ -162,7 +167,10 @@ export function 결과본문(props: Props) {
         insights={변화 === null ? null : insights}
         보기={{ ...보기, 변화 }}
         바꾸기={바꾸기}
-        열카드={열카드}
+        열카드={맞출.current.남은}
+        on맞춤={() => {
+          맞출.current.남은 = undefined;
+        }}
       />
     </>
   );

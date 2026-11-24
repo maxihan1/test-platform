@@ -151,6 +151,19 @@ describe('Pass · Not tested 줄을 펼친다', () => {
   });
 });
 
+describe('부모가 펼친 줄', () => {
+  it('누르지 않고 열림만 참으로 바뀌어도 항목 상세를 한 번 받는다', async () => {
+    const 읽기 = vi.spyOn(api, 'item').mockResolvedValue(상세(1, 'android', { precondition: ['로그인된 상태'] }));
+    const { 부모가열기 } = 흐름그리기([항목(1, 'A', 'android', 'PASS')]);
+    expect(읽기).not.toHaveBeenCalled();
+
+    부모가열기('A');
+
+    expect(await within(줄안('A')).findByText('로그인된 상태')).toBeTruthy();
+    expect(읽기).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('다시 실행한 줄', () => {
   const 한건번호 = 6001;
   const 덮음: 다시실행 = { runId: 한건번호, finishedAt: '2026-10-30T01:00:00.000Z', triggeredBy: '김실행', original: { historyId: 3, status: 'FAIL', finishedAt: '2026-10-29T01:00:00.000Z' } };
@@ -190,6 +203,14 @@ describe('주소로 온 줄 (`&tc=`)', () => {
     expect(옮김).toHaveBeenCalledTimes(1);
     expect(줄안('B').querySelector('.rf-line')?.getAttribute('aria-expanded')).toBe('true');
     expect(줄안('A').querySelector('.rf-line')?.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('맞추기 줄은 화면을 그 줄로 옮긴 뒤에 on맞춤을 한 번 부른다', () => {
+    const 순서: string[] = [];
+    Element.prototype.scrollIntoView = () => 순서.push('옮김');
+    흐름그리기([항목(1, 'A', 'android', 'PASS'), 항목(2, 'B', 'android', 'PASS')], { 열카드: 'B', on맞춤: () => 순서.push('on맞춤') });
+
+    expect(순서).toEqual(['옮김', 'on맞춤']);
   });
 
   it('그 줄이 다른 쪽에 있으면 그 쪽으로 가서 보여 준다 — 처음 한 번만', () => {

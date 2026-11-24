@@ -132,6 +132,18 @@ describe.skipIf(연결 === undefined)('실패 항목의 유형과 한 줄', () =
     expect(줄들.get('XFY-005desktop')).toEqual({ type: 'mismatch', reason: '덮은 뒤의 확인' });
   });
 
+  it('도는 실행은 Fail 줄에도 이유를 싣지 않고 끝나면 다시 싣는다 — 화면이 2초마다 읽는 통로라 줄마다 절차를 읽지 않는다', async () => {
+    const 이유 = async () => new Map((await findRun(실행))!.items.map((i) => [i.tcId + i.platform, i.failure]));
+    await pool.query("UPDATE test_run SET status = 'RUNNING' WHERE run_id = $1", [실행]);
+    try {
+      expect((await 이유()).get('XFY-001desktop')).toBeNull();
+    } finally {
+      await pool.query("UPDATE test_run SET status = 'FINISHED' WHERE run_id = $1", [실행]);
+    }
+
+    expect((await 이유()).get('XFY-001desktop')).toEqual({ type: 'mismatch', reason: '주문 수가 늘어난다' });
+  });
+
   it('실패 케이스를 첫 실패 디바이스 · 처음 실패한 회차의 유형 하나로 묶는다', async () => {
     expect((await compareWithPrevious(실행)).실패유형들).toEqual([
       { type: 'mismatch', count: 1, tcIds: ['XFY-001'] },

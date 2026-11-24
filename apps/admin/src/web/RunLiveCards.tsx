@@ -53,7 +53,11 @@ export function 짧은단계글(절차: 항목진행 | null, t: 말): string | n
  */
 export function 제한경과글(절차: 항목진행 | null, 언어: 언어, t: 말, 프로시저 = false): string | null {
   // 프로시저는 케이스마다 시계가 0초에서 다시 시작한다 — 실제로 끊기는 한도가 케이스마다라서다 (도메인/러너 §5.2 「케이스별 한도」)
-  if (절차?.caseElapsedMs !== undefined) return t('케이스 {경과} / 제한 {제한}', { 경과: 시간글자(절차.caseElapsedMs, 언어), 제한: 시간글자(절차.timeoutMs, 언어) });
+  // 한도가 0 이면 한도 없음이다 — 「제한 0초」로 적으면 이미 넘긴 것처럼 읽힌다
+  if (절차?.caseElapsedMs !== undefined) {
+    const 케이스경과 = 시간글자(절차.caseElapsedMs, 언어);
+    return 절차.timeoutMs > 0 ? t('케이스 {경과} / 제한 {제한}', { 경과: 케이스경과, 제한: 시간글자(절차.timeoutMs, 언어) }) : 케이스경과;
+  }
   const 경과 = 절차?.itemElapsedMs ?? 절차?.elapsedMs;
   if (절차 === null || 경과 === undefined) return null;
   // 케이스 경과를 안 주는 옛 서버 테스트 실행기다 — 프로시저 전체 경과를 케이스 한도와 짝지으면 경과가 제한을 넘어 보여 경과만 둔다

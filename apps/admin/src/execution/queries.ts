@@ -176,8 +176,10 @@ export async function findRun(
     [runId],
   );
   // 프로시저 줄의 사유 글은 그 실행 단위의 모든 케이스 비밀값으로 가린다 — 가릴 글이 있는 줄(사유가 있거나 Fail 이유를 싣는 줄)만 읽는다 (공통/4 「테스트 프로시저 표」)
-  const 비밀들 = await 단위비밀들([...new Set(items.rows.filter((r) => r.proc_id !== null && (r.error !== null || 이유줄인가(r))).map((r) => Number(r.exec_id)))]);
-  const 이유 = await 실패이유들(pool, items.rows, 비밀들);
+  // 이유는 실행이 끝난 뒤에만 싣는다 — 도는 실행은 화면이 2초마다 다시 읽는데 그때마다 Fail 줄의 절차를 다 읽으면 실패가 쌓일수록 무거워진다(실행 하나가 5000줄까지다)
+  const 끝났나 = row.status !== 'RUNNING';
+  const 비밀들 = await 단위비밀들([...new Set(items.rows.filter((r) => r.proc_id !== null && (r.error !== null || (끝났나 && 이유줄인가(r)))).map((r) => Number(r.exec_id)))]);
+  const 이유 = await 실패이유들(pool, 끝났나 ? items.rows : [], 비밀들);
   // 둘 다 못 읽은 폰은 뺀다 — 견줄 것이 없다. 빌드 번호가 없는 실행은 견줄 상대가 없어 읽지 않는다(도는 동안 화면이 이 통로를 거듭 부른다)
   const 깔린 =
     row.build_no === null

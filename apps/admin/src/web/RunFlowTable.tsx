@@ -39,6 +39,7 @@ export function 흐름표({
   바꾸기,
   insights,
   열카드,
+  on맞춤,
   ...바깥
 }: 줄바깥 & {
   보기: 결과보기;
@@ -47,6 +48,7 @@ export function 흐름표({
   insights: RunInsights | null;
   /** 다른 화면의 고리로 온 케이스 — 그 줄이 선 쪽을 열고 화면을 그 줄로 옮긴다 (`&tc=`) */
   열카드?: string;
+  on맞춤?: () => void;
 }) {
   const t = use말();
   const { columns } = 바깥;
@@ -95,6 +97,7 @@ export function 흐름표({
                 열림={보기.열린.includes(g.tcId)}
                 on펼침={(열림) => 바꾸기((앞) => 펼침바꾼보기(앞, g.tcId, 열림))}
                 맞추기={g.tcId === 열카드}
+                on맞춤={on맞춤}
                 {...바깥}
               />
             ))}

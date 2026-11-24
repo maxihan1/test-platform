@@ -1,7 +1,7 @@
 // 실행 차례 표(`흐름표`) 검사들이 나눠 쓰는 도우미 — 항목 줄 만들기와 보기 상태를 든 채 그리기
 
 import { useState } from 'react';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 
 import type { ItemStatus, Platform, RunInsights, RunItemSummary } from './api.js';
 import { 줄 } from './RunFailCard.fixture.js';
@@ -29,16 +29,18 @@ interface 옵션 {
   자동수정?: string[];
   다시돌림?: ReadonlyMap<string, 다시돌린결과>;
   열카드?: string;
+  on맞춤?: () => void;
   처음?: Partial<결과보기>;
   insights?: RunInsights | null;
 }
 
 /** 보기 상태를 안에 들고 그린다 — 줄을 누르면 펼침이 보기에 쌓이고 `마지막보기()` 로 읽는다 */
 export function 흐름그리기(items: RunItemSummary[], 옵션: 옵션 = {}) {
-  const 본 = { 보기: 처음보기 };
+  const 본 = { 보기: 처음보기, 열기: (_tcId: string) => {} };
   function 틀() {
     const [보기, set보기] = useState<결과보기>({ ...처음보기, ...옵션.처음 });
     본.보기 = 보기;
+    본.열기 = (tcId) => set보기((앞) => ({ ...앞, 열린: [...앞.열린, tcId] }));
     return (
       <흐름표
         runId={5011}
@@ -54,10 +56,11 @@ export function 흐름그리기(items: RunItemSummary[], 옵션: 옵션 = {}) {
         보기={보기}
         바꾸기={(바꿀) => set보기((앞) => 바꾼보기(앞, 바꿀))}
         열카드={옵션.열카드}
+        on맞춤={옵션.on맞춤}
       />
     );
   }
-  return { ...render(<틀 />), 마지막보기: () => 본.보기 };
+  return { ...render(<틀 />), 마지막보기: () => 본.보기, 부모가열기: (tcId: string) => act(() => 본.열기(tcId)) };
 }
 
 export const 줄들 = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>('.rf-row')];

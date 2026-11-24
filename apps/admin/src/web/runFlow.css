@@ -293,6 +293,12 @@
   margin-left: 8px;
 }
 
+/* 자동 수정으로 통과한 줄의 고치기 전 실패 이유 — 지운 것이 아니라 고치기 전 기록이라 흐리게 줄만 긋는다 (도메인/BTS §8.15 「자동 수정 표시」 B) */
+.rf-row.fc-fixed .rf-why.f {
+  text-decoration: line-through;
+  color: var(--ink-muted);
+}
+
 /* 고리가 든 꼬리표는 단추 밖에 선다 — 이름 칸과 왼쪽을 맞춘다 */
 .rf-tags {
   padding: 0 14px 6px 168px;

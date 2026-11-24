@@ -70,7 +70,15 @@ function 결과칸({ 칸, 이름 }: { 칸: RunItemSummary[] | undefined; 이름:
   );
 }
 
-export function 케이스줄({ g, seq, 열림, on펼침, 맞추기 = false, ...바깥 }: 줄바깥 & { g: CaseGroup; seq: number | null; 열림: boolean; on펼침: (열림: boolean) => void; 맞추기?: boolean }) {
+export function 케이스줄({
+  g,
+  seq,
+  열림,
+  on펼침,
+  맞추기 = false,
+  on맞춤,
+  ...바깥
+}: 줄바깥 & { g: CaseGroup; seq: number | null; 열림: boolean; on펼침: (열림: boolean) => void; 맞추기?: boolean; /** 화면을 이 줄로 옮긴 뒤 불린다 — 표가 다시 서도 또 옮기지 않게 */ on맞춤?: () => void }) {
   const t = use말();
   const 언어 = use언어();
   const 막힘사유글 = use막힘사유글();
@@ -81,10 +89,14 @@ export function 케이스줄({ g, seq, 열림, on펼침, 맞추기 = false, ...�
   const 고쳐짐 = 자동수정.includes(g.tcId);
   // 접어도 지우지 않고 가려 둔다 — 다시 펴도 상세를 다시 부르지 않는다
   const [불렀나, set불렀나] = useState(열림);
+  // 누르지 않고 펼쳐진 줄(주소의 `open=` · 보기 복원)도 본문을 불러야 한다 — 누를 때만 부르면 펼쳐진 채 빈 자리가 선다
+  if (열림 && !불렀나) set불렀나(true);
   const 줄 = useRef<HTMLDivElement>(null);
   // 다른 화면의 고리(`&tc=`)로 온 줄은 설 때 한 번 화면을 그 줄로 옮긴다
   useEffect(() => {
-    if (맞추기) 줄.current?.scrollIntoView?.({ block: 'start' });
+    if (!맞추기) return;
+    줄.current?.scrollIntoView?.({ block: 'start' });
+    on맞춤?.();
   }, []);
 
   const 입력줄 = 한줄로((깨진 ?? 것[0])?.params, (깨진 ?? 것[0])?.paramSchema, 언어);
@@ -104,10 +116,7 @@ export function 케이스줄({ g, seq, 열림, on펼침, 맞추기 = false, ...�
         className="rf-line"
         aria-expanded={열림}
         aria-controls={패널}
-        onClick={() => {
-          set불렀나(true);
-          on펼침(!열림);
-        }}
+        onClick={() => on펼침(!열림)}
       >
         <span className="rf-seq num">{seq ?? ''}</span>
         <span className="mono rf-id">{g.tcId}</span>

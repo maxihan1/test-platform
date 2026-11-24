@@ -60,6 +60,12 @@ describe('경과와 제한', () => {
     expect(카드.querySelector('.lim')?.textContent).toBe('케이스 15초 / 제한 2분');
   });
 
+  it('케이스 경과가 있어도 한도가 0이면 「제한 0초」를 적지 않고 경과만 적는다', async () => {
+    const 카드 = await 그린다([절차(3, { live: true, caseElapsedMs: 15000, itemElapsedMs: 95000, timeoutMs: 0 })]);
+
+    expect(카드.querySelector('.lim')?.textContent).toBe('15초');
+  });
+
   it('프로시저인데 케이스 경과가 없으면(옛 테스트 실행기) 제한 없이 경과만 적는다', async () => {
     const 카드 = await 그린다([절차(3, { live: true, itemElapsedMs: 95000, timeoutMs: 120000 })]);
 

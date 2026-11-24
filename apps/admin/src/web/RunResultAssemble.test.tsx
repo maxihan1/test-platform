@@ -204,6 +204,29 @@ describe('판정 칩과 디바이스 칩은 같은 표를 거른다', () => {
   });
 });
 
+describe('주소의 케이스(`&tc=`)로 화면을 옮기는 것은 한 번이다', () => {
+  afterEach(() => {
+    Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
+  });
+
+  it('디바이스 칩을 바꿔 표가 새로 서도 그 줄로 다시 옮기지 않는다', async () => {
+    const 옮김 = vi.fn();
+    Element.prototype.scrollIntoView = 옮김;
+    vi.spyOn(api, 'run').mockResolvedValue(끝난실행(섞인항목));
+    vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
+    vi.spyOn(api, 'failures').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 5 });
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 열카드="ZRR-001" />);
+    await screen.findByText('이름-ZRR-001');
+    expect(옮김).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(screen.getByRole('group', { name: '디바이스 필터' })).getByRole('button', { name: '모바일' }));
+    fireEvent.click(within(screen.getByRole('group', { name: '디바이스 필터' })).getByRole('button', { name: 'PC' }));
+
+    expect(줄번호들()).toContain('ZRR-001');
+    expect(옮김).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('실행이 바뀌는 때', () => {
   it('도는 동안은 견주기를 안 부르고 끝난 뒤에 부른다 — 카드 통로는 줄을 펼칠 때만이다', async () => {
     vi.useFakeTimers();
