@@ -65,6 +65,11 @@ export interface CaseRow {
   smokeSet?: boolean | null;
   /** 가장 늦은 테스트 수정 줄 — state 가 PASSED 일 때만 「자동 수정」 표시. BTS 를 안 이었으면 null · 이 칸 전 가짜 응답은 없다 (도메인/BTS §7) */
   autoFix?: 자동수정줄 | null;
+  /** 테스트 프로시저 — 그 케이스가 든 프로시저 번호 · 안 차례(1부터) · 이름 · 그 프로시저의 활성 케이스 수. 옛 꼴 케이스는 넷 다 null 이고 비활성 케이스는 procCount 만 null 이다. 이 칸 전 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/카탈로그 §7) */
+  procId?: string | null;
+  procSeq?: number | null;
+  procName?: string | null;
+  procCount?: number | null;
 }
 
 // FLAKY 는 게임 실패 자동 수정의 「다시 돌리니 통과」 — 고칠 곳이 없어 고치지 않고 끝났다 (도메인/게임 §3.10 「실패 자동 수정」 3)
@@ -181,6 +186,9 @@ export interface LastResult {
   finishedAt: string;
   /** 최근 판정, 새 것부터. 맨 앞은 늘 위 `status` 와 같다 — 줄의 흐름 막대가 읽는다 (SPEC §8.1) */
   recent: ItemStatus[];
+  /** Blocked — 판정값은 미실행(NA) 그대로이고 사유만 다르다. blockedBy 는 막은 케이스 번호인데 드물게 번호 없이 Blocked 인 줄이 있어 blocked 로 가른다. 이 칸 전 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/실행 §7) */
+  blockedBy?: string | null;
+  blocked?: boolean;
 }
 
 export interface RunSummary {
@@ -604,6 +612,9 @@ export interface HistoryRow {
   rerunOf?: number | null;
   /** 테스트 수정 바퀴가 수정 뒤 다시 돌린 실행이면 true — 「수정 후」 표시 (도메인/BTS §8.15 「자동 수정 표시」 A) */
   afterFix?: boolean;
+  /** Blocked 줄 — LastResult 와 같은 뜻이다 (도메인/실행 §7) */
+  blockedBy?: string | null;
+  blocked?: boolean;
 }
 
 export interface ParamSetRow {

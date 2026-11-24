@@ -6,7 +6,7 @@ import type { ItemStatus, Platform } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import type { 시작방식 } from './runOrigin.js';
-import { 멈춰닫힌항목아님 } from './notVerdict.js';
+import { Blocked줄, 멈춰닫힌항목아님 } from './notVerdict.js';
 
 export interface HistoryRow {
   historyId: number;
@@ -24,6 +24,8 @@ export interface HistoryRow {
   afterFix: boolean;
   /** 그 줄이 Blocked 로 끝났을 때만 막은 케이스 번호, 아니면 null (도메인/실행 §7 history) */
   blockedBy: string | null;
+  /** Blocked 로 끝난 줄이면 true — 막은 케이스 없이 Blocked 가 나올 때도 true 이고 blockedBy 는 null 이다. 판정값은 NA 그대로다 */
+  blocked: boolean;
 }
 
 export interface LastResult {
@@ -38,6 +40,8 @@ export interface LastResult {
   recent: ItemStatus[];
   /** 마지막 결과가 Blocked 일 때만 막은 케이스 번호, 아니면 null. 판정값은 그대로 NA 다 — 미실행으로 세고 거른다 (도메인/실행 §7 last-by-case) */
   blockedBy: string | null;
+  /** 마지막 결과가 Blocked 면 true — 막은 케이스 번호가 없는 Blocked 도 잡는다 */
+  blocked: boolean;
 }
 
 /**
@@ -75,10 +79,11 @@ export async function caseHistory(
     rerun_of: string | null;
     after_fix: boolean;
     blocked_by: string | null;
+    blocked: boolean | null;
     total: number;
   }>(
     `SELECT i.history_id, i.run_id, r.title AS run_title, i.platform, i.status, i.duration_ms,
-            i.started_at, i.finished_at, r.origin, r.rerun_of, i.blocked_by, count(*) OVER ()::int AS total,
+            i.started_at, i.finished_at, r.origin, r.rerun_of, i.blocked_by, ${Blocked줄('i')} AS blocked, count(*) OVER ()::int AS total,
             EXISTS (SELECT 1 FROM bts_test_fix f
                      WHERE f.rerun_id = i.run_id AND f.tc_id = i.tc_id
                        AND (f.issue_key IS NULL OR EXISTS (SELECT 1 FROM bts_link l WHERE l.project_id = f.project_id))) AS after_fix
@@ -103,6 +108,7 @@ export async function caseHistory(
       rerunOf: row.rerun_of === null ? null : Number(row.rerun_of),
       afterFix: row.after_fix,
       blockedBy: row.blocked_by,
+      blocked: row.blocked === true,
     })),
     total: rows.rows[0]?.total ?? 0,
     page,
@@ -127,6 +133,7 @@ export async function lastByCase(배정받은서비스: string[]): Promise<LastR
     duration_ms: number | null;
     finished_at: Date;
     blocked_by: string | null;
+    blocked: boolean | null;
   }>(
     // 이 질의는 케이스 전체를 훑으므로 문(auth/gate.ts)이 막을 번호가 없다.
     // 서비스 경계를 여기서 직접 건다 — 안 걸면 남의 케이스 번호와 판정이 그대로 나간다 (§7)
@@ -134,9 +141,9 @@ export async function lastByCase(배정받은서비스: string[]): Promise<LastR
     //
     // DISTINCT ON 을 창 함수로 바꿨다 (2026-09-21). 배지는 여전히 1번 줄 하나이고,
     // 흐름 막대가 쓰는 나머지 넷이 같은 왕복에 실려 온다 — 케이스마다 이력을 따로 부르지 않는다 (§8.1)
-    `SELECT tc_id, platform, status, history_id, run_id, duration_ms, finished_at, blocked_by
+    `SELECT tc_id, platform, status, history_id, run_id, duration_ms, finished_at, blocked_by, blocked
        FROM (
-         SELECT tc_id, platform, status, history_id, run_id, duration_ms, finished_at, blocked_by,
+         SELECT tc_id, platform, status, history_id, run_id, duration_ms, finished_at, blocked_by, ${Blocked줄()} AS blocked,
                 ROW_NUMBER() OVER (PARTITION BY tc_id, platform
                                        ORDER BY started_at DESC, history_id DESC) AS 몇번째
            FROM run_item
@@ -166,6 +173,7 @@ export async function lastByCase(배정받은서비스: string[]): Promise<LastR
         finishedAt: row.finished_at.toISOString(),
         recent: [row.status],
         blockedBy: row.blocked_by,
+        blocked: row.blocked === true,
       });
       continue;
     }

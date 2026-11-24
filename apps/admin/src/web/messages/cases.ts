@@ -108,6 +108,22 @@ export const 케이스말: Record<string, string> = {
   '상세': 'Details',
   '실행': 'Run',
 
+  // 테스트 프로시저 — 목록의 헤더 줄 · 상세의 구획 (도메인/카탈로그 §8.1 「테스트 프로시저」). 판정 글자는 영어 화면에서도 같다
+  '{아이디} {이름} 케이스 {건수}건 선택': 'Select {건수} cases of {아이디} {이름}',
+  '{전체}건 중 {건수}건': '{건수} of {전체}',
+  'Blocked {건수}': 'Blocked {건수}',
+  '{프로시저} 실행': 'Run {프로시저}',
+  '{프로시저} 시험 실행': 'Trial run {프로시저}',
+  '{전체}건 중 {번째}번째': '{번째} of {전체}',
+  '테스트 프로시저': 'Test procedure',
+  '같은 프로시저의 케이스를 불러오지 못했습니다': 'Could not load the cases in this procedure',
+  '단독으로 실행할 수 없습니다. 프로시저 단위로 실행합니다': 'Cannot run on its own. It runs with its procedure',
+  '프로시저 실행': 'Run procedure',
+  '프로시저 시험 실행': 'Trial run procedure',
+  '선행 케이스 {케이스}': 'Preceding case {케이스}',
+  '선행 케이스 {케이스} 실패': 'Preceding case {케이스} failed',
+  '선행 케이스 {케이스} 제한 시간 초과': 'Preceding case {케이스} timed out',
+
   // 쪽 넘기기
 
   // 빈 목록 세 갈래

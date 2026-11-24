@@ -344,7 +344,7 @@ describe('실행 이력은 실행 하나에 한 줄이다 (점검 N7)', () => {
     const { container } = 그린다();
 
     await waitFor(() => expect(screen.getByText('ZZD-001 실행 2')).toBeTruthy());
-    expect(container.querySelector('.dhist .verdict')?.textContent).toBe('Pass');
+    expect(container.querySelector('.dhist .vd')?.textContent).toBe('Pass');
   });
 
   it('기록이 없으면 그 사실을 적는다', async () => {

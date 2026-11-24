@@ -7,7 +7,7 @@ import { PC_PLATFORMS } from '@platform/kit/types';
 
 import { 자동수정목록, type 자동수정줄 } from '../bts/testFixView.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
-import { API서버세기, 맥락, 맥락거르기, 요구로찾기, 줄세우기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
+import { API서버세기, 맥락, 맥락거르기, 요구로찾기, 줄세우기, 프로시저표짓기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
 import { 맥락읽기 } from './contextRead.js';
 import type { 판정함수 } from './last.js';
 // 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
@@ -191,7 +191,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const pool = await db();
   // ponytail: 쪽마다 그 서비스 맥락(판 · 지도 ① ②)과 맞은 번호 전부를 다시 읽고 줄 세운다 — 「전체 실행」이 쪽을 돌면 쪽 수만큼 되풀이한다.
   // 케이스 수천 건에서 느려지면 맥락표를 스캔 · 판 저장 때 갈아 끼우는 캐시로 둔다
-  const [표, 요약, 앱, 수정] = await Promise.all([
+  const [표, 요약, 앱, 수정, 프로시저줄] = await Promise.all([
     맥락읽기(query.service),
     // 미확정 요약은 검색 조건 · 쪽과 상관없어 같이 띄운다
     pool.query<{ count: string }>(
@@ -212,14 +212,21 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       [`${query.service}-%`, query.kind ?? null, query.activeOnly, query.mission ?? null],
     ),
     query.마지막 === undefined ? new Map<string, 자동수정줄>() : 자동수정목록(query.service),
+    // 머리 케이스는 걸린 조건과 상관없이 정한다 — 조건에 빠져도 남은 케이스가 그 프로시저 자리에 서야 한다
+    pool.query<{ tc_id: string; proc_id: string; proc_seq: number }>(
+      `SELECT tc_id, proc_id, proc_seq FROM test_case WHERE tc_id LIKE $1 AND proc_id IS NOT NULL AND is_active`,
+      [`${query.service}-%`],
+    ),
   ]);
+  const 프로시저 = 프로시저표짓기(프로시저줄.rows);
   // 순서가 기능 묶음 차례라 SQL 이 쪽을 못 자른다. 조건에 맞는 번호만 먼저 받고, 묶어 줄 세운 뒤 그 쪽 줄만 다시 읽는다
   const 맞은번호 = await pool.query<{ tc_id: string; platforms: Platform[] }>(
     `SELECT tc_id, platforms
        FROM test_case
       WHERE tc_id LIKE $1
         -- 찾기는 요구 번호 · 요구 문장에도 맞는다. 그 판단은 표준 기획서를 읽은 쪽(요구로찾기)이 하고 번호만 넘긴다
-        AND ($2 = '' OR tc_id ILIKE $3 ESCAPE '\\' OR name ILIKE $3 ESCAPE '\\' OR tc_id = ANY($8::text[]))
+        AND ($2 = '' OR tc_id ILIKE $3 ESCAPE '\\' OR name ILIKE $3 ESCAPE '\\'
+                    OR proc_id ILIKE $3 ESCAPE '\\' OR proc_name ILIKE $3 ESCAPE '\\' OR tc_id = ANY($8::text[]))
         AND (NOT $4::boolean OR is_active)
         -- windows 는 윈도우 값 다섯 중 하나라도 선언한 케이스다 (?| 는 키 중 하나라도 배열 안에 있으면 참)
         AND ($5::text[] IS NULL OR platforms ?| $5::text[])
@@ -244,7 +251,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   );
   const 기기 = new Map(맞은번호.rows.map((r) => [r.tc_id, r.platforms]));
   // 서버 칩 건수는 apiServer 만 뺀 조건에 맞은 케이스를 센다 — 칩을 걸어도 칩마다 몇 건인지 그대로 보이게
-  const 서버뺀 = 맥락거르기(맞은번호.rows.map((r) => r.tc_id), 표, { ...query, apiServer: undefined });
+  const 서버뺀 = 맥락거르기(맞은번호.rows.map((r) => r.tc_id), 표, { ...query, apiServer: undefined }, 프로시저);
   const 맞은 = query.apiServer === undefined ? 서버뺀 : 맥락거르기(서버뺀, 표, { apiServer: query.apiServer });
   const 마지막 = query.마지막;
   const 판정 = 마지막 === undefined ? null : new Map(서버뺀.map((id) => [id, 마지막.판정(id, 기기.get(id) ?? [])]));
@@ -252,7 +259,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const lastCounts = 판정 === null ? null : { total: 맞은.length, pass: 셈('PASS'), fail: 셈('FAIL'), na: 셈('NA') };
   const 수정통과 = (id: string) => 수정.get(id)?.state === 'PASSED';
   const 마지막맞나 = (id: string) => (마지막?.last === undefined || 판정?.get(id) === 마지막.last) && (query.autoFix !== true || 마지막 === undefined || 수정통과(id));
-  const { 차례, groups } = 줄세우기(맞은.filter(마지막맞나), 표);
+  const { 차례, groups } = 줄세우기(맞은.filter(마지막맞나), 표, 프로시저);
   // 칩 이름은 글자 · 디바이스 · 종류 · 활성 여부 · 기법에 드는 케이스가 부른 것만 — 숨긴 비활성 케이스의 이름이 0건 칩으로 남지 않게. 맥락 조건(묶음 · 요구)으로 0건이 된 이름은 남긴다
   const 이름들 = [...new Set(맞은번호.rows.flatMap((r) => 표.get(r.tc_id)?.apiServers ?? []))].sort((a, b) => a.localeCompare(b));
   const 이쪽 = query.pageSize === null ? 차례 : 차례.slice((query.page - 1) * query.pageSize, query.page * query.pageSize);

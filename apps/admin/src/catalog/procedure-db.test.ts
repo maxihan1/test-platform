@@ -87,6 +87,18 @@ describe.skipIf(연결 === undefined)('프로시저 파일 스캔과 저장', ()
     ]);
   });
 
+  it('목록은 proc_seq 차례로 붙여 주고 · 찾기는 프로시저 번호 · 이름에도 맞는다 — 옛 꼴 케이스는 안 나온다', async () => {
+    await q("UPDATE test_case SET proc_seq = CASE tc_id WHEN 'XTS-FN-101' THEN 3 WHEN 'XTS-FN-103' THEN 1 ELSE proc_seq END WHERE proc_id = 'XTS-TP-001'");
+    try {
+      const 찾기 = async (말: string) => (await listCases({ service: 'XTS', q: 말, activeOnly: true, page: 1, pageSize: 50 })).items.map((c) => c.tcId);
+      expect(await 찾기('')).toEqual(['XTS-001', 'XTS-FN-103', 'XTS-FN-102', 'XTS-FN-101']);
+      expect(await 찾기('XTS-TP-001')).toEqual(['XTS-FN-103', 'XTS-FN-102', 'XTS-FN-101']);
+      expect(await 찾기('입력 제한')).toEqual(['XTS-FN-103', 'XTS-FN-102', 'XTS-FN-101']);
+    } finally {
+      await q("UPDATE test_case SET proc_seq = CASE tc_id WHEN 'XTS-FN-101' THEN 1 WHEN 'XTS-FN-103' THEN 3 ELSE proc_seq END WHERE proc_id = 'XTS-TP-001'");
+    }
+  });
+
   it('케이스 수는 활성 케이스만 세고, 내려간 케이스 자신은 케이스 수가 null 이다', async () => {
     await q("UPDATE test_case SET is_active = false WHERE tc_id = 'XTS-FN-103'");
     expect((await findCase('XTS-FN-101'))?.procCount).toBe(2);

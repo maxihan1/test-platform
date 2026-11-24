@@ -206,12 +206,21 @@ describe.skipIf(연결 === undefined)('프로시저가 든 실행의 한 건 · 
     await pool.query("UPDATE run_item SET blocked_by = 'XPN-FN-102' WHERE run_id = $1 AND tc_id = 'XPN-FN-103'", [runId]);
 
     const 마지막 = new Map((await lastByCase(['XPN'])).map((r) => [r.tcId, r]));
-    expect(마지막.get('XPN-FN-103')).toMatchObject({ status: 'NA', runId, blockedBy: 'XPN-FN-102' });
-    expect(마지막.get('XPN-FN-102')).toMatchObject({ status: 'FAIL', blockedBy: null });
-    expect(마지막.get('XPN-FN-201')).toMatchObject({ status: 'NA', blockedBy: null });
+    expect(마지막.get('XPN-FN-103')).toMatchObject({ status: 'NA', runId, blockedBy: 'XPN-FN-102', blocked: true });
+    expect(마지막.get('XPN-FN-102')).toMatchObject({ status: 'FAIL', blockedBy: null, blocked: false });
+    expect(마지막.get('XPN-FN-201')).toMatchObject({ status: 'NA', blockedBy: null, blocked: false });
+    expect(마지막.get('XPN-FN-101')).toMatchObject({ status: 'PASS', blocked: false });
 
     const 기록 = await caseHistory('XPN-FN-103', undefined, 1, 50);
-    expect(기록.items.find((r) => r.runId === runId)).toMatchObject({ status: 'NA', blockedBy: 'XPN-FN-102' });
-    expect((await caseHistory('XPN-FN-102', undefined, 1, 50)).items.find((r) => r.runId === runId)).toMatchObject({ status: 'FAIL', blockedBy: null });
+    expect(기록.items.find((r) => r.runId === runId)).toMatchObject({ status: 'NA', blockedBy: 'XPN-FN-102', blocked: true });
+    expect((await caseHistory('XPN-FN-102', undefined, 1, 50)).items.find((r) => r.runId === runId)).toMatchObject({ status: 'FAIL', blockedBy: null, blocked: false });
+    expect((await caseHistory('XPN-FN-201', undefined, 1, 50)).items.find((r) => r.runId === runId)).toMatchObject({ status: 'NA', blockedBy: null, blocked: false });
+  });
+
+  it('막은 케이스 번호가 없는 Blocked 줄도 blocked 가 true 이고 blockedBy 는 null 이다', async () => {
+    const runId = await 어젯밤();
+
+    expect(new Map((await lastByCase(['XPN'])).map((r) => [r.tcId, r])).get('XPN-FN-103')).toMatchObject({ status: 'NA', blockedBy: null, blocked: true });
+    expect((await caseHistory('XPN-FN-103', undefined, 1, 50)).items.find((r) => r.runId === runId)).toMatchObject({ status: 'NA', blockedBy: null, blocked: true });
   });
 });

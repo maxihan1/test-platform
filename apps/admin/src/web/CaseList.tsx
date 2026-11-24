@@ -1,6 +1,6 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
 // '마지막 결과' 칸을 GET /api/runs/last-by-case 한 번으로 전부 채운다 (SPEC §7.1)
-// 2026-11-11 시안 B — 왼쪽 기능 묶음 목차 + 한 건 한 줄 목록 + 오른쪽 서랍. 목록은 바닥에 닿으면 다음 50건을 붙인다(useCasePages.ts)
+// 2026-11-11 시안 B — 왼쪽 기능 묶음 목차 + 한 건 한 줄 목록 + 오른쪽 서랍. 목록은 바닥에 닿으면 다음 50건을 붙인다(useCasePages.ts). 프로시저 묶음은 CaseListProc.tsx
 // 한 건(줄의 ▶) · 여러 건을 거는 흐름은 useRunPick 이 통째로 들고 있다 — 둘 다 같은 실행 창을 연다 (SPEC §8.10)
 
 import { useRef, useState } from 'react';
@@ -16,7 +16,8 @@ import { 목록끝, use목차따라가기 } from './CaseListMore.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
 import { 고르기띠, 고르기바 } from './CaseListPick.js';
 import { 목록머리행동, 표머리 } from './CaseListHead.js';
-import { 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { 찾기폼 } from './CaseListParts.js';
+import { 덩어리줄들, 목록상자 } from './CaseListProc.js';
 import { 기능묶음들, 덩어리들 } from './caseGroups.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap } from './catalogView.js';
@@ -181,7 +182,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
           <div className="toc-body">
             <묶음목차 칸들={목차} 지금={따라가기.지금} on가기={따라가기.가기} />
             {/* `case-rows` — 목록 폭이 좁으면 줄을 쌓는 규칙(styles.css)을 이 상자에만 건다 */}
-            <div className="rows-scroll case-rows" ref={상자}>
+            <div className={목록상자(앱종류)} ref={상자}>
               {cases.error !== null ? (
                 <Failed error={cases.error} />
               ) : cases.data === null ? (
@@ -230,20 +231,19 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
                             {덩어리.feature === null ? <span>{t('PRD 에 연결되지 않은 케이스')}</span> : null}
                           </div>
                         )}
-                        {덩어리.rows.map((row) => (
-                          <케이스줄
-                            key={row.tcId}
-                            row={row}
-                            마지막={lastMap}
-                            고름={골랐나(row)}
-                            뒤집기={(row, 사이) => 뽑기.뒤집기(row, 보일것, 사이 ? 보일것 : undefined)}
-                            열림={연줄?.tcId === row.tcId}
-                            on실행={할수('테스트실행') ? (row, 디바이스) => void 뽑기.하나열기(row, 디바이스) : undefined}
-                            테스트만={테스트만}
-                            on열기={열기}
-                            on스모크={할수('스모크고치기') ? cases.reload : undefined}
-                          />
-                        ))}
+                        <덩어리줄들
+                          rows={덩어리.rows}
+                          마지막={lastMap}
+                          골랐나={골랐나}
+                          뒤집기={(row, 사이) => 뽑기.뒤집기(row, 보일것, 사이 ? 보일것 : undefined)}
+                          열린={연줄?.tcId}
+                          on실행={할수('테스트실행') ? (row, 디바이스) => void 뽑기.하나열기(row, 디바이스) : undefined}
+                          on묶음고르기={(줄들) => 뽑기.묶음뒤집기(줄들, 보일것)}
+                          on묶음실행={할수('테스트실행') ? (줄들) => void 뽑기.여럿열기(줄들) : undefined}
+                          테스트만={테스트만}
+                          on열기={열기}
+                          on스모크={할수('스모크고치기') ? cases.reload : undefined}
+                        />
                       </section>
                     );
                   })}
@@ -283,7 +283,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             고칠서비스={할수('작성요청') ? service : undefined}
             요구보나={요구보나}
             저장된다={할수('입력값저장')}
-            on실행={할수('테스트실행') ? (row) => void 뽑기.하나열기(row) : undefined}
+            on실행={할수('테스트실행') ? (row, 묶음) => void 뽑기.여럿열기(묶음 ?? [row]) : undefined}
             테스트만={테스트만}
             onClose={닫기}
             on값={(어디, key, value) => 값고침(연줄.tcId, 어디, key, value)}

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 맥락, 맥락거르기, 맥락조건읽기, 맥락짓기, 요구로찾기, 줄세우기, type 맥락재료 } from './context.js';
+import { 맥락, 맥락거르기, 맥락조건읽기, 맥락짓기, 요구로찾기, 줄세우기, 프로시저표짓기, type 맥락재료 } from './context.js';
 
 const 판: 맥락재료['prd'] = [
   { reqId: 'XCL-REQ-001', feature: '회원가입', text: '이메일은 한 번만 쓴다' },
@@ -86,6 +86,65 @@ describe('줄세우기', () => {
       ],
     });
     expect(줄세우기(['XCL-FN-010', 'XCL-FN-011'], 둘).차례).toEqual(['XCL-FN-011', 'XCL-FN-010']);
+  });
+});
+
+describe('줄세우기 — 프로시저', () => {
+  // 101 은 회원가입 묶음 · signup 화면, 102 는 로그인 묶음 · login 화면, 103 은 묶음 없음 — 번호 차례로는 흩어진다
+  const 프로시저표 = 맥락짓기({
+    prd: 판,
+    reqs: [
+      { reqId: 'XCL-REQ-001', tcId: 'XCL-FN-101', axis: '정상' },
+      { reqId: 'XCL-REQ-002', tcId: 'XCL-FN-102', axis: '정상' },
+      { reqId: 'XCL-REQ-001', tcId: 'XCL-FN-201', axis: '정상' },
+      { reqId: 'XCL-REQ-002', tcId: 'XCL-FN-301', axis: '정상' },
+    ],
+    screens: [
+      { tcId: 'XCL-FN-101', file: 화면('signup'), url: '/signup', name: '회원가입화면' },
+      { tcId: 'XCL-FN-102', file: 화면('login'), url: '/login', name: '로그인화면' },
+      { tcId: 'XCL-FN-201', file: 화면('signup'), url: '/signup', name: '회원가입화면' },
+      { tcId: 'XCL-FN-301', file: 화면('login'), url: '/login', name: '로그인화면' },
+    ],
+  });
+  const 프로시저 = 프로시저표짓기([
+    { tc_id: 'XCL-FN-103', proc_id: 'XCL-TP-001', proc_seq: 3 },
+    { tc_id: 'XCL-FN-102', proc_id: 'XCL-TP-001', proc_seq: 2 },
+    { tc_id: 'XCL-FN-101', proc_id: 'XCL-TP-001', proc_seq: 1 },
+  ]);
+  const 전부 = ['XCL-FN-301', 'XCL-FN-103', 'XCL-FN-201', 'XCL-FN-102', 'XCL-FN-101'];
+
+  it('프로시저 케이스는 머리 케이스 자리에 proc_seq 차례로 붙고 · 옛 꼴 케이스 차례는 그대로다', () => {
+    expect(줄세우기(전부, 프로시저표).차례).toEqual(['XCL-FN-101', 'XCL-FN-201', 'XCL-FN-102', 'XCL-FN-301', 'XCL-FN-103']);
+    expect(줄세우기(전부, 프로시저표, 프로시저).차례).toEqual(['XCL-FN-101', 'XCL-FN-102', 'XCL-FN-103', 'XCL-FN-201', 'XCL-FN-301']);
+  });
+
+  it('groups 의 기능 묶음 · 화면은 머리 케이스 것이다 — 한 프로시저가 한 묶음 아래 통째로 선다', () => {
+    expect(줄세우기(전부, 프로시저표, 프로시저).groups).toEqual([
+      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', screenName: '회원가입화면', part: null, partName: null, endpoint: null, tcIds: ['XCL-FN-101', 'XCL-FN-102', 'XCL-FN-103', 'XCL-FN-201'] },
+      { feature: '로그인', screen: 화면('login'), screenUrl: '/login', screenName: '로그인화면', part: null, partName: null, endpoint: null, tcIds: ['XCL-FN-301'] },
+    ]);
+  });
+
+  it('조건에 걸려 머리 케이스가 목록에서 빠져도 남은 케이스는 머리 자리에 선다', () => {
+    expect(줄세우기(['XCL-FN-301', 'XCL-FN-103', 'XCL-FN-201', 'XCL-FN-102'], 프로시저표, 프로시저).차례).toEqual(['XCL-FN-102', 'XCL-FN-103', 'XCL-FN-201', 'XCL-FN-301']);
+  });
+
+  it('기능 묶음 · 화면으로 거를 때 프로시저 안 케이스의 묶인 자리는 머리 케이스 것이다 — groups 에 싣는 자리와 같다', () => {
+    // 102 는 자기 요구로는 로그인 묶음 · login 화면이지만 프로시저가 회원가입 묶음 자리에 통째로 선다
+    expect(맥락거르기(전부, 프로시저표, { feature: '로그인' }, 프로시저)).toEqual(['XCL-FN-301']);
+    expect(맥락거르기(전부, 프로시저표, { feature: '회원가입' }, 프로시저)).toEqual(['XCL-FN-103', 'XCL-FN-201', 'XCL-FN-102', 'XCL-FN-101']);
+    expect(맥락거르기(전부, 프로시저표, { screen: 화면('login') }, 프로시저)).toEqual(['XCL-FN-301']);
+    // 요구 번호는 케이스 자기 것으로 거른다
+    expect(맥락거르기(전부, 프로시저표, { req: 'XCL-REQ-002' }, 프로시저)).toEqual(['XCL-FN-301', 'XCL-FN-102']);
+  });
+
+  it('차례가 같은 케이스가 둘이면 번호가 앞선 것이 머리다 — 받은 줄 차례와 상관없다', () => {
+    const 줄 = [
+      { tc_id: 'XCL-FN-102', proc_id: 'XCL-TP-001', proc_seq: 1 },
+      { tc_id: 'XCL-FN-101', proc_id: 'XCL-TP-001', proc_seq: 1 },
+    ];
+    expect(프로시저표짓기(줄).get('XCL-FN-102')?.머리).toBe('XCL-FN-101');
+    expect(프로시저표짓기([...줄].reverse()).get('XCL-FN-102')?.머리).toBe('XCL-FN-101');
   });
 });
 
