@@ -30,7 +30,7 @@ function 막대({ 이름, 비율, 흐림 = false }: { 이름: string; 비율: nu
  * 갈래 수는 둘째 줄로 뗀다 — 한 줄에 이으면 「기능 247 · UI 152」가 만든 수(368)를 넘어 틀린 셈으로 읽혔다 (점검 N16).
  * 판정이 아니라 잉크로만 적는다 (DESIGN.md 원칙 1)
  */
-function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t: ReturnType<typeof use말>): { 셈: string; 갈래: string | null } {
+function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], 한종류: boolean, t: ReturnType<typeof use말>): { 셈: string; 갈래: string | null } {
   if ('none' in c) return { 셈: t('집계 없음 — {까닭}', { 까닭: c.none }), 갈래: null };
   const 제외 = Object.values(c.excluded).reduce((합, 수) => 합 + 수, 0);
   const 원장밖 = c.unread?.length ?? 0;
@@ -49,7 +49,12 @@ function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t
   const 갈래 =
     c.casedFn === undefined || c.casedUi === undefined
       ? null
-      : t('만든 {덮음}건 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다', { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi });
+      : t(
+          한종류
+            ? '만든 {덮음}건 중 기능 케이스가 커버한 것 {기능} · UI 케이스가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다'
+            : '만든 {덮음}건 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다',
+          { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi },
+        );
   return { 셈: 칸.filter((x): x is string => x !== null).join(' · '), 갈래 };
 }
 
@@ -70,6 +75,7 @@ export function AuthoringStatusCard({
   뿌리종류,
   운영자 = false,
   세로단계 = false,
+  한종류 = false,
 }: {
   요청: AuthoringRow;
   지금: number;
@@ -78,13 +84,15 @@ export function AuthoringStatusCard({
   최신?: Pick<AuthoringRow, 'kind' | 'status'>;
   뿌리종류?: AuthoringRow['kind'];
   운영자?: boolean;
+  /** 「프로시저 작성」을 켠 애플리케이션 — UI 테스트가 따로 없어 갈래 수를 케이스로 적는다 */
+  한종류?: boolean;
   /** 시작 모달은 좁은 창 · 휴대폰 아래 판이라 단계를 세로로 쌓고 도는 칸에 맥박을 단다 (시안 11판 「새 작성 · 접수」) */
   세로단계?: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
   const 셈 = 커버리지 === undefined ? (요청.coverage ?? null) : 커버리지;
-  const 셈글 = 셈 === null ? null : 커버리지글(셈, 요청.status, t);
+  const 셈글 = 셈 === null ? null : 커버리지글(셈, 요청.status, 한종류, t);
   const 빠진 = 셈 === null || 'none' in 셈 ? [] : 셈.missing;
   const 보 = 줄보임(요청, 지금);
   const 반영 = 반영할일(최신 ?? 요청);

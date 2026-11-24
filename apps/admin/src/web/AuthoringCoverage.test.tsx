@@ -101,6 +101,13 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
     expect(글.split('기능 테스트')).toHaveLength(2);
   });
 
+  it('「프로시저 작성」을 켠 애플리케이션은 UI 테스트가 따로 없어 기능 · UI 케이스가 덮은 수로 적는다', () => {
+    render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, casedFn: 40, casedUi: 12 } })} 지금={지금} 한종류 />);
+    const 글 = 셈줄().textContent ?? '';
+    expect(글).toContain('만든 48건 중 기능 케이스가 커버한 것 40 · UI 케이스가 커버한 것 12 — 둘 다 커버한 요구사항은 양쪽에 집계합니다');
+    expect(글).not.toContain('UI 테스트');
+  });
+
   it('갈래 수가 하나라도 없으면 둘째 줄을 안 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, casedFn: 40 } })} 지금={지금} />);
     expect(셈줄().textContent).not.toContain('커버한 것');

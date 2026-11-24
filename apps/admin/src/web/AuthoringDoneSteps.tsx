@@ -12,6 +12,7 @@ import { 반영단계 } from './AuthoringMergeStep.js';
 import { 남은요구이어작성, 일 } from './authoringTodoParts.js';
 import { use말 } from './i18n.js';
 import type { 판정 } from './role.js';
+import { UI케이스인가 } from './route.js';
 import { RunWindow } from './RunWindow.js';
 
 /** 링크(#…)는 해시 라우터 주소를 덮는다 — 주소는 두고 그 자리로 내려가기만 한다 */
@@ -126,6 +127,7 @@ export function 작성끝단계({ service, 요청, 할수, 차이수, 커버리�
 
 /**
  * 반영이 끝난 요청 — 넣은 케이스로 바로 이어 간다 (점검 12.3). 실행 하나에 한 종류만 담겨 기능 · UI 를 따로 건다(서버 runKind).
+ * 「프로시저 작성」을 켠 애플리케이션(한종류)은 종류가 하나라 한 번에 건다 — 나눠 걸면 두 갈래가 같이 든 프로시저가 두 번 돈다 (작성 §3.6 「두 갈래」)
  * 남은 요구로 이어 작성은 누를 수 있을 때만 — 못 누르는 줄을 「할 수 없습니다」로 남기면 할 일처럼 읽힌다 (점검 N17)
  */
 export function 반영끝({
@@ -133,6 +135,7 @@ export function 반영끝({
   운영자,
   요청,
   만든것,
+  한종류,
   셈,
   권한,
   보내는중,
@@ -142,6 +145,7 @@ export function 반영끝({
   운영자: boolean;
   요청: AuthoringRow;
   만든것: AuthoringMadeCase[] | null;
+  한종류: boolean;
   셈: AuthoringCoverage | null;
   권한: boolean;
   보내는중: boolean;
@@ -149,9 +153,17 @@ export function 반영끝({
 }) {
   const t = use말();
   const [돌릴것, set돌릴것] = useState<string[] | null>(null);
-  const 갈래들 = (['FN', 'UI'] as const)
-    .map((k) => ({ k, 번호들: (만든것 ?? []).filter((c) => (k === 'UI') === /-UI-\d{3}$/.test(c.tcId)).map((c) => c.tcId) }))
-    .filter((g) => g.번호들.length > 0);
+  const 번호들 = (만든것 ?? []).map((c) => c.tcId);
+  const UI번호들 = 번호들.filter(UI케이스인가);
+  const 기능번호들 = 번호들.filter((n) => !UI케이스인가(n));
+  const 실행들 = (
+    한종류
+      ? [{ 글: t('테스트 {수}건 바로 실행', { 수: 번호들.length }), 번호들 }]
+      : [
+          { 글: t('기능 테스트 {수}건 바로 실행', { 수: 기능번호들.length }), 번호들: 기능번호들 },
+          { 글: t('UI 테스트 {수}건 바로 실행', { 수: UI번호들.length }), 번호들: UI번호들 },
+        ]
+  ).filter((g) => g.번호들.length > 0);
   // 이 칸을 모르는 옛 응답에는 안 그린다
   const 이어작성 = 요청.canContinue !== undefined && (요청.canContinue || typeof 요청.continuedBy === 'number');
   const 계정 = 계정없음수(셈);
@@ -163,9 +175,9 @@ export function 반영끝({
           : t('테스트 {수}건을 케이스 목록에 넣었습니다.', { 수: 만든것.length })}
       </p>
       <div className="btns">
-        {갈래들.map((g) => (
-          <button key={g.k} className="btn" type="button" onClick={() => set돌릴것(g.번호들)}>
-            {g.k === 'UI' ? t('UI 테스트 {수}건 바로 실행', { 수: g.번호들.length }) : t('기능 테스트 {수}건 바로 실행', { 수: g.번호들.length })}
+        {실행들.map((g) => (
+          <button key={g.글} className="btn" type="button" onClick={() => set돌릴것(g.번호들)}>
+            {g.글}
           </button>
         ))}
         {만든것 === null ? (
