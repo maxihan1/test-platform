@@ -96,8 +96,8 @@ export const 오류영어: Record<string, string> = {
   '원본 요청이 삭제됐거나 아직 준비 중입니다. 화면을 새로고침합니다': 'The original request was deleted or is still being prepared. Refresh the page',
   // 케이스 고치기 (도메인/작성 §3.6 「★ 케이스 고치기」)
   '수정할 내용을 받을 수 없는 케이스나 칸이 있습니다': 'A case or field cannot take this change',
-  '같은 케이스를 수정하는 요청이 이미 열려 있습니다. 그 요청을 반영하거나 삭제한 뒤 다시 요청합니다':
-    'Another open request already changes the same case. Merge or discard it, then request again',
+  '같은 케이스나 같은 프로시저를 수정하는 요청이 이미 열려 있습니다. 그 요청을 반영하거나 삭제한 뒤 다시 요청합니다':
+    'Another open request already changes the same case or procedure. Merge or discard it, then request again',
   // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
   '중복 케이스를 아직 다 선택하지 않아 반영할 수 없습니다': 'Duplicate cases are not all decided yet, so the apply cannot start',
   '이 반영의 중복 목록에 없는 케이스입니다. 새로고침해 보세요': 'This case is not in the duplicate list of this apply. Refresh the page',

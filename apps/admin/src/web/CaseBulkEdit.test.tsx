@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { 고치기상한 } from '../authoring/edit.js';
-import { api, type CaseRow } from './api.js';
+import { api, ApiError, type CaseRow } from './api.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 
@@ -166,5 +166,49 @@ describe('고른 것으로 고치기 요청', () => {
       await Promise.resolve();
     });
     expect(상자.textContent?.match(/E2E 시나리오(도|가) 더 이상 실행되지 않습니다/g)).toHaveLength(1);
+  });
+
+  describe('프로시저 안 케이스', () => {
+    const 섞음 = () => 고름(케이스('XEW-001'), 케이스('XEW-FN-101', { procId: 'XEW-TP-001' }), 케이스('XEW-FN-102', { procId: 'XEW-TP-001' }));
+    const 열고보낸다 = () => {
+      fireEvent.click(screen.getByRole('button', { name: '삭제 요청' }));
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '삭제 요청 보내기' }));
+    };
+
+    it('그 밖의 케이스와 섞였으면 프로시저 쪽을 먼저, 요청을 둘로 나눠 보내고 두 번호를 다 보인다', async () => {
+      const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValueOnce({ id: 61 }).mockResolvedValueOnce({ id: 62 });
+      render(<고른것고치기 service="XEW" 고른={섞음()} 다되면={() => {}} />);
+      열고보낸다();
+      expect((await screen.findByRole('link', { name: '작성 요청 61번' })).getAttribute('href')).toBe('#/authoring/61');
+      expect(screen.getByRole('link', { name: '작성 요청 62번' })).toBeTruthy();
+      expect(보냄.mock.calls.map(([, edits]) => edits.map((e) => e.tcId))).toEqual([['XEW-FN-101', 'XEW-FN-102'], ['XEW-001']]);
+    });
+
+    it('프로시저 안 케이스 수를 안내하고, 하나도 없으면 안내가 없다', () => {
+      const { unmount } = render(<고른것고치기 service="XEW" 고른={섞음()} 다되면={() => {}} />);
+      fireEvent.click(screen.getByRole('button', { name: '삭제 요청' }));
+      expect(screen.getByText(/테스트 프로시저의 케이스 2건은 작성 요청으로 보냅니다/)).toBeTruthy();
+      unmount();
+      render(<고른것고치기 service="XEW" 고른={고름(케이스('XEW-001'))} 다되면={() => {}} />);
+      fireEvent.click(screen.getByRole('button', { name: '삭제 요청' }));
+      expect(screen.queryByText(/테스트 프로시저/)).toBeNull();
+    });
+
+    it('뒤 요청만 실패하면 선 요청과 못 보낸 수를 같이 보인다', async () => {
+      vi.spyOn(api, 'createAuthoringEdit').mockResolvedValueOnce({ id: 63 }).mockRejectedValueOnce(new ApiError(409, 'EDIT_OPEN', '15'));
+      render(<고른것고치기 service="XEW" 고른={섞음()} 다되면={() => {}} />);
+      열고보낸다();
+      expect(await screen.findByRole('link', { name: '작성 요청 63번' })).toBeTruthy();
+      expect(screen.getByText(/나머지 1건은 보내지 못했습니다.*#15/)).toBeTruthy();
+    });
+
+    it('앞 요청이 실패하면 뒤 요청을 안 보내고 다시 보낼 수 있다', async () => {
+      const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockRejectedValue(new ApiError(409, 'AUTHORING_OPEN', '15'));
+      render(<고른것고치기 service="XEW" 고른={섞음()} 다되면={() => {}} />);
+      열고보낸다();
+      expect(await screen.findByText(/반영하지 않은 테스트 작성 요청이 있습니다.*#15/)).toBeTruthy();
+      expect(보냄).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: '삭제 요청 보내기' })).toBeTruthy();
+    });
   });
 });

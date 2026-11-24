@@ -155,6 +155,18 @@ describe('코드 기본값 변경 요청', () => {
     expect(await screen.findByRole('link', { name: '작성 요청 43번' })).toBeTruthy();
   });
 
+  it('프로시저 안 케이스면 삭제 확인 줄 아래에 작성 요청으로 보낸다고 알린다', () => {
+    vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
+    const { unmount } = render(<코드기본값고치기 row={케이스({ procId: 'XEW-TP-001' })} service="XEW" />);
+    expect(screen.queryByText(/테스트 프로시저의 케이스라/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
+    expect(screen.getByText(/테스트 프로시저의 케이스라 작성 요청으로 보냅니다/)).toBeTruthy();
+    unmount();
+    render(<코드기본값고치기 row={케이스()} service="XEW" />);
+    fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
+    expect(screen.queryByText(/테스트 프로시저/)).toBeNull();
+  });
+
   it('삭제 확인 줄은 취소가 앞자리이고 포커스도 취소에 있다 — 더블클릭 · Enter 두 번이 삭제로 새지 않는다', () => {
     vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
     const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 1 });
