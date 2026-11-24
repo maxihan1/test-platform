@@ -1,6 +1,10 @@
 // 프로시저 실행 단위의 답을 케이스 줄 여럿에 한 번에 저장하고, 닫기 · 조회가 실행 단위를 따라가는지 본다
 // (도메인/실행 §3.2 「테스트 프로시저 실행」 · 공통/4 「테스트 프로시저 표」 · DATABASE_URL 이 있을 때만)
 
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import type { CaseResult, ExecuteResponse, RunningStep } from '@platform/kit';
 import Fastify from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,6 +17,7 @@ import { 준비실패로닫는다 } from './prep.js';
 import { 진행경로 } from './progressRoute.js';
 import { findItem, findRun } from './queries.js';
 import { 러너진행 } from './runnerProgress.js';
+import { 사진경로 } from './screenshotRoute.js';
 import { abortRun, createRun, finishItem, finishRun, unfinishedItems, type PendingItem } from './store.js';
 
 vi.mock('./runnerProgress.js', async (원본) => ({ ...(await 원본<typeof import('./runnerProgress.js')>()), 러너진행: vi.fn(async () => ({ items: [], scenarios: [] })) }));
@@ -250,6 +255,28 @@ describe.skipIf(연결 === undefined)('실행 단위 저장 — 테스트 프로
     // 남의 실행 번호로는 못 찾는다
     expect(await 실행단위자리(runId + 1, 줄['XEU-FN-101']!)).toBeNull();
     expect(await 실행단위번호(runId + 1, 줄['XEU-FN-101']!)).toBeNull();
+  });
+
+  it('실패 사진은 케이스 줄 번호로 물어도 실행 단위 폴더에서 찾고, 옛 꼴 케이스는 제 번호 폴더 그대로다', async () => {
+    const { runId, execId, 줄, 옛 } = await 실행을만든다();
+    const 뿌리 = mkdtempSync(join(tmpdir(), 'xeu-shot-'));
+    vi.stubEnv('PLATFORM_ARTIFACTS_DIR', 뿌리);
+    const app = Fastify();
+    try {
+      for (const 번호 of [execId, 옛.historyId]) {
+        mkdirSync(join(뿌리, 'runs', String(runId), String(번호)), { recursive: true });
+        writeFileSync(join(뿌리, 'runs', String(runId), String(번호), '4.png'), `${String(번호)} 사진`);
+      }
+      await app.register(사진경로, { prefix: '/api' });
+      const 사진 = (번호: number) => app.inject({ method: 'GET', url: `/api/screenshots/${String(runId)}/${String(번호)}/4.png` });
+
+      expect((await 사진(줄['XEU-FN-102']!)).body).toBe(`${String(execId)} 사진`);
+      expect((await 사진(옛.historyId)).body).toBe(`${String(옛.historyId)} 사진`);
+    } finally {
+      await app.close();
+      vi.unstubAllEnvs();
+      rmSync(뿌리, { recursive: true, force: true });
+    }
   });
 
   it('진행 조회는 러너가 실행 단위 번호로 알린 진행을 지금 도는 케이스 줄로 바꿔 싣고, 단계 제목은 프로시저 전체를 차례대로 잇는다', async () => {
