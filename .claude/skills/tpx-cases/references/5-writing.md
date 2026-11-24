@@ -3,7 +3,7 @@
 **쓰기 전에 `korean-ai-tells.md` 와 `wording.md`(문구 틀) 를 읽는다** — 코드 안의 한글(`name` · `precondition` · `test.step` 제목 · `verify` · `.describe()` · `held` 사유)도
 그 규칙대로 쓴다. 표에서 옮기는 글자는 표를 쓸 때 이미 지켰다. 코드에서 새로 짓는 절차 제목 · 칸 설명이 여기서 걸린다. **기다리기 · 데이터 고르기 · 날짜 값은 `5-stable.md` 도 읽는다.** **사람이 바꿔 볼 만한 입력(글자 · 검색어 · 수량 · 날짜 · 상품 번호)은 `5-inputs.md` 대로 입력값 칸으로 연다.**
 
-본보기는 `references/example.md` 다 — 이 꼴대로 쓴다. 대상 주소는 Page Object 의 `static readonly 주소` 에 **상대 경로로** 둔다.
+본보기는 `references/example.md` 다 — 이 꼴대로 쓴다(프로시저로 쓰는 작성의 케이스 파일만 `procedure.md` §4). 대상 주소는 Page Object 의 `static readonly 주소` 에 **상대 경로로** 둔다.
 앞부분은 러너가 실행마다 `PLATFORM_BASE_URL` 로 채운다(`playwright.config.ts` 의 `baseURL`).
 
 | 표 칸 | 코드 자리 | 증적 문서 |
@@ -114,7 +114,7 @@
 > 안 붙이면 **전제가 무너진 뒤에도 뒤 단계가 그냥 돌아**, 증적을 읽는 사람이
 > 어느 실패가 원인이고 어느 것이 그 여파인지 못 가른다.
 >
-> **R16. 준비 절차를 「만들기」와 「확인」으로 가른다.**
+> **R16. 준비 절차를 「만들기」와 「확인」으로 가른다.** 프로시저에는 걸지 않는다(`procedure.md` §1).
 >
 > ```
 > 절차 1  만들기      판정 없음        ← 나중에 건너뛸 수 있는 부분

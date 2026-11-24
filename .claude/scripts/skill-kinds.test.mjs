@@ -94,6 +94,19 @@ test('종류와 상관없는 R9 · R10 은 모든 입구가 열고 케이스 작
   }
 });
 
+test('앱 · 게임 입구만 프로시저 지침을 열고, 여는 때로 적은 줄이 프롬프트 글자와 같다 — 어긋나면 스위치를 켜도 지침이 안 열린다 (2026-11-25 TP-F5-31)', () => {
+  const 줄 = readFileSync('scripts/authoring-prompt.ts', 'utf8').match(/'- (이 애플리케이션은 테스트 프로시저로 쓴다\.)'/)?.[1];
+  assert.ok(줄, 'authoring-prompt.ts 에서 프로시저 줄을 못 찾았다');
+  const 지침 = ['tpx-cases/references/procedure.md', 'tpx-author/references/fanout-procedure.md'];
+  for (const 종류 of 종류들) {
+    const 연다 = ['app', 'game'].includes(종류);
+    for (const 경로 of 지침) assert.equal(절경로(입구글(종류), '여는 파일').has(경로), 연다, `tpx-author-${종류} 「여는 파일」의 ${경로}`);
+  }
+  for (const 글 of [입구글('app'), 입구글('game'), ...['tpx-author/SKILL.md', 'tpx-cases/SKILL.md', ...지침].map((p) => readFileSync(join(스킬, p), 'utf8'))]) {
+    assert.ok(글.includes(`「${줄}」`), '프로시저 줄을 글자 그대로 적지 않은 지침이 있다');
+  }
+});
+
 test('게임 입구는 웹 요소 찾기 파일을 안 열고 거기서 뗀 공통 규칙만 연다', () => {
   const 글 = 입구글('game');
   assert.ok(절경로(글, '열지 않는 파일').has('tpx-cases/references/4-selector.md'));

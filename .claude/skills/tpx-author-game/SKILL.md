@@ -27,6 +27,8 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 | `tpx-author/references/fanout-game.md` | `fanout.md` 를 열 때 이어서 — 폰은 자식만 |
 | `tpx-author/references/prd-game.md` | `prd.md` 를 열 때 이어서 — 게임 표 · 기획서 빈 곳 |
 | `tpx-author/references/apply-game.md` | `apply.md` §7 테스트 고침에서 이어서 — 게임 케이스 고치기 |
+| `tpx-cases/references/procedure.md` | 프롬프트 머리에 「이 애플리케이션은 테스트 프로시저로 쓴다.」 줄이 있으면 표를 쓰기 전 — 기능 갈래의 흐름 짜기 · 프로시저 절 · 파일 꼴 · 돌려 보기(게임에서 더 볼 것은 `game.md` §9) |
+| `tpx-author/references/fanout-procedure.md` | 그 줄이 있고 케이스 쓰기를 나눠 맡길 때 `fanout-game.md` 에 이어서 — 화면 파일 먼저, 그다음 프로시저 |
 
 ## 열지 않는 파일
 
@@ -38,7 +40,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 보조 AI 에게 넘길 읽기 목록
 
-- **케이스 작성 보조** — `fanout-game.md` 「§4 뼈대에서 바꾸는 줄」대로 고친 「먼저 Read 로 연다」 줄에 `4-selector-common.md` · `5-stable-game.md` · `test-design-game.md` 를 더하고, 줄 끝에 「종류는 「게임」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다
+- **케이스 작성 보조** — `fanout-game.md` 「§4 뼈대에서 바꾸는 줄」대로 고친 「먼저 Read 로 연다」 줄에 `4-selector-common.md` · `5-stable-game.md` · `test-design-game.md` 를 더하고, 줄 끝에 「종류는 「게임」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다. 프로시저로 쓰는 작성이면 단계마다 여는 것이 다르다 — `fanout-procedure.md` 를 따른다
 
 ## 이 종류만의 규칙
 
