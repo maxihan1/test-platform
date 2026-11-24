@@ -8,6 +8,7 @@ import type { RawItem } from './collect.js';
 const 열들 = [
   'history_id', 'tc_id', 'tc_name', 'platform', 'attempt', 'status', 'duration_ms', 'finished_at', 'error',
   'unconfirmed', 'precondition', 'params', 'expected', 'param_schema', 'expected_schema', 'device', 'verify_statements',
+  'exec_id', 'exec_seq', 'blocked_by', 'case_started_at', 'case_finished_at',
 ];
 export const 지금열 = 열들.map((c) => `i.${c}`).join(', ');
 

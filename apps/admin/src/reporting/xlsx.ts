@@ -7,6 +7,7 @@ import ExcelJS from 'exceljs';
 
 import type { EvidenceAssertion, EvidenceDocument, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
 import type { E2E단계, E2E증적 } from './collectScenario.js';
+import { 프로시저글 } from './collectProc.js';
 import { 기대문장 } from './expectedLines.js';
 import { 절차판정글자, 참고글자 } from './htmlItem.js';
 import { PC디바이스글 } from '../execution/pcPlatform.js';
@@ -81,8 +82,9 @@ function 케이스칸(item: EvidenceItem): 칸값[] {
     item.attempt,
     판정글자[item.status],
     item.durationMs,
-    // 항목 단위 값이라 그 항목이 만드는 모든 행에 같은 값이 반복된다 — 병합 셀을 안 쓰기로 했다 (SPEC §8.4)
-    item.notRunReason,
+    // 항목 단위 값이라 그 항목이 만드는 모든 행에 같은 값이 반복된다 — 병합 셀을 안 쓰기로 했다 (SPEC §8.4).
+    // Blocked 는 판정값이 아니라 Not tested 의 사유라 판정 칸은 그대로 두고 여기에 적는다 (도메인/리포팅 §3.3 「증적 문서 · 엑셀」)
+    item.blocked === undefined ? item.notRunReason : ['Blocked', item.notRunReason].filter((글) => 글 !== null).join(' '),
     item.unconfirmed,
     item.precondition.join('\n'),
     라벨값(item.params),
@@ -124,10 +126,20 @@ export async function renderXlsx(doc: EvidenceDocument, options: RenderOptions):
   const sheet = workbook.addWorksheet('리포트');
   // 머리행만 고정한다. 머리행 길이만큼 가로로 훑는 표라 머리가 흘러가면 무슨 칸인지 못 읽는다
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
+  // 프로시저 칸은 프로시저 안 케이스가 있는 실행에만 선다 — 옛 실행 · 웹 · API 의 엑셀은 칸 수가 안 바뀐다 (도메인/리포팅 §3.3 「증적 문서 · 엑셀」)
+  const 프로시저있음 = doc.items.some((i) => i.procedure != null || i.rerun?.original.procedure != null);
   // 「기기」는 종류 뒤 맨 끝이다 — E2E 엑셀과 같이 쓰는 머리행에 끼우면 그쪽 칸 위치가 밀린다 (APP-F1-05)
-  sheet.addRow([...머리행, '디바이스 정보', 'Device VISION 기록', '다시 실행']);
+  sheet.addRow([...머리행, '디바이스 정보', 'Device VISION 기록', '다시 실행', ...(프로시저있음 ? ['프로시저'] : [])]);
   // 한 건 실행이 덮은 디바이스는 원래 항목과 다시 돈 항목을 둘 다 펴고 맨 끝 칸으로 가른다. 앞 묶음 칸은 원래 실행 것이다 (도메인/리포팅 §8.4)
-  const 끝칸 = (item: EvidenceItem, 다시: string | null) => (행: 칸값[]): 칸값[] => [...행, doc.header.kind, item.device ?? null, item.farm ?? null, 다시];
+  const 끝칸 = (item: EvidenceItem, 다시: string | null) => (행: 칸값[]): 칸값[] => [
+    ...행,
+    doc.header.kind,
+    item.device ?? null,
+    item.farm ?? null,
+    다시,
+    // 번호 · 차례만 — 이름은 거르기 · 피벗에 걸림돌이다(같은 번호에 이름이 다시 작성마다 바뀔 수 있다)
+    ...(프로시저있음 ? [item.procedure == null ? null : 프로시저글(item.procedure, false)] : []),
+  ];
   for (const item of doc.items) {
     const r = item.rerun;
     if (r !== undefined) sheet.addRows(항목행들(doc, r.original).map(끝칸(r.original, '원래 결과')));

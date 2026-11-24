@@ -7,10 +7,16 @@ import type { Pool } from 'pg';
 import { 팜기록글 } from '../execution/farmEvidence.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 다시실행칸들, 다시실행칸으로, 지금항목, type 다시실행원재료 } from '../execution/single.js';
-import { 가린다, 항목비밀 } from '../execution/trial.js';
-import { api칸, type EvidenceTrace } from './apiTrace.js';
+import { 단위비밀들 } from '../execution/execRead.js';
+import { 항목비밀 } from '../execution/trial.js';
+import type { EvidenceTrace } from './apiTrace.js';
+import { toFields, toStep, 기기글, type RawStep } from './collectFields.js';
+import { 막힘을채운다, 실행단위들읽기 } from './collectProc.js';
+import { Blocked인가, 돈항목사유, 미실행사유를찾는다, type RunStatus } from './collectReason.js';
 import { 원래항목읽기, 지금열 } from './collectRerun.js';
-import { 색코드, 한줄로자른다 } from './failureType.js';
+
+export { 돈항목사유 } from './collectReason.js';
+export { toFields, 값글자, 기기글 } from './collectFields.js';
 
 export interface EvidenceField {
   label: string;
@@ -63,6 +69,10 @@ export interface EvidenceItem {
   /** 실행을 만들 때 박제한 케이스 코드의 확인 문장. null 이거나 없으면 이 칸 전의 줄이다 — 문서는 돈 절차의 문장을 쓴다 (reporting/expectedLines.ts) */
   verifyStatements?: string[] | null;
   steps: EvidenceStep[];
+  /** 프로시저 안 케이스만 — 프로시저 번호 · 이름 · 그 안 차례 · 실행 단위의 케이스 수. 옛 꼴 케이스와 실행 단위 칸 전의 줄에는 없다 (도메인/리포팅 §3.3 「증적 문서 · 엑셀」) */
+  procedure?: { id: string; name: string; seq: number; count: number } | null;
+  /** Blocked 로 끝난 줄만 — 막은 케이스 번호(kit 이 못 정했으면 null). 판정은 Not tested 그대로다 (실행 §3.2 「판정이 아닌 결과」) */
+  blocked?: { by: string | null };
   /** 한 건 실행이 덮은 항목만 — 이 항목이 다시 돈 결과이고 원래 항목이 여기 남는다 (도메인/리포팅 §8.4 「다시 실행이 붙은 실행」) */
   rerun?: { finishedAt: string; triggeredBy: string; original: EvidenceItem };
 }
@@ -91,8 +101,6 @@ async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
 }
-
-type RunStatus = 'RUNNING' | 'FINISHED' | 'ABORTED' | 'PREP_FAILED';
 
 interface RawRun {
   run_id: string;
@@ -127,174 +135,16 @@ export interface RawItem {
   expected_schema: unknown;
   device: DeviceInfo | null;
   verify_statements?: string[] | null;
-}
-
-interface RawAssertion {
-  statement: string;
-  status: ItemStatus;
-  actual: unknown;
-  expected: unknown;
-  blocker?: boolean;
-}
-
-interface RawStep {
-  history_id: string;
-  seq: number;
-  title: string;
-  status: ItemStatus;
-  duration_ms: number | null;
-  assertions: RawAssertion[];
-  screenshot_path: string | null;
-  error: unknown;
-  http_trace: { request: unknown; response: unknown } | null;
-  shape_checks: ShapeCheck[] | null;
+  /** 실행 단위 칸(2026-11-24 TP-F2-10 · 11) — 그 전의 줄은 비어 있다 */
+  exec_id?: string | null;
+  exec_seq?: number | null;
+  blocked_by?: string | null;
+  case_started_at?: Date | null;
+  case_finished_at?: Date | null;
 }
 
 /** 박제 이전 행의 빈 칸. 지어내지 말고 모른다고 적는다 (SPEC §6) */
 const 기록없음 = '기록 없음';
-
-/**
- * 폰 · 앱 판 한 줄. 못 읽은 칸은 그렇다고 적는다 — 빈칸이면 「없는 판」으로 읽힌다 (도메인/리포팅 §8.4 · APP-F1-05).
- * 실제 폰 Chrome 에서 돈 모바일 항목은 앱 판 자리에 Chrome 판이다 — 그 항목만 browser 칸이 있다 (TMO-F4-03)
- */
-export function 기기글(d: DeviceInfo): string {
-  const 끝 = d.browser === undefined ? `앱 ${d.appVersion ?? '버전 모름'}` : `Chrome ${d.browser ?? '버전 모름'}`;
-  return `${d.model ?? '모델 모름'} · Android ${d.osVersion ?? '버전 모름'} · ${끝}`;
-}
-/** 비밀값은 화면과 문서에서만 가린다. DB 에는 평문 그대로다 (SPEC §4.1) */
-const 가림 = '********';
-
-// 준비 실패로 닫힌 항목 — 데이터 준비가 안 된 것이지 서비스 결함이 아니다 (도메인/실행 §3.2 「실행 전 준비」)
-const 준비실패사유 = '테스트 데이터 준비에 실패해 수행되지 않았습니다';
-
-// 검수처가 읽을 한 문장이다. 「40건 중 12건 돌았고 28건은 이래서 못 돌았다」가 증적으로 성립해야 한다 (SPEC §8.4)
-const 미실행사유: Record<RunStatus, string> = {
-  // 아래 미실행사유를찾는다() 의 error 갈래와 같은 문장이다. 사람이 멈춘 것인지
-  // 서버가 죽어 recoverRunning() 이 닫은 것인지 DB 가 구분하지 못한다 (SPEC §6)
-  ABORTED: '실행이 중단되어 수행되지 않았습니다',
-  RUNNING: '아직 실행 중입니다',
-  // 러너 결과를 저장하다 실패한 행이 여기로 온다. 증적이 그 상태를 숨기면 안 된다
-  FINISHED: '실행이 완료되었지만 결과가 기록되지 않았습니다',
-  PREP_FAILED: 준비실패사유,
-};
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-// SPEC §4.1 K9 가 이 이름들에 .meta({ secret: true }) 를 강제한다.
-// 정본은 catalog/rules.ts 의 SECRET_NAMES 다 — 컨텍스트가 달라 import 하지 않고 같은 목록을 둔다.
-// 새 케이스는 K9 이 표시를 강제하므로 이 목록은 박제 이전 행을 위한 2차 방어다 —
-// 20260917000001 이 param_schema 를 '{}' 로 메운 과거 행에는 표시가 아예 없다
-const SECRET_NAMES = ['password', 'passwd', 'pw', 'token', 'secret', 'apikey', 'credential'];
-
-// 표시가 없으면 이름으로 판단한다. 모를 때 보여주는 쪽으로 실패하면 비밀번호가 검수처로 나간다
-function 가려야하나(key: string, prop: Record<string, unknown>): boolean {
-  if (prop.secret === true) return true;
-  const lower = key.toLowerCase();
-  return SECRET_NAMES.some((word) => lower.includes(word));
-}
-
-// 객체 · 배열은 화면(web/mask.ts 보일값)처럼 JSON 한 줄이다. String() 은 [object Object] · 쉼표 이음으로 뭉갠다.
-// 안쪽 비밀값 이름 칸도 가린다 — 키 가리기(가려야하나)는 맨 위 칸만 보고, 전에는 [object Object] 가 우연히 감췄다
-export const 값글자 = (value: unknown): string =>
-  typeof value === 'object' && value !== null
-    ? JSON.stringify(value, (k, v: unknown) => (k !== '' && 가려야하나(k, {}) ? 가림 : v))
-    : String(value);
-
-// 라벨·마스킹을 여기서 끝낸다. 렌더러가 원본 JSON 에 닿으면 형식이 늘 때마다 마스킹이 새는 자리가 는다
-export function toFields(json: unknown, schema: unknown): EvidenceField[] {
-  const values = isPlainObject(json) ? json : {};
-  const properties =
-    isPlainObject(schema) && isPlainObject(schema.properties) ? schema.properties : {};
-
-  // 요청이 비운 칸은 비운 채 박제되고 케이스는 코드 기본값으로 돈다. 그 값은 박제 스키마의 default 에만 남는다.
-  // 스키마 칸 순서로 걷는다 — 값만 따라가면 같은 케이스도 어느 칸을 고쳤느냐에 따라 순서가 바뀐다 (리포팅 §3.3)
-  const 칸: [string, unknown][] = [];
-  for (const [key, raw] of Object.entries(properties)) {
-    if (Object.hasOwn(values, key)) 칸.push([key, values[key]]);
-    else if (isPlainObject(raw) && Object.hasOwn(raw, 'default')) 칸.push([key, raw.default]);
-  }
-  for (const [key, value] of Object.entries(values)) {
-    if (!Object.hasOwn(properties, key)) 칸.push([key, value]);
-  }
-
-  return 칸.map(([key, value]) => {
-    const raw = properties[key];
-    const prop: Record<string, unknown> = isPlainObject(raw) ? raw : {};
-    const description = prop.description;
-
-    return {
-      // 화면(web/schema.ts)과 같은 규약이다. 갈라지면 폼은 '아이디'인데 증적은 'username' 으로 찍힌다
-      label: typeof description === 'string' && description !== '' ? description : key,
-      value: 가려야하나(key, prop) ? 가림 : 값글자(value),
-    };
-  });
-}
-
-function toAssertion(a: RawAssertion): EvidenceAssertion {
-  return {
-    statement: a.statement,
-    expected: 값글자(a.expected),
-    actual: 값글자(a.actual),
-    status: a.status,
-    blocker: a.blocker === true,
-  };
-}
-
-function toStep(row: RawStep, 비밀: string[], api: boolean): EvidenceStep {
-  return {
-    seq: row.seq,
-    title: row.title,
-    status: row.status,
-    durationMs: row.duration_ms,
-    assertions: 가린다(row.assertions.map(toAssertion), 비밀) as EvidenceAssertion[],
-    screenshotPath: row.screenshot_path,
-    ...api칸(row, 비밀, api),
-  };
-}
-
-// 돌지 못한 항목을 가려낸다. 사유를 돌려주면 미실행, null 이면 그대로 담는다.
-// 판별이 두 갈래인 것은 닫는 쪽이 둘이기 때문이다 — 아무도 안 닫은 행과 중단 처리가 닫은 행
-function 미실행사유를찾는다(row: RawItem, 실행상태: RunStatus): string | null {
-  // 중단 처리(store.ts CLOSE_UNFINISHED)는 finished_at 을 채우고 간다. error 말고는 가려낼 표가 없다
-  if (row.status === 'NA' && isPlainObject(row.error) && (row.error.message === 'ABORTED' || row.error.message === 'STOPPED')) {
-    // recoverRunning() 도 같은 문자열을 쓴다. 사람이 멈춘 것인지 서버가 죽어 끊긴 것인지
-    // DB 가 구분하지 못하므로 구분하는 척하지 않는다 (SPEC §6)
-    return '실행이 중단되어 수행되지 않았습니다';
-  }
-  if (row.status === 'NA' && isPlainObject(row.error) && row.error.message === 'PREP_FAILED') return 준비실패사유;
-  // 아무도 안 닫은 행. 러너 결과를 저장하다 실패했거나 프로세스가 도중에 죽었다
-  if (row.finished_at === null) return 미실행사유[실행상태];
-  // 그 밖의 NA 는 돌다가 판정을 못 낸 것이지 안 돈 것이 아니다. 손대지 않는다
-  return null;
-}
-
-// 없으면 지어내지 않는다. 빈 문장을 배지 옆에 붙이면 사유를 적은 척만 하게 된다
-const 오류글 = (error: unknown): string =>
-  isPlainObject(error) && typeof error.message === 'string' ? error.message : '';
-
-// 위 함수가 null 을 준 NA — 돌긴 돌았는데 판정을 못 낸 항목이다. 판정과 소요시간은 그대로 두고
-// 사유만 채운다. 사유 없이 미실행으로 두면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
-// 확인 문장 없이 예외로 깨진 FAIL 도 사유가 없으면 왜 깨졌는지 문서에 없다. 원문은 스택 · 경로가 섞여 첫 줄만 싣는다 (리포팅 §8.4)
-export function 돈항목사유(
-  row: Pick<RawItem, 'status' | 'error'>,
-  절차들: Pick<RawStep, 'assertions' | 'error'>[],
-  비밀: string[],
-): string | null {
-  if (row.status === 'NA') {
-    const 원문 = 오류글(row.error);
-    return 원문 === '' ? null : (가린다(원문, 비밀) as string);
-  }
-  if (row.status !== 'FAIL' || 절차들.some((s) => s.assertions.some((a) => a.status === 'FAIL'))) return null;
-  // 항목 오류가 먼저다. 절차 오류로 넘어가는 것은 증적만이다 — 화면 실패 카드 · 견주기는 항목 오류만 본다 (리포팅 §8.4)
-  // 색 코드를 지우고 앞뒤를 걷어야 「\u001b[2m\n Error…」처럼 빈 첫 줄로 시작하는 원문도 사유가 남는다
-  const 원문 = [row.error, ...절차들.map((s) => s.error)]
-    .map((e) => 오류글(e).replace(색코드, '').trim())
-    .find((m) => m !== '');
-  // 자르기 전에 가린다. 잘린 자리에 비밀 조각이 남는다
-  return 원문 === undefined ? null : 한줄로자른다(가린다(원문, 비밀) as string);
-}
 
 /**
  * 고른 — QA 리포트 구획이 쓴다(「<tcId> <platform>」 목록). 그 케이스 × 디바이스만 읽고, 붙은 실행과 빌드가 다른 한 건 실행은 덮지 않는다 —
@@ -331,13 +181,22 @@ export async function collectRun(runId: number, 고른?: string[]): Promise<Evid
     [[...items.rows.map((r) => r.history_id), ...원래들.keys()]],
   );
 
+  // 프로시저 줄은 실행 단위 하나를 여러 케이스 줄이 나눠 든다 — 이름 · 케이스 수 · 영상 폴더 · 비밀값이 실행 단위에 한 벌이다 (공통/4 「테스트 프로시저 표」)
+  const 모든줄 = [...items.rows, ...원래들.values()];
+  const 단위들 = await 실행단위들읽기(pool, 모든줄.flatMap((r) => (r.exec_id == null ? [] : [r.exec_id])));
+  const 프로시저단위 = [...단위들].flatMap(([번호, u]) => (u.procId === null ? [] : [Number(번호)]));
+  const 단위비밀 = await 단위비밀들(프로시저단위);
+
   // 팜 기록은 항목이 돈 실행 폴더에 있다 — 다시 돈 항목은 한 건 실행 번호다
   const 항목으로 = async (row: RawItem, 돈실행: number): Promise<EvidenceItem> => {
     // 못 돈 항목을 'NA' 로 그대로 찍으면 「돌았는데 판정이 없다」로 읽혀 문서에서 사라진다.
     // 40건 중 12건 돌고 멈춘 실행은 「12건 돌았다」가 아니라 「28건은 이래서 못 돌았다」여야 한다 (SPEC §8.4)
     const 못돈사유 = 미실행사유를찾는다(row, run.status);
-    // 키로 가린 칸 밖에도 비밀값이 되비친다 — 확인의 기대 · 실제 값과 판정 못 낸 사유. 실행 조회 응답(execution/queries.ts)과 같은 규칙이다 (공통/2 §4.1)
-    const 비밀 = 항목비밀(row);
+    const 단위 = row.exec_id == null ? undefined : 단위들.get(row.exec_id);
+    const 프로시저 = 단위 !== undefined && 단위.procId !== null && row.exec_seq != null ? { id: 단위.procId, name: 단위.procName ?? '', seq: row.exec_seq, count: 단위.count } : null;
+    // 키로 가린 칸 밖에도 비밀값이 되비친다 — 확인의 기대 · 실제 값과 판정 못 낸 사유. 실행 조회 응답(execution/queries.ts)과 같은 규칙이다 (공통/2 §4.1).
+    // 프로시저 줄은 같은 프로세스에서 돈 다른 케이스의 비밀값까지 가린다
+    const 비밀 = (프로시저 === null ? undefined : 단위비밀.get(Number(row.exec_id))) ?? 항목비밀(row);
     const 절차들 = steps.rows.filter((s) => s.history_id === row.history_id);
 
     return {
@@ -346,7 +205,7 @@ export async function collectRun(runId: number, 고른?: string[]): Promise<Evid
       platform: row.platform,
       device: row.device === null ? null : 기기글(row.device),
       // 실제 폰에서 돈 모바일 항목도 러너가 폰 영상 · logcat 을 받아 둔다 — 기기 칸이 찬 것이 그 표시다
-      farm: row.platform === 'android' || row.device !== null ? await 팜기록글(돈실행, Number(row.history_id), row.status === 'PASS') : null,
+      farm: row.platform === 'android' || row.device !== null ? await 팜글(돈실행, row, 단위?.통과) : null,
       attempt: row.attempt,
       status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
       // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
@@ -358,6 +217,8 @@ export async function collectRun(runId: number, 고른?: string[]): Promise<Evid
       expected: toFields(row.expected, row.expected_schema),
       verifyStatements: row.verify_statements ?? null,
       steps: 절차들.map((s) => toStep(s, 비밀, run.service_kind === 'API')),
+      procedure: 프로시저,
+      ...(못돈사유 === null && Blocked인가(row) ? { blocked: { by: row.blocked_by ?? null } } : {}),
     };
   };
 
@@ -392,6 +253,19 @@ export async function collectRun(runId: number, 고른?: string[]): Promise<Evid
       baseUrl: run.base_url === '' ? 기록없음 : run.base_url,
       devices: [...new Set(증적항목들.flatMap((i) => (i.device == null ? [] : [i.device])))],
     },
-    items: 증적항목들,
+    // Blocked 사유는 막은 케이스가 이 문서에서 어떻게 끝났는지로 적는다 — 항목이 다 모인 뒤에 채운다
+    items: 막힘을채운다(증적항목들),
   };
+}
+
+/**
+ * 「Device VISION 기록」 한 줄 — 영상 · logcat 은 실행 단위 폴더에 한 벌이라 그 폴더를 읽는다(옛 줄은 케이스 줄 번호 폴더다).
+ * 실행 단위에 통과가 아닌 케이스가 하나라도 있으면 logcat 까지 센다 — 화면 항목 상세와 같다(execution/farmEvidence.ts 항목팜증적).
+ * 프로시저 줄은 영상 안 그 케이스의 자리를 시작 ~ 끝 시각으로 덧붙인다 (도메인/리포팅 §3.3 「증적 문서 · 엑셀」)
+ */
+async function 팜글(돈실행: number, row: RawItem, 단위통과: boolean | undefined): Promise<string | null> {
+  const 글 = await 팜기록글(돈실행, Number(row.exec_id ?? row.history_id), 단위통과 ?? row.status === 'PASS');
+  // 프로시저 줄만 시각이 찬다(kit 이 잰 값). 끝을 못 쟀으면 「~ 」로 끝나는 줄이 되니 둘 다 있을 때만 붙인다
+  if (글 === null || row.case_started_at == null || row.case_finished_at == null) return 글;
+  return `${글} · 이 케이스 ${row.case_started_at.toISOString()} ~ ${row.case_finished_at.toISOString()}`;
 }
