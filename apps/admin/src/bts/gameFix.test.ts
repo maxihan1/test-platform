@@ -238,4 +238,57 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     expect(await 게임자동수정실행뒤(await 실행([{ tcId: 'XQZ-FN-001', error: 찾지못함 }]))).not.toBeNull();
   });
 
+  it('같은 프로시저의 다른 케이스만 고친 게임 고침의 반영은 풀림이 아니고, 그 케이스를 고친 반영은 풀림이다', async () => {
+    await pool.query(
+      `INSERT INTO bts_test_fix (project_id, service_id, tc_id, env, failure, state, updated_at)
+       VALUES ($1, $2, 'XQZ-FN-001', 'qa', 'timeout', 'GAVE_UP', now() - interval '1 hour')`,
+      [프로젝트들[0], 서비스],
+    );
+    const 반영 = async (맡은: string[], 끝들?: { tcId: string; outcome: string }[]) => {
+      const params = 맡은.length === 0 ? {} : { testFix: { auto: true, cases: 맡은.map((tcId) => ({ runId: 1, tcId, env: 'qa', failure: 'timeout' })), note: '' } };
+      const result = {
+        cases: ['XQZ-FN-001', 'XQZ-FN-002'].map((tcId) => ({ tcId, file: 'tests/xqz/XQZ-TP-001.spec.ts' })),
+        ...(끝들 === undefined ? {} : { testFix: { cases: 끝들 } }),
+      };
+      const 작성 = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, result, discarded_at) VALUES ($1, 'AUTHOR', $2, 'agent', 'Agent', 'DONE', $3, now()) RETURNING id`,
+          [서비스, JSON.stringify(params), JSON.stringify(result)],
+        )
+      ).rows[0]!.id;
+      await pool.query(
+        `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, source_id, finished_at) VALUES ($1, 'MERGE', '{}', 'agent', 'Agent', 'DONE', $2, now())`,
+        [서비스, 작성],
+      );
+    };
+    const 다시맡나 = async () => (await 게임자동수정실행뒤(await 실행([{ tcId: 'XQZ-FN-001', error: 시간초과 }]))) !== null;
+    const 둘째고침 = { tcId: 'XQZ-FN-002', outcome: 'FIXED' };
+    await 반영(['XQZ-FN-001', 'XQZ-FN-002'], [{ tcId: 'XQZ-FN-001', outcome: 'NOT_FOUND' }, 둘째고침]);
+    await 반영(['XQZ-FN-002'], [둘째고침]);
+    await 반영(['XQZ-FN-001', 'XQZ-FN-002'], [둘째고침]);
+    await 반영(['XQZ-FN-002']);
+    expect(await 다시맡나()).toBe(false);
+    await 반영(['XQZ-FN-001'], [{ tcId: 'XQZ-FN-001', outcome: 'FIXED' }]);
+    expect(await 다시맡나()).toBe(true);
+  });
+
+  it('테스트 고침이 아닌 작성이 그 케이스를 고쳐 반영되면 풀린다', async () => {
+    await pool.query(
+      `INSERT INTO bts_test_fix (project_id, service_id, tc_id, env, failure, state, updated_at)
+       VALUES ($1, $2, 'XQZ-FN-001', 'qa', 'timeout', 'GAVE_UP', now() - interval '1 hour')`,
+      [프로젝트들[0], 서비스],
+    );
+    const 작성 = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, result, discarded_at)
+         VALUES ($1, 'AUTHOR', '{}', 'xqz', 'XQZ', 'DONE', '{"cases":[{"tcId":"XQZ-FN-001","file":"tests/xqz/XQZ-TP-001.spec.ts"}]}', now()) RETURNING id`,
+        [서비스],
+      )
+    ).rows[0]!.id;
+    await pool.query(
+      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, source_id, finished_at) VALUES ($1, 'MERGE', '{}', 'xqz', 'XQZ', 'DONE', $2, now())`,
+      [서비스, 작성],
+    );
+    expect(await 게임자동수정실행뒤(await 실행([{ tcId: 'XQZ-FN-001', error: 시간초과 }]))).not.toBeNull();
+  });
 });

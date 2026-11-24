@@ -9,9 +9,10 @@ import { 반영계획만들기, 반영절, 테스트고침읽기, 테스트고�
 import { PR제목 } from './authoring-chain.js';
 import { 맵올리기 } from './authoring-explore.js';
 import type { 보고손 } from './authoring-io.js';
+import { 자동병합재기 } from './authoring-fix-measure.js';
 import { 고칠케이스더하기 } from './authoring-run3-env.js';
 import { 실패trace받기 } from './authoring-screen-right.js';
-import { 고친곳읽기, 다시돌림글, 다시돌림세기, 되묻기인자, 요약되받기, 자동병합재기, 케이스끝들읽기, 테스트고침싣는손 } from './authoring-test-fix.js';
+import { 고친곳읽기, 다시돌림글, 다시돌림세기, 되묻기인자, 요약되받기, 케이스끝들읽기, 테스트고침싣는손 } from './authoring-test-fix.js';
 
 const 고침 = { auto: true as const, cases: [{ runId: 21154, tcId: 'ARG-FN-031', env: 'qa', failure: 'notFound' as const }, { runId: 21154, tcId: 'ARG-FN-040', env: 'qa', failure: 'timeout' as const }], note: '' };
 const 판 = { version: 3, items: [] };
@@ -140,7 +141,7 @@ describe('게임 돌려 보기 횟수', () => {
 
 describe('맡긴 케이스를 그대로 한 번', () => {
   it('바뀐 파일 목록에 맡긴 케이스 파일을 더해 폰 돌려 보기가 고치기 전에도 돌린다 — 값이 없으면 케이스 파일을 안 읽는다', () => {
-    const 경로들 = vi.fn(() => ['arg/ARG-FN-031.spec.ts', 'arg/sub/ARG-FN-040.spec.ts', 'arg/ARG-FN-0310.spec.ts', 'arg/pages/상점.page.ts']);
+    const 경로들 = vi.fn(() => ['arg/ARG-FN-031.spec.ts', 'arg/sub/ARG-FN-040.spec.ts', 'arg/ARG-FN-0310.spec.ts', 'arg/pages/상점.page.ts'].map((경로) => ({ 경로, 글: '' })));
     expect(고칠케이스더하기(['tests/arg/pages/던전.page.ts'], 'ARG-FN-031, ARG-FN-040', 경로들)).toEqual(['tests/arg/pages/던전.page.ts', 'tests/arg/ARG-FN-031.spec.ts', 'tests/arg/sub/ARG-FN-040.spec.ts']);
     expect(고칠케이스더하기(['tests/arg/ARG-FN-031.spec.ts'], 'ARG-FN-031', 경로들)).toEqual(['tests/arg/ARG-FN-031.spec.ts']);
     경로들.mockClear();

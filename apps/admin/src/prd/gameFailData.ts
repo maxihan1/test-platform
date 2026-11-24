@@ -3,10 +3,11 @@
 import { GAME_ERRORS_FILE } from '@platform/kit';
 import { GAME_TREE_FILE } from '@platform/kit/protocol';
 
+import { 단위비밀들 } from '../execution/execRead.js';
 import { 글가린다 } from '../execution/traceIngest.js';
 import { 게임실패파일읽기 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
-import { 항목비밀 } from '../execution/trial.js';
+import { 긴것부터, 항목비밀 } from '../execution/trial.js';
 
 /** 파일 하나가 자식 자료 폴더에서 차지할 상한 — 가린 뒤에 자른다. 오브젝트 목록이 수백 줄이어도 앞쪽이면 이름이 바뀐 것을 찾는 데 충분하다 */
 const 파일상한 = 20_000;
@@ -30,8 +31,8 @@ export async function 게임실패자료(
   const { pool } = await import('../db/index.js');
   // 세우는 쪽(gameFix.ts)은 시간 초과로 미실행(NA)이 된 케이스도 맡는다 — FAIL 항목이 있으면 그것을, 없으면 끝난 NA 항목을 읽는다
   const 행 = (
-    await pool.query<{ history_id: string; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }>(
-      `SELECT i.history_id, i.params, i.expected, i.param_schema, i.expected_schema
+    await pool.query<{ history_id: string; exec_id: string | null; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }>(
+      `SELECT i.history_id, i.exec_id, i.params, i.expected, i.param_schema, i.expected_schema
          FROM run_item i JOIN test_run r ON r.run_id = i.run_id
         WHERE i.run_id = $1 AND i.tc_id = $2 AND r.service_id = $3 AND (i.status = 'FAIL' OR (i.status = 'NA' AND i.finished_at IS NOT NULL))
         ORDER BY (i.status = 'FAIL') DESC, i.history_id LIMIT 1`,
@@ -41,22 +42,25 @@ export async function 게임실패자료(
   if (행 === undefined) return { error: 'NO_TRACE', detail: '그 실행에 이 케이스의 실패 항목이 없다' };
   const historyId = Number(행.history_id);
   const 항목 = await findItem(runId, historyId);
-  const 비밀 = 항목비밀(행);
+  // 폴더도 비밀값도 실행 단위에 한 벌이다 — 프로시저 줄은 케이스 줄 번호로 찾으면 빈 폴더고, 앞 케이스의 비밀값이 이 케이스의 글에 되비친다(execution/execRead.ts)
+  const 단위 = 행.exec_id === null ? null : Number(행.exec_id);
+  const 비밀 = 긴것부터([...new Set([...항목비밀(행), ...(단위 === null ? [] : ((await 단위비밀들([단위])).get(단위) ?? []))])]);
   // 가린 뒤에 자른다 — 먼저 자르면 잘린 자리에 걸친 비밀값 조각이 가림 무늬에 안 걸린다
   const 읽기 = async (이름: typeof GAME_TREE_FILE | typeof GAME_ERRORS_FILE): Promise<string | null> => {
-    const 글 = await 게임실패파일읽기(runId, historyId, 이름);
+    const 글 = await 게임실패파일읽기(runId, 단위 ?? historyId, 이름);
     return 글 === null ? null : 글가린다(글, 비밀).slice(0, 파일상한);
   };
+  const 가린글 = (글: string | null | undefined): string | null => (글 == null ? null : 글가린다(글, 비밀));
   const 실패절차 = 항목?.steps.find((s) => s.status === 'FAIL') ?? null;
   const game: 게임실패 = {
-    step: 실패절차?.title ?? null,
-    error: 실패절차?.error?.message ?? 항목?.failure?.reason ?? null,
+    step: 가린글(실패절차?.title),
+    error: 가린글(실패절차?.error?.message ?? 항목?.failure?.reason),
     tree: await 읽기(GAME_TREE_FILE),
     errors: await 읽기(GAME_ERRORS_FILE),
   };
   const summary = [
     ...(game.step === null ? [] : [`실패한 절차: ${game.step}`]),
     ...(game.error === null ? [] : [`오류: ${game.error}`]),
-  ].map((줄) => 글가린다(줄, 비밀).slice(0, 500));
+  ].map((줄) => 줄.slice(0, 500));
   return { summary, game };
 }

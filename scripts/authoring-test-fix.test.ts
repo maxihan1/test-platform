@@ -8,8 +8,9 @@ import { describe, expect, it } from 'vitest';
 
 import { 반영계획만들기, 반영막힘, 반영절, 테스트고침읽기, 테스트고침줄 } from './authoring-apply.js';
 import { PR제목 } from './authoring-chain.js';
+import { 고장줄읽기, 고치기전후, 자동병합재기, 판정읽기 } from './authoring-fix-measure.js';
 import type { 보고손 } from './authoring-io.js';
-import { 판정읽기, 고장줄읽기, 고친곳읽기, 고치기전후, 다시돌림글, 다시돌림세기, 되묻기인자, 요약되받기, 자동병합재기, 테스트고침싣는손 } from './authoring-test-fix.js';
+import { 고친곳읽기, 다시돌림글, 다시돌림세기, 되묻기인자, 요약되받기, 테스트고침싣는손 } from './authoring-test-fix.js';
 import { 세션번호 } from './authoring-usage.js';
 
 const 판 = { version: 3, items: [{ reqId: 'X-REQ-001', feature: '로그인', text: '로그인하면 홈으로 간다', basis: [], status: 'CONFIRMED' } as PrdItem] };

@@ -5,7 +5,7 @@ import { PC_PLATFORMS, PC항목인가 } from '@platform/kit/types';
 import type { 돌린판 } from './authoring-gate3.js';
 import { type 맵행, 맵행읽기 } from './authoring-game-route.js';
 import { 판정하기, 한판들 } from './authoring-phone-split.js';
-import { type 판정줄, 프로시저판정 } from './authoring-proc-run.js';
+import { type 판정줄, 프로시저케이스들, 프로시저판정 } from './authoring-proc-run.js';
 
 /** 폰에서 도는 두 갈래 — 게임은 control-cli, 앱은 appium-cli 로 AI 가 폰을 잡는다 */
 export type 폰갈래 = '게임' | '앱';
@@ -100,10 +100,10 @@ export function 폰판정들(
 /** 테스트 고침이 맡긴 케이스(tcId 를 쉼표로) — 에이전트가 넘긴다. 고치기 전에 「그대로 한 번」 돌려 보려면 안 바뀐 케이스도 돌아야 한다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 1) */
 export const 고칠케이스환경 = 'AUTHORING_FIX_CASES';
 
-/** 바뀐 파일 목록에 맡긴 케이스 파일(`tests/<폴더 안 경로>`)을 더한다 — 폰고르기가 바뀐 케이스처럼 고른다. 값이 없으면 목록 그대로고 케이스 파일도 안 읽는다 */
-export function 고칠케이스더하기(바뀐: readonly string[], 값: string | undefined, 케이스경로들: () => readonly string[]): string[] {
+/** 바뀐 파일 목록에 맡긴 케이스가 든 파일(`tests/<폴더 안 경로>`)을 더한다 — 폰고르기가 바뀐 케이스처럼 고른다. 프로시저 안 케이스는 그 프로시저 파일이다. 값이 없으면 목록 그대로고 케이스 파일도 안 읽는다 */
+export function 고칠케이스더하기(바뀐: readonly string[], 값: string | undefined, 파일들: () => readonly { 경로: string; 글: string }[]): string[] {
   const tcIds = new Set((값 ?? '').split(',').map((x) => x.trim()).filter((x) => x !== ''));
   if (tcIds.size === 0) return [...바뀐];
-  const 더할 = 케이스경로들().filter((p) => p.endsWith('.spec.ts') && tcIds.has(p.split('/').pop()!.slice(0, -'.spec.ts'.length))).map((p) => `tests/${p}`);
-  return [...new Set([...바뀐, ...더할])];
+  const 맡은것 = (f: { 경로: string; 글: string }) => f.경로.endsWith('.spec.ts') && (tcIds.has(f.경로.split('/').pop()!.slice(0, -'.spec.ts'.length)) || (프로시저케이스들(f.글) ?? []).some((t) => tcIds.has(t)));
+  return [...new Set([...바뀐, ...파일들().filter(맡은것).map((f) => `tests/${f.경로}`)])];
 }

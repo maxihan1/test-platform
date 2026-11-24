@@ -1,15 +1,13 @@
 // BTS 「테스트 수정」 작성의 다시 돌린 횟수 · 고친 곳 한 줄 · 자동 병합 판정 · 끝내기 result.testFix 를 만든다 (도메인/BTS §3.12 「테스트 수정 바퀴」 2 · 3 · §7)
 // 앞 판은 자식이 적은 종료 코드(EXIT 0)를 횟수로 읽어 「다시 돌림 0」이 「3번 돌려 보기」와 어긋났다(2026-11-11 실측 PR #713) — 횟수는 기록에서 센다
 
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import ts from 'typescript';
-
 import { type 케이스끝, 케이스끝틀 } from '../apps/admin/src/bts/gameFixShared.js';
-import { 테스트고침읽기 } from './authoring-apply.js';
-import { 바뀐것 } from './authoring-base-list.js';
+import { type 테스트고침요청, 테스트고침읽기 } from './authoring-apply.js';
 import { 내용때 } from './authoring-file-times.js';
+import { type 걸린까닭, type 잴건, 고장줄읽기, 자동병합재기 } from './authoring-fix-measure.js';
 import { type 돌린판, 끝기록꼴, 돌린기록들, 판들읽기 } from './authoring-gate3.js';
 import type { 보고손 } from './authoring-io.js';
 import { 사유거르기 } from './authoring-reverse.js';
@@ -24,9 +22,9 @@ export interface 다시돌림 {
   기기: [string, number][];
 }
 
-/** 게임 돌려 보기 기록(`authoring:run -- 게임` — authoring-run3-game 게임 갈래) */
-const 게임기록꼴 = /^gate3-game-.*\.json$/;
-const 센기록꼴 = new RegExp(`${끝기록꼴.source}|${게임기록꼴.source}`);
+/** 폰 돌려 보기 기록(`authoring:run -- 게임` · `앱` — authoring-run3-game) */
+const 폰기록꼴 = /^gate3-(game|app)-.*\.json$/;
+const 센기록꼴 = new RegExp(`${끝기록꼴.source}|${폰기록꼴.source}`);
 
 /** 케이스 파일을 마지막으로 고친 때 — 돌려 보기와 같이 내용이 바뀐 때다(`내용때`). 못 읽으면 처음부터 센다 */
 function 고친때(결과폴더: string, 트리: string | undefined, 파일: string): number {
@@ -40,20 +38,25 @@ function 고친때(결과폴더: string, 트리: string | undefined, 파일: str
 }
 
 /**
- * 고친 케이스 파일(`<폴더>/<tcId>.spec.ts`)이 기기마다 몇 번 돌았나 — 웹은 마지막 전체 돌려 보기(가장 늦은 기록), 게임은 케이스 파일을 마지막으로 고친 뒤의 돌려 보기 기록을 다 더한다.
- * 게임 돌려 보기는 부를 때마다 케이스를 1번씩 돌아 가장 늦은 기록 하나로 세면 늘 1 이다. 고치기 전 「그대로 한 번」 · 고장 내 보기는 그 뒤에 파일을 되돌려 고쳐서 안 센다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 5)
+ * 고친 케이스가 기기마다 몇 번 돌았나 — 웹은 마지막 전체 돌려 보기(가장 늦은 기록), 폰은 케이스 파일을 마지막으로 고친 뒤의 돌려 보기 기록을 다 더한다.
+ * 폰 돌려 보기는 부를 때마다 1번씩 돌아 가장 늦은 기록 하나로 세면 늘 1 이다. 고치기 전 「그대로 한 번」 · 고장 내 보기는 그 뒤에 파일을 되돌려 고쳐서 안 센다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 5)
+ * 프로시저 안 케이스는 프로시저가 통째로 돌아 파일 이름으로 못 찾는다 — kit 이 남긴 그 케이스의 판정이 든 판을 세고, 앞 케이스에 막혀 못 돈 판은 안 센다
  */
 export function 다시돌림세기(결과폴더: string, tcIds: readonly string[], 트리?: string): 다시돌림 {
-  const 이름들 = new Set(tcIds.map((t) => `${t}.spec.ts`));
   const 판들 = 판들읽기(돌린기록들(결과폴더, 센기록꼴), true)?.판들 ?? new Map<string, 돌린판[]>();
   const 기기 = new Map<string, number>();
   for (const [열쇠, 판목록] of 판들) {
     const [파일, 이름] = 열쇠.split('\0') as [string, string];
-    if (!이름들.has(파일.split('/').pop() ?? '') || 판목록.length === 0) continue;
-    const 끝판 = 판목록.filter((p) => p.끝);
-    const 이후 = 고친때(결과폴더, 트리, 파일);
-    const 횟수 = 끝판.length > 0 ? 끝판.reduce((a, b) => (b.시작 > a.시작 ? b : a)).상태들.length : 판목록.filter((p) => p.시작 >= 이후).reduce((n, p) => n + p.상태들.length, 0);
-    기기.set(이름, Math.min(기기.get(이름) ?? Infinity, 횟수));
+    for (const tcId of new Set(tcIds)) {
+      const 케이스판 = (p: 돌린판) => p.케이스들?.find((k) => k.tcId === tcId);
+      const 옛꼴 = 파일.split('/').pop() === `${tcId}.spec.ts`;
+      if (!옛꼴 && !판목록.some((p) => 케이스판(p) !== undefined)) continue;
+      const 돈판 = 옛꼴 ? 판목록 : 판목록.filter((p) => (케이스판(p)?.상태 ?? '막힘') !== '막힘');
+      const 끝판 = 돈판.filter((p) => p.끝);
+      const 이후 = 고친때(결과폴더, 트리, 파일);
+      const 횟수 = 끝판.length > 0 ? 끝판.reduce((a, b) => (b.시작 > a.시작 ? b : a)).상태들.length : 돈판.filter((p) => p.시작 >= 이후).reduce((n, p) => n + p.상태들.length, 0);
+      기기.set(이름, Math.min(기기.get(이름) ?? Infinity, 횟수));
+    }
   }
   const 줄 = [...기기].sort(([a], [b]) => a.localeCompare(b));
   return { 횟수: 줄.length === 0 ? 0 : Math.min(...줄.map(([, n]) => n)), 기기: 줄 };
@@ -74,91 +77,6 @@ const 요약상한 = 500;
 export function 고친곳읽기(자식출력: string): string {
   const 곳들 = [...자식출력.matchAll(/^[\s>*-]*테스트 고침: (?:BTS|게임) .*?· 고친 곳:?\s*(.+)$/gm)].map((m) => m[1]!.trim()).filter((t) => t !== '');
   return 곳들.join(' · ').slice(0, 요약상한);
-}
-
-export type 걸린까닭 = 'EXPECTED_CHANGED' | 'VERIFY_FEWER' | 'MUTATION_MISSED' | 'NOT_MEASURED';
-
-/** 기대값 칸을 꼴만 다르게 쓴 것(줄바꿈 · 주석 · 끝 쉼표)은 같은 값으로 본다 — 낱말로 끊어 견주므로 글자 안의 쉼표 · 빈칸은 그대로다 */
-function 꼴풀기(n: ts.Node, sf: ts.SourceFile): string {
-  const 훑개 = ts.createScanner(ts.ScriptTarget.Latest, true, ts.LanguageVariant.Standard, n.getText(sf));
-  const 낱: string[] = [];
-  for (let t = 훑개.scan(); t !== ts.SyntaxKind.EndOfFileToken; t = 훑개.scan()) 낱.push(훑개.getTokenText());
-  return 낱.filter((x, i) => !(x === ',' && [']', '}', ')'].includes(낱[i + 1] ?? ''))).join(' ');
-}
-
-/** 화면 요소 찾기 · 누르기 같은 부르기의 인자(옵션 객체 칸 포함)인 글자 · 숫자 — 기대값이 아니라 요소 주소 · 데이터라 고쳐도 된다 */
-function 부르기인자인가(n: ts.Node): boolean {
-  let p = n.parent;
-  if (ts.isPropertyAssignment(p) && ts.isObjectLiteralExpression(p.parent)) p = p.parent.parent;
-  return ts.isCallExpression(p) || ts.isNewExpression(p);
-}
-
-/** 실제 값 칸(둘째 인자) 안에서 견주는 값 — `합계 === 300` · `slot === 'Weapon'` 처럼 기대값을 실제 값 쪽에 쓴 케이스가 있다 */
-function 견주는값들(n: ts.Node | undefined, sf: ts.SourceFile): string[] {
-  const 값: string[] = [];
-  const 훑기 = (x: ts.Node): void => {
-    if ((ts.isStringLiteralLike(x) || ts.isNumericLiteral(x)) && !부르기인자인가(x)) 값.push(`값 ${꼴풀기(x, sf)}`);
-    ts.forEachChild(x, 훑기);
-  };
-  if (n !== undefined) 훑기(n);
-  return 값;
-}
-
-/** 부르기 이름 — `waitFor(…)` · `game.waitFor(…)` 둘 다 */
-const 부른이름 = (e: ts.Expression): string | undefined => (ts.isIdentifier(e) ? e.text : ts.isPropertyAccessExpression(e) ? e.name.text : undefined);
-
-/** 옵션 객체 인자의 칸 하나 — 객체가 아니거나 칸이 없으면 undefined */
-function 옵션칸(n: ts.Node | undefined, 이름: string): ts.Expression | undefined {
-  if (n === undefined || !ts.isObjectLiteralExpression(n)) return undefined;
-  const 칸 = n.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === 이름);
-  return 칸?.initializer;
-}
-
-/**
- * 게임 케이스의 기다리는 값 — `waitFor` 의 text · `waitForValue` 의 값 · `repeatUntil` 의 goal. 그 값이 될 때까지 기다리는 문장이 확인 노릇을 해서 기대값처럼 잰다.
- * 얼마나 기다리나(timeoutMs · stallMs)와 무엇을 기다리나(주소)는 고쳐도 된다 (도메인/게임 §3.10 「실패 자동 수정」 3 의 4 · 4)
- */
-function 기다리는값(n: ts.CallExpression, sf: ts.SourceFile): string | undefined {
-  const 이름 = 부른이름(n.expression);
-  const 값 = 이름 === 'waitFor' ? 옵션칸(n.arguments[1], 'text') : 이름 === 'waitForValue' ? n.arguments[2] : 이름 === 'repeatUntil' ? 옵션칸(n.arguments[1], 'goal') : undefined;
-  return 값 === undefined ? undefined : `기다림 ${이름 ?? ''} ${꼴풀기(값, sf)}`;
-}
-
-/**
- * 케이스 파일의 판정 — verify 문장 수와 기대값 칸들(verify 셋째 · verify.element 넷째 · verify.rates 셋째와 허용 오차, 그리고 실제 값 칸 안의 견주는 값), 게임 케이스의 기다리는 값, defineCase 의 expected.
- * defineCase 가 없으면 못 읽은 것이다
- */
-export function 판정읽기(글: string): { 수: number; 기대값: string[]; expected: string } | null {
-  const sf = ts.createSourceFile('case.ts', 글, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  let 수 = 0;
-  let expected: string | null = null;
-  const 기대값: string[] = [];
-  const 훑기 = (n: ts.Node): void => {
-    if (ts.isCallExpression(n)) {
-      const 기다림 = 기다리는값(n, sf);
-      if (기다림 !== undefined) 기대값.push(기다림);
-      const e = n.expression;
-      const 칸 = ts.isIdentifier(e) && e.text === 'verify' ? [2] : ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'verify' ? { element: [3], rates: [2, 3], log: [2] }[e.name.text] : undefined;
-      if (칸 !== undefined) {
-        수 += 1;
-        기대값.push(칸.map((i) => (n.arguments[i] === undefined ? '' : 꼴풀기(n.arguments[i]!, sf))).join(' ⟂ '), ...견주는값들(n.arguments[칸[0]! - 1], sf));
-      }
-      if (ts.isIdentifier(e) && e.text === 'defineCase' && n.arguments[0] !== undefined && ts.isObjectLiteralExpression(n.arguments[0])) {
-        const 칸값 = n.arguments[0].properties.find((p) => ts.isPropertyAssignment(p) && p.name.getText(sf) === 'expected');
-        expected = 칸값 === undefined ? '' : 꼴풀기((칸값 as ts.PropertyAssignment).initializer, sf);
-      }
-    }
-    ts.forEachChild(n, 훑기);
-  };
-  훑기(sf);
-  return expected === null ? null : { 수, 기대값, expected };
-}
-
-/** 자식 결과 요약의 `테스트 고침 고장 내 보기: <tcId> · 고장 <N> · 그 자리 빨강 <M>` — 같은 케이스가 여럿이면 마지막 줄(tpx-author apply.md §7) */
-export function 고장줄읽기(자식출력: string, tcId: string): { 고장: number; 빨강: number } | undefined {
-  let 찾은: { 고장: number; 빨강: number } | undefined;
-  for (const m of 자식출력.matchAll(/^[\s>*-]*테스트 고침 고장 내 보기:\s*(\S+)\s*·\s*고장\s*(\d+)\s*·\s*그 자리 빨강\s*(\d+)/gm)) if (m[1] === tcId) 찾은 = { 고장: Number(m[2]), 빨강: Number(m[3]) };
-  return 찾은;
 }
 
 const 끝들 = ['FIXED', 'FLAKY', 'NOT_FOUND'] as const;
@@ -182,51 +100,13 @@ export function 케이스끝들읽기(자식출력: string, tcIds: readonly stri
 }
 
 /**
- * 자동 병합 세 조건(도메인/BTS §3.12 「테스트 수정 바퀴」 3) — 걸린 까닭들. 비면 자동 병합한다.
- * 기대값은 고치기 전 것이 하나도 빠지거나 바뀌지 않아야 한다(확인을 더한 것은 괜찮다) · 확인 문장 수는 줄지 않아야 한다 ·
- * 고장 내 보기는 고장을 하나 이상 내 그 자리 문장이 다 빨개졌어야 한다. 고치기 전 · 뒤 파일이나 고장 줄이 없거나 빨강이 고장보다 많으면(숫자가 틀림) 「재지 못함」.
- * 고친 케이스 파일 말고 다른 테스트 파일(다른 케이스 · 화면 부품)도 바뀌었으면(`바뀐` — tests 아래 바뀐 파일 · 못 읽었으면 null) 그것은 재지 않으므로 「재지 못함」
+ * 재고 셀 케이스 — 게임 자동 수정은 케이스마다 끝이 있어 고친(FIXED) 것만, 끝 줄이 하나도 없거나 이슈로 온 고침이면 맡은 케이스 전부.
+ * 막혀서 못 고친 케이스까지 세면 다시 돌린 횟수가 0번이 된다
  */
-export function 자동병합재기(건들: readonly { tcId: string; 앞: string | null; 뒤: string | null }[], 자식출력: string, 바뀐: readonly string[] | null): 걸린까닭[] {
-  const 걸림 = new Set<걸린까닭>();
-  if (바뀐 === null || 바뀐.some((f) => !건들.some((건) => f.endsWith(`/${건.tcId}.spec.ts`)))) 걸림.add('NOT_MEASURED');
-  for (const 건 of 건들) {
-    const 앞 = 건.앞 === null ? null : 판정읽기(건.앞);
-    const 뒤 = 건.뒤 === null ? null : 판정읽기(건.뒤);
-    if (앞 === null || 뒤 === null) 걸림.add('NOT_MEASURED');
-    else {
-      const 남은 = [...뒤.기대값];
-      const 다있나 = 앞.기대값.every((v) => {
-        const i = 남은.indexOf(v);
-        return i >= 0 && 남은.splice(i, 1).length === 1;
-      });
-      if (!다있나 || 앞.expected !== 뒤.expected) 걸림.add('EXPECTED_CHANGED');
-      if (뒤.수 < 앞.수) 걸림.add('VERIFY_FEWER');
-    }
-    const 고장 = 고장줄읽기(자식출력, 건.tcId);
-    if (고장 === undefined || 고장.빨강 > 고장.고장) 걸림.add('NOT_MEASURED');
-    else if (고장.고장 < 1 || 고장.빨강 < 고장.고장) 걸림.add('MUTATION_MISSED');
-  }
-  return [...걸림].sort();
-}
-
-/** 기준과 견줘 바뀐 tests 아래 파일들 — 못 읽었으면 null */
-export function 고친테스트파일들(트리: string, 기준목록경로: string): string[] | null {
-  const r = 바뀐것(트리, 기준목록경로);
-  return Array.isArray(r) ? r : null;
-}
-
-/**
- * 고친 케이스 파일의 고치기 전 · 뒤 글. 고치기 전은 에이전트가 자료 폴더에 둔 기준 tests 목록(`git ls-tree -r -z <기준>`)의 blob 을 읽는다 — 자식이 커밋을 바꿔도 기준은 그대로다.
- * 케이스 파일은 `tests/<폴더>/<tcId>.spec.ts` 다. 없으면 null
- */
-export function 고치기전후(기준목록글: string, 트리: string, 깃: (인자: string[]) => { ok: boolean; 낸것: string }, tcId: string): { 앞: string | null; 뒤: string | null } {
-  const 항목 = 기준목록글.split('\0').find((x) => x.endsWith(`/${tcId}.spec.ts`) && x.includes('\ttests/'));
-  const [머리, 길] = 항목 === undefined ? [] : 항목.split('\t');
-  const sha = 머리?.split(' ')[2];
-  const 앞 = sha === undefined ? null : 깃(['cat-file', 'blob', sha]);
-  const 뒤길 = 길 === undefined ? null : join(트리, 길);
-  return { 앞: 앞?.ok === true ? 앞.낸것 : null, 뒤: 뒤길 !== null && existsSync(뒤길) ? readFileSync(뒤길, 'utf8') : null };
+export function 잴케이스들(고침: 테스트고침요청, 자식출력: string): string[] {
+  const tcIds = [...new Set(고침.cases.map((x) => x.tcId))];
+  const 끝들 = 고침.auto === true ? 케이스끝들읽기(자식출력, tcIds) : [];
+  return 끝들.length === 0 ? tcIds : 끝들.filter((x) => x.outcome === 'FIXED').map((x) => x.tcId);
 }
 
 /**
@@ -242,7 +122,7 @@ export function 테스트고침싣는손(
     비밀: readonly string[];
     /** 작업 트리 — 게임 돌려 보기 횟수를 케이스를 고친 뒤 것만 센다 */
     트리?: string;
-    파일: (tcId: string) => { 앞: string | null; 뒤: string | null };
+    파일: (tcId: string) => Omit<잴건, 'tcId'>;
     바뀐: () => readonly string[] | null;
   },
 ): 보고손 {
@@ -260,7 +140,7 @@ export function 테스트고침싣는손(
       // 끝 줄이 하나도 없으면 칸을 안 싣는다 — 빈 목록이면 서버가 모든 케이스를 「결과에 없음」으로 그만두고 연 PR 째 폐기한다. 칸이 없으면 PR 이 연 고침을 다 반영 대기로 둔다(gameFix.ts)
       const 끝들 = 고침.auto === true ? 케이스끝들읽기(자식출력, tcIds, 비밀) : [];
       const cases = 끝들.length > 0 ? 끝들 : undefined;
-      const 잴것 = cases === undefined ? tcIds : cases.filter((x) => x.outcome === 'FIXED').map((x) => x.tcId);
+      const 잴것 = 잴케이스들(고침, 자식출력);
       const reruns = 다시돌림세기(결과폴더, 잴것, 트리).횟수;
       // 고친 케이스가 없으면 잴 것이 없다 — 빈 판정이 「자동 반영」으로 읽히지 않게 「재지 못함」
       const held = 잴것.length === 0 ? (['NOT_MEASURED'] as 걸린까닭[]) : 자동병합재기(잴것.map((tcId) => ({ tcId, ...파일(tcId) })), 자식출력, 바뀐());

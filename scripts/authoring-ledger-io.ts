@@ -21,7 +21,7 @@ export { 옛줄들, 옛표줄들 } from './authoring-old-table.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
 import { 옛번호지도, 옮긴것읽기, 임시꼴, 판합치기, 표준원장 } from './authoring-prd.js';
 import { type 반영입력, type 테스트고침요청, type 화면이맞음요청, 반영계획만들기, 반영막힘, 반영사본이름 } from './authoring-apply.js';
-import { type 기준프로시저, 고칠프로시저들, 삭제막힘 } from './authoring-apply-proc.js';
+import { type 기준프로시저, 고침프로시저들, 고칠프로시저들, 삭제막힘 } from './authoring-apply-proc.js';
 import type { 원장입력 } from './authoring-prompt.js';
 
 export const 원장사본이름 = 'ledger.json';
@@ -260,6 +260,8 @@ export function 원장과남은번호(입력: {
     if (삭제 != null) 계획.삭제 = 삭제;
     const 프로시저 = 고칠프로시저들(계획, 기준값.프로시저파일 ?? []);
     if (프로시저.length > 0) 계획.프로시저 = 프로시저;
+    const 고침프로시저 = 고침프로시저들(계획.테스트고침, 기준값.프로시저파일 ?? []);
+    if (고침프로시저.length > 0) 계획.고침프로시저 = 고침프로시저;
     const 막힘 = 삭제 !== undefined ? (삭제 === null ? '삭제 칸(params.procDelete) 모양이 틀렸다 — 이 요청은 폐기한다' : 삭제막힘(계획)) : 입력.반영.화면이맞음 === null ? '화면이 맞음 칸(params.screenRight) 모양이 틀렸다 — 이 요청은 폐기하고 실행 결과에서 다시 누른다'
       : 입력.반영.테스트고침 === null ? '테스트 고침 칸(params.testFix) 모양이 틀렸다 — 이 요청은 폐기한다' : 반영막힘(계획);
     if (막힘 !== null) return { 막힘 };
