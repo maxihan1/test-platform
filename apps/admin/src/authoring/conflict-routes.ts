@@ -9,6 +9,7 @@ import { 입력자이름으로 } from './byName.js';
 import { tcId인가 } from './held.js';
 import { 뿌리, 뿌리잠그고, 사슬식, 최신식 } from './history.js';
 import { 번호 } from './params.js';
+import { 프로시저파일인가 } from './procFile.js';
 import { db, type 요청 } from './store.js';
 
 type 손 = Pool | PoolClient;
@@ -114,6 +115,9 @@ export async function 겹침통로(app: FastifyInstance): Promise<void> {
       고르기틀(reply, req.params, async (손, id): Promise<판정> => {
         const action = req.body?.action;
         if (!결정인가(action)) return { code: 400, error: 'BAD_CONFLICT', detail: req.params.tcId };
+        // 프로시저 안 케이스를 빼면 뒤 케이스의 흐름이 깨질 수 있는데 반영은 돌려 보지 않는다 — 빼려면 반영한 뒤 삭제한다 (작성 §3.6 「★ 테스트 프로시저 작성」 「반영 때 겹침」)
+        const 줄 = (await 최근겹침(손, id)).find((c) => c.tcId === req.params.tcId);
+        if (action === 'DROP' && 줄 !== undefined && 프로시저파일인가(줄.file)) return { code: 400, error: 'BAD_CONFLICT', detail: req.params.tcId };
         const 고른 = { action, by: req.user?.username ?? '', at: new Date().toISOString() };
         await 손.query(
           `UPDATE authoring_request

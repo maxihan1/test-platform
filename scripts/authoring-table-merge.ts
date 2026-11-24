@@ -38,6 +38,10 @@ export function 표덩이풀기(글: string): { 글: string } | { 사유: string
     if (i >= 줄들.length) return { 사유: '요구사항 표의 충돌 표시가 끝나지 않았다' };
     i += 1;
     if (바탕.length === 0) {
+      // 같은 절(프로시저 절)을 양쪽이 처음 만들면 표 줄과 절이 한 덩이로 와서 이어 붙이면 이 요청의 요구 줄이 main 절 밑에 들어간다 (TP-F5-27)
+      const 머리들 = (덩이: string[]) => 덩이.filter((l) => /^##\s/.test(l)).map((l) => l.trim());
+      const 같은절 = 머리들(우리).filter((h) => 머리들(그쪽).includes(h));
+      if (같은절.length > 0) return { 사유: `두 요청이 같은 절(${같은절.join(' · ')})을 각자 처음 만들었다` };
       결과.push(...그쪽, ...우리);
       continue;
     }

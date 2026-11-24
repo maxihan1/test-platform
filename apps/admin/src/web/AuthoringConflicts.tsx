@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from 'react';
 
+import { 프로시저파일인가 } from '../authoring/procFile.js';
 import { api, type AuthoringConflict, type AuthoringConflictAction, type AuthoringConflictKind, type AuthoringMadeCase, type CaseRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 케이스주소 } from './route.js';
@@ -138,9 +139,12 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
                       <button className={c.input?.action === 'KEEP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'KEEP'} aria-label={`${c.tcId} ${t('둘 다 유지')}`} disabled={보내는중} onClick={() => 보낸다([고른다(c, 'KEEP')])}>
                         {t('둘 다 유지')}
                       </button>
-                      <button className={c.input?.action === 'DROP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'DROP'} aria-label={`${c.tcId} ${t('새 케이스 제외')}`} disabled={보내는중} onClick={() => 보낸다([고른다(c, 'DROP')])}>
-                        {t('새 케이스 제외')}
-                      </button>
+                      {/* 프로시저 안 케이스를 빼면 흐름이 깨질 수 있는데 반영은 돌려 보지 않는다 — 서버도 400 으로 막는다 */}
+                      {프로시저파일인가(c.file) ? null : (
+                        <button className={c.input?.action === 'DROP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'DROP'} aria-label={`${c.tcId} ${t('새 케이스 제외')}`} disabled={보내는중} onClick={() => 보낸다([고른다(c, 'DROP')])}>
+                          {t('새 케이스 제외')}
+                        </button>
+                      )}
                       {c.input === null ? null : (
                         <button
                           className="btn ghost"

@@ -21,17 +21,18 @@ import { AI부품합치기 } from './authoring-po-merge.js';
 import { 관문tsc인자 } from './authoring-typecheck.js';
 import {
   type 보류입력,
-  값적기,
+  보류남은번호들,
   보류있나,
   반영표시,
   반영푸시인자,
-  보류남음,
   새머리판정,
   실패문장들,
   실행입력,
-  케이스tcId,
+  케이스tcId들,
   표고치기,
 } from './authoring-held-apply.js';
+import { 보류반영, 절케이스빼기 } from './authoring-held-proc.js';
+import { 세번판정, 실행대상들 } from './authoring-held-run.js';
 
 /** 머지 한 건이 반영에 쓰는 것. `자식` 은 그 머지가 잡은 자리의 uid 다(맥 · 자리 없는 반영이면 null) */
 export interface 반영준비 {
@@ -72,24 +73,23 @@ export function 계산(
   const 쓰기 = new Map<string, string>();
   const 지우기: string[] = [];
   for (const [tcId, 입력] of Object.entries(held)) {
-    const 파일 = 모두.find((f) => 케이스tcId(f.글) === tcId);
+    const 파일 = 모두.find((f) => 케이스tcId들(f.글).includes(tcId));
     if (파일 === undefined) return { 사유: `${tcId} 케이스 파일을 못 찾았다` };
-    if (입력.removed === true) {
-      지우기.push(파일.경로);
-      continue;
-    }
-    const r = 값적기(파일.글, 입력);
+    // 같은 파일에 보류가 여럿이면 앞 고침 결과 위에 적는다 — 원본에서 다시 읽으면 앞 고침을 덮는다
+    const r = 보류반영(쓰기.get(파일.경로) ?? 파일.글, tcId, 입력);
     if ('사유' in r) return { 사유: `${tcId}: ${r.사유}` };
-    쓰기.set(파일.경로, r.글);
+    if (r.지움) {
+      쓰기.delete(파일.경로);
+      지우기.push(파일.경로);
+    } else 쓰기.set(파일.경로, r.글);
   }
   const 표 = join('docs', 'cases', `${서비스}.md`);
   const 제거 = Object.entries(held).flatMap(([id, 입력]) => (입력.removed === true ? [id] : []));
-  if (제거.length > 0 && existsSync(join(트리, 표))) 쓰기.set(표, 표고치기(readFileSync(join(트리, 표), 'utf8'), 제거));
+  if (제거.length > 0 && existsSync(join(트리, 표))) 쓰기.set(표, 표고치기(제거.reduce(절케이스빼기, readFileSync(join(트리, 표), 'utf8')), 제거));
   // ⒝ — 입력에 없던 보류까지 본다. 남으면 값 없이 건너뛰는 케이스가 main 에 들어간다
   const 남음 = 모두
     .filter((f) => !지우기.includes(f.경로))
-    .filter((f) => 보류남음(쓰기.get(f.경로) ?? f.글))
-    .map((f) => 케이스tcId(f.글) ?? f.경로);
+    .flatMap((f) => 보류남은번호들(쓰기.get(f.경로) ?? f.글).map((t) => t ?? f.경로));
   if (남음.length > 0) return { 사유: `보류 표시가 남아 병합하지 않는다: ${남음.join(' · ')}` };
   if (계정섞였나([...쓰기.values()], 비밀)) return { 사유: 비밀거절 };
   return { 쓰기, 지우기 };
@@ -215,21 +215,23 @@ async function 보류관문(
   const 먼저 = 적용(자리, 쓸);
   if (먼저 !== null) return { 사유: 먼저 };
 
-  const 채운파일 = [...쓸.쓰기.keys()].filter((f) => f.endsWith('.spec.ts'));
+  const 대상들 = 실행대상들(쓸.쓰기, held);
   const 환경 = 관문환경(자리, 준비.자식, 준비);
   const 관문들: [string, string[], string, number][] = [
     // 이 앱 폴더만 — PR 브랜치의 package.json 이 아니라 배포된 이 스크립트가 범위를 정해 이미 쓴 PR 에도 먹는다. 폴더를 못 받았으면 옛대로 전체
     준비.폴더 ? ['npx', 관문tsc인자(자리, 준비.폴더), '타입 검사', 600_000] : ['npm', ['run', 'typecheck'], '타입 검사', 600_000],
     ['npm', ['run', 'check:tests', '--', '--no-held'], '케이스 규칙 검사', 600_000],
   ];
-  if (채운파일.length > 0) {
+  if (대상들.length > 0) {
     await 손.단계('채운 케이스를 3회 돌리는 중');
-    관문들.push(['npx', ['playwright', 'test', ...채운파일, '--project=desktop', '--repeat-each=3', '--reporter=json'], '3회 실행', 1_800_000]);
+    관문들.push(['npx', ['playwright', 'test', ...대상들.map((d) => d.파일), '--project=desktop', '--repeat-each=3', '--reporter=json'], '3회 실행', 1_800_000]);
   }
   for (const [명령, 인자, 설명, 제한] of 관문들) {
     const r = await 돌린다(명령, 인자, { cwd: 자리.트리, env: 환경, uid: 준비.자식?.uid, gid: 준비.자식?.gid, 제한 });
-    if (r.코드 === 0) continue;
-    const 문장들 = 설명 === '3회 실행' ? 실패문장들(r.낸것) : null;
+    // 프로시저 파일은 종료 코드에 같은 프로시저의 다른 케이스 빨강이 섞이므로 채운 케이스의 판정 첨부로 본다
+    const 판정 = 설명 === '3회 실행' && 대상들.some((d) => d.tcIds !== null) ? 세번판정(r.낸것, 대상들) : null;
+    if (판정 !== null ? 판정.length === 0 : r.코드 === 0) continue;
+    const 문장들 = 판정 ?? (설명 === '3회 실행' ? 실패문장들(r.낸것) : null);
     const 끝줄 = `${r.낸것}\n${r.오류}`.trim().split('\n').filter((줄) => 줄.trim() !== '').slice(-3).join(' / ');
     return {
       사유:

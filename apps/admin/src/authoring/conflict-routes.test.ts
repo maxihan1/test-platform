@@ -184,6 +184,15 @@ describe.skipIf(연결 === undefined)('반영 때 겹침 통로', () => {
       expect((await 상세(원본)).conflictsOpen).toBe(1);
     });
 
+    it('프로시저 안 케이스는 남긴다만 고른다 — 뺀다는 400 BAD_CONFLICT (TP-F5-27)', async () => {
+      const 원본 = await 넣기({ status: 'DONE' });
+      const 프로시저겹침 = { ...번호겹침, tcId: 'XWY-FN-101', file: 'tests/xwy/XWY-TP-001.spec.ts' };
+      await 넣기({ status: 'FAILED', kind: 'MERGE', source: 원본, result: { conflicts: [프로시저겹침, 이름겹침] } });
+      expect((await 고르기(원본, 'XWY-FN-101', { action: 'DROP' })).json()).toEqual({ error: 'BAD_CONFLICT', detail: 'XWY-FN-101' });
+      expect((await 고르기(원본, 'XWY-FN-101', { action: 'KEEP' })).statusCode).toBe(200);
+      expect((await 고르기(원본, 'XWY-003', { action: 'DROP' })).statusCode).toBe(200);
+    });
+
     it('목록에 없는 tcId · 틀린 action 은 400 BAD_CONFLICT', async () => {
       const 원본 = await 겹친판();
       expect((await 고르기(원본, 'XWY-099', { action: 'KEEP' })).json()).toEqual({ error: 'BAD_CONFLICT', detail: 'XWY-099' });

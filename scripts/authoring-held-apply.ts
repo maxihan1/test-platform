@@ -38,19 +38,32 @@ function 이름(p: ts.ObjectLiteralElementLike): string | undefined {
   return ts.isIdentifier(p.name) || ts.isStringLiteral(p.name) ? p.name.text : undefined;
 }
 
-export function 명세글(sf: ts.SourceFile): ts.ObjectLiteralExpression | undefined {
-  let 찾음: ts.ObjectLiteralExpression | undefined;
+/** 파일 안 모든 `defineCase({...})` 인자 — 프로시저 파일은 선언이 여럿이다 */
+export function 명세들(sf: ts.SourceFile): ts.ObjectLiteralExpression[] {
+  const 모음: ts.ObjectLiteralExpression[] = [];
   const 걷기 = (n: ts.Node): void => {
-    if (찾음 !== undefined) return;
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'defineCase') {
       const 첫 = n.arguments[0];
-      if (첫 !== undefined && ts.isObjectLiteralExpression(첫)) 찾음 = 첫;
+      if (첫 !== undefined && ts.isObjectLiteralExpression(첫)) 모음.push(첫);
       return;
     }
     n.forEachChild(걷기);
   };
   걷기(sf);
-  return 찾음;
+  return 모음;
+}
+
+/**
+ * `defineCase({...})` 인자. tcId 를 주면 그 번호를 적은 선언이다 — 프로시저 파일은 선언이 여럿이라 첫 것이 그 케이스가 아니다.
+ * 안 주면 옛 꼴처럼 첫 선언이다
+ */
+export function 명세글(sf: ts.SourceFile, tcId?: string): ts.ObjectLiteralExpression | undefined {
+  return 명세들(sf).find((명세) => tcId === undefined || 번호글(명세) === tcId);
+}
+
+export function 번호글(명세: ts.ObjectLiteralExpression): string | null {
+  const 값 = 속성(명세, 'tcId')?.initializer;
+  return 값 !== undefined && ts.isStringLiteralLike(값) ? 값.text : null;
 }
 
 export function 속성(글: ts.ObjectLiteralExpression, 키: string): ts.PropertyAssignment | undefined {
@@ -99,9 +112,9 @@ function 빼는고침(원문: string, 속: ts.PropertyAssignment): 고침 {
  * 채운 칸에 `.default(값)` 을 적고(있으면 그 값을 바꾼다) `held` 속성을 뺀다.
  * 다시 적어도 같은 글이 나온다 — 실패 뒤 다시 누른 반영이 겹쳐 쓰지 않는다
  */
-export function 값적기(원문: string, 입력: Pick<보류입력, 'params' | 'expected'>): { 글: string } | { 사유: string } {
+export function 값적기(원문: string, 입력: Pick<보류입력, 'params' | 'expected'>, tcId?: string): { 글: string } | { 사유: string } {
   const sf = 읽기(원문);
-  const 명세 = 명세글(sf);
+  const 명세 = 명세글(sf, tcId);
   if (명세 === undefined) return { 사유: 'defineCase({...}) 를 코드에서 못 찾았다' };
   const 고침들: 고침[] = [];
   for (const 쪽 of ['params', 'expected'] as const) {
@@ -126,16 +139,20 @@ export function 값적기(원문: string, 입력: Pick<보류입력, 'params' | 
   return { 글: 고치기(원문, 고침들) };
 }
 
-export function 보류남음(글: string): boolean {
-  const 명세 = 명세글(읽기(글));
-  return 명세 !== undefined && 속성(명세, 'held') !== undefined;
+/** held 가 남은 케이스마다 번호(번호를 못 읽으면 null). 프로시저 파일은 케이스가 여럿이라 전부 본다 */
+export function 보류남은번호들(글: string): (string | null)[] {
+  return 명세들(읽기(글)).filter((명세) => 속성(명세, 'held') !== undefined).map(번호글);
 }
+
+export const 보류남음 = (글: string): boolean => 보류남은번호들(글).length > 0;
 
 export function 케이스tcId(글: string): string | null {
   const 명세 = 명세글(읽기(글));
-  const 값 = 명세 === undefined ? undefined : 속성(명세, 'tcId')?.initializer;
-  return 값 !== undefined && ts.isStringLiteralLike(값) ? 값.text : null;
+  return 명세 === undefined ? null : 번호글(명세);
 }
+
+/** 파일 안 모든 케이스의 번호 — 보류 케이스가 든 파일을 고를 때 쓴다 */
+export const 케이스tcId들 = (글: string): string[] => 명세들(읽기(글)).flatMap((명세) => 번호글(명세) ?? []);
 
 /**
  * 3회 실행의 환경 — 러너와 같은 이름(PLATFORM_BASE_URL)에 집기 `accounts` 를 PLATFORM_ACCOUNTS 로 얹는다.
@@ -181,8 +198,8 @@ interface 보고묶음 {
 
 const 색글자 = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
 
-/** Playwright JSON 보고에서 파일마다 첫 실패 문장. 못 읽으면 null */
-export function 실패문장들(낸것: string): string[] | null {
+/** Playwright JSON 보고에서 파일마다 첫 실패 문장(파일 → 문장). 못 읽으면 null */
+export function 실패맵(낸것: string): Map<string, string> | null {
   let 보고: 보고묶음;
   try {
     보고 = JSON.parse(낸것.slice(낸것.indexOf('{'))) as 보고묶음;
@@ -201,5 +218,10 @@ export function 실패문장들(낸것: string): string[] | null {
     (s.suites ?? []).forEach(걷기);
   };
   걷기(보고);
-  return [...모음].map(([파일, 문장]) => `${파일} — ${문장}`);
+  return 모음;
+}
+
+export function 실패문장들(낸것: string): string[] | null {
+  const 맵 = 실패맵(낸것);
+  return 맵 === null ? null : [...맵].map(([파일, 문장]) => `${파일} — ${문장}`);
 }

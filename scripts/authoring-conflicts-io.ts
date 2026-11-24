@@ -6,8 +6,10 @@ import { join } from 'node:path';
 
 import type { 결정, 겹침 } from '../apps/admin/src/authoring/conflicts.js';
 import { type 바뀐것, 결정계산, 처리줄 } from './authoring-conflicts-apply.js';
-import { 겹침찾기, 표tcId들, type 케이스글 } from './authoring-conflicts.js';
-import { 반영커밋인가, 보류있나, 케이스tcId } from './authoring-held-apply.js';
+import { 겹침찾기, 케이스번호들, 표tcId들, type 케이스글 } from './authoring-conflicts.js';
+import { 쓴프로시저번호 } from './authoring-conflicts-proc.js';
+import { 파일프로시저번호 } from '../apps/admin/src/authoring/procFile.js';
+import { 반영커밋인가, 보류있나 } from './authoring-held-apply.js';
 import { 겹침상한모양인가 } from '../apps/admin/src/authoring/conflicts.js';
 import { 번호열쇠 } from '../apps/admin/src/catalog/rules.js';
 import type { 반영준비 } from './authoring-held-merge.js';
@@ -43,6 +45,10 @@ export interface 겹침판 {
   겹침: 겹침[];
   /** 지금 main 과 이 요청이 쓴 tc_id 전부(표의 「제거함」 포함) — 새 번호는 이것의 가장 큰 것 + 1 부터 */
   쓴번호: Set<string>;
+  /** 이 요청이 새로 더한 프로시저 파일 가운데 main 에도 같은 번호의 파일이 있는 것 — 묻지 않고 새 번호를 준다 */
+  프로시저겹침: string[];
+  /** 지금 main 과 이 요청이 쓴 프로시저 번호 전부(파일 · 절) */
+  쓴프로시저: Set<string>;
 }
 
 // git 이 한글 · 특수 문자 이름을 따옴표로 감싸 내지 않게 -z 로 읽는다 — 감싼 이름은 파일을 못 찾아 겹침 검사를 건너뛴다
@@ -83,23 +89,26 @@ export function 겹침판읽기(
   const main표 = 글(mainSha, 표경로);
 
   const 쓴번호 = new Set([...표tcId들(요청표), ...표tcId들(main표)]);
-  for (const c of [...더한, ...main케이스]) {
-    const id = 케이스tcId(c.글);
-    if (id !== null) 쓴번호.add(id);
-  }
+  for (const c of [...더한, ...main케이스]) 케이스번호들(c.글).forEach((id) => 쓴번호.add(id));
   const 바탕길 = 목록(['ls-tree', '-r', '--name-only', '-z', 갈래점, '--', 폴더길]);
   if (바탕길 === null) return { 사유: '갈라진 자리의 케이스 파일 목록을 못 읽었다' };
-  const 바탕케이스 = new Set(
-    케이스들(갈래점, 바탕길).flatMap((c) => {
-      const id = 케이스tcId(c.글);
-      return id === null ? [] : [번호열쇠(id)];
-    }),
-  );
+  const 바탕케이스 = new Set(케이스들(갈래점, 바탕길).flatMap((c) => 케이스번호들(c.글).map(번호열쇠)));
   const 겹침 = 겹침찾기({ 더한, main케이스, 새로들어온: new Set(새로온길), 요청표, main표, 표경로, 뺀것: 입력.뺀것, 바탕표: 글(갈래점, 표경로), 바탕케이스 });
   // 서버가 끝내기 목록의 모양을 가둔다 — 모양이 틀린 줄이 하나라도 있으면 목록이 통째로 400 이라 사람이 고를 길도 없다
   const 틀림 = 겹침.find((c) => !겹침상한모양인가(c));
   if (틀림 !== undefined) return { 사유: `겹친 케이스의 번호나 이름 모양이 규칙과 다르다 — ${틀림.tcId}. 다시 작성한다` };
-  return { 자식커밋: 자식, mainSha, 합칠까: 합칠까(main바뀐, 표경로, 폴더), 겹침, 쓴번호 };
+  // 같은 main 에서 출발한 두 요청은 새 프로시저에 같은 번호를 받는다 — 파일 이름이 곧 번호라 이름으로 견준다
+  const main프로시저 = new Set(main길.flatMap((f) => 파일프로시저번호(f) ?? []));
+  // 보류 「제거」로 케이스가 다 빠지는 파일은 반영이 지운다 — 남겨 두면 새 번호를 줄 파일이 없어 반영이 늘 실패한다
+  const 다빠짐 = (file: string) => {
+    const 번호들 = 케이스번호들(더한.find((c) => c.file === file)?.글 ?? '');
+    return 번호들.length > 0 && 번호들.every((id) => 입력.뺀것.has(id));
+  };
+  const 프로시저겹침 = 더한길.filter((f) => main프로시저.has(파일프로시저번호(f) ?? '') && !다빠짐(f));
+  const 자식길 = 목록(['ls-tree', '-r', '--name-only', '-z', 자식, '--', 폴더길]);
+  if (자식길 === null) return { 사유: '자식이 끝낸 커밋의 케이스 파일 목록을 못 읽었다' };
+  const 쓴프로시저 = 쓴프로시저번호([...main길, ...자식길], [요청표, main표]);
+  return { 자식커밋: 자식, mainSha, 합칠까: 합칠까(main바뀐, 표경로, 폴더), 겹침, 쓴번호, 프로시저겹침, 쓴프로시저 };
 }
 
 /** 집기 응답의 conflicts — 모양이 맞는 결정만. 서버가 이미 가뒀지만 에이전트도 남의 입력으로 읽는다 */
@@ -123,11 +132,12 @@ export function 반영길(입력: {
   합칠까: boolean;
   머리: string;
   자식커밋: string;
+  프로시저겹침?: boolean;
 }): '멈춤' | '작업방' | '그대로' {
   const 고른 = new Map(입력.결정.map((d) => [d.tcId, d.action]));
   if (입력.겹침.some((c) => !고른.has(c.tcId))) return '멈춤';
   const 바꿀것 = 입력.겹침.some((c) => 고른.get(c.tcId) === 'DROP' || c.kinds.includes('TCID'));
-  return 바꿀것 || 입력.보류 || 입력.합칠까 || 입력.머리 !== 입력.자식커밋 ? '작업방' : '그대로';
+  return 바꿀것 || 입력.보류 || 입력.합칠까 || 입력.프로시저겹침 === true || 입력.머리 !== 입력.자식커밋 ? '작업방' : '그대로';
 }
 
 /** 겹침으로 멈춘 반영의 끝내기 — 서버가 목록을 받아 사람에게 고르게 한다. 수는 아직 안 고른 것 */
@@ -185,7 +195,7 @@ export async function 겹침보기(
     return null;
   }
   const 결정 = 결정들(준비.것.conflicts);
-  const 길 = 반영길({ 겹침: 읽음.겹침, 결정, 보류, 합칠까: 읽음.합칠까, 머리, 자식커밋: 읽음.자식커밋 });
+  const 길 = 반영길({ 겹침: 읽음.겹침, 결정, 보류, 합칠까: 읽음.합칠까, 머리, 자식커밋: 읽음.자식커밋, 프로시저겹침: 읽음.프로시저겹침.length > 0 });
   if (길 === '멈춤') {
     await 손.끝내기(겹침끝몸(읽음.겹침, 결정));
     return null;
@@ -201,15 +211,25 @@ export function 겹침쓸것(
   결정: { tcId: string; action: 결정 }[],
 ): { 쓰기: Map<string, string>; 지우기: string[]; 처리줄: string | null; 바뀐것: 바뀐것[] } | { 사유: string } {
   // 겹침은 자식이 끝낸 커밋에서 찾았고 작업 폴더도 그 커밋이다 — 없으면 트리가 어긋났다
-  const 없는 = 판.겹침.filter((c) => !안전한파일(트리, c.file)).map((c) => c.tcId);
+  const 없는 = [...판.겹침.map((c) => ({ 이름: c.tcId, file: c.file })), ...판.프로시저겹침.map((file) => ({ 이름: file, file }))]
+    .filter((c) => !안전한파일(트리, c.file))
+    .map((c) => c.이름);
   if (없는.length > 0) return { 사유: `겹친 케이스 파일이 작업 폴더에 없거나 보통 파일이 아니다 — ${없는.join(' · ')}` };
   const 표 = join('docs', 'cases', `${서비스}.md`);
   const 표있나 = existsSync(join(트리, 표));
   if (표있나 && !안전한파일(트리, 표)) return { 사유: `요구사항 표가 보통 파일이 아니다 — ${표}` };
   const 요청표 = 표있나 ? readFileSync(join(트리, 표), 'utf8') : '';
-  const r = 결정계산({ 겹침: 판.겹침, 결정, 읽기: (f) => readFileSync(join(트리, f), 'utf8'), 요청표, 쓴번호: 판.쓴번호 });
+  const r = 결정계산({
+    겹침: 판.겹침,
+    결정,
+    읽기: (f) => readFileSync(join(트리, f), 'utf8'),
+    요청표,
+    쓴번호: 판.쓴번호,
+    프로시저겹침: 판.프로시저겹침,
+    쓴프로시저: 판.쓴프로시저,
+  });
   if ('사유' in r) return r;
   const 쓰기 = new Map(r.쓰기.map((w) => [w.file, w.글]));
   if (표있나 && r.표 !== 요청표) 쓰기.set(표, r.표);
-  return { 쓰기, 지우기: r.지우기, 처리줄: 처리줄(r.바뀐것), 바뀐것: r.바뀐것 };
+  return { 쓰기, 지우기: r.지우기, 처리줄: 처리줄(r.바뀐것, r.프로시저바뀜), 바뀐것: r.바뀐것 };
 }

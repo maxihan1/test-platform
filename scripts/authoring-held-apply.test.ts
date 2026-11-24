@@ -8,6 +8,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { checkSource, checkSpec } from '../apps/admin/src/catalog/rules.js';
 import {
   값적기,
+  명세글,
   보류남음,
   보류있나,
   반영커밋인가,
@@ -16,6 +17,7 @@ import {
   실패문장들,
   실행입력,
   케이스tcId,
+  읽기,
   표고치기,
 } from './authoring-held-apply.js';
 
@@ -239,5 +241,18 @@ describe('실행입력 — 비밀값 칸은 kit 이 그 줄의 역할 계정으�
   it('계정이 없으면 PLATFORM_ACCOUNTS 키가 없다', () => {
     expect(실행입력(대상, undefined)).toEqual({ PLATFORM_BASE_URL: 'https://qa.test' });
     expect(실행입력(대상, [])).toEqual({ PLATFORM_BASE_URL: 'https://qa.test' });
+  });
+});
+
+describe('명세글 — tcId 로 고르기', () => {
+  const 둘 = `const 가 = defineCase({ tcId: 'XHA-FN-101', name: '가' });
+const 나 = defineCase({ tcId: 'XHA-FN-102', name: '나' });
+`;
+
+  it('번호를 주면 그 번호를 적은 선언을, 안 주면 첫 선언을 고른다', () => {
+    const sf = 읽기(둘);
+    expect(명세글(sf, 'XHA-FN-102')?.getText(sf)).toContain("name: '나'");
+    expect(명세글(sf)?.getText(sf)).toContain("name: '가'");
+    expect(명세글(sf, 'XHA-FN-999')).toBeUndefined();
   });
 });

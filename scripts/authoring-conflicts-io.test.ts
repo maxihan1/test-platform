@@ -188,6 +188,7 @@ describe('반영 길', () => {
     expect(반영길({ ...기본, 보류: true })).toBe('작업방');
     expect(반영길({ ...기본, 합칠까: true })).toBe('작업방');
     expect(반영길({ ...기본, 머리: 'b' })).toBe('작업방');
+    expect(반영길({ ...기본, 프로시저겹침: true })).toBe('작업방');
   });
 
   it('이름 · 요구 번호만 겹쳐 남기기로 했고 그 밖에 할 것이 없으면 그대로 반영한다', () => {
@@ -229,7 +230,7 @@ describe('고른 대로 바꿀 것', () => {
     const r = 겹침쓸것(
       트리,
       'PAY',
-      { 자식커밋: 'a', mainSha: 'b', 합칠까: false, 겹침: [겹친('PAY-001', ['TCID']), 겹친('PAY-002', ['NAME'])], 쓴번호: new Set(['PAY-001', 'PAY-002', 'PAY-005']) },
+      { 자식커밋: 'a', mainSha: 'b', 합칠까: false, 겹침: [겹친('PAY-001', ['TCID']), 겹친('PAY-002', ['NAME'])], 쓴번호: new Set(['PAY-001', 'PAY-002', 'PAY-005']), 프로시저겹침: [], 쓴프로시저: new Set() },
       [
         { tcId: 'PAY-001', action: 'KEEP' },
         { tcId: 'PAY-002', action: 'DROP' },
