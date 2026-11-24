@@ -1,4 +1,4 @@
-// 커스텀 리포터. 절차 결과를 모아 ExecuteResponse 한 줄로 stdout에 흘린다 (SPEC §5.2)
+// 커스텀 리포터. 절차 결과를 모아 결과 한 줄로 stdout에 흘린다 (SPEC §5.2)
 // 테스트가 끝날 때마다 바로 내보내고 아무것도 들고 있지 않는다. 러너는 이 줄만 읽는다
 
 import { copyFileSync, mkdirSync, readFileSync, renameSync, unlinkSync } from 'node:fs';
@@ -6,7 +6,7 @@ import { dirname, resolve } from 'node:path';
 
 import type { Reporter, TestCase, TestError, TestResult } from '@playwright/test/reporter';
 
-import type { ApiCallSeen, DeviceInfo, ElementCheck, ExecuteResponse, ItemStatus, StepResult } from '../types.js';
+import type { ApiCallSeen, CaseResult, DeviceInfo, ElementCheck, ExecuteResponse, ItemStatus, StepResult } from '../types.js';
 
 // 이 파일에는 값을 가져오는 상대 import를 두지 않는다. 러너 이미지의 Node 24는 './x.js'를 x.ts로
 // 풀어주지 않아 리포터가 통째로 로드되지 않는다. 타입 import는 지워지므로 괜찮다.
@@ -80,7 +80,7 @@ function deviceOf(result: TestResult): DeviceInfo | undefined {
 }
 
 // 게임 항목만 — 데이터 대조 줄 · 부른 서버 API. 빈 목록은 칸을 안 싣는다 (공통/3-공유계약 「게임 테스트 타입」)
-function gameOf(result: TestResult): Pick<ExecuteResponse, 'elementChecks' | 'apiCalls'> {
+function gameOf(result: TestResult): Pick<CaseResult, 'elementChecks' | 'apiCalls'> {
   const a = result.attachments.find((x) => x.name === GAME_ATTACHMENT);
   const raw = a === undefined ? undefined : attachmentText(a);
   if (raw === undefined) return {};
@@ -115,7 +115,7 @@ function errorOf(
   steps: StepResult[],
   status: ItemStatus,
   skipped: string | undefined,
-): ExecuteResponse['error'] {
+): CaseResult['error'] {
   if (status === 'NA') {
     return { message: result.error?.message ?? skipped ?? '판정 없이 실행이 끝났다' };
   }
@@ -142,7 +142,8 @@ class PlatformReporter implements Reporter {
     const error = errorOf(result, steps, status, skipReason(test, result));
     const device = deviceOf(result);
 
-    const payload: ExecuteResponse = {
+    // 테스트 하나의 결과다 — 옛 꼴 파일은 러너가 이 줄을 케이스 한 건으로 옮겨 담는다 (도메인/러너 §5.2 「프로시저 실행」)
+    const payload: Omit<CaseResult, 'tcId'> & Pick<ExecuteResponse, 'historyId' | 'device'> = {
       historyId: Number(process.env.PLATFORM_HISTORY_ID ?? 0),
       status,
       durationMs: result.duration,

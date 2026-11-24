@@ -43,12 +43,10 @@ describe('execute 가 자식에게 넘기는 앱 파일', () => {
   const 요청 = (app?: string): ExecuteRequest => ({
     runId: 5,
     historyId: 9,
-    tcId: 'AND-001',
     platform: 'android',
     filePath: 'a.spec.ts',
     baseUrl: '',
-    params: {},
-    expected: {},
+    cases: [{ tcId: 'AND-001', params: {}, expected: {} }],
     timeoutMs: 10_000,
     ...(app !== undefined && { app }),
   });
@@ -85,7 +83,7 @@ describe('execute 가 자식에게 넘기는 앞 빌드 (APP-F3-08)', () => {
   });
 
   const 요청 = (platform: ExecuteRequest['platform'], previousApp?: string): ExecuteRequest => ({
-    runId: 5, historyId: 15, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    runId: 5, historyId: 15, platform, filePath: 'a.spec.ts', baseUrl: '', cases: [{ tcId: 'AND-001', params: {}, expected: {} }], timeoutMs: 10_000,
     ...(previousApp !== undefined && { previousApp }),
   });
   const 받은값 = () => readFileSync(join(폴더, 'prev.txt'), 'utf8');
@@ -121,7 +119,7 @@ describe('execute 가 자식에게 넘기는 폰 번호 (APP-F1-10)', () => {
   });
 
   const 요청 = (platform: ExecuteRequest['platform'], udid?: string): ExecuteRequest => ({
-    runId: 5, historyId: 11, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    runId: 5, historyId: 11, platform, filePath: 'a.spec.ts', baseUrl: '', cases: [{ tcId: 'AND-001', params: {}, expected: {} }], timeoutMs: 10_000,
     ...(udid !== undefined && { udid }),
   });
   const 받은폰 = () => readFileSync(join(폴더, 'udid.txt'), 'utf8');
@@ -145,7 +143,7 @@ describe('execute 가 결과 줄의 기기 정보를 응답에 넘긴다 (APP-F1
     const 줄 = `@@RESULT@@${JSON.stringify({ status: 'PASS', durationMs: 5, steps: [], device: 기기 })}`;
     스크립트.지금 = `printf '%s\\n' '${줄}'`;
     const 응답 = await execute(
-      { runId: 5, historyId: 10, tcId: 'AND-001', platform: 'android', filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000 },
+      { runId: 5, historyId: 10, platform: 'android', filePath: 'a.spec.ts', baseUrl: '', cases: [{ tcId: 'AND-001', params: {}, expected: {} }], timeoutMs: 10_000 },
       'a.spec.ts',
     );
     expect(응답.device).toEqual(기기);
@@ -170,7 +168,7 @@ describe('execute 가 자식에게 넘기는 API 인증 (API-F1-04)', () => {
   });
 
   const 요청 = (apiAuths?: ExecuteRequest['apiAuths']): ExecuteRequest => ({
-    runId: 5, historyId: 12, tcId: 'NTF-FN-001', platform: 'desktop', filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    runId: 5, historyId: 12, platform: 'desktop', filePath: 'a.spec.ts', baseUrl: '', cases: [{ tcId: 'NTF-FN-001', params: {}, expected: {} }], timeoutMs: 10_000,
     ...(apiAuths !== undefined && { apiAuths }),
   });
   const 받은인증 = () => JSON.parse(readFileSync(join(폴더, 'auth.txt'), 'utf8')) as unknown;
@@ -206,7 +204,7 @@ describe('execute 가 자식에게 넘기는 API 문서 판 (API-F1-05)', () => 
   });
 
   const 요청 = (apiDoc?: ExecuteRequest['apiDoc']): ExecuteRequest => ({
-    runId: 5, historyId: 12, tcId: 'NTF-FN-001', platform: 'desktop', filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    runId: 5, historyId: 12, platform: 'desktop', filePath: 'a.spec.ts', baseUrl: '', cases: [{ tcId: 'NTF-FN-001', params: {}, expected: {} }], timeoutMs: 10_000,
     ...(apiDoc !== undefined && { apiDoc }),
   });
 
@@ -249,7 +247,7 @@ describe('execute 가 자식에게 넘기는 팜 AI 점검 켜기 (COMPAT-F1-03)
   });
 
   const 요청 = (platform: ExecuteRequest['platform'], uiCheck?: true, runId = 5): ExecuteRequest => ({
-    runId, historyId: 13, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    runId, historyId: 13, platform, filePath: 'a.spec.ts', baseUrl: '', cases: [{ tcId: 'AND-001', params: {}, expected: {} }], timeoutMs: 10_000,
     ...(uiCheck !== undefined && { uiCheck }),
   });
   const 받은값 = () => readFileSync(join(폴더, 'ui.txt'), 'utf8');
@@ -290,7 +288,7 @@ describe('execute 가 자식에게 넘기는 안정화 켜기 (STAB-F1-05)', () 
   });
 
   const 요청 = (platform: ExecuteRequest['platform'], stability?: true): ExecuteRequest => ({
-    runId: 5, historyId: 14, tcId: 'GAM-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    runId: 5, historyId: 14, platform, filePath: 'a.spec.ts', baseUrl: '', cases: [{ tcId: 'GAM-001', params: {}, expected: {} }], timeoutMs: 10_000,
     ...(stability !== undefined && { stability }),
   });
   const 받은값 = () => readFileSync(join(폴더, 'stab.txt'), 'utf8');

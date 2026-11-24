@@ -1,6 +1,6 @@
-// 러너 입구가 새 꼴 요청(파일 하나 + 케이스 목록)을 받고 프로시저를 돌릴 수 있다고 밝히는지 검사한다 (SPEC 도메인/러너 §5.2 「프로시저 실행」)
+// 러너 입구가 케이스 목록을 실은 요청을 받고 프로시저를 돌릴 수 있다고 밝히는지 검사한다 (SPEC 도메인/러너 §5.2 「프로시저 실행」)
 
-import type { CasesExecuteResponse } from '@platform/kit';
+import type { ExecuteResponse } from '@platform/kit';
 import Fastify from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -24,7 +24,7 @@ const 케이스들 = [
 ];
 // 입구는 파일이 있는지만 본다 — 있는 파일 하나를 빌린다
 const 요청 = { runId: 3, historyId: 41, platform: 'android', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', procId: 'MTA-TP-012', cases: 케이스들, timeoutMs: 600_000 };
-const 답 = (둘째: 'PASS' | 'FAIL'): CasesExecuteResponse => ({
+const 답 = (둘째: 'PASS' | 'FAIL'): ExecuteResponse => ({
   historyId: 41,
   durationMs: 9,
   results: [
@@ -46,7 +46,7 @@ describe('GET /health', () => {
   });
 });
 
-describe('POST /execute — 새 꼴', () => {
+describe('POST /execute — 케이스 목록', () => {
   it('케이스 목록과 프로시저 번호를 버리지 않고 실행에 넘기고 케이스별 결과를 그대로 답한다', async () => {
     vi.mocked(execute).mockResolvedValue(답('FAIL'));
 
@@ -71,6 +71,7 @@ describe('POST /execute — 새 꼴', () => {
   it.each([
     ['케이스가 비었으면', []],
     ['같은 tcId 가 둘이면', [케이스들[0], 케이스들[0]]],
+    ['케이스 목록이 없으면', undefined],
   ])('%s 400 INVALID_REQUEST 다', async (_무엇, cases) => {
     const res = await 서버().inject({ method: 'POST', url: '/execute', payload: { ...요청, cases } });
 

@@ -11,6 +11,7 @@ import type { ExecuteRequest } from '@platform/kit';
 import { 실행팜토큰 } from './farmToken.js';
 import { abortRunner, callRunner, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
+import { 러너답 } from './runnerFixture.js';
 
 // 화면 애플리케이션 케이스로 둔다 — 판 읽기는 runner.test.ts 가 본다
 vi.mock('../apidoc/caseDoc.js', () => ({ 케이스판: vi.fn(async () => ({})) }));
@@ -65,7 +66,7 @@ describe('callRunner — 어느 러너로 가는가', () => {
     app.post('/execute', async (req) => {
       불렸다.push(이름);
       받은요청.push(req.body as ExecuteRequest);
-      return { historyId: (req.body as ExecuteRequest).historyId, status: 'PASS', durationMs: 1, steps: [] };
+      return 러너답(req.body as ExecuteRequest);
     });
     await 붙임(app);
   }
@@ -238,7 +239,7 @@ describe('RUNNER_TOKEN · 잠든 러너', () => {
     app.addHook('onRequest', async (req) => {
       머리.push(`${req.method} ${req.url} ${req.headers.authorization ?? '없음'}`);
     });
-    app.post('/execute', async (req) => ({ historyId: (req.body as ExecuteRequest).historyId, status: 'PASS', durationMs: 1, steps: [] }));
+    app.post('/execute', async (req) => 러너답(req.body as ExecuteRequest));
     app.post('/abort', async () => ({ aborted: true }));
     app.get('/progress', async () => ({ items: [] }));
     await 붙인다(app);

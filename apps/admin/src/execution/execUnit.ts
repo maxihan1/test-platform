@@ -1,12 +1,12 @@
 // 실행 단위 하나를 러너에 보내고 결과를 되쓴다 — 옛 꼴 케이스는 케이스 하나, 프로시저는 케이스 여럿이 요청 하나다
 // (SPEC 도메인/실행 §3.2 「테스트 프로시저 실행」 · 도메인/러너 §5.2 「프로시저 실행」). dispatcher.ts 가 300줄을 넘어 여기 둔다
 
-import type { CasesExecuteRequest, CasesExecuteResponse, ExecuteResponse } from '@platform/kit';
+import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
 import { finishExec, 실행단위를시작한다 } from './execFinish.js';
 import { 항목화면을닫는다, 항목화면을연다 } from './live.js';
-import { callRunner, na, 실행칸, 폰에보낸다, type 잡은폰 } from './runner.js';
-import { 못간답, 케이스들을보낸다 } from './runnerCases.js';
+import type { 줄결과 } from './runLifecycle.js';
+import { callRunner, na, 못간답, 실행칸, 폰에보낸다, type 잡은폰 } from './runner.js';
 import { finishItem, type PendingItem } from './store.js';
 import { trace적재를맡긴다 } from './traceIngest.js';
 
@@ -31,7 +31,7 @@ export function 단위로묶는다(items: readonly PendingItem[]): 실행단위[
 
 const 글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
-async function 저장한다(item: PendingItem, result: ExecuteResponse): Promise<void> {
+async function 저장한다(item: PendingItem, result: 줄결과): Promise<void> {
   try {
     await finishItem(item.historyId, result);
     // 기다리지 않는다 — 풀기는 실행을 늦추지 않게 따로 한 줄로 돈다 (SPEC 실행 §3.2 「trace」)
@@ -49,12 +49,12 @@ async function 저장한다(item: PendingItem, result: ExecuteResponse): Promise
   }
 }
 
-const 케이스목록 = (단위: 실행단위): Pick<CasesExecuteRequest, 'historyId' | 'cases'> => ({
+const 케이스목록 = (단위: 실행단위): Pick<ExecuteRequest, 'historyId' | 'cases'> => ({
   historyId: 단위.execId,
   cases: 단위.케이스들.map((c) => ({ tcId: c.tcId, params: c.params, expected: c.expected })),
 });
 
-async function 프로시저를저장한다(단위: 실행단위, 답: CasesExecuteResponse): Promise<void> {
+async function 프로시저를저장한다(단위: 실행단위, 답: ExecuteResponse): Promise<void> {
   try {
     await finishExec(단위.execId, 답);
   } catch (err) {
@@ -77,7 +77,7 @@ export async function 단위를닫는다(단위: 실행단위, 까닭: string, s
   else await 프로시저를저장한다(단위, 못간답(케이스목록(단위), 까닭, stack));
 }
 
-/** 실행 단위 하나를 보내고 답을 저장한다. 옛 꼴 케이스는 옛 요청 그대로다 — 러너를 다시 빌드하기 전에도 전과 같이 돈다(옛 요청을 걷는 것은 TP-F6-32) */
+/** 실행 단위 하나를 보내고 답을 저장한다. 옛 꼴 케이스는 케이스 1건짜리 목록이고 API 문서 판을 싣는다(callRunner) */
 export async function 단위를돌린다(runId: number, 단위: 실행단위, 멈췄나: () => boolean, 잡은폰?: 잡은폰): Promise<void> {
   if (멈췄나()) return;
   // 시작 시각을 못 적었다고 실행을 버리지 않는다 — 판정과 끝난 때는 답을 저장할 때 따로 적는다
@@ -89,7 +89,7 @@ export async function 단위를돌린다(runId: number, 단위: 실행단위, �
     await 저장한다(첫, await callRunner(runId, 첫, 멈췄나, 잡은폰));
     return;
   }
-  const 요청: CasesExecuteRequest = {
+  const 요청: ExecuteRequest = {
     runId,
     ...케이스목록(단위),
     platform: 첫.platform,
@@ -102,11 +102,11 @@ export async function 단위를돌린다(runId: number, 단위: 실행단위, �
   };
   // 장면 · 폰 화면 칸의 열쇠는 실행 단위 번호다 — 러너가 그 번호로 진행을 알린다
   const 열쇠 = 항목화면을연다(단위.execId, true, { runId, timeoutMs: 요청.timeoutMs, 줄들: 단위.케이스들.map((c) => c.historyId) });
-  let 답: CasesExecuteResponse;
+  let 답: ExecuteResponse;
   try {
     답 = await 폰에보낸다(
       runId,
-      { 번호: 단위.execId, item: 첫, body: { ...요청, ...(열쇠 !== undefined && { live: 열쇠 }) }, 보낸다: 케이스들을보낸다, 못감: (까닭, stack) => 못간답(요청, 까닭, stack) },
+      { 번호: 단위.execId, item: 첫, body: { ...요청, ...(열쇠 !== undefined && { live: 열쇠 }) }, 못감: (까닭, stack) => 못간답(요청, 까닭, stack) },
       멈췄나,
       잡은폰,
     );

@@ -20,12 +20,10 @@ let 임시: string;
 const 요청 = (historyId: number): ExecuteRequest => ({
   runId: 9,
   historyId,
-  tcId: 'TRACE-001',
   platform: 'desktop',
   filePath: 'TRACE-001.spec.ts',
   baseUrl: '',
-  params: {},
-  expected: {},
+  cases: [{ tcId: 'TRACE-001', params: {}, expected: {} }],
   timeoutMs: 90_000,
 });
 
@@ -47,7 +45,7 @@ describe('정식 실행의 trace', () => {
   });
 
   it('나란히 돈 두 실행 모두 결과 줄이 그대로이고 trace.zip 이 스크린샷 자리에 남는다', () => {
-    for (const 응답 of 응답들) expect(응답).toMatchObject({ status: 'PASS', steps: [{ seq: 1 }, { seq: 2 }] });
+    for (const 응답 of 응답들) expect(응답).toMatchObject({ results: [{ status: 'PASS', steps: [{ seq: 1 }, { seq: 2 }] }] });
     expect(existsSync(traceDest('9', '1'))).toBe(true);
     expect(existsSync(traceDest('9', '2'))).toBe(true);
   });

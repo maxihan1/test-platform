@@ -1,16 +1,14 @@
 // 케이스 테스트 실행의 팜 폰 길 — 누른 사람 토큰으로 빈 폰을 잡고 돌린 뒤 놓는다. trialRoutes.ts 가 300줄을 넘어 떼어 냈다
-// 옛 꼴 요청(케이스 하나)과 새 꼴 요청(프로시저 — 파일 하나 + 케이스 목록)이 같은 길을 탄다 (도메인/실행 §3.2 「테스트 모드」 · 「테스트 프로시저 실행」)
+// 옛 꼴 케이스(케이스 1건짜리 목록)와 프로시저가 같은 길을 탄다 (도메인/실행 §3.2 「테스트 모드」 · 「테스트 프로시저 실행」)
 
-import type { ExecuteRequest } from '@platform/kit';
+import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
 import { 깔앞앱파일, 깔앱파일 } from './buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
 
-/** 옛 꼴 · 새 꼴 요청이 같이 가진 칸 — 폰 · 앱 · 장면 열쇠처럼 실행 단위에 한 벌인 것 */
-export type 시험요청 = Omit<ExecuteRequest, 'tcId' | 'params' | 'expected'>;
-/** 러너에 안 보내고 닫을 때의 답 — 꼴마다 모양이 달라 부르는 쪽이 만든다 */
-export type 못감함수<R> = (까닭: string, stack?: string) => R;
+/** 러너에 안 보내고 닫을 때의 답 */
+export type 못감함수 = (까닭: string, stack?: string) => ExecuteResponse;
 export type 폰화면함수 = (url: string | undefined, 이름?: string) => void;
 
 // 러너가 끊긴 실행에 주는 모양과 같다 — 화면이 이 글자로 「중단」을 가른다
@@ -22,15 +20,15 @@ export const 중단글 = 'ABORTED';
  * 올린 빌드의 서명 주소는 1~2시간 유효라 폰을 잡는 몇 초가 넉넉하다 (도메인/실행 §3.11).
  * 'chrome' 이면 모바일 웹이라 그 폰 Chrome 에서 돈다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
  */
-export async function 팜폰에서돌린다<Q extends 시험요청, R>(
-  요청: Q,
+export async function 팜폰에서돌린다(
+  요청: ExecuteRequest,
   사람: string,
   앱재료: { serviceId: number; env: string; appPath: string | null } | 'chrome',
   폰화면: 폰화면함수,
-  보내기: (body: Q) => Promise<R>,
+  보내기: (body: ExecuteRequest) => Promise<ExecuteResponse>,
   멈췄나: () => boolean,
-  못감: 못감함수<R>,
-): Promise<R> {
+  못감: 못감함수,
+): Promise<ExecuteResponse> {
   const 팜 = 팜주소();
   // 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 통로가 FARM_OFF 로 먼저 거절한다
   if (팜 === undefined) return 못감('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
@@ -57,7 +55,7 @@ export async function 팜폰에서돌린다<Q extends 시험요청, R>(
   }
   // 토큰 · 앱 파일을 고르는 사이에 중단했으면 폰을 잡지 않는다. 잡는 중에 중단하면 잡은 뒤 보내기가 한 번 더 보고 놓는다
   if (멈췄나()) return 못감(중단글);
-  const 못잡음 = (까닭: string): R => 못감(까닭);
+  const 못잡음 = (까닭: string): ExecuteResponse => 못감(까닭);
   const 결과 =
     앱재료 === 'chrome'
       ? await 폰Chrome으로(

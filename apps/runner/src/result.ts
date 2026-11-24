@@ -4,7 +4,7 @@ import { stripVTControlCharacters } from 'node:util';
 
 import { CASE_MARKER, RESULT_MARKER, type CaseResult, type ExecuteResponse } from '@platform/kit';
 
-export type RunnerResult = Pick<ExecuteResponse, 'status' | 'durationMs' | 'steps' | 'error' | 'device' | 'elementChecks' | 'apiCalls'>;
+export type RunnerResult = Pick<CaseResult, 'status' | 'durationMs' | 'steps' | 'error' | 'elementChecks' | 'apiCalls'> & Pick<ExecuteResponse, 'device'>;
 
 export function parseResult(stdout: string): RunnerResult | null {
   const lines = stdout.split('\n').filter((l) => l.startsWith(RESULT_MARKER));

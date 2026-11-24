@@ -1,9 +1,10 @@
-// 새 꼴 답 — 받은 케이스 판정 줄로 답을 만들고 줄이 없는 케이스만 표대로 채우는지 검사한다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「못 간 케이스 채우기」)
+// 러너의 답 — 받은 케이스 판정 줄로 답을 만들고 줄이 없는 케이스만 표대로 채우는지 검사한다 (SPEC 도메인/러너 §5.2 「프로시저 실행」 「못 간 케이스 채우기」)
 
-import { 판정줄, type CaseResult, type ExecuteCase, type ExecuteResponse, type StepResult } from '@platform/kit';
+import { 판정줄, type CaseResult, type ExecuteCase, type StepResult } from '@platform/kit';
 import { describe, expect, it, vi } from 'vitest';
 
-import { 앞꼴응답, 증적상태, 케이스응답, type 끝난자식 } from './response.js';
+import { 증적상태, 케이스응답, type 끝난자식 } from './response.js';
+import type { RunnerResult } from './result.js';
 
 const 시작 = Date.parse('2026-11-24T00:00:00.000Z');
 const 지금 = 시작 + 200_000;
@@ -15,7 +16,7 @@ const 통과 = (tcId: string, 끝초: number): CaseResult =>
   판정(tcId, 'PASS', { startedAt: new Date(시작).toISOString(), finishedAt: new Date(시작 + 끝초 * 1000).toISOString() });
 // kit 이 쓰는 줄 그대로다
 const 줄 = (...판정들: CaseResult[]): string => 판정들.map(판정줄).join('');
-const 결과줄 = (r: Partial<ExecuteResponse>): string => `@@RESULT@@${JSON.stringify({ status: 'PASS', durationMs: 5, steps: [], ...r })}\n`;
+const 결과줄 = (r: Partial<RunnerResult>): string => `@@RESULT@@${JSON.stringify({ status: 'PASS', durationMs: 5, steps: [], ...r })}\n`;
 
 function 답(cases: ExecuteCase[], 덧: Partial<끝난자식>) {
   const 자식: 끝난자식 = { killedBy: null, code: 0, startedAt: 시작, stdout: '', stderr: '', ...덧 };
@@ -56,12 +57,12 @@ describe('케이스응답 — 받은 판정 줄', () => {
     expect(요약(r.results)).toEqual([['A-1', 'PASS'], ['A-2', 'PASS']]);
   });
 
-  it('리포터 결과 줄을 못 읽어도 받은 판정으로 답한다 — 앞 꼴이면 러너 고장으로 던지는 줄이다', () => {
+  it('리포터 결과 줄을 못 읽어도 받은 판정으로 답한다 — 판정을 하나도 못 받았으면 러너 고장으로 던진다', () => {
     const 경고 = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const 자식: 끝난자식 = { killedBy: null, code: 1, startedAt: 시작, stdout: `${줄(통과('A-1', 10), 판정('A-2', 'FAIL'))}@@RESULT@@{"status":"FA\n`, stderr: '' };
 
-    expect(() => 앞꼴응답(9, 자식, {})).toThrow('@@RESULT@@ 줄을 읽지 못했다');
     expect(요약(케이스응답(9, 케이스들('A-1', 'A-2'), 자식, {}, 지금).results)).toEqual([['A-1', 'PASS'], ['A-2', 'FAIL']]);
+    expect(() => 답(케이스들('A-1'), { code: 0, stdout: '@@RESULT@@{"status":"PA\n' })).toThrow('@@RESULT@@ 줄을 읽지 못했다');
     경고.mockRestore();
   });
 
@@ -154,14 +155,12 @@ describe('케이스응답 — 못 간 케이스 채우기', () => {
 });
 
 describe('케이스응답 — 옛 꼴 파일(케이스 1건짜리 목록)', () => {
-  it('리포터 결과 줄을 케이스 한 건으로 옮겨 담는다 — 판정 · 걸린 시간 · 절차 · 사유 · 게임 기록이 앞 꼴 답과 같다', () => {
+  it('리포터 결과 줄을 케이스 한 건으로 옮겨 담는다 — 판정 · 걸린 시간 · 절차 · 사유 · 게임 기록이 그대로다', () => {
     const 결과 = { status: 'FAIL' as const, durationMs: 4321, steps: [절차(1), 절차(2)], error: { message: '요소를 찾지 못했다' }, elementChecks: [{ key: 'item:sword', serverValue: 3, same: true }], apiCalls: [{ method: 'POST', path: '/gm/gold', status: 200 }] };
     const 자식: 끝난자식 = { killedBy: null, code: 1, startedAt: 시작, stdout: 결과줄(결과), stderr: '' };
-    const 앞답 = 앞꼴응답(9, 자식, {});
     const r = 케이스응답(9, 케이스들('TODO-001'), 자식, {}, 지금);
 
-    const { historyId: _번호, ...앞꼴한건 } = 앞답;
-    expect(r.results).toEqual([{ tcId: 'TODO-001', ...앞꼴한건 }]);
+    expect(r.results).toEqual([{ tcId: 'TODO-001', ...결과 }]);
     expect(r.error).toBeUndefined();
   });
 
@@ -177,6 +176,18 @@ describe('케이스응답 — 옛 꼴 파일(케이스 1건짜리 목록)', () =
     expect(요약(r.results)).toEqual([['TODO-001', 'NA', 'TIMEOUT']]);
     expect(r.results[0]?.steps).toHaveLength(1);
     expect(r.error).toEqual({ message: 'TIMEOUT' });
+  });
+
+  it('끊는 바람에 결과 줄이 잘렸으면 절차를 비우고 예외를 밖으로 내보내지 않는다', () => {
+    const 경고 = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = 답(케이스들('TODO-001'), { killedBy: 'ABORTED', code: null, stdout: '@@RESULT@@{"steps":[' });
+
+    expect(r.results).toMatchObject([{ status: 'NA', steps: [], error: { message: 'ABORTED' } }]);
+    경고.mockRestore();
+  });
+
+  it('결과 줄 없이 0 으로 끝났으면 통과다', () => {
+    expect(요약(답(케이스들('TODO-001'), {}).results)).toEqual([['TODO-001', 'PASS']]);
   });
 });
 
@@ -216,10 +227,9 @@ describe('케이스응답 — 판정이 다 난 뒤에 프로세스가 실패로
 });
 
 describe('증적상태', () => {
-  it('통과가 아닌 케이스가 하나라도 있으면 증적을 남긴다 — 앞 꼴은 그 판정 그대로다', () => {
+  it('통과가 아닌 케이스가 하나라도 있으면 증적을 남긴다', () => {
     const 머리 = { historyId: 1, durationMs: 1 };
     expect(증적상태({ ...머리, results: [판정('A-1', 'PASS'), 판정('A-2', 'PASS')] })).toBe('PASS');
     expect(증적상태({ ...머리, results: [판정('A-1', 'PASS'), 판정('A-2', 'NA')] })).toBe('FAIL');
-    expect(증적상태({ ...머리, status: 'NA', steps: [] })).toBe('NA');
   });
 });

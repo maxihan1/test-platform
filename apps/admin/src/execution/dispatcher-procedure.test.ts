@@ -1,18 +1,20 @@
 // 프로시저 실행 단위를 dispatcher 가 요청 하나로 보내고 한 번에 저장하는지 본다 (SPEC 도메인/실행 §3.2 「테스트 프로시저 실행」 · 도메인/러너 §5.2 「프로시저 실행」)
 
-import type { CasesExecuteRequest, CasesExecuteResponse } from '@platform/kit';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+
+import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { dispatch } from './dispatcher.js';
 import { finishExec, 실행단위를시작한다 } from './execFinish.js';
 import { 단위로묶는다, 도는동안늘린다 } from './execUnit.js';
 import { callRunner } from './runner.js';
-import { 케이스들을보낸다 } from './runnerCases.js';
+import { 러너답 } from './runnerFixture.js';
 import { finishItem, type PendingItem } from './store.js';
 import { trace적재를맡긴다 } from './traceIngest.js';
 
 vi.mock('./runner.js', async (원본) => ({ ...(await 원본<typeof import('./runner.js')>()), callRunner: vi.fn() }));
-vi.mock('./runnerCases.js', async (원본) => ({ ...(await 원본<typeof import('./runnerCases.js')>()), 케이스들을보낸다: vi.fn() }));
 vi.mock('./execFinish.js', () => ({ finishExec: vi.fn(async () => undefined), 실행단위를시작한다: vi.fn(async () => undefined) }));
 vi.mock('./store.js', () => ({ finishItem: vi.fn(async () => undefined), finishRun: vi.fn(async () => undefined) }));
 vi.mock('./notify.js', () => ({ notifyRun: vi.fn(async () => undefined) }));
@@ -44,10 +46,25 @@ const 케이스 = (historyId: number, tcId: string, 더?: Partial<PendingItem>):
 });
 const 셋 = (): PendingItem[] => [케이스(51, 'XDP-FN-101'), 케이스(52, 'XDP-FN-102'), 케이스(53, 'XDP-FN-103')];
 
-const 답 = (요청: CasesExecuteRequest): CasesExecuteResponse => ({
-  historyId: 요청.historyId,
-  durationMs: 3,
-  results: 요청.cases.map((c) => ({ tcId: c.tcId, status: 'PASS', durationMs: 1, steps: [] })),
+// 가짜 러너 — 프로시저 요청만 온다(옛 꼴은 callRunner 를 흉내 낸다)
+const 러너 = vi.fn<(요청: ExecuteRequest) => Promise<ExecuteResponse>>();
+const 러너서버 = http.createServer((req, res) => {
+  if (req.method !== 'POST') return void res.writeHead(200, { 'content-type': 'application/json' }).end('{"ok":true}');
+  const 조각: Buffer[] = [];
+  req.on('data', (c: Buffer) => 조각.push(c));
+  req.on('end', () => {
+    void 러너(JSON.parse(Buffer.concat(조각).toString('utf8')) as ExecuteRequest).then((답) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(답)));
+  });
+});
+const 옛주소 = process.env.RUNNER_URL;
+beforeAll(async () => {
+  await new Promise<void>((ok) => 러너서버.listen(0, '127.0.0.1', ok));
+  process.env.RUNNER_URL = `http://127.0.0.1:${String((러너서버.address() as AddressInfo).port)}`;
+});
+afterAll(async () => {
+  if (옛주소 === undefined) delete process.env.RUNNER_URL;
+  else process.env.RUNNER_URL = 옛주소;
+  await new Promise((ok) => 러너서버.close(ok));
 });
 
 describe('단위로묶는다', () => {
@@ -75,11 +92,11 @@ describe('dispatch 의 프로시저 실행 단위', () => {
 
   beforeEach(() => {
     process.env.DEVICE_FARM_URL = 팜;
-    vi.mocked(케이스들을보낸다).mockImplementation(async (요청) => 답(요청));
+    러너.mockImplementation(async (요청) => 러너답(요청));
   });
 
   afterEach(() => {
-    vi.mocked(케이스들을보낸다).mockReset();
+    러너.mockReset();
     vi.mocked(finishExec).mockReset().mockResolvedValue(undefined);
     vi.mocked(실행단위를시작한다).mockClear();
     vi.mocked(finishItem).mockClear();
@@ -89,14 +106,14 @@ describe('dispatch 의 프로시저 실행 단위', () => {
     받음.length = 0;
   });
 
-  it('케이스 줄 셋을 새 꼴 요청 하나로 보내고 답을 실행 단위 하나로 저장한다 — 폰은 한 번 잡는다', async () => {
+  it('케이스 줄 셋을 요청 하나로 보내고 답을 실행 단위 하나로 저장한다 — 폰은 한 번 잡는다', async () => {
     가짜팜([{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }]);
 
     await dispatch(9301, 셋());
 
     expect(callRunner).not.toHaveBeenCalled();
-    expect(케이스들을보낸다).toHaveBeenCalledTimes(1);
-    const 요청 = vi.mocked(케이스들을보낸다).mock.calls[0]![0];
+    expect(러너).toHaveBeenCalledTimes(1);
+    const 요청 = 러너.mock.calls[0]![0];
     expect(요청).toMatchObject({
       runId: 9301,
       historyId: 50,
@@ -112,7 +129,6 @@ describe('dispatch 의 프로시저 실행 단위', () => {
         { tcId: 'XDP-FN-103', params: { 본문: 'XDP-FN-103' }, expected: {} },
       ],
     });
-    expect('tcId' in 요청).toBe(false);
     // 15분짜리 실행 단위는 30분을 잡는다
     expect(받음.filter((줄) => 줄.includes('/hold'))).toEqual(['POST /api/devices/R3CR10TCVCD/hold {"minutes":30}', 'DELETE /api/devices/R3CR10TCVCD/hold']);
     expect(실행단위를시작한다).toHaveBeenCalledWith(50);
@@ -134,7 +150,7 @@ describe('dispatch 의 프로시저 실행 단위', () => {
 
     await dispatch(9303, 셋());
 
-    expect(케이스들을보낸다).not.toHaveBeenCalled();
+    expect(러너).not.toHaveBeenCalled();
     const [번호, 받은답] = vi.mocked(finishExec).mock.calls[0]!;
     expect(번호).toBe(50);
     expect(받은답.results.map((r) => [r.tcId, r.status, r.error?.message])).toEqual([
@@ -163,10 +179,10 @@ describe('dispatch 의 프로시저 실행 단위', () => {
     가짜팜([{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }]);
     let 첫회차를끝낸다 = (): void => undefined;
     const 시작: number[] = [];
-    vi.mocked(케이스들을보낸다).mockImplementation(async (요청) => {
+    러너.mockImplementation(async (요청) => {
       시작.push(요청.historyId);
       if (요청.historyId === 50) await new Promise<void>((done) => { 첫회차를끝낸다 = done; });
-      return 답(요청);
+      return 러너답(요청);
     });
 
     const 끝 = dispatch(9306, [케이스(51, 'XDP-FN-101'), 케이스(52, 'XDP-FN-102'), 케이스(61, 'XDP-FN-101', { execId: 60 }), 케이스(62, 'XDP-FN-102', { execId: 60 })]);
@@ -177,7 +193,7 @@ describe('dispatch 의 프로시저 실행 단위', () => {
     expect(시작).toEqual([50, 60]);
   });
 
-  it('옛 꼴 케이스와 섞인 실행은 옛 꼴은 옛 요청으로, 프로시저는 새 꼴 요청으로 간다', async () => {
+  it('옛 꼴 케이스와 섞인 실행은 옛 꼴은 케이스 줄 하나로, 프로시저는 실행 단위 하나로 저장한다', async () => {
     가짜팜([{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }]);
     vi.mocked(callRunner).mockImplementation(async (_runId, item) => ({ historyId: item.historyId, status: 'PASS', durationMs: 1, steps: [] }));
     const 옛 = 케이스(9, 'XDP-FN-201', { execId: 9, platform: 'desktop' });

@@ -15,6 +15,7 @@ import type { ExecuteRequest } from '@platform/kit';
 import type { 칸 } from '../auth/permissions.js';
 
 import executionRoutes from './routes.js';
+import { 러너답 } from './runnerFixture.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -90,9 +91,8 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       const body = req.body as ExecuteRequest;
       받은요청.push(body);
       return body.platform === 'mobile'
-        ? { historyId: body.historyId, status: 'NA', durationMs: 12, steps: [], error: { message: 'TIMEOUT' } }
-        : {
-            historyId: body.historyId,
+        ? 러너답(body, { status: 'NA', durationMs: 12, error: { message: 'TIMEOUT' } })
+        : 러너답(body, {
             status: 'FAIL',
             durationMs: 400,
             steps: [
@@ -106,7 +106,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
                 screenshotPath: 'artifacts/runs/1/1/1.png',
               },
             ],
-          };
+          });
     });
     await 러너.listen({ port: 0, host: '127.0.0.1' });
     const addr = 러너.server.address();
@@ -206,10 +206,9 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     await 끝날때까지(res.json().runId);
 
     expect(받은요청[0]).toMatchObject({
-      tcId: 'XBX-001',
       platform: 'desktop',
       filePath: 'demo/XBX-001.spec.ts',
-      params: { 아이디: 'tester' },
+      cases: [{ tcId: 'XBX-001', params: { 아이디: 'tester' } }],
       timeoutMs: 5000,
     });
   });

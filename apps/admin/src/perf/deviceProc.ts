@@ -1,7 +1,7 @@
 // 기기 성능의 테스트 프로시저 — 고른 케이스를 도는 단위(옛 꼴 케이스 하나 · 프로시저 하나)로 펼치고, 답을 구간 · 실행 로그 재료로 푼다 (도메인/성능 §3.9 「기기 성능」 「프로시저 안 케이스를 고르면 그 프로시저가 통째로 돈다」)
 // deviceRun.ts 가 300줄에 닿아 뗐다
 
-import type { CasesExecuteResponse, ExecuteResponse, ProcId } from '@platform/kit';
+import type { ExecuteResponse, ProcId } from '@platform/kit';
 import type { 역할계정 } from '@platform/kit/accounts';
 import type { PoolClient } from 'pg';
 
@@ -87,21 +87,14 @@ export interface 단위답 {
   오류?: string;
 }
 
-/** 옛 꼴 답 — 못 갔으면 응답이 없고 문제가 까닭이다 */
-export function 옛답풀기(tcId: string, 응답: ExecuteResponse | null, 문제: string | null): 단위답 {
-  const 까닭 = 문제 ?? 응답?.error?.message;
-  return {
-    steps: (응답?.steps ?? []).map((x) => ({ title: x.title, durationMs: x.durationMs, tcId })),
-    끝들: [{ tcId, status: 응답?.status ?? 'NA', ...(까닭 !== undefined && { 까닭 }) }],
-  };
-}
-
 /**
- * 새 꼴 답 — 케이스 사이 준비 절차는 다음 케이스 몫이다(StepResult.tcId). 케이스 줄을 못 받은 러너는 같은 절차를 결과마다 실어 절차 번호로 하나만 남긴다.
+ * 러너 답을 푼다 — 케이스 사이 준비 절차는 다음 케이스 몫이다(StepResult.tcId). 케이스 줄을 못 받은 러너는 같은 절차를 결과마다 실어 절차 번호로 하나만 남긴다.
  * 판정 밖 사유는 어느 케이스에도 안 실렸을 때만 따로 적는다 — 못 간 답 · 끊긴 프로시저는 남은 케이스에 이미 실렸다
  */
-export function 새답풀기(답: CasesExecuteResponse): 단위답 {
+export function 답풀기(답: ExecuteResponse): 단위답 {
   const 오류 = 답.error?.message;
+  // 못 간 답의 원문(주소 · 시간 초과)은 답 맨 위 사유의 stack 이다. 성능 로그에는 접힌 자리가 없어 한 줄에 같이 적는다
+  const 원문 = 답.error?.stack === undefined ? '' : ` — ${답.error.stack}`;
   const 본 = new Set<number>();
   return {
     steps: 답.results
@@ -112,7 +105,7 @@ export function 새답풀기(답: CasesExecuteResponse): 단위답 {
     끝들: 답.results.map((r) => ({
       tcId: r.tcId,
       status: r.status,
-      ...(r.error !== undefined && { 까닭: r.error.message }),
+      ...(r.error !== undefined && { 까닭: r.error.message === 오류 ? `${r.error.message}${원문}` : r.error.message }),
       ...(r.blockedBy !== undefined && { blockedBy: r.blockedBy }),
     })),
     ...(오류 !== undefined && !답.results.some((r) => r.error?.message === 오류) && { 오류 }),

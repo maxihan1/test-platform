@@ -92,7 +92,7 @@ export interface PendingItem {
   historyId: number;
   // 그 케이스 줄이 든 실행 단위 — 러너에 가는 번호다. 옛 꼴 케이스는 historyId 와 같고 프로시저는 그 케이스들이 같은 번호를 든다 (공통/4 「테스트 프로시저 표」)
   execId: number;
-  // 프로시저 안 케이스만. 디스패처가 같은 execId 줄을 요청 하나로 묶어 새 꼴로 보낸다 (도메인/러너 §5.2 「프로시저 실행」)
+  // 프로시저 안 케이스만. 디스패처가 같은 execId 줄을 요청 하나로 묶어 보낸다 (도메인/러너 §5.2 「프로시저 실행」)
   procId?: string;
   tcId: string;
   platform: Platform;

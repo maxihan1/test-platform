@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { ExecuteResponse } from '@platform/kit';
+import type { StepResult } from '@platform/kit';
 import { FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 
 import { 볼륨파일읽기 } from '../artifactFile.js';
@@ -127,7 +127,7 @@ async function 점검남기기(곳: 팜곳, 번호: number, ids: readonly number
 }
 
 /** 옛 꼴 케이스 한 번 — 점검 파일이 그 케이스 줄 하나 것이다 */
-export async function 점검기다리기(곳: 팜곳, c: { id: number; tcId: string }, 파일들: 화면파일[], 끝: number, 결과: ExecuteResponse, Chrome세션: string | undefined, 앱파일들: 화면파일[] = []): Promise<void> {
+export async function 점검기다리기(곳: 팜곳, c: { id: number; tcId: string }, 파일들: 화면파일[], 끝: number, 결과: { steps: StepResult[] }, Chrome세션: string | undefined, 앱파일들: 화면파일[] = []): Promise<void> {
   await 점검남기기(곳, c.id, [c.id], 끝, Chrome세션, (점검) => [[c.id, 화면줄들(점검, c.tcId, 파일들, 끝, 결과.steps, 앱파일들)]]);
 }
 

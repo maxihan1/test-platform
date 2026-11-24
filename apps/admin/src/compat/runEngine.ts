@@ -12,7 +12,7 @@ import { 대상줄읽기 } from '../authoring/reverse.js';
 import { testsRoot } from '../catalog/scanner.js';
 import { 잡기를늘린다, 잡는다, 팜주소, 폰을돌려준다 } from '../execution/farm.js';
 import { 실행팜토큰 } from '../execution/farmToken.js';
-import { abortRunner, 보낸다 } from '../execution/runner.js';
+import { abortRunner, 보낸다, 한건 } from '../execution/runner.js';
 import { 저장값을채운다 } from '../execution/savedInput.js';
 import { db } from '../settings/store.js';
 import { type 호환성디바이스, 호환성디바이스목록 } from './devices.js';
@@ -238,15 +238,15 @@ async function 케이스돌기(재: 실행재료, s: 도는실행, seq: number, 
     return;
   }
   const 요청: ExecuteRequest = {
-    runId: 재.runId, historyId: c.id, tcId: c.tcId, platform: 재료.platform, filePath: c.filePath, baseUrl: 재.baseUrl,
-    params: 재료.params, expected: 재료.expected, timeoutMs: c.timeoutMs, udid: serial, ...(재.토큰 !== undefined && { farmToken: 재.토큰 }), ...연결.칸,
+    runId: 재.runId, historyId: c.id, platform: 재료.platform, filePath: c.filePath, baseUrl: 재.baseUrl,
+    cases: [{ tcId: c.tcId, params: 재료.params, expected: 재료.expected }], timeoutMs: c.timeoutMs, udid: serial, ...(재.토큰 !== undefined && { farmToken: 재.토큰 }), ...연결.칸,
   };
   const Chrome세션 = 연결.Chrome세션;
   // Chrome 켜기 · 잡기 늘리기를 기다리는 사이에 멈췄으면 보내지 않는다 — 그때는 끊을 케이스가 아직 없다
   if (s.멈춤) return;
   await 케이스시작(c.id);
   s.도는케이스 = c.id;
-  const 결과 = await 보낸다({ historyId: c.id, timeoutMs: c.timeoutMs }, 요청);
+  const 결과 = 한건(await 보낸다(요청));
   s.도는케이스 = null;
   const 끝 = Date.now();
   const 점검받나 = 재료.platform === 'android' || Chrome세션 !== undefined;

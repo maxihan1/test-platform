@@ -95,8 +95,8 @@ export function 받은API(steps: readonly StepResult[]): { method: string; path:
   return [...줄.values()];
 }
 
-/** 케이스 줄 하나에 적을 결과 — 옛 꼴 답 그대로이거나, 프로시저 답의 케이스 한 건에 실행 단위에 한 벌인 것(기기 · FPS)을 붙인 것이다 */
-export type 줄결과 = ExecuteResponse & Pick<CaseResult, 'blockedBy' | 'startedAt' | 'finishedAt'>;
+/** 케이스 줄 하나에 적을 결과 — 러너 답의 케이스 한 건에 실행 단위에 한 벌인 것(기기 · FPS)을 붙인 것이다 */
+export type 줄결과 = Omit<CaseResult, 'tcId'> & Pick<ExecuteResponse, 'historyId' | 'device' | 'fps'>;
 
 // kit 이 ISO 로 적지만 러너 답은 밖에서 온 값이다 — 날짜가 아닌 글이 오면 그 칸만 비운다. 그대로 넣으면 형 변환 오류로 실행 단위의 판정이 통째로 되돌려진다
 const 시각 = (v: string | undefined): string | null => (v !== undefined && !Number.isNaN(Date.parse(v)) ? v : null);
@@ -142,7 +142,7 @@ export async function 케이스줄을닫는다(client: PoolClient, historyId: nu
   return true;
 }
 
-export async function finishItem(historyId: number, 받은결과: ExecuteResponse): Promise<void> {
+export async function finishItem(historyId: number, 받은결과: 줄결과): Promise<void> {
   // 바이너리 응답의 NUL · 잘린 이모지 반쪽이 kit 기록에 그대로 실린다. 하나라도 남으면 판정까지 되돌려진다
   const result = jsonb에맞춘다(받은결과);
   const client = await (await db()).connect();

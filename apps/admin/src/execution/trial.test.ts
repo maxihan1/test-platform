@@ -1,7 +1,7 @@
-import type { ExecuteResponse, ScenarioExecuteResponse } from '@platform/kit';
+import type { ScenarioExecuteResponse } from '@platform/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 경로비밀, 시나리오시험, 시작한다, 읽는다, 전부비운다, 항목비밀, TrialBusyError } from './trial.js';
+import { 경로비밀, 시나리오시험, 시작한다, 읽는다, 전부비운다, 항목비밀, TrialBusyError, type 시험결과 } from './trial.js';
 
 const 명세 = {
   paramSchema: { type: 'object', properties: { loginId: { type: 'string' }, password: { type: 'string', secret: true } } },
@@ -10,14 +10,14 @@ const 명세 = {
   expected: { token: 'tok-9999' },
 };
 
-function 결과(덧: Partial<ExecuteResponse> = {}): ExecuteResponse {
+function 결과(덧: Partial<시험결과> = {}): 시험결과 {
   return { historyId: 1, status: 'PASS', durationMs: 10, steps: [], ...덧 };
 }
 
 function 미룬것() {
-  let 끝냄!: (r: ExecuteResponse) => void;
+  let 끝냄!: (r: 시험결과) => void;
   let 던짐!: (e: unknown) => void;
-  const promise = new Promise<ExecuteResponse>((res, rej) => {
+  const promise = new Promise<시험결과>((res, rej) => {
     끝냄 = res;
     던짐 = rej;
   });

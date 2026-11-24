@@ -3,7 +3,7 @@
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { CaseSpec, ExecuteResponse } from '@platform/kit';
+import type { CaseSpec, ItemStatus } from '@platform/kit';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -119,7 +119,7 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
       "INSERT INTO api_call_seen (service_id, tc_id, method, path, status, run_id) VALUES ($1, 'XAS-FN-001', 'GET', '/v1/old', 200, 1)",
       [서비스],
     );
-    const 끝낸다 = async (status: ExecuteResponse['status']) => {
+    const 끝낸다 = async (status: ItemStatus) => {
       const { runId, items } = await 실행('stg');
       const historyId = items[0]!.historyId;
       await finishItem(historyId, {

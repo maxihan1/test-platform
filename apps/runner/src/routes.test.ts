@@ -21,7 +21,7 @@ vi.mock('./scenario.js', async (원본) => ({
 
 vi.mock('./execute.js', async (원본) => ({
   ...(await 원본<typeof import('./execute.js')>()),
-  execute: vi.fn(async () => ({ status: 'PASS', durationMs: 0 })),
+  execute: vi.fn(async () => ({ durationMs: 0, results: [] })),
 }));
 
 function 서버() {
@@ -77,8 +77,8 @@ describe('POST /execute', () => {
       method: 'POST',
       url: '/execute',
       payload: {
-        runId: 1, historyId: 1, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
-        baseUrl: 'https://qa.example.com', params: {}, expected: {},
+        runId: 1, historyId: 1, platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+        baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }],
       },
     });
 
@@ -87,7 +87,7 @@ describe('POST /execute', () => {
   });
 
   it('윈도우 PC 항목은 패드 값 다섯을 받고 게임 이름(app)을 파일 경로처럼 거르지 않는다', async () => {
-    const 칸 = { runId: 1, historyId: 3, tcId: 'ARG-FN-001', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', params: {}, expected: {} };
+    const 칸 = { runId: 1, historyId: 3, filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', cases: [{ tcId: 'ARG-FN-001', params: {}, expected: {} }] };
     for (const platform of ['windows', 'windows-ps5', 'windows-ps4', 'windows-switch', 'windows-xbox']) {
       const res = await 서버().inject({ method: 'POST', url: '/execute', payload: { ...칸, platform, engine: 'GAME', udid: 'pc-pc1', app: 'Boss Room' } });
       expect(res.statusCode).not.toBe(400);
@@ -103,7 +103,7 @@ describe('POST /execute', () => {
     const res = await 서버().inject({
       method: 'POST',
       url: '/execute',
-      payload: { runId: 1, historyId: 4, tcId: 'ARG-FN-001', platform: 'windows', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', params: {}, expected: {}, ...더 },
+      payload: { runId: 1, historyId: 4, platform: 'windows', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', cases: [{ tcId: 'ARG-FN-001', params: {}, expected: {} }], ...더 },
     });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe('INVALID_REQUEST');
@@ -113,7 +113,7 @@ describe('POST /execute', () => {
     const res = await 서버().inject({
       method: 'POST',
       url: '/execute',
-      payload: { runId: 1, historyId: 5, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', params: {}, expected: {}, app: 'file:///etc/passwd' },
+      payload: { runId: 1, historyId: 5, platform: 'android', filePath: 'todo/TODO-001.spec.ts', baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], app: 'file:///etc/passwd' },
     });
     expect(res.statusCode).toBe(400);
   });
@@ -123,8 +123,8 @@ describe('POST /execute', () => {
       method: 'POST',
       url: '/execute',
       payload: {
-        runId: 1, historyId: 2, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
-        baseUrl: 'https://qa.example.com', params: {}, expected: {}, app: '/apk/qa.apk',
+        runId: 1, historyId: 2, platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+        baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], app: '/apk/qa.apk',
       },
     });
 
@@ -137,8 +137,8 @@ describe('POST /execute', () => {
         method: 'POST',
         url: '/execute',
         payload: {
-          runId: 0, historyId: 0, tcId: 'TODO-001', platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
-          baseUrl: 'https://qa.example.com', params: {}, expected: {}, recordHar,
+          runId: 0, historyId: 0, platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], recordHar,
         },
       });
 
@@ -157,8 +157,8 @@ describe('POST /execute', () => {
       method: 'POST',
       url: '/execute',
       payload: {
-        runId: 1, historyId: 3, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
-        baseUrl: 'https://qa.example.com', params: {}, expected: {}, app: 'https://apk.example.com/a.apk', udid: 'R3CR10TCVCD',
+        runId: 1, historyId: 3, platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+        baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], app: 'https://apk.example.com/a.apk', udid: 'R3CR10TCVCD',
       },
     });
 
@@ -175,8 +175,8 @@ describe('POST /execute', () => {
         method: 'POST',
         url: '/execute',
         payload: {
-          runId: 1, historyId: 4, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
-          baseUrl: 'https://qa.example.com', params: {}, expected: {}, ...칸,
+          runId: 1, historyId: 4, platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], ...칸,
         },
       });
 
@@ -190,8 +190,8 @@ describe('POST /execute', () => {
         method: 'POST',
         url: '/execute',
         payload: {
-          runId: 1, historyId: 5, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
-          baseUrl: 'https://qa.example.com', params: {}, expected: {}, udid: 'R3CR10TCVCD', ...칸,
+          runId: 1, historyId: 5, platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], udid: 'R3CR10TCVCD', ...칸,
         },
       });
 
@@ -206,8 +206,8 @@ describe('POST /execute', () => {
         method: 'POST',
         url: '/execute',
         payload: {
-          runId: 1, historyId: 6, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
-          baseUrl: 'https://ash.example.com', params: {}, expected: {}, ...칸,
+          runId: 1, historyId: 6, platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://ash.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], ...칸,
         },
       });
     const 키 = { header: 'X-Admin-Key', value: 'k-1234' };
@@ -224,8 +224,8 @@ describe('POST /execute', () => {
         method: 'POST',
         url: '/execute',
         payload: {
-          runId: 1, historyId: 7, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
-          baseUrl: 'https://qa.example.com', params: {}, expected: {}, uiCheck,
+          runId: 1, historyId: 7, platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], uiCheck,
         },
       });
     expect((await 보낸다(true)).statusCode).not.toBe(400);
@@ -240,8 +240,8 @@ describe('POST /execute', () => {
         method: 'POST',
         url: '/execute',
         payload: {
-          runId: 1, historyId: 5, tcId: 'TODO-001', platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
-          baseUrl: 'https://qa.example.com', params: {}, expected: {}, apiAuths,
+          runId: 1, historyId: 5, platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], apiAuths,
         },
       });
 
@@ -269,8 +269,8 @@ describe('POST /execute', () => {
         method: 'POST',
         url: '/execute',
         payload: {
-          runId: 1, historyId: 5, tcId: 'TODO-001', platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
-          baseUrl: 'https://qa.example.com', params: {}, expected: {}, apiDoc,
+          runId: 1, historyId: 5, platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], apiDoc,
         },
       });
 

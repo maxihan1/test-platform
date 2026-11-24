@@ -83,15 +83,15 @@ afterAll(async () => {
 
 const 폰칸 = () => ({ cdpUrl: `${주소.replace('http', 'ws')}/api/devices/XRP1/chrome/cdp`, udid: 'XRP1', farmToken: 토큰 });
 const 케이스 = (tcId: string, 덧: Partial<ExecuteRequest> = {}): ExecuteRequest => ({
-  runId: 0, historyId: 0, tcId, platform: 'mobile', filePath: `${tcId}.spec.ts`, baseUrl: 주소, params: {}, expected: {}, timeoutMs: 60_000, ...폰칸(), ...덧,
+  runId: 0, historyId: 0, platform: 'mobile', filePath: `${tcId}.spec.ts`, baseUrl: 주소, cases: [{ tcId, params: {}, expected: {} }], timeoutMs: 60_000, ...폰칸(), ...덧,
 });
 
 describe('실제 폰 Chrome 실측 (브라우저)', () => {
   it('케이스 단독 — 폰 Chrome 의 탭에서 상대 주소로 돌고 기기 칸에 모델 · Android 판 · Chrome 판이 온다', async () => {
     const 결과 = await execute(케이스('XRP-001'), join(폴더, 'XRP-001.spec.ts'));
 
-    expect(결과.error?.message).toBeUndefined();
-    expect(결과.status).toBe('PASS');
+    expect(결과.results[0]?.error?.message).toBeUndefined();
+    expect(결과.results[0]?.status).toBe('PASS');
     expect(결과.device).toMatchObject({ model: 'SM-XRP', osVersion: '15', appVersion: null, browser: expect.stringMatching(/^\d+\./) });
     expect(받은토큰.at(-1)).toBe(`Bearer ${토큰}`);
     // 연결만 끊는다 — 폰 Chrome 은 그대로 살아 있다
@@ -101,7 +101,7 @@ describe('실제 폰 Chrome 실측 (브라우저)', () => {
   it('케이스가 창을 새로 만들면 실패이고, 정식 실행이면 폰 화면 영상 · logcat 을 팜 증적 폴더에 남긴다', async () => {
     const 결과 = await execute(케이스('XRP-002', { runId: 91, historyId: 92 }), join(폴더, 'XRP-002.spec.ts'));
 
-    expect(결과.status).toBe('FAIL');
+    expect(결과.results[0]?.status).toBe('FAIL');
     expect(JSON.stringify(결과)).toContain(창하나글);
     const 증적 = join(runDir('91', '92'), 'farm');
     expect(statSync(join(증적, 'video-1.webm')).size).toBeGreaterThan(0);
@@ -112,7 +112,7 @@ describe('실제 폰 Chrome 실측 (브라우저)', () => {
     const 열쇠 = '0b7e2c1a-0000-4000-8000-000000000008';
     const 결과 = await execute(케이스('XRP-001', { live: 열쇠 }), join(폴더, 'XRP-001.spec.ts'));
 
-    expect(결과.status).toBe('PASS');
+    expect(결과.results[0]?.status).toBe('PASS');
     expect(readFileSync(join(산출물, 'live', `${열쇠}.jpg`)).subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
   }, 90_000);
 
@@ -120,7 +120,7 @@ describe('실제 폰 Chrome 실측 (브라우저)', () => {
     const 열쇠 = '0b7e2c1a-0000-4000-8000-000000000009';
     const 결과 = await execute(케이스('XRP-002', { runId: 96, historyId: 97, live: 열쇠 }), join(폴더, 'XRP-002.spec.ts'));
 
-    expect(결과.status).toBe('FAIL');
+    expect(결과.results[0]?.status).toBe('FAIL');
     expect(statSync(join(runDir('96', '97'), 'farm', 'video-1.webm')).size).toBeGreaterThan(0);
     expect(readFileSync(join(산출물, 'live', `${열쇠}.jpg`)).subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
   }, 90_000);
@@ -128,7 +128,7 @@ describe('실제 폰 Chrome 실측 (브라우저)', () => {
   it('통과한 정식 실행은 증적을 안 남긴다', async () => {
     const 결과 = await execute(케이스('XRP-001', { runId: 93, historyId: 94 }), join(폴더, 'XRP-001.spec.ts'));
 
-    expect(결과.status).toBe('PASS');
+    expect(결과.results[0]?.status).toBe('PASS');
     expect(existsSync(join(runDir('93', '94'), 'farm'))).toBe(false);
     expect(existsSync(join(runDir('93', '94'), 'phone-video.webm'))).toBe(false);
   }, 90_000);

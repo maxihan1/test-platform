@@ -1,30 +1,29 @@
 // 케이스 테스트 실행의 프로시저 몫 — 프로시저 안 케이스를 누르면 프로시저가 통째로 돌고 결과는 케이스마다 한 건이다
 // (도메인/실행 §3.2 「테스트 프로시저 실행」 「한 건 · 다시 돌리기 · 시험 실행」). 앞 흐름 없이는 그 케이스의 시작 상태가 안 맞는다
 
-import type { CasesExecuteRequest, CasesExecuteResponse, Platform } from '@platform/kit';
+import type { ExecuteRequest, ExecuteResponse, Platform } from '@platform/kit';
 
 import type { 대상줄 } from '../authoring/reverse.js';
 
 import { 돌발팝업을싣는다, 엔진칸 } from './engineField.js';
 import { DEFAULT_TIMEOUT_MS } from './location.js';
-import { 못간답, 케이스들을보낸다 } from './runnerCases.js';
+import { 못간답 } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
 import type { 시험결과, 시험명세 } from './trial.js';
-import type { 못감함수, 시험요청 } from './trialPhone.js';
+import type { 못감함수 } from './trialPhone.js';
 import { validate, type Violation } from './validate.js';
 
-/** 시험 한 번에 드는 것 — 옛 꼴(케이스 하나)과 새 꼴(프로시저)은 요청 · 답 모양만 다르고 잡고 돌리는 길은 같다 */
-export interface 시험감<Q extends 시험요청, R> {
-  요청: Q;
-  보낸다: (body: Q) => Promise<R>;
-  못감: 못감함수<R>;
+/** 시험 한 번에 드는 것 — 옛 꼴 케이스와 프로시저가 잡고 돌리는 길은 같다 */
+export interface 시험감 {
+  요청: ExecuteRequest;
+  못감: 못감함수;
   /** 러너 답을 화면이 읽는 결과로 — 누른 케이스 한 건(프로시저면 케이스마다 한 건을 더 싣는다) */
-  결과로: (답: R) => 시험결과;
+  결과로: (답: ExecuteResponse) => 시험결과;
   /** 가릴 비밀값을 고를 명세 — 프로시저는 케이스마다 하나 */
   명세: 시험명세[];
   stepTitles?: string[];
   /** 요청에 더 실을 칸이나 러너에 안 보낼 사유 — API 애플리케이션 케이스의 문서 판. 프로시저(Android 앱 · 게임)에는 없다 */
-  판?: () => Promise<Partial<Q> | { 사유: string }>;
+  판?: () => Promise<Partial<ExecuteRequest> | { 사유: string }>;
 }
 
 export interface 프로시저재료 {
@@ -50,7 +49,7 @@ interface 케이스줄 {
 
 // 화면의 결과 칸은 누른 케이스의 판정 · 사유를 그린다 — 옛 꼴 케이스의 화면도 이 칸을 그대로 읽는다.
 // 절차만은 프로시저 전체를 차례대로 싣는다 — 화면의 단계 목록이 프로시저 전체라(stepTitles) 누른 케이스 것만 실으면 실제로 돈 다른 케이스의 단계가 「실행 안 함」으로 뜬다
-function 누른케이스로(답: CasesExecuteResponse, tcId: string): 시험결과 {
+function 누른케이스로(답: ExecuteResponse, tcId: string): 시험결과 {
   const 것 = 답.results.find((r) => r.tcId === tcId);
   if (것 === undefined) {
     return { historyId: 답.historyId, status: 'NA', durationMs: 답.durationMs, steps: [], error: 답.error ?? { message: '러너 답에 이 케이스의 결과가 없습니다' }, results: 답.results };
@@ -72,7 +71,7 @@ function 누른케이스로(답: CasesExecuteResponse, tcId: string): 시험결�
  */
 export async function 프로시저시험감(
   재료: 프로시저재료,
-): Promise<시험감<CasesExecuteRequest, CasesExecuteResponse> | { violations: Violation[] } | null> {
+): Promise<시험감 | { violations: Violation[] } | null> {
   const { pool } = await import('../db/index.js');
   const r = await pool.query<케이스줄>(
     'SELECT tc_id, file_path, param_schema, expected_schema, step_titles FROM test_case WHERE proc_id = $1 AND is_active ORDER BY proc_seq',
@@ -92,7 +91,7 @@ export async function 프로시저시험감(
   const violations = [...validate(누른.param_schema, 누른값.params), ...validate(누른.expected_schema, 누른값.expected)];
   if (violations.length > 0) return { violations };
 
-  const 요청: CasesExecuteRequest = {
+  const 요청: ExecuteRequest = {
     runId: 0,
     historyId: 재료.historyId,
     platform: 재료.platform,
@@ -109,7 +108,6 @@ export async function 프로시저시험감(
   const 제목들 = 줄들.every((c) => c.step_titles !== null) ? 줄들.flatMap((c) => c.step_titles ?? []) : undefined;
   return {
     요청,
-    보낸다: 케이스들을보낸다,
     못감: (까닭, stack) => 못간답(요청, 까닭, stack),
     결과로: (답) => 누른케이스로(답, 재료.tcId),
     명세: 채움.map((c, k) => ({ paramSchema: 줄들[k]!.param_schema, expectedSchema: 줄들[k]!.expected_schema, params: c.params, expected: c.expected })),

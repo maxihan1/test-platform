@@ -2,13 +2,14 @@
 
 import { randomUUID } from 'node:crypto';
 
-import type { CaseResult, ExecuteResponse, ScenarioCaseResult, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
+import type { CaseResult, ScenarioCaseResult, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
 import { 계정칸 } from '@platform/kit/accounts';
 
 import type { 케이스줄 } from '../scenario/procRun.js';
 import type { 부품기록 } from '../scenario/runTrace.js';
 
 import { 가린값들 } from '../web/mask.js';
+import type { 줄결과 } from './runLifecycle.js';
 
 /**
  * 도는 중에는 폰을 잡았으면 그 폰 화면 보기 링크가 붙는다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」).
@@ -19,7 +20,7 @@ export type 도는중 = { status: 'RUNNING'; vision?: { url: string; name?: stri
  * 케이스 테스트 실행의 결과 — 누른 케이스 한 건이다. 프로시저 안 케이스는 프로시저가 통째로 돌아 results 에 케이스마다 한 건이 더 실린다
  * (도메인/실행 §3.2 「테스트 프로시저 실행」 「한 건 · 다시 돌리기 · 시험 실행」)
  */
-export type 시험결과 = ExecuteResponse & { results?: CaseResult[] };
+export type 시험결과 = 줄결과 & { results?: CaseResult[] };
 export type 시험읽기 = 도는중 | { status: 'DONE'; result: 시험결과 };
 
 export interface 시험명세 {

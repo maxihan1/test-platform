@@ -1,12 +1,12 @@
 // 파일 하나를 자식 프로세스로 돌리고 결과를 구조화해 돌려준다. 러너는 DB를 모른다 (SPEC §3.4)
-// 판정은 자식이 stdout에 뱉은 줄에서 온다 — 앞 꼴은 리포터의 결과 한 줄, 새 꼴은 kit 이 케이스마다 흘린 판정 줄이다. 답을 만드는 일은 response.ts 가 한다 (SPEC §5.2)
+// 판정은 자식이 stdout에 뱉은 줄에서 온다 — 프로시저는 kit 이 케이스마다 흘린 판정 줄, 옛 꼴 파일은 리포터의 결과 한 줄이다. 답을 만드는 일은 response.ts 가 한다 (SPEC §5.2)
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import { dirname, join, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 
-import { runDir, type CasesExecuteRequest, type CasesExecuteResponse, type ExecuteRequest, type ExecuteResponse, type FpsSample, type StepProgress } from '@platform/kit';
+import { runDir, type ExecuteRequest, type ExecuteResponse, type FpsSample, type StepProgress } from '@platform/kit';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
@@ -18,10 +18,10 @@ import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from '.
 import { 녹화폴더, 다음HAR경로 } from './recordHar.js';
 import { createProgressCollector } from './progress.js';
 import { 실제폰인가, 실제폰환경, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
-import { 앞꼴응답, 증적상태, 케이스응답, type KilledBy } from './response.js';
+import { 증적상태, 케이스응답, type KilledBy } from './response.js';
 import { kit경고 } from './result.js';
 
-export { killedResponse, statusFromExit, tail, type KilledBy } from './response.js';
+export { tail, type KilledBy } from './response.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
 export const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -90,15 +90,8 @@ export function resolveSpecPath(root: string, filePath: string): string | null {
 
 export { gameEnv, traceEnv };
 
-// 요청에 케이스 목록(cases)이 있으면 새 꼴로, 없으면 앞 꼴로 답한다. 앞 꼴은 TP-F6-32 에 걷는다 (SPEC 도메인/러너 §5.2 「프로시저 실행」)
-export function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse>;
-export function execute(req: CasesExecuteRequest, specPath: string): Promise<CasesExecuteResponse>;
-export function execute(req: ExecuteRequest | CasesExecuteRequest, specPath: string): Promise<ExecuteResponse | CasesExecuteResponse>;
-export async function execute(req: ExecuteRequest | CasesExecuteRequest, specPath: string): Promise<ExecuteResponse | CasesExecuteResponse> {
+export async function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse> {
   const startedAt = Date.now();
-  const 케이스들 = 'cases' in req ? req.cases : undefined;
-  // 옛 꼴 파일은 케이스가 하나다 — 그 값을 지금 길(PLATFORM_PARAMS)로 읽는다
-  const 첫 = 'cases' in req ? req.cases[0]! : req;
   const 출력 = 출력폴더이름(req.historyId);
   // 시험 실행은 runId · historyId 가 0 이라 나란히 돌면 겹친다 — 출력 이름(무작위가 붙는다)으로 가른다
   const 판파일 =
@@ -119,10 +112,11 @@ export async function execute(req: ExecuteRequest | CasesExecuteRequest, specPat
       cwd: appRoot,
       env: {
         ...process.env,
-        PLATFORM_PARAMS: JSON.stringify({ params: 첫.params, expected: 첫.expected }),
-        // 프로시저 파일은 케이스마다 자기 값을 여기서 꺼낸다. 늘 적는다 — 러너를 켠 셸의 값을 물려받지 않게 (도메인/러너 §5.2 「프로시저 실행」 「케이스별 입력」)
+        // 케이스마다 자기 값을 여기서 꺼낸다. 옛 꼴 파일은 첫 케이스의 값이다 (도메인/러너 §5.2 「프로시저 실행」 「케이스별 입력」)
         // ponytail: 환경값 한 칸은 128KiB 까지다 — 케이스 10개의 값으로는 못 닿는다. 닿으면 자식을 못 띄워 500 이 되고, 그때 파일로 넘긴다(API 문서 판처럼)
-        PLATFORM_CASES: 케이스들 === undefined ? '' : JSON.stringify(케이스들),
+        PLATFORM_CASES: JSON.stringify(req.cases),
+        // 사람이 직접 돌릴 때 쓰는 값이다 — 러너를 켠 셸의 값을 자식이 물려받지 않게 비운다
+        PLATFORM_PARAMS: '',
         // 러너는 어떤 대상 서버가 있는지 모른다. 주소 하나만 받아 그대로 넘기고
         // playwright.config.ts가 use.baseURL로 받는다 (SPEC §5.2)
         PLATFORM_BASE_URL: req.baseUrl,
@@ -209,7 +203,7 @@ export async function execute(req: ExecuteRequest | CasesExecuteRequest, specPat
   });
   await 출력폴더를지운다(출력);
   // 러너 기록에 옮겨 적는다 — 자식 출력은 응답 사유로만 쓰여 서버 기록에서 안 보였다
-  for (const 줄 of kit경고(stderr)) console.warn(`[runner] ${('cases' in req ? req.procId : undefined) ?? 첫.tcId} #${String(req.historyId)} ${줄}`);
+  for (const 줄 of kit경고(stderr)) console.warn(`[runner] ${req.procId ?? req.cases[0]?.tcId ?? ''} #${String(req.historyId)} ${줄}`);
 
   // killedBy 와 상관없이 닫는다 — 정상 종료라도 kit 의 닫기가 실패했으면 번호 파일이 남는다.
   // 답하기 전에 끝내야 admin 이 답을 받았을 때 팜의 디바이스가 이미 풀려 있다
@@ -218,8 +212,7 @@ export async function execute(req: ExecuteRequest | CasesExecuteRequest, specPat
   // 하나도 못 읽었으면 칸을 안 싣는다 — 화면이 빈 선을 그리지 않는다
   const fps칸 = fps.some((f) => f.fps !== null) ? { fps } : {};
 
-  const 자식 = { killedBy: entry.killedBy, code, startedAt, stdout, stderr };
-  const 응답 = 케이스들 === undefined ? 앞꼴응답(req.historyId, 자식, fps칸) : 케이스응답(req.historyId, 케이스들, 자식, fps칸);
+  const 응답 = 케이스응답(req.historyId, req.cases, { killedBy: entry.killedBy, code, startedAt, stdout, stderr }, fps칸);
   if (폰기기 === undefined) return 응답;
   if (폰증적) await 폰증적을둔다(폰폴더, 증적상태(응답));
   return { ...응답, device: await 폰기기(응답.device) };

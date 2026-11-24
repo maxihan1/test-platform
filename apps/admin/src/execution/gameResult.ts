@@ -1,7 +1,7 @@
 // 게임 항목 결과의 곁가지 — 서버 값 대조는 게임 지도 칸에, 부른 API 는 서비스 지도의 케이스 줄에, 지난 함수는 조작 맵 행에 적는다 (도메인/게임 「실행 결과」 · GAME-F1-09 · GAME-F5-06).
 // Android 앱 항목도 지난 함수를 앱 조작 맵 줄에 적는다 — 지도 칸은 게임만이다 (도메인/작성 §3.6 「★ 앱 탐색」 결정 10 · APP-F4-09)
 
-import type { ExecuteResponse } from '@platform/kit';
+import type { CaseResult } from '@platform/kit';
 
 import type { PoolClient } from 'pg';
 
@@ -17,7 +17,7 @@ import { 판정아닌까닭을가른다 } from './notVerdict.js';
  * 조작 실패는 「요소를 찾지 못함」 · 「타임아웃」뿐이다 — 기대값이 다른 실패 · 연결 문제는 길이 틀린 것이 아니라 행을 안 건드린다 (2026-11-20 GAME-F5-06 시작 질문).
  * 앞 케이스에 막힌 케이스(Blocked)의 깨진 절차도 행을 안 건드린다 — 앞 케이스가 깨져 화면이 달라진 것이지 길이 틀린 것이 아니다. 막은 케이스의 깨진 절차가 맵을 고친다 (2026-11-24 TP-F3-14 시작 질문)
  */
-export function 맵재료(result: Pick<ExecuteResponse, 'status' | 'steps' | 'error'>): { 지난: string[]; 실패: string[] } | null {
+export function 맵재료(result: Pick<CaseResult, 'status' | 'steps' | 'error'>): { 지난: string[]; 실패: string[] } | null {
   const 지난 = result.status === 'PASS' ? [...new Set(result.steps.flatMap((s) => s.gameFns ?? []))] : [];
   const 막힘 = 판정아닌까닭을가른다(result.status, result.error?.message) === 'BLOCKED';
   const 조작실패 = result.steps.filter((s) => {
@@ -30,7 +30,7 @@ export function 맵재료(result: Pick<ExecuteResponse, 'status' | 'steps' | 'er
 }
 
 /** 맵 고침은 지도 채우기와 따로 되돌린다 — 지도 한 줄이 깨져도 그 실행 몫의 맵 고침은 남고, 맵을 못 고쳐도 판정과 지도는 남는다 */
-async function 조작맵을고친다(client: PoolClient, historyId: number, result: ExecuteResponse): Promise<void> {
+async function 조작맵을고친다(client: PoolClient, historyId: number, result: Omit<CaseResult, 'tcId'>): Promise<void> {
   const 맵 = 맵재료(result);
   if (맵 === null) return;
   await client.query('SAVEPOINT game_route_result');
@@ -64,7 +64,7 @@ async function 조작맵을고친다(client: PoolClient, historyId: number, resu
  * 판정을 넣은 트랜잭션 안에서 부른다. 지도는 힌트라 깨져도 판정은 남긴다 — SAVEPOINT 로 지도만 되돌리고 알린다 (execution/traceIngest.ts 와 같은 꼴).
  * android 게임은 trace 가 없어 서비스 지도의 케이스 줄을 러너가 본 호출(apiCalls)로 채운다
  */
-export async function 게임결과를넣는다(client: PoolClient, historyId: number, result: ExecuteResponse): Promise<void> {
+export async function 게임결과를넣는다(client: PoolClient, historyId: number, result: Omit<CaseResult, 'tcId'>): Promise<void> {
   await 조작맵을고친다(client, historyId, result);
   if (result.elementChecks === undefined && result.apiCalls === undefined) return;
   await client.query('SAVEPOINT game_result');

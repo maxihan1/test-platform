@@ -4,13 +4,7 @@
 import http from 'node:http';
 import https from 'node:https';
 
-import {
-  PC항목인가,
-  type ExecuteRequest,
-  ExecuteResponse,
-  type ScenarioExecuteRequest,
-  type ScenarioExecuteResponse,
-} from '@platform/kit';
+import { PC항목인가, type ExecuteRequest, type ExecuteResponse, type ScenarioExecuteRequest, type ScenarioExecuteResponse } from '@platform/kit';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
@@ -19,9 +13,10 @@ import { 거를패키지, 단위잡는분, 팜주소, 팜폰으로, 폰Chrome으
 import { 실행팜토큰 } from './farmToken.js';
 import { 항목폰화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
 import { PC화면을단다 } from './pcScreen.js';
+import type { 줄결과 } from './runLifecycle.js';
 import { runnerUrl, 답하나, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
-import type { 못감함수, 시험요청 } from './trialPhone.js';
+import type { 못감함수 } from './trialPhone.js';
 
 // 러너는 자기 제한 시간이 지나면 자식을 죽이고 200 + NA로 돌려준다. 이쪽이 먼저 끊으면 그 부분 결과가 사라진다
 const RUNNER_GRACE_MS = 30_000;
@@ -33,9 +28,24 @@ export function httpTimeoutMs(timeoutMs: number): number {
   return timeoutMs === 0 ? 한도없음_HTTP_MS : timeoutMs + RUNNER_GRACE_MS;
 }
 
-export function na(item: Pick<PendingItem, 'historyId'>, message: string, stack?: string): ExecuteResponse {
+export function na(item: Pick<PendingItem, 'historyId'>, message: string, stack?: string): 줄결과 {
   // 판정할 근거가 없으면 NA다. 실패와 구분돼야 러너 고장과 케이스 실패가 섞이지 않는다 (SPEC §3.2)
   return { historyId: item.historyId, status: 'NA', durationMs: 0, steps: [], error: { message, stack } };
+}
+
+/** 러너에 못 갔거나 러너가 안 받았다 — 케이스마다 같은 사유의 미실행으로 채운다. 흐른 시간은 케이스가 하나일 때만 그 케이스 것이다 */
+export function 못간답(요청: Pick<ExecuteRequest, 'historyId' | 'cases'>, message: string, stack?: string, durationMs = 0): ExecuteResponse {
+  const error = { message, ...(stack !== undefined && { stack }) };
+  const 케이스ms = 요청.cases.length === 1 ? durationMs : 0;
+  return { historyId: 요청.historyId, durationMs, results: 요청.cases.map((c) => ({ tcId: c.tcId, status: 'NA', durationMs: 케이스ms, steps: [], error })), error };
+}
+
+const 답없음 = '러너 답에 이 케이스의 결과가 없습니다';
+
+/** 케이스 하나짜리 실행 단위(옛 꼴 파일)의 답을 케이스 줄 하나의 결과로 푼다 — 기기 정보 · FPS 도 그 줄 것이다 */
+export function 한건(답: ExecuteResponse): 줄결과 {
+  const { tcId: _번호, ...것 } = 답.results[0] ?? { tcId: '', status: 'NA', durationMs: 답.durationMs, steps: [], error: 답.error ?? { message: 답없음 } };
+  return { ...것, historyId: 답.historyId, ...(답.device !== undefined && { device: 답.device }), ...(답.fps !== undefined && { fps: 답.fps }) };
 }
 
 // 돌고 있는 자식 프로세스를 그룹째 끊어 달라고 한다. 이미 끝났거나 러너가 모르는 historyId면 false다 —
@@ -122,7 +132,7 @@ export interface 잡은폰 {
   게임?: string;
 }
 
-/** 요청에 그대로 싣는 칸 — 실행 단위에 한 벌이라 옛 꼴 · 새 꼴 요청이 같은 것을 싣는다 */
+/** 요청에 그대로 싣는 칸 — 실행 단위에 한 벌이라 옛 꼴 케이스와 프로시저가 같은 것을 싣는다 */
 export const 실행칸 = (item: PendingItem): Pick<ExecuteRequest, 'app' | 'previousApp' | 'apiAuths' | 'engine' | 'adminKey' | 'gamePopups' | 'stability'> => ({
   ...(item.app !== undefined && { app: item.app }),
   ...(item.previousApp !== undefined && { previousApp: item.previousApp }),
@@ -140,7 +150,7 @@ export async function callRunner(
   item: PendingItem,
   멈췄나: () => boolean = () => false,
   잡은폰?: 잡은폰,
-): Promise<ExecuteResponse> {
+): Promise<줄결과> {
   // API 애플리케이션 케이스는 그 케이스 판 원문을 싣는다. 판이 없으면 러너에 안 보내고 미실행으로 닫는다 (도메인/API §3.8 「응답 모양 확인」)
   let 판: Awaited<ReturnType<typeof 케이스판>>;
   try {
@@ -156,36 +166,33 @@ export async function callRunner(
   const body: ExecuteRequest = {
     runId,
     historyId: item.historyId,
-    tcId: item.tcId,
     platform: item.platform,
     filePath: item.filePath,
     baseUrl: item.baseUrl,
-    params: item.params,
-    expected: item.expected,
+    cases: [{ tcId: item.tcId, params: item.params, expected: item.expected }],
     timeoutMs: item.timeoutMs,
     ...실행칸(item),
     ...(열쇠 !== undefined && { live: 열쇠 }),
     ...판,
   };
   try {
-    return await 폰에보낸다(runId, { 번호: item.historyId, item, body, 보낸다: (b) => 보낸다(item, b), 못감: (까닭, stack) => na(item, 까닭, stack) }, 멈췄나, 잡은폰);
+    return 한건(await 폰에보낸다(runId, { 번호: item.historyId, item, body, 못감: (까닭, stack) => 못간답(body, 까닭, stack) }, 멈췄나, 잡은폰));
   } finally {
     항목화면을닫는다(item.historyId);
   }
 }
 
-/** 폰 · PC 를 잡아 보내는 길에 드는 것 — 옛 꼴(케이스 하나)과 새 꼴(프로시저)은 요청 · 답 모양만 다르고 잡고 놓는 길은 같다 */
-export interface 보낼것<Q extends 시험요청, R> {
+/** 폰 · PC 를 잡아 보내는 길에 드는 것 — 옛 꼴 케이스와 프로시저가 같은 길을 탄다 */
+export interface 보낼것 {
   /** 러너에 가는 번호(실행 단위 번호) — 장면 · 폰 화면 칸의 열쇠다 */
   번호: number;
   item: Pick<PendingItem, 'platform' | '실제폰' | 'buildId' | 'previousBuildId' | 'app'>;
-  body: Q;
-  보낸다: (body: Q) => Promise<R>;
+  body: ExecuteRequest;
   /** 러너에 안 보내고 닫을 때의 답 */
-  못감: 못감함수<R>;
+  못감: 못감함수;
 }
 
-export async function 폰에보낸다<Q extends 시험요청, R>(runId: number, 것: 보낼것<Q, R>, 멈췄나: () => boolean, 잡은폰: 잡은폰 | undefined): Promise<R> {
+export async function 폰에보낸다(runId: number, 것: 보낼것, 멈췄나: () => boolean, 잡은폰: 잡은폰 | undefined): Promise<ExecuteResponse> {
   const { 번호, item, body, 못감 } = 것;
   // 모바일 웹은 실행 창 「실행 위치」로 고른 항목만 실제 폰이다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   const 폰Chrome = item.platform === 'mobile' && item.실제폰 === true;
@@ -198,27 +205,27 @@ export async function 폰에보낸다<Q extends 시험요청, R>(runId: number, 
     // PC 는 kit 이 장면 사진을 안 찍는다 — 카드가 VISION 화면 영상을 받아 간다 (도메인/게임 §3.10 「증적 · 결과」)
     PC화면을단다(`item:${String(번호)}`, { serial: pc.udid, 토큰: pc.토큰 });
     try {
-      return await 것.보낸다({ ...body, udid: pc.udid, app: pc.게임!, ...(pc.토큰 !== undefined && { farmToken: pc.토큰 }) });
+      return await 보낸다({ ...body, udid: pc.udid, app: pc.게임!, ...(pc.토큰 !== undefined && { farmToken: pc.토큰 }) });
     } finally {
       항목폰화면(번호, undefined);
       PC화면을단다(`item:${String(번호)}`, undefined);
     }
   }
-  if (item.platform !== 'android' && !폰Chrome) return 것.보낸다(body);
+  if (item.platform !== 'android' && !폰Chrome) return 보낸다(body);
   // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 닫는 쪽이 덮지 않는다(finished_at IS NULL). 폰을 잡는 몇 초 사이에 멈췄는지 잡은 뒤 본다
-  const 멈춤 = (): R | null => (멈췄나() ? 못감('멈춘 실행이라 러너에 보내지 않았습니다') : null);
+  const 멈춤 = (): ExecuteResponse | null => (멈췄나() ? 못감('멈춘 실행이라 러너에 보내지 않았습니다') : null);
   // 폰을 잡은 토큰을 러너도 써야 팜이 연결을 받는다. 서버 몫이면 안 싣는다 — 러너가 자기 환경값으로 같은 값을 든다
-  const 보낸다폰 = async (udid: string, 토큰: string | undefined): Promise<R> => {
+  const 보낸다폰 = async (udid: string, 토큰: string | undefined): Promise<ExecuteResponse> => {
     const 멈춘 = 멈춤();
     if (멈춘 !== null) return 멈춘;
     // 앞 빌드도 이 설치 한 번에만 쓰는 서명 주소다. 못 만들면 빼고 보낸다 — 옛판에서올리기 만 「앞 빌드가 없다」로 던진다
     const 앞 = item.previousBuildId === undefined ? null : 서명주소(item.previousBuildId);
-    const 폰body: Q = { ...body, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(앞 !== null && { previousApp: 앞 }) };
-    if (item.buildId === undefined) return 것.보낸다(폰body);
+    const 폰body: ExecuteRequest = { ...body, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(앞 !== null && { previousApp: 앞 }) };
+    if (item.buildId === undefined) return 보낸다(폰body);
     // 올린 APK 는 폰을 잡은 뒤 서명 주소를 만든다 — 저장하지 않고 이 설치 한 번에만 쓴다 (도메인/실행 §3.11)
     const app = 서명주소(item.buildId);
     if (app === null) return 못감('PLATFORM_PUBLIC_URL 이 비어 있어 Device VISION 이 빌드를 받을 주소를 만들지 못했습니다');
-    return 것.보낸다({ ...폰body, app });
+    return 보낸다({ ...폰body, app });
   };
   // 폰을 잡은 동안만 링크를 단다
   const 폰화면과 = async <T>(화면: string | undefined, 일: () => Promise<T>, 이름?: string): Promise<T> => {
@@ -244,7 +251,7 @@ export async function 폰에보낸다<Q extends 시험요청, R>(runId: number, 
   if (폰Chrome) {
     return 폰Chrome으로(
       팜,
-      async (칸, 화면, 이름) => 폰화면과(화면, async () => 멈춤() ?? 것.보낸다({ ...body, ...칸 }), 이름),
+      async (칸, 화면, 이름) => 폰화면과(화면, async () => 멈춤() ?? 보낸다({ ...body, ...칸 }), 이름),
       (까닭) => 못감(까닭),
       토큰,
     );
@@ -254,24 +261,22 @@ export async function 폰에보낸다<Q extends 시험요청, R>(runId: number, 
   return 팜폰으로(팜, (udid, 화면, 이름) => 폰화면과(화면, () => 보낸다폰(udid, 토큰), 이름), (까닭) => 못감(까닭), undefined, undefined, 단위잡는분(body.timeoutMs), 토큰, 거를패키지(item.app));
 }
 
-// 러너가 거절하거나 못 닿으면 그 항목만 NA 로 접는다 — 케이스 테스트 실행도 같은 문장으로 접는다 (execution/trialRoutes.ts)
-export async function 보낸다(item: Pick<PendingItem, 'historyId' | 'timeoutMs'>, body: ExecuteRequest): Promise<ExecuteResponse> {
+// 러너가 거절하거나 못 닿으면 그 실행 단위의 케이스만 NA 로 접는다 — 정식 실행 · 케이스 테스트 실행 · 호환성 · 기기 성능이 같은 문장으로 접는다
+export async function 보낸다(body: ExecuteRequest): Promise<ExecuteResponse> {
   const startedAt = Date.now();
   try {
-    const res = await 러너에보낸다('/execute', body, httpTimeoutMs(item.timeoutMs));
-
-    if (res.status < 200 || res.status >= 300) {
-      return { ...na(item, 거절사유(res.status, res.json)), durationMs: Date.now() - startedAt };
-    }
-
-    return res.json as ExecuteResponse;
+    const res = await 러너에보낸다('/execute', body, httpTimeoutMs(body.timeoutMs));
+    if (res.status < 200 || res.status >= 300) return 못간답(body, 거절사유(res.status, res.json), undefined, Date.now() - startedAt);
+    const 답 = res.json as ExecuteResponse | null;
+    // 러너가 아닌 것이 답했다 — 여기서 안 접으면 던져져 나머지 항목과 실행까지 끌고 내려간다
+    return 답 !== null && Array.isArray(답.results) ? 답 : 못간답(body, 답없음, undefined, Date.now() - startedAt);
   } catch (err) {
-    // 연결 실패·응답 없음. 이 항목만 NA로 접고 디스패처는 다음 항목으로 넘어간다.
+    // 연결 실패·응답 없음. 이 실행 단위만 NA로 접고 디스패처는 다음 항목으로 넘어간다.
     // 사람이 보는 문장은 사유 한 줄이고 원문(주소·포트)은 상세의 접힌 자리로 간다 (SPEC §8.3)
     const reason = err instanceof Error ? err.message : String(err);
     // 한도 없는 게임 시나리오는 러너가 스스로 안 끊는다 — 통신 상한(120분)에 닿았으면 폰을 쥔 자식이 남지 않게 멈춘다
-    if (item.timeoutMs === 0) await abortRunner(item.historyId);
-    return { ...na(item, '러너에 닿지 못했습니다', reason), durationMs: Date.now() - startedAt };
+    if (body.timeoutMs === 0) await abortRunner(body.historyId);
+    return 못간답(body, '러너에 닿지 못했습니다', reason, Date.now() - startedAt);
   }
 }
 

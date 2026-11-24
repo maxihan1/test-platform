@@ -19,8 +19,8 @@ vi.mock('./scenario.js', async (원본) => ({ ...(await 원본<typeof import('./
 const 열쇠 = '0b7e2c1a-0000-4000-8000-000000000001';
 const 장면 = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
 const 케이스요청 = (칸: Record<string, unknown> = {}) => ({
-  runId: 0, historyId: 0, tcId: 'TODO-001', platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
-  baseUrl: 'https://qa.example.com', params: {}, expected: {}, live: 열쇠, ...칸,
+  runId: 0, historyId: 0, platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
+  baseUrl: 'https://qa.example.com', cases: [{ tcId: 'TODO-001', params: {}, expected: {} }], live: 열쇠, ...칸,
 });
 const 시나리오요청 = (칸: Record<string, unknown> = {}) => ({
   runId: null, trialId: 열쇠, platform: 'desktop', baseUrl: 'https://qa.example.com', parts: [{ kind: 'wait', ms: 1 }], timeoutMs: 1000, live: 열쇠, ...칸,
@@ -81,7 +81,7 @@ describe('GET /live/:key', () => {
     ['케이스 테스트 실행', '/execute', 케이스요청, () => vi.mocked(execute)],
     ['E2E 시험 실행', '/execute-scenario', 시나리오요청, () => vi.mocked(executeScenario)],
   ] as const)('%s — 첫 장면 전은 204, 장면이 생기면 그 JPEG 를 200 으로, 끝나면 404 이고 파일도 지운다', async (_이름, 길, 요청, 실행) => {
-    const 잡음 = 붙잡는다({ status: 'PASS', durationMs: 0 } as ExecuteResponse & ScenarioExecuteResponse);
+    const 잡음 = 붙잡는다({ status: 'PASS', durationMs: 0, results: [] as ExecuteResponse['results'] } as ExecuteResponse & ScenarioExecuteResponse);
     실행().mockImplementation(잡음.대기);
     const app = 서버();
     const 돌림 = app.inject({ method: 'POST', url: 길, payload: 요청() });
@@ -107,7 +107,7 @@ describe('GET /live/:key', () => {
   });
 
   it('앱 · 게임 폰 장면(Appium PNG)은 image/png 로 낸다', async () => {
-    const 잡음 = 붙잡는다({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
+    const 잡음 = 붙잡는다({ historyId: 0, durationMs: 0, results: [] });
     vi.mocked(execute).mockImplementation(잡음.대기);
     const app = 서버();
     const 돌림 = app.inject({ method: 'POST', url: '/execute', payload: 케이스요청({ platform: 'android' }) });
@@ -138,7 +138,7 @@ describe('GET /live/:key', () => {
   });
 
   it('장면 열쇠가 없는 실행은 장면을 안 낸다', async () => {
-    const 잡음 = 붙잡는다({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
+    const 잡음 = 붙잡는다({ historyId: 0, durationMs: 0, results: [] });
     vi.mocked(execute).mockImplementation(잡음.대기);
     const app = 서버();
     const 돌림 = app.inject({ method: 'POST', url: '/execute', payload: 케이스요청({ live: undefined }) });
@@ -173,7 +173,7 @@ describe('장면 열쇠 입구 검사', () => {
   });
 
   it.each(['desktop', 'mobile', 'android'])('%s 정식 실행의 열쇠는 받아 실행에 넘긴다 — 앱 · 게임도 진행 창 카드에 폰 화면을 띄운다', async (platform) => {
-    vi.mocked(execute).mockResolvedValue({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
+    vi.mocked(execute).mockResolvedValue({ historyId: 0, durationMs: 0, results: [] });
 
     const res = await 서버().inject({ method: 'POST', url: '/execute', payload: 케이스요청({ runId: 12, historyId: 34, platform }) });
 
@@ -182,7 +182,7 @@ describe('장면 열쇠 입구 검사', () => {
   });
 
   it('열쇠를 버리지 않고 실행에 넘긴다', async () => {
-    vi.mocked(execute).mockResolvedValue({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
+    vi.mocked(execute).mockResolvedValue({ historyId: 0, durationMs: 0, results: [] });
 
     await 서버().inject({ method: 'POST', url: '/execute', payload: 케이스요청() });
 

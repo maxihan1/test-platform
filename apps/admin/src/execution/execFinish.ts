@@ -1,7 +1,7 @@
 // 프로시저 실행 단위의 시작과 끝을 적는다 — 러너 답을 케이스 줄 여럿에 한 트랜잭션으로 저장한다 (SPEC 도메인/실행 §3.2 「테스트 프로시저 실행」 · 공통/4 「테스트 프로시저 표」)
 // runLifecycle.ts 가 300줄을 넘어 여기 둔다. 케이스 줄 하나를 닫는 규칙은 옛 꼴과 같은 함수다
 
-import type { CaseResult, CasesExecuteResponse, FpsSample } from '@platform/kit';
+import type { CaseResult, ExecuteResponse, FpsSample } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
@@ -25,7 +25,7 @@ const 답없음 = '러너 답에 이 케이스의 결과가 없습니다';
  * 러너가 1초마다 읽은 FPS 표본을 케이스에 가른다 — 표본의 절차 번호가 그 케이스의 첫 절차 번호부터 다음 케이스의 첫 절차 앞까지면 그 케이스 것이다.
  * 절차 번호가 같은 것만 고르면 한도에 끊겨 결과에 안 실린 절차의 표본이 어느 줄에도 안 남는다 — 게임이 멈춘 바로 그 구간이다
  */
-export function FPS를가른다(답: Pick<CasesExecuteResponse, 'results' | 'fps'>): Map<string, FpsSample[]> {
+export function FPS를가른다(답: Pick<ExecuteResponse, 'results' | 'fps'>): Map<string, FpsSample[]> {
   const 모음 = new Map<string, FpsSample[]>();
   if (!Array.isArray(답.fps)) return 모음;
   // 절차가 없는 케이스(못 간 케이스)는 표본을 받지 않는다. 뒤에서부터 찾게 첫 절차 번호가 큰 것부터 둔다
@@ -43,7 +43,7 @@ export function FPS를가른다(답: Pick<CasesExecuteResponse, 'results' | 'fps
  * 러너에 못 보내고 닫을 때의 사유(폰을 못 잡았다 · 러너에 못 닿았다 · 결과를 못 저장했다)도 판정 밖이라 같이 적힌다.
  * 닫는 규칙은 케이스 줄마다 그대로다 — 멈춰서 이미 닫힌 줄은 건드리지 않는다 (도메인/실행 §3.2 「테스트 프로시저 실행」 · 공통/4 「테스트 프로시저 표」)
  */
-export async function finishExec(execId: number, 받은답: CasesExecuteResponse): Promise<void> {
+export async function finishExec(execId: number, 받은답: ExecuteResponse): Promise<void> {
   const 답 = jsonb에맞춘다(받은답);
   const client = await (await db()).connect();
   try {

@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { BrowserPlatform, ExecuteRequest } from '@platform/kit';
+import type { BrowserPlatform, ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
 import { 볼륨목록, 볼륨파일읽기 } from '../artifactFile.js';
@@ -49,12 +49,10 @@ async function 케이스돌리기(jobId: number, 줄: 대상줄, 케이스: Extr
     const 요청: ExecuteRequest = {
       runId: 0,
       historyId: Date.now(),
-      tcId: c.tcId,
       platform: c.platform,
       filePath: c.filePath,
       baseUrl: 줄.baseUrl,
-      params,
-      expected,
+      cases: [{ tcId: c.tcId, params, expected }],
       timeoutMs: 케이스제한ms,
       ...(줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
       // 설정이 게임 · API 줄에만 키를 받는다 — 녹화 케이스가 서버 어드민 API 를 admin 으로 부를 수 있게 정식 실행처럼 싣는다
@@ -67,7 +65,7 @@ async function 케이스돌리기(jobId: number, 줄: 대상줄, 케이스: Extr
     await rm(join(artifactsDir(), 'runs', '0', String(요청.historyId)), { recursive: true, force: true });
     if (res.status < 200 || res.status >= 300) throw new Error(`러너가 ${c.tcId} 녹화를 ${res.status}로 거절했습니다`);
     // 판정을 못 낸 실행은 중간에 끊겼을 수 있다 — 반쪽 녹화로 초안을 만들지 않는다. FAIL 은 요청이 다 오가서 쓴다
-    if ((res.json as { status?: string } | null)?.status === 'NA') throw new Error(`${c.tcId} 를 끝까지 돌리지 못했습니다`);
+    if (((res.json as Partial<ExecuteResponse> | null)?.results?.[0]?.status ?? 'NA') === 'NA') throw new Error(`${c.tcId} 를 끝까지 돌리지 못했습니다`);
   }
   return 비밀;
 }
