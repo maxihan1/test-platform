@@ -137,6 +137,18 @@ describe('프로시저 단계', () => {
     expect(결과.cases).toEqual([{ tcId: a.tcId, status: 'NA', durationMs: 0, error: { message: 'PROCEDURE_CHANGED' } }]);
   });
 
+  it('케이스가 모두 보류면 돌린 것이 없어 단계를 통과로 두지 않는다', async () => {
+    번호 += 1;
+    const 보류 = defineCase({ tcId: `DEMO-FN-${String(번호 + 700)}`, name: '보류', platforms: ['android'], precondition: [], params: null, expected: null, held: '값이 비었다' });
+    const 본문 = vi.fn();
+
+    const 결과 = await 프로시저단계(프로시저([보류]), 본문, 보류.tcId)(입력());
+
+    expect(본문).not.toHaveBeenCalled();
+    expect(결과).toMatchObject({ failed: true, error: { message: 'DEMO-TP-701의 케이스가 모두 보류다' } });
+    expect(결과.cases).toEqual([{ tcId: 보류.tcId, status: 'NA', durationMs: 0, error: { message: '값이 비었다' } }]);
+  });
+
   it('폰 연결이 없으면 케이스를 안 돌아 판정 줄이 없다', async () => {
     const a = 케이스();
 

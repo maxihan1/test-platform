@@ -8,7 +8,7 @@ import { 단계디바이스 as 도는디바이스 } from '../scenario/mixed.js';
 import type { CaseRow, Platform, 앱종류 } from './api.js';
 import { t, type 언어 } from './i18n.js';
 import { 종류 } from './kind.js';
-import type { CasePartMaterial, FlowCandidate, NextCase } from './scenarioApi.js';
+import type { CasePartMaterial, FlowCandidate } from './scenarioApi.js';
 import { toValues, type Field } from './schema.js';
 
 type CasePart = Extract<ScenarioPart, { kind: 'case' }>;
@@ -164,25 +164,8 @@ export function 뒤케이스(parts: ScenarioPart[]): { tcId: string; 번호: num
   return null;
 }
 
-/**
- * 추천 줄 — 팔레트 목록 차례 그대로, 고른 디바이스에서 돌고 정상 쪽(흐름 칸)인 것만. 서버는 이어지는 화면에 닿는 케이스를 다 준다.
- * 이미 시나리오에 든 프로시저(든프로시저)의 케이스는 내지 않는다 — 서버는 바로 앞 케이스의 프로시저만 뺀다 (도메인/시나리오 §3.7 결정 17)
- */
-export function 추천줄들(
-  cases: CaseRow[],
-  platform: Platform,
-  PRD씀: boolean,
-  추천: NextCase[],
-  든프로시저: ReadonlySet<string> = new Set(),
-): { row: CaseRow; screen: string }[] {
-  const 칸 = new Map(추천.map((x) => [x.tcId, x]));
-  return cases.flatMap((c) => {
-    const 줄 = 칸.get(c.tcId);
-    if (줄 === undefined || !c.platforms.includes(platform) || !흐름인가(c, PRD씀)) return [];
-    const procId = 줄.procId ?? c.procId;
-    return procId != null && 든프로시저.has(procId) ? [] : [{ row: c, screen: 줄.screen }];
-  });
-}
+// 추천 줄은 프로시저 거르기와 같이 scenarioProc.ts 에 있다 — 이 파일이 300줄을 넘어 옮겼다
+export { 추천줄들 } from './scenarioProc.js';
 
 /** 비운 칸은 필수여도 키를 뺀다 — 서버는 키가 없는 칸만 저장값으로 채운다 */
 export function 조립값(fields: Field[], 글자들: Record<string, string>): Record<string, unknown> {

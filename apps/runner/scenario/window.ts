@@ -245,7 +245,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
           });
           let 끝 = false;
           return {
-            runCase: (part: CasePart, seq, phase, params) => 케이스돌리기(part, 이번, 부품요청, async () => ({ page: 감시.page, platform: 설정.platform }), seq, phase, params),
+            runCase: (part: CasePart, seq, phase, params, 케이스한도) => 케이스돌리기(part, 이번, 부품요청, async () => ({ page: 감시.page, platform: 설정.platform }), seq, phase, params, 케이스한도),
             state: async () => 합친상태(await context.storageState(), await 부품요청.storageState()),
             async close(끊음 = false) {
               if (끝) return;

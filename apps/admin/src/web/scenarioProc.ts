@@ -2,9 +2,10 @@
 
 import type { ScenarioPart } from '@platform/kit';
 
-import type { ItemStatus } from './api.js';
+import { 흐름인가 } from '../scenario/flowSide.js';
+import type { CaseRow, ItemStatus, Platform } from './api.js';
 import { 막힌항목, type 줄판정 } from './runFlow.js';
-import type { 프로시저칸, 프로시저케이스 } from './scenarioApi.js';
+import type { NextCase, 프로시저칸, 프로시저케이스 } from './scenarioApi.js';
 
 /** 조립 화면이 단계 카드에 그리는 프로시저 — 단계의 케이스 번호가 지금 든 프로시저와 그 케이스(도는 차례) */
 export interface 프로시저정보 {
@@ -58,4 +59,24 @@ export function 든프로시저들(단계들: ScenarioPart[], 번호: (tcId: str
     if (id !== undefined) 모음.add(id);
   }
   return 모음;
+}
+
+/**
+ * 추천 줄 — 팔레트 목록 차례 그대로, 고른 디바이스에서 돌고 정상 쪽(흐름 칸)인 것만. 서버는 이어지는 화면에 닿는 케이스를 다 준다.
+ * 이미 시나리오에 든 프로시저(든프로시저)의 케이스는 내지 않는다 — 서버는 바로 앞 케이스의 프로시저만 뺀다 (도메인/시나리오 §3.7 결정 17)
+ */
+export function 추천줄들(
+  cases: CaseRow[],
+  platform: Platform,
+  PRD씀: boolean,
+  추천: NextCase[],
+  든프로시저: ReadonlySet<string> = new Set(),
+): { row: CaseRow; screen: string }[] {
+  const 칸 = new Map(추천.map((x) => [x.tcId, x]));
+  return cases.flatMap((c) => {
+    const 줄 = 칸.get(c.tcId);
+    if (줄 === undefined || !c.platforms.includes(platform) || !흐름인가(c, PRD씀)) return [];
+    const procId = 줄.procId ?? c.procId;
+    return procId != null && 든프로시저.has(procId) ? [] : [{ row: c, screen: 줄.screen }];
+  });
 }

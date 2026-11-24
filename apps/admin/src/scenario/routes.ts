@@ -15,6 +15,7 @@ import { 흐름결과읽기, 흐름맡기기 } from './flowJob.js';
 import { 값연결제안들, 제안재료읽기 } from './linkSuggest.js';
 import { 다음케이스읽기, 첫케이스읽기 } from './next.js';
 import { 케이스재료 } from './parts.js';
+import { 프로시저케이스수읽기 } from './procRun.js';
 import { 고치기, 되돌리기, 만들기, 목록, 상세, 옛버전, 치우기, type 저장하는사람 } from './store.js';
 import { type 카탈로그, 부품들모양, 제한시간크기사유, 조립검사 } from './validate.js';
 
@@ -123,7 +124,9 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if (!parsed.success) return 잘못(reply, parsed.error.message);
     const { service, parts } = parsed.data;
     if ((await findService(service)) === null) return 잘못(reply, `모르는 서비스다: ${service}`);
-    if (제한시간크기사유(parts).length > 0) return { items: [] };
+    // 프로시저 단계는 케이스 수만큼 몫이 커진다 — 저장 검사와 같은 셈이어야 저장 안 될 초안에 제안을 안 낸다 (결정 17)
+    const pool = (await import('../db/index.js')).pool;
+    if (제한시간크기사유(parts, await 프로시저케이스수읽기(pool, 케이스번호들(parts))).length > 0) return { items: [] };
     const 읽는앱 = new Set(칸되는서비스(req.user?.services ?? [], 'authoring', 'read'));
     const 앱들 = (await 같은프로젝트접두사(service)).filter((p) => 읽는앱.has(p) && 케이스번호들(parts).some((t) => t.startsWith(`${p}-`)));
     const { 지도, 입력칸 } = await 제안재료읽기(앱들, 케이스번호들(parts));

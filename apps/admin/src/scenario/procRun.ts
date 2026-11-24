@@ -43,6 +43,16 @@ interface 케이스행 {
   proc_name: string | null;
 }
 
+/** 고른 케이스마다 그 프로시저의 활성 케이스 수 — 케이스 파일을 안 열고 60분 상한만 셀 때 쓴다(값 연결 제안). 옛 꼴 케이스는 안 든다 */
+export async function 프로시저케이스수읽기(c: Pick<PoolClient, 'query'>, tcIds: readonly string[]): Promise<Map<string, number>> {
+  const r = await c.query<{ tc_id: string; n: number }>(
+    `SELECT x.tc_id, count(t.tc_id)::int AS n FROM test_case x JOIN test_case t ON t.proc_id = x.proc_id AND t.is_active
+      WHERE x.tc_id = ANY($1::text[]) GROUP BY x.tc_id`,
+    [[...tcIds]],
+  );
+  return new Map(r.rows.map((x) => [x.tc_id, x.n]));
+}
+
 /** 러너 요청에 싣는 케이스 목록 — 도는 차례, 고른 케이스는 부품의 값 */
 export const 요청케이스들 = (단계: 프로시저단계): ExecuteCase[] => 단계.cases.map(({ tcId, params, expected }) => ({ tcId, params, expected }));
 

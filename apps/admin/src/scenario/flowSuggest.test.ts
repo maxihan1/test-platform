@@ -107,6 +107,14 @@ describe('흐름다듬기', () => {
     expect(결과.map((c) => [c.name, c.steps.length])).toEqual([['열두 단계', 12]]);
   });
 
+  it('프로시저 단계는 케이스 수만큼 몫이 커져 60분 상한을 저장 검사와 같이 센다', () => {
+    // 케이스 20건 프로시저 하나는 20 × 2분 + 3분 = 43분 · 케이스 단계 넷을 더하면 63분이다
+    const 프로시저재료 = { ...재료, cases: Array.from({ length: 5 }, (_, i) => ({ tcId: `MKT-FN-${200 + i}`, name: `케이스 ${i}`, reqIds: [], screens: [], normal: true, params: [], ...(i === 0 && { procCases: 20 }) })) };
+    const 번호들 = 프로시저재료.cases.map((c) => c.tcId);
+    const 결과 = 흐름다듬기(프로시저재료, [후보({ name: '긴 흐름', tcIds: 번호들 }), 후보({ name: '짧은 흐름', tcIds: 번호들.slice(0, 4) })], 지도, 입력칸);
+    expect(결과.map((c) => c.name)).toEqual(['짧은 흐름']);
+  });
+
   it('게임 애플리케이션이면 게임 화면 단계가 없는 후보를 버리고 버린 까닭을 모은다', () => {
     const 게임재료 = { ...재료, game: true, cases: 재료.cases.map((c) => ({ ...c, gameScreen: c.tcId === 'MKT-FN-003' })) };
     const 까닭 = new Set<string>();

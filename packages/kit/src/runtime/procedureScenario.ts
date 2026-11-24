@@ -70,8 +70,8 @@ export function 프로시저단계(procedure: ProcedureSpec, body: ProcedureBody
         if (한도 > 0) 타이머 = setTimeout(끊는다, 한도);
       },
     };
-    // 보류 케이스는 main 에 못 들어온다(K13). 그래도 다 보류면 돌릴 것이 없다
-    if (proc.at === -1) return { seq, steps: [], failed: false, cases: proc.results.map((r) => 판정줄(r!)) };
+    // 보류 케이스는 main 에 못 들어온다(K13). 그래도 다 보류면 돌린 것이 없다 — 단계는 다 통과해야 통과라 초록으로 두지 않는다 (결정 17)
+    if (proc.at === -1) return { ...못돈다(`${procedure.procId}의 케이스가 모두 보류다`), cases: proc.results.map((r) => 판정줄(r!)) };
 
     const side = { driver, ...(game && { game }) };
     const run: RunScope = {
@@ -128,7 +128,8 @@ export function 프로시저단계(procedure: ProcedureSpec, body: ProcedureBody
     // 끝 정리 절차는 마지막으로 돈 케이스에 붙는다 — 판정 줄의 steps 가 같은 배열이라 따로 안 옮긴다
     await 끝정리(run);
     await game?.입력을거둔다();
-    return { seq: run.seq, steps: 모든, failed, ...(error && { error }), cases: proc.results.map((r) => 판정줄(r!)) };
+    // 한도에 끊긴 본문은 아직 돌 수 있다 — 늦게 끝난 절차가 돌려준 결과를 바꾸지 않게 복사해 낸다
+    return { seq: run.seq, steps: [...모든], failed, ...(error && { error }), cases: proc.results.map((r) => 판정줄(r!)) };
   };
 }
 
