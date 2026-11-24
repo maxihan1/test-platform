@@ -28,7 +28,7 @@ const 설명: Record<실패유형, string> = {
 
 export function 실패유형칸({ 값, 이동 }: { 값: 자료; 이동?: 이동재료 }) {
   const t = use말();
-  // 멈춘 것과 Blocked 는 유형 밖이라 따로 한 줄씩 적는다 (도메인/리포팅 §8.12 「실패 유형」)
+  // 멈춘 것과 Blocked 는 유형 밖이다 — Blocked 뿐인 창에서도 「없습니다」를 띄우지 않는다 (도메인/리포팅 §8.12 「실패 유형」)
   const { types, stopped, blocked } = 값.failureTypes;
   const 전체 = types.reduce((합, 유형) => 합 + 유형.fail + 유형.notRun, 0);
   // 막대는 가장 많은 유형을 꽉 채운다 — 전체로 나누면 유형 다섯이 다 짧아 비교가 안 보인다
@@ -79,8 +79,8 @@ export function 실패유형칸({ 값, 이동 }: { 값: 자료; 이동?: 이동�
           </div>
         </>
       )}
-      {stopped > 0 ? <p className="dash-lab">{t('실행이 중단되어 실행되지 못한 {수}건은 집계하지 않았습니다', { 수: stopped })}</p> : null}
-      {blocked > 0 ? <p className="dash-lab">{t('Blocked {수}건은 집계하지 않았습니다', { 수: blocked })}</p> : null}
+      {/* 아래 줄은 멈춘 수 하나만 적는다 — Blocked 수는 애플리케이션 카드의 Not tested 괄호가 보인다 (2026-11-24 사용자) */}
+      {stopped > 0 ? <p className="dash-lab">{t('실행 중단되어 실행하지 못한 {수}건은 집계하지 않았습니다', { 수: stopped })}</p> : null}
     </section>
   );
 }

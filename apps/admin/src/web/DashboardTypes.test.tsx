@@ -39,7 +39,7 @@ describe('실패 유형 칸', () => {
     expect(줄들[0]!.textContent).toContain('6건');
     expect(within(줄들[1] as HTMLElement).getByRole('img').getAttribute('aria-label')).toBe('Fail 1 · Not tested 3');
     expect(줄들[1]!.getAttribute('title')).toBe('화면에서 버튼 · 입력 칸을 결국 찾지 못함');
-    expect(within(칸).getByText('실행이 중단되어 실행되지 못한 2건은 집계하지 않았습니다')).toBeTruthy();
+    expect(within(칸).getByText('실행 중단되어 실행하지 못한 2건은 집계하지 않았습니다')).toBeTruthy();
   });
 
   it('실패 · 미실행이 하나도 없으면 줄 대신 짧게 알린다', () => {
@@ -52,17 +52,17 @@ describe('실패 유형 칸', () => {
   it('멈춘 미실행뿐이면 「없습니다」를 띄우지 않고 멈춘 수만 적는다 — 통과율 칸에는 미실행이 보인다', () => {
     const 칸 = 칸을그린다({}, 3);
     expect(칸.textContent).not.toContain('미실행이 없습니다');
-    expect(within(칸).getByText('실행이 중단되어 실행되지 못한 3건은 집계하지 않았습니다')).toBeTruthy();
+    expect(within(칸).getByText('실행 중단되어 실행하지 못한 3건은 집계하지 않았습니다')).toBeTruthy();
   });
 
-  it('Blocked 는 유형에 넣지 않고 따로 한 줄이다 — Blocked 뿐이면 「없습니다」를 띄우지 않는다', () => {
+  it('Blocked 는 유형에 넣지 않고 아래 줄에도 적지 않는다 — Blocked 뿐이면 「없습니다」를 띄우지 않는다', () => {
     const 칸 = 칸을그린다({}, 0, 2);
     expect(within(칸).queryByText('최근 14일 Fail · Not tested 가 없습니다')).toBeNull();
-    expect(within(칸).getByText('Blocked 2건은 집계하지 않았습니다')).toBeTruthy();
+    expect(칸.textContent).not.toContain('Blocked');
     cleanup();
     const 섞인 = 칸을그린다({ mismatch: [1, 0] }, 1, 3);
     expect(섞인.querySelectorAll('.dash-ftr')).toHaveLength(5);
-    expect(within(섞인).getByText('실행이 중단되어 실행되지 못한 1건은 집계하지 않았습니다')).toBeTruthy();
-    expect(within(섞인).getByText('Blocked 3건은 집계하지 않았습니다')).toBeTruthy();
+    expect(within(섞인).getByText('실행 중단되어 실행하지 못한 1건은 집계하지 않았습니다')).toBeTruthy();
+    expect(섞인.querySelectorAll('p.dash-lab')).toHaveLength(1);
   });
 });
