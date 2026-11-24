@@ -173,6 +173,18 @@ describe('반영 끝 — 바로 실행', () => {
     expect(screen.getByRole('dialog').textContent).toBe('PAY-FN-001,PAY-FN-003');
   });
 
+  it('「프로시저 작성」을 켠 애플리케이션은 단추 하나로 두 갈래를 한 번에 담는다', () => {
+    render(<AuthoringTodo service="PAY" 요청={반영줄()} 만든것={[결제, 버튼, 환불]} 한종류 할수={운영} 차이수={0} reload={reload} />);
+    expect(screen.getAllByRole('button', { name: /바로 실행/ }).map((b) => b.textContent)).toEqual(['테스트 3건 바로 실행']);
+    fireEvent.click(screen.getByRole('button', { name: '테스트 3건 바로 실행' }));
+    expect(screen.getByRole('dialog').textContent).toBe('PAY-FN-001,PAY-UI-002,PAY-FN-003');
+  });
+
+  it('「프로시저 작성」을 켰어도 실행할 케이스가 없으면 단추를 안 낸다', () => {
+    render(<AuthoringTodo service="PAY" 요청={반영줄()} 만든것={[]} 한종류 할수={운영} 차이수={0} reload={reload} />);
+    expect(screen.queryByRole('button', { name: /바로 실행/ })).toBeNull();
+  });
+
   it('만든 케이스 목록이 없으면 예전 문장과 케이스 목록 열기를 낸다', () => {
     render(<AuthoringTodo service="PAY" 요청={반영줄()} 만든것={null} 할수={운영} 차이수={0} reload={reload} />);
     expect(screen.getByText('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')).toBeTruthy();

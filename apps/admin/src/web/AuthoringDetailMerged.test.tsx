@@ -129,6 +129,21 @@ describe('반영이 겹친 케이스 번호를 바꾼 뒤의 작성 상세 (리�
     expect(screen.getByRole('dialog', { name: '실행 창' }).textContent).toBe('MKT-FN-014,MKT-FN-003');
   });
 
+  it('「프로시저 작성」을 켠 애플리케이션은 「바로 실행」과 커버 숫자를 종류로 나누지 않는다', async () => {
+    반영된요청({ 'MKT-FN-001': 'MKT-FN-014', 'MKT-FN-002': null });
+    const 작성행 = 답들.get(7)!;
+    답들.set(7, {
+      ...작성행,
+      cases: [...(작성행.cases ?? []), 케이스('MKT-UI-004', '쿠폰 화면 버튼이 반응한다')],
+      coverage: { total: 10, cased: 4, held: 0, excluded: {}, missing: [], later: [], casedFn: 3, casedUi: 2 },
+    });
+    render(<AuthoringDetail service="MKT" id={7} 할수={운영} 한종류 />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '테스트 3건 바로 실행' }));
+    expect(screen.getByRole('dialog', { name: '실행 창' }).textContent).toBe('MKT-FN-014,MKT-FN-003,MKT-UI-004');
+    expect(screen.getByText(/UI 케이스가 커버한 것 2/)).toBeTruthy();
+  });
+
   it('번호를 바꾸지 않은 반영은 작성 때 번호 그대로다', async () => {
     반영된요청();
     render(<AuthoringDetail service="MKT" id={7} 할수={운영} />);

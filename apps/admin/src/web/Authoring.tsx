@@ -92,7 +92,7 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringListRow; 지금: number }) {
   );
 }
 
-export function Authoring({ service, serviceId, envs = [], 피그마토큰 = true, 앱종류, pc, 할수 }: { service: string; serviceId?: number; envs?: EnvRow[]; 피그마토큰?: boolean; 앱종류?: 앱종류; pc?: PC게임; 할수: 판정 }) {
+export function Authoring({ service, serviceId, envs = [], 피그마토큰 = true, 앱종류, 한종류 = false, pc, 할수 }: { service: string; serviceId?: number; envs?: EnvRow[]; 피그마토큰?: boolean; 앱종류?: 앱종류; 한종류?: boolean; pc?: PC게임; 할수: 판정 }) {
   const t = use말();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
@@ -259,7 +259,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         />
       ) : null}
 
-      {방금 === null ? null : <AuthoringStartModal service={service} id={방금} onClose={() => set방금(null)} />}
+      {방금 === null ? null : <AuthoringStartModal service={service} id={방금} 한종류={한종류} onClose={() => set방금(null)} />}
     </>
   );
 }

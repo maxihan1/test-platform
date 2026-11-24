@@ -29,10 +29,12 @@ interface Props {
   고치기?: { 반영실패: boolean };
   /** 머지를 뺀 최신 작성 실행이 만든 케이스 — 반영이 끝난 머지 행에는 없다 */
   만든것?: AuthoringMadeCase[] | null;
+  /** 「프로시저 작성」을 켠 애플리케이션 — 실행 종류가 하나라 「바로 실행」을 나누지 않는다 */
+  한종류?: boolean;
   reload: () => void;
 }
 
-export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, 고치기, 만든것 = null, reload }: Props) {
+export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, 고치기, 만든것 = null, 한종류 = false, reload }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [열린, set열린] = useState<확인>(null);
@@ -152,7 +154,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
       </>
     );
   } else if (요청.status === 'DONE' && 요청.kind === 'MERGE') {
-    본문 = <반영끝 {...{ service, 요청, 만든것, 보내는중, 새번호로 }} 운영자={할수('설정')} 셈={커버리지} 권한={할수('작성요청')} />;
+    본문 = <반영끝 {...{ service, 요청, 만든것, 한종류, 보내는중, 새번호로 }} 운영자={할수('설정')} 셈={커버리지} 권한={할수('작성요청')} />;
   } else if (요청.status === 'DONE') {
     본문 = <작성끝단계 {...{ service, 요청, 할수, 차이수, 커버리지, 보내는중, 새줄로, 폐기버튼, reload }} />;
   } else {

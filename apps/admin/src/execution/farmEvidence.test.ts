@@ -13,6 +13,8 @@ import { 팜기록글, 팜영상경로, 팜증적경로, 팜증적목록 } from 
 import { 서버팜토큰, 실행팜토큰 } from './farmToken.js';
 
 vi.mock('./farmToken.js', () => ({ 실행팜토큰: vi.fn(async () => undefined), 서버팜토큰: vi.fn(async () => undefined) }));
+// 실행 단위 번호는 DB 에서 읽는다 — DB 없이 돌려고 「줄이 없다」로 답한다
+vi.mock('./execRead.js', () => ({ 실행단위번호: vi.fn(async () => null), 실행단위자리: vi.fn(async () => null) }));
 
 let 임시: string;
 const 팜폴더 = () => join(runDir('3', '9'), FARM_EVIDENCE_DIR);
