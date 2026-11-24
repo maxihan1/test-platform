@@ -18,7 +18,7 @@ import { 고른종류칸, type 종류칸 } from './dashboardKind.js';
 import type { 프로젝트요약 } from './dashboardProjectRead.js';
 import { 접은줄SQL, 앞판정SQL, 붙지않은한건SQL, 실행중SQL, 커버리지SQL } from './dashboardSql.js';
 import { 원인을가른다, type 원인재료, type 실패유형 } from './failureType.js';
-import { db, 가려서자른다 } from './insights.js';
+import { db, 가려서자른다, 줄단위비밀들 } from './insights.js';
 
 /** 부르는 쪽이 400 INVALID_REQUEST 로 바꾼다 */
 export class 틀린시간대 extends Error {
@@ -144,7 +144,7 @@ interface 줄행 {
   verdict: 접은줄['verdict'];
   unconfirmed: boolean;
   // 사유를 가릴 비밀 목록을 그 항목의 박제값으로 만든다 (공통/2 §4.1)
-  reason: { text: string | null; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown } | null;
+  reason: { text: string | null; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown; exec_id: number | null } | null;
   cause: 원인재료 | null;
 }
 
@@ -204,6 +204,7 @@ async function 줄읽기(pool: Pool, ids: number[], tz: string, 오늘: string, 
   const 하한 = 날짜더하기(오늘, -(날수 * 2 - 1));
   const 이번시작 = 날짜더하기(오늘, -(날수 - 1));
   const { rows } = await pool.query<줄행>(접은줄SQL, [ids, tz, 하한, 이번시작]);
+  const 비밀들 = await 줄단위비밀들(rows.map((r) => r.reason?.exec_id ?? null));
   return rows.map((r) => ({
     runId: Number(r.run_id),
     serviceId: Number(r.service_id),
@@ -218,7 +219,10 @@ async function 줄읽기(pool: Pool, ids: number[], tz: string, 오늘: string, 
     platform: r.platform,
     verdict: r.verdict,
     unconfirmed: r.unconfirmed,
-    reason: r.reason === null || r.reason.text === null ? null : 가려서자른다(r.reason.text, r.reason) || null,
+    reason:
+      r.reason === null || r.reason.text === null
+        ? null
+        : 가려서자른다(r.reason.text, r.reason, r.reason.exec_id === null ? undefined : 비밀들.get(r.reason.exec_id)) || null,
     cause: r.cause === null ? null : 원인을가른다(r.cause),
   }));
 }

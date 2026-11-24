@@ -57,7 +57,7 @@ export const 접은줄SQL = `
                      ORDER BY s.seq, a.ord
                      LIMIT 1),
                     f.error->>'message'),
-                    'params', f.params, 'expected', f.expected, 'param_schema', f.param_schema, 'expected_schema', f.expected_schema)
+                    'params', f.params, 'expected', f.expected, 'param_schema', f.param_schema, 'expected_schema', f.expected_schema, 'exec_id', f.exec_id)
            FROM ${지금항목('o.run_id = t.run_id AND o.tc_id = i.tc_id AND o.platform = i.platform')} f
            WHERE f.status = 'FAIL'
            ORDER BY f.history_id

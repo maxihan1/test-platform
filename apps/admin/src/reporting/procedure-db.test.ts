@@ -1,4 +1,4 @@
-// 증적이 프로시저 줄을 실행 단위에서 읽는지 본다 — 프로시저 번호 · 차례 · Blocked 사유 · 실행 단위 폴더의 영상 · 다른 케이스의 비밀값 (도메인/리포팅 §3.3 「증적 문서 · 엑셀」 — DATABASE_URL 이 있을 때만)
+// 증적 · 견주기 · 실패 카드가 프로시저 줄을 실행 단위에서 읽는지 본다 — 프로시저 번호 · 차례 · Blocked 사유 · 실행 단위 폴더의 영상 · 다른 케이스의 비밀값 (도메인/리포팅 §3.3 「증적 문서 · 엑셀」 · 실행 §3.2 「테스트 프로시저 실행」 — DATABASE_URL 이 있을 때만)
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -9,6 +9,8 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { collectRun } from './collect.js';
+import { 실패카드 } from './failures.js';
+import { compareWithPrevious } from './insights.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -89,6 +91,27 @@ describe.skipIf(연결 === undefined)('증적의 프로시저 줄', () => {
       ['XDX-FN-002', { id: 'XDX-TP-001', name: '글쓰기', seq: 2, count: 3 }, 'FAIL', null, '******** 로 로그인하지 못했다'],
       ['XDX-FN-003', { id: 'XDX-TP-001', name: '글쓰기', seq: 3, count: 3 }, 'NA', { by: 'XDX-FN-002' }, '선행 케이스 XDX-FN-002 실패'],
     ]);
+  });
+
+  it('견주기의 실패 덩어리 대표 문장은 같은 실행 단위의 다른 케이스 비밀값까지 가린다', async () => {
+    const 비교 = await compareWithPrevious(실행);
+    expect(비교.실패덩어리들.map((d) => d.대표문장)).toEqual(['******** 로 로그인하지 못했다']);
+  });
+
+  it('실패 카드의 폰 기록은 실행 단위 폴더에서 찾는다', async () => {
+    const 폴더 = mkdtempSync(join(tmpdir(), 'xdx-'));
+    vi.stubEnv('PLATFORM_ARTIFACTS_DIR', 폴더);
+    try {
+      const 팜 = join(runDir(String(실행), String(단위)), FARM_EVIDENCE_DIR);
+      mkdirSync(팜, { recursive: true });
+      writeFileSync(join(팜, 'video-1.mp4'), 'mp4');
+      writeFileSync(join(팜, 'logcat.txt'), 'E/AndroidRuntime: 멈춤');
+      const 카드 = (await 실패카드(실행, 1)).items.find((c) => c.tcId === 'XDX-FN-002')!;
+      expect(카드.devices.flatMap((d) => d.farm.map((f) => f.name))).toEqual(['logcat.txt', 'video-1.mp4']);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(폴더, { recursive: true, force: true });
+    }
   });
 
   it('영상 · logcat 은 실행 단위 폴더에서 찾아 모든 케이스 블록이 같은 파일을 가리키고, 케이스의 시작 ~ 끝 시각을 덧붙인다', async () => {

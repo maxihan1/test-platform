@@ -5,7 +5,7 @@ import type { DeviceInfo, ElementCheck, FpsSample, ItemStatus, Platform } from '
 import { BTS카드칸들, type BTS카드칸 } from '../bts/card.js';
 import { 카드자동수정중들, type 카드자동수정중 } from '../bts/gameFixView.js';
 import { 자동수정실행빼기, 카드자동수정들, type 카드자동수정 } from '../bts/testFixView.js';
-import { 팜증적목록, type 팜파일 } from '../execution/farmEvidence.js';
+import { 항목팜증적, type 팜파일 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
 import { 최근몇건 } from '../execution/history.js';
 import type { RunItemDetail } from '../execution/runTypes.js';
@@ -164,7 +164,8 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
             streak: 연속실패수(나머지.change, recent),
             recent,
             item,
-            farm: await 팜증적목록(실행번호, firstFailedHistoryId),
+            // 폴더는 실행 단위에 하나다 — 프로시저 줄도 항목 상세와 같이 실행 단위로 찾는다 (도메인/실행 §3.2 「한도 · 폰」)
+            farm: await 항목팜증적(실행번호, firstFailedHistoryId),
             rerun,
             device: 회차칸.get(firstFailedHistoryId)?.device ?? null,
             elementChecks: 회차칸.get(firstFailedHistoryId)?.element_checks ?? [],

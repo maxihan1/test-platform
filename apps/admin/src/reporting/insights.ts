@@ -2,6 +2,7 @@
 // 읽기 전용이다 — Reporting 컨텍스트가 쓰는 표는 evidence_document 하나뿐이다 (SPEC §3.3)
 
 import type { Pool } from 'pg';
+import { 단위비밀들 } from '../execution/execRead.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 지금항목 } from '../execution/single.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
@@ -94,7 +95,7 @@ export function 케이스판정들(앞접힘: 접힌행[], 이번접힘: 접힌�
 // 사유를 모르는 것을 지어내지 않는다.
 // actual·expected 는 붙이지 않는다. 그 값이 비밀값일 수 있고, 붙이면 같은 고장이 값마다 갈라진다
 const 대표문장뽑기 = `
-  SELECT i.history_id, i.tc_id, i.tc_name, i.platform, i.params, i.expected, i.param_schema, i.expected_schema,
+  SELECT i.history_id, i.exec_id, i.tc_id, i.tc_name, i.platform, i.params, i.expected, i.param_schema, i.expected_schema,
          COALESCE(
            (SELECT a.value->>'statement'
             FROM run_item_step s
@@ -110,6 +111,7 @@ const 대표문장뽑기 = `
 
 interface 사유행 {
   history_id: string;
+  exec_id: string | null;
   tc_id: string;
   tc_name: string;
   platform: string;
@@ -122,22 +124,28 @@ interface 사유행 {
 
 /**
  * 첫 줄에도 비밀값이 되비칠 수 있다(「pa55word 로 로그인하지 못했다」). 자르기 전에 가려야 잘린 자리에 조각이 남지 않는다.
- * 견주기 덩어리와 대시보드 회귀 실패 사유가 같이 쓴다 — 같은 문장이 두 화면에서 다르게 보이지 않게 (공통/2 §4.1)
+ * 견주기 덩어리와 대시보드 회귀 실패 사유가 같이 쓴다 — 같은 문장이 두 화면에서 다르게 보이지 않게 (공통/2 §4.1).
+ * 단위비밀은 그 줄이 든 실행 단위의 모든 케이스 줄 것이다 — 프로시저는 한 프로세스에서 돈 다른 케이스의 비밀값이 되비칠 수 있다 (도메인/실행 §3.2 「테스트 프로시저 실행」)
  */
-export const 가려서자른다 = (문장: string, 항목: Parameters<typeof 항목비밀>[0]): string =>
+export const 가려서자른다 = (문장: string, 항목: Parameters<typeof 항목비밀>[0], 단위비밀?: string[]): string =>
   // 색 코드를 먼저 걷는다 — 숫자 비밀이 색 코드 속 숫자를 덮으면 걷는 무늬가 안 맞는다
-  한줄로자른다(가린다(문장.replace(색코드, ''), 항목비밀(항목)) as string);
+  한줄로자른다(가린다(문장.replace(색코드, ''), 단위비밀 ?? 항목비밀(항목)) as string);
+
+/** 줄들의 실행 단위 비밀을 한 번에 읽는다 — 실행 단위 칸 전의 줄(번호 없음)은 빠져 항목비밀로 가린다 */
+export const 줄단위비밀들 = (번호들: (string | number | null)[]): Promise<Map<number, string[]>> =>
+  단위비밀들([...new Set(번호들.flatMap((n) => (n === null ? [] : [Number(n)])))]);
 
 /** 이번 실행의 실패 항목을 대표 문장이 같은 것끼리 묶는다 */
 async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩어리[]> {
   const { rows } = await pool.query<사유행>(대표문장뽑기, [runId]);
+  const 비밀들 = await 줄단위비밀들(rows.map((r) => r.exec_id));
 
   // 묶는 키는 대표 문장 글자 그대로다. 숫자·타임스탬프를 지우는 정규화를 넣으면 다른 사유가 한 덩어리로 합쳐지는데,
   // 안 묶인 것은 눈에 보여도 잘못 묶인 것은 안 보인다
   const 덩어리들 = new Map<string, 실패덩어리>();
   for (const row of rows) {
     if (row.대표문장 === null) continue;
-    const 문장 = 가려서자른다(row.대표문장, row);
+    const 문장 = 가려서자른다(row.대표문장, row, row.exec_id === null ? undefined : 비밀들.get(Number(row.exec_id)));
     if (문장 === '') continue;
     const 덩어리 = 덩어리들.get(문장) ?? { 대표문장: 문장, 건수: 0, 항목들: [] };
     덩어리.건수 += 1;
