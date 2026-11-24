@@ -91,7 +91,7 @@ export function 케이스구획({
   return (
     <section className="compat-panel" aria-labelledby="cs-case">
       <div className="compat-ph">
-        <h2 id="cs-case">{t('케이스 {수}', { 수: auto.length + 도는직접.length })}</h2>
+        <h2 id="cs-case">{t('케이스 {수}', { 수: auto.reduce((n, a) => n + (a.tcIds?.length ?? 1), 0) + 도는직접.length })}</h2>
         <small className="compat-faint">{t('자동 선택은 실행할 때마다 다시 계산합니다')}</small>
       </div>
       {auto.length + 도는직접.length === 0 ? (
@@ -100,9 +100,18 @@ export function 케이스구획({
       {auto.length === 0 ? null : (
         <>
           <h3 className="compat-sub">{t('자동 선택 · 화면 커버리지 최대 · 최소 케이스')}</h3>
-          {auto.slice(0, 보이는자동).map((a) => (
-            <케이스줄 key={a.tcId} tcId={a.tcId} 이름={a.name} 꼬리={<span className="compat-auto">{t('추가 커버 화면 {수}', { 수: a.adds })}</span>} />
-          ))}
+          {auto.slice(0, 보이는자동).map((a) =>
+            a.procId === undefined ? (
+              <케이스줄 key={a.tcId} tcId={a.tcId} 이름={a.name} 꼬리={<span className="compat-auto">{t('추가 커버 화면 {수}', { 수: a.adds })}</span>} />
+            ) : (
+              <케이스줄
+                key={a.procId}
+                tcId={a.procId}
+                이름={a.procName ?? ''}
+                꼬리={<span className="compat-auto">{t('케이스 {건}건 · 추가 커버 화면 {수}', { 건: a.tcIds?.length ?? 1, 수: a.adds })}</span>}
+              />
+            ),
+          )}
           {접힌.length === 0 ? null : (
             <div className="compat-row compat-faint">{t('외 {건}건 · 화면 {수}개', { 건: 접힌.length, 수: 접힌.reduce((합, a) => 합 + a.adds, 0) })}</div>
           )}

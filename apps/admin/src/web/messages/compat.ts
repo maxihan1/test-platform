@@ -33,6 +33,7 @@ export const 호환성말: Record<string, string> = {
   '디바이스에서 실행되는 케이스가 없습니다': 'There are no cases that run on a phone',
   '자동 선택 · 화면 커버리지 최대 · 최소 케이스': 'Auto-selected · Highest screen coverage · Fewest cases',
   '추가 커버 화면 {수}': 'Adds {수} screens',
+  '케이스 {건}건 · 추가 커버 화면 {수}': '{건} cases · Adds {수} screens',
   '외 {건}건 · 화면 {수}개': '+{건} more · {수} screens',
   '자동 선택 케이스는 제외할 수 없습니다': 'Auto-selected cases cannot be removed',
   '케이스 추가': 'Add cases',

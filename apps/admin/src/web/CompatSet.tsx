@@ -91,7 +91,8 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
   }
 
   const 바뀜 = !같나(지금, 저장본);
-  const 자동 = new Set(셈.auto.map((a) => a.tcId));
+  // 프로시저를 골랐으면 그 케이스가 다 돈다 — 그 안의 직접 추가는 자동 선택 쪽으로 센다
+  const 자동 = new Set(셈.auto.flatMap((a) => a.tcIds ?? [a.tcId]));
   const 직접 = 지금.addedCases.filter((c) => !자동.has(c));
 
   async function 케이스바꾸기(다음: string[]) {

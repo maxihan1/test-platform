@@ -26,10 +26,14 @@ export interface CompatSetRow {
   lastRun: { runId: number; startedAt: string; state: string; confirmed: number; pending: number; unchecked: number } | null;
 }
 
+/** 자동 선택 한 줄 — 프로시저를 골랐으면 procId · procName · tcIds 가 있고 tcId · name 은 첫 케이스 것이다 (§3.13 「테스트 프로시저」) */
 export interface CompatAuto {
   tcId: string;
   name: string;
   adds: number;
+  procId?: string;
+  procName?: string;
+  tcIds?: string[];
 }
 
 export interface CompatScreen {

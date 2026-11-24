@@ -123,6 +123,18 @@ describe('저장한 호환성 세트', () => {
     expect(screen.getByText('테스트 약 12분 · AI 점검 완료까지 약 2분 추가')).toBeTruthy();
   });
 
+  it('테스트 프로시저를 고른 줄은 프로시저 번호 · 이름과 케이스 수를 보이고 그 안의 직접 추가는 따로 세지 않는다', async () => {
+    차림();
+    const 프로시저 = { tcId: 'MKA-FN-101', name: '홈 열기', adds: 5, procId: 'MKA-TP-022', procName: '글쓰기', tcIds: ['MKA-FN-101', 'MKA-FN-046', 'MKA-FN-103'] };
+    vi.spyOn(compatApi, 'set').mockResolvedValue({ ...상세, auto: [프로시저, 셈.auto[1]!] });
+    render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    expect(await screen.findByText('케이스 3건 · 추가 커버 화면 5')).toBeTruthy();
+    expect(screen.getByText('MKA-TP-022')).toBeTruthy();
+    expect(screen.getByText('글쓰기')).toBeTruthy();
+    expect(screen.getByText('케이스 4')).toBeTruthy();
+    expect(screen.queryByText('바로 구매 · 쿠폰 적용')).toBeNull();
+  });
+
   it('직접 추가를 빼거나 더하면 다시 세고, 저장 전에는 예상 시간을 비운다', async () => {
     const { 미리셈 } = 차림();
     const 고치기 = vi.spyOn(compatApi, 'update').mockResolvedValue({ id: 3 });
