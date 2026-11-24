@@ -38,19 +38,28 @@ function 이름(p: ts.ObjectLiteralElementLike): string | undefined {
   return ts.isIdentifier(p.name) || ts.isStringLiteral(p.name) ? p.name.text : undefined;
 }
 
-export function 명세글(sf: ts.SourceFile): ts.ObjectLiteralExpression | undefined {
+/**
+ * `defineCase({...})` 인자. tcId 를 주면 그 번호를 적은 선언이다 — 프로시저 파일은 선언이 여럿이라 첫 것이 그 케이스가 아니다.
+ * 안 주면 옛 꼴처럼 첫 선언이다
+ */
+export function 명세글(sf: ts.SourceFile, tcId?: string): ts.ObjectLiteralExpression | undefined {
   let 찾음: ts.ObjectLiteralExpression | undefined;
   const 걷기 = (n: ts.Node): void => {
     if (찾음 !== undefined) return;
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'defineCase') {
       const 첫 = n.arguments[0];
-      if (첫 !== undefined && ts.isObjectLiteralExpression(첫)) 찾음 = 첫;
+      if (첫 !== undefined && ts.isObjectLiteralExpression(첫) && (tcId === undefined || 번호글(첫) === tcId)) 찾음 = 첫;
       return;
     }
     n.forEachChild(걷기);
   };
   걷기(sf);
   return 찾음;
+}
+
+function 번호글(명세: ts.ObjectLiteralExpression): string | null {
+  const 값 = 속성(명세, 'tcId')?.initializer;
+  return 값 !== undefined && ts.isStringLiteralLike(값) ? 값.text : null;
 }
 
 export function 속성(글: ts.ObjectLiteralExpression, 키: string): ts.PropertyAssignment | undefined {
@@ -133,8 +142,7 @@ export function 보류남음(글: string): boolean {
 
 export function 케이스tcId(글: string): string | null {
   const 명세 = 명세글(읽기(글));
-  const 값 = 명세 === undefined ? undefined : 속성(명세, 'tcId')?.initializer;
-  return 값 !== undefined && ts.isStringLiteralLike(값) ? 값.text : null;
+  return 명세 === undefined ? null : 번호글(명세);
 }
 
 /**
