@@ -39,6 +39,8 @@ describe.skipIf(연결 === undefined)('기기 성능 — 테스트 프로시저'
   it('고른 차례대로 프로시저는 활성 케이스 전부를 회차마다 한 번 보내고, 막힌 케이스는 구간 없이 로그에 막은 케이스와 남긴다', async () => {
     f.상태.프로시저 = true;
     f.상태.판정 = { 'XQDP-FN-102': 'FAIL', 'XQDP-FN-103': 'BLOCKED' };
+    // 구간은 1초 숫자 줄마다 하나다 — 답이 늦어야 절차마다 붙을 줄이 생긴다
+    f.상태.러너지연 = 2100;
     try {
       const 전 = f.러너.호출들.length;
       const runId = await f.만들기({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQDP-FN-102', 'XQDP-001', 'XQDP-FN-101'], repeat: 2 }, 0);
@@ -64,6 +66,7 @@ describe.skipIf(연결 === undefined)('기기 성능 — 테스트 프로시저'
     } finally {
       f.상태.프로시저 = false;
       f.상태.판정 = {};
+      f.상태.러너지연 = 0;
     }
   });
 });

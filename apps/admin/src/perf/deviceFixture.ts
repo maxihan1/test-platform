@@ -130,7 +130,7 @@ export async function 기기차림(접두사: string, api: boolean) {
         if (판 === 'FAIL') 앞 = tcId;
         if (판 === 'BLOCKED') return { tcId, status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 막은 };
         seq += 1;
-        return { tcId, status: 판 ?? 'PASS', durationMs: 500, steps: [{ seq, title: `${tcId} 절차`, status: 판 ?? 'PASS', durationMs: 500, assertions: [], tcId }] };
+        return { tcId, status: 판 ?? 'PASS', durationMs: 1000, steps: [{ seq, title: `${tcId} 절차`, status: 판 ?? 'PASS', durationMs: 1000, assertions: [], tcId }] };
       }) });
     }
     응답(200, { historyId: (h.body as { historyId: number }).historyId, status: 'PASS', durationMs: 2000, steps: [
