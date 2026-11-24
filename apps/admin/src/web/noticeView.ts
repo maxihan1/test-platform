@@ -5,6 +5,7 @@ import { 단계글라벨, 단계라벨, 단계이름들, 단계칸, 아는단계
 import { t, type 언어 } from './i18n.js';
 import { 실행남은글, 시간글자, 작성남은글 } from './remainText.js';
 import { 무엇을 } from './runName.js';
+import { 서울, 서울날 } from './seoul.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 /** 본문 위에 한꺼번에 보이는 줄 수. 넘으면 마지막 자리를 「외 N건」으로 바꾼다 */
@@ -265,8 +266,7 @@ export function 서랍목록(recent: readonly NoticeRecent[], 읽음: ReadonlySe
 }
 
 function 하루(ms: number): number {
-  const d = new Date(ms);
-  return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return Date.parse(서울날(ms));
 }
 
 /** 서랍 오른쪽의 상대 시각 — `{분}분 전` · `{시간}시간 전` · `어제` · 날짜 */
@@ -278,5 +278,5 @@ export function 상대시각(iso: string, 지금: number, 언어: 언어): strin
   const 일차 = Math.round((하루(지금) - 하루(때)) / 86_400_000);
   if (일차 <= 0) return t('{시간}시간 전', 언어, { 시간: Math.floor(차 / 3_600_000) });
   if (일차 === 1) return t('어제', 언어);
-  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric' }).format(때);
+  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric', timeZone: 서울 }).format(때);
 }

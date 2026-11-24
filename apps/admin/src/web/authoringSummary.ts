@@ -6,6 +6,7 @@ import type { AuthoringRow } from './api.js';
 import { 단계라벨, 단계이름들, 단계칸, 아는단계글 } from './authoringStatus.js';
 import type { 보임 } from './authoringView.js';
 import { t, type 언어 } from './i18n.js';
+import { 서울시각 } from './seoul.js';
 
 const 종류글: Record<요약종류, string> = {
   PRD: '기획서로 작성',
@@ -118,11 +119,9 @@ export function 소요시간글(초: number, 언어: 언어): string {
   return 분 % 60 === 0 ? t('{시}시간', 언어, { 시 }) : t('{시}시간 {분}분', 언어, { 시, 분: 분 % 60 });
 }
 
-/** 표 안의 작성일 — `2026-11-10 14:22`. 사용자 시간대로 */
+/** 표 안의 작성일 — `2026-11-10 14:22`. 한국 시간으로 */
 export function 작성일글(iso: string): string {
-  const d = new Date(iso);
-  const 두자리 = (n: number): string => String(n).padStart(2, '0');
-  return `${String(d.getFullYear())}-${두자리(d.getMonth() + 1)}-${두자리(d.getDate())} ${두자리(d.getHours())}:${두자리(d.getMinutes())}`;
+  return 서울시각(iso);
 }
 
 /** 작성자 — 서버가 스스로 세운 요청(기획서에 없는 화면)은 사람이 아니라 Agent 다 */

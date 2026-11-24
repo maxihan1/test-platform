@@ -47,7 +47,7 @@ const 상태칸 = (글: string): Element | undefined => [...document.querySelect
 describe('작성 목록 한 줄 표 (도메인/작성 §3.6 「작성 목록 줄」 · 2026-11-10 사용자 시안)', () => {
   it('칸은 번호 · 구분 · 대상 · 케이스 수 · 소요 시간 · 작성자 · 작성일 · 상태 — 대상은 기능 이름이고 줄 전체를 누르는 링크다', async () => {
     줄들.push(줄({
-      id: 14675, rootId: 14675, status: 'DONE', createdAt: '2026-11-10T14:22:00',
+      id: 14675, rootId: 14675, status: 'DONE', createdAt: '2026-11-10T14:22:00+09:00',
       summary: 요약({
         what: { features: ['공통', '홈', '회원가입'], featuresMore: 22 },
         result: { casesMade: 410, casesFixed: 2, reqsCovered: 347, reqsTotal: 348, tookSec: 4320 },

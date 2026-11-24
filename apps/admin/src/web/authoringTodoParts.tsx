@@ -3,6 +3,7 @@
 
 import { api, type AuthoringCoverage, type AuthoringRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
+import { 서울 } from './seoul.js';
 import { 기다림글자 } from './ui.js';
 
 /** 번호 붙은 한 가지 일. 번호는 순서가 뜻을 가질 때만(완료), 고르는 일은 A · B 로 적는다 */
@@ -46,7 +47,7 @@ export function 확인글(
 
 /** 「10월 5일」 — 이어갈 수 있는 마지막 날. 시각까지는 안 쓴다 */
 function 날짜(iso: string, 언어: 언어): string {
-  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric' }).format(new Date(iso));
+  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric', timeZone: 서울 }).format(new Date(iso));
 }
 
 /**

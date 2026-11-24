@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ServiceRow } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 서울 } from './seoul.js';
 import { schedApi, type 세트 } from './schedApi.js';
 import { 기간, 달력, 칸창, type 보기 } from './SchedCalendar.js';
 import { 세트카드들, 짧은날 } from './SchedCards.js';
@@ -24,8 +25,6 @@ function 처음보기(): 보기 {
     return 'month';
   }
 }
-
-const 브라우저시간대 = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function 제목글(보기: 보기, 기준: string, 언어: string): string {
   const 날 = new Date(`${기준}T00:00:00Z`);
@@ -49,7 +48,7 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
   const t = use말();
   const 언어 = use언어();
   const [보기, set보기] = useState(처음보기);
-  const [기준, set기준] = useState(() => 시간대로(new Date(), 브라우저시간대()).날);
+  const [기준, set기준] = useState(() => 시간대로(new Date(), 서울).날);
   const [고른, set고른] = useState(null as number | null);
   const [열린, set열린] = useState(null as 칩 | null);
   const [오류, set오류] = useState(null as string | null);
@@ -63,7 +62,7 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
   const 회차맞음 = 회차목록.data?.from === from && 회차목록.data.to === to;
   // 다시 읽을 때마다 새로 잰다 — 창을 오래 열어 둬도 지난 시각을 「예정」으로 그리지 않게
   const 지금 = useMemo(() => new Date(), [세트목록.data, 회차목록.data]);
-  const 오늘 = 시간대로(지금, 브라우저시간대()).날;
+  const 오늘 = 시간대로(지금, 서울).날;
   // 오늘이 보이는 동안 1분마다 다시 읽는다 — 회차는 서버의 1분 점검이 세우고 닫아서, 안 읽으면 시작한 회차가 「예정」으로 남는다
   const 오늘보임 = from <= 오늘 && 오늘 <= to;
   const 세트다시 = 세트목록.reload;

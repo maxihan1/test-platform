@@ -6,6 +6,7 @@ import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { 굴림숫자, 떠오름, 수글, 자람 } from './DashboardTop.js';
 import { 날짜글자 } from './dashboardView.js';
 import { use말 } from './i18n.js';
+import { 서울날 } from './seoul.js';
 
 type 성능 = 대시보드응답['project']['perf'];
 type 부하 = NonNullable<성능['load']>;
@@ -13,7 +14,7 @@ type 기기 = NonNullable<성능['app']>;
 type 말 = ReturnType<typeof use말>;
 
 const 판정칩 = ({ v, t }: { v: 'PASS' | 'FAIL'; t: 말 }) => <span className={`dash-chip ${v === 'PASS' ? 'p' : 'f'} dash-r`}>{t(v === 'PASS' ? 'Pass' : 'Fail')}</span>;
-const 날 = (iso: string | null): string => (iso === null ? '' : 날짜글자(iso.slice(0, 10)));
+const 날 = (iso: string | null): string => (iso === null ? '' : 날짜글자(서울날(iso)));
 const 값글 = (v: number | null, 단위 = ''): string => (v === null ? '—' : `${수글(v)}${단위}`);
 
 const 높이 = 170;

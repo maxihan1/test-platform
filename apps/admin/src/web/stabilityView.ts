@@ -1,5 +1,6 @@
 // 안정화 지표 화면의 판단 — 상태 칩 · 발생 케이스 글 · 추이 그래프 좌표. 그림은 Stability*.tsx (도메인/안정화 §8.19)
 
+import { 서울 } from './seoul.js';
 import type { 오류상세, 추이점 } from './stabilityApi.js';
 
 /** `2026-11-12` → `11-12`. 서버가 정기 실행 시간대로 굳힌 날이라 Date 를 거치지 않는다 (§3.15 「하루의 경계」) */
@@ -7,11 +8,11 @@ export const 날글자 = (day: string): string => day.slice(5);
 
 /**
  * 요약을 끝낸 날과 시각 — `{ 날: '11-12', 시각: '03:42' }`. 화면의 다른 날짜처럼 정기 실행 시간대로 읽는다 —
- * 보는 사람 시계로 읽으면 요약 날짜가 그 실행 날짜와 하루 어긋나 보일 수 있다 (§3.15 「하루의 경계」). 시간대가 없으면(정기 실행 꺼짐) 보는 사람 시계다
+ * 보는 사람 시계로 읽으면 요약 날짜가 그 실행 날짜와 하루 어긋나 보일 수 있다 (§3.15 「하루의 경계」). 시간대가 없으면(정기 실행 꺼짐) 한국 시간이다
  */
 export function 작성시각(iso: string, tz: string | undefined): { 날: string; 시각: string } {
   const 칸 = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', { timeZone: tz, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    new Intl.DateTimeFormat('en-US', { timeZone: tz ?? 서울, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
       .formatToParts(new Date(iso))
       .map((p) => [p.type, p.value]),
   );

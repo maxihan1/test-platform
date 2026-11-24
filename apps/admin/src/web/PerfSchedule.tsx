@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import type { EnvRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { 서울 } from './seoul.js';
 import { Modal } from './Modal.js';
 import { perfApi, type 정기실행 } from './perfApi.js';
 import { message } from './ui.js';
@@ -36,8 +37,8 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
       set오류(t('시각과 대상 서버를 선택해 주세요'));
       return;
     }
-    // 시간대는 브라우저 것을 보낸다 — 「매일 03:00」이 사람이 있는 곳의 03:00 이 되게
-    void 보내기({ at: 시각, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, env: 서버 });
+    // 시간대는 한국으로 고정한다 — 「매일 03:00」이 어디서 열어도 한국 시간 03:00 이 되게
+    void 보내기({ at: 시각, tz: 서울, env: 서버 });
   }
 
   return (

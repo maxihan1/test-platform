@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { 건수 } from '../reporting/dashboardResults.js';
 
 import type { 언어 } from './i18n.js';
+import { 서울 } from './seoul.js';
 
 const 합 = (c: 건수): number => c.pass + c.fail + c.notRun;
 
@@ -43,6 +44,7 @@ export function 짧은시각(iso: string, 언어: 언어): string {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: 서울,
   }).format(new Date(iso));
 }
 
