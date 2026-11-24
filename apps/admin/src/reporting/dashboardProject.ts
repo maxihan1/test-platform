@@ -23,8 +23,8 @@ export interface 앱요약 {
     axis: { normal: number; error: number; ui: number; boundary: number };
   } | null;
   cases: { fn: number; ui: number };
-  /** 케이스마다 마지막 결과(지원 기기 전부를 접은 것) */
-  last: 판정셈;
+  /** 케이스마다 마지막 결과(지원 기기 전부를 접은 것). blocked 는 notRun 가운데 앞 케이스에 막힌 것 (도메인/리포팅 §3.3 「테스트 프로시저」) */
+  last: 판정셈 & { blocked: number };
   scenarios: number;
   /** 카드 아래 종류별 한 줄의 재료 — 웹 가장 느린 페이지 LCP · 게임 평균 FPS · API 95% 응답시간 */
   extra: { pageLcp: { url: string; ms: number } | null; fps: number | null; p95Ms: number | null };
@@ -57,16 +57,26 @@ export function PRD셈(판: { version: number; items: PrdItem[] } | null, 지도
   return { version: 판?.version ?? 0, requirements: items.length, needsCheck: items.filter((i) => i.status === 'NEEDS_CHECK').length, rtm, axis };
 }
 
-/** 활성 케이스마다 마지막 결과를 접는다 — 케이스 목록 · 추적표와 같은 케이스판정 */
-export function 케이스셈(케이스들: { tcId: string; platforms: Platform[] }[], 결과: 결과읽기): { cases: 앱요약['cases']; last: 판정셈 } {
+/**
+ * 활성 케이스마다 마지막 결과를 접는다 — 케이스 목록 · 추적표와 같은 케이스판정.
+ * 접은 결과가 Not tested 이고 한 기기라도 마지막 줄이 Blocked 면 Blocked 로도 센다 (2026-11-24 TP-F3-18 시작 질문 승인)
+ */
+export function 케이스셈(
+  케이스들: { tcId: string; platforms: Platform[] }[],
+  결과: 결과읽기,
+  막혔나: (tcId: string, platform: Platform) => boolean = () => false,
+): { cases: 앱요약['cases']; last: 앱요약['last'] } {
   const cases = { fn: 0, ui: 0 };
-  const last = { pass: 0, fail: 0, notRun: 0 };
+  const last = { pass: 0, fail: 0, notRun: 0, blocked: 0 };
   for (const c of 케이스들) {
     cases[UI번호.test(c.tcId) ? 'ui' : 'fn'] += 1;
     const 판정 = 케이스판정(c.platforms.map((p) => 결과(c.tcId, p)));
     if (판정 === 'PASS') last.pass += 1;
     else if (판정 === 'FAIL') last.fail += 1;
-    else last.notRun += 1;
+    else {
+      last.notRun += 1;
+      if (c.platforms.some((p) => 막혔나(c.tcId, p))) last.blocked += 1;
+    }
   }
   return { cases, last };
 }

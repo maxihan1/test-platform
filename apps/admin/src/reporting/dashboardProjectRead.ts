@@ -133,6 +133,7 @@ export async function 프로젝트요약읽기(서비스들: 볼서비스[], 작
   ]);
   const 결과표 = new Map(결과들.map((l) => [`${l.tcId}:${l.platform}`, l.status]));
   const 결과 = (tcId: string, p: Platform) => 결과표.get(`${tcId}:${p}`);
+  const 막힌 = new Set(결과들.filter((l) => l.blocked).map((l) => `${l.tcId}:${l.platform}`));
 
   const 페이지실행 = 성능.filter((r) => r.kind === 'PAGE');
   const 페이지들 = await 페이지줄(페이지실행.map((r) => Number(r.id)));
@@ -155,7 +156,7 @@ export async function 프로젝트요약읽기(서비스들: 볼서비스[], 작
     return {
       serviceId: s.id, name: s.name, prefix: s.prefix, kind: s.kind,
       prd: prd === null || prd === undefined ? null : PRD셈(prd.판, prd.지도, 결과),
-      ...케이스셈(내케이스, 결과),
+      ...케이스셈(내케이스, 결과, (tcId, p) => 막힌.has(`${tcId}:${p}`)),
       scenarios: 시나리오들[i]?.length ?? 0,
       extra: {
         pageLcp: 느린 === undefined ? null : { url: 느린.url, ms: 느린.lcpMs! },

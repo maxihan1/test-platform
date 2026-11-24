@@ -13,8 +13,8 @@ const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 /** main.tsx 가 사람의 권한에서 뽑아 넘기는 재료 — 케이스 자리가 있는 사람 */
 const 기본재료 = { 케이스갈수있나: true, 세트만들수있나: false, 프로젝트: null };
 
-function 건(pass: number, fail: number, notRun: number) {
-  return { pass, fail, notRun };
+function 건(pass: number, fail: number, notRun: number, blocked = 0) {
+  return { pass, fail, notRun, blocked };
 }
 
 function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
@@ -331,6 +331,15 @@ describe('애플리케이션 카드', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 카드 = (await screen.findByText('ZDA 결제', { selector: '.dash-app b' })).closest('a')!;
     expect(카드.textContent).toContain('아직 실행한 테스트가 없습니다');
+  });
+
+  it('카드의 Not tested 뒤에 Blocked 수를 괄호로 적고, 0 이면 괄호가 없다', async () => {
+    읽기를(응답({ project: 요약({ apps: [앱하나(1, 'ZDA 결제', 'SCREEN', { last: 건(23, 1, 3, 2) }), 앱하나(2, 'ZDA 회원', 'SCREEN', { last: 건(5, 0, 1) })] }) }));
+    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
+    const 카드 = async (이름: string) => (await screen.findByText(이름, { selector: '.dash-app b' })).closest('a')!;
+    expect((await 카드('ZDA 결제')).textContent).toContain('Pass 23 · Fail 1 · Not tested 3 (Blocked 2)');
+    expect((await 카드('ZDA 회원')).textContent).toContain('Not tested 1');
+    expect((await 카드('ZDA 회원')).textContent).not.toContain('Blocked');
   });
 });
 

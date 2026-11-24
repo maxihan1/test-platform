@@ -36,7 +36,7 @@ const 앱 = (serviceId: number, name: string): 대시보드응답['project']['ap
   kind: 'SCREEN',
   prd: null,
   cases: { fn: 3, ui: 0 },
-  last: 건(2, 1, 0),
+  last: { ...건(2, 1, 0), blocked: 0 },
   scenarios: 0,
   extra: { pageLcp: null, fps: null, p95Ms: null },
 });

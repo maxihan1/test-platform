@@ -49,7 +49,21 @@ describe('케이스셈', () => {
       ],
       결과표({ 'A-FN-001:desktop': 'PASS', 'A-FN-001:mobile': 'PASS', 'A-FN-002:desktop': 'PASS', 'A-FN-002:mobile': 'FAIL', 'A-UI-001:desktop': 'PASS' }),
     );
-    expect(셈).toEqual({ cases: { fn: 3, ui: 1 }, last: { pass: 2, fail: 1, notRun: 1 } });
+    expect(셈).toEqual({ cases: { fn: 3, ui: 1 }, last: { pass: 2, fail: 1, notRun: 1, blocked: 0 } });
+  });
+
+  it('Not tested 로 접힌 케이스 가운데 한 기기라도 마지막 줄이 Blocked 면 Blocked 로도 센다 — Fail 로 접히면 세지 않는다', () => {
+    const 셈 = 케이스셈(
+      [
+        { tcId: 'A-FN-011', platforms: ['android'] },
+        { tcId: 'A-FN-012', platforms: ['android', 'mobile'] },
+        { tcId: 'A-FN-013', platforms: ['android', 'mobile'] },
+        { tcId: 'A-FN-014', platforms: ['android'] },
+      ],
+      결과표({ 'A-FN-011:android': 'NA', 'A-FN-012:android': 'NA', 'A-FN-012:mobile': 'PASS', 'A-FN-013:android': 'NA', 'A-FN-013:mobile': 'FAIL', 'A-FN-014:android': 'NA' }),
+      (tcId, p) => ['A-FN-011:android', 'A-FN-012:android', 'A-FN-013:android'].includes(`${tcId}:${p}`),
+    );
+    expect(셈.last).toEqual({ pass: 0, fail: 1, notRun: 3, blocked: 2 });
   });
 });
 
