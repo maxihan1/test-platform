@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-import { api, type RunItemPage } from './api.js';
+import { api, type RunItemPage, type RunItemSummary } from './api.js';
 import { 통과영상, 팜증적 } from './FarmEvidence.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
@@ -12,7 +12,9 @@ import { Step } from './ItemSteps.js';
 import { ItemTraceSection } from './ItemTrace.js';
 import { fieldsOf, type Field } from './mask.js';
 import { 케이스서비스 } from './role.js';
+import { use막힘사유글 } from './proc.js';
 import { 실행기록주소 } from './route.js';
+import { 막힌항목 } from './runFlow.js';
 import { 미실행사유 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
 import { RunWindow } from './RunWindow.js';
@@ -25,6 +27,9 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
   const detail = useAsync<RunItemPage>(() => api.item(runId, historyId), [runId, historyId]);
   const item = detail.data;
   const [다시, set다시] = useState(false);
+  // 같은 실행의 항목 — 프로시저의 건수와 막은 케이스의 판정을 찾는다. 윗줄(항목실행줄)이 읽은 것을 받아 쓴다
+  const [항목들, set항목들] = useState<RunItemSummary[]>([]);
+  const 막힘사유글 = use막힘사유글();
 
   if (detail.error !== null) return <Failed error={detail.error} />;
   if (item === null) return <Loading />;
@@ -34,6 +39,12 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
   const params = fieldsOf(item.params, item.paramSchema, 언어);
   // 증적 블록과 모양이 같아야 한다 (SPEC §8.4). 비어 박제된 칸은 fieldsOf 가 박제 스키마의 기본값으로 채운다
   const expected = fieldsOf(item.expected, item.expectedSchema, 언어);
+  const 막힘 = 막힌항목(item);
+  const 프로시저건수 = 항목들.filter((i) => i.execId != null && i.execId === item.execId).length;
+  // 막은 케이스가 같은 실행 · 같은 디바이스 · 같은 회차에서 어떻게 끝났는지 알 때만 까닭을 붙인다
+  const 막은판정 = 항목들.find((i) => i.tcId === item.blockedBy && i.platform === item.platform && i.attempt === item.attempt)?.status;
+  // 판정이 다 난 뒤 프로세스가 실패로 끝난 사유다. 러너에 못 보내고 닫은 사유는 케이스 줄 사유와 같은 글이라 한 번만 보인다 (도메인/실행 §3.2 「돌리기 · 저장」)
+  const 단위오류 = item.execError == null || item.execError.message === item.error?.message ? null : item.execError;
 
   return (
     <div className="screen">
@@ -43,18 +54,46 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
             {item.tcId} · {PLATFORM_LABEL[item.platform]}
           </div>
           <div className="case-name">{item.tcName}</div>
+          {item.procId == null ? null : (
+            <div className="runmeta">
+              <span className="mono">{item.procId}</span> {item.procName}
+              {item.execSeq == null || 프로시저건수 === 0 ? null : <> · {t말('{전체}건 중 {번째}번째', { 전체: 프로시저건수, 번째: item.execSeq })}</>}
+            </div>
+          )}
           <div className="runmeta">
             RUN {item.runId} {item.runTitle} · {when(item.finishedAt ?? item.startedAt, 언어)}
           </div>
         </div>
-        <Verdict status={item.status} big />
+        <Verdict status={item.status} blocked={막힘} big />
       </div>
 
       {/* 회차 · 이전/다음 실패 · 증적 · 관련 요구 · 판정 — 같은 실행의 다른 실패로 가는 길과 판정 자리가 항목 상세에도 있어야 한다 (점검 3.2 · 3.4) */}
-      <항목실행줄 item={item} 판정하기={판정하기} />
+      <항목실행줄 item={item} 판정하기={판정하기} on항목들={set항목들} />
 
       {/* 「실행이 멈춘 사유」는 실행 전체가 멈춘 것처럼 읽혔다. 이유는 유형과 한 줄, 러너 원문(최대 2천 자)은 접는다 (점검 3.1 · 3.6) */}
-      {item.error === null && (item.failure ?? null) === null ? null : (
+      {/* Blocked 는 실패가 아니다 — 고칠 것은 막은 케이스라 그 케이스로 가는 고리를 둔다 (DESIGN.md 「항목 상세」) */}
+      {!막힘 ? null : (
+        <div className="sec">
+          <div className="sec-h">{t말('사유')}</div>
+          <p>
+            <b>Blocked</b>
+            {item.blockedBy == null ? null : <> {막힘사유글(item.blockedBy, 막은판정)}</>}
+          </p>
+          {item.blockedBy == null ? null : (
+            <p>
+              <a href={실행기록주소(item.blockedBy, item.runId, true)}>{t말(막은판정 === 'FAIL' ? '{케이스} 실패 보기' : '{케이스} 결과 보기', { 케이스: item.blockedBy })}</a>
+            </p>
+          )}
+        </div>
+      )}
+      {단위오류 === null ? null : (
+        <div className="sec">
+          <div className="sec-h">{t말('프로시저 실행 오류')}</div>
+          <p>{미실행사유(단위오류, 언어)}</p>
+          <원문보기 글={[단위오류.message, 단위오류.stack].filter(Boolean).join('\n\n')} />
+        </div>
+      )}
+      {막힘 || (item.error === null && (item.failure ?? null) === null) ? null : (
         <div className="sec">
           <div className="sec-h">{t말('실패 이유')}</div>
           <실패이유 failure={item.failure} />

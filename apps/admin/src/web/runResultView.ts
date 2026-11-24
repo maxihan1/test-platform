@@ -1,9 +1,9 @@
-// 실행 결과의 거르개 · 쪽 · 펼친 카드를 주소 조건과 오가게 한다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」 · ⑱ WEB-F8-03)
-// 결과는 항목 상세에 갔다 돌아오는 일이 잦아, 돌아올 때마다 1쪽 · 접힌 카드로 풀리면 보던 자리를 다시 찾아야 했다
+// 실행 결과의 거르개 · 쪽 · 펼친 줄을 주소 조건과 오가게 한다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」 · ⑱ WEB-F8-03)
+// 결과는 항목 상세에 갔다 돌아오는 일이 잦아, 돌아올 때마다 1쪽 · 접힌 줄로 풀리면 보던 자리를 다시 찾아야 했다
 
 import { useState, type Dispatch, type SetStateAction } from 'react';
 
-import type { ItemStatus, Platform, 실패유형 } from './api.js';
+import type { ItemStatus, Platform } from './api.js';
 import type { 변화칸 } from './RunSummary.js';
 import { 디바이스순서 } from './ui.js';
 
@@ -11,24 +11,18 @@ export interface 결과보기 {
   판정: ItemStatus | 'ALL';
   device: Platform | 'ALL';
   변화: 변화칸 | null;
-  /** 통과 · 미실행 줄의 쪽. 도는 동안에는 줄 전체의 쪽이다 */
+  /** 실행 차례 표의 쪽 */
   쪽: number;
-  카드쪽: number;
-  유형: 실패유형 | null;
-  안본것만: boolean;
-  /** 「자동 수정 N」 — Issue Bunker 테스트 수정으로 통과한 카드만. 서버가 거른다(?autoFix=1) */
-  자동수정만: boolean;
-  /** 펼친 카드의 케이스 번호. 편 차례다 — 돌아오면 마지막에 편 카드로 화면을 옮긴다 */
+  /** 펼친 줄의 케이스 번호. 편 차례다 */
   열린: string[];
 }
 
-export const 처음보기: 결과보기 = { 판정: 'ALL', device: 'ALL', 변화: null, 쪽: 1, 카드쪽: 1, 유형: null, 안본것만: false, 자동수정만: false, 열린: [] };
+export const 처음보기: 결과보기 = { 판정: 'ALL', device: 'ALL', 변화: null, 쪽: 1, 열린: [] };
 
 /** 이 화면이 주소에 쓰는 칸. 실행 기록은 고른 실행(`run`)에 딸린 칸으로 넘긴다 */
-export const 결과칸들 = ['status', 'device', 'change', 'rowpage', 'cardpage', 'cause', 'unjudged', 'autofix', 'open'] as const;
+export const 결과칸들 = ['status', 'device', 'change', 'rowpage', 'open'] as const;
 
 const 판정들: readonly ItemStatus[] = ['PASS', 'FAIL', 'NA'];
-const 유형들: readonly 실패유형[] = ['mismatch', 'notFound', 'timeout', 'environment', 'other'];
 const 변화글: Record<변화칸, string> = { 새로깨짐: 'new', 계속깨짐: 'kept' };
 
 const 고른것 = <T extends string>(글: string | null, 값들: readonly T[]): T | undefined => 값들.find((값) => 값 === 글);
@@ -46,10 +40,6 @@ export function 보기읽기(조건: URLSearchParams): 결과보기 {
     device: 고른것(조건.get('device'), 디바이스순서) ?? 'ALL',
     변화: (Object.keys(변화글) as 변화칸[]).find((칸) => 변화글[칸] === 조건.get('change')) ?? null,
     쪽: 쪽번호(조건.get('rowpage')),
-    카드쪽: 쪽번호(조건.get('cardpage')),
-    유형: 고른것(조건.get('cause'), 유형들) ?? null,
-    안본것만: 조건.get('unjudged') === '1',
-    자동수정만: 조건.get('autofix') === '1',
     열린: tc === null || tc === '' || 열린.includes(tc) ? 열린 : [...열린, tc],
   };
 }
@@ -61,10 +51,6 @@ export function 보기조건(보기: 결과보기): Record<string, string> {
     ...(보기.device === 'ALL' ? {} : { device: 보기.device }),
     ...(보기.변화 === null ? {} : { change: 변화글[보기.변화] }),
     ...(보기.쪽 === 1 ? {} : { rowpage: String(보기.쪽) }),
-    ...(보기.카드쪽 === 1 ? {} : { cardpage: String(보기.카드쪽) }),
-    ...(보기.유형 === null ? {} : { cause: 보기.유형 }),
-    ...(보기.안본것만 ? { unjudged: '1' } : {}),
-    ...(보기.자동수정만 ? { autofix: '1' } : {}),
     ...(보기.열린.length === 0 ? {} : { open: 보기.열린.join(',') }),
   };
 }
@@ -76,8 +62,8 @@ export const 바꾼보기 = (앞: 결과보기, 바꿀: 보기바꿈): 결과보
 /** 판정 칩을 고르면 줄은 1쪽부터 — 앞 쪽 번호로 새 거르개를 보면 빈 쪽이 선다 */
 export const 판정고른보기 = (판정: ItemStatus | 'ALL'): Partial<결과보기> => ({ 판정, 쪽: 1 });
 
-/** 디바이스를 고르면 카드도 다른 카드가 서니 카드 쪽 · 칩 · 펼침까지 처음으로 */
-export const 디바이스고른보기 = (device: Platform | 'ALL'): Partial<결과보기> => ({ device, 쪽: 1, 카드쪽: 1, 유형: null, 안본것만: false, 자동수정만: false, 열린: [] });
+/** 디바이스를 고르면 다른 줄이 서니 쪽 · 펼침까지 처음으로 */
+export const 디바이스고른보기 = (device: Platform | 'ALL'): Partial<결과보기> => ({ device, 쪽: 1, 열린: [] });
 
 /**
  * 실행 기록 결과 칸의 보기. 그 보기가 어느 실행 것인지 같이 든다 — 보이는 실행이 바뀌면(다른 줄을 고름 · 거르개 · 쪽으로 맨 위 줄이 바뀜 ·

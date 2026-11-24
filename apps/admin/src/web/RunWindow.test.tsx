@@ -283,4 +283,25 @@ describe('RunWindow', () => {
     expect(api.run).not.toHaveBeenCalled();
     expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
   });
+
+  it('실패한 케이스가 든 프로시저는 통과했던 케이스까지 자동 포함으로 같이 연다', async () => {
+    const 프로시저 = (tcId: string, procSeq: number) => 케이스(tcId, { procId: 'ZRS-TP-1', procName: '주문', procSeq, procCount: 2, platforms: ['android'] });
+    읽기모킹([프로시저('ZRS-001', 1), 프로시저('ZRS-002', 2)]);
+    vi.spyOn(api, 'cases').mockResolvedValue({ items: [프로시저('ZRS-001', 1), 프로시저('ZRS-002', 2)], total: 2, page: 1, pageSize: 50 });
+    render(<RunWindow tcIds={['ZRS-002']} onClose={vi.fn()} />);
+
+    expect(await screen.findByRole('dialog', { name: '케이스 2건 실행' })).toBeTruthy();
+    expect(document.querySelector('.proc-note')?.textContent).toContain('선택 1건 · 자동 포함 1건');
+    expect([...document.querySelectorAll('.case-tag')].length).toBe(1);
+  });
+
+  it('같은 프로시저의 케이스를 못 받아도 받은 줄로 열고 못 받았다고 알린다', async () => {
+    읽기모킹([케이스('ZRS-002', { procId: 'ZRS-TP-1', procName: '주문', procSeq: 2, procCount: 2, platforms: ['android'] })]);
+    vi.spyOn(api, 'cases').mockRejectedValue(new Error('network'));
+    render(<RunWindow tcIds={['ZRS-002']} onClose={vi.fn()} />);
+
+    expect(await screen.findByRole('dialog', { name: '케이스 1건 실행' })).toBeTruthy();
+    expect(screen.getByText('같은 프로시저의 케이스를 불러오지 못했습니다')).toBeTruthy();
+  });
 });
+

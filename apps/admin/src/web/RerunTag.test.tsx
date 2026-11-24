@@ -1,13 +1,11 @@
 // @vitest-environment jsdom
-// 한 건 실행이 붙은 실행의 결과 화면 — 다시 실행 꼬리표 · 지난 결과 보기 · 덮인 항목의 상세는 한 건 실행 번호로 (도메인/실행 §8.3 「한 건 실행이 붙은 실행」)
+// 한 건 실행이 붙은 실행의 실패 카드 — 다시 실행 꼬리표 · 지난 결과 보기 (도메인/실행 §8.3 「한 건 실행이 붙은 실행」). 줄 쪽은 RunFlowRow.test.tsx 가 본다
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 
 import { api, type 다시실행 } from './api.js';
-import { groupByCase } from './group.js';
-import { RUN_ID, 그리기, 상세, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
-import { 결과줄 } from './RunResultRow.js';
+import { RUN_ID, 그리기, 상세, 장치, 줄, 쪽, 케이스 } from './RunFailCard.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -38,20 +36,5 @@ describe('실패 카드 (덮인 디바이스가 다시 실행해서도 실패)',
     await screen.findByText('회원가입');
     expect(screen.queryByText(/다시 실행해서/)).toBeNull();
     expect(document.querySelector('details.fc-orig')).toBeNull();
-  });
-});
-
-describe('결과 줄 (다시 실행해서 통과)', () => {
-  it('꼬리표를 달고 판정 고리 · 「상세」 · 펼친 본문은 한 건 실행 번호로 연다', async () => {
-    const 읽기 = vi.spyOn(api, 'item').mockResolvedValue({ ...상세(9, 'desktop'), runId: 한건번호 });
-    const group = groupByCase([줄(9, 'ZZI-0001', 'desktop', 'PASS', { rerun: 덮음 })])[0]!;
-    render(<결과줄 group={group} columns={['desktop']} runId={RUN_ID} />);
-
-    expect(screen.getByText(/^다시 실행해서 Pass · /)).toBeTruthy();
-    const 주소들 = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
-    expect(주소들).toEqual([`#/runs/${String(한건번호)}/items/9`, `#/runs/${String(한건번호)}/items/9`]);
-
-    fireEvent.click(screen.getByRole('button', { name: /펼치기/ }));
-    await waitFor(() => expect(읽기).toHaveBeenCalledWith(한건번호, 9));
   });
 });

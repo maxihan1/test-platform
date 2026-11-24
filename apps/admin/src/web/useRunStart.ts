@@ -10,12 +10,13 @@ import { 지켜본다 } from './runWatchStore.js';
 import { message } from './ui.js';
 
 /**
- * 서버가 한 건 실행(SINGLE)으로 만들었나. 붙은 곳이 있으면 한 건이다. 없으면 케이스 하나 · 반복 1 일 때만 실행을 읽어 본다 —
- * 원래 실행이 반복 실행인 「실패 1건 다시 실행」은 새 RUN(RERUN)이라 화면이 규칙만으로는 못 가른다 (도메인/실행 §3.2)
+ * 서버가 한 건 실행(SINGLE)으로 만들었나. 붙은 곳이 있으면 한 건이다. 없으면 반복 1 일 때 실행을 읽어 origin 으로 본다 —
+ * 같은 프로시저의 케이스를 여럿 걸어도 한 건이고 원래 실행이 반복 실행인 「Fail N건 다시 실행」은 새 RUN(RERUN)이라,
+ * 케이스 수로 가르는 규칙을 화면에 두면 서버와 갈린다 (도메인/실행 §3.2 「한 건 · 다시 돌리기 · 시험 실행」)
  */
 async function 한건이었나(요청: 실행요청, runId: number, attachedTo: number | null | undefined): Promise<boolean> {
   if (attachedTo != null) return true;
-  if (new Set(요청.items.map((it) => it.tcId)).size !== 1 || 요청.repeat !== 1) return false;
+  if (요청.repeat !== 1) return false;
   // 못 읽으면 실행 기록으로 옮긴다 — 앞 판의 길이다
   return api.run(runId).then((r) => r.origin === 'SINGLE', () => false);
 }

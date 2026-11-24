@@ -168,17 +168,17 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
     expect(document.querySelector('.rr-side')).toBeNull();
   });
 
-  it('직전 실행 대비 수는 접지 않고 요약 띠에 바로 보인다', async () => {
+  it('이전 실행 대비 수는 접지 않고 요약 한 줄에 바로 보인다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(견줌있음);
     그리기('FINISHED');
 
     const 대비 = await waitFor(() => {
-      const 칸 = document.querySelector('.rs-diff');
+      const 칸 = document.querySelector('.rf-diff');
       expect(칸).not.toBeNull();
       return 칸!;
     });
     expect(대비.textContent).toContain('RUN 2110');
-    expect(대비.textContent).toContain('회귀 실패1');
+    expect(대비.textContent).toContain('회귀 실패 1');
     expect(document.querySelector('details')).toBeNull();
   });
 
@@ -195,8 +195,8 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   });
 });
 
-describe('결과 칸은 머리를 고정하고 요약 띠부터 스크롤한다 (도메인/실행 §8.3 · §8.7 「A안」)', () => {
-  it('칸안 이면 머리는 스크롤 칸 밖에, 요약 띠 · 본문은 .rows-scroll 안에 있다', async () => {
+describe('결과 칸은 머리를 고정하고 요약 한 줄부터 스크롤한다 (도메인/실행 §8.3 · §8.7 「A안」)', () => {
+  it('칸안 이면 머리는 스크롤 칸 밖에, 요약 한 줄 · 본문은 .rows-scroll 안에 있다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
 
@@ -209,8 +209,7 @@ describe('결과 칸은 머리를 고정하고 요약 띠부터 스크롤한다 
     expect(스크롤칸?.classList.contains('rows-scroll')).toBe(true);
     expect(스크롤칸?.querySelector('.box-head')).toBeNull();
     expect(document.querySelector('.box-head .pane-title')?.textContent).toContain(`RUN ${String(RUN_ID)}`);
-    expect(스크롤칸?.querySelector('.rs')).not.toBeNull();
-    expect(스크롤칸?.querySelector('.toolbar')).not.toBeNull();
+    expect(스크롤칸?.querySelector('.rf-sum')).not.toBeNull();
   });
 
   it('칸안 이 아니면(화면 전체) 스크롤칸을 따로 두지 않는다 — 페이지가 그대로 스크롤한다', async () => {

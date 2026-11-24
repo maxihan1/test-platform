@@ -160,7 +160,7 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
   });
 
   // 실행 결과 화면의 실패 카드 재료 (도메인/리포팅 §7). insights 처럼 상세 응답과 따로 둔다
-  app.get<{ Params: { runId: string }; Querystring: { page?: unknown; platform?: unknown; autoFix?: unknown } }>(
+  app.get<{ Params: { runId: string }; Querystring: { page?: unknown; platform?: unknown; autoFix?: unknown; tc?: unknown } }>(
     '/runs/:runId/failures',
     async (req, reply) => {
       const runId = 정수(req.params.runId);
@@ -170,6 +170,9 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       if (page === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(req.query.page ?? '') });
       const platform = 카드디바이스.safeParse(req.query.platform);
       if (!platform.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(req.query.platform) });
+      // 케이스 번호 하나 — 같은 이름을 두 번 붙였거나 빈 값이면 거르는 조건으로 읽지 않고 돌려보낸다
+      const tc = req.query.tc;
+      if (tc !== undefined && (typeof tc !== 'string' || tc === '')) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(tc) });
 
       // 실패카드 는 compareWithPrevious 를 거쳐 없는 실행 · 시나리오 실행에 던진다. 여기서 막아야 500 이 아니라 404 다
       const 상태 = await 실행상태(runId);
@@ -178,7 +181,7 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       // 도는 중이면 실패가 아직 다 안 모였다 — 카드 재료는 끝나야 사실이 된다
       if (상태 === 'RUNNING') return reply.code(409).send({ error: 'RUN_NOT_FINISHED', detail: 상태 });
       // 1 이 아닌 값은 조용히 버린다 — 카탈로그 ?autoFix 와 같다 (도메인/BTS §7)
-      return 실패카드(runId, page, platform.data, req.query.autoFix === '1');
+      return 실패카드(runId, page, platform.data, req.query.autoFix === '1', tc);
     },
   );
 

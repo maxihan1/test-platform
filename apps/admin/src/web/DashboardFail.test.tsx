@@ -7,7 +7,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api } from './api.js';
 import { 신규실패표 } from './DashboardFail.js';
-import { 장치, 줄, 케이스, 쪽 } from './RunFailCards.fixture.js';
+import { 장치, 줄, 케이스, 쪽 } from './RunFailCard.fixture.js';
 
 const 실패 = {
   runId: 7,

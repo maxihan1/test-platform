@@ -3,16 +3,21 @@
 
 import { Fragment, useEffect, useState } from 'react';
 
-import type { CaseRow, Platform, RunRequestItem, TrialResult, 모바일위치 } from './api.js';
+import type { Platform, TrialResult, 모바일위치 } from './api.js';
 import { 원문보기 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
+import type { 담은줄 } from './pickProc.js';
 import { type 고친값표, 실행항목, 윈도우펼침 } from './pickRun.js';
 import { 걸린글 } from './trialView.js';
 import { PLATFORM_LABEL, Verdict } from './ui.js';
-import { type 디바이스칸, type 시험줄, useTrialQueue } from './useTrialQueue.js';
+import { type 디바이스칸, type 시험줄, type 시험항목, useTrialQueue } from './useTrialQueue.js';
 
 /** 실행 창이 지금 보이는 것 — 값을 고치는 창 · 시험 실행 중 · 완료 (시안 7판 ② ④ ⑥) */
 export type 창보기 = 'edit' | 'running' | 'done';
+
+/** 시험 큐가 받는 항목 — 프로시저에 든 줄은 번호와 자동 포함 여부를 달아 큐가 같은 프로시저를 한 번만 걸게 한다 */
+const 시험항목들 = (케이스들: 담은줄[], 고친값: 고친값표): 시험항목[] =>
+  실행항목(케이스들.map(윈도우펼침), 고친값).map((it, i) => ({ ...it, procId: 케이스들[i]!.procId ?? null, 함께: 케이스들[i]!.자동포함 === true }));
 
 /**
  * 실행 창의 「시험 실행」 상태와 동작을 한 벌로 든다. 위에서 고른 대상 서버로 서버 러너에서 돈다 —
@@ -21,7 +26,7 @@ export type 창보기 = 'edit' | 'running' | 'done';
  * `알림` 은 창의 한 줄이다 — 값 창에서 누른 것에 대한 답이다
  */
 export function use여러건시험(옵션: {
-  케이스들: CaseRow[];
+  케이스들: 담은줄[];
   고친값: 고친값표;
   env: string;
   /** 모바일 웹 실행 기기 — mobile 칸만 그 값으로 돈다 */
@@ -43,7 +48,7 @@ export function use여러건시험(옵션: {
     set보기((전) => (전 === 'running' ? 'done' : 전));
   }, [큐.도는중]);
 
-  function 건다(항목들: RunRequestItem[]) {
+  function 건다(항목들: 시험항목[]) {
     set확인(null);
     알림(() => null);
     set시작시각(Date.now());
@@ -67,18 +72,26 @@ export function use여러건시험(옵션: {
       if (env === '') return 알림(() => t('시험 실행할 대상 서버를 선택하세요.'));
       set확인('trial');
     },
-    시작: () => 건다(실행항목(케이스들.map(윈도우펼침), 고친값)),
+    시작: () => 건다(시험항목들(케이스들, 고친값)),
     /** 완료 창의 「실패 N건 다시 시험」 — 실패한 케이스 × 디바이스만 다시 돈다. 한 번 확인했으니 묻지 않는다 */
-    실패다시: (실패: { tcId: string; platform: Platform }[]) =>
+    실패다시: (실패: { tcId: string; platform: Platform }[]) => {
+      const 실패프로시저 = new Set(케이스들.filter((c) => 실패.some((칸) => 칸.tcId === c.tcId)).map((c) => c.procId));
       건다(
-        실행항목(
+        시험항목들(
           케이스들.flatMap((c) => {
             const 디바이스 = 실패.filter((칸) => 칸.tcId === c.tcId).map((칸) => 칸.platform);
-            return 디바이스.length === 0 ? [] : [{ ...c, platforms: 디바이스 }];
+            if (디바이스.length > 0) return [{ ...c, platforms: 디바이스 }];
+            // 같은 프로시저는 통째로 다시 도니 안 실패한 줄도 따라오는 줄로 넣어 새 결과로 채운다.
+            // 디바이스는 그 프로시저에서 실패한 것만이다 — 선언대로 두면 아무것도 안 깨진 디바이스에서도 프로시저가 다시 돈다
+            if (c.procId == null || !실패프로시저.has(c.procId)) return [];
+            const 깨진디바이스 = 실패.filter((칸) => 케이스들.find((o) => o.tcId === 칸.tcId)?.procId === c.procId).map((칸) => 칸.platform);
+            const 돌 = c.platforms.filter((p) => 깨진디바이스.includes(p));
+            return 돌.length === 0 ? [] : [{ ...c, platforms: 돌, 자동포함: true }];
           }),
           고친값,
         ),
-      ),
+      );
+    },
     정식묻기: () => set확인('formal'),
     확인닫기: () => set확인(null),
     중단열기: () => set중단묻기(true),

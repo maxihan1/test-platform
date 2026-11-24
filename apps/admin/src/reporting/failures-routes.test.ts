@@ -211,6 +211,29 @@ describe.skipIf(연결 === undefined)('실패 카드 통로', () => {
     expect(데스크톱.items[0].devices.map((d: { platform: string }) => d.platform)).toEqual(['desktop']);
   });
 
+  it('tc 를 주면 그 케이스의 카드만 남기고 없는 케이스는 빈 쪽이며 autoFixCount 는 조건과 상관없다', async () => {
+    const 하나 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.끝남!, 'page=1&tc=XFCR-002') })).json();
+    expect(하나.total).toBe(1);
+    expect(하나.items.map((c: { tcId: string }) => c.tcId)).toEqual(['XFCR-002']);
+    expect(하나.autoFixCount).toBe(0);
+
+    const 디바이스까지 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.끝남!, 'page=1&tc=XFCR-001&platform=desktop') })).json();
+    expect(디바이스까지.items.map((c: { devices: { platform: string }[] }) => c.devices.map((d) => d.platform))).toEqual([['desktop']]);
+
+    const 없음 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.끝남!, 'page=1&tc=XFCR-999') })).json();
+    expect(없음).toMatchObject({ items: [], total: 0 });
+    const 통과뿐 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.끝남!, 'page=1&tc=XFCR-003') })).json();
+    expect(통과뿐.total).toBe(0);
+  });
+
+  it('tc 가 빈 값이거나 두 번 오면 400 INVALID_REQUEST 다', async () => {
+    for (const 질의 of ['tc=', 'tc=XFCR-001&tc=XFCR-002']) {
+      const res = await 라우트앱.inject({ method: 'GET', url: 주소(실행.끝남!, `page=1&${질의}`) });
+      expect(res.statusCode, 질의).toBe(400);
+      expect(res.json().error, 질의).toBe('INVALID_REQUEST');
+    }
+  });
+
   it('그 실행의 서비스에 실행 read 가 없으면 insights 와 같은 403 이고 실행 read 면 200 이다', async () => {
     const 못봄 = await 출입증('xfcr-noruns');
     const 카드 = await 문앱.inject({ method: 'GET', url: 주소(실행.끝남!), cookies: 못봄 });

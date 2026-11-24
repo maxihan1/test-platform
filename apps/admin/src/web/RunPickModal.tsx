@@ -4,7 +4,7 @@
 import { useState } from 'react';
 
 import { PC항목인가 } from '@platform/kit/types';
-import { ApiError, type CaseRow, type ServiceRow, type User, type 모바일위치 } from './api.js';
+import { ApiError, type ServiceRow, type User, type 모바일위치 } from './api.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -15,20 +15,22 @@ import { use닫기묻기, 바닥한줄, 반복과알림, 실행버튼들 } from 
 import { 한건머리 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
 import { 머리줄 } from './RunPickHead.js';
+import { 케이스줄, 프로시저안내 } from './RunPickProc.js';
+import { type 담은줄, 한건케이스 } from './pickProc.js';
 import { use디바이스고르기 } from './RunPickTabs.js';
 import { use입력값저장, 출처줄 } from './RunPickSource.js';
 import { 넘었나 } from './runPlan.js';
 import { 시작확인 } from './RunPickConfirm.js';
-import { use여러건시험, 시험배지, 시험절차 } from './RunPickTrial.js';
+import { use여러건시험, 시험절차 } from './RunPickTrial.js';
 import { 시험바닥, 시험제목, 시험화면, 중단확인 } from './RunPickTrialRun.js';
 import { 케이스서비스, 할수있나 } from './role.js';
-import { message, PLATFORM_LABEL } from './ui.js';
+import { message } from './ui.js';
 import { useRunPickValues } from './useRunPickValues.js';
 import { messagesByKey } from './validation.js';
 
 interface Props {
   /** 돌릴 것. 비활성·결과칩 거르기는 여는 쪽이 이미 했다 */
-  케이스들: CaseRow[];
+  케이스들: 담은줄[];
   /** 목록 줄에서 이미 고쳐 둔 값(2026-09-21 ②) · 지난 실행의 값. 칸은 이 글자에서 시작한다 */
   초기글자?: 글자표;
   /** 미리 고를 대상 서버. 그 서비스에 없는 이름이면 고르지 않은 채로 연다 — 기본값은 없다 (SPEC §8.2) */
@@ -110,6 +112,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
   // 보내는 값과 같은 규칙으로 센다. 소수를 그대로 세면 화면 건수와 실제 항목 수가 갈린다
   const 반복수 = Math.max(1, Math.floor(Number(repeat) || 1));
+  // 서버가 한 건(SINGLE)으로 만드는 요청인가 — 같은 프로시저의 케이스 여럿도 한 건이다. Slack 알림 칸과 시작 확인의 붙는 곳이 이것을 본다
+  const 한건실행 = 한건케이스(돌릴것, 반복수) !== null;
   const 건수 = 몇건(돌릴것, 반복수);
   const 너무많나 = 넘었나(건수);
   const [android, 모바일] = [안드로이드있나(돌릴것), 모바일있나(돌릴것)];
@@ -159,7 +163,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
       repeat: 반복수,
       notifySlack,
-      items: 실행항목(돌릴것, 값.고친값),
+      items: 실행항목(돌릴것.filter((c) => c.자동포함 !== true), 값.고친값),
       ...(모바일 ? { mobileOn } : {}),
     });
   }
@@ -181,7 +185,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
               repeat={repeat}
               on반복={(값) => { 손댐(); setRepeat(값); }}
               slack칸={service?.hasSlackWebhook === true}
-              한건한번={한건 !== null && 반복수 === 1}
+              한건한번={한건실행}
               notifySlack={notifySlack} onSlack={setNotifySlack}
             />
           )}
@@ -206,7 +210,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
     >
       {시험.확인 === null ? null : (
         <시작확인 종류={시험.확인} 케이스들={돌릴것} env={env} 반복수={시험.확인 === 'trial' ? 1 : 반복수}
-          slack={service?.hasSlackWebhook === true && !(한건 !== null && 반복수 === 1) ? notifySlack : null}
+          slack={service?.hasSlackWebhook === true && !한건실행 ? notifySlack : null}
           mobileOn={모바일 ? mobileOn : null} 원래실행={원래실행} onClose={시험.확인닫기} on시작={시험.확인 === 'trial' ? 시험.시작 : 건다} />
       )}
       <중단확인 시험={시험} />
@@ -218,6 +222,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
       {/* 고른 것이 왜 줄었는지. 제목의 건수만 보면 어디서 사라졌는지 아무 데도 안 적힌다 */}
       {안내 === undefined ? null : <div className="mnote">{안내}</div>}
+      <프로시저안내 케이스들={돌릴것} />
 
       {/* 여기만 스크롤한다. 머리와 바닥은 고정이다 (SPEC §8.10). 열은 TC ID · 케이스명 · 디바이스 · 입력값 넷이다 (§8.16 ① · 점검표 D4) */}
       {다껐나 ? (
@@ -230,9 +235,10 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           <span>{t('디바이스')}</span>
           <span>{t('입력값')}</span>
         </div>
-        {돌릴것.map((c) => {
+        {돌릴것.map((c, 자리) => {
           const 칸 = 값.칸들.get(c.tcId);
-          const 값수 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0);
+          // 자동 포함 줄은 서버가 저장값으로 채우므로 값 칸을 펴지 않는다
+          const 값수 = c.자동포함 === true ? 0 : (칸?.params.length ?? 0) + (칸?.expected.length ?? 0);
           // 돈 디바이스 칸에만 남긴다 — 시험 뒤 디바이스를 바꾸면 끈 디바이스의 결과는 걷는다 (도메인/실행 §8.16 ① · 점검표 B5)
           // 「Windows」로 접은 케이스는 패드 값 칸도 그 케이스 것이다 — 시험은 선언 값마다 돈다
           const 시험줄 = 시험.줄들[c.tcId]?.filter((칸) => c.platforms.includes(칸.platform) || (c.platforms.includes('windows') && PC항목인가(칸.platform)));
@@ -240,24 +246,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
           return (
             <div key={c.tcId} className={폈나 && 값수 > 0 ? 'prow-wrap open' : 'prow-wrap'}>
-              <div className="prow">
-                <span className="id">{c.tcId}</span>
-                <span className="nm">
-                  {c.name}
-                  <시험배지 칸들={시험줄} />
-                </span>
-                <span className="dev">
-                  {c.platforms.map((p) => <span className="tag" key={p}>{t(PLATFORM_LABEL[p])}</span>)}
-                </span>
-                {/* 입력값 열은 늘 같은 자리다 — 값이 없으면 그 사실을 글로 적는다. 빈 자리를 남기면 「안 불러왔나」로 읽힌다 */}
-                {값수 === 0 || 칸 === undefined ? (
-                  <span className="iv">{t('없음')}</span>
-                ) : (
-                  <button type="button" className="iv prow-fold" aria-expanded={폈나} onClick={() => 뒤집기(c.tcId)}>
-                    {폈나 ? t('접기 ▴') : t('{수}개 펼치기 ▾', { 수: 값수 })}
-                  </button>
-                )}
-              </div>
+              <케이스줄 c={c} 머리={c.procId != null && 돌릴것[자리 - 1]?.procId !== c.procId} 시험줄={시험줄} 값수={값수} 칸있나={(칸?.params.length ?? 0) + (칸?.expected.length ?? 0) > 0} 폈나={폈나} on접기={() => 뒤집기(c.tcId)} />
               {한건 !== null ? <시험절차 칸들={시험줄} /> : null}
               {값수 === 0 || 칸 === undefined ? null : (
                 <div className={폈나 ? 'prow-edit open' : 'prow-edit'}>

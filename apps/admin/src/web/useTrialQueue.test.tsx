@@ -290,3 +290,76 @@ describe('스캔이 센 단계 제목 · 걸린 시간', () => {
     expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'done', 제목들: null });
   });
 });
+
+describe('테스트 프로시저 시험 실행 — 같은 프로시저는 한 번만 건다', () => {
+  const 프로시저항목 = (tcId: string, 함께 = false) => ({ ...항목(tcId), procId: 'X-TP-1', 함께 });
+  const 케이스결과 = (tcId: string, status: 'PASS' | 'FAIL' | 'NA', durationMs: number) => ({ tcId, status, durationMs, steps: [] });
+
+  it('같은 프로시저 둘을 고르면 시험을 한 번만 걸고 줄마다 답의 자기 결과가 찬다', async () => {
+    const 시작 = vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial').mockResolvedValue({
+      status: 'DONE',
+      result: { status: 'PASS', durationMs: 5, steps: [] },
+      results: [케이스결과('X-1', 'PASS', 5), 케이스결과('X-2', 'FAIL', 7), 케이스결과('X-3', 'NA', 0)],
+    } as Awaited<ReturnType<typeof api.getTrial>>);
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([프로시저항목('X-1'), 프로시저항목('X-2'), 프로시저항목('X-3', true)], 'qa');
+    });
+
+    expect(시작).toHaveBeenCalledTimes(1);
+    expect(시작.mock.calls[0]?.[0]).toBe('X-1');
+    expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'done', 결과: { status: 'PASS' } });
+    expect(첫칸(result.current.줄들, 'X-2')).toMatchObject({ 종류: 'done', 결과: { status: 'FAIL', durationMs: 7 } });
+    expect(첫칸(result.current.줄들, 'X-3')).toMatchObject({ 종류: 'done', 결과: { status: 'NA' } });
+  });
+
+  it('자동 포함 줄은 대표가 되지 않는다 — 고른 줄의 값으로 건다', async () => {
+    const 시작 = vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 통과 });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([프로시저항목('X-1', true), 프로시저항목('X-2')], 'qa');
+    });
+
+    expect(시작.mock.calls.map(([id]) => id)).toEqual(['X-2']);
+  });
+
+  it('답에 그 케이스의 결과가 없으면 미실행으로 채운다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 통과 });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([프로시저항목('X-1'), 프로시저항목('X-2')], 'qa');
+    });
+
+    expect(첫칸(result.current.줄들, 'X-2')).toMatchObject({ 종류: 'done', 결과: { status: 'NA', steps: [] } });
+  });
+
+  it('옛 꼴 케이스와 다른 프로시저는 따로 건다', async () => {
+    const 시작 = vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 통과 });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([프로시저항목('X-1'), 항목('X-9'), { ...항목('X-5'), procId: 'X-TP-2' }], 'qa');
+    });
+
+    expect(시작.mock.calls.map(([id]) => id)).toEqual(['X-1', 'X-9', 'X-5']);
+  });
+
+  it('걸지 못해 멈추면 따라오는 줄에도 같은 글이 남는다', async () => {
+    vi.spyOn(api, 'startTrial').mockRejectedValue(new ApiError(409, 'TRIAL_BUSY', '진행 중'));
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([프로시저항목('X-1'), 프로시저항목('X-2')], 'qa');
+    });
+
+    expect(첫칸(result.current.줄들, 'X-2')).toEqual({ 종류: 'notice', 글: '이미 시험 실행이 진행 중입니다' });
+  });
+});
+

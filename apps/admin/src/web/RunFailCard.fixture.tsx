@@ -1,4 +1,4 @@
-// 실패 카드 검사들이 나눠 쓰는 도우미 — 실패 케이스 · 디바이스 · 통과 줄 자료와 화면 그리기
+// 실패 카드(대시보드 서랍이 쓰는 `실패카드`) 검사들이 나눠 쓰는 도우미 — 실패 케이스 · 디바이스 · 통과 줄 자료와 화면 그리기
 
 import { vi } from 'vitest';
 import { render } from '@testing-library/react';
@@ -14,10 +14,10 @@ import {
   type RunItemPage,
   type RunItemSummary,
   type StepResult,
-  type 실패유형묶음,
 } from './api.js';
-import { RunFailCards } from './RunFailCards.js';
+import { 실패카드 } from './RunFailCard.js';
 import type { 판정 } from './role.js';
+import type { 다시돌린결과 } from './useRerunResults.js';
 
 export const RUN_ID = 5011;
 
@@ -108,14 +108,23 @@ export function 줄(historyId: number, tcId: string, platform: Platform, status:
   };
 }
 
+/** 응답의 카드마다 `실패카드` 를 그린다. 카드는 details 라 닫힌 채 서고 `열기` 로 펴 세운다 */
 export function 그리기(
   응답: Paged<FailureCase>,
   items: RunItemSummary[] = [줄(1, 'ZZI-0001', 'desktop', 'FAIL')],
   platform: Platform | 'ALL' = 'ALL',
   권한: 판정 = () => true,
-  유형들: 실패유형묶음[] = [],
+  열기 = false,
+  on남김: () => void = () => undefined,
+  다시돌림: ReadonlyMap<string, 다시돌린결과> = new Map(),
 ) {
   const 부름 = vi.spyOn(api, 'failures').mockResolvedValue(응답);
-  const 결과 = render(<RunFailCards runId={RUN_ID} env="qa" items={items} platform={platform} 권한={권한} 유형들={유형들} />);
+  const 결과 = render(
+    <>
+      {응답.items.map((c) => (
+        <실패카드 key={c.tcId} c={c} runId={RUN_ID} env="qa" items={items} platform={platform} 권한={권한} on남김={on남김} 열기={열기} 다시돌림={다시돌림.get(c.tcId)} />
+      ))}
+    </>,
+  );
   return { 부름, ...결과 };
 }

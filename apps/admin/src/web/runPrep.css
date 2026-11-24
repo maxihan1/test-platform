@@ -254,3 +254,36 @@ button.iv {
     margin-right: 0;
   }
 }
+
+/* 테스트 프로시저 — 실행 창의 안내 · 헤더 줄 · 차례 번호 · 자동 포함 줄 (DESIGN.md 「실행 창」) */
+.mnote.proc-note {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--well);
+  color: var(--ink);
+}
+
+.prow.prow-proc {
+  background: color-mix(in srgb, var(--well) 55%, var(--panel));
+}
+
+.prow.prow-proc .id {
+  color: var(--ink);
+}
+
+.prow.prow-with .id,
+.prow.prow-with .nm {
+  color: var(--ink-muted);
+}
+
+.prow .nm .case-tag {
+  margin-left: 8px;
+}
+
+.prow .id .proc-seq {
+  min-width: 18px;
+  margin-right: 8px;
+  color: var(--ink-faint);
+  font-weight: 400;
+}

@@ -4,6 +4,7 @@
 import { api, type CaseRow, type Platform, type 모바일위치 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
+import { 한건케이스 } from './pickProc.js';
 import { 펼친수 } from './pickRun.js';
 import { PLATFORM_LABEL, useAsync, when } from './ui.js';
 import { 디바이스차례 } from './useTrialQueue.js';
@@ -83,7 +84,7 @@ export function 시작확인({ 종류, 케이스들, env, 반복수, slack, mobi
           {t('결과는 이 창에서만 보이고')} <b>{t('실행 기록 · 리포트에 남지 않습니다')}</b>
         </p>
       ) : (
-        <남는곳 한건={케이스들.length === 1 && 반복수 === 1 ? 케이스들[0]! : null} env={env} 원래실행={원래실행} mobileOn={mobileOn ?? 'server'} />
+        <남는곳 한건={한건케이스(케이스들, 반복수)} env={env} 원래실행={원래실행} mobileOn={mobileOn ?? 'server'} />
       )}
       <dl className="start-what">
         <dt>{t('케이스')}</dt>
@@ -114,7 +115,7 @@ export function 시작확인({ 종류, 케이스들, env, 반복수, slack, mobi
   );
 }
 
-/** 정식 실행의 주황 띠 — 한 건 · 반복 1 이면 붙을 실행을 읽어 적는다 (도메인/실행 §3.2 「★ 한 건 실행은 묶음 실행에 붙는다」) */
+/** 정식 실행의 주황 띠 — 한 건(옛 꼴 케이스 하나 · 같은 프로시저의 케이스들) · 반복 1 이면 붙을 실행을 읽어 적는다 (도메인/실행 §3.2 「★ 한 건 실행은 묶음 실행에 붙는다」) */
 function 남는곳({ 한건, env, 원래실행, mobileOn }: { 한건: CaseRow | null; env: string; 원래실행?: number; mobileOn: 모바일위치 }) {
   const t = use말();
   const 언어 = use언어();

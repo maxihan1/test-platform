@@ -129,10 +129,18 @@ export function registerRoutes(app: FastifyInstance): void {
   // 케이스 코드가 남의 번호를 찍으면 그 절차 제목이 남의 실행 화면에 뜬다 — admin 의 거르기는
   // 「이 실행의 항목인가」만 보므로 그대로 통과한다. 러너는 진짜 값을 이미 알고 있다 (execute() 가 건 열쇠다)
   app.get('/progress', async () => ({
-    items: [...running.entries()].flatMap(([historyId, { progress }]) =>
+    items: [...running.entries()].flatMap(([historyId, { progress, 케이스시작 }]) =>
       progress === undefined
         ? []
-        : [{ ...progress.step, historyId, elapsedMs: Date.now() - progress.시작한때 }],
+        : [
+            {
+              ...progress.step,
+              historyId,
+              elapsedMs: Date.now() - progress.시작한때,
+              // tcId 가 있는 항목(프로시저)에만 — 지금 케이스가 시작한 뒤 흐른 시간이다. 옛 꼴 케이스는 싣지 않는다
+              ...(progress.step.tcId !== undefined && 케이스시작 !== undefined && { caseElapsedMs: Date.now() - 케이스시작.시작한때 }),
+            },
+          ],
     ),
     scenarios: 시나리오진행(),
   }));

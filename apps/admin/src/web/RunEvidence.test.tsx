@@ -7,7 +7,7 @@ import { 낮은FPS } from '../reporting/dashboardShape.js';
 
 import { api, type ItemTrace } from './api.js';
 import { 점선FPS } from './RunEvidenceParts.js';
-import { RUN_ID, 그리기, 단계, 상세, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
+import { RUN_ID, 그리기, 단계, 상세, 장치, 줄, 쪽, 케이스 } from './RunFailCard.fixture.js';
 
 afterEach(() => {
   cleanup();

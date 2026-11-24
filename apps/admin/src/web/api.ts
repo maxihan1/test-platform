@@ -1,7 +1,7 @@
 // Admin API 호출 한 곳 (SPEC §7). 응답 모양은 WS-A·WS-B가 실제로 내보내는 것을 그대로 옮겼다
 // 목 데이터는 두지 않는다 — 개발 서버도 /api를 진짜 admin으로 프록시한다 (vite.config.ts)
 
-import type { DeviceInfo, ElementCheck, FpsSample, ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
+import type { CaseResult, DeviceInfo, ElementCheck, FpsSample, ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
 import type { Technique } from '@platform/kit/types';
 
 import type { 고칠것 } from '../authoring/edit.js';
@@ -247,6 +247,8 @@ export interface RunCounts {
   na: number;
   running: number;
   unconfirmed?: number;
+  /** 미실행(na) 가운데 Blocked 수 — 「Not tested 3 (Blocked 2)」의 괄호다. 이 칸 전 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/실행 §7) */
+  blocked?: number;
 }
 
 /**
@@ -430,6 +432,16 @@ export interface RunItemSummary {
   unconfirmed?: string | null;
   /** 한 건 실행이 덮은 항목 — 위 칸들은 그 한 건 항목 것이다. 상세는 `rerun.runId` 로 연다 (도메인/실행 §7 `GET /api/runs/:runId`) */
   rerun?: 다시실행 | null;
+  /** 실행 단위 — 프로시저 하나가 한 번 돈 것이다. 옛 꼴 케이스는 케이스 줄 번호와 같고 TP-F2-10 전 줄은 null 이다 (도메인/실행 §7) */
+  execId?: number | null;
+  /** 프로시저 안 실행 차례(1부터). 옛 꼴 케이스는 null */
+  execSeq?: number | null;
+  procId?: string | null;
+  procName?: string | null;
+  /** Blocked 로 끝난 줄만 막은 케이스 번호. 판정값은 NA 그대로다 */
+  blockedBy?: string | null;
+  /** 끝난 Fail 줄의 실패 유형과 사람 말 한 줄 — 결과 표의 빨간 한 줄. 통과 · 안 끝남 · 멈춘 줄 · Blocked 는 null (도메인/실행 §7) */
+  failure?: 항목실패 | null;
 }
 
 /** 한 건 실행이 덮은 항목에 붙는 칸. original 은 원래 실행의 원래 항목이다 */
@@ -457,6 +469,8 @@ export type 항목진행 = Pick<RunningStep, 'historyId'> & Partial<Omit<Running
   vision?: { url: string; name?: string };
   /** 그 케이스의 단계 제목 전부 — 스캔이 못 센 케이스는 없다 (도메인/실행 §3.2 「단계 목록은 처음부터 다 보인다」) */
   stepTitles?: string[];
+  /** 지금 도는 케이스가 시작한 뒤 흐른 시간 — 프로시저의 케이스 시계다. 러너를 다시 빌드하기 전에는 안 온다 (도메인/실행 §7) */
+  caseElapsedMs?: number;
 };
 
 export interface RunItemDetail extends RunItemSummary {
@@ -468,8 +482,8 @@ export interface RunItemDetail extends RunItemSummary {
   // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다
   expectedSchema: JsonSchema;
   steps: StepResult[];
-  /** 통과 · 안 끝남 · 멈춰 닫힌 미실행은 null. 선택으로 둔 것은 이 칸을 모르는 기존 가짜 응답을 안 고치려고다 */
-  failure?: 항목실패 | null;
+  /** 프로시저 판정이 다 난 뒤 프로세스가 실패로 끝난 사유 · 러너에 못 보내고 닫은 사유. 옛 꼴 케이스와 사유가 없는 실행 단위는 null (도메인/실행 §3.2 「돌리기 · 저장」) */
+  execError?: { message: string; stack?: string } | null;
 }
 
 /** 정식 실행 항목의 네트워크 · 조작 · 콘솔 (도메인/실행 §3.2 「trace」). 서버가 넣을 때 가린 값이다 */
@@ -1082,7 +1096,8 @@ export type TrialState =
   /** stepTitles 는 스캔이 센 그 케이스의 단계 제목 차례다. 못 센 케이스는 없다 (도메인/실행 §3.2 「단계 목록은 처음부터 다 보인다」) */
   | { status: 'RUNNING'; vision?: { url: string }; step?: TrialStep; stepTitles?: string[] }
   /** failure 는 정식 실행 실패 카드와 같은 유형 · 한 줄이다. 통과 · 중단이면 null (도메인/실행 §7 「케이스 테스트 실행」) */
-  | { status: 'DONE'; result: TrialResult; failure?: 항목실패 | null };
+  /** results 는 프로시저를 통째로 돌린 시험 실행의 케이스마다 한 건이다. 옛 꼴 케이스는 없다 (도메인/실행 §3.2 「한 건 · 다시 돌리기 · 시험 실행」) */
+  | { status: 'DONE'; result: TrialResult; failure?: 항목실패 | null; results?: CaseResult[] };
 
 // 서버가 칸별 사유를 돌려준 것(400 INVALID_PARAMS)과 진짜 고장을 갈라야
 // 화면이 오류를 칸 아래에 붙일지 위에 붙일지 정할 수 있다 (SPEC §8.2)
@@ -1405,9 +1420,9 @@ export const api = {
 
   /** 끝난 실행의 확정 실패를 케이스 카드로 쪽 단위로 준다. 디바이스 거르기는 서버가 한다 (SPEC §7) */
   /** 자동수정만 이면 「수정 후 통과」 카드만 — autoFixCount 는 그 조건을 뺀 셈이다 (도메인/BTS §7) */
-  failures: (runId: number, page: number, platform?: Platform, 자동수정만 = false) =>
+  failures: (runId: number, page: number, platform?: Platform, 자동수정만 = false, tc?: string) =>
     call<Paged<FailureCase> & { autoFixCount?: number }>(
-      `/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}${자동수정만 ? '&autoFix=1' : ''}`,
+      `/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}${자동수정만 ? '&autoFix=1' : ''}${tc === undefined ? '' : `&tc=${encodeURIComponent(tc)}`}`,
     ),
   /** 그만둔 BTS 등록을 처음부터 다시 보낸다 (도메인/BTS §7) */
   resendBts: (runId: number, tcId: string, env: string) => call<void>(`/runs/${runId}/bts/resend`, json({ tcId, env })),

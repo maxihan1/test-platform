@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type CaseRow, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
-import { 실패다시실행, 실패디바이스, 실패케이스들 } from './RerunFailed.js';
+import { 끊긴디바이스, 실패다시실행, 실패디바이스, 실패케이스들 } from './RerunFailed.js';
 import { 사람, 시작누름 } from './runPick.fixture.js';
 
 const 원래실행 = (mobileDevices: string[]) =>
@@ -83,6 +83,37 @@ describe('실패디바이스', () => {
     ];
 
     expect(실패디바이스(items)).toEqual({ 'ZRS-001': ['mobile'], 'ZRS-002': ['desktop', 'mobile'] });
+  });
+});
+
+const 절차줄 = (tcId: string, status: ItemStatus, procId: string, 덮을것: Partial<RunItemSummary> = {}): RunItemSummary => ({
+  ...항목(tcId, status, 'android'),
+  procId,
+  procName: `프로시저 ${procId}`,
+  ...덮을것,
+});
+
+describe('끊긴디바이스', () => {
+  it('실패 없이 미실행으로만 끝난 프로시저의 케이스를 디바이스와 함께 모은다', () => {
+    const items = [
+      절차줄('ZRS-A', 'PASS', 'P1'),
+      절차줄('ZRS-B', 'NA', 'P1', { blockedBy: 'ZRS-A' }),
+      절차줄('ZRS-C', 'NA', 'P1'),
+    ];
+
+    expect(끊긴디바이스(items)).toEqual({ 'ZRS-B': ['android'], 'ZRS-C': ['android'] });
+  });
+
+  it('실패가 있는 프로시저는 뺀다 — 실패 케이스 하나만 실어도 서버가 프로시저를 통째로 펼친다', () => {
+    const items = [절차줄('ZRS-A', 'FAIL', 'P1'), 절차줄('ZRS-B', 'NA', 'P1', { blockedBy: 'ZRS-A' }), 절차줄('ZRS-QA', 'PASS', 'P2'), 절차줄('ZRS-QB', 'NA', 'P2')];
+
+    expect(끊긴디바이스(items)).toEqual({ 'ZRS-QB': ['android'] });
+  });
+
+  it('프로시저에 안 든 케이스 · 아직 안 끝난 줄 · 통과한 줄은 끊긴 것이 아니다', () => {
+    const items = [항목('ZRS-X1', 'NA'), 절차줄('ZRS-A', 'NA', 'P1', { finishedAt: null }), 절차줄('ZRS-B', 'PASS', 'P1')];
+
+    expect(끊긴디바이스(items)).toEqual({});
   });
 });
 
@@ -202,3 +233,51 @@ describe('실패다시실행', () => {
     expect(await screen.findByText('실행 뒤에 저장값이 변경된 케이스 ZRS-001 — 실패 때와 다른 값으로 실행됩니다')).toBeTruthy();
   });
 });
+
+describe('실패다시실행 — 끊긴 프로시저', () => {
+  const 준비 = () => {
+    const 읽기 = vi.spyOn(api, 'caseOf').mockImplementation((tcId) => Promise.resolve({ ...케이스(tcId), platforms: ['android'] }));
+    vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    return 읽기;
+  };
+
+  it('실패가 없고 끊긴 프로시저만 있으면 「Not tested N건 다시 실행」이고 끊긴 케이스를 담는다', async () => {
+    const 읽기 = 준비();
+    const 끊김 = [절차줄('ZRS-A', 'PASS', 'P1'), 절차줄('ZRS-B', 'NA', 'P1', { blockedBy: 'ZRS-A' }), 절차줄('ZRS-C', 'NA', 'P1', { blockedBy: 'ZRS-A' })];
+    render(<실패다시실행 runId={20914} items={끊김} env="qa" 된다 />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Not tested 2건 다시 실행' }));
+
+    expect(await screen.findByRole('dialog', { name: '케이스 2건 실행' })).toBeTruthy();
+    expect(읽기.mock.calls.map(([id]) => id)).toEqual(['ZRS-B', 'ZRS-C']);
+  });
+
+  it('실패와 끊긴 프로시저가 같이 있으면 「Fail N건 다시 실행」이고 창에는 끊긴 케이스도 실린다', async () => {
+    const 읽기 = 준비();
+    const 섞임 = [항목('ZRS-F1', 'FAIL', 'android'), 절차줄('ZRS-QA', 'PASS', 'P2'), 절차줄('ZRS-QB', 'NA', 'P2')];
+    render(<실패다시실행 runId={20914} items={섞임} env="qa" 된다 />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 1건 다시 실행' }));
+
+    expect(await screen.findByRole('dialog', { name: '케이스 2건 실행' })).toBeTruthy();
+    expect(읽기.mock.calls.map(([id]) => id)).toEqual(['ZRS-F1', 'ZRS-QB']);
+  });
+
+  it('실패가 있는 프로시저의 Blocked 케이스는 따로 싣지 않는다', async () => {
+    const 읽기 = 준비();
+    render(<실패다시실행 runId={20914} items={[절차줄('ZRS-A', 'FAIL', 'P1'), 절차줄('ZRS-B', 'NA', 'P1', { blockedBy: 'ZRS-A' })]} env="qa" 된다 />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 1건 다시 실행' }));
+
+    expect(await screen.findByRole('dialog', { name: '케이스 1건 실행' })).toBeTruthy();
+    expect(읽기.mock.calls.map(([id]) => id)).toEqual(['ZRS-A']);
+  });
+
+  it('끊긴 케이스도 자동 수정으로 뺀 케이스는 싣지 않는다', () => {
+    render(<실패다시실행 runId={20914} items={[절차줄('ZRS-A', 'PASS', 'P1'), 절차줄('ZRS-B', 'NA', 'P1')]} env="qa" 된다 자동수정={['ZRS-B']} />);
+
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+

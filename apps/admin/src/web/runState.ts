@@ -64,6 +64,8 @@ export function 미실행사유(error: { message: string } | null, 언어: 언�
   if (error === null) return null;
   // Playwright 는 글에 색 코드를 섞는다. 2026-11-06 WEB-F9-14 전 기록은 러너가 안 걷고 저장했다 — 걷지 않으면 「테스트 실행기에 닿지 못했습니다」로 보였다(점검표 B3)
   const 글 = error.message.replace(/\u001b\[[0-9;]*m/g, '');
+  // 앞 케이스에 막힌 줄의 사유는 막은 케이스 번호로 적는다(proc.tsx `use막힘사유글`) — 여기서 「테스트 실행기에 닿지 못했습니다」로 읽히면 안 된다
+  if (글 === 'BLOCKED') return null;
   if (글 === 사람이멈춤) return t('사용자가 중단', 언어);
   if (글 === 준비실패) return t('테스트 데이터 준비 실패', 언어);
   // Playwright 테스트 제한 시간 초과도 사람에게는 같은 말이다. 러너의 TIMEOUT(러너가 끊음)과 값은 다르게 둔다 — trace 사유가 그 값으로 갈린다

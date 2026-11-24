@@ -20,12 +20,15 @@ export interface 제목재료 {
   케이스들: { tcId: string; name: string }[];
   /** 그 종류의 활성 케이스를 전부 담았나 */
   전체: boolean;
+  /** 한 건 실행이 프로시저 하나를 돌릴 때만 — 프로시저가 통째로 도니 제목은 케이스가 아니라 프로시저 번호 · 이름이다. 이름은 스냅샷이 비었으면 번호만 쓴다 */
+  프로시저?: { id: string; name: string | null };
 }
 
 /** 제목은 test_run.title 에 박제한다 — 옛 실행은 그때 제목 그대로라 다시 짓지 않는다 */
 export function 자동제목(재료: 제목재료): string {
   const n = 재료.케이스들.length;
   if (재료.origin === 'RERUN') return `RUN ${String(재료.rerunOf)}의 Fail ${String(n)}건 다시`;
+  if (재료.origin === 'SINGLE' && 재료.프로시저 !== undefined) return 재료.프로시저.name === null ? 재료.프로시저.id : `${재료.프로시저.id} ${재료.프로시저.name}`;
   const 첫 = 재료.케이스들[0]!;
   // 한 건은 그 종류 케이스가 하나뿐이어도 「전체 1건」이 아니라 번호 + 이름이다 (도메인/실행 §7 「한 건」 줄)
   const 몸 = 재료.전체 && 재료.origin !== 'SINGLE'

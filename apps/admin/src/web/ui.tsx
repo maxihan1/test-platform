@@ -58,14 +58,15 @@ export const STATUS_TEXT_COLOR: Record<ItemStatus, string> = {
   NA: 'var(--na-text)',
 };
 
-export function Verdict({ status, big }: { status: ItemStatus; big?: boolean }) {
+/** @param blocked 앞 케이스에 막혀 못 간 미실행 — 판정값이 아니라 Not tested 의 사유라 색은 그대로이고 글자만 「Blocked」다 (DESIGN.md 「판정」) */
+export function Verdict({ status, big, blocked = false }: { status: ItemStatus; big?: boolean; blocked?: boolean }) {
   const t = use말();
   return (
     <span
       className={`verdict ${STATUS_CLASS[status]}`}
       style={big === true ? { fontSize: '13px', padding: '7px 16px' } : undefined}
     >
-      {t(STATUS_LABEL[status])}
+      {blocked && status === 'NA' ? 'Blocked' : t(STATUS_LABEL[status])}
     </span>
   );
 }

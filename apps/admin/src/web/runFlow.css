@@ -1,0 +1,392 @@
+/* 실행 결과 — 요약 한 줄과 실행 차례 표 (DESIGN.md 「테스트 프로시저 · 목록 · 결과」 「실행 결과」 · 2026-11-24 시안 5판) */
+
+/* ───── 요약 한 줄 ───── */
+.rf-sum {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+  padding: 16px 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.rf-rate {
+  display: flex;
+  flex-direction: column;
+  min-width: 92px;
+}
+
+.rf-rate b {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.rf-rate small {
+  margin-left: 2px;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.rf-rate span {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.rf-mid {
+  flex: 1 1 340px;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.rf-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rf-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.rf-chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.rf-chip.p b {
+  color: var(--pass-text);
+}
+
+.rf-chip.f b {
+  color: var(--fail-text);
+}
+
+.rf-chip.n b {
+  color: var(--na-text);
+}
+
+.rf-sub {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.rf-diff {
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.rf-diffs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.rf-stat {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rf-stat:disabled {
+  cursor: default;
+}
+
+.rf-stat[aria-pressed='true'] {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rf-stat.f b {
+  color: var(--fail-text);
+}
+
+.rf-note {
+  color: var(--na-text);
+}
+
+/* 빠진 케이스 · 해결 목록 — 펼치면 요약 줄 아래를 다 쓴다 */
+.rf-under {
+  flex-basis: 100%;
+}
+
+.rf-under:empty {
+  display: none;
+}
+
+/* 디바이스 칩 · 도는 동안의 판정 칩 — 판 안이 아니라 요약과 표 사이에 서서 안쪽 여백과 밑줄이 없다 */
+.rr .toolbar {
+  padding: 0;
+  border-bottom: 0;
+}
+
+/* ───── 실행 차례 표 ───── */
+/* 요약과 표 사이는 결과 화면 틀(.screen.rr)의 간격이 띄운다 */
+.rf-table {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rf-head,
+.rf-line {
+  display: grid;
+  /* 디바이스마다 판정 칸과 소요 시간 칸이 한 벌이다 — 칸 수는 표가 --rf-devs 로 넘긴다 */
+  grid-template-columns: 22px 108px minmax(0, 1fr) repeat(var(--rf-devs, 1), 92px 70px) 12px;
+  gap: 0 12px;
+  align-items: center;
+  padding: 0 14px;
+}
+
+.rf-head {
+  height: 34px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.rf-head .r {
+  text-align: right;
+}
+
+/* 디바이스가 둘 이상이면 머리 칸이 디바이스 이름이고 판정 · 소요 시간 두 칸을 덮는다 */
+.rf-span2 {
+  grid-column: span 2;
+}
+
+.rf-proc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 9px 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--well) 55%, var(--panel));
+  font-size: 13px;
+}
+
+.rf-group:first-of-type .rf-proc {
+  border-top: 0;
+}
+
+.rf-proc-id {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rf-count {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.rf-count .f {
+  color: var(--fail-text);
+}
+
+.rf-row {
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+}
+
+.rf-row.fail {
+  border-left-color: var(--fail);
+}
+
+.rf-line {
+  width: 100%;
+  min-height: 38px;
+  padding-block: 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rf-line:hover {
+  background: var(--well);
+}
+
+.rf-seq {
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+.rf-id {
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.rf-name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13.5px;
+}
+
+.rf-why {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.rf-why.f {
+  color: var(--fail-text);
+}
+
+.rf-idm {
+  display: none;
+}
+
+/* 디바이스 이름 — 머리 줄이 없는 휴대폰에서만 판정 앞에 선다 */
+.rf-devn {
+  display: none;
+}
+
+.rf-dur {
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rf-caret {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.rf-name .fix-tag {
+  margin-left: 8px;
+}
+
+/* 자동 수정으로 통과한 줄의 고치기 전 실패 이유 — 지운 것이 아니라 고치기 전 기록이라 흐리게 줄만 긋는다 (도메인/BTS §8.15 「자동 수정 표시」 B) */
+.rf-row.fc-fixed .rf-why.f {
+  text-decoration: line-through;
+  color: var(--ink-muted);
+}
+
+/* 고리가 든 꼬리표는 단추 밖에 선다 — 이름 칸과 왼쪽을 맞춘다 */
+.rf-tags {
+  padding: 0 14px 6px 168px;
+}
+
+.rf-open {
+  padding: 4px 14px 14px 48px;
+}
+
+.rf-dev + .rf-dev {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.rf-devh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.rf-devh:empty {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .rf-head {
+    display: none;
+  }
+
+  .rf-line {
+    grid-template-columns: 18px minmax(0, 1fr) repeat(var(--rf-devs, 1), auto) 10px;
+    gap: 0 8px;
+  }
+
+  /* 소요 시간 칸을 숨기면 디바이스 칸이 판정 하나다 */
+  .rf-id,
+  .rf-dur {
+    display: none;
+  }
+
+  .rf-idm {
+    display: block;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+
+  .vd {
+    min-width: 0;
+  }
+
+  .rf-open,
+  .rf-tags {
+    padding-left: 14px;
+  }
+
+  /* 디바이스가 둘 이상이면 판정을 이름 아래 줄로 내린다 — 옆에 나란히 두면 이름 칸이 몇 글자 폭으로 눌린다 */
+  .rf-multi .rf-line {
+    grid-template-columns: 18px repeat(var(--rf-devs, 1), auto) minmax(0, 1fr) 10px;
+    row-gap: 4px;
+  }
+
+  .rf-multi .rf-seq,
+  .rf-multi .rf-caret {
+    grid-row: 1 / span 2;
+  }
+
+  .rf-multi .rf-caret {
+    grid-column: -2;
+  }
+
+  .rf-multi .rf-name {
+    grid-row: 1;
+    grid-column: 2 / -2;
+  }
+
+  .rf-multi .rf-v {
+    grid-row: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .rf-multi .rf-devn {
+    display: inline;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+}

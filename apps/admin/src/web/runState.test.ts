@@ -86,6 +86,11 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
     expect(미실행사유({ message: 'ABORTED' }, 'ko')).toBe('사용자가 중단');
   });
 
+  it('앞 케이스에 막힌 줄(BLOCKED)은 사유가 없다 — 「테스트 실행기에 닿지 못했습니다」로 읽히면 안 된다', () => {
+    expect(미실행사유({ message: 'BLOCKED' }, 'ko')).toBeNull();
+    expect(칸사유([{ status: 'NA', error: { message: 'BLOCKED' } }], 'ko')).toBeNull();
+  });
+
   it('그 밖의 사유는 서버가 넣은 한국어를 그대로 쓴다', () => {
     // 실측: CLOSE_UNFINISHED 가 '러너에 닿지 못했습니다' 를 한국어로 넣는다
     expect(미실행사유({ message: '러너에 닿지 못했습니다' }, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');

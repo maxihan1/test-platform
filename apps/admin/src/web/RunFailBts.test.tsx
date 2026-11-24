@@ -6,7 +6,7 @@ import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 
 import { api, type FailureBts } from './api.js';
 import type { 판정 } from './role.js';
-import { RUN_ID, 그리기, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
+import { RUN_ID, 그리기, 장치, 줄, 쪽, 케이스 } from './RunFailCard.fixture.js';
 
 afterEach(() => {
   cleanup();

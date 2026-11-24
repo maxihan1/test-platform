@@ -1,35 +1,30 @@
-// 실행 결과 목록 (SPEC §8.3). 케이스 1건 = 1행이고 디바이스별 판정을 판정 칸에 나란히 묶는다
+// 실행 결과 (SPEC §8.3). 머리 · 단추 · 증적 줄을 그리고 본문(요약 한 줄 · 실행 차례 표)은 RunResultBody 가 맡는다
 // POST /api/runs는 끝나기 전에 돌아온다. status가 FINISHED가 될 때까지 화면이 다시 묻는다 (SPEC §7.1)
 
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 
-import { api, ApiError, type ItemStatus, type Platform, type RunInsights as 비교 } from './api.js';
-import { filterGroups, groupByCase } from './group.js';
+import { api, ApiError, type RunInsights as 비교 } from './api.js';
 import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { use말, use언어 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
-import { type 결과보기, type 보기바꿈, 디바이스고른보기, 바꾼보기, 보기읽기, 보기조건, 판정고른보기 } from './runResultView.js';
+import { type 결과보기, type 보기바꿈, 바꾼보기, 보기읽기, 보기조건 } from './runResultView.js';
 import { 진행상황 } from './runProgress.js';
 import { 시간글자, 실행남은글 } from './remainText.js';
 import { RunAbortModal } from './RunAbortModal.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { 실패다시실행 } from './RerunFailed.js';
-import { PAGE_SIZE, 끝난결과, 디바이스칩, 실패먼저, 쪽넘김 } from './RunResultBody.js';
-import { 결과줄 } from './RunResultRow.js';
+import { 결과본문, 도는집계 } from './RunResultBody.js';
 import { 다른빌드알림, 시작빌드글 } from './RunBuild.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { RunPrepFailed } from './RunPrepFailed.js';
 import { use실행리포트, 리포트띠, 리포트열기 } from './RunQaReport.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름, 준비실패 } from './runState.js';
-import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
-import { 그중미확정글 } from './unconfirmed.js';
+import { Failed, Loading, PLATFORM_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
 import { useRunProgress } from './useRunProgress.js';
 import { 지켜보는실행, 지켜본다 } from './runWatchStore.js';
 import { use보는실행알림 } from './viewedRun.js';
-
-const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 
 interface 결과바깥 {
   /** 이 케이스의 실패 카드를 펼친 채 연다 — 대시보드 · 항목 상세에서 곧장 내려온 주소(`&tc=`) */
@@ -63,7 +58,6 @@ function 케이스결과({
 }: 결과바깥 & 결과상태 & { on시나리오?: () => void }) {
   const t = use말();
   const 언어 = use언어();
-  const { 판정: status, device, 쪽: page } = 보기;
   function 바꾸기(바꿀: 보기바꿈) {
     on보기((앞) => 바꾼보기(앞, 바꿀));
   }
@@ -126,20 +120,7 @@ function 케이스결과({
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
 
-  const groups = 실패먼저(filterGroups(groupByCase(data.items), status, device));
-  const totalPages = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
-  const shownPage = Math.min(page, totalPages);
-  const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
   const 디바이스들 = 실행디바이스들(data.items);
-  const columns = device === 'ALL' ? 디바이스들 : [device];
-  const { pass, fail, na } = data.counts;
-  const 미확정 = 그중미확정글(data.counts, 언어);
-  const 결과목록 =
-    shown.length === 0 ? (
-      <div className="empty">{t('조건에 맞는 결과가 없습니다')}</div>
-    ) : (
-      shown.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />)
-    );
   // 몇 건 끝났고 얼마 남았나는 머리에 늘 둔다 — 누르면 진행 상자가 무엇이 도는지까지 편다 (도메인/실행 §8.9 · 점검 2.14).
   // 앞 판은 이 수가 저절로 뜨는 상자에만 있었고 머리에는 「진행 중 98건」(안 끝난 전부)이 있었다
   const 진행 = running ? 진행상황(data, 진행목록) : null;
@@ -152,9 +133,6 @@ function 케이스결과({
     data.finishedAt === null
       ? null
       : 시간글자(Math.max(0, new Date(data.finishedAt).getTime() - new Date(data.startedAt).getTime()), 언어);
-  const 판정고름 = (값: ItemStatus | 'ALL') => 바꾸기(판정고른보기(값));
-  const 디바이스고름 = (값: Platform | 'ALL') => 바꾸기(디바이스고른보기(값));
-  const 쪽고름 = (쪽: number) => 바꾸기({ 쪽 });
 
   // 실행 정보는 이 한 줄이 전부다 — 앞 판은 같은 값을 옆 칸에 또 적었고 좁은 창에서 그 칸이 맨 아래로 묻혔다 (도메인/실행 §8.3 · 점검 2.2)
   const 부제 = (
@@ -188,28 +166,7 @@ function 케이스결과({
               {진행글}
             </button>
           )}
-          {!running ? null : (
-            <>
-              <div>
-                <b style={{ color: 'var(--pass-text)' }}>{pass}</b>
-                <span>{t('Pass')}</span>
-              </div>
-              <div>
-                <b style={{ color: 'var(--fail-text)' }}>{fail}</b>
-                <span>{t('Fail')}</span>
-              </div>
-              <div>
-                <b style={{ color: 'var(--na-text)' }}>{na}</b>
-                <span>{t('Not tested')}</span>
-              </div>
-              {/* 미확정은 위 숫자에 이미 센 항목이다 — 「그중 N건」 글자만 뒤에 붙는다. 없으면 안 쓴다 (도메인/실행 §8.3 · §3.2) */}
-              {미확정 === '' ? null : (
-                <div>
-                  <span>{미확정}</span>
-                </div>
-              )}
-            </>
-          )}
+          {running ? <도는집계 counts={data.counts} /> : null}
           {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
           {!멈출수있나(data.status, 실행판정(판정하기, data)) ? null : (
             <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
@@ -219,7 +176,7 @@ function 케이스결과({
           <리포트열기 리포트={리포트} />
             <증적만들기버튼들 칸={증적칸} />
             {running ? null : (
-              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 시작={data.startedAt} 된다={실행판정(판정하기, data)('실행')} 자동수정={data.autoFixedCases} on걸었다={on새실행} />
+              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 시작={data.startedAt} 된다={data.status !== 준비실패 && 실행판정(판정하기, data)('실행')} 자동수정={data.autoFixedCases} on걸었다={on새실행} />
             )}
           </div>
   );
@@ -273,55 +230,11 @@ function 케이스결과({
 
       <리포트띠 리포트={리포트} />
 
-      {running ? (
-        <div className={칸안 ? 'screen pane-results' : 'screen'}>
-          {/* 남은 것도 칸을 받는다 — 끝난 것만으로 띠를 채우면 12/40 인데 띠가 다 찬 것으로 읽힌다 (점검 2.14) */}
-          {data.counts.total === 0 ? null : (
-            <div className="stripe">
-              <i style={{ background: 'var(--pass)', flex: pass }} />
-              <i style={{ background: 'var(--fail)', flex: fail }} />
-              <i style={{ background: 'var(--na)', flex: na }} />
-              <i style={{ background: 'var(--well)', flex: data.counts.running }} />
-            </div>
-          )}
-
-          {/* 도는 동안에는 요약 띠도 카드도 없다 — 판정 칩이 거르개다 (도메인/실행 §8.3) */}
-          <div className="toolbar">
-            <span className="filter-label">{t('판정')}</span>
-            <div className="chip-group" role="group" aria-label={t('판정')}>
-              {STATUSES.map((value) => (
-                <button
-                  className="chip"
-                  key={value}
-                  aria-pressed={status === value}
-                  onClick={() => 판정고름(value)}
-                >
-                  {value === 'ALL' ? t('전체') : STATUS_LABEL[value]}
-                </button>
-              ))}
-            </div>
-            <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={디바이스고름} />
-          </div>
-
-          {/* 깨진 줄은 위로 올라와 있다. 카드는 끝나야 생기니 이유는 줄을 펼쳐 본다 (점검 2.21) */}
-          {fail === 0 ? null : <p className="hint">{t('실행 중에는 실패 카드가 없습니다 — 실패한 줄을 펼치면 이유를 볼 수 있습니다')}</p>}
-
-          {/* 결과 칸에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
-          {칸안 ? <div className="rows-scroll">{결과목록}</div> : 결과목록}
-        </div>
-      ) : data.status === 준비실패 ? (
+      {/* 도는 동안에도 같은 표다 — 판정 칸이 「진행 중」이고 요약 한 줄은 끝난 뒤에 선다 (도메인/실행 §8.3) */}
+      {data.status === 준비실패 ? (
         <RunPrepFailed prepNote={data.prepNote} 칸안={칸안} />
       ) : (
-        <끝난결과
-          data={data}
-          insights={견줌.data}
-          판정하기={판정하기}
-          견줌오류={견줌.error}
-          칸안={칸안}
-          보기={보기}
-          바꾸기={바꾸기}
-          열카드={열카드}
-        />
+        <결과본문 data={data} running={running} insights={견줌.data} 판정하기={판정하기} 견줌오류={견줌.error} 칸안={칸안} 보기={보기} 바꾸기={바꾸기} 열카드={열카드} />
       )}
 
       {/* 진행 창은 바깥 틀(RunWatch)이 든다 — 닫으면 알약이 되어 화면을 옮겨도 남는다. 여기 남은 것은
@@ -350,8 +263,6 @@ function 케이스결과({
           }}
         />
       )}
-
-      {running ? <쪽넘김 쪽={shownPage} 전체쪽={totalPages} on쪽={쪽고름} /> : null}
     </>
   );
 }
