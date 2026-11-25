@@ -20,7 +20,7 @@ export function 막는이유(st: 마법사단계, 상황: 막는상황): string 
     return 상황.고른후보 === null ? '후보를 하나 선택해 주세요. 맞는 후보가 없으면 「이전」에서 「직접 선택」으로 변경합니다' : null;
   }
   if (st === 'steps') return 상황.단계수 === 0 ? '단계를 하나 이상 넣습니다' : null;
-  if (st === 'values') return 상황.값막힘 ? '빈 칸이 남은 값 연결이 있습니다. 값을 적거나 그 연결을 삭제합니다' : null;
+  if (st === 'values') return 상황.값막힘 ? '빈 칸이 남은 값 연결이 있습니다. 적거나 삭제합니다' : null;
   if (st === 'trial') return 상황.시험중 ? '시험 실행이 완료되면 넘어갑니다' : null;
   return null;
 }

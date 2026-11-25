@@ -121,7 +121,7 @@ export function PerfStepRun({
               }}
             />
           ) : null}
-          <span className="perf-faint">{t('한 줄에 아이디, 비밀번호 · 가상 사용자마다 다른 계정으로 로그인합니다')}</span>
+          <span className="perf-faint">{t('한 줄에 아이디,비밀번호 · 가상 사용자마다 다른 계정으로 로그인합니다')}</span>
         </div>
         <div className="perf-field">
           {t('서버 모니터링')}

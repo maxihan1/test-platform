@@ -55,7 +55,7 @@ export const 작성할일말: Record<string, string> = {
     'The earlier request has no requirement list, so what is left is unknown. You can discard this request',
   '반영할 것이 없습니다. 지금 버전의 요구사항이 이미 테스트에 들어 있습니다. 이 요청은 삭제해도 됩니다':
     'Nothing to apply. This version of the requirements is already in the tests. You can discard this request',
-  '미검증 화면이 없습니다. 이 요청은 삭제해도 됩니다': 'Every screen is in the spec. You can delete this request',
+  '미검증 화면이 없습니다. 이 요청은 삭제해도 됩니다': 'No unverified screens are left. You can delete this request',
   // ⑫-10 작성 상세 할 일 흐름 (2026-10-19 · 점검 12.2~12.6 · 12.10~12.13 · 12.15 · N16 · N17 · 낱말은 시작 질문에서 사용자가 고른 것)
   '계정이 없어 못 쓴 요구사항 {수}건': '{수} requirements not written for lack of an account',
   '필요한 계정을 모두 등록했습니다. PRD 관리에서 이 요구사항만 이어 작성하세요': 'All needed accounts are in. Continue just these requirements from PRD management',
@@ -126,7 +126,7 @@ export const 작성할일말: Record<string, string> = {
   '중복 케이스로 가기': 'Go to duplicate cases',
   '중복 케이스 {수}건을 아직 선택하지 않아 반영할 수 없습니다.': '{수} duplicate cases are not chosen yet, so this cannot be applied.',
   '입력이 필요한지 확인할 수 없음': 'Cannot tell whether input is needed',
-  '입력이 필요한 케이스 {수}건': 'Only cases needing input {수}',
+  '입력이 필요한 케이스로만 만든 것 {수}건': 'Only cases needing input {수}',
   '누락된 요구사항': 'Missing requirements',
   '만든 {덮음}건 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다': 'Of {덮음} covered, functional tests cover {기능} · UI tests cover {UI} — a requirement covered by both counts on each side',
   '만든 {덮음}건 중 기능 케이스가 커버한 것 {기능} · UI 케이스가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다': 'Of {덮음} covered, functional cases cover {기능} · UI cases cover {UI} — a requirement covered by both counts on each side',

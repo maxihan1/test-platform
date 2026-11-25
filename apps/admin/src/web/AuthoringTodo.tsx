@@ -147,7 +147,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
             <span className="hint">
               {요청.status === 'PENDING'
                 ? t('아직 시작 전이라 누르면 바로 취소됩니다.')
-                : t('중단하면 30초 안에 멈춥니다. 만든 것은 남겨 두어 이어서 작성할 수 있습니다.')}
+                : t('30초 안에 중단됩니다. 만든 것은 남겨 두어 이어서 작성할 수 있습니다.')}
             </span>
           </>
         )}

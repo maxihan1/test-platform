@@ -129,7 +129,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
                       <td className="perf-faint">{when(a.lastSeenAt, 언어)}</td>
                       <td>
                         <div className="perf-row">
-                          <button type="button" className="btn ghost small" aria-label={t('{이름} 수정', { 이름: a.name })} onClick={() => { set오류(null); set눌렀나(false); set고칠({ id: a.id, name: a.name, maxVus: a.maxVus === null ? '' : String(a.maxVus) }); }}>
+                          <button type="button" className="btn ghost small" aria-label={t('{이름} 편집', { 이름: a.name })} onClick={() => { set오류(null); set눌렀나(false); set고칠({ id: a.id, name: a.name, maxVus: a.maxVus === null ? '' : String(a.maxVus) }); }}>
                             {t('편집')}
                           </button>
                           <button type="button" className="btn ghost small" aria-label={t('{이름} 삭제', { 이름: a.name })} onClick={() => { set오류(null); set지울것(a); }}>
@@ -204,7 +204,7 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
     <div className="set-card" ref={상자}>
       <div className="set-card-h">
         <h3>{t('에이전트 추가')}</h3>
-        <p>{t('부하 발생은 부하를 보낼 기계에, 모니터링은 대상 서버에 설치합니다. 프로그램은 같습니다')}</p>
+        <p>{t('부하 발생은 부하를 보낼 컴퓨터에, 모니터링은 대상 서버에 설치합니다. 프로그램은 같습니다')}</p>
       </div>
       <div className="perf-fields">
         <div className="perf-field" role="radiogroup" aria-label={t('역할')}>

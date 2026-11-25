@@ -84,7 +84,7 @@ describe('ScenarioPalette 불러오기', () => {
     쪽들([]);
     그리기();
 
-    await screen.findByText('이 애플리케이션에는 단계로 쓸 기능 테스트 스크립트가 없습니다');
+    await screen.findByText('이 애플리케이션에는 단계로 쓸 기능 케이스가 없습니다');
   });
 
   it('불러오다 실패하면 오류 글을 보이고 찾기 칸은 없다', async () => {
@@ -127,7 +127,7 @@ describe('ScenarioPalette 목록', () => {
     await screen.findByRole('button', { name: 'ZSP-001 추가' });
 
     expect(screen.getByText('업무 흐름 케이스')).toBeTruthy();
-    expect(screen.getByText('상태 전이를 쓰지 않고 기법 표시도 없습니다')).toBeTruthy();
+    expect(screen.getByText('상태 전이 기법을 쓰거나 기법 표시가 없는 케이스입니다')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'ZSP-003 추가' })).toBeTruthy();
 
     const 머리 = screen.getByRole('button', { name: /입력값 검증 케이스 1/ });
@@ -271,7 +271,7 @@ describe('ScenarioPalette 더하기', () => {
   it('다른 단계 넷은 정해 둔 기본값으로 on다른단계를 부른다', async () => {
     쪽들([]);
     const 손 = 그리기();
-    await screen.findByText('이 애플리케이션에는 단계로 쓸 기능 테스트 스크립트가 없습니다');
+    await screen.findByText('이 애플리케이션에는 단계로 쓸 기능 케이스가 없습니다');
 
     fireEvent.click(screen.getByRole('button', { name: 'API 호출' }));
     fireEvent.click(screen.getByRole('button', { name: '모킹 켜기' }));

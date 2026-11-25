@@ -46,10 +46,10 @@ export const 작성말: Record<string, string> = {
   'PRD · 피그마의 요구사항별로 케이스를 작성합니다': 'Reads the PRD files and Figma and writes cases per requirement',
   '화면 대조': 'Screen compare',
   'PRD 없이 실제 화면을 탐색해 미검증 화면의 케이스를 작성합니다':
-    'Scans the live screens without a spec and writes cases for screens not yet in the PRD',
+    'Scans the live screens without a spec and writes cases for unverified screens',
   'PRD + 화면 대조': 'PRD + screen compare',
   'PRD 에 있는 화면을 먼저 작성한 뒤 미검증 화면을 이어서 작성합니다':
-    'Writes the spec screens first and, once applied, continues with screens the spec does not cover',
+    'Writes the spec screens first and, once applied, continues with unverified screens',
   'API 문서 · 자료 선택': 'What should the cases be written from?',
   'PRD · 디자인 첨부': 'Add the spec and designs',
   '여러 파일을 함께 첨부할 수 있습니다': 'Several files can go in as one set',
@@ -66,7 +66,7 @@ export const 작성말: Record<string, string> = {
   '{가이드} 버전 {버전} 참고': 'Reads {가이드} version {버전} too',
   '피그마 {수}건': '{수} Figma links',
   '엔드포인트별로 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per API endpoint and opens a review PR',
-  '미검증 화면의 케이스를 작성합니다': 'Writes only screens not yet in the PRD',
+  '미검증 화면의 케이스를 작성합니다': 'Writes cases for unverified screens',
   '요구사항별로 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per requirement and opens a review PR',
   '시작 후 창을 닫아도 작성은 계속 진행됩니다': 'Writing continues even if you close this window after starting',
   '수정 중인 가이드를 저장하거나 취소하세요': 'Save or cancel the guide section you edited',
@@ -163,7 +163,7 @@ export const 작성말: Record<string, string> = {
   '지금은 없습니다. 작성이 완료되면 여기에 검토할 것이 생깁니다. 이 페이지를 닫아도 됩니다.':
     'Nothing for now. Things to review appear here when writing ends. You can close this page.',
   '아직 시작 전이라 누르면 바로 취소됩니다.': 'It has not started, so it is cancelled right away.',
-  '중단하면 30초 안에 멈춥니다. 만든 것은 남겨 두어 이어서 작성할 수 있습니다.':
+  '30초 안에 중단됩니다. 만든 것은 남겨 두어 이어서 작성할 수 있습니다.':
     'Stopping takes up to 30 seconds. What was made is kept so you can continue writing.',
   '테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.': 'The tests were merged. The new cases are in the case list.',
   '등록한 PR 이 없습니다. 아래 만든 것을 확인하세요.': 'No PR was opened. Check the outputs below.',
@@ -237,7 +237,7 @@ export const 작성말: Record<string, string> = {
   '대상 서버 주소에서 시작': 'Starts from the target server address',
   '앱 첫 화면에서 시작': "Starts from the app's first screen",
   '게임 첫 화면에서 시작': "Starts from the game's first screen",
-  '화면만 — 기획서 없이 미검증 화면만 작성합니다': 'Screen only — without a spec, writes only the screens not in the PRD',
+  '화면만 — 기획서 없이 미검증 화면만 작성합니다': 'Screen only — without a spec, writes only unverified screens',
   '원본 요청 #{번호}의 입력을 그대로 씁니다': 'Uses the inputs of the original request #{번호} as they are',
   '원본 요청 #{번호}의 자료': 'Input of the original request #{번호}',
   '입력 자료': 'Inputs',

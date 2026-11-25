@@ -82,7 +82,7 @@ describe('PRD 관리 — 애플리케이션 지도', () => {
   it('지도를 못 읽어도 메뉴는 그대로 쓰고 까닭을 한 줄로 보인다', async () => {
     지도.mockRejectedValue(new Error('서버가 답하지 않습니다'));
     render(<Prd service="MKT" 할수={보는사람} />);
-    expect(await screen.findByText(/애플리케이션 화면 목록을 못 읽었습니다/)).toBeTruthy();
+    expect(await screen.findByText(/애플리케이션 지도를 못 읽었습니다/)).toBeTruthy();
     expect(screen.getByText('버전 12 · 요구사항 4건')).toBeTruthy();
   });
 });

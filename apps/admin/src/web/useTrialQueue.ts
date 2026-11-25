@@ -168,7 +168,7 @@ export function useTrialQueue(간격: number = 기본간격) {
         return null;
       }
       쓰기({ 종류: 'notice', 글: message(err, 언어) });
-      return t('선행 케이스 오류로 실행하지 않았습니다');
+      return t('앞선 케이스 오류로 실행하지 않았습니다');
     }
   }
 
@@ -212,7 +212,7 @@ export function useTrialQueue(간격: number = 기본간격) {
         if (멈춘글 === null) continue;
         // 서버 전체에 걸린 사정이나 러너 고장이면 남은 칸도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다.
         // 같은 케이스의 남은 디바이스에 「앞 케이스」라고 적으면 없는 앞 케이스를 찾게 된다
-        const 앞오류 = t('선행 케이스 오류로 실행하지 않았습니다');
+        const 앞오류 = t('앞선 케이스 오류로 실행하지 않았습니다');
         for (const 남은 of 차례들.slice(i + 1)) {
           const 글 = 멈춘글 === 앞오류 && 남은.항목.tcId === 항목.tcId ? t('앞선 디바이스 오류로 실행하지 않았습니다') : 멈춘글;
           모두쓴다(남은, { 종류: 'notice', 글 });

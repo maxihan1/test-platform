@@ -78,7 +78,7 @@ function SSO로그인({ on언어, 떠난다 }: { on언어: (고른: 언어) => v
         <div className="login-head">
           <p className="login-app">Test Commander</p>
           <h1 className="login-greet">{t('로그인')}</h1>
-          <p className="login-sub">{t('로그인하면 맡은 애플리케이션이 열립니다.')}</p>
+          <p className="login-sub">{t('로그인하면 배정된 애플리케이션을 쓸 수 있습니다.')}</p>
         </div>
         <p className={안내.오류 ? 'err login-err' : 'login-info'}>
           {안내.오류 ? (

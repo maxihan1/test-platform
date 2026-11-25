@@ -49,7 +49,7 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
 
     const 창 = screen.getByRole('dialog', { name: 'E2E 시험 실행' });
     expect(within(창).getByText('결과는 이 창에서만 보이고 실행 기록에 남지 않습니다')).toBeTruthy();
-    expect(within(창).getByText('동작마다 1초씩 느리게 실행')).toBeTruthy();
+    expect(within(창).getByText('동작마다 1초씩 천천히 실행')).toBeTruthy();
     expect(within(창).queryByText('경과 0:21')).toBeNull();
     expect(within(창).getByText(/· 경과 00:21/)).toBeTruthy();
     const 줄들 = [...창.querySelectorAll('.e2e-steps li')];

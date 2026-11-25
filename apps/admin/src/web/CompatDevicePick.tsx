@@ -96,7 +96,7 @@ export function CompatDevicePick({
       }
     >
       <div className="compat-pick">
-        <p className="compat-faint">{t('Device VISION 에 등록된 디바이스 {수}대', { 수: 목록.length })}</p>
+        <p className="compat-faint">{t('Device VISION 등록 디바이스 {수}대', { 수: 목록.length })}</p>
         <div className="compat-pick-tools">
           <input type="search" aria-label={t('기종 · 모델 검색')} placeholder={t('기종 · 모델 검색')} value={찾기} onChange={(e) => set찾기(e.target.value)} />
           <label>

@@ -148,7 +148,7 @@ export const 기획서말: Record<string, string> = {
   '기능 묶음 {앞} → {뒤}': 'Feature {앞} → {뒤}',
 
   // 서비스 지도 (PrdApis.tsx · 도메인/작성 §3.6 「서비스 지도」)
-  '애플리케이션 화면 목록을 못 읽었습니다 — {까닭}': 'Could not read the application map — {까닭}',
+  '애플리케이션 지도를 못 읽었습니다 — {까닭}': 'Could not read the application map — {까닭}',
   '거치는 API {건수}개': 'APIs used: {건수}',
   '{케이스} {단계}단계': '{케이스} step {단계}',
   펴기: 'Expand',

@@ -50,7 +50,7 @@ export const 케이스말: Record<string, string> = {
   '마지막 결과': 'Last result',
   // 필터 판 — 조건마다 한 줄 설명 (2026-10-30 WEB-F7-07)
   '선택한 조건에 맞는 케이스만 목록에 남습니다': 'Only cases that match the chosen filters stay in the list',
-  '비활성 케이스는 「활성만」에서 숨기고 실행에서도 뺍니다': 'Inactive cases are hidden under "Active only" and left out of runs',
+  '비활성 케이스는 「활성만」에서 숨기고 실행에서도 제외합니다': 'Inactive cases are hidden under "Active only" and left out of runs',
   '케이스를 만든 관점입니다 — 정상 동작 · 경계값 · 잘못된 입력': 'The angle the case was written from — normal behavior, boundary values, invalid input',
   '케이스를 설계할 때 쓴 방법입니다': 'The method used to design the case',
   '그 디바이스에서 실행되는 케이스만 남깁니다': 'Keeps only cases that run on that device',

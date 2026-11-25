@@ -30,7 +30,7 @@ describe('시험 실행 중', () => {
     expect(await screen.findByText('상품 목록을 연다', {}, { timeout: 4000 })).toBeTruthy();
     expect(screen.getByText('로그인한다').closest('li')?.className).toBe('done');
     expect(screen.getByText('상품 목록을 연다').closest('li')?.getAttribute('aria-current')).toBe('step');
-    expect(screen.getByRole('dialog', { name: '시험 실행 · 2건 중 1번째' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: '시험 실행 · 2번 중 1번째' })).toBeTruthy();
   });
 
   it('단계가 늘면 단계 목록 칸만 굴리고 둘레 칸은 끌어 내리지 않는다 — 한 건이 끝나 다음 건으로 넘어가도 같다', async () => {
@@ -96,8 +96,8 @@ describe('시험 실행 중 — 시안 A ③', () => {
     시험시작();
 
     expect(await screen.findByText('브라우저를 여는 중')).toBeTruthy();
-    expect(screen.getAllByText('동작마다 1초씩 느리게 실행')).toHaveLength(1);
-    expect(document.querySelector('.trial-band .r')?.textContent).toBe('동작마다 1초씩 느리게 실행');
+    expect(screen.getAllByText('동작마다 1초씩 천천히 실행')).toHaveLength(1);
+    expect(document.querySelector('.trial-band .r')?.textContent).toBe('동작마다 1초씩 천천히 실행');
   });
 
   it('모바일 차례면 장면 칸을 폰 폭으로 줄이고 가상 기기라고 적는다', async () => {
@@ -153,7 +153,7 @@ describe('시험 실행 중 — 시안 A ③', () => {
     그림이뜬다(await screen.findByRole('img', { name: '디바이스의 지금 화면' }), 2400, 1080);
     첫끝 = true;
 
-    expect(await screen.findByRole('dialog', { name: '시험 실행 · 2건 중 2번째' }, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '시험 실행 · 2번 중 2번째' }, { timeout: 4000 })).toBeTruthy();
     await waitFor(() => expect(screen.queryByRole('img')).toBeNull());
     expect(document.querySelector('.trial-run')?.classList.contains('phone')).toBe(false);
   });

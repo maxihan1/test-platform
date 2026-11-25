@@ -38,7 +38,7 @@ export const 실행말: Record<string, string> = {
   '결과를 추가할 실행을 확인하는 중입니다': 'Checking which run this attaches to',
   '이 케이스만 따로 실행해 케이스 상세의 실행 기록에만 남습니다': 'Runs only this case, so it is saved only in the run history on the case detail',
   '완료되면 RUN {번호} 결과에 다시 실행으로 추가됩니다 · {제목} · {시각}': 'When it ends, it is added to RUN {번호} results as a rerun · {제목} · {시각}',
-  '시험 실행 · {전체}건 중 {차례}번째': 'Trial run · {차례} of {전체}',
+  '시험 실행 · {전체}번 중 {차례}번째': 'Trial run · {차례} of {전체}',
   '시험 실행을 중단하는 중': 'Stopping the trial run',
   '시험 실행 결과': 'Trial run results',
   '브라우저를 여는 중': 'Opening the browser',
@@ -67,7 +67,7 @@ export const 실행말: Record<string, string> = {
   '확인하는 동안에도 실행은 계속됩니다': 'The run keeps going while you decide',
   '대기': 'Waiting',
   '실행 중': 'Running',
-  '선행 케이스 오류로 실행하지 않았습니다': 'Not run because of an error in an earlier case',
+  '앞선 케이스 오류로 실행하지 않았습니다': 'Not run because of an error in an earlier case',
   '앞선 디바이스 오류로 실행하지 않았습니다': 'Not run because of an error on an earlier device',
   '시험 실행할 대상 서버를 선택하세요.': 'Select a target server for the trial run.',
   '이미 시험 실행이 진행 중입니다': 'A trial run is already in progress',
@@ -84,7 +84,7 @@ export const 실행말: Record<string, string> = {
   '서버에서 iPhone 14 화면 크기로 실행': 'Runs on the server at iPhone 14 screen size',
   '실제 디바이스': 'Real device',
   'Device VISION 의 Android 디바이스 Chrome': 'Chrome on an Android phone in Device VISION',
-  '동작마다 1초씩 느리게 실행': 'One second slower per action',
+  '동작마다 1초씩 천천히 실행': 'One second slower per action',
   '실제 디바이스 Chrome': 'Chrome on a real phone',
   '원래 실행을 읽지 못해 모바일 실행 위치를 가상 디바이스로 선택해 두었습니다 ({까닭})':
     'Could not read the original run, so the mobile run location is set to the virtual device ({까닭})',
@@ -213,7 +213,7 @@ export const 실행말: Record<string, string> = {
     'Nothing to run. Everything picked is inactive or filtered out',
   '목록이 너무 길어 앞 {모은수}건까지만 담았습니다. 검색으로 좁혀서 다시 실행하세요':
     'The list is too long — only the first {모은수} were taken. Narrow it with search and try again',
-  '선택한 {고른수}건 중 {담을수}건이 대상입니다. 나머지는 비활성이라 뺐습니다':
+  '선택한 {고른수}건 중 {담을수}건이 대상입니다. 나머지는 비활성이라 제외했습니다':
     '{담을수} of the {고른수} picked will run. The rest are inactive and were dropped',
 
   // 실행 결과 (§8.3)

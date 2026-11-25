@@ -42,7 +42,7 @@ export function 디바이스구획({ 고른, 팜, 팜오류, 쓰나, 사유, 열
               </span>
             ))}
             {/* 원격 접기가 없어 폴더블도 꽂힌 상태 그대로 한 번이다 (§3.13 「디바이스 · 점검 상태」 · 2026-11-07 사용자) */}
-            {셈.폴더블 === 0 ? null : <span className="compat-auto">{t('폴더블 {수}대는 연결한 상태 그대로 한 번 점검합니다', { 수: 셈.폴더블 })}</span>}
+            {셈.폴더블 === 0 ? null : <span className="compat-auto">{t('폴더블 {수}대는 꽂힌 상태 그대로 한 번 점검합니다', { 수: 셈.폴더블 })}</span>}
           </div>
           )}
           {/* 고른 차례가 실행 순서다 */}
@@ -103,7 +103,7 @@ export function 케이스구획({
       ) : null}
       {auto.length === 0 ? null : (
         <>
-          <h3 className="compat-sub">{t('자동 선택 · 화면 커버리지 최대 · 케이스 수 최소')}</h3>
+          <h3 className="compat-sub">{t('자동 선택 · 화면 커버리지 최대 · 최소 케이스')}</h3>
           {auto.slice(0, 보이는자동).map((a) =>
             a.procId === undefined ? (
               <케이스줄 key={a.tcId} tcId={a.tcId} 이름={a.name} 꼬리={<span className="compat-auto">{t('추가 커버 화면 {수}', { 수: a.adds })}</span>} />
@@ -129,7 +129,7 @@ export function 케이스구획({
           이름={이름들.get(tcId) ?? ''}
           꼬리={
             <>
-              {이름들.get(tcId) === null ? <span className="compat-tag">{t('케이스가 없어 실행할 때 건너뜁니다')}</span> : <span className="compat-tag">{t('직접 추가')}</span>}
+              {이름들.get(tcId) === null ? <span className="compat-tag">{t('케이스가 없어 실행 때 건너뜀')}</span> : <span className="compat-tag">{t('직접 추가')}</span>}
               {쓰나 ? (
                 <button type="button" className="btn ghost small" aria-label={t('{번호} 제외', { 번호: tcId })} onClick={() => 빼기(tcId)}>
                   {t('제외')}
@@ -166,7 +166,7 @@ export function 커버리지구획({ 셈 }: { 셈: CompatPreview }) {
         <small className="compat-faint">{t('전체 화면 {전체}개 중 {덮음}개 커버', { 전체: total, 덮음: covered })}</small>
       </div>
       <div className="compat-pad">
-        {fallback ? <p className="compat-faint">{t('전체 화면 목록이 없어 케이스가 지나는 화면으로 집계합니다')}</p> : null}
+        {fallback ? <p className="compat-faint">{t('전체 화면 목록이 없어 케이스가 아는 화면으로 집계합니다')}</p> : null}
         {셈.uncovered.length === 0 ? (
           <p className="compat-faint">{t('미커버 화면이 없습니다')}</p>
         ) : (

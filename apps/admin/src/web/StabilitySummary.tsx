@@ -9,7 +9,7 @@ import { 작성시각 } from './stabilityView.js';
 type 말 = ReturnType<typeof use말>;
 
 function 기능막대({ 줄들, t }: { 줄들: NonNullable<실행요약['features']>; t: 말 }) {
-  if (줄들.length === 0) return <span className="stab-faint">{t('기능 묶음 없음')}</span>;
+  if (줄들.length === 0) return <span className="stab-faint">{t('묶은 기능 없음')}</span>;
   const 최대 = Math.max(1, ...줄들.map((f) => f.errorCases));
   return (
     <div className="stab-dist">

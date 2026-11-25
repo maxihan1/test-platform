@@ -74,7 +74,7 @@ function 줄({ run, service }: { run: CompatRunRow; service: string }) {
             </div>
             {c.affected.states === 0 ? null : <div className="compat-faint">{t('발생 {수} / {전체} 상태', { 수: c.affected.states, 전체: c.affected.total })}</div>}
           </td>
-          <td data-label={t('미점검')}>{t('{수}개 화면', { 수: c.unchecked })}</td>
+          <td data-label={t('미점검')}>{t('{수}화면', { 수: c.unchecked })}</td>
         </>
       )}
       <td data-label={t('실행 일시 · 실행자')}>

@@ -75,7 +75,7 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
         <p className="trial-band">
           <b>{t('시험 실행')}</b> {t('결과는 이 창에서만 보이고 실행 기록에 남지 않습니다')}
           {/* Android 는 Appium 이라 늦추지 않는다 (러너 §5.2) */}
-          {도는중 && platform !== 'android' ? <span className="r">{t('동작마다 1초씩 느리게 실행')}</span> : null}
+          {도는중 && platform !== 'android' ? <span className="r">{t('동작마다 1초씩 천천히 실행')}</span> : null}
         </p>
         {/* 묻기가 끊겨도 창은 남아 다시 묻는다 — 끊긴 까닭은 띠 아래 한 줄 */}
         {도는중 && 시험.오류문장 !== null ? <p className="err">{시험.오류문장}</p> : null}

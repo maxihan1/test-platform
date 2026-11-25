@@ -6,6 +6,7 @@ import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 세트, 회차실행 } from './schedApi.js';
 import { 세트색, 종류글, 짧은날, 요일글 } from './SchedCards.js';
+import { 줄글 } from './SchedPick.js';
 import { 리포트줄 } from './SchedReport.js';
 import { 나란히, 날더하기, 시각글, 시간범위, 실행주소, 월칸들, 주시작, type 칩 } from './schedView.js';
 
@@ -59,7 +60,7 @@ function 칸줄들({ c, t }: { c: 칩; t: 말 }) {
           <li key={i}>
             <span className="sched-app">{x.service}</span>
             <span className="sched-run-name">
-              {t(종류글[x.kind]!)} · {x.label}
+              {t(종류글[x.kind]!)} · {줄글(x, t)}
             </span>
             <span className="sched-pill plan">{t('예정')}</span>
           </li>

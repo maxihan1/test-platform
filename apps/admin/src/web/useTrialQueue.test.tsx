@@ -133,7 +133,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
 
     expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'notice' });
-    expect(첫칸(result.current.줄들, 'X-2')).toEqual({ 종류: 'notice', 글: '선행 케이스 오류로 실행하지 않았습니다' });
+    expect(첫칸(result.current.줄들, 'X-2')).toEqual({ 종류: 'notice', 글: '앞선 케이스 오류로 실행하지 않았습니다' });
   });
 
   it('PC 칸에서 멈추면 같은 케이스의 모바일 칸도 대기로 남기지 않는다', async () => {

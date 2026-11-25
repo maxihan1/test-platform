@@ -21,7 +21,7 @@ export const 안정화말: Record<string, string> = {
   '주요 변화': 'Key changes',
   '신규 · 증가 · 재발 없음': 'No new, increased, or reopened errors',
   '기능별 오류 발생 케이스': 'Cases with errors by feature',
-  '기능 묶음 없음': 'No feature',
+  '묶은 기능 없음': 'No features grouped',
   '판정과의 차이': 'Gap from verdict',
   'Pass 판정이지만 오류 발생': 'Pass, but errors occurred',
   '해결 확인': 'Fix confirmed',
