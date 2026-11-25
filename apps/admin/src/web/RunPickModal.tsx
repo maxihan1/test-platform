@@ -209,7 +209,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       }
     >
       {시험.확인 === null ? null : (
-        <시작확인 종류={시험.확인} 케이스들={돌릴것} env={env} 반복수={시험.확인 === 'trial' ? 1 : 반복수}
+        <시작확인 종류={시험.확인} 케이스들={시험.확인할것} env={env} 반복수={시험.확인 === 'trial' ? 1 : 반복수}
           slack={service?.hasSlackWebhook === true && !한건실행 ? notifySlack : null}
           mobileOn={모바일 ? mobileOn : null} 원래실행={원래실행} onClose={시험.확인닫기} on시작={시험.확인 === 'trial' ? 시험.시작 : 건다} />
       )}

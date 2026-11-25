@@ -213,4 +213,16 @@ export const 성능말: Record<string, string> = {
   '한 줄에 메시지 하나입니다. 연결한 뒤 차례로 보냅니다': 'One message per line. Sent in order after connecting',
   '기다릴 글자': 'Text to wait for',
   '비워 두면 연결만 되면 통과입니다. 적으면 10초 안에 그 글자가 든 메시지가 와야 통과입니다': 'If empty, connecting is enough. Otherwise a message containing this text must arrive within 10 seconds',
+  // 시작 확인 (PerfStartConfirm)
+  '부하 테스트를 시작할까요?': 'Start this load test?',
+  '성능 측정을 시작할까요?': 'Start measuring?',
+  '녹화를 시작할까요?': 'Start recording?',
+  '완료되면 실행 기록 성능에 남습니다': 'Saved to Run history › Performance when it completes',
+  '대상 서버에 부하가 발생합니다. 실행 화면에서 중단할 수 있습니다': 'This puts load on the target server. You can stop it on the run screen',
+  '시나리오를 저장하고 대상 서버에 부하가 발생합니다. 실행 화면에서 중단할 수 있습니다': 'Saves the scenario and puts load on the target server. You can stop it on the run screen',
+  '시나리오를 대상 서버에서 한 번 실행합니다. 완료되면 현재 트랜잭션 목록이 녹화한 내용으로 변경됩니다': 'Runs the scenario once on the target server. The current transaction list is replaced by the recording when it completes',
+  '완료될 때까지 디바이스를 할당합니다. 실행 화면에서 중단할 수 있습니다': 'Devices stay allocated until it completes. You can stop it on the run screen',
+  '측정 시간': 'Duration',
+  '자동 포함 {수}건': '{수} added automatically',
+  '이 화면에서 중단할 수 있습니다': 'You can stop it on this screen',
 };

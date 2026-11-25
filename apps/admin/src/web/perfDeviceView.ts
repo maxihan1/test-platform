@@ -28,7 +28,7 @@ export const 측정항목: [측정지표, string][] = [
 export const 케이스조작 = (kind: string | undefined): 조작 => (kind === 'GAME' ? 'GAME' : 'APPIUM');
 
 /** 머리 부제의 조작 방식 글자 — 실행 중 · 결과가 같이 쓴다 */
-export const 조작글 = (설정: 기기설정, t: 말): string =>
+export const 조작글 = (설정: Pick<기기설정, 'drive' | 'caseIds'>, t: 말): string =>
   설정.drive === 'MANUAL'
     ? t('직접 플레이')
     : 설정.drive === 'GAME'

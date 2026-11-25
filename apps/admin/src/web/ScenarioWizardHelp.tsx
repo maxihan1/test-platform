@@ -164,3 +164,21 @@ export function 단계띠({
     </aside>
   );
 }
+
+/** 본문 맨 위 줄 — 조립 화면으로 옮겨 가거나 나간다 */
+export function 마법사머리({ on조립화면, 나가는곳 }: { on조립화면: () => void; 나가는곳: string }) {
+  const t = use말();
+  return (
+    <div className="wz-top">
+      <span>
+        {t('E2E 테스트')} › {t('새 시나리오')}
+      </span>
+      <button type="button" className="btn ghost" onClick={on조립화면}>
+        {t('조립 화면으로')}
+      </button>
+      <a className="btn ghost scw-exit" href={나가는곳}>
+        {t('나가기')}
+      </a>
+    </div>
+  );
+}

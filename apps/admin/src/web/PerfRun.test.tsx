@@ -9,6 +9,7 @@ import { perfApi, type 실행상세 } from './perfApi.js';
 import type { PageRow } from './perfPageApi.js';
 import { PerfRun } from './PerfRun.js';
 import { 갱신간격, 틈간격 } from './perfRunView.js';
+import { 확인상자, 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 
 const 된다 = () => () => true;
 const 안된다 = () => () => false;
@@ -343,6 +344,7 @@ describe('결과', () => {
     const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 13 });
     render(<PerfRun runId={12} 판정하기={된다} />);
     fireEvent.click(await screen.findByRole('button', { name: '다시 실행' }));
+    확인시작();
     await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/13'));
     expect(실행).toHaveBeenCalledWith({
       scenarioId: 5,
@@ -356,12 +358,33 @@ describe('결과', () => {
     });
   });
 
+  it('다시 실행은 무엇을 어디에 거는지 먼저 묻고, 취소하면 실행을 만들지 않는다. 첫 포커스는 취소다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세());
+    const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 13 });
+    render(<PerfRun runId={12} 판정하기={된다} />);
+    fireEvent.click(await screen.findByRole('button', { name: '다시 실행' }));
+    expect(확인상자().getAttribute('aria-label')).toBe('부하 테스트를 시작할까요?');
+    expect(확인줄들()).toEqual({
+      시나리오: '주문하기',
+      '테스트 유형': '스트레스 테스트',
+      부하: '최대 400명, 전체 5분',
+      '성능 목표': '1개',
+      '대상 서버': 'qa',
+      '예상 소요 시간': '최대 6분',
+    });
+    expect(document.activeElement?.textContent).toBe('취소');
+    확인취소();
+    expect(확인상자있나()).toBe(false);
+    expect(실행).not.toHaveBeenCalled();
+  });
+
   it('다시 실행은 부하 중 페이지 로딩 측정을 켠 실행이면 새 실행에도 켠다', async () => {
     const 상세 = 끝난상세();
     vi.spyOn(perfApi, 'runOf').mockResolvedValue({ ...상세, config: { ...상세.config, pageCheck: true } });
     const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 13 });
     render(<PerfRun runId={12} 판정하기={된다} />);
     fireEvent.click(await screen.findByRole('button', { name: '다시 실행' }));
+    확인시작();
     await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/13'));
     expect(실행).toHaveBeenCalledWith(expect.objectContaining({ scenarioId: 5, pageCheck: true }));
   });

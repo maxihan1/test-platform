@@ -9,6 +9,7 @@ import { perfApi } from './perfApi.js';
 import { PerfDevices } from './PerfDevices.js';
 import { 결과, 기기들, 상세, 설정, 앱 } from './perfDevices.fixture.js';
 import { 갱신간격 } from './perfRunView.js';
+import { 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 
 const 케이스쪽 = { items: [{ tcId: 'ZQD-001', name: '로그인', platforms: ['android'] }, { tcId: 'ZQD-002', name: '장바구니', platforms: ['android'] }] as CaseRow[], total: 2 } as CasePage;
 
@@ -40,6 +41,7 @@ describe('측정 시작', () => {
     fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
     fireEvent.click(screen.getByLabelText('Galaxy A23 선택'));
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    확인시작();
 
     await waitFor(() => expect(window.location.hash).toBe('#/perf/devices?run=41'));
     const 요청 = 만들기.mock.calls[0]![0];
@@ -47,6 +49,19 @@ describe('측정 시작', () => {
     expect(요청.devices).toEqual([{ serial: 'S24', where: 'FARM' }, { serial: 'A23', where: 'FARM' }]);
     expect(요청.targets.find((x) => x.metric === 'LAUNCH_MS')).toEqual({ metric: 'LAUNCH_MS', op: '<=', value: 3000, source: 'MANUAL' });
     expect(요청).not.toHaveProperty('durationSec');
+  });
+
+  it('측정 시작 전에 조작 · 반복 · 디바이스 · 앱 · 서버를 적어 묻고, 취소하면 측정을 만들지 않는다', async () => {
+    const 만들기 = 빈화면();
+    render(<PerfDevices service={앱} 쓰나 />);
+    fireEvent.click(await screen.findByLabelText(/ZQD-001/));
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.market' } });
+    fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
+    fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    expect(확인줄들()).toEqual({ '조작 방식': 'Appium 케이스 1건', 반복: '3회', 디바이스: 'Galaxy S24', '앱 패키지 이름': 'com.demo.market', '대상 서버': 'qa' });
+    확인취소();
+    expect(만들기).not.toHaveBeenCalled();
   });
 
   it('프로시저 안 케이스를 고르면 같은 프로시저의 나머지 케이스가 자동 포함으로 체크된 채 잠기고, 요청에는 고른 케이스만 싣는다', async () => {
@@ -66,6 +81,8 @@ describe('측정 시작', () => {
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.market' } });
     fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    expect(확인줄들()['조작 방식']).toBe('Appium 케이스 1건 · 자동 포함 2건');
+    확인시작();
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0]).toMatchObject({ caseIds: ['ZQD-FN-102'] });
   });
@@ -83,6 +100,8 @@ describe('측정 시작', () => {
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.game' } });
     fireEvent.change(screen.getByLabelText('측정 시간(분)'), { target: { value: '5' } });
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    expect(확인줄들()).toHaveProperty('측정 시간');
+    확인시작();
 
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'MANUAL', durationSec: 300, repeat: 1, devices: [{ serial: 'PX7', where: 'LOCAL' }] });
@@ -101,6 +120,7 @@ describe('측정 시작', () => {
     fireEvent.click(await screen.findByLabelText(/ZQD-001/));
     fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    확인시작();
 
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'], repeat: 3, devices: [{ serial: 'S24', where: 'FARM' }] });
@@ -115,6 +135,7 @@ describe('측정 시작', () => {
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'market' } });
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
     expect((await screen.findByRole('alert')).textContent).toBe('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요');
+    expect(확인상자있나()).toBe(false);
     expect(만들기).not.toHaveBeenCalled();
   });
 
@@ -213,21 +234,45 @@ describe('결과', () => {
   it('게임 케이스 측정은 머리에 게임 케이스 수와 반복을 보이고 다시 실행도 게임 케이스로 만든다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({}, 설정({ drive: 'GAME' })));
     vi.spyOn(perfApi, 'deviceResult').mockResolvedValue(결과);
+    vi.spyOn(api, 'cases').mockResolvedValue(케이스쪽);
     const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 43 });
     render(<PerfDevices service={{ ...앱, kind: 'GAME' }} run={40} 쓰나 />);
     expect(await screen.findByText(/게임 케이스 1건 · 반복 3회/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
+    await waitFor(() => expect(확인상자있나()).toBe(true));
+    확인시작();
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'], repeat: 3 });
+  });
+
+  it('다시 실행 확인 창은 서버가 프로시저로 펼칠 케이스까지 적는다. 목록을 못 읽으면 묻지 않고 까닭을 보인다', async () => {
+    결과열기();
+    const 프로시저 = (tcId: string, procSeq: number) => ({ tcId, name: tcId, platforms: ['android'], procId: 'ZQD-TP-001', procSeq, procName: '글쓰기', isActive: true });
+    const 목록 = vi.spyOn(api, 'cases').mockRejectedValueOnce(new Error('끊김'));
+    목록.mockResolvedValue({ items: [프로시저('ZQD-001', 1), 프로시저('ZQD-002', 2), 프로시저('ZQD-003', 3)] as CaseRow[], total: 3 } as CasePage);
+    const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 45 });
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '다시 실행' }));
+    expect((await screen.findByRole('alert')).textContent).not.toBe('');
+    expect(확인상자있나()).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
+    await waitFor(() => expect(확인상자있나()).toBe(true));
+    expect(확인줄들()['조작 방식']).toBe('Appium 케이스 1건 · 자동 포함 2건');
+    확인취소();
+    expect(만들기).not.toHaveBeenCalled();
   });
 
   it('게임 케이스 칸이 생기기 전에 게임을 Appium 케이스로 잰 결과도 다시 실행은 게임 케이스로 보낸다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({}, 설정({ drive: 'APPIUM' })));
     vi.spyOn(perfApi, 'deviceResult').mockResolvedValue(결과);
+    vi.spyOn(api, 'cases').mockResolvedValue(케이스쪽);
     const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 44 });
     render(<PerfDevices service={{ ...앱, kind: 'GAME' }} run={40} 쓰나 />);
     expect(await screen.findByText(/Appium 케이스 1건 · 반복 3회/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
+    await waitFor(() => expect(확인상자있나()).toBe(true));
+    확인시작();
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'] });
   });
@@ -239,6 +284,8 @@ describe('결과', () => {
     vi.spyOn(api, 'cases').mockResolvedValue(케이스쪽);
     render(<PerfDevices service={앱} run={40} 쓰나 />);
     fireEvent.click(await screen.findByRole('button', { name: '다시 실행' }));
+    await waitFor(() => expect(확인상자있나()).toBe(true));
+    확인시작();
     await waitFor(() => expect(window.location.hash).toBe('#/perf/devices?run=42'));
     const s = 설정();
     expect(만들기.mock.calls[0]![0]).toEqual({
@@ -260,6 +307,7 @@ describe('결과', () => {
     fireEvent.click(await screen.findByRole('button', { name: '새 측정' }));
     await waitFor(() => expect(screen.getByLabelText<HTMLInputElement>('Galaxy A23 선택').checked).toBe(false));
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    확인시작();
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0].devices).toEqual([{ serial: 'S24', where: 'FARM' }]);
   });

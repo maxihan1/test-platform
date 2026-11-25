@@ -38,6 +38,8 @@ export function use여러건시험(옵션: {
   const 큐 = useTrialQueue();
   const [보기, set보기] = useState<창보기>('edit');
   const [확인, set확인] = useState<'trial' | 'formal' | null>(null);
+  // 「Fail N건 다시 시험」이 고른 것. 없으면 창의 케이스 전부다
+  const [다시, set다시] = useState<담은줄[] | null>(null);
   const [중단묻기, set중단묻기] = useState(false);
   const [시작시각, set시작시각] = useState(0);
 
@@ -48,12 +50,17 @@ export function use여러건시험(옵션: {
     set보기((전) => (전 === 'running' ? 'done' : 전));
   }, [큐.도는중]);
 
-  function 건다(항목들: 시험항목[]) {
+  function 묻는다(종류: 'trial' | 'formal', 다시것: 담은줄[] | null = null) {
+    set다시(다시것);
+    set확인(종류);
+  }
+
+  function 시작() {
     set확인(null);
     알림(() => null);
     set시작시각(Date.now());
     set보기('running');
-    void 큐.시작(항목들, env, mobileOn);
+    void 큐.시작(시험항목들(다시 ?? 케이스들, 고친값), env, mobileOn);
   }
 
   return {
@@ -65,34 +72,34 @@ export function use여러건시험(옵션: {
     중단함: 큐.중단함,
     보기,
     확인,
+    /** 시작 확인 창이 적을 케이스 — 「Fail N건 다시 시험」이면 그 실패분이다 */
+    확인할것: 다시 ?? 케이스들,
     중단묻기,
     시작시각,
     /** 값 창의 「시험 실행」 — 걸기 전에 시작 확인 창을 띄운다 */
     누름: () => {
       if (env === '') return 알림(() => t('시험 실행할 대상 서버를 선택하세요.'));
-      set확인('trial');
+      묻는다('trial');
     },
-    시작: () => 건다(시험항목들(케이스들, 고친값)),
-    /** 완료 창의 「실패 N건 다시 시험」 — 실패한 케이스 × 디바이스만 다시 돈다. 한 번 확인했으니 묻지 않는다 */
+    시작,
+    /** 완료 창의 「Fail N건 다시 시험」 — 실패한 케이스 × 디바이스만 다시 돈다. 시작 확인 창을 거친다 */
     실패다시: (실패: { tcId: string; platform: Platform }[]) => {
       const 실패프로시저 = new Set(케이스들.filter((c) => 실패.some((칸) => 칸.tcId === c.tcId)).map((c) => c.procId));
-      건다(
-        시험항목들(
-          케이스들.flatMap((c) => {
-            const 디바이스 = 실패.filter((칸) => 칸.tcId === c.tcId).map((칸) => 칸.platform);
-            if (디바이스.length > 0) return [{ ...c, platforms: 디바이스 }];
-            // 같은 프로시저는 통째로 다시 도니 안 실패한 줄도 따라오는 줄로 넣어 새 결과로 채운다.
-            // 디바이스는 그 프로시저에서 실패한 것만이다 — 선언대로 두면 아무것도 안 깨진 디바이스에서도 프로시저가 다시 돈다
-            if (c.procId == null || !실패프로시저.has(c.procId)) return [];
-            const 깨진디바이스 = 실패.filter((칸) => 케이스들.find((o) => o.tcId === 칸.tcId)?.procId === c.procId).map((칸) => 칸.platform);
-            const 돌 = c.platforms.filter((p) => 깨진디바이스.includes(p));
-            return 돌.length === 0 ? [] : [{ ...c, platforms: 돌, 자동포함: true }];
-          }),
-          고친값,
-        ),
+      묻는다(
+        'trial',
+        케이스들.flatMap((c) => {
+          const 디바이스 = 실패.filter((칸) => 칸.tcId === c.tcId).map((칸) => 칸.platform);
+          if (디바이스.length > 0) return [{ ...c, platforms: 디바이스 }];
+          // 같은 프로시저는 통째로 다시 도니 안 실패한 줄도 따라오는 줄로 넣어 새 결과로 채운다.
+          // 디바이스는 그 프로시저에서 실패한 것만이다 — 선언대로 두면 아무것도 안 깨진 디바이스에서도 프로시저가 다시 돈다
+          if (c.procId == null || !실패프로시저.has(c.procId)) return [];
+          const 깨진디바이스 = 실패.filter((칸) => 케이스들.find((o) => o.tcId === 칸.tcId)?.procId === c.procId).map((칸) => 칸.platform);
+          const 돌 = c.platforms.filter((p) => 깨진디바이스.includes(p));
+          return 돌.length === 0 ? [] : [{ ...c, platforms: 돌, 자동포함: true }];
+        }),
       );
     },
-    정식묻기: () => set확인('formal'),
+    정식묻기: () => 묻는다('formal'),
     확인닫기: () => set확인(null),
     중단열기: () => set중단묻기(true),
     중단닫기: () => set중단묻기(false),

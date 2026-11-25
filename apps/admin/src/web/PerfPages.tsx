@@ -10,10 +10,12 @@ import { 주소덮기 } from './leaveGuard.js';
 import { perfApi, type 실행상세, type 실행줄 } from './perfApi.js';
 import type { Compare, PageRow, 측정페이지, 페이지기기, 페이지망, 페이지추천 } from './perfPageApi.js';
 import { PerfPagesPick } from './PerfPagesPick.js';
+import { PerfPagesStop } from './PerfPagesStop.js';
 import { PerfPagesTable, PerfPagesTiles } from './PerfPagesTable.js';
 import { PerfPagesWaterfall } from './PerfPagesWaterfall.js';
 import { 처음고른 } from './perfPagesView.js';
-import { 도는중인가, 시각글 } from './perfRunView.js';
+import { 도는중인가, 사유이름, 시각글 } from './perfRunView.js';
+import { PerfStartConfirm } from './PerfStartConfirm.js';
 import { Loading, message } from './ui.js';
 import { 묻는간격, usePerfJob } from './usePerfJob.js';
 
@@ -49,6 +51,8 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
   const [기기, set기기] = useState<페이지기기>('desktop');
   const [망, set망] = useState<페이지망>('NONE');
   const [창, set창] = useState(false);
+  const [묻나, set묻나] = useState(false);
+  const [중단글, set중단글] = useState<string | null>(null);
   const [하는중, set하는중] = useState(false);
   const [측정중, set측정중] = useState<number | null>(null);
   const [알림, set알림] = useState<string | null>(null);
@@ -123,6 +127,16 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
           if (상세.status === 'ERROR') {
             const 까닭 = (await perfApi.events(측정중)).events.filter((줄) => /warn/i.test(줄.level)).at(-1)?.message;
             if (살음) set알림(까닭 === undefined ? t('측정이 오류로 종료되었습니다') : t('측정이 오류로 종료되었습니다 — {까닭}', { 까닭 }));
+          } else if (상세.status === 'STOPPED') {
+            // 사람이 중단한 것은 오류가 아니다
+            if (상세.stopReason === null || 상세.stopReason === 'USER') set중단글(t('측정을 중단했습니다'));
+            else set알림(t('측정이 중단되었습니다 — {까닭}', { 까닭: 사유이름(상세.stopReason, t, 'PAGE') }));
+            // 중단한 측정은 서버가 숫자를 남기지 않아 보던 결과를 그대로 둔다. 재는 중에 연 화면은 그 실행을 들고 있어 앞 결과를 다시 찾는다
+            if (읽은 === null || 읽은.run.id === 측정중) {
+              const 앞 = 가장최근번호((await perfApi.pagesRuns(service.id)).runs);
+              const 받음 = 앞 === null || 앞 === 측정중 ? null : await 읽기(앞);
+              if (살음 && 받음 !== null) 보이기(받음);
+            }
           } else {
             const 받음 = await 읽기(측정중);
             if (살음) 보이기(받음);
@@ -141,10 +155,15 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
     };
   }, [측정중]);
 
+  function 측정누름() {
+    set중단글(null);
+    set알림(env === '' ? t('대상 서버를 선택해 주세요') : null);
+    set묻나(env !== '');
+  }
+
   async function 측정() {
-    if (env === '') return set알림(t('대상 서버를 선택해 주세요'));
+    set묻나(false);
     set하는중(true);
-    set알림(null);
     try {
       const { runId } = await perfApi.measure({ serviceId: service.id, env, pages: 목록, device: 기기, network: 망 });
       고른서버를적는다(service.prefix, env);
@@ -181,9 +200,12 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
         부제={시각 === null ? t('아직 측정한 적이 없습니다 · 페이지별 3회 측정 중앙값') : t('최근 측정 {시각} · 페이지별 3회 측정 중앙값', { 시각: 시각글(시각, 언어) })}
         행동={
           쓰나 ? (
-            <button type="button" className="btn" disabled={재는중 || 목록.length === 0} onClick={() => void 측정()}>
-              {재는중 ? t('측정 중') : 읽은 !== null && 읽은.pages.length > 0 ? t('다시 측정') : t('측정')}
-            </button>
+            <div className="perf-row">
+              {측정중 === null ? null : <PerfPagesStop key={측정중} runId={측정중} />}
+              <button type="button" className="btn" disabled={재는중 || 목록.length === 0} onClick={측정누름}>
+                {재는중 ? t('측정 중') : 읽은 !== null && 읽은.pages.length > 0 ? t('다시 측정') : t('측정')}
+              </button>
+            </div>
           ) : null
         }
       />
@@ -193,6 +215,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
             {알림}
           </p>
         )}
+        {중단글 === null ? null : <p role="status">{중단글}</p>}
         <section className="perf-panel" aria-label={t('측정 조건')}>
           <div className="perf-fields">
             <label className="perf-field">
@@ -238,6 +261,20 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
           </>
         )}
       </div>
+      {!묻나 ? null : (
+        <PerfStartConfirm
+          종류="MEASURE"
+          줄들={[
+            { 이름: t('측정 대상'), 값: t('페이지 {수}개 · 페이지마다 3회', { 수: 목록.length }) },
+            { 이름: t('디바이스'), 값: t(기기 === 'desktop' ? 'PC' : '모바일') },
+            { 이름: t('네트워크'), 값: t(망 === 'NONE' ? '제한 없음' : 'Slow 4G') },
+            { 이름: t('대상 서버'), 값: env },
+          ]}
+          안내={t('이 화면에서 중단할 수 있습니다')}
+          onClose={() => set묻나(false)}
+          on시작={() => void 측정()}
+        />
+      )}
       {!창 ? null : (
         <PerfPagesPick
           목록={목록}

@@ -7,6 +7,7 @@ import { use말, use언어 } from './i18n.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { RunHead } from './PerfRunHead.js';
 import { PerfRunTrend } from './PerfRunTrend.js';
+import { PerfStartConfirm, 부하확인줄 } from './PerfStartConfirm.js';
 import { 갱신간격, 명글자, 목표글자, 목표대상, 분석틈, 분초, 사유이름, 측정글자, 틈간격, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { message, 받을이름, 파일로저장 } from './ui.js';
 
@@ -17,6 +18,7 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
   const 언어 = use언어();
   const [하는중, set하는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
   const 종류 = 판정종류(run);
   const 일번호 = run.aiJob?.id ?? null;
   // 끝쓰기로 끝난 직후 AI 일이 서기 전 틈 — 일이 아직 없어도 곧 선다. 오류로 끝났거나 숫자가 없으면 일이 서지 않는다
@@ -107,7 +109,7 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
               {t('PDF 다운로드')}
             </button>
             {쓰나 && run.scenarioId !== null ? (
-              <button type="button" className="btn" disabled={하는중} onClick={() => void 다시실행()}>
+              <button type="button" className="btn" disabled={하는중} onClick={() => set묻나(true)}>
                 {t('다시 실행')}
               </button>
             ) : null}
@@ -193,6 +195,25 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
 
         <PerfRunTrend run={run} 자동중단={자동중단} />
       </div>
+      {!묻나 ? null : (
+        <PerfStartConfirm
+          종류="LOAD"
+          줄들={부하확인줄(t, {
+            시나리오: run.scenarioName,
+            유형: run.config.testType,
+            stages: run.config.load.stages,
+            단위: run.config.load.basis === 'TPS' ? t('TPS') : t('명'),
+            목표수: run.config.targets.length,
+            env: run.env,
+          })}
+          안내={t('대상 서버에 부하가 발생합니다. 실행 화면에서 중단할 수 있습니다')}
+          onClose={() => set묻나(false)}
+          on시작={() => {
+            set묻나(false);
+            void 다시실행();
+          }}
+        />
+      )}
     </>
   );
 }

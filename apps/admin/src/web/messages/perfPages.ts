@@ -63,4 +63,11 @@ export const 성능페이지말: Record<string, string> = {
   '단독 측정 {값}': 'Alone: {값}',
   '부하 중 페이지 로딩 측정': 'Measure page loading under load',
   '가장 최근 페이지 성능 측정에서 쓴 페이지를 브라우저 2개가 30초마다 엽니다': 'Two browsers open the pages from the latest page speed measurement every 30 seconds',
+  '측정 대상': 'Pages to measure',
+  '페이지 {수}개 · 페이지마다 3회': '{수} pages · 3 times each',
+  '측정 중단': 'Stop measuring',
+  '측정을 중단할까요?': 'Stop measuring?',
+  '이번 측정 결과는 남지 않습니다': 'This measurement leaves no result',
+  '측정을 중단했습니다': 'Measuring stopped',
+  '측정이 중단되었습니다 — {까닭}': 'Measuring was stopped — {까닭}',
 };
