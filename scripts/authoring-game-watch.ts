@@ -34,8 +34,8 @@ const 알아볼이름 = 20;
 const 칸수 = 14;
 const 먼저볼칸 = /hp|health|life|damage|dmg|level|score|count|speed|range|cool|state|dead|target|attack/i;
 /** 네트워크 틀(Netcode)이 모든 컴포넌트에 물려준 칸 — 게임 값이 아니다 */
-const 틀칸 = /^(?:m_TargetIdBeingSynchronized|m_VarInit|IsLocalPlayer|IsOwner|IsOwnedByServer|IsServer|IsClient|IsHost|IsSpawned|HasAuthority|NetworkObjectId|OwnerClientId|NetworkBehaviourId.*|ServerIsHost|IsSessionOwner|HasNetworkObject|IsDestroying|enabled|isActiveAndEnabled)$/;
-const 엔진것 = /^(?:UnityEngine|UnityEditor|Unity\.|TMPro|Cinemachine|DG\.)/;
+export const 틀칸 = /^(?:m_TargetIdBeingSynchronized|m_VarInit|IsLocalPlayer|IsOwner|IsOwnedByServer|IsServer|IsClient|IsHost|IsSpawned|HasAuthority|NetworkObjectId|OwnerClientId|NetworkBehaviourId.*|ServerIsHost|IsSessionOwner|HasNetworkObject|IsDestroying|enabled|isActiveAndEnabled)$/;
+export const 엔진것 = /^(?:UnityEngine|UnityEditor|Unity\.|TMPro|Cinemachine|DG\.)/;
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const 쉼 = (ms: number): Promise<void> => new Promise((깨운다) => setTimeout(깨운다, ms));

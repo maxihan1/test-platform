@@ -55,6 +55,12 @@ describe('배울것고르기', () => {
     expect(배울것고르기(지도([...다배움, ...것]), 볼).궁금).toEqual([것[0]![1], 것[2]![1], 것[4]![1]]);
   });
 
+  it('게임 글로 읽기만 한 줄과 판에서 안 써 본 줄도 배울 것이다', () => {
+    const b = 배울것고르기(지도([...다배움, ['RULE', 'rule:폭탄', '폭탄', { text: 'ㄱ', belief: 'GAME_TEXT' }], ['RULE', 'rule:치료', '치료', { text: 'ㄱ', belief: 'CONFIRMED', data: { 쓸법: '낮은 것부터' } }]]), 볼);
+    expect(b).toMatchObject({ 궁금: [], 안잰글: ['rule:폭탄'], 안써봄: ['rule:치료'] });
+    expect(배울것없나(b)).toBe(false);
+  });
+
   it('빌드가 다른 줄은 다시 볼 것이고, 지금 빌드를 모르면 안 본다', () => {
     const 줄들: 줄재료[] = [...다배움, ['RULE', 'rule:옛', '옛', { text: 'ㄱ', belief: 'CONFIRMED', build: '58' }], ['RULE', 'rule:뒤', '뒤', { text: 'ㄱ', belief: 'OVERTURNED', build: '58' }]];
     expect(배울것고르기(지도(줄들), 볼).빌드다름).toEqual(['rule:옛']);
@@ -68,9 +74,12 @@ describe('배울것고르기', () => {
       ['DATA', 'item:다', '다', { text: 'ㄱ', belief: 'CONFIRMED', build: '59' }, ' · 기획서 {"값":1} · 근거 CG-REQ-003, CG-REQ-001 · 기획서가 바뀜(CG-REQ-003) — 지금 판으로 다시 올린다'],
       ['DATA', 'item:라', '라', undefined, ' · 근거 CG-REQ-004 · 거친 케이스 없음'],
       ['RULE', 'rule:마', '마', { text: 'ㄱ', belief: 'CONFIRMED', build: '58' }, ' · 근거 CG-REQ-005'],
+      ['RULE', 'rule:바', '바', { text: 'ㄱ', belief: 'GAME_TEXT', build: '59' }, ' · 근거 CG-REQ-007'],
+      ['RULE', 'rule:사', '사', { text: 'ㄱ', belief: 'GAME_TEXT', build: '59', data: { 막힘: '못 이김' } }, ' · 근거 CG-REQ-008'],
     ];
-    const b = 배울것고르기(지도(줄들), { ...볼, 번호들: ['CG-REQ-001', 'CG-REQ-002', 'CG-REQ-003', 'CG-REQ-004', 'CG-REQ-005', 'CG-REQ-006'] });
-    expect(b).toEqual({ 빈종류: [], 궁금: [], 빌드다름: [], 게임글: [], 번호: ['CG-REQ-002', 'CG-REQ-003', 'CG-REQ-004', 'CG-REQ-005', 'CG-REQ-006'] });
+    const b = 배울것고르기(지도(줄들), { ...볼, 번호들: ['CG-REQ-001', 'CG-REQ-002', 'CG-REQ-003', 'CG-REQ-004', 'CG-REQ-005', 'CG-REQ-006', 'CG-REQ-007', 'CG-REQ-008'] });
+    // 게임 글로 읽기만 한 요구는 다시 배운다 — 네 번째 실측의 보류 25건이 다 여기서 왔다. 막힌 것은 빌드가 같으면 안 본다
+    expect(b).toEqual({ 빈종류: [], 궁금: [], 안잰글: [], 안써봄: [], 빌드다름: [], 게임글: [], 번호: ['CG-REQ-002', 'CG-REQ-003', 'CG-REQ-004', 'CG-REQ-005', 'CG-REQ-006', 'CG-REQ-007'] });
     expect(배울것없나(배울것고르기(지도(줄들), { ...볼, 번호들: [] }))).toBe(true);
   });
 });
