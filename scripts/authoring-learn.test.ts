@@ -329,6 +329,9 @@ describe('학습하기 — 시험', () => {
     expect(await 성적({ 끝: true, 기록: '새것.json' })).toContain('첫 판 끝까지 감');
     expect(await 성적({ 끝: true, 기록: '옛것.json' })).toContain('조작 기록 없음');
     expect(await 성적({ 끝: true, 기록: '..' })).toContain('조작 기록 없음');
+    // 같은 이름으로 남는 화면 파일은 기록이 아니다
+    쓰기('game-play/새것-005s.jpg', 'x');
+    expect(await 성적({ 끝: true, 기록: '새것-005s.jpg' })).toContain('조작 기록 없음');
     expect(await 성적({ 끝: false, 까닭: `${'가'.repeat(76)}pw-secret-1` }, ['pw-secret-1'])).not.toContain('pw-');
   });
 
@@ -373,6 +376,25 @@ describe('학습하기 — 쪽지', () => {
     expect(거리들[0]).not.toHaveProperty('쪽지');
     expect(거리들[1]).toMatchObject({ 차례: 2, 쪽지: '첫 맵 3판 다 짐. 다음에는 길 옆에 심어 본다' });
     expect(거리들.find((x) => x.시험 === true)).not.toHaveProperty('쪽지');
+  });
+});
+
+describe('학습하기 — 멈춰 둔 판', () => {
+  it('앞 세션이 판을 멈춘 채 끝났으면 쥔 디바이스의 다음 세션에 알리고, 디바이스를 놓을 때 표시를 지운다', async () => {
+    const 멈춘다 = () => 쓰기('game-freeze.json', { 배율: 1, 때: '2026-11-25T03:00:00.000Z' });
+    const { o, 거리들 } = 손([() => (적기(규칙('rule:1')), 멈춘다()), () => 적기(규칙('rule:2')), () => undefined, () => undefined]);
+    await 학습하기(o);
+    expect(거리들[0]).not.toHaveProperty('멈춤');
+    expect(거리들[1]).toMatchObject({ 차례: 2, 멈춤: true });
+    expect(거리들.find((x) => x.시험 === true)).toMatchObject({ 멈춤: true });
+    expect(existsSync(join(자료, 'game-freeze.json'))).toBe(false);
+  });
+
+  it('표시가 남아 있어도 디바이스를 안 쥐고 있으면 멈춘 판이 아니다 — 놓은 게임은 꺼졌다', async () => {
+    쓰기('game-freeze.json', { 배율: 1, 때: '2026-11-25T03:00:00.000Z' });
+    const { o, 거리들 } = 손([() => 적기(규칙('rule:1')), () => undefined, () => undefined]);
+    await 학습하기(o);
+    expect(거리들[0]).not.toHaveProperty('멈춤');
   });
 });
 
@@ -436,5 +458,19 @@ describe('학습프롬프트', () => {
     expect(글).toContain('[단계] 배운 것 시험');
     expect(글).not.toContain('/자료/prd-now.json');
     expect(글).not.toContain('guide.md');
+    // 시험 세션은 배우는 법을 안 읽는다 — 시험 지침만 연다. 멈춰 가며 하기도 안 권한다(원래 속도로 잰다)
+    expect(글).toContain('references/game-learn-exam.md');
+    expect(글).not.toContain('references/game-learn.md');
+    expect(글).not.toContain('--freeze');
+  });
+
+  it('볼 눈 — 학습 세션에 멈춰 가며 하기와 도중 화면을 알려 주고, 앞 세션이 멈춘 채 끝났으면 판이 멈춰 있다고 알린다', () => {
+    const 글 = 학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: false, 못올림: [], 부분: false, 차례: 2, 멈춤: true });
+    expect(글).toContain('`--freeze`');
+    expect(글).toContain('5초마다 화면이 남는다');
+    expect(글).toContain('판이 멈춰 있다');
+    expect(글).toContain('그 판을 이을지 새로 할지');
+    expect(학습프롬프트(재료, { 시험: true, 남은분: 30, 놓음: false, 멈춤: true })).toContain('시험의 첫 판은 처음부터 새로 한다');
+    expect(학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], 부분: false, 차례: 1 })).not.toContain('판이 멈춰 있다');
   });
 });

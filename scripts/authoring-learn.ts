@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import type { 띄운결과 } from './authoring-explore.js';
 import { 게임자리, 요소상한 } from './authoring-game.js';
 import { 적은줄들, 지금지도 } from './authoring-game-find.js';
+import { 멈춤표시읽기, 멈춤표시지우기 } from './authoring-game-freeze.js';
 import type { 돌린결과 } from './authoring-io.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
 import { 배움올리기, 상태쓰기, 상태읽기 } from './authoring-learn-io.js';
@@ -30,10 +31,11 @@ type 한번결과 = { 돌린것: 돌린결과; 크레딧으로: boolean; 앞낸�
 
 /** 세션 하나에 주는 재료 — 프롬프트는 부르는 쪽이 짓는다(authoring-learn-prompt) */
 export type 세션거리 =
-  | { 시험: true; 남은분: number; 빌드?: string; 놓음: boolean }
+  /** 멈춤 — 앞 세션이 조작 도우미 `--freeze` 로 판을 멈춘 채 끝났다(authoring-game-freeze) */
+  | { 시험: true; 남은분: number; 빌드?: string; 놓음: boolean; 멈춤?: true }
   /** 틀림 — 시험에서 틀린 줄만 다시 배운다 */
   /** 쪽지 — 앞 AI 가 지도에 남긴 말(authoring-learn-map `쪽지열쇠`) */
-  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number; 틀림?: true; 쪽지?: string };
+  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number; 틀림?: true; 쪽지?: string; 멈춤?: true };
 
 export interface 학습손 {
   통로: 화면통로;
@@ -110,12 +112,20 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
 
   type 세션끝 = { 열쇠수: number } | { 끝: 띄운결과 } | { 못잡음: true };
 
+  /** 놓으면 그 게임은 꺼진다 — 멈춰 둔 표시가 남으면 다음에 잡은 게임이 스스로 멈춘 화면을 풀어 버린다 */
+  const 놓는다 = async (): Promise<void> => {
+    await o.놓기();
+    멈춤표시지우기(o.자료);
+  };
+  /** 쥔 디바이스에서 앞 세션이 `--freeze` 로 멈춘 채 끝났나 — 다음 세션이 「판이 멈춰 있다」를 알고 시작한다 */
+  const 멈춤 = (): { 멈춤?: true } => (o.쥐었나() && 멈춤표시읽기(o.자료) !== null ? { 멈춤: true } : {});
+
   /** 세션 하나 — 마감 · 컨텍스트에서 끊고, 적은 줄을 올린다. 작성을 끝내야 하면 띄운결과 */
   const 한세션 = async (거리: (남은분: number) => 세션거리): Promise<세션끝> => {
     // 다음 세션을 띄울 때만 묻는다 — 다 배웠으면 어차피 놓는다. 기다린 시간은 배운 시간에 안 넣는다
     if (앞낸것.length > 0 && o.쥐었나() && (await o.양보())) {
       o.알린다('PC 를 기다리는 정식 실행이 있어 비켜 준다 — 다시 비면 배운 조작 도우미로 그 자리까지 가서 잇는다');
-      await o.놓기();
+      await 놓는다();
       const 비었나 = await o.빈것기다리기();
       if (o.멈추라했다()) return { 끝: { 돌린것: { 코드: null, 낸것: '', 오류: '', 시간초과: false, 멈춤으로죽음: true }, 크레딧으로: false, 앞낸것: [] } };
       if (!비었나) return { 못잡음: true };
@@ -172,7 +182,7 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     const 글 = 지도 === null ? null : 쪽지글(지도);
     return 글 === null ? {} : { 쪽지: 글 };
   };
-  const 배우기 = (b: 배울것, 틀림?: true) => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? {} : { 틀림 }), ...쪽지() }));
+  const 배우기 = (b: 배울것, 틀림?: true) => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? {} : { 틀림 }), ...쪽지(), ...멈춤() }));
   const 끝내며 = (끝: 띄운결과): 학습결과 => ({ 끝: { ...끝, 돌린것: 못뜬것은끊김(끝.돌린것, 앞낸것) }, 앞낸것 });
 
   const 늘리기끄기 = o.늘리기();
@@ -202,13 +212,13 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
   } finally {
     알림지우기();
     늘리기끄기();
-    await o.놓기();
+    await 놓는다();
   }
 
   /** 시험 세션이 남긴 조작 기록인가 — 앞 학습 세션의 기록 이름을 적으면 해 보지 않은 판이 해 본 것이 된다 */
   function 이번기록인가(이름: string | undefined, 시작: number): boolean {
-    // 지켜보기는 가만히 보기만 한 기록이다
-    if (이름 === undefined || /[/\\]/.test(이름) || /-지켜보기\.json$/.test(이름)) return false;
+    // 지켜보기는 가만히 보기만 한 기록이다. 기록은 `.json` 하나다 — 같은 이름으로 남는 끝 화면 · 도중 화면(`.jpg`)을 적으면 안 해 본 판이 해 본 것이 된다
+    if (이름 === undefined || /[/\\]/.test(이름) || !이름.endsWith('.json') || /-지켜보기\.json$/.test(이름)) return false;
     const 정보 = lstatSync(join(o.자료, 게임자리.조작기록, 이름), { throwIfNoEntry: false });
     return 정보?.isFile() === true && 정보.mtimeMs >= 시작;
   }
@@ -224,7 +234,7 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     새로쓰기(join(o.자료, 게임자리.시험감), JSON.stringify(감들, null, 1));
     rmSync(join(o.자료, 게임자리.시험답), { force: true });
     const 시험시작 = Date.now();
-    const r = await 한세션((남은분) => ({ 시험: true, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나() }));
+    const r = await 한세션((남은분) => ({ 시험: true, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), ...멈춤() }));
     if ('끝' in r) return r;
     if ('못잡음' in r) {
       상태.시험 = '시험을 못 봄(정식 실행에 비켜 준 PC 가 다시 비지 않음)';
