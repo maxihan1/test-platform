@@ -7,9 +7,11 @@ import { pathToFileURL } from 'node:url';
 import { gameLink, openGame } from '@platform/kit/game';
 import { Game, type Command, type Link } from 'control-cli';
 
-import { 부를준비 } from './authoring-game-play-call.js';
-import { 기록남기기, 몇줄 } from './authoring-game-play-log.js';
+import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
+import { 기록남기기, 도중화면줄, 몇줄 } from './authoring-game-play-log.js';
+import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
 import { 결과글 } from './authoring-game-state.js';
+import { 정리알림 } from './authoring-game-find.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 
 /** 보낸 명령의 답을 기다리는 한도 — 팜이 명령 하나를 20초 안에 끊는다. 답 전에 거두면 늦게 닿은 누르기가 눌린 채 남는다 */
@@ -33,6 +35,15 @@ export interface 조작결과 {
   /** 명령의 답을 못 받은 일 — 게임이 실패로 답한 것과 다르다(팜 거절 · 시간 초과 · 끊김) */
   통신오류: string | null;
   입력못놓음: boolean;
+  /** 함수가 도는 동안 남긴 화면 — 초는 함수 시작부터. 안 켜면 빈 목록 */
+  도중화면: 도중화면[];
+  /** 실제로 쓴 도중 화면 간격(ms) — 한도 안에 40장이 다 들어가게 넓혔을 수 있다. 안 켰으면 0 */
+  도중간격ms: number;
+}
+
+export interface 덧 {
+  /** 도중 화면 간격(ms) — 안 주거나 0 이면 한 장도 안 찍고 명령도 더 안 보낸다 */
+  도중화면ms?: number;
 }
 
 /**
@@ -40,7 +51,7 @@ export interface 조작결과 {
  * 막힌 명령은 답하지 않는다 — 던지면 오류를 삼키고 다시 부르는 반복이 쉬지 않고 돌아 거두는 시간이 안 온다.
  * 시간 배율은 함수가 바꿨을 때만 되돌린다 — 게임이 스스로 멈추고 푼 것(일시정지 창)을 덮지 않게
  */
-export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, 환경: Record<string, string | undefined>, 한도ms: number, 끊김?: AbortSignal): Promise<조작결과> {
+export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, 환경: Record<string, string | undefined>, 한도ms: number, 끊김?: AbortSignal, 덧?: 덧): Promise<조작결과> {
   let 막음 = false;
   let 보내는중 = 0;
   let 배율바꿈 = false;
@@ -82,6 +93,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 버려진 = (e: unknown): void => void 못한것.push(`기다리지 않은 일이 던짐: ${까닭(e)}`);
   process.on('unhandledRejection', 버려진);
   const 시작 = Date.now();
+  const 간격ms = 덧?.도중화면ms === undefined || 덧.도중화면ms <= 0 ? 0 : 간격정하기(덧.도중화면ms, 한도ms);
+  const 찍기 = 간격ms === 0 ? null : 찍기시작(맨게임, 간격ms, 시작);
   let 값: unknown;
   let 오류: string | undefined;
   let 시계: NodeJS.Timeout | undefined;
@@ -99,6 +112,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     clearTimeout(시계);
   }
   const 걸린ms = Date.now() - 시작;
+  찍기?.그친다();
   막음 = true;
   for (const 끝 = Date.now() + 답기다림ms; 보내는중 > 0 && Date.now() < 끝; ) await 쉼(50);
   try {
@@ -112,6 +126,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 로그 = 앞.로그 === null ? null : await 해본다('로그 읽기', () => 맨게임.logs(앞.로그!));
   const 게임오류 = 앞.오류 === null ? null : await 해본다('오류 읽기', () => 맨게임.errors(앞.오류!));
   const 알림 = 앞.알림 === null ? null : await 해본다('알림 읽기', () => 맨게임.events(앞.알림!));
+  const 찍기못함 = await 찍기?.끝난다();
+  if (찍기못함 !== null && 찍기못함 !== undefined) 못한것.push(찍기못함);
   const 화면 = await 해본다('화면 찍기', () => 맨게임.screenshot());
   process.off('unhandledRejection', 버려진);
   for (const [이름, 답] of [['게임 로그', 로그], ['게임 오류', 게임오류], ['알림', 알림]] as const) {
@@ -130,6 +146,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     배율바꿈,
     통신오류,
     입력못놓음,
+    도중화면: 찍기?.장들 ?? [],
+    도중간격ms: 간격ms,
   };
 }
 
@@ -145,7 +163,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   process.once('SIGTERM', 끊음);
   process.once('SIGINT', 끊음);
   try {
-    r = await 돌린다(길 ?? (await gameLink(환경)), 것.함수, 환경, 초 * 1000, 끊기.signal);
+    r = await 돌린다(길 ?? (await gameLink(환경)), 것.함수, 환경, 초 * 1000, 끊기.signal, { 도중화면ms: (것.화면초 ?? 기본화면초) * 1000 });
   } catch (e) {
     console.error(`[조작 도우미] 게임에 못 붙었다 — ${비밀가리기(까닭(e), 비밀들)}`);
     return 2;
@@ -156,6 +174,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 기록 = 기록남기기(자료, 이름, 넘길, r, 비밀들);
   const 글 = [
     `[조작 도우미] ${이름} ${r.오류 === undefined ? '끝' : '멈춤'} · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json${r.화면 === undefined ? '' : ' · 끝 화면 .jpg'}`}`,
+    ...도중화면줄(r, 기록),
     ...(r.오류 === undefined ? [] : [`오류: ${r.오류}`]),
     ...몇줄('게임 로그', r.로그),
     ...몇줄('게임 오류', r.게임오류),
@@ -163,9 +182,11 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     ...(r.못한것.length === 0 ? [] : [`못 한 것: ${r.못한것.join(' · ')}`]),
   ].join('\n');
   console.log(비밀가리기(글, 비밀들));
-  if (r.오류 !== undefined) return 1;
-  console.log(결과글(r.값, 비밀들));
-  return 0;
+  // 정리하라는 알림은 판을 하는 동안에도 보여야 한다 — 값을 찍은 뒤 맨 끝에 붙인다
+  const 알림 = 자료 === undefined ? [] : 정리알림(자료);
+  if (r.오류 === undefined) console.log(결과글(r.값, 비밀들));
+  if (알림.length > 0) console.log(알림.join('\n'));
+  return r.오류 === undefined ? 0 : 1;
 }
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {

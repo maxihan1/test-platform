@@ -68,6 +68,18 @@ const 판 = (인자: unknown[] = ['쉬움']) => 이긴판읽기(자료, 트리, 
 const 찍힘 = () => [...vi.mocked(console.log).mock.calls, ...vi.mocked(console.error).mock.calls].flat().join('\n');
 
 describe('10판 확인', () => {
+  it('--shots · --freeze 는 2 로 거절하고 명령을 하나도 안 보낸다', async () => {
+    값들 = [true];
+    const 센길 = vi.fn(길);
+    for (const 깃발 of [['--shots', '5'], ['--shots', '0'], ['--freeze']]) {
+      expect(await 실행(['g', 'play', '한판', '["쉬움"]', ...깃발], 트리, { [게임자료환경]: 자료 }, 센길 as unknown as Link)).toBe(2);
+    }
+    expect(센길).not.toHaveBeenCalled();
+    expect(찍힘()).toContain('원래 속도 · 같은 조건으로만');
+    expect(값들).toHaveLength(1);
+    expect(판()).toEqual({ 이김: 0, 짐: 0 });
+  });
+
   it('열 판을 다 이기면 0 — 판마다 한 줄과 기록을 남긴다', async () => {
     값들 = Array.from({ length: 10 }, () => true);
     expect(await 부르기()).toBe(0);
