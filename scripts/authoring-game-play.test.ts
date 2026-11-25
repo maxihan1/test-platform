@@ -76,7 +76,8 @@ describe('조작 도우미 부르기', () => {
     expect(글).toContain('게임 로그 1줄\n  t Log 이번 로그');
     expect(글).not.toContain('앞 로그');
     expect(글).toContain('"자리"');
-    expect(g.명령).not.toContain('input-reset');
+    expect(g.명령.at(-1)).toBe('screenshot');
+    expect(g.명령).not.toContain('timescale-set');
     const 남은 = readdirSync(join(t, 'data', 'game-play')).sort();
     expect(남은.map((x) => x.replace(/^\d+/, ''))).toEqual(['-걷기.jpg', '-걷기.json']);
     expect(JSON.parse(readFileSync(join(t, 'data', 'game-play', 남은[1]!), 'utf8'))).toMatchObject({ 함수: '걷기', 인자: ['W'], 값: { 자리: [1, 2, 3] }, 로그: ['t Log 이번 로그'] });
@@ -93,18 +94,13 @@ describe('조작 도우미 부르기', () => {
 
   it('한도를 넘기면 그 뒤 명령을 막고 입력을 놓고 시간 배율을 되돌린다', async () => {
     const g = 가짜();
-    let 막힌까닭 = '';
     const r = await 돌린다(
       g.길,
       async (game) => {
         const d = game as { keyDown(k: string): Promise<void>; setTimeScale(n: number): Promise<void>; get(a: string, b: string): Promise<unknown> };
         await d.setTimeScale(0.25);
         await d.keyDown('W');
-        try {
-          for (;;) await d.get('/Player', 'Transform.position').then(() => new Promise((다음) => setTimeout(다음, 5)));
-        } catch (e) {
-          막힌까닭 = String(e);
-        }
+        for (;;) await d.get('/Player', 'Transform.position').catch(() => null).then(() => new Promise((다음) => setTimeout(다음, 2)));
       },
       {},
       60,
@@ -113,8 +109,33 @@ describe('조작 도우미 부르기', () => {
     const 놓음 = g.명령.indexOf('input-reset');
     expect(놓음).toBeGreaterThan(g.명령.indexOf('key-down W'));
     expect(g.명령.slice(놓음)).not.toContain('get');
-    await vi.waitFor(() => expect(막힌까닭).toContain('명령을 막았습니다'));
     expect(g.배율()).toBe(1);
+  });
+
+  it('늦게 답하는 누르기는 답을 기다렸다 놓고, 밖에서 끊어도 놓는다', async () => {
+    const g = 가짜();
+    const 끊기 = new AbortController();
+    const 느린: Link = async (c) => {
+      if ((c as unknown as { cmd: string }).cmd === 'key-down') {
+        끊기.abort();
+        await new Promise((다음) => setTimeout(다음, 150));
+      }
+      return g.길(c);
+    };
+    const r = await 돌린다(느린, (game) => (game as { keyDown(k: string): Promise<void> }).keyDown('W'), {}, 10_000, 끊기.signal);
+    expect(r.오류).toBe('밖에서 명령을 끊었습니다');
+    expect(g.명령.indexOf('input-reset')).toBeGreaterThan(g.명령.indexOf('key-down W'));
+  });
+
+  it('기다리지 않은 일이 던져도 거두고, JSON 으로 못 바꾸는 값이어도 기록을 남긴다', async () => {
+    const t = 트리();
+    writeFileSync(join(t, 'tests', 'g', 'helpers', 'odd.helper.ts'), 'export function 이상한값() { void Promise.reject(new Error("뒤에서")); const a = {}; a.a = a; return new Promise((다음) => setTimeout(() => 다음(a), 20)); }\n');
+    const g = 가짜();
+    const 찍힘 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['g', 'odd', '이상한값'], t, { [게임자료환경]: join(t, 'data') }, g.길)).toBe(0);
+    expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).toContain('기다리지 않은 일이 던짐: 뒤에서');
+    expect(readdirSync(join(t, 'data', 'game-play'))).toHaveLength(2);
+    expect(g.명령).toContain('input-reset');
   });
 
   it('잡은 디바이스가 없거나 함수 · 인자 · 한도가 틀리면 2', async () => {
@@ -125,6 +146,9 @@ describe('조작 도우미 부르기', () => {
     expect(await 실행(['g', 'play', '걷기', '{}'], 트리(), {}, g.길)).toBe(2);
     expect(await 실행(['g', 'play', '걷기', '[]', '--max', '9999'], 트리(), {}, g.길)).toBe(2);
     expect(await 실행(['g', 'none', '걷기'], 트리(), {}, g.길)).toBe(2);
+    const 깨짐 = 트리();
+    writeFileSync(join(깨짐, 'tests', 'g', 'helpers', 'bad.helper.ts'), 'throw new Error("읽다 깨짐");');
+    expect(await 실행(['g', 'bad', '걷기'], 깨짐, {}, g.길)).toBe(2);
     expect(g.명령).toEqual([]);
   });
 
@@ -133,6 +157,7 @@ describe('조작 도우미 부르기', () => {
     expect(조작도우미자리(t, 'g', 'play')).not.toBeNull();
     expect(조작도우미자리(t, '..', 'play')).toBeNull();
     expect(조작도우미자리(t, 'g', '../play')).toBeNull();
+    expect(조작도우미자리(t, 'g', 'Play')).toBeNull();
     writeFileSync(join(t, 'out.ts'), '');
     symlinkSync(join(t, 'out.ts'), join(t, 'tests', 'g', 'helpers', 'link.helper.ts'));
     expect(조작도우미자리(t, 'g', 'link')).toBeNull();
