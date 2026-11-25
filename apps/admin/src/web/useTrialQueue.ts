@@ -109,10 +109,12 @@ export function useTrialQueue(간격: number = 기본간격) {
   async function 한번(항목: 시험항목, 따라: string[], platform: Platform, env: string, mobileOn: 모바일위치, 차례: number, 전체: number): Promise<string | null> {
     /** 대표 줄과 따라오는 줄에 같이 쓴다. 끝난 줄은 따라오는 줄마다 답의 자기 결과로 채운다 — 답에 없으면 미실행이다 */
     const 쓰기 = (줄: 시험줄, 케이스들?: CaseResult[]) => {
-      쓴다(항목.tcId, platform, 줄);
+      // 서버의 result 는 막은 케이스를 안 싣는다 — 누른 케이스의 것도 results 에서 읽는다
+      const 막은 = 케이스들?.find((r) => r.tcId === 항목.tcId)?.blockedBy;
+      쓴다(항목.tcId, platform, 줄.종류 !== 'done' || 막은 === undefined ? 줄 : { ...줄, 결과: { ...줄.결과, blockedBy: 막은 } });
       for (const tcId of 따라) {
         const 것 = 케이스들?.find((r) => r.tcId === tcId);
-        쓴다(tcId, platform, 줄.종류 !== 'done' ? 줄 : { 종류: 'done', 결과: { status: 것?.status ?? 'NA', durationMs: 것?.durationMs ?? 0, steps: 것?.steps ?? [], ...(것?.error !== undefined && { error: 것.error }) }, 실패: null, 제목들: null });
+        쓴다(tcId, platform, 줄.종류 !== 'done' ? 줄 : { 종류: 'done', 결과: { status: 것?.status ?? 'NA', durationMs: 것?.durationMs ?? 0, steps: 것?.steps ?? [], ...(것?.error !== undefined && { error: 것.error }), ...(것?.blockedBy !== undefined && { blockedBy: 것.blockedBy }) }, 실패: null, 제목들: null });
       }
     };
     쓰기({ 종류: 'run' });

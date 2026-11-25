@@ -8,6 +8,7 @@ import { 원문보기 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import type { 담은줄 } from './pickProc.js';
 import { type 고친값표, 실행항목, 윈도우펼침 } from './pickRun.js';
+import { 시험막힘 } from './RunPickTrialDone.js';
 import { 걸린글 } from './trialView.js';
 import { PLATFORM_LABEL, Verdict } from './ui.js';
 import { type 디바이스칸, type 시험줄, type 시험항목, useTrialQueue } from './useTrialQueue.js';
@@ -137,11 +138,13 @@ function 한칸배지({ 줄, 이름 }: { 줄: 시험줄; 이름?: string }) {
 
   // 러너 오류 원문은 줄에 넣지 않는다 — 영어 원문이 줄 폭을 먹어 케이스 이름 칸이 한 글자 폭으로 눌렸다. 까닭은 완료 창 실패 줄이 적는다 (2026-11-05 WEB-F9-10).
   // 단계 없이 끝난 미실행만 서버 안내 문장(러너에 닿지 못함 따위)을 둔다 — 값 창으로 돌아와도 까닭이 남게. 폭은 .trial-badge.err 가 묶는다
-  const 안내 = 줄.결과.status === 'NA' && 줄.결과.steps.length === 0 ? 줄.결과.error?.message : undefined;
+  // 앞 케이스에 막힌 줄의 글은 사유 코드(BLOCKED)라 두지 않는다 — 배지 글자가 Blocked 다
+  const 막힘 = 시험막힘(줄.결과);
+  const 안내 = 줄.결과.status === 'NA' && 줄.결과.steps.length === 0 && !막힘 ? 줄.결과.error?.message : undefined;
   return (
     <span className="trial-badge">
       {머리}
-      <Verdict status={줄.결과.status} />
+      <Verdict status={줄.결과.status} blocked={막힘} />
       {/* 사람이 기다린 시간을 초 단위로 — 결과 창과 같은 값이다 (§8.16 ④ · 점검표 B12 · B15f) */}
       <span className="dur">{걸린글(줄.걸린ms ?? 줄.결과.durationMs, 언어)}</span>
       {안내 === undefined ? null : <span className="trial-badge err">{안내}</span>}

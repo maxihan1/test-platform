@@ -9,11 +9,16 @@ import { use말, use언어 } from './i18n.js';
 import type { 여러건시험 } from './RunPickTrial.js';
 import { show } from './ItemSteps.js';
 import { 걸린글, 결과단계줄들 } from './trialView.js';
+import { use막힘사유글 } from './proc.js';
+import { 막힌항목 } from './runFlow.js';
 import { PLATFORM_LABEL, STATUS_LABEL, Verdict } from './ui.js';
 import type { 디바이스칸, 시험줄 } from './useTrialQueue.js';
 
 /** 러너가 끊었거나 러너에 보내기 전에 닫았다 — admin 과 러너가 같은 모양으로 남긴다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」) */
 export const 중단됐나 = (r: TrialResult): boolean => r.status === 'NA' && r.error?.message === 'ABORTED';
+
+/** 앞 케이스에 막혀 못 간 줄인가 — 프로시저 시험 실행에서만 생긴다 */
+export const 시험막힘 = (r: TrialResult): boolean => 막힌항목({ status: r.status, error: r.error ?? null, blockedBy: r.blockedBy });
 
 export interface 결과칸 {
   케이스: CaseRow;
@@ -26,12 +31,12 @@ export function 결과칸들(케이스들: CaseRow[], 줄들: Record<string, 디
   return 케이스들.flatMap((케이스) => (줄들[케이스.tcId] ?? []).map((칸) => ({ 케이스, platform: 칸.platform, 줄: 칸.줄 })));
 }
 
-/** 통과 · 실패 · 미실행. 중단한 것 · 미실행(NA) · 차례가 안 온 것 · 걸지 못한 것은 미실행이다 */
+/** 통과 · 실패 · 미실행 · 그중 앞 케이스에 막힌 것. 중단한 것 · 미실행(NA) · 차례가 안 온 것 · 걸지 못한 것은 미실행이다 */
 export function 셈(칸들: 결과칸[]) {
   const 끝난 = 칸들.flatMap((칸) => (칸.줄.종류 === 'done' ? [칸.줄.결과] : []));
   const 통과 = 끝난.filter((r) => r.status === 'PASS').length;
   const 실패 = 끝난.filter((r) => r.status === 'FAIL').length;
-  return { 통과, 실패, 안함: 칸들.length - 통과 - 실패 };
+  return { 통과, 실패, 안함: 칸들.length - 통과 - 실패, 막힘: 끝난.filter(시험막힘).length };
 }
 
 /** 사람이 기다린 시간 — 늦춘 1초도 든다. 옛 줄(걸린ms 없음)만 러너 값을 쓴다 (§8.16 ④ · 점검표 B12) */
@@ -58,6 +63,14 @@ export function 시험결과({ 시험, 케이스들, env, mobileOn }: { 시험: 
     p === 'mobile' ? `${t(PLATFORM_LABEL[p])}(${t(mobileOn === 'vision' ? '실제 디바이스' : '가상 디바이스')})` : t(PLATFORM_LABEL[p]),
   );
   const 총 = 총걸린ms(칸들);
+  const 막힘사유글 = use막힘사유글();
+  /** 앞 케이스에 막힌 줄의 사유 — 막은 케이스가 같은 시험 · 같은 디바이스에서 어떻게 끝났는지로 까닭을 붙인다 */
+  const 막은글 = (칸: 결과칸): string | null => {
+    const 막은번호 = 칸.줄.종류 === 'done' && 시험막힘(칸.줄.결과) ? 칸.줄.결과.blockedBy : undefined;
+    if (막은번호 === undefined) return null;
+    const 막은 = 칸들.find((다른) => 다른.케이스.tcId === 막은번호 && 다른.platform === 칸.platform)?.줄;
+    return 막힘사유글(막은번호, 막은?.종류 === 'done' ? 막은.결과.status : undefined);
+  };
 
   return (
     <>
@@ -65,7 +78,7 @@ export function 시험결과({ 시험, 케이스들, env, mobileOn }: { 시험: 
         {/* 0 은 점선 회색이다 — 앞 판은 큰 칸 셋이라 어둡게에서 실패 0 칸이 탁한 빨강으로 무거웠다 (점검표 B18) */}
         <span className={수.통과 === 0 ? 'pill zero' : 'pill pass'}>{t('Pass')} <b>{수.통과}</b></span>
         <span className={수.실패 === 0 ? 'pill zero' : 'pill fail'}>{t('Fail')} <b>{수.실패}</b></span>
-        <span className={수.안함 === 0 ? 'pill zero' : 'pill na'}>{t('Not tested')} <b>{수.안함}</b></span>
+        <span className={수.안함 === 0 ? 'pill zero' : 'pill na'}>{t('Not tested')} <b>{수.안함}</b>{수.막힘 === 0 ? null : ` (Blocked ${String(수.막힘)})`}</span>
         <span className="r">{[...디바이스, env, t('총 {시간}', { 시간: 걸린글(총, 언어) })].join(' · ')}</span>
       </div>
       <ul className="trial-res">
@@ -81,7 +94,7 @@ export function 시험결과({ 시험, 케이스들, env, mobileOn }: { 시험: 
                 <span className="dur">{칸.줄.종류 === 'done' ? 걸린글(걸린ms(칸.줄), 언어) : ''}</span>
                 <판정 줄={칸.줄} />
               </div>
-              <까닭 줄={칸.줄} 펼침={칸 === 첫실패 || 편.has(열쇠)} on펼침={() => set편((전) => new Set([...전, 열쇠]))} on접음={() => set편((전) => new Set([...전].filter((k) => k !== 열쇠)))} 첫={칸 === 첫실패} />
+              <까닭 줄={칸.줄} 막은글={막은글(칸)} 펼침={칸 === 첫실패 || 편.has(열쇠)} on펼침={() => set편((전) => new Set([...전, 열쇠]))} on접음={() => set편((전) => new Set([...전].filter((k) => k !== 열쇠)))} 첫={칸 === 첫실패} />
             </li>
           );
         })}
@@ -94,7 +107,7 @@ function 판정({ 줄 }: { 줄: 시험줄 }) {
   const t = use말();
   if (줄.종류 !== 'done') return <span className="verdict v-na">{t('Not tested')}</span>;
   if (중단됐나(줄.결과)) return <span className="verdict v-na">{t('중단')}</span>;
-  return <Verdict status={줄.결과.status} />;
+  return <Verdict status={줄.결과.status} blocked={시험막힘(줄.결과)} />;
 }
 
 const 값최대 = 60;
@@ -116,10 +129,12 @@ function 받은값({ 단계 }: { 단계: TrialResult['steps'][number] | undefine
  * 실패 카드 안 — ① 몇째 단계 · 제목 · 유형 ② 한국어 한 줄 ③ 원문 보기 하나 ④ 단계 목록 (§8.16 ④ · 점검표 D14 · B4).
  * 실패 순간 화면 고리는 없다 — 시험 실행 사진을 화면이 열 통로가 서버에 없다(점검표 D15 · 범위 밖)
  */
-function 까닭({ 줄, 펼침, 첫, on펼침, on접음 }: { 줄: 시험줄; 펼침: boolean; 첫: boolean; on펼침: () => void; on접음: () => void }) {
+function 까닭({ 줄, 막은글, 펼침, 첫, on펼침, on접음 }: { 줄: 시험줄; 막은글: string | null; 펼침: boolean; 첫: boolean; on펼침: () => void; on접음: () => void }) {
   const t = use말();
   if (줄.종류 === 'notice') return <div className="why"><span>{줄.글}</span></div>;
   if (줄.종류 !== 'done' || 줄.결과.status === 'PASS' || 중단됐나(줄.결과)) return null;
+  // 막힌 줄에는 자기 실패가 없다 — 사유 코드(BLOCKED)를 원문으로 보이지 않는다. 막은 케이스 번호가 없으면 사유도 없다
+  if (시험막힘(줄.결과)) return 막은글 === null ? null : <div className="why"><span>{막은글}</span></div>;
   const 깨진 = 줄.결과.steps.find((s) => s.status === 'FAIL');
   // 서버는 한 줄을 항목 오류에서 먼저 고른다 — 원문도 항목 오류와 실패 단계 오류를 다 접어 둔다(같으면 하나)
   const 원문 = [...new Set([줄.결과.error?.message, 깨진?.error?.message].map((글) => 글?.trim() ?? '').filter((글) => 글 !== ''))].join('\n\n');
