@@ -24,6 +24,7 @@ export function 박동손(손: 보고손, 간격 = 30_000) {
       else if (status === 409) {
         // 누가 행을 이미 닫았다 — 자식이 더 돌아도 받아 줄 곳이 없다
         console.error('[남김] 신호에 서버가 409 를 냈다 — 끝난 행이라 자식을 멈춘다');
+        멈추라 = true; // 자식이 없는 사이(게임 학습이 비켜 준 PC 를 기다릴 때)에도 새 자식을 안 띄우게
         멈출?.abort();
       } else if (status !== 200) console.error(`[남김] 신호에 서버가 ${String(status)} 를 냈다`);
     } catch (err) {

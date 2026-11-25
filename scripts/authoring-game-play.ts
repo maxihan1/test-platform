@@ -11,6 +11,7 @@ import { Game, type Command, type Link } from 'control-cli';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
+import { 게임자리 } from './authoring-game.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
@@ -18,7 +19,7 @@ import { 잡은폰 } from './authoring-run3-game.js';
 import { 폴더인가 } from './authoring-screens-keep-io.js';
 
 /** 자료 폴더 안 기록 자리 — 부를 때마다 값 · 로그 · 오류 · 화면 한 벌 */
-export const 조작기록자리 = 'game-play';
+export const 조작기록자리 = 게임자리.조작기록;
 /** 셸 명령의 기본 한도(2분)에 게임에 붙는 시간과 거두는 시간을 남긴다 */
 const 기본초 = 90;
 /** 셸 명령의 최대 한도(10분)에 붙는 시간(켜지는 중이면 2분)과 거두는 시간을 남긴다 */
@@ -49,6 +50,12 @@ export interface 조작결과 {
   알림: string[];
   화면?: Buffer;
   못한것: string[];
+  /** 부르기 앞의 시간 배율(못 읽으면 null)과 함수가 배율을 바꿨나 — 10판 확인(authoring-game-wins)은 원래 속도만 센다 */
+  배율: number | null;
+  배율바꿈: boolean;
+  /** 명령의 답을 못 받은 일 — 게임이 실패로 답한 것과 다르다(팜 거절 · 시간 초과 · 끊김) */
+  통신오류: string | null;
+  입력못놓음: boolean;
 }
 
 /**
@@ -60,6 +67,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   let 막음 = false;
   let 보내는중 = 0;
   let 배율바꿈 = false;
+  let 통신오류: string | null = null;
+  let 입력못놓음 = false;
   const 문: Link = async (cmd: Command) => {
     if (막음) return new Promise<never>(() => {});
     const c = cmd as unknown as Record<string, unknown>;
@@ -67,6 +76,9 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     보내는중 += 1;
     try {
       return await 길(cmd);
+    } catch (e) {
+      통신오류 ??= 까닭(e);
+      throw e;
     } finally {
       보내는중 -= 1;
     }
@@ -115,6 +127,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   try {
     await 맨게임.resetInput();
   } catch (e) {
+    입력못놓음 = true;
     오류 = `${오류 === undefined ? '' : `${오류} · `}입력을 못 놓았습니다(${까닭(e)}) — control-cli input-reset 으로 놓습니다`;
   }
   const { 배율 } = 앞;
@@ -136,11 +149,15 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     알림: (알림?.events ?? []).map((e) => `${e.occurredAt} ${e.type}${'scene' in e ? ` ${e.scene}` : ''}`),
     ...(화면 === null ? {} : { 화면 }),
     못한것,
+    배율,
+    배율바꿈,
+    통신오류,
+    입력못놓음,
   };
 }
 
 /** 자료 폴더에 남긴다 — 지도에는 잰 값과 횟수만 올리고 원본은 여기 둔다. 자료 폴더가 없으면 null */
-function 기록남기기(자료: string | undefined, 함수: string, 인자: unknown[], r: 조작결과, 비밀들: readonly string[], 지금 = new Date()): string | null {
+export function 기록남기기(자료: string | undefined, 함수: string, 인자: unknown[], r: 조작결과, 비밀들: readonly string[], 지금 = new Date()): string | null {
   if (!자료 || !폴더인가(자료)) return null;
   const 폴더 = join(자료, 조작기록자리);
   try {
@@ -151,7 +168,7 @@ function 기록남기기(자료: string | undefined, 함수: string, 인자: unk
   }
   if (!폴더인가(폴더)) return null;
   const 이름 = `${지금.toISOString().replace(/\D/g, '').slice(0, 17)}-${함수}`;
-  const { 화면, ...글 } = r;
+  const { 화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, ...글 } = r;
   try {
     let 날글: string;
     try {
@@ -172,19 +189,32 @@ function 기록남기기(자료: string | undefined, 함수: string, 인자: unk
 const 몇줄 = (머리: string, 줄들: readonly string[]): string[] =>
   줄들.length === 0 ? [] : [`${머리} ${줄들.length}줄`, ...줄들.slice(0, 찍을줄).map((x) => `  ${x.split('\n')[0]!.slice(0, 줄길이)}`), ...(줄들.length > 찍을줄 ? [`  … 나머지는 기록 파일에 있다`] : [])];
 
-/** 0 끝까지 돌았다 · 1 함수가 던졌거나 한도를 넘겼다 · 2 부를 수 없다 */
-export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env, 길?: Link): Promise<number> {
+export interface 부를것 {
+  폴더: string;
+  파일: string;
+  이름: string;
+  자리: string;
+  넘길: unknown[];
+  초: number;
+  함수: (game: unknown) => unknown;
+  환경: Record<string, string | undefined>;
+  비밀들: string[];
+  자료: string | undefined;
+}
+
+/** 인자를 보고 함수를 찾는다 — 부를 수 없으면 까닭을 찍고 null */
+export async function 부를준비(명령: string, 머리: string, 인자: string[], 트리: string, env: NodeJS.ProcessEnv): Promise<부를것 | null> {
   const 한도자리 = 인자.indexOf('--max');
   const 초 = 한도자리 < 0 ? 기본초 : Number(인자[한도자리 + 1]);
   const [폴더, 파일, 이름, 인자글, ...남음] = 한도자리 < 0 ? 인자 : [...인자.slice(0, 한도자리), ...인자.slice(한도자리 + 2)];
   if (폴더 === undefined || 파일 === undefined || 이름 === undefined || 남음.length > 0 || !/^[\p{L}\p{N}_$]+$/u.test(이름) || !(초 > 0 && 초 <= 최대초)) {
-    console.error(`쓰는 법: npx tsx scripts/authoring-game-play.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초 — ${최대초}까지>]`);
-    return 2;
+    console.error(`쓰는 법: npx tsx scripts/${명령}.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초 — ${최대초}까지>]`);
+    return null;
   }
   const 폰 = 잡은폰(트리);
   if (폰 === null) {
-    console.error('[조작 도우미] 잡은 디바이스가 없다 — `npx control-cli hold --minutes 30`(PC 게임은 `--pc`)으로 잡고 게임을 켠 뒤 다시 부른다');
-    return 2;
+    console.error(`${머리} 잡은 디바이스가 없다 — \`npx control-cli hold --minutes 30\`(PC 게임은 \`--pc\`)으로 잡고 게임을 켠 뒤 다시 부른다`);
+    return null;
   }
   let 넘길: unknown[];
   let 비밀들: string[];
@@ -194,28 +224,36 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     넘길 = 값;
     비밀들 = 환경비밀번호들(env);
   } catch (e) {
-    console.error(`[조작 도우미] ${까닭(e)}`);
-    return 2;
+    console.error(`${머리} ${까닭(e)}`);
+    return null;
   }
   const 자리 = 조작도우미자리(트리, 폴더, 파일);
   if (자리 === null) {
-    console.error(`[조작 도우미] tests/${폴더}/helpers/${파일}.helper.ts 가 없다 — 먼저 쓴다(이름은 영문 소문자 · 숫자 · -)`);
-    return 2;
+    console.error(`${머리} tests/${폴더}/helpers/${파일}.helper.ts 가 없다 — 먼저 쓴다(이름은 영문 소문자 · 숫자 · -)`);
+    return null;
   }
   let 모듈: Record<string, unknown>;
   try {
     모듈 = (await import(pathToFileURL(자리).href)) as Record<string, unknown>;
   } catch (e) {
-    console.error(`[조작 도우미] 도우미 파일을 못 읽었다 — ${비밀가리기(까닭(e), 비밀들)}`);
-    return 2;
+    console.error(`${머리} 도우미 파일을 못 읽었다 — ${비밀가리기(까닭(e), 비밀들)}`);
+    return null;
   }
   const 함수 = 모듈[이름];
   if (typeof 함수 !== 'function') {
-    console.error(`[조작 도우미] 「${이름}」 은 도우미 파일이 내보낸 함수가 아니다 — 있는 것: ${Object.keys(모듈).filter((k) => typeof 모듈[k] === 'function').join(' · ') || '없음'}`);
-    return 2;
+    console.error(`${머리} 「${이름}」 은 도우미 파일이 내보낸 함수가 아니다 — 있는 것: ${Object.keys(모듈).filter((k) => typeof 모듈[k] === 'function').join(' · ') || '없음'}`);
+    return null;
   }
   const 자료 = env[게임자료환경];
   const 환경 = { ...env, ...게임환경(폰), PLATFORM_PAD: '', PLATFORM_GAME_POPUPS: 돌발팝업값(자료) };
+  return { 폴더, 파일, 이름, 자리, 넘길, 초, 함수: (game) => (함수 as (...a: unknown[]) => unknown)(game, ...넘길), 환경, 비밀들, 자료 };
+}
+
+/** 0 끝까지 돌았다 · 1 함수가 던졌거나 한도를 넘겼다 · 2 부를 수 없다 */
+export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env, 길?: Link): Promise<number> {
+  const 것 = await 부를준비('authoring-game-play', '[조작 도우미]', 인자, 트리, env);
+  if (것 === null) return 2;
+  const { 이름, 넘길, 초, 환경, 비밀들, 자료 } = 것;
   let r: 조작결과;
   // 셸이 한도에서 끊으면 SIGTERM 이 온다 — 눌러 둔 입력을 놓고 끝낸다
   const 끊기 = new AbortController();
@@ -223,7 +261,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   process.once('SIGTERM', 끊음);
   process.once('SIGINT', 끊음);
   try {
-    r = await 돌린다(길 ?? (await gameLink(환경)), (game) => (함수 as (...a: unknown[]) => unknown)(game, ...넘길), 환경, 초 * 1000, 끊기.signal);
+    r = await 돌린다(길 ?? (await gameLink(환경)), 것.함수, 환경, 초 * 1000, 끊기.signal);
   } catch (e) {
     console.error(`[조작 도우미] 게임에 못 붙었다 — ${비밀가리기(까닭(e), 비밀들)}`);
     return 2;

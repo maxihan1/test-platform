@@ -64,6 +64,17 @@ export function 읽기(줄: string): 이벤트 | null {
   }
 }
 
+/**
+ * 메인 AI 턴 하나가 읽은 컨텍스트 크기 — 입력 + 캐시 만들기 + 캐시 읽기. 출력은 다음 턴 입력에 든다.
+ * 보조 AI 줄(parent_tool_use_id 가 문자열)과 사용량이 없는 줄은 null (게임 학습 세션의 교대 판정)
+ */
+export function 컨텍스트크기(줄: string): number | null {
+  const e = 읽기(줄);
+  const u = e?.type === 'assistant' ? e.message?.usage : undefined;
+  if (u === undefined || typeof (e as { parent_tool_use_id?: unknown }).parent_tool_use_id === 'string') return null;
+  return 수(u.input_tokens) + 수(u.cache_creation_input_tokens) + 수(u.cache_read_input_tokens);
+}
+
 const 수 = (n: number | undefined) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
 
 function 가장많이쓴(출력: Map<string, number>): string | null {

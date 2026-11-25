@@ -3,6 +3,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PC로, PC기다리는실행있나, PC기다림_ms } from '../execution/pcFarm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
 import prdAgentRoutes from '../prd/agentRoutes.js';
 
@@ -113,6 +114,21 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+
+  it('app-link 는 빈 PC 를 기다리는 정식 실행이 있을 때만 pcWaiting 을 싣는다 — 게임을 배우느라 PC 를 쥔 작성이 비켜 준다 (GAME-F6-03)', async () => {
+    const id = await 요청넣기();
+    expect(await 받기(id, 'app-link')).not.toHaveProperty('pcWaiting');
+    let 깨우기 = () => {};
+    const 거절 = (async () => new Response(JSON.stringify({ value: { refused: '모두 잡힘' } }), { status: 409 })) as typeof fetch;
+    let 멈춤 = false;
+    const 실행 = PC로('http://farm.xgs.test', '/tmp/xgs.zip', { 기다림ms: PC기다림_ms, 멈췄나: () => 멈춤, 토큰: async () => undefined, 부르기: 거절, 쉬기: () => new Promise<void>((끝) => (깨우기 = 끝)) }, async () => null, () => null);
+    await vi.waitFor(() => expect(PC기다리는실행있나()).toBe(true));
+    expect(await 받기(id, 'app-link')).toMatchObject({ pcWaiting: true });
+    멈춤 = true;
+    깨우기();
+    await 실행;
+    expect(await 받기(id, 'app-link')).not.toHaveProperty('pcWaiting');
   });
 
   it('app-link 는 팜이 붙었으면 서버 몫 팜 토큰도 같이 준다 — 앱이 없어져도 준다(잡은 폰을 놓아야 한다) · 팜이 없으면 token 칸이 없다', async () => {

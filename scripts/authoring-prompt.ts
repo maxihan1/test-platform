@@ -88,7 +88,7 @@ export function 줄프롬프트(
     // 화면만 · 반영 · 바뀐 API 만 다시 작성은 기획서가 없다 — 빈 기획서 절을 싣으면 자식이 「기획서가 비었다」로 멈춘다
     ...(계획.length > 0 ? 자료목록글(계획) : 역방향?.화면만 === true || 반영요청인가(것) || 것.api?.반영 != null ? [] : ['--- 기획서 ---', 것.specText ?? '']),
     // Android 앱은 웹 크롤러 대신 appium-cli crawl, 게임은 창 훑기로 훑는다 (도메인/작성 §3.6 「앱 · 게임 역방향」)
-    ...(역방향 === undefined ? [] : (역방향.앱 === true ? 앱역방향절 : 역방향.게임 === true ? 게임역방향절 : 역방향절)({ ...역방향, 요청번호: 자료출처(것) })),
+    ...(역방향 === undefined ? [] : (역방향.앱 === true ? 앱역방향절 : 역방향.게임 === true ? 게임역방향절 : 역방향절)({ ...역방향, 요청번호: 자료출처(것), 접두사: 서비스 })),
     ...(이어하기 === undefined ? [] : 이어하기절(이어하기, 메모경로)),
     ...(원장 === undefined ? [] : 원장절(원장, 서비스, 대상?.폴더)),
     ...(표준기획서 === undefined ? [] : 표준기획서절(표준기획서)),
@@ -183,7 +183,7 @@ function 코드줄(코드: readonly 받은저장소[]): string[] {
 }
 
 /** PC 게임 — 첫 화면을 미리 받지 않는다. 에이전트는 팜 주소 · zip 링크가 없으면 자식을 안 띄우니 여기서는 늘 있다 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」) */
-function PC게임줄(패드: readonly string[]): string[] {
+export function PC게임줄(패드: readonly string[]): string[] {
   const 값들 = 패드.map((p) => `'windows-${p}'`).join(', ');
   return [
     '이 애플리케이션은 PC 게임(Windows)이다. 첫 화면은 미리 받지 않았다 — 창 훑기 · 눌러 가며 읽기 · 케이스마다 1번 돌려 보기를 `npx control-cli hold --pc --minutes 30` 으로 잡은 Device VISION 의 Windows PC 한 대에서 한다(PLATFORM_APPIUM_URL 이 환경에 있다). 깔 빌드 zip 의 링크는 2시간이면 끝나 `$AUTHORING_APP_FILE` 파일에서 읽어 받는다 — 받기 · 깔기 · 켜기 꼴은 game.md 「PC 게임」 그대로. 단계 끝에 꼭 close · release 한다.',
@@ -193,7 +193,7 @@ function PC게임줄(패드: readonly string[]): string[] {
   ];
 }
 
-function 폰게임줄(화면: 앱화면): string[] {
+export function 폰게임줄(화면: 앱화면): string[] {
   return [
     '글' in 화면
       ? `폰에서 게임을 켠 직후 첫 화면(게임 SDK 오브젝트 트리)이다: ${화면.글}`

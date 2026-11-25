@@ -1,9 +1,10 @@
 // 게임 지도 찾기 — 작성 AI 가 지도 글(자료 폴더 game-map.txt)을 통째로 읽지 않고 종류별 목차 → 줄 요약 → 줄 전부 차례로 본다 (도메인/게임 §3.10 「게임에 대해 배운 것」 읽기 · 점검)
+// 학습 세션이 적었지만 아직 안 올린 줄(game-learned.json)도 얹어 찾는다
 // 쓰는 법: npx tsx scripts/authoring-game-find.ts <자료 폴더> [<종류> | <열쇠나 낱말>… | --check [<지금 빌드>]] — 폰 없이 파일만 읽는다. 아무것도 안 주면 목차다
 import { pathToFileURL } from 'node:url';
 
-import { type 배운것, 꼴, 믿음, 요소종류, 표시 } from '../apps/admin/src/prd/gameKinds.js';
-import { 게임자리, 지도상한 } from './authoring-game.js';
+import { type 배운것, 기획서종류, 꼴, 믿음, 요소종류, 표시 } from '../apps/admin/src/prd/gameKinds.js';
+import { 게임자리, 요소상한, 지도상한 } from './authoring-game.js';
 import { 안전히읽기 } from './authoring-screens-keep-io.js';
 
 export interface 지도줄 {
@@ -20,7 +21,7 @@ const 찾은상한 = 40;
 const 배움표 = ' · 배움 {';
 
 /** 배움은 늘 줄 맨 끝의 JSON 이다 — 앞 칸(기획서 값)에 같은 글자가 들었을 수 있어 끝까지 풀리는 자리를 찾는다 */
-function 배움떼기(줄: string): { 앞: string; learned: 배운것 | null } {
+export function 배움떼기(줄: string): { 앞: string; learned: 배운것 | null } {
   for (let i = 줄.indexOf(배움표); i >= 0; i = 줄.indexOf(배움표, i + 1)) {
     try {
       return { 앞: 줄.slice(0, i), learned: JSON.parse(줄.slice(i + 배움표.length - 1)) as 배운것 };
@@ -51,12 +52,72 @@ export function 지도읽기(글: string): { 줄들: 지도줄[]; 이름: Map<st
   return { 줄들, 이름 };
 }
 
+/** 줄에 적힌 근거 요구 번호 — 배움 앞에서만 본다 */
+export const 근거들 = (x: 지도줄): string[] => / · 근거 (.+?)(?= · |$)/.exec(배움떼기(x.line).앞)?.[1]?.split(', ') ?? [];
+
+interface 적은줄 {
+  kind: string;
+  key: string;
+  name: string;
+  learned: 배운것 | null;
+  reqIds?: string[];
+}
+
+/** 아직 안 올린 배운 줄 — 적는 명령(authoring-learn-note)이 검사해 쓴 파일이다. 없거나 못 읽으면 빈 목록 */
+export function 적은줄들(글: string | null): 적은줄[] {
+  try {
+    const 몸 = JSON.parse(글 ?? '{}') as { elements?: unknown };
+    return (Array.isArray(몸.elements) ? (몸.elements as 적은줄[]) : []).filter(
+      // 자식이 파일을 직접 고쳤을 수 있다 — 꼴이 틀린 줄은 버린다
+      (e) =>
+        typeof e?.kind === 'string' && typeof e.key === 'string' && typeof e.name === 'string' &&
+        (e.learned === null || (typeof e.learned === 'object' && typeof e.learned.text === 'string')) &&
+        (e.reqIds === undefined || (Array.isArray(e.reqIds) && e.reqIds.every((r) => typeof r === 'string'))),
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** 올리기 전의 줄을 지도에 얹는다 — 배운 것은 새것이 이기고, 지운 줄(null)은 기획서 몫이 있으면 배움만 뗀다 */
+export function 얹기(지도: ReturnType<typeof 지도읽기>, 적은: readonly 적은줄[]): ReturnType<typeof 지도읽기> {
+  const 줄들 = new Map(지도.줄들.map((x) => [x.key, x]));
+  const 이름 = new Map(지도.이름);
+  for (const e of 적은) {
+    const 옛 = 줄들.get(e.key);
+    if (e.kind === 'KIND' && e.learned !== null) 이름.set(e.key.slice('kind:'.length), e.name);
+    // 기획서에서 온 다섯 종류 줄은 배운 것만 올려서는 종류와 이름이 안 바뀐다(서버 요소넣기와 같다)
+    const 기획서줄 = 옛 !== undefined && 기획서종류.has(옛.kind);
+    // 근거를 실은 배운 줄은 서버가 근거를 새것으로 바꾸고 「기획서가 바뀜」을 비운다 — 기획서 줄에는 적는 명령이 근거를 안 싣는다
+    const 앞 = 옛 === undefined || (!기획서줄 && e.reqIds !== undefined) ? `${e.key} · ${e.name}${(e.reqIds ?? []).length === 0 ? '' : ` · 근거 ${e.reqIds!.join(', ')}`}` : 배움떼기(옛.line).앞;
+    if (e.learned === null) {
+      if (옛 !== undefined && / · (기획서|근거) /.test(앞)) 줄들.set(e.key, { ...옛, learned: null, line: 앞 });
+      else 줄들.delete(e.key);
+      continue;
+    }
+    줄들.set(e.key, { kind: 기획서줄 ? 옛.kind : e.kind, key: e.key, name: 기획서줄 ? 옛.name : e.name, learned: e.learned, line: `${앞}${배움표.slice(0, -1)}${JSON.stringify(e.learned)}` });
+  }
+  return { 줄들: [...줄들.values()], 이름 };
+}
+
+/** 자료 폴더의 지도 글에 아직 안 올린 배운 줄을 얹어 읽는다. 지도 글이 없으면 null */
+export function 지금지도(자료: string): ReturnType<typeof 지도읽기> | null {
+  const 글 = 안전히읽기(자료, 게임자리.지도, 지도상한);
+  return 글 === null ? null : 얹기(지도읽기(글), 적은줄들(안전히읽기(자료, 게임자리.배운글, 요소상한)));
+}
+
+/** 학습 세션에 에이전트가 남긴 「정리하라」 알림 — 배우는 AI 는 자기 시계 · 컨텍스트를 못 봐 명령 출력으로 안다 */
+export const 정리알림 = (자료: string): string[] => {
+  const 글 = 안전히읽기(자료, 게임자리.학습알림, 1_000)?.trim();
+  return 글 === undefined || 글 === '' ? [] : [`※ ${글}`];
+};
+
 const 배움요약 = (l: 배운것): string =>
   [l.belief === undefined ? null : 믿음[l.belief], l.seen === undefined ? null : `${l.seen}번 봄`, l.shape === undefined ? null : 꼴[l.shape], ...(l.marks ?? []).map((m) => 표시[m]), l.build === undefined ? null : `빌드 ${l.build}`]
     .filter((x) => x !== null)
     .join(' · ');
 
-const 바뀜 = (x: 지도줄): string | null => / · 기획서가 바뀜\(([^)]*)\)/.exec(배움떼기(x.line).앞)?.[1] ?? null;
+export const 바뀜 = (x: 지도줄): string | null => / · 기획서가 바뀜\(([^)]*)\)/.exec(배움떼기(x.line).앞)?.[1] ?? null;
 const 자름 = (글: string): string => (글.length > 줄상한 ? `${글.slice(0, 줄상한)}…` : 글);
 const 요약줄 = (x: 지도줄): string => {
   // 고칠 줄 표시는 줄이 길어 잘려도 남게 앞에 둔다
@@ -148,14 +209,13 @@ export function 점검(지도: ReturnType<typeof 지도읽기>, 빌드?: string)
 
 function main(): void {
   const [자료, ...나머지] = process.argv.slice(2);
-  const 글 = 자료 === undefined ? null : 안전히읽기(자료, 게임자리.지도, 지도상한);
-  if (글 === null) {
+  const 지도 = 자료 === undefined ? null : 지금지도(자료);
+  if (지도 === null) {
     console.error('쓰는 법: npx tsx scripts/authoring-game-find.ts <자료 폴더> [<종류> | <열쇠나 낱말>… | --check [<지금 빌드>]] — 자료 폴더에 game-map.txt 가 있어야 한다');
     process.exit(2);
   }
-  const 지도 = 지도읽기(글);
   const 줄들 = 나머지.length === 0 ? 목차(지도) : 나머지[0] === '--check' ? 점검(지도, 나머지[1]) : 찾기(지도, 나머지);
-  console.log(줄들.join('\n'));
+  console.log([...줄들, ...정리알림(자료!)].join('\n'));
 }
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) main();
