@@ -12,7 +12,7 @@ import { 번호달기 } from './authoring-learn-io.js';
 import { 배울것고르기 } from './authoring-learn-map.js';
 import { 가른줄들, 가르기, 안옮긴열쇠, 옮김검사, 옮김읽기, 화면만못옮김, 실행 } from './authoring-learn-prd.js';
 import type { 옮긴항목 } from './authoring-prd.js';
-import { 화면만다덮음 } from './authoring-upload-reverse.js';
+import { 게임쓸것없나, 화면만다덮음 } from './authoring-upload-reverse.js';
 
 type 줄재료 = [kind: string, key: string, learned?: object, 앞?: string];
 const 지도글 = (줄들: 줄재료[]): string => {
@@ -166,6 +166,9 @@ describe('화면만이 「PRD 에 없는 화면 0」으로 닫는 길', () => {
     expect(화면만다덮음(자료, true)).toBeNull();
     쓰기('game-map.txt', 지도글([['RULE', 'rule:심기', 확인, ' · 근거 CGP-REQ-001']]));
     expect(화면만다덮음(자료, true)).toBe(1);
+    expect(게임쓸것없나(자료)).toBe(true);
+    결과쓰기([새항목()]);
+    expect(게임쓸것없나(자료)).toBe(false);
   });
 });
 
@@ -179,6 +182,14 @@ describe('탐색 체크포인트', () => {
     expect(r.거절).toContain('배운 줄 1개를 PRD 로 안 옮겼다');
     expect(한번).toHaveBeenCalledTimes(1);
     expect((await 세션띄우기({ ...o, 더볼것: () => [] })).거절).toBeUndefined();
+  });
+
+  it('화면만이 쓸 것이 하나도 없어 아무것도 안 썼으면 목표가 없어도 막지 않고 그 세션으로 끝낸다', async () => {
+    const 한번 = vi.fn(async () => ({ 돌린것: { 코드: 0, 낸것: '끝', 오류: '', 시간초과: false, 멈춤으로죽음: false }, 크레딧으로: false, 앞낸것: null }));
+    const r = await 세션띄우기({ 탐색: true, 통로: { 주소기지: 'http://admin:3000', 토큰: 't', 번호: 7 }, 자료, 비밀: [], 한번, 거두기: async () => true, 멈추라했다: () => false, 알린다: () => undefined, 쓸것없나: () => true });
+    expect(r).toMatchObject({ 돌린것: { 낸것: '끝' } });
+    expect(r.거절).toBeUndefined();
+    expect(한번).toHaveBeenCalledTimes(1);
   });
 });
 

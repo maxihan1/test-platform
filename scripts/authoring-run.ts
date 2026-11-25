@@ -21,6 +21,7 @@ import { 머지행처리 } from './authoring-merge-row.js';
 import { 고치기실행인가, 편집처리 } from './authoring-edit.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
+import { 게임쓸것없나 } from './authoring-upload-reverse.js';
 import { 사용량보고, 세션번호, 흐름풀기 } from './authoring-usage.js';
 import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
@@ -332,7 +333,7 @@ async function 사본에서(
   };
   const { 배움, 띄움 } = await (async () => {
     const 배움 = await 배우기();
-    return { 배움, 띄움: 배움.끝 ?? await 세션띄우기({ 탐색: 탐색하나(것, 게임화면 !== undefined) || 앱탐색, 갈래: 앱.갈래, ...(역방향?.화면만 === true && 게임화면 !== undefined ? { 더볼것: () => 화면만못옮김(자리.자료, 서비스) } : {}), 통로, 자료: 자리.자료, 비밀: 비밀번호들(것), 이어하기: 방.이어하기, 한번, 거두기, 멈추라했다: 박동.멈추라했다, 알린다 }) };
+    return { 배움, 띄움: 배움.끝 ?? await 세션띄우기({ 탐색: 탐색하나(것, 게임화면 !== undefined) || 앱탐색, 갈래: 앱.갈래, ...(역방향?.화면만 === true && 게임화면 !== undefined ? { 더볼것: () => 화면만못옮김(자리.자료, 서비스), 쓸것없나: () => 게임쓸것없나(자리.자료) } : {}), 통로, 자료: 자리.자료, 비밀: 비밀번호들(것), 이어하기: 방.이어하기, 한번, 거두기, 멈추라했다: 박동.멈추라했다, 알린다 }) };
   })().finally(() => (링크끄기(), 늘리기끄기()));
   const { 크레딧으로, 거절: 탐색거절 } = 띄움;
   const 돌린것 = 못뜬것은끊김(띄움.돌린것, 배움.앞낸것);
