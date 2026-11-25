@@ -73,7 +73,7 @@ type 디바이스결과 = { devices: 세트디바이스[] } | { status: 400 | 50
 async function 디바이스채우기(요청: readonly { serial: string }[], 옛: readonly 세트디바이스[]): Promise<디바이스결과> {
   if (요청.length === 0) return { status: 400, body: { error: 'NO_DEVICE' } };
   const serials = 요청.map((d) => d.serial);
-  if (new Set(serials).size !== serials.length) return { status: 400, body: { error: 'INVALID_REQUEST', detail: '디바이스가 겹칩니다' } };
+  if (new Set(serials).size !== serials.length) return { status: 400, body: { error: 'INVALID_REQUEST', detail: '디바이스가 중복됩니다' } };
   const 옛사본 = new Map(옛.map((d) => [d.serial, d]));
   const 팜 = await 호환성디바이스목록();
   if (팜 === null && !serials.every((s) => 옛사본.has(s))) return { status: 502, body: { error: 'FARM_UNREACHABLE' } };
@@ -130,7 +130,7 @@ export default async function compatRoutes(app: FastifyInstance): Promise<void> 
     const parsed = 세트본문.safeParse(req.body);
     if (!parsed.success) return 잘못(reply, parsed.error.message);
     const b = parsed.data;
-    if (옛 !== null && b.serviceId !== 옛.serviceId) return 잘못(reply, '세트의 애플리케이션은 바꿀 수 없습니다');
+    if (옛 !== null && b.serviceId !== 옛.serviceId) return 잘못(reply, '세트의 애플리케이션은 변경할 수 없습니다');
     const 앱 = await 애플리케이션(b.serviceId);
     if (앱 === null) return 잘못(reply, `모르는 애플리케이션입니다: ${b.serviceId}`);
     const 모름 = 모르는케이스(await 재료읽기(앱.id, 앱.prefix), b.addedCases, 옛?.addedCases);
@@ -138,7 +138,7 @@ export default async function compatRoutes(app: FastifyInstance): Promise<void> 
     const 디 = await 디바이스채우기(b.devices, 옛?.devices ?? []);
     if ('status' in 디) return reply.code(디.status).send(디.body);
     // 모델이 단위다 — 「모델별 1대」를 켠 세트에 같은 모델이 둘이면 같은 모델을 두 번 돈다 (§3.13 「호환성 세트」 · §8.17)
-    if (b.onePerModel && new Set(디.devices.map((d) => d.model)).size !== 디.devices.length) return 잘못(reply, '모델별 1대를 켠 세트는 같은 모델을 한 대만 고릅니다');
+    if (b.onePerModel && new Set(디.devices.map((d) => d.model)).size !== 디.devices.length) return 잘못(reply, '모델별 1대를 켠 세트는 같은 모델을 한 대만 선택합니다');
     const 몸 = { name: b.name, onePerModel: b.onePerModel, devices: 디.devices, addedCases: [...new Set(b.addedCases)] };
     if (옛 === null) return reply.code(201).send({ id: await 세트만들기(앱.id, 몸, req.user?.username ?? '알 수 없음') });
     return (await 세트고치기(옛.id, 몸)) ? { id: 옛.id } : 세트없음(reply);

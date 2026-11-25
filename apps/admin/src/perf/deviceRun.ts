@@ -103,7 +103,7 @@ async function 조작재료읽기(run: 표.실행행, cfg: DeviceRunConfig): Pro
   if (줄 === null || 줄.appPath === null) throw new Error('대상 서버 줄이나 앱 파일이 없어졌습니다');
   const { 단위들, 뺀 } = await 단위로펼친다(await 표.풀(), cfg.caseIds, 줄.계정들);
   for (const id of 뺀) await 표.로그(run.id, `${id} 는 테스트 프로시저에서 빠져 실행하지 않습니다`, 'WARN');
-  if (단위들.length === 0) throw new Error('고른 케이스가 모두 테스트 프로시저에서 빠져 돌릴 케이스가 없습니다');
+  if (단위들.length === 0) throw new Error('선택한 케이스가 모두 테스트 프로시저에서 빠져 실행할 케이스가 없습니다');
   return { 줄, 단위들 };
 }
 
@@ -124,7 +124,7 @@ async function 시작하기(run: 표.실행행, s: 도는기기): Promise<void> 
     d.마지막줄 = Date.now();
   }));
   const 실패 = 결과.flatMap((x, i) => (x.status === 'rejected' ? [`${s.devices[i]?.model ?? ''}(${s.devices[i]?.serial ?? ''}): ${글(x.reason)}`] : []));
-  if (실패.length > 0) throw new Error(`기기를 잡거나 기록기를 켜지 못했습니다 — ${실패.join(' / ')}`);
+  if (실패.length > 0) throw new Error(`디바이스를 할당하거나 기록기를 켜지 못했습니다 — ${실패.join(' / ')}`);
   if (s.ending) return;
   s.시작됨 = true;
   await 표.로그(run.id, `기록기를 켰습니다 — ${s.devices.map((d) => d.model).join(', ')}`);
@@ -136,7 +136,7 @@ async function 시작하기(run: 표.실행행, s: 도는기기): Promise<void> 
       if (!s.ending) 알리기(s, { kind: 'DONE' });
     },
     (e: unknown) => {
-      if (!s.ending) 알리기(s, { kind: 'ERROR', why: `케이스를 돌리다 멈췄습니다 — ${글(e)}` });
+      if (!s.ending) 알리기(s, { kind: 'ERROR', why: `케이스를 실행하다 중단되었습니다 — ${글(e)}` });
     },
   );
 }
@@ -174,7 +174,7 @@ async function 틱(s: 도는기기): Promise<void> {
     for (const d of s.devices) {
       const 끝 = d.rec.잡음끝();
       if (끝 === null || 끝 - Date.now() >= 잡기남은분 * 60_000) continue;
-      await d.rec.늘리기().catch((e: unknown) => 경고(s, `${d.model} 잡는 시간을 늘리지 못했습니다 — ${글(e)}`));
+      await d.rec.늘리기().catch((e: unknown) => 경고(s, `${d.model} 할당 시간을 늘리지 못했습니다 — ${글(e)}`));
     }
     const 조용 = s.devices.find((d) => Date.now() - d.마지막줄 > 설정.무소식ms);
     if (조용 !== undefined) {
@@ -259,7 +259,7 @@ async function 정리(s: 도는기기): Promise<void> {
   for (const d of s.devices) {
     const 폴더 = join(artifactsDir(), 'perf', String(s.runId), d.serial);
     if (s.시작됨 && s.cfg.record) await d.rec.파일받기(폴더, d.오프셋).catch((e: unknown) => 경고(s, `${d.model} 녹화를 받지 못했습니다 — ${글(e)}`));
-    await d.rec.놓기().catch((e: unknown) => 경고(s, `${d.model} 을 놓지 못했습니다 — ${글(e)}`));
+    await d.rec.놓기().catch((e: unknown) => 경고(s, `${d.model} 을 반납하지 못했습니다 — ${글(e)}`));
   }
 }
 

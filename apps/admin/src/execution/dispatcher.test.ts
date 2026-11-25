@@ -322,9 +322,9 @@ describe('dispatch 의 게임 항목 (GAME-F1-09)', () => {
 
     expect(callRunner).not.toHaveBeenCalled();
     expect(vi.mocked(finishItem).mock.calls.map(([id, 답]) => [id, 답.status, 답.error?.message])).toEqual([
-      [1, 'NA', 'Device VISION 에 빈 폰이 없습니다'],
-      [2, 'NA', 'Device VISION 에 빈 폰이 없습니다'],
-      [3, 'NA', 'Device VISION 에 빈 폰이 없습니다'],
+      [1, 'NA', 'Device VISION 에 빈 디바이스가 없습니다'],
+      [2, 'NA', 'Device VISION 에 빈 디바이스가 없습니다'],
+      [3, 'NA', 'Device VISION 에 빈 디바이스가 없습니다'],
     ]);
   });
 

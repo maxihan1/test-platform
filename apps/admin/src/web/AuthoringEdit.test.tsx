@@ -175,7 +175,7 @@ describe('케이스 고치기 상세', () => {
   it('main 을 못 받아 온 반영이면 받아 온 뒤 다시 스캔하라고 안내한다', async () => {
     const 기록 = [실행({ id: 12, kind: 'MERGE' }), 실행({ id: 7 })];
     답들.set(7, 줄({ runs: 기록 }));
-    답들.set(12, 줄({ id: 12, kind: 'MERGE', sourceId: 7, params: {}, runs: 기록, canContinue: false, error: 'main 을 못 받아 와 저장값을 안 지웠다' }));
+    답들.set(12, 줄({ id: 12, kind: 'MERGE', sourceId: 7, params: {}, runs: 기록, canContinue: false, error: 'main 을 못 받아 와 저장값을 삭제하지 않았다' }));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
     expect(await screen.findByText(/받아 온 뒤 케이스 목록의 「⋯ › 케이스 목록 새로고침」을 누르면/)).toBeTruthy();

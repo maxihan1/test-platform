@@ -168,7 +168,7 @@ describe.skipIf(연결 === undefined)('PC 게임 작성 통로', () => {
     try {
       await 줄들([['qa', null, false]]);
       const id = await 요청넣기('RUNNING');
-      expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: 'Windows 빌드가 없다 — 그 애플리케이션에 Windows 빌드 zip 을 올린 뒤 다시 작성한다', game: null });
+      expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: 'Windows 빌드가 없다 — 그 애플리케이션에 Windows 빌드 zip 을 업로드한 뒤 다시 작성한다', game: null });
 
       const 빌드 = await 빌드올리기('qa', 'xgf-1', '1 hour');
       expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: 'PC 게임은 작성 AI 가 PC 에서 읽는다', game: null });

@@ -72,7 +72,7 @@ describe('appCapabilities', () => {
   });
 
   it('PLATFORM_APP 이 없으면 던진다', () => {
-    expect(() => appCapabilities({})).toThrow('Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다');
+    expect(() => appCapabilities({})).toThrow('Android 앱 케이스를 실행하려면 PLATFORM_APP 이 필요하다');
   });
 });
 
@@ -116,14 +116,14 @@ describe('openApp', () => {
 
   it('PLATFORM_APPIUM_URL 이 없으면 연결을 열기 전에 던진다', async () => {
     await expect(openApp({ PLATFORM_APP: '/tmp/a.apk' })).rejects.toThrow(
-      'Android 앱 케이스를 돌리려면 PLATFORM_APPIUM_URL 이 필요하다',
+      'Android 앱 케이스를 실행하려면 PLATFORM_APPIUM_URL 이 필요하다',
     );
     expect(remote).not.toHaveBeenCalled();
   });
 
   it('PLATFORM_APP 이 없어도 연결을 열기 전에 던진다', async () => {
     await expect(openApp({ PLATFORM_APPIUM_URL: 'http://127.0.0.1:4723' })).rejects.toThrow(
-      'Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다',
+      'Android 앱 케이스를 실행하려면 PLATFORM_APP 이 필요하다',
     );
     expect(remote).not.toHaveBeenCalled();
   });

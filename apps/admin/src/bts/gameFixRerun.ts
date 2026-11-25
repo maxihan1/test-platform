@@ -66,8 +66,8 @@ export async function 게임다시걸기(요청번호: number | string): Promise
   const ids = 줄들.map((r) => r.id);
   const 실패실행 = 줄들[0].failed_run === null ? null : Number(줄들[0].failed_run);
   const 거둠 = 실패실행 === null ? null : await 실행재료(실패실행, 줄들.map((r) => r.tc_id));
-  if (거둠 === null) return 게임줄끝내기(ids, 'FAILED', '처음 실패한 실행이 지워져 다시 실행하지 못했어요');
-  if (팜을본다(거둠.items, process.env, 거둠.mobileOn) !== null) return 게임줄끝내기(ids, 'FAILED', '실제 폰을 못 잡아 확인하지 못했어요');
+  if (거둠 === null) return 게임줄끝내기(ids, 'FAILED', '처음 실패한 실행이 삭제돼 다시 실행하지 못했어요');
+  if (팜을본다(거둠.items, process.env, 거둠.mobileOn) !== null) return 게임줄끝내기(ids, 'FAILED', '실제 디바이스를 할당하지 못해 확인하지 못했어요');
   try {
     // 실행 쪽이 bts 를 가져오므로(실행 끝 실패 등록) 부를 때 가져온다
     const { createRun } = await import('../execution/store.js');
@@ -106,7 +106,7 @@ export async function 게임끝보기(줄: 줄): Promise<void> {
   if (통과) return 게임줄끝내기([줄.id], 'PASSED', null);
   // 고친 테스트가 틀린 것이 아니라 데이터 준비가 안 됐다 — 스스로 다시 걸지 않는다
   if (실행?.status === 'PREP_FAILED') {
-    const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 고친 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요';
+    const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 수정한 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요';
     return 게임줄끝내기([줄.id], 'FAILED', 실행.prep_note === null ? 까닭 : `${까닭}\n${실행.prep_note}`);
   }
   // 고친 케이스가 앞 케이스에 막혔으면 다시 고치지 않고 사람에게 넘기되 막은 케이스를 적는다 (도메인/게임 §3.10 「실패 자동 수정」 5)

@@ -135,7 +135,7 @@ export function 저장문제(새줄: readonly 줄[], 새고름: 서버고름, �
       // 「프로시저 작성」을 켠 애플리케이션의 기능 줄은 UI 번호도 받는다 — 실행이 한 종류다
       const 종류맞나 = (t: string) => tcId종류(t) === x.kind || (x.kind === 'FN' && a.procedureMode);
       const 모름 = x.tcIds.filter((t) => !있던.has(t) && (!t.startsWith(`${a.prefix}-`) || !종류맞나(t) || !재.살아있는케이스.has(t)));
-      if (모름.length > 0) return 줄글(seq, `고를 수 없는 케이스입니다 (${모름.join(', ')})`);
+      if (모름.length > 0) return 줄글(seq, `선택할 수 없는 케이스입니다 (${모름.join(', ')})`);
     }
     if (a !== undefined && a.projectId === 재.projectId) 쓰는앱.set(a.id, a);
   }
@@ -146,7 +146,7 @@ export function 저장문제(새줄: readonly 줄[], 새고름: 서버고름, �
     if (옛?.고름.get(a.id) === env) continue;
     const 실서비스 = 재.서버들.get(a.id)?.get(env);
     if (실서비스 === undefined) return `envs: ${a.prefix} 에 ${env} 대상 서버가 없습니다`;
-    if (실서비스) return `envs: ${a.prefix} 의 ${env} 는 실서비스 서버라 고를 수 없습니다`;
+    if (실서비스) return `envs: ${a.prefix} 의 ${env} 는 실서비스 서버라 선택할 수 없습니다`;
   }
 
   // 섞인 E2E — 새 줄이거나 시작 애플리케이션의 서버를 바꿨으면 지나가는 애플리케이션의 같은 이름 줄을 본다

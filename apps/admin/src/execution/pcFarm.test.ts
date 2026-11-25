@@ -63,7 +63,7 @@ describe('PC로', () => {
 
     const 권한 = 가짜팜([{ status: 401, body: { value: { refused: '토큰' } } }]);
     const 결과 = await PC로(팜, zip, { 기다림ms: PC기다림_ms, 멈췄나: () => false, 토큰: async () => undefined, 부르기: 권한.부르기, 쉬기: async () => undefined }, async () => '돌았다', (까닭) => 까닭);
-    expect(결과).toBe('Device VISION 이 Windows PC 를 내주지 않았습니다: 토큰');
+    expect(결과).toBe('Device VISION 이 Windows PC 를 할당하지 않았습니다: 토큰');
     expect(권한.호출).toHaveLength(1);
   });
 
@@ -71,13 +71,13 @@ describe('PC로', () => {
     let 멈춤 = false;
     const { 부르기 } = 가짜팜([없음, 잡음]);
     const 결과 = await PC로(팜, zip, { 기다림ms: PC기다림_ms, 멈췄나: () => 멈춤, 토큰: async () => undefined, 부르기, 쉬기: async () => void (멈춤 = true) }, async () => '돌았다', (까닭) => 까닭);
-    expect(결과).toBe('멈춘 실행이라 Windows PC 를 잡지 않았습니다');
+    expect(결과).toBe('중단된 실행이라 Windows PC 를 할당하지 않았습니다');
   });
 
   it('깔기에 실패해도 PC 를 놓고 까닭을 넘긴다', async () => {
     const { 호출, 부르기 } = 가짜팜([잡음], { status: 422, body: { value: { error: 'unknown error', message: 'zip 안에 exe 가 없습니다' } } });
     const 결과 = await PC로(팜, zip, { 기다림ms: 0, 멈췄나: () => false, 토큰: async () => 'pat_x', 부르기 }, async () => '돌았다', (까닭) => 까닭);
-    expect(결과).toBe('Device VISION 이 Windows 빌드를 깔지 못했습니다: zip 안에 exe 가 없습니다');
+    expect(결과).toBe('Device VISION 이 Windows 빌드를 설치하지 못했습니다: zip 안에 exe 가 없습니다');
     expect(호출.at(-1)).toMatchObject({ method: 'DELETE', path: '/api/devices/pc-pc1/hold' });
   });
 });

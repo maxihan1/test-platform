@@ -77,11 +77,11 @@ describe('callRunner — 모바일 실행 위치', () => {
   it('폰을 못 잡거나 멈춘 실행이면 러너에 안 보내고 그 항목만 미실행이다', async () => {
     process.env.DEVICE_FARM_URL = 'http://farm.test';
     vi.spyOn(farm, '폰Chrome으로').mockImplementationOnce(((_팜: string, _일: unknown, 못잡음: (까닭: string) => unknown) =>
-      Promise.resolve(못잡음('Device VISION 에 빈 폰이 없습니다'))) as never);
-    expect((await callRunner(1, { ...항목, 실제폰: true })).error?.message).toBe('Device VISION 에 빈 폰이 없습니다');
+      Promise.resolve(못잡음('Device VISION 에 빈 디바이스가 없습니다'))) as never);
+    expect((await callRunner(1, { ...항목, 실제폰: true })).error?.message).toBe('Device VISION 에 빈 디바이스가 없습니다');
 
     vi.spyOn(farm, '폰Chrome으로').mockImplementationOnce(((_팜: string, 일: (c: typeof 칸) => Promise<unknown>) => 일(칸)) as never);
-    expect((await callRunner(1, { ...항목, 실제폰: true }, () => true)).error?.message).toBe('멈춘 실행이라 러너에 보내지 않았습니다');
+    expect((await callRunner(1, { ...항목, 실제폰: true }, () => true)).error?.message).toBe('중단된 실행이라 러너에 보내지 않았습니다');
     expect(받음).toHaveLength(0);
   });
 
@@ -101,7 +101,7 @@ describe('callRunner — 스토어 앱 패키지 이름', () => {
     process.env.DEVICE_FARM_URL = 'http://farm.test';
     vi.spyOn(farmToken, '실행팜토큰').mockResolvedValue(undefined);
     const 잡기 = vi.spyOn(farm, '팜폰으로').mockImplementation(((_팜: string, _일: unknown, 못잡음: (까닭: string) => unknown) =>
-      Promise.resolve(못잡음('Device VISION 에 빈 폰이 없습니다'))) as never);
+      Promise.resolve(못잡음('Device VISION 에 빈 디바이스가 없습니다'))) as never);
     await callRunner(1, item);
     return 잡기.mock.calls[0]?.[7];
   };

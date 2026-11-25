@@ -186,7 +186,7 @@ describe('callRunner', () => {
     expect(받은것.map((b) => b.udid)).toEqual(['R3CR10TCVCD']);
     expect(받은것[0]).not.toHaveProperty('farmToken');
 
-    expect((await callRunner(7, 폰항목, () => true, { udid: 'R3CR10TCVCD', 토큰: undefined })).error?.message).toContain('멈춘 실행');
+    expect((await callRunner(7, 폰항목, () => true, { udid: 'R3CR10TCVCD', 토큰: undefined })).error?.message).toContain('중단된 실행');
     expect(받은것).toHaveLength(1);
 
     await callRunner(7, 폰항목, () => false, { udid: 'R3CR10TCVCD', 토큰: 'pat_kim' });
@@ -209,7 +209,7 @@ describe('callRunner', () => {
     expect(화면자리).toEqual([{ serial: 'pc-pc1', 토큰: 'pat_kim' }]);
     expect(PC화면자리('item:42')).toBeUndefined();
 
-    expect((await callRunner(7, PC항목)).error?.message).toBe('Windows PC 를 잡지 않은 항목입니다');
+    expect((await callRunner(7, PC항목)).error?.message).toBe('Windows PC 를 할당하지 않은 항목입니다');
     expect(받은것).toHaveLength(1);
   });
 

@@ -92,7 +92,7 @@ export async function generate(id: number, runId: number, format: EvidenceFormat
   try {
     // 「만든 시각」은 claim이 박아 둔 DB의 값이다. 여기서 새로 재면 문서와 기록이 갈린다 (SPEC §3.3)
     const 행 = await findDocument(id);
-    if (행 === null) throw new Error(`증적 문서 ${String(id)} 행이 사라졌다`);
+    if (행 === null) throw new Error(`리포트 ${String(id)} 행이 사라졌다`);
 
     const 폴더 = join(artifactsDir(), 'evidence', String(runId));
     await mkdir(폴더, { recursive: true });

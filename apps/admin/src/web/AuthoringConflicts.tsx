@@ -62,7 +62,7 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
     <section id="conflicts" tabIndex={-1} className="authoring-conflicts" aria-label={t('중복 케이스')}>
       <div className="conflicts-head">
         <p className="hint">
-          {t('먼저 반영된 케이스와 번호 · 요구사항 · 이름이 겹칩니다. 케이스마다 선택한 뒤에 반영할 수 있습니다.')}
+          {t('먼저 반영된 케이스와 번호 · 요구사항 · 이름이 중복됩니다. 케이스마다 선택한 뒤에 반영할 수 있습니다.')}
         </p>
         {편집 && 남은 > 0 ? (
           <button
@@ -133,7 +133,7 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
                       {c.input.action === 'KEEP' && c.kinds.includes('TCID') ? (
                         <>
                           <br />
-                          <span className="hint">{t('번호가 겹쳐 반영할 때 새 번호를 받습니다')}</span>
+                          <span className="hint">{t('번호가 중복되어 반영할 때 새 번호를 받습니다')}</span>
                         </>
                       ) : null}
                     </>

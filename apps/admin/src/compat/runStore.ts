@@ -240,10 +240,10 @@ export async function 호환성정리(): Promise<{ runId: number; serial: string
   const 도는 = await pool.query<{ run_id: string }>(`SELECT run_id FROM test_run WHERE kind = 'COMPAT' AND status = 'RUNNING'`);
   const 놓을: { runId: number; serial: string }[] = [];
   for (const { run_id } of 도는.rows) {
-    const 멈춤 = await 실행멈추기(Number(run_id), '서버가 다시 켜져 실행이 멈췄습니다');
+    const 멈춤 = await 실행멈추기(Number(run_id), '서버가 다시 켜져 실행이 중단되었습니다');
     for (const serial of 멈춤?.held ?? []) 놓을.push({ runId: Number(run_id), serial });
   }
-  const 까닭 = '서버가 다시 켜져 실행이 멈췄습니다';
+  const 까닭 = '서버가 다시 켜져 실행이 중단되었습니다';
   await 안끝난케이스닫기(null, 까닭);
   await pool.query(`UPDATE compat_run_case SET check_state = 'missing' WHERE check_state = 'checking'`);
   // 점검을 마저 받던 상태도 끝나지 않은 상태라 STOPPED 다 — 받은 점검 화면은 남는다 (§3.13 「실행」 6)

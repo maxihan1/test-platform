@@ -76,7 +76,7 @@ export function 값연결제안들(
         toSeq,
         link: { kind: 'rewrite', method: 'POST', urlPattern, to: { method: 고침, path: `${모음}/{}`, value: { fromSeq: 앞.seq, method: 'POST', urlPattern, jsonPath: '' } } },
         needs: ['jsonPath'],
-        why: `${toSeq}번이 부른 POST ${모음} 을 ${고침} ${모음}/{} 로 바꿔 ${앞.seq}번이 만든 것을 고칩니다`,
+        why: `${toSeq}번이 부른 POST ${모음} 을 ${고침} ${모음}/{} 로 변경해 ${앞.seq}번이 만든 것을 수정합니다`,
       });
     }
 

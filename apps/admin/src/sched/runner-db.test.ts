@@ -162,7 +162,7 @@ describe.skipIf(연결 === undefined)('정기 실행 1분 점검', { timeout: 60
     const occ = await 회차(await 세트('XKR 오래'), 'RUNNING', { curSeq: 1, started: new Date(Date.now() - 7 * 3_600_000).toISOString() });
     const runId = await 실행(occ, 'RUNNING');
     await 점검.정기실행점검(조용히, 옛날);
-    expect(await 회차줄(occ)).toMatchObject({ state: 'DONE', notes: [{ kind: null, service: null, reason: '6시간이 지나 다음 세트를 이어 돌렸습니다' }] });
+    expect(await 회차줄(occ)).toMatchObject({ state: 'DONE', notes: [{ kind: null, service: null, reason: '6시간이 지나 다음 세트를 이어서 실행했습니다' }] });
     expect((await pool.query('SELECT status FROM test_run WHERE run_id = $1', [runId])).rows[0]).toEqual({ status: 'RUNNING' });
   });
 

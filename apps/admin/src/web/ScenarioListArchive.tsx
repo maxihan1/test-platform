@@ -59,7 +59,7 @@ export function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; 
         <br />
         {t('지난 실행 기록과 리포트는 그대로 남습니다.')}
         <br />
-        {t('삭제한 시나리오는 되살릴 수 없습니다.')}
+        {t('삭제한 시나리오는 복원할 수 없습니다.')}
       </p>
       {오류 === null ? null : <p className="err">{오류}</p>}
     </Modal>

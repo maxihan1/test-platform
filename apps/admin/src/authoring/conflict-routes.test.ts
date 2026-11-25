@@ -228,7 +228,7 @@ describe.skipIf(연결 === undefined)('반영 때 겹침 통로', () => {
       const 원본 = await 겹친판({ 'XWY-002': { action: 'KEEP', by: 사람, at: 'x' } });
       const 막힘 = await 머지({ sourceId: 원본 });
       expect(막힘.statusCode).toBe(409);
-      expect(막힘.json()).toEqual({ error: 'CONFLICT_OPEN', detail: '겹치는 케이스 1건을 아직 고르지 않았다' });
+      expect(막힘.json()).toEqual({ error: 'CONFLICT_OPEN', detail: '중복 케이스 1건을 아직 선택하지 않았다' });
       await 고르기(원본, 'XWY-003', { action: 'DROP' });
       expect((await 머지({ sourceId: 원본 })).statusCode).toBe(201);
     });

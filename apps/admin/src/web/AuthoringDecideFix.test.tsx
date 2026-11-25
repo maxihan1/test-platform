@@ -34,7 +34,7 @@ describe('실패 판정 항목의 자동 수정 줄', () => {
     그리기({ state: 'FLAKY', prUrl: null, rerunId: null, rerunPage: false, reason: null });
     expect(screen.getByText('다시 실행하니 통과해서 수정하지 않았습니다')).toBeTruthy();
     cleanup();
-    그리기({ state: 'GAVE_UP', prUrl: null, rerunId: null, rerunPage: false, reason: '고칠 곳을 찾지 못했어요' });
-    expect(screen.getByText('그만뒀습니다 · 고칠 곳을 찾지 못했어요')).toBeTruthy();
+    그리기({ state: 'GAVE_UP', prUrl: null, rerunId: null, rerunPage: false, reason: '수정할 곳을 찾지 못했어요' });
+    expect(screen.getByText('그만뒀습니다 · 수정할 곳을 찾지 못했어요')).toBeTruthy();
   });
 });

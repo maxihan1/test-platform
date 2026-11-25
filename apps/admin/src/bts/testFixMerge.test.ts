@@ -81,7 +81,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 자동 병�
     expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(false, ['EXPECTED_CHANGED', 'MUTATION_MISSED']))).toBe('PERSON');
     expect(await 머지들(id)).toEqual([]);
     expect(await 줄(id)).toEqual({ merge: null, held: ['EXPECTED_CHANGED', 'MUTATION_MISSED'] });
-    expect(await 댓글들('DM-2')).toEqual([`사람 확인이 필요해요 — 기대값이 바뀌었어요 · 일부러 고장 내 보기에서 못 잡은 고장이 있어요\n${주소}`]);
+    expect(await 댓글들('DM-2')).toEqual([`사람 확인이 필요해요 — 기대 결과가 변경됐어요 · 일부러 고장 내 보기에서 찾지 못한 고장이 있어요\n${주소}`]);
     const 손 = await pool.connect();
     try {
       await 반영한사람적기(손, id, 'xqg-admin');
@@ -96,11 +96,11 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 자동 병�
   it('판정 칸이 없으면 「재지 못함」 · 조건이 맞아도 반영이 막히면 그 까닭으로 사람에게 · 기다리는 줄이 없으면 아무것도 안 한다', async () => {
     const 앞판 = await 고침('DM-3', 'XQG-FN-003');
     expect(await 테스트수정병합판정(앞판.id, 서비스, 앞판.id, 앞판.주소, { testFix: { summary: '', reruns: 3 } })).toBe('PERSON');
-    expect(await 댓글들('DM-3')).toEqual([`사람 확인이 필요해요 — 자동 병합 조건을 재지 못했어요\n${앞판.주소}`]);
+    expect(await 댓글들('DM-3')).toEqual([`사람 확인이 필요해요 — 자동 반영 조건을 확인하지 못했어요\n${앞판.주소}`]);
     const 막힘 = await 고침('DM-4', 'XQG-FN-004', { heldUnknown: true });
     expect(await 테스트수정병합판정(막힘.id, 서비스, 막힘.id, 막힘.주소, 판정(true, []), 답())).toBe('PERSON');
     expect(await 머지들(막힘.id)).toEqual([]);
-    expect(await 댓글들('DM-4')).toEqual([`사람 확인이 필요해요 — 보류 케이스가 몇 건인지 모르는 작성이에요\n${막힘.주소}`]);
+    expect(await 댓글들('DM-4')).toEqual([`사람 확인이 필요해요 — 입력이 필요한 케이스가 몇 건인지 모르는 작성이에요\n${막힘.주소}`]);
     expect(await 테스트수정병합판정(막힘.id, 서비스, 막힘.id, 'https://github.com/o/r/pull/999', 판정(true, []), 답())).toBeNull();
   });
 

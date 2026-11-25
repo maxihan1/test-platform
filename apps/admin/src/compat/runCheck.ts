@@ -43,8 +43,8 @@ export async function Chrome켜기(곳: 팜곳, serial: string): Promise<{ cdpUr
       signal: AbortSignal.timeout(Chrome제한ms),
     });
     const 값 = ((await res.json().catch(() => null)) as { value?: { cdpUrl?: unknown; sessionId?: unknown; message?: unknown } } | null)?.value;
-    if (!res.ok) return { 까닭: `Device VISION 이 폰 Chrome 을 켜지 못했습니다: ${typeof 값?.message === 'string' ? 값.message : `HTTP ${res.status}`}` };
-    if (typeof 값?.cdpUrl !== 'string' || !/^wss?:\/\//.test(값.cdpUrl)) return { 까닭: 'Device VISION 이 폰 Chrome 연결 주소를 주지 않았습니다' };
+    if (!res.ok) return { 까닭: `Device VISION 이 디바이스 Chrome 을 켜지 못했습니다: ${typeof 값?.message === 'string' ? 값.message : `HTTP ${res.status}`}` };
+    if (typeof 값?.cdpUrl !== 'string' || !/^wss?:\/\//.test(값.cdpUrl)) return { 까닭: 'Device VISION 이 디바이스 Chrome 연결 주소를 주지 않았습니다' };
     // 세션 번호를 안 주는 옛 비전이면 점검 없이 돈다 — 그 화면은 미점검이다
     return { cdpUrl: 값.cdpUrl, sessionId: typeof 값.sessionId === 'string' && /^[\w-]+$/.test(값.sessionId) ? 값.sessionId : undefined };
   } catch (e) {

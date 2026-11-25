@@ -89,7 +89,7 @@ export const 화면이름 = (key: string, 이름: ReadonlyMap<string, string>): 
 function 칸(재: 결과재료, 상태: 상태줄, key: string, 화면: 저장화면[], 판정: 판정줄 | undefined): { value: 칸값; reason?: string } | null {
   if (화면.some((s) => s.issues.length > 0)) return { value: 판정?.verdict ?? 'PENDING' };
   if (화면.some((s) => s.status === 'done')) return { value: 'OK' };
-  if (상태.state === 'SKIPPED') return { value: 'UNCHECKED', reason: 상태.skipReason ?? '디바이스를 잡지 못했습니다' };
+  if (상태.state === 'SKIPPED') return { value: 'UNCHECKED', reason: 상태.skipReason ?? '디바이스를 할당하지 못했습니다' };
   if (상태.state === 'WAIT' || 상태.state === 'RUNNING') return null;
   const 지난케이스 = 재.케이스들.filter((c) => c.seq === 상태.seq && (재.지나는.get(c.tcId)?.includes(key) === true || 화면.some((s) => s.caseRunId === c.id)));
   if (지난케이스.some((c) => c.checkState === 'checking' || (c.started && !c.finished))) return null;
@@ -104,7 +104,7 @@ function 칸(재: 결과재료, 상태: 상태줄, key: string, 화면: 저장�
   }
   // 프로시저 안 케이스는 못 간 줄도 그 프로시저의 점검 상태를 같이 든다 — 미실행이면 점검 까닭보다 못 돈 까닭이 먼저다
   const 못돈 = 지난케이스.find((c) => !c.started || (c.status === 'NA' && (c.checkState === null || c.execId !== null)));
-  if (못돈 !== undefined) return { value: 'UNCHECKED', reason: (못돈.started ? 못돈.까닭 : null) ?? 상태.skipReason ?? 못돈.까닭 ?? '케이스를 돌리지 못했습니다' };
+  if (못돈 !== undefined) return { value: 'UNCHECKED', reason: (못돈.started ? 못돈.까닭 : null) ?? 상태.skipReason ?? 못돈.까닭 ?? '케이스를 실행하지 못했습니다' };
   // 여러 케이스가 지나면 limit → failed → missing 차례로 앞엣것 하나다
   const 점검 = (['limit', 'failed', 'missing'] as const).find((v) => 지난케이스.some((c) => c.checkState === v));
   if (점검 !== undefined) return { value: 'UNCHECKED', reason: 점검까닭[점검]! };

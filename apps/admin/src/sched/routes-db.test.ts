@@ -280,9 +280,9 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
     expect(await 거절({ ...일정, name: '담은 리포트', items: [{ kind: 'FN', service: 'XKS', tcIds: null }] })).toMatch(/^report: /);
     expect(await 거절({ ...일정, name: '빈 세트', report: undefined })).toBe('items: 담은 테스트가 없습니다');
     const { projectId: _p, tz: _t, ...고침 } = 일정;
-    expect(await 거절({ ...고침, report: undefined, items: 기본().items, envs: 기본().envs }, 'PUT', `/api/sched/sets/${id}`)).toBe('report: 리포트 일정을 세트로 바꾸지 못합니다');
+    expect(await 거절({ ...고침, report: undefined, items: 기본().items, envs: 기본().envs }, 'PUT', `/api/sched/sets/${id}`)).toBe('report: 리포트 일정을 세트로 변경하지 못합니다');
     const 세트 = await 만들기({ ...기본(), name: '바꿀 세트' });
-    expect(await 거절({ ...고침, name: '바꿀 세트' }, 'PUT', `/api/sched/sets/${세트}`)).toBe('report: 세트를 리포트 일정으로 바꾸지 못합니다');
+    expect(await 거절({ ...고침, name: '바꿀 세트' }, 'PUT', `/api/sched/sets/${세트}`)).toBe('report: 세트를 리포트 일정으로 변경하지 못합니다');
     const 고친 = await 부르기('xks-writer', 'PUT', `/api/sched/sets/${id}`, { ...고침, report: 'MONTH' });
     expect(고친.statusCode, 고친.body).toBe(200);
 

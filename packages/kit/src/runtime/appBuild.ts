@@ -69,14 +69,14 @@ export async function 빌드맞추기(실행: 실행기, 꾸러미: string, 앱:
   const 막깖 = 초(폰지금) - 초(지금깐) <= 연결걸린_ms + 여유_ms && !쪽지.endsWith(` ${지금깐}`);
   if (!막깖) {
     await 실행('mobile: removeApp', { appId: 꾸러미 }).catch((err: unknown) => {
-      throw new Error(`폰에 깔린 앱이 이번 빌드가 아니라 지우려 했는데 못 지웠다 — ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error(`디바이스에 설치된 앱이 이번 빌드가 아니라 삭제하려 했는데 삭제하지 못했다 — ${err instanceof Error ? err.message : String(err)}`);
     });
     try {
       await 실행('mobile: installApp', { appPath: 앱 });
     } catch (err) {
       // 앱 값은 서명 주소일 수 있다 — 실행 기록 · 리포트에 남는 오류 글에서 가린다 (lifecycleParts.ts 깔기와 같다)
       const 글 = (err instanceof Error ? err.message : String(err)).split(앱).join('<앱 파일>').replace(/([?&]sig=)[^&\s'"]+/g, '$1…');
-      throw new Error(`폰에 깔린 앱이 이번 빌드가 아니라 지웠는데 다시 깔지 못했다 — ${글}`);
+      throw new Error(`디바이스에 설치된 앱이 이번 빌드가 아니라 삭제했는데 다시 설치하지 못했다 — ${글}`);
     }
     console.error(`[kit] 폰에 깔린 앱이 이번 빌드가 아니라 지우고 다시 깔았다(${쪽지 === '' ? '확인 기록 없음' : '다른 빌드 · 그사이 다시 깔림'})`);
   }

@@ -195,7 +195,7 @@ const 케이스시험 = 시험보관소<시험결과, 'DONE'>({
     status: 'NA',
     durationMs: 걸린ms,
     steps: [],
-    error: { message: '테스트 실행을 끝내지 못했습니다', stack: 사유 },
+    error: { message: '테스트 실행을 완료하지 못했습니다', stack: 사유 },
   }),
 });
 
@@ -243,6 +243,6 @@ export const 시나리오시험 = 시험보관소<시나리오시험결과, 'FIN
     status: 'NA',
     durationMs: 걸린ms,
     parts: [],
-    error: { message: '시험 실행을 끝내지 못했습니다', stack: 사유 },
+    error: { message: '시험 실행을 완료하지 못했습니다', stack: 사유 },
   }),
 });

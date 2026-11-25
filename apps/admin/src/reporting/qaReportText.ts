@@ -1,5 +1,5 @@
 // QA 리포트 첫 장을 글 덩이(제목 · 문단 · 표)로 짓는다 — HTML · PDF(qaReportHtml.ts)와 워드(qaReportDocx.ts)가 같은 글을 그린다 (도메인/리포팅 §3.17 「첫 장 — 시안 B 차례」)
-// 빈 값을 무엇으로 적을지(「견줄 이전 빌드 없음」 · 「Issue Bunker 미연결」 …)는 여기 한 곳에서 정한다. 형식마다 따로 정하면 HTML 과 워드가 다른 말을 한다
+// 빈 값을 무엇으로 적을지(「비교할 이전 빌드 없음」 · 「Issue Bunker 미연결」 …)는 여기 한 곳에서 정한다. 형식마다 따로 정하면 HTML 과 워드가 다른 말을 한다
 
 import { 한국시각 } from '../kst.js';
 import type { SecRow } from '../perf/judge.js';
@@ -54,7 +54,7 @@ const 원인이름: Record<실패유형 | 'stopped' | 'blocked' | 'prepFailed', 
   timeout: '타임아웃',
   environment: '환경 오류',
   other: '그 밖',
-  stopped: '멈춤',
+  stopped: '중단',
   blocked: 'Blocked',
   prepFailed: '준비 실패',
 };
@@ -162,7 +162,7 @@ function 변경사항(s: 첫장): 덩이[] {
 
   덩이들.push({ 꼴: '소절', 글: '요구사항' });
   const q = c.requirements;
-  if (q === null) 덩이들.push({ 꼴: '글', 글: '견줄 이전 빌드 없음' });
+  if (q === null) 덩이들.push({ 꼴: '글', 글: '비교할 이전 빌드 없음' });
   else {
     덩이들.push({ 꼴: '글', 글: `PRD 버전 ${q.from ?? '없음'} → ${q.to ?? '없음'}` });
     const 줄: 표줄[] = [
@@ -170,18 +170,18 @@ function 변경사항(s: 첫장): 덩이[] {
       ...q.changed.map((x) => ({ 칸: ['수정', x.reqId, x.text] })),
       ...q.removed.map((x) => ({ 칸: ['삭제', x.reqId, x.text] })),
     ];
-    덩이들.push(줄.length === 0 ? { 꼴: '글', 글: '바뀐 요구사항 없음' } : { 꼴: '표', 머리: ['구분', '요구사항', '문장'], 줄 });
+    덩이들.push(줄.length === 0 ? { 꼴: '글', 글: '변경된 요구사항 없음' } : { 꼴: '표', 머리: ['구분', '요구사항', '문장'], 줄 });
   }
 
   덩이들.push({ 꼴: '소절', 글: '테스트' });
   const t = c.tests;
-  if (t === null) 덩이들.push({ 꼴: '글', 글: '견줄 이전 빌드 없음' });
+  if (t === null) 덩이들.push({ 꼴: '글', 글: '비교할 이전 빌드 없음' });
   else if (!t.recorded) 덩이들.push({ 꼴: '글', 글: '기록 없음' });
   else {
     덩이들.push({ 꼴: '글', 글: `테스트 커밋 ${짧은커밋(t.fromCommit)} → ${짧은커밋(t.toCommit)}` });
     const 케이스 = (x: 테스트줄) => `${x.tcId} ${x.name}`;
     const 기대 = t.modified.filter((x) => x.expected).length;
-    if (기대 > 0) 덩이들.push({ 꼴: '글', 글: `기대 결과가 바뀐 케이스 ${기대}건`, 결: '강조' });
+    if (기대 > 0) 덩이들.push({ 꼴: '글', 글: `기대 결과가 변경된 케이스 ${기대}건`, 결: '강조' });
     const 줄: 표줄[] = [
       // 기대 결과가 바뀐 줄을 먼저 — 결과가 바뀐 까닭이 제품인지 테스트인지 가르는 첫 단서다
       ...[...t.modified]
@@ -195,7 +195,7 @@ function 변경사항(s: 첫장): 덩이[] {
       ...t.added.map((x) => ({ 칸: ['신규', 케이스(x), '—', 까닭글(x.reason)] })),
       ...t.removed.map((x) => ({ 칸: ['삭제', 케이스(x), '—', 까닭글(x.reason)] })),
     ];
-    덩이들.push(줄.length === 0 ? { 꼴: '글', 글: '바뀐 케이스 없음' } : { 꼴: '표', 머리: ['구분', '케이스', '바뀐 곳', '까닭'], 줄 });
+    덩이들.push(줄.length === 0 ? { 꼴: '글', 글: '변경된 케이스 없음' } : { 꼴: '표', 머리: ['구분', '케이스', '변경된 곳', '까닭'], 줄 });
   }
   if (c.confirmed.length > 0) {
     덩이들.push({ 꼴: '소절', 글: '이번 빌드에서 사람이 확인한 케이스' });

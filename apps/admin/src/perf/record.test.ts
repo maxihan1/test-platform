@@ -101,7 +101,7 @@ describe('녹화하기', () => {
   it('판정을 못 낸 케이스는 반쪽 녹화라 일을 실패로 닫고 원본 폴더도 지운다', async () => {
     가짜.러너에보낸다.mockImplementation(러너가쓴다(12, { status: 200, json: { results: [{ status: 'NA' }] } }));
     await 녹화하기(12, 줄, 케이스, 재료);
-    expect(가짜.녹화끝).toHaveBeenCalledWith(12, { error: expect.stringContaining('끝까지 돌리지 못했습니다') });
+    expect(가짜.녹화끝).toHaveBeenCalledWith(12, { error: expect.stringContaining('끝까지 실행하지 못했습니다') });
     expect(existsSync(join(뿌리, 'perf-record', '12'))).toBe(false);
     expect(existsSync(join(뿌리, 'perf-record', '12.har'))).toBe(false);
   });

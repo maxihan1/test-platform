@@ -54,7 +54,7 @@ export async function 앱화면읽기(
 ): Promise<앱화면답> {
   if (appPath === null) return { screen: null, reason: null };
   if (잡기 === undefined) return { screen: null, reason: 'Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다' };
-  if (!폰을바로잡는다()) return { screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' };
+  if (!폰을바로잡는다()) return { screen: null, reason: '디바이스가 다른 실행에 쓰이는 중이다' };
   try {
     return await 잡기((udid) => 러너에묻는다(appPath, udid, 러너, 부르기, 곳, 토큰), (까닭) => ({ screen: null, reason: 까닭 }));
   } finally {
@@ -72,7 +72,7 @@ async function 러너에묻는다(appPath: string, udid: string, 러너: string,
     });
     const 몸 = (await res.json().catch(() => null)) as { screen?: unknown; error?: unknown; detail?: unknown } | null;
     if (res.ok && typeof 몸?.screen === 'string') return { screen: 몸.screen, reason: null };
-    if (res.status === 409) return { screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' };
+    if (res.status === 409) return { screen: null, reason: '디바이스가 다른 실행에 쓰이는 중이다' };
     const 말 = typeof 몸?.detail === 'string' ? 몸.detail : typeof 몸?.error === 'string' ? 몸.error : `HTTP ${res.status}`;
     return { screen: null, reason: `러너가 화면을 못 읽었다: ${짧게(말)}` };
   } catch (err) {
@@ -120,7 +120,7 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     const PC게임 = 게임만 && (await 게임칸읽기(행.serviceId))?.gamePlatform === 'windows';
     const appPath = await 작성앱파일(행);
     // 게임은 앱 파일이 없으면 켤 게임이 없다 — 앱처럼 「앱 없는 서비스」로 비우면 AI 가 까닭을 모른다. PC 게임은 에이전트가 이 까닭으로 PC 를 잡기 전에 멈춘다
-    if (게임만 && appPath === null) return { screen: null, reason: PC게임 ? 'Windows 빌드가 없다 — 그 애플리케이션에 Windows 빌드 zip 을 올린 뒤 다시 작성한다' : '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };
+    if (게임만 && appPath === null) return { screen: null, reason: PC게임 ? 'Windows 빌드가 없다 — 그 애플리케이션에 Windows 빌드 zip 을 업로드한 뒤 다시 작성한다' : '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };
     const 팜 = 팜주소();
     // 작성 AI 는 서버 몫이다. 한 번 고른 토큰으로 폰을 잡고 러너가 붙고, AI 가 눌러 가며 읽을 때도 같은 주인으로 붙게 넘긴다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
     const 토큰 = 팜 === undefined || appPath === null ? undefined : await 서버팜토큰();

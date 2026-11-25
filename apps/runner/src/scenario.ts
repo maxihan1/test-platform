@@ -159,7 +159,7 @@ export function finishScenario(
       parts.push({ ...빈부품(seq, killed, 'NA'), durationMs: parts.some((p) => p.error?.message === killed) ? 0 : 돌던ms });
     } else {
       // 안 죽였는데 줄 없이 끝났다 — 설정 오류·자식 사망. 「안 돌았음」으로 두면 원인이 사라진다
-      사유 = 꼬리 || '결과 줄 없이 끝났다';
+      사유 = 꼬리 || '결과 줄 없이 종료됐다';
       parts.push(빈부품(seq, 사유, 'FAIL'));
       멈춤 = true;
     }

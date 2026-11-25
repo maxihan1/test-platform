@@ -50,7 +50,7 @@ export async function 반영겹침판정(손: PoolClient, 원본: number): Promi
   const 목록 = await 최근겹침(손, 원본);
   if (목록.length === 0) return null;
   const 남은 = 남은겹침수(목록, await 결정읽기(손, 원본));
-  return 남은 === 0 ? null : { error: 'CONFLICT_OPEN', code: 409, detail: `겹치는 케이스 ${String(남은)}건을 아직 고르지 않았다` };
+  return 남은 === 0 ? null : { error: 'CONFLICT_OPEN', code: 409, detail: `중복 케이스 ${String(남은)}건을 아직 선택하지 않았다` };
 }
 
 /** 집기 응답에 더할 칸 — 반영 행에만. 원본의 결정 **전부**다(거르기는 에이전트가 새로 찾은 목록으로 한다) */

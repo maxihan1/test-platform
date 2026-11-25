@@ -147,7 +147,7 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     expect(await 줄들()).toEqual([
       expect.objectContaining({ tc_id: 'XQX-FN-001', state: 'WAIT_MERGE', pr_url: 주소 }),
       expect.objectContaining({ tc_id: 'XQX-FN-002', state: 'FLAKY' }),
-      expect.objectContaining({ tc_id: 'XQX-FN-003', state: 'GAVE_UP', reason: '고칠 곳을 찾지 못했어요 — 버튼이 없어졌어요' }),
+      expect.objectContaining({ tc_id: 'XQX-FN-003', state: 'GAVE_UP', reason: '수정할 곳을 찾지 못했어요 — 버튼이 없어졌어요' }),
     ]);
     await 테스트수정PR열림({ serviceId: 서비스, params: (await 요청(번호)).params }, 번호, 주소, 결과);
     expect((await 줄들()).map((r) => r.state)).toEqual(['WAIT_MERGE', 'FLAKY', 'GAVE_UP']);
@@ -202,7 +202,7 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     await 테스트수정점검();
     expect(await 줄들()).toEqual([
       expect.objectContaining({ tc_id: 'XQX-FN-001', state: 'FLAKY' }),
-      expect.objectContaining({ tc_id: 'XQX-FN-002', state: 'GAVE_UP', reason: '고칠 곳을 찾지 못했어요 — 창이 안 열려요' }),
+      expect.objectContaining({ tc_id: 'XQX-FN-002', state: 'GAVE_UP', reason: '수정할 곳을 찾지 못했어요 — 창이 안 열려요' }),
     ]);
     expect((await 요청(번호)).discarded_at).not.toBeNull();
     expect(await 게임자동수정실행뒤(await 실행([{ tcId: 'XQX-FN-005', error: 찾지못함 }]))).not.toBeNull();
@@ -220,7 +220,7 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     await 테스트수정점검();
     expect((await 줄들()).map((r) => [r.tc_id, r.state, r.reason])).toEqual([
       ['XQX-FN-001', 'FAILED', '테스트 수정 작성이 실패했어요'],
-      ['XQX-FN-002', 'GAVE_UP', '고칠 곳을 찾지 못했어요'],
+      ['XQX-FN-002', 'GAVE_UP', '수정할 곳을 찾지 못했어요'],
     ]);
     expect((await 요청(칸없음.번호)).discarded_at).not.toBeNull();
   });
@@ -232,7 +232,7 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     await PR(번호, 주소, 결과);
     expect(await 테스트수정병합판정(번호, 서비스, 번호, 주소, 결과)).toBe('PERSON');
     expect(await 테스트수정병합판정(번호, 서비스, 번호, 주소, 결과)).toBe('PERSON');
-    expect((await 줄들())[0]!.person_why).toEqual(['기대값이 바뀌었어요', '일부러 고장 내 보기에서 못 잡은 고장이 있어요']);
+    expect((await 줄들())[0]!.person_why).toEqual(['기대 결과가 변경됐어요', '일부러 고장 내 보기에서 찾지 못한 고장이 있어요']);
     expect((await pool.query(`SELECT 1 FROM authoring_request WHERE kind = 'MERGE' AND service_id = $1`, [서비스])).rowCount).toBe(0);
     await pool.query(`UPDATE bts_test_fix SET merge = 'AUTO' WHERE service_id = $1`, [서비스]);
     await 자동반영실패(번호);
@@ -295,6 +295,6 @@ describe.skipIf(연결 === undefined)('게임 실패 자동 수정', () => {
     await pool.query(`INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, requested_by_name, status) VALUES ($1, 'MERGE', $2, '{}', 'agent', 'Agent', 'DONE')`, [서비스, 번호]);
     delete process.env.DEVICE_FARM_URL;
     await 테스트수정반영뒤(번호);
-    expect(await 줄들()).toEqual([expect.objectContaining({ state: 'FAILED', reason: '실제 폰을 못 잡아 확인하지 못했어요' })]);
+    expect(await 줄들()).toEqual([expect.objectContaining({ state: 'FAILED', reason: '실제 디바이스를 할당하지 못해 확인하지 못했어요' })]);
   });
 });

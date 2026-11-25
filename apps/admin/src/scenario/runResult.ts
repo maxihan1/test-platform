@@ -77,7 +77,7 @@ export function 창단계있나(요청: Pick<ScenarioExecuteRequest, 'parts'>): 
   return 요청.parts.some((p) => p.kind === 'case' && p.apiDoc === undefined);
 }
 
-const 빠진부품 = '러너가 이 단계 결과를 돌려주지 않았다';
+const 빠진부품 = '러너가 이 단계 결과를 보내지 않았다';
 
 // 규칙의 정본은 도메인/시나리오 §7 「실행 결과를 적는 규칙」. false 면 결과를 적지 못했다(늦게 왔거나 저장이 깨졌다)
 // 사람이멈춤이면 FINISHED 가 아니라 ABORTED 로 닫고 돌던 부품을 'STOPPED' 로, 시작도 못 한 부품을 'NOT_RUN' 으로 적는다 (도메인/실행 §3.2 「E2E 도 지금 단계를 알리고 끊는다」)

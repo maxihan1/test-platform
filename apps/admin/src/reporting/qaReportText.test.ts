@@ -49,9 +49,9 @@ describe('QA 리포트 첫 장 글', () => {
     expect(절들(첫장글(리포트(첫장재료(null))))).toEqual(['1. 개요', '2. 결과 요약', '3. 계획 대비 차이', '4. 실패 분류', '5. 남은 리스크', '6. 승인']);
   });
 
-  it('앞 빌드가 없으면 요구사항 · 테스트는 「견줄 이전 빌드 없음」, Issue Bunker 를 안 이었으면 「Issue Bunker 미연결」', () => {
+  it('앞 빌드가 없으면 요구사항 · 테스트는 「비교할 이전 빌드 없음」, Issue Bunker 를 안 이었으면 「Issue Bunker 미연결」', () => {
     const 글 = 글들(첫장글(리포트(첫장재료(첫빌드))));
-    expect(글.filter((x) => x === '견줄 이전 빌드 없음')).toHaveLength(2);
+    expect(글.filter((x) => x === '비교할 이전 빌드 없음')).toHaveLength(2);
     expect(글).toContain('Issue Bunker 미연결');
   });
 
@@ -80,7 +80,7 @@ describe('QA 리포트 첫 장 글', () => {
     );
     const 테스트표 = 덩이들.find((d) => d.꼴 === '표' && d.머리[0] === '구분' && d.머리[3] === '까닭');
     expect(테스트표).toMatchObject({ 줄: [{ 칸: ['수정', 'DM-FN-001 가입', '기대 결과 변경', '사유 기록 없음'], 결: '강조' }, { 칸: ['수정', 'DM-FN-002 이름', '케이스 파일', '케이스 수정 요청 (작성 요청 #5)'] }] });
-    expect(덩이들).toContainEqual({ 꼴: '글', 글: '기대 결과가 바뀐 케이스 1건', 결: '강조' });
+    expect(덩이들).toContainEqual({ 꼴: '글', 글: '기대 결과가 변경된 케이스 1건', 결: '강조' });
     const 글 = 글들(덩이들);
     expect(글).toContain('#31\nhttps://git.test/pr/31');
     expect(글).toContain('제목 기록 없음');
@@ -117,7 +117,7 @@ describe('QA 리포트 첫 장 글', () => {
     재료.results.functional[0] = { kind: 'FN', result: JSON.parse('{"pass":1,"fail":0,"notRun":2,"unconfirmed":0}') };
     const 글 = 글들(첫장글(리포트(재료)));
     expect(글).toContain('Pass 1 · Fail 0 · Not tested 2');
-    expect(글).toContain('바뀐 케이스 없음');
+    expect(글).toContain('변경된 케이스 없음');
   });
 
   it('미확정 · 판정이 필요한 실패 · 승인 상태를 적는다', () => {

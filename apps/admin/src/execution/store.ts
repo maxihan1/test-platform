@@ -171,10 +171,10 @@ export async function createRun(
   // 한 실행은 한 서비스다. 그래야 증적 머리말의 서비스 이름이 실행 전체를 대표한다 (SPEC §7)
   const prefixes = [...new Set(input.items.map((i) => prefixOf(i.tcId)))];
   if (prefixes.length > 1) {
-    throw new RunInputError('MIXED_SERVICE', `한 실행에 서비스가 섞여 있다: ${prefixes.join(', ')}`);
+    throw new RunInputError('MIXED_SERVICE', `한 실행에 애플리케이션이 섞여 있다: ${prefixes.join(', ')}`);
   }
   const prefix = prefixes[0] ?? '';
-  if (input.env.trim() === '') throw new RunInputError('INVALID_REQUEST', '대상 서버를 고르지 않았다');
+  if (input.env.trim() === '') throw new RunInputError('INVALID_REQUEST', '대상 서버를 선택하지 않았다');
 
   const repeat = input.repeat ?? 1;
   const 실제폰 = input.mobileOn === 'vision';
@@ -207,13 +207,13 @@ export async function createRun(
     );
     const found서비스 = service.rows[0];
     if (found서비스 === undefined) {
-      throw new RunInputError('SERVICE_FORBIDDEN', `${prefix} 서비스를 찾을 수 없다`);
+      throw new RunInputError('SERVICE_FORBIDDEN', `${prefix} 애플리케이션을 찾을 수 없다`);
     }
     // 한 실행은 한 종류다 — 실행 기록 · 증적 · 견주기가 종류별로 갈린다. 「프로시저 작성」을 켠 애플리케이션은 섞여도 기능 하나다 (SPEC 공통/4-데이터모델 「실행 종류」)
     const kind = 실행종류(input.items.map((i) => i.tcId), found서비스.procedure_mode);
     if (kind === null) throw new RunInputError('MIXED_KIND', '한 실행에 UI 테스트와 기능 테스트가 섞여 있다');
     if (found서비스.base_url === null) {
-      throw new RunInputError('ENV_NOT_FOUND', `${prefix} 서비스에 ${input.env} 대상 서버가 없다`);
+      throw new RunInputError('ENV_NOT_FOUND', `${prefix} 애플리케이션에 ${input.env} 대상 서버가 없다`);
     }
     const 인증들 = API인증읽기(found서비스.api_auths);
     // 게임 하나에 플랫폼 하나 — 윈도우 PC 는 PC 게임만, android 는 PC 게임이 아닌 것만 돈다 (도메인/게임 §3.10 결정 27 · §7)
@@ -221,9 +221,9 @@ export async function createRun(
     const 밖값 = input.items.flatMap((i) => i.platforms.filter(밖인가).map((p) => ({ tcId: i.tcId, p })))[0];
     if (밖값 !== undefined) {
       // 사람이 고른 것만 거절한다 — 정기 · 빌드 · 배포 신호 실행은 그 항목만 빼고 나머지를 돌린다. 케이스 하나 때문에 밤 정기 실행 전체가 멈추지 않게(스캐너가 문제 줄로 알린다)
-      if (input.origin === 'MANUAL') throw new RunInputError('INVALID_REQUEST', `${밖값.tcId} 의 ${PLATFORM_LABEL[밖값.p]} 디바이스는 이 애플리케이션에서 돌지 않는다 — 게임 하나에 플랫폼 하나다`);
+      if (input.origin === 'MANUAL') throw new RunInputError('INVALID_REQUEST', `${밖값.tcId} 의 ${PLATFORM_LABEL[밖값.p]} 디바이스는 이 애플리케이션에서 실행되지 않는다 — 게임 하나에 플랫폼 하나다`);
       input = { ...input, items: input.items.map((i) => ({ ...i, platforms: i.platforms.filter((p) => !밖인가(p)) })).filter((i) => i.platforms.length > 0) };
-      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '이 애플리케이션 플랫폼으로 돌 케이스가 없다');
+      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '이 애플리케이션 플랫폼으로 실행할 케이스가 없다');
     }
     // 정기 · 빌드 · 배포 신호 실행은 카탈로그 선언을 그대로 싣는다 — 윈도우 값을 windows 하나로 접어 아래에서 지원 패드로 다시 펼친다(지원 패드에서 뺀 패드는 안 돈다)
     if (input.origin !== 'MANUAL') {
@@ -240,16 +240,16 @@ export async function createRun(
     if (빠진.length > 0) {
       if (input.origin === 'MANUAL') throw new RunInputError('CASE_NOT_FOUND', `테스트 프로시저에서 빠진 케이스다: ${빠진.join(', ')}`);
       input = { ...input, items: input.items.filter((i) => !빠진.includes(i.tcId)) };
-      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '테스트 프로시저에서 빠진 케이스뿐이라 돌 케이스가 없다');
+      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '테스트 프로시저에서 빠진 케이스뿐이라 실행할 케이스가 없다');
     }
     // 못 도는 러너에는 프로시저 파일을 보내지 않는다 — 사람이 건 실행은 거절하고 자동 실행은 그 케이스만 뺀다(디바이스가 안 맞는 케이스를 다루는 방식과 같다)
     const 프로시저안 = (tcId: string): boolean => (cases.get(tcId)?.proc_id ?? null) !== null;
     let procSkipped = 0;
     if (input.items.some((i) => 프로시저안(i.tcId)) && (await 못보내나())) {
-      if (input.origin === 'MANUAL') throw new RunInputError('RUNNER_NO_PROCEDURE', '러너가 테스트 프로시저를 돌리지 못한다');
+      if (input.origin === 'MANUAL') throw new RunInputError('RUNNER_NO_PROCEDURE', '러너가 테스트 프로시저를 실행하지 못한다');
       procSkipped = input.items.filter((i) => 프로시저안(i.tcId)).length;
       input = { ...input, items: input.items.filter((i) => !프로시저안(i.tcId)) };
-      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '러너가 테스트 프로시저를 돌리지 못해 돌 케이스가 없다', { procSkipped });
+      if (input.items.length === 0) throw new RunInputError('NO_ITEMS', '러너가 테스트 프로시저를 실행하지 못해 실행할 케이스가 없다', { procSkipped });
     }
     // 제목 · 「실패 다시」 검사 · 한 건 판정은 펼치기 전에 고른 케이스로 한다 (도메인/실행 §3.2 「테스트 프로시저 실행」)
     const tcIds = [...new Set(input.items.map((i) => i.tcId))].sort();

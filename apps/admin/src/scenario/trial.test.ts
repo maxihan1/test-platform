@@ -216,7 +216,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
   it('모르는 서비스는 INVALID_REQUEST 다', async () => {
     await expect(시험시작(사람, 본문({ service: 'XSTNONE' }))).rejects.toMatchObject({
       code: 'INVALID_REQUEST',
-      message: '모르는 서비스다: XSTNONE',
+      message: '알 수 없는 애플리케이션이다: XSTNONE',
     });
   });
 

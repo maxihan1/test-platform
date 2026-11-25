@@ -51,9 +51,9 @@ describe('정기 실행 기능 줄 — 프로시저 작성 스위치', () => {
   });
 
   it('다 빠졌으면 RUNNER_NO_PROCEDURE 와 NO_CASE 를 남기고 다른 NO_ITEMS 는 오류 문구 그대로다', async () => {
-    가짜.createRun.mockRejectedValueOnce(new RunInputError('NO_ITEMS', '러너가 테스트 프로시저를 돌리지 못해 돌 케이스가 없다', { procSkipped: 2 }));
+    가짜.createRun.mockRejectedValueOnce(new RunInputError('NO_ITEMS', '러너가 테스트 프로시저를 실행하지 못해 실행할 케이스가 없다', { procSkipped: 2 }));
     expect(await 줄돌리기(기능전체, 고름, 재료(true), 회차, 조용히)).toEqual({ reason: 'NO_CASE', 앞말: ['RUNNER_NO_PROCEDURE'] });
-    가짜.createRun.mockRejectedValueOnce(new RunInputError('NO_ITEMS', '이 애플리케이션 플랫폼으로 돌 케이스가 없다'));
-    expect(await 줄돌리기(기능전체, 고름, 재료(true), 회차, 조용히)).toEqual({ reason: 'NO_ITEMS: 이 애플리케이션 플랫폼으로 돌 케이스가 없다' });
+    가짜.createRun.mockRejectedValueOnce(new RunInputError('NO_ITEMS', '이 애플리케이션 플랫폼으로 실행할 케이스가 없다'));
+    expect(await 줄돌리기(기능전체, 고름, 재료(true), 회차, 조용히)).toEqual({ reason: 'NO_ITEMS: 이 애플리케이션 플랫폼으로 실행할 케이스가 없다' });
   });
 });

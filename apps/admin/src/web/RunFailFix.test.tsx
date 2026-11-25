@@ -119,9 +119,9 @@ describe('게임 실패 자동 수정 — 도는 중 · 통과 못 하고 끝남
   });
 
   it('그만둔 줄도 머리는 「자동 수정 실패」 이다', async () => {
-    await 카드그리기(중({ state: 'GAVE_UP', reason: '고칠 곳을 찾지 못했어요' }));
+    await 카드그리기(중({ state: 'GAVE_UP', reason: '수정할 곳을 찾지 못했어요' }));
     expect(document.querySelector('.fc-card .fc-head .fix-tag')?.textContent).toBe('자동 수정 실패');
-    expect(document.querySelector('.fc-body')?.textContent).toContain('그만뒀습니다 · 고칠 곳을 찾지 못했어요');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('그만뒀습니다 · 수정할 곳을 찾지 못했어요');
   });
 
   it('다시 실행 번호가 아직 없으면 PR 뒤에 구분점이 매달리지 않는다', async () => {

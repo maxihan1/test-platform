@@ -102,9 +102,9 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
   it('앱 파일이 패키지 이름(스토어 앱)이거나 없으면 지우기 전에 던진다', async () => {
     const 폰 = 가짜폰();
     vi.stubEnv('PLATFORM_APP', 'com.shop');
-    await expect(앱다시깔기(폰.driver)).rejects.toThrow('패키지 이름으로 준 스토어 앱(com.shop)은 지우거나 다시 깔지 않는다');
+    await expect(앱다시깔기(폰.driver)).rejects.toThrow('패키지 이름으로 준 스토어 앱(com.shop)은 삭제하거나 다시 설치하지 않는다');
     vi.stubEnv('PLATFORM_APP', '');
-    await expect(앱다시깔기(폰.driver)).rejects.toThrow('깔 앱 파일(PLATFORM_APP)이 없다');
+    await expect(앱다시깔기(폰.driver)).rejects.toThrow('설치할 앱 파일(PLATFORM_APP)이 없다');
     expect(폰.보낸).toEqual([]);
   });
 
@@ -146,7 +146,7 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
 
     const 막힌폰 = 가짜폰(undefined, (명령, 인자) => 명령 === 'mobile: installApp' && (인자 as { appPath: string }).appPath.includes('sig='));
     const 오류 = await 옛판에서올리기(막힌폰.driver, () => Promise.reject(new Error('로그인 버튼이 없다'))).catch((e: unknown) => e as Error);
-    expect(오류.message).toBe('로그인 버튼이 없다 (지금 판도 다시 못 깔았다 — 옛판에서올리기 — 지금 판을 못 깔았다 — 팜이 막았다 — Cannot download <앱 파일>)');
+    expect(오류.message).toBe('로그인 버튼이 없다 (지금 버전도 다시 설치하지 못했다 — 옛판에서올리기 — 지금 버전을 설치하지 못했다 — 팜이 막았다 — Cannot download <앱 파일>)');
     expect(오류.stack).not.toContain('secret');
   });
 
@@ -156,7 +156,7 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
     const 폰 = 가짜폰(undefined, (명령) => 명령 === 'mobile: installApp');
     const 할일 = vi.fn();
     const 오류 = (await 옛판에서올리기(폰.driver, 할일).catch((e: unknown) => e)) as Error;
-    expect(오류.message).toBe('옛판에서올리기 — 앞 빌드를 못 깔았다 — 팜이 막았다 — Cannot download <앱 파일>');
+    expect(오류.message).toBe('옛판에서올리기 — 앞 빌드를 설치하지 못했다 — 팜이 막았다 — Cannot download <앱 파일>');
     expect(할일).not.toHaveBeenCalled();
   });
 });
@@ -172,7 +172,7 @@ describe('깔기 오류 가리기', () => {
       capabilities: { appPackage: 'com.shop' },
     } as unknown as AppDriver;
     const 오류 = (await 앱다시깔기(driver).catch((e: unknown) => e)) as Error;
-    expect(오류.message).toBe('앱다시깔기 — 지금 판을 못 깔았다 — 404 at https%3A//admin/apk?exp=1&sig=…');
+    expect(오류.message).toBe('앱다시깔기 — 지금 버전을 설치하지 못했다 — 404 at https%3A//admin/apk?exp=1&sig=…');
   });
 });
 

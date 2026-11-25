@@ -35,7 +35,7 @@ export async function PC에서돌린다(
   try {
     토큰 = await 사람팜토큰(사람);
   } catch (err) {
-    return 못감('누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
+    return 못감('누른 사람의 Device VISION 토큰을 받지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   // PC 는 kit 이 장면 사진을 안 찍는다 — 칸이 VISION 화면 영상을 받아 간다. 열쇠는 그 시험의 trialId(장면 열쇠)다 (도메인/게임 §3.10 「증적 · 결과」)
   const 영상열쇠 = `trial:${요청.live ?? ''}`;

@@ -12,7 +12,7 @@ describe('실행 순서 줄', () => {
     expect(순서설명(상태(1, { state: 'RUNNING', cases: { done: 5, total: 9 } }), 0, t)).toBe('케이스 5 / 9');
     expect(순서설명(상태(1, { state: 'CHECKING', checks: { done: 40, total: 61 } }), 0, t)).toBe('AI 점검 40 / 61장');
     expect(순서설명(상태(1, { fold: 'OPEN' }), 1, t)).toBe('펼침 · AI 점검 완료 · 결함 의심 1');
-    expect(순서설명(상태(1, { state: 'SKIPPED', skipReason: '디바이스를 잡지 못했습니다' }), 0, t)).toBe('디바이스를 잡지 못했습니다');
+    expect(순서설명(상태(1, { state: 'SKIPPED', skipReason: '디바이스를 할당하지 못했습니다' }), 0, t)).toBe('디바이스를 할당하지 못했습니다');
     expect(순서설명(상태(1, { state: 'WAIT' }), 0, t)).toBe('');
   });
 

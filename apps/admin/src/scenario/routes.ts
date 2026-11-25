@@ -48,10 +48,10 @@ const 없음 = (reply: FastifyReply, detail: string) => reply.code(404).send({ e
 // 치운 것은 보기만, 비활성 서비스의 것은 만들기와 같게 400 이다 (게이트 0 승인 3). 거절이면 보낸 응답을 돌려준다
 // 치운 것 검사는 빠른 거절일 뿐이다 — 이 검사와 저장 사이에 치우기가 낄 수 있어 진짜 그물은 store 의 잠금 안 판정이다
 const 치웠음 = (reply: FastifyReply, id: number) =>
-  reply.code(409).send({ error: 'SCENARIO_ARCHIVED', detail: `치운 시나리오다: ${id}` });
+  reply.code(409).send({ error: 'SCENARIO_ARCHIVED', detail: `삭제한 시나리오다: ${id}` });
 async function 고칠수없음(reply: FastifyReply, 지금: { id: number; isActive: boolean; service: string }) {
   if (!지금.isActive) return 치웠음(reply, 지금.id);
-  if ((await findService(지금.service)) === null) return 잘못(reply, `모르는 서비스다: ${지금.service}`);
+  if ((await findService(지금.service)) === null) return 잘못(reply, `알 수 없는 애플리케이션이다: ${지금.service}`);
   return null;
 }
 
@@ -68,7 +68,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     const prefix = req.query.service ?? '';
     if (prefix === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
     const 서비스 = await findService(prefix);
-    if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${prefix}`);
+    if (서비스 === null) return 잘못(reply, `알 수 없는 애플리케이션이다: ${prefix}`);
 
     const 전부 = await 목록(서비스.id);
     // 케이스 삭제 요청 화면이 그 케이스를 쓰는 시나리오만 받으려는 거름. 목록은 최신 버전 부품만 들고 있다
@@ -90,7 +90,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if (!parsed.success) return 잘못(reply, parsed.error.message);
     const { service, name, platform, parts } = parsed.data;
     const 서비스 = await findService(service);
-    if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${service}`);
+    if (서비스 === null) return 잘못(reply, `알 수 없는 애플리케이션이다: ${service}`);
 
     const 오류 = await 조립오류(parts, platform, service);
     if (오류.length > 0) return 잘못(reply, 오류.join(' · '));
@@ -110,7 +110,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     const prefix = req.query.service ?? '';
     if (prefix === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
     const 서비스 = await findService(prefix);
-    if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${prefix}`);
+    if (서비스 === null) return 잘못(reply, `알 수 없는 애플리케이션이다: ${prefix}`);
     // after 칸이 아예 없으면 첫 단계 후보다 (결정 15). ?after= 를 두 번 붙이면 배열이 온다 — 어느 단계 뒤인지 모르니 추천하지 않는다
     if (req.query.after === undefined) return { items: await 첫케이스읽기(서비스.id, prefix) };
     const after = typeof req.query.after === 'string' ? req.query.after : '';
@@ -123,7 +123,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     const parsed = 제안본문.safeParse(req.body);
     if (!parsed.success) return 잘못(reply, parsed.error.message);
     const { service, parts } = parsed.data;
-    if ((await findService(service)) === null) return 잘못(reply, `모르는 서비스다: ${service}`);
+    if ((await findService(service)) === null) return 잘못(reply, `알 수 없는 애플리케이션이다: ${service}`);
     // 프로시저 단계는 케이스 수만큼 몫이 커진다 — 저장 검사와 같은 셈이어야 저장 안 될 초안에 제안을 안 낸다 (결정 17)
     const pool = (await import('../db/index.js')).pool;
     if (제한시간크기사유(parts, await 프로시저케이스수읽기(pool, 케이스번호들(parts))).length > 0) return { items: [] };
@@ -139,10 +139,10 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if (!parsed.success) return 잘못(reply, parsed.error.message);
     const { service, platform } = parsed.data;
     const 서비스 = await findService(service);
-    if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${service}`);
+    if (서비스 === null) return 잘못(reply, `알 수 없는 애플리케이션이다: ${service}`);
     // 조립 검사와 같은 규칙 — 저장하면 거절될 디바이스로 AI 일을 쓰지 않는다 (결정 16)
     if ((platform === 'android') !== (await 앱종류읽기([service])).has(service)) {
-      return 잘못(reply, platform === 'android' ? `${service} 는 Android 앱 · 게임 애플리케이션이 아니라 android 를 고를 수 없다` : `${service} 는 Android 앱 · 게임 애플리케이션이라 디바이스는 android 만 고른다`);
+      return 잘못(reply, platform === 'android' ? `${service} 는 Android 앱 · 게임 애플리케이션이 아니라 android 를 선택할 수 없다` : `${service} 는 Android 앱 · 게임 애플리케이션이라 디바이스는 android 만 선택한다`);
     }
     const wish = parsed.data.wish === undefined || parsed.data.wish === '' ? null : parsed.data.wish;
     const r = await 흐름맡기기({ id: 서비스.id, prefix: service }, platform, wish, req.user?.username ?? '');
@@ -151,7 +151,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
       ? reply.code(503).send({ error: 'AGENT_OFFLINE', detail: '작성 에이전트가 꺼져 있습니다' })
       : reply.code(409).send({
           error: 'NO_DATA',
-          detail: r.error === 'NO_GAME_SCREEN' ? '게임 화면을 여는 기능 테스트가 없습니다' : '그 디바이스에서 도는 활성 기능 테스트가 둘보다 적습니다',
+          detail: r.error === 'NO_GAME_SCREEN' ? '게임 화면을 여는 기능 테스트가 없습니다' : '그 디바이스에서 실행되는 활성 기능 테스트가 둘보다 적습니다',
         });
   });
 

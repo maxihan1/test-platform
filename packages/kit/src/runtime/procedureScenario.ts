@@ -32,7 +32,7 @@ export function 프로시저단계(procedure: ProcedureSpec, body: ProcedureBody
     // 판정 전에 끝나는 단계는 케이스를 안 돌았다 — cases 를 안 싣는다
     const 못돈다 = (message: string): ScenarioCaseOutcome => ({ seq, steps: [], failed: true, error: { message } });
     if (!선언했나(procedure.platforms, input.platform)) return 못돈다(`${procedure.procId}은 ${platformLabel(input.platform)} 환경을 선언하지 않았다`);
-    if (driver === undefined) return 못돈다(`${procedure.procId}에 폰 연결이 없다`);
+    if (driver === undefined) return 못돈다(`${procedure.procId}에 디바이스 연결이 없다`);
     // 실행을 만든 뒤 프로시저가 바뀌었다 — 단독 실행과 같이 돌지 않고 케이스마다 알린다
     if (input.cases !== undefined && (input.cases.length !== cases.length || input.cases.some((c, i) => c.tcId !== cases[i]!.tcId))) {
       return {

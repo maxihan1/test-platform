@@ -124,7 +124,7 @@ export const 시나리오마법사말: Record<string, string> = {
   '애플리케이션 지도에서 찾았습니다 · 종류 「{종류}」': 'Found in the service map · type “{종류}”',
   'JSON 경로는 AI 가 짐작했습니다': 'AI guessed the JSON path',
   '확인 취소': 'Uncheck',
-  '맞아요': 'Looks right',
+  '맞습니다': 'Looks right',
   '앞 단계 응답에서 꺼낼 값의 경로를 적습니다 · 예: id, data.id': 'Enter the path of the value to take from the earlier step’s response · e.g. id, data.id',
   '값을 넣을 입력값 칸을 선택합니다': 'Pick the input field to put the value in',
   '입력값 없음': 'No inputs',

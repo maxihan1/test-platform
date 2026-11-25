@@ -33,10 +33,10 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
   }, 60_000);
 
   it('애플리케이션 종류 · 조작 방식 · 팜 · 내 컴퓨터 러너 · 앱 파일 · 남의 케이스를 거절한다', async () => {
-    expect((await 측정({ serviceId: API앱 })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: 'API 애플리케이션은 기기 성능을 잴 수 없습니다' });
+    expect((await 측정({ serviceId: API앱 })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: 'API 애플리케이션은 디바이스 성능을 잴 수 없습니다' });
     expect((await 측정({ drive: 'ALTTESTER', durationSec: undefined, caseIds: ['XQD-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('"drive"') });
-    expect((await 측정({ drive: 'GAME', durationSec: undefined })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('Appium · 게임 케이스는 케이스를 고릅니다') });
-    expect((await 측정({ drive: 'GAME', durationSec: undefined, caseIds: ['XQD-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 케이스는 게임 애플리케이션만 고릅니다' });
+    expect((await 측정({ drive: 'GAME', durationSec: undefined })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('Appium · 게임 케이스는 케이스를 선택합니다') });
+    expect((await 측정({ drive: 'GAME', durationSec: undefined, caseIds: ['XQD-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 케이스는 게임 애플리케이션만 선택합니다' });
     await 환경로({ DEVICE_FARM_URL: undefined }, async () => {
       const r = await 측정();
       expect(r.statusCode).toBe(409);
@@ -48,15 +48,15 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     const 앱 = (more: object) => 측정({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQD-001'], ...more });
     expect((await 앱({ env: 'dev' })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '대상 서버 줄에 앱 파일이 없습니다' });
     expect((await 앱({ caseIds: ['XQDB-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '이 애플리케이션의 케이스가 아닙니다: XQDB-001' });
-    expect((await 앱({ caseIds: ['XQD-GS-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 시나리오는 기기 성능에 쓰지 않습니다: XQD-GS-001' });
+    expect((await 앱({ caseIds: ['XQD-GS-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 시나리오는 디바이스 성능에 쓰지 않습니다: XQD-GS-001' });
     expect((await 앱({ caseIds: ['XQD-002'] })).json()).toMatchObject({ detail: 'Android 앱 케이스가 아닙니다: XQD-002' });
-    expect((await 앱({ devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: 'Appium 케이스는 팜 폰만 잴 수 있습니다' });
+    expect((await 앱({ devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: 'Appium 케이스는 Device VISION 디바이스만 잴 수 있습니다' });
     expect((await 앱({ devices: [{ serial: 'FA1', where: 'FARM' }, { serial: 'FA1', where: 'FARM' }] })).statusCode).toBe(400);
     await 판.pool.query(`UPDATE service_env SET app_path = 'com.xq.app' WHERE service_id = $1 AND env = 'qa'`, [판.서비스]);
     try {
       expect((await 앱({ devices: [{ serial: 'FA1', where: 'FARM' }, { serial: 'FA2', where: 'FARM' }] })).json()).toMatchObject({
         error: 'INVALID_REQUEST',
-        detail: '고른 폰 FA2 에 com.xq.app 가 깔려 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 폰을 고릅니다',
+        detail: '선택한 디바이스 FA2 에 com.xq.app 가 설치되어 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 디바이스를 선택합니다',
       });
     } finally {
       await 판.pool.query(`UPDATE service_env SET app_path = '/apps/demo.apk' WHERE service_id = $1 AND env = 'qa'`, [판.서비스]);
@@ -65,7 +65,7 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     await 판.pool.query(`UPDATE service SET kind = 'GAME', game_platform = 'android' WHERE id = $1`, [판.서비스]);
     try {
       expect((await 앱({})).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 애플리케이션은 게임 케이스로 잽니다' });
-      expect((await 앱({ drive: 'GAME', devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: '게임 케이스는 팜 폰만 잴 수 있습니다' });
+      expect((await 앱({ drive: 'GAME', devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: '게임 케이스는 Device VISION 디바이스만 잴 수 있습니다' });
       expect((await 앱({ drive: 'GAME', env: 'dev' })).json()).toMatchObject({ detail: '대상 서버 줄에 앱 파일이 없습니다' });
       expect((await 앱({ drive: 'GAME', caseIds: ['XQD-002'] })).json()).toMatchObject({ detail: '게임 케이스가 아닙니다: XQD-002' });
     } finally {

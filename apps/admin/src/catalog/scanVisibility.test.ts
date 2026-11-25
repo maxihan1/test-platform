@@ -159,7 +159,7 @@ describe('스캔 결과 거르기', () => {
     }
     expect(화면지도.차례).toEqual(['저장 XCA', '화면 XCA', '저장 XCC', '화면 XCC']);
     expect(화면지도.부름[0]).toEqual([1, 'XCA', '/뿌리', [expect.objectContaining({ tcId: 'XCA-001' })], true]);
-    expect(body.error).toContain('XCA 서비스의 화면 파일로 지도를 채우지 못했다: 화면 파일 깨짐');
+    expect(body.error).toContain('XCA 애플리케이션의 화면 파일로 지도를 채우지 못했다: 화면 파일 깨짐');
   });
 
   it('병합 뒤 훑기는 그 서비스만 다시 훑고 나머지 서비스 결과는 지난 스캔 것을 둔다 (PRD-F9-03)', async () => {
@@ -195,12 +195,12 @@ describe('스캔 결과 거르기', () => {
       뿌리.길 = 임시;
       expect((await 다시스캔()).error).toBeUndefined();
       await mkdir(join(임시, 'xcd'));
-      expect((await 다시스캔()).error).toContain('XCD 서비스의 테스트 폴더 xcd을 읽지 못했다');
+      expect((await 다시스캔()).error).toContain('XCD 애플리케이션의 테스트 폴더 xcd을 읽지 못했다');
     } finally {
       뿌리.길 = '/뿌리';
       await rm(임시, { recursive: true, force: true });
     }
-    expect((await 다시스캔()).error).toContain('XCD 서비스의 테스트 폴더 xcd을 읽지 못했다');
+    expect((await 다시스캔()).error).toContain('XCD 애플리케이션의 테스트 폴더 xcd을 읽지 못했다');
   });
 
   it('뿌리 폴더에 다른 폴더가 있는데 서비스 폴더가 없으면 케이스 0건으로 저장해 비활성으로 내리고 건수를 알린다 · 뿌리에 숨김 항목뿐이면 안 건드린다', async () => {
@@ -219,7 +219,7 @@ describe('스캔 결과 거르기', () => {
       await mkdir(join(임시, 'xca'));
       화면지도.차례.length = 0;
       const body = await 다시스캔();
-      expect(body.error).toContain('XCD 서비스의 테스트 폴더 xcd에 케이스가 없어 7건을 비활성으로 내렸다');
+      expect(body.error).toContain('XCD 애플리케이션의 테스트 폴더 xcd에 케이스가 없어 7건을 비활성으로 내렸다');
       expect(화면지도.저장).toEqual([[[], true, 'XCD']]);
       expect(화면지도.차례).toEqual(['저장 XCD', '화면 XCD']);
 

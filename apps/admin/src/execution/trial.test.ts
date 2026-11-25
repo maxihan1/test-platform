@@ -76,7 +76,7 @@ describe('테스트 실행 메모리 저장소', () => {
         status: 'NA',
         steps: [],
         error: {
-          message: '테스트 실행을 끝내지 못했습니다',
+          message: '테스트 실행을 완료하지 못했습니다',
           stack: 'connect ECONNREFUSED 127.0.0.1:4001',
         },
       },
@@ -201,7 +201,7 @@ describe('시나리오 시험 실행 보관소', () => {
     await vi.waitFor(() => expect(시나리오시험.읽는다('kim', id)?.status).toBe('FINISHED'));
     expect(JSON.stringify(시나리오시험.읽는다('kim', id))).not.toContain('내 컴퓨터');
     expect(시나리오시험.읽는다('kim', id)).toMatchObject({
-      result: { status: 'NA', parts: [], error: { message: '시험 실행을 끝내지 못했습니다', stack: '깨짐' } },
+      result: { status: 'NA', parts: [], error: { message: '시험 실행을 완료하지 못했습니다', stack: '깨짐' } },
     });
   });
 

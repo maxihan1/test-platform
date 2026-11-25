@@ -71,7 +71,7 @@ export async function BTS에알리기(id: number, serviceId: number, params: Rec
   if ('prUrl' in 몸) {
     // 차례가 곧 BTS 에 닿는 차례다(보낼 줄은 같은 이슈를 앞 줄부터) — 댓글 → 「코드 리뷰」 → 담당자
     const 코드리뷰 = l.status_map.CODE_REVIEW ?? '';
-    const 댓글 = [`Issue Bunker 에이전트가 수정 PR 을 등록했어요 — ${몸.prUrl}`, '', 몸.summary, ...파일, '', '검토용 PR 이에요. 검토하고 병합은 사람이 해요'].join('\n');
+    const 댓글 = [`Issue Bunker 에이전트가 수정 PR 을 등록했어요 — ${몸.prUrl}`, '', 몸.summary, ...파일, '', '검토용 PR 이에요. 검토와 PR 병합은 사람이 해요'].join('\n');
     await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body: 글자르기(댓글) } });
     if (코드리뷰 !== '') await 보낼줄넣기({ projectId, kind: 'TRANSITION', issueKey, payload: { toStatusKey: 코드리뷰 } });
     if (사람 !== null) await 보낼줄넣기({ projectId, kind: 'ASSIGN', issueKey, payload: { assigneeId: 사람 } });

@@ -30,7 +30,7 @@ export const 시나리오말: Record<string, string> = {
   '삭제하는 중': 'Deleting…',
   'SC-{번호} 시나리오를 삭제할까요?': 'Delete scenario SC-{번호}?',
   '지난 실행 기록과 리포트는 그대로 남습니다.': 'Past runs and reports stay as they are.',
-  '삭제한 시나리오는 되살릴 수 없습니다.': 'An archived scenario cannot be brought back.',
+  '삭제한 시나리오는 복원할 수 없습니다.': 'An archived scenario cannot be brought back.',
   '기능 케이스를 단계로 이어 붙여 만듭니다': 'Build one by chaining functional test scripts as steps',
   'E2E · 시나리오 v{버전} · {디바이스}': 'E2E · scenario v{버전} · {디바이스}',
   '실행 시각': 'Run at',

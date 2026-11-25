@@ -84,7 +84,7 @@ export async function 옛시험치우기(뿌리: string, 지금: number, 갈래:
 /** 조립을 검사하고 러너에 보낼 부품을 채운다. 성능 시나리오 녹화(perf/record.ts)도 같은 채우기를 쓴다 */
 export async function 시험재료(본문: 시험본문) {
   const 서비스 = await findService(본문.service);
-  if (서비스 === null) throw new 시험시작오류('INVALID_REQUEST', `모르는 서비스다: ${본문.service}`);
+  if (서비스 === null) throw new 시험시작오류('INVALID_REQUEST', `알 수 없는 애플리케이션이다: ${본문.service}`);
 
   const 번호들 = 본문.parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
   // 만들기와 같은 검사다 — 저장하면 거절될 조립을 시험으로 돌리게 두지 않는다
@@ -98,7 +98,7 @@ export async function 시험재료(본문: 시험본문) {
   const pool = await db();
   // 섞인 애플리케이션마다 같은 이름의 줄을 찾는다. 하나라도 없으면 거절한다 (§3.7 결정 13)
   const { 앱들, 없음 } = await 쓰는앱읽기(쓰는접두사(본문.parts, 본문.service), 본문.env, pool);
-  if (없음 !== null) throw new 시험시작오류('ENV_NOT_FOUND', `${없음} 서비스에 ${본문.env} 대상 서버가 없다`);
+  if (없음 !== null) throw new 시험시작오류('ENV_NOT_FOUND', `${없음} 애플리케이션에 ${본문.env} 대상 서버가 없다`);
   const baseUrl = 앱들.get(본문.service)!.baseUrl;
   const 종류 = 앱종류들(앱들);
 

@@ -110,7 +110,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     const 말 = await 건다(['XBO-001'], { rerunOf: 남의번호 }).catch((e: unknown) => (e as Error).message);
     await pool.query('DELETE FROM run_exec WHERE run_id = $1', [남의번호]);
     await pool.query('DELETE FROM test_run WHERE run_id = $1', [남의번호]);
-    expect(말).toBe(`이 서비스에 실행 ${String(남의번호)}이 없다`);
+    expect(말).toBe(`이 애플리케이션에 실행 ${String(남의번호)}이 없다`);
     expect((await pool.query(`SELECT count(*)::int AS n FROM test_run WHERE service_id = ${서비스번호}`)).rows[0]).toEqual(앞수.rows[0]);
 
     const 다시 = await 건다(['XBO-002', 'XBO-001'], { rerunOf: 원래 });

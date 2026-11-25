@@ -24,7 +24,7 @@ export function 게임고침인가(params: unknown): boolean {
 
 /**
  * result.testFix.cases — 게임 고침 자식이 케이스마다 남긴 끝(GAME-F5-13 이 채운다). FIXED 는 PR 에 든 고침,
- * FLAKY 는 그대로 돌려 보니 통과해 안 고침, NOT_FOUND 는 「고칠 곳을 찾지 못했어요」 — note 에 본 것 한 줄
+ * FLAKY 는 그대로 돌려 보니 통과해 안 고침, NOT_FOUND 는 「수정할 곳을 찾지 못했어요」 — note 에 본 것 한 줄
  */
 export const 게임고침끝들 = ['FIXED', 'FLAKY', 'NOT_FOUND'] as const;
 export const 케이스끝틀 = z.array(z.object({ tcId: z.string(), outcome: z.enum(게임고침끝들), note: z.string().max(300).optional() }));

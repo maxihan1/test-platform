@@ -99,7 +99,7 @@ describe('앱화면읽기', () => {
     const { 기록, 잡기 } = 가짜잡기();
     expect(폰을바로잡는다()).toBe(true);
 
-    expect(await 앱화면읽기('/a.apk', 러너, 잡기, 부르기)).toEqual({ screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' });
+    expect(await 앱화면읽기('/a.apk', 러너, 잡기, 부르기)).toEqual({ screen: null, reason: '디바이스가 다른 실행에 쓰이는 중이다' });
     expect(부르기).not.toHaveBeenCalled();
     expect(기록.잡음).toBe(0);
     폰을놓는다();
@@ -148,16 +148,16 @@ describe('앱화면읽기', () => {
 
   it('팜이 폰을 못 내주면 그 까닭을 적고 러너를 부르지 않는다', async () => {
     const 부르기 = 답({ screen: '화면' });
-    const 못잡는팜: 폰잡기 = async (_일, 못잡음) => 못잡음('Device VISION 에 빈 폰이 없습니다');
+    const 못잡는팜: 폰잡기 = async (_일, 못잡음) => 못잡음('Device VISION 에 빈 디바이스가 없습니다');
 
-    expect(await 앱화면읽기('/a.apk', 러너, 못잡는팜, 부르기)).toEqual({ screen: null, reason: 'Device VISION 에 빈 폰이 없습니다' });
+    expect(await 앱화면읽기('/a.apk', 러너, 못잡는팜, 부르기)).toEqual({ screen: null, reason: 'Device VISION 에 빈 디바이스가 없습니다' });
     expect(부르기).not.toHaveBeenCalled();
   });
 
   it('러너가 폰이 바쁘다고(409) 하면 그 말로 적는다', async () => {
     expect(await 앱화면읽기('/a.apk', 러너, 가짜잡기().잡기, 답({ error: 'RUNNER_BUSY' }, 409))).toEqual({
       screen: null,
-      reason: '폰이 다른 실행에 쓰이는 중이다',
+      reason: '디바이스가 다른 실행에 쓰이는 중이다',
     });
   });
 

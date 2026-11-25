@@ -210,7 +210,7 @@ function 프로시저단계줄(재료: 실패재료, p: 프로시저재료, 남�
   const 뺀수 = Math.max(0, 재료.steps.length - 남길);
   return [
     ...앞,
-    ...(접기 && p.앞케이스.length > 0 ? ['앞서 돈 케이스의 절차는 Test Commander 실행 결과에서'] : []),
+    ...(접기 && p.앞케이스.length > 0 ? ['앞서 실행한 케이스의 절차는 Test Commander 실행 결과에서'] : []),
     `**${재료.tcId} ${재료.tcName} — Fail**`,
     ...재료.steps.slice(0, 남길).map((s) => `${String(++번호)}. ${s.title}${s.status === 'FAIL' ? ' ← 여기서 실패' : ''}`),
     ...(뺀수 > 0 ? [`이하 ${String(뺀수)}단계는 Test Commander 실행 결과에서`] : []),
@@ -219,7 +219,7 @@ function 프로시저단계줄(재료: 실패재료, p: 프로시저재료, 남�
 
 function 프로시저머리줄(p: 프로시저재료): string[] {
   return [
-    `**프로시저** — ${p.id} ${p.name} · ${String(p.seq)}번째 / ${String(p.total)}`,
+    `**프로시저** — ${p.id} ${p.name} · ${String(p.total)}건 중 ${String(p.seq)}번째`,
     ...(p.앞실패.length === 0 ? [] : [`**앞서 실패한 케이스** — ${p.앞실패.join(' · ')}`]),
     ...(p.후속.length === 0 ? [] : [`**후속 케이스** — ${p.후속.map((c) => `${c.tcId} ${c.tcName}`).join(' · ')}`]),
   ];

@@ -61,7 +61,7 @@ describe.skipIf(연결 === undefined)('프로시저 파일 스캔과 저장', ()
   });
 
   it('스위치가 꺼진 애플리케이션의 프로시저 파일은 올리지 않고 문제 줄로 알린다 — 옛 꼴 파일은 그대로 올린다', async () => {
-    expect(await 훑기()).toContain(`${join('xts', 'XTS-TP-001.spec.ts')}은 프로시저 파일인데 XTS 애플리케이션은 「프로시저 작성」이 꺼져 있어 올리지 않았다`);
+    expect(await 훑기()).toContain(`${join('xts', 'XTS-TP-001.spec.ts')}은 프로시저 파일인데 XTS 애플리케이션은 「프로시저 작성」이 꺼져 있어 등록하지 않았다`);
     expect(await 줄들()).toMatchObject([{ tc_id: 'XTS-001', is_active: true, proc_id: null, proc_seq: null, proc_name: null, step_titles: ['연다'], verify_statements: ['맞다'] }]);
   });
 

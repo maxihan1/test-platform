@@ -45,7 +45,7 @@ const 본문 = z.object({
   targets: z.array(목표).max(50).optional(),
   run: z.record(z.string(), z.unknown()).optional(),
 }).refine((b) => (b.transactions === undefined) !== (b.dummyClient === undefined), '트랜잭션 목록과 더미 클라이언트 중 하나만 듭니다')
-  .refine((b) => new Set((b.transactions ?? []).map((t) => t.name)).size === (b.transactions ?? []).length, '트랜잭션 이름이 겹칩니다');
+  .refine((b) => new Set((b.transactions ?? []).map((t) => t.name)).size === (b.transactions ?? []).length, '트랜잭션 이름이 중복됩니다');
 
 // draftJobId — 이 본문이 나온 AI 초안 일. 버전 기록에 출처(녹화 · Swagger · 파일)와 녹화 파일을 붙인다 (PERF-F1-04 시작 질문)
 const 초안번호 = z.number().int().positive().optional();

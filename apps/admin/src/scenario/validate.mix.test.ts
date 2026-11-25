@@ -47,17 +47,17 @@ describe('애플리케이션을 섞은 조립 검사', () => {
   });
 
   it('허용 목록을 안 주면 시작 애플리케이션 하나다 — 앞 판 문장 그대로 거절한다', () => {
-    expect(조립검사([케이스('ADM-001')], 'desktop', 'SHOP', 재료)).toEqual(['1번 단계: ADM-001 는 SHOP 서비스의 케이스가 아니다']);
+    expect(조립검사([케이스('ADM-001')], 'desktop', 'SHOP', 재료)).toEqual(['1번 단계: ADM-001 는 SHOP 애플리케이션의 케이스가 아니다']);
   });
 
   it('다른 프로젝트 애플리케이션의 케이스를 거절한다', () => {
-    expect(검사([케이스('OTHER-001')])).toEqual(['1번 단계: OTHER-001 는 SHOP 서비스와 같은 프로젝트의 애플리케이션 케이스가 아니다']);
+    expect(검사([케이스('OTHER-001')])).toEqual(['1번 단계: OTHER-001 는 SHOP 애플리케이션과 같은 프로젝트의 케이스가 아니다']);
   });
 
   it('같은 프로젝트가 아닌 애플리케이션을 부르는 API 단계를 거절한다', () => {
     const parts: ScenarioPart[] = [{ kind: 'api', method: 'GET', path: '/x', expectStatus: 200, service: 'OTHER' }];
 
-    expect(검사(parts)).toEqual(['1번 단계: API 호출의 애플리케이션 OTHER 는 SHOP 서비스와 같은 프로젝트가 아니다']);
+    expect(검사(parts)).toEqual(['1번 단계: API 호출의 애플리케이션 OTHER 는 SHOP 애플리케이션과 같은 프로젝트가 아니다']);
   });
 
   it('시작 애플리케이션 밖의 단계가 있으면 / 로 시작하는 모킹 · 모킹 끄기 무늬를 거절한다', () => {

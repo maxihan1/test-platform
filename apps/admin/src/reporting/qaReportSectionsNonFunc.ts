@@ -97,7 +97,7 @@ function 대상글(r: 성능재료, t: 성능목표): string {
   return r.kind === 'DEVICE' ? `${r.devices.get(t.scope) ?? t.scope} (${t.scope})` : t.scope;
 }
 
-const 성능종류이름 = { LOAD: '서버 부하', PAGE: '페이지 성능', DEVICE: '기기 성능' } as const;
+const 성능종류이름 = { LOAD: '서버 부하', PAGE: '페이지 성능', DEVICE: '디바이스 성능' } as const;
 
 function 성능실행(r: 성능재료): 덩이[] {
   // 도는 중인 실행은 판정이 비어 성능 PDF 글자로는 「중단」이 된다 — 승인 전 리포트는 도는 실행도 담는다

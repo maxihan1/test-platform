@@ -88,7 +88,7 @@ async function 경로채우고시험으로(user = 사람()) {
 }
 
 describe('ScenarioWizard 값 연결', () => {
-  it('서비스 지도 제안을 받는 단계에 달고, 빈 JSON 경로가 남으면 다음으로 못 간다. 맞아요로 확인한다', async () => {
+  it('서비스 지도 제안을 받는 단계에 달고, 빈 JSON 경로가 남으면 다음으로 못 간다. 맞습니다로 확인한다', async () => {
     await 값연결로();
     expect(제안받기).toHaveBeenCalledWith({
       service: 'ZSB',
@@ -109,7 +109,7 @@ describe('ScenarioWizard 값 연결', () => {
     expect(screen.getByRole('alert').textContent).toBe('빈 칸이 남은 값 연결이 있습니다. 적거나 삭제합니다');
 
     fireEvent.change(screen.getByLabelText('JSON 경로'), { target: { value: 'id' } });
-    fireEvent.click(within(연결).getByRole('button', { name: '맞아요' }));
+    fireEvent.click(within(연결).getByRole('button', { name: '맞습니다' }));
     expect(연결.textContent).toContain('확인함');
 
     다음();

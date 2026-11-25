@@ -128,7 +128,7 @@ describe('폰상태에서', () => {
   it('팜이 막은 바꾸기는 까닭을 붙여 던지고 이미 바꾼 것은 되돌린다 — 할일은 돌지 않는다', async () => {
     const { driver, 폰 } = 가짜폰({}, (명령) => 명령 === 'mobile: setUiMode');
     const 할일 = vi.fn(async () => undefined);
-    await expect(폰상태에서(driver, { 네트워크: '끊김', 어두운화면: true }, 할일)).rejects.toThrow('어두운 화면을 못 바꿨다 — 팜이 막았다');
+    await expect(폰상태에서(driver, { 네트워크: '끊김', 어두운화면: true }, 할일)).rejects.toThrow('어두운 화면을 변경하지 못했다 — 팜이 막았다');
     expect(할일).not.toHaveBeenCalled();
     expect(폰.망.wifi).toBe(true);
   });
@@ -146,7 +146,7 @@ describe('폰상태에서', () => {
 
   it('앞 값을 못 읽으면 아무것도 안 바꾸고 던진다 — 글자 크기는 폰 셸이 닫힌 까닭을 붙인다', async () => {
     const { driver, 보낸 } = 가짜폰({}, (명령, 인자) => 명령 === 'mobile: shell' && (인자.args as string[])[0] === 'get');
-    await expect(폰상태에서(driver, { 네트워크: '끊김', 글자크기: 1.3 }, async () => undefined)).rejects.toThrow('글자 크기를 못 읽었다(폰 셸 — 팜이 adb_shell 을 열어야 한다) — 팜이 막았다');
+    await expect(폰상태에서(driver, { 네트워크: '끊김', 글자크기: 1.3 }, async () => undefined)).rejects.toThrow('글자 크기를 못 읽었다(디바이스 셸 — Device VISION 이 adb_shell 을 열어야 한다) — 팜이 막았다');
     expect(보낸.filter(([명령]) => 명령 === 'mobile: setConnectivity')).toEqual([]);
   });
 
@@ -156,12 +156,12 @@ describe('폰상태에서', () => {
       if (명령 === 'mobile: setConnectivity' && 인자.wifi === false) 끄고나서 = true;
       return 끄고나서 && 명령 === 'mobile: setConnectivity' && 인자.wifi === true;
     };
-    await expect(폰상태에서(가짜폰({}, 막을).driver, { 네트워크: '끊김' }, async () => undefined)).rejects.toThrow('폰 상태를 구간 전으로 못 되돌렸다 — 네트워크: 팜이 막았다');
+    await expect(폰상태에서(가짜폰({}, 막을).driver, { 네트워크: '끊김' }, async () => undefined)).rejects.toThrow('디바이스 상태를 구간 전으로 복원하지 못했다 — 네트워크: 팜이 막았다');
     expect(existsSync(phoneStateFile())).toBe(false);
     끄고나서 = false;
     const 오류 = await 폰상태에서(가짜폰({}, 막을).driver, { 네트워크: '끊김' }, async () => Promise.reject(new Error('verify 실패'))).catch((e: Error) => e);
-    expect((오류 as Error).message).toBe('verify 실패 (폰 상태도 못 되돌렸다 — 네트워크: 팜이 막았다)');
-    expect((오류 as Error).stack).toContain('(폰 상태도 못 되돌렸다 — 네트워크: 팜이 막았다)');
+    expect((오류 as Error).message).toBe('verify 실패 (디바이스 상태도 복원하지 못했다 — 네트워크: 팜이 막았다)');
+    expect((오류 as Error).stack).toContain('(디바이스 상태도 복원하지 못했다 — 네트워크: 팜이 막았다)');
   });
 
   it('빈 값 · 틀린 값 · 겹친 구간 · 웹뷰 구간 안은 폰에 보내기 전에 던진다', async () => {

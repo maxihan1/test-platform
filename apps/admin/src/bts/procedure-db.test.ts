@@ -176,7 +176,7 @@ describe.skipIf(연결 === undefined)('프로시저 안 케이스의 Issue Bunke
     const [등록] = await 등록들();
     expect(등록).toMatchObject({ kind: 'CREATE', tc_id: 'XPB-FN-102' });
     const 글 = String(등록!.payload.description);
-    expect(글).toContain('**프로시저** — XPB-TP-001 글쓰기 · 2번째 / 4');
+    expect(글).toContain('**프로시저** — XPB-TP-001 글쓰기 · 4건 중 2번째');
     expect(글).toContain('**후속 케이스** — XPB-FN-103 XPB-FN-103 이름 · XPB-FN-104 XPB-FN-104 이름');
     expect(글).toContain('**XPB-FN-101 XPB-FN-101 이름 — Pass**');
     expect(글).toContain('2. ******** 로 로그인한다 ← 여기서 실패');

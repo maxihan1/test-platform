@@ -1,4 +1,4 @@
-// E2E 마법사 본문 「값 연결」 — 로그인 이어받기 · 서비스 지도에서 찾은 값 연결 카드(맞아요 · 직접 수정 · 삭제) · 케이스 단계마다 입력값 (도메인/시나리오 §8.11 「마법사」)
+// E2E 마법사 본문 「값 연결」 — 로그인 이어받기 · 서비스 지도에서 찾은 값 연결 카드(맞습니다 · 직접 수정 · 삭제) · 케이스 단계마다 입력값 (도메인/시나리오 §8.11 「마법사」)
 
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
@@ -149,7 +149,7 @@ export function 값연결칸(p: Props) {
                       className={메모?.확인 === true ? 'btn ghost' : 'btn'}
                       onClick={() => set메모((m) => new Map(m).set(열쇠, { why: '', AI: false, ...메모, 확인: 메모?.확인 !== true }))}
                     >
-                      {t(메모?.확인 === true ? '확인 취소' : '맞아요')}
+                      {t(메모?.확인 === true ? '확인 취소' : '맞습니다')}
                     </button>
                     <button
                       type="button"

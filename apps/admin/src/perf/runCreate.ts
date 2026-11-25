@@ -40,7 +40,7 @@ const 거절 = (status: number, error: string, detail?: string, 대상서버문�
 });
 
 export async function 실행세우기(b: 실행입력, 누가: 실행만든이): Promise<만들기결과> {
-  if (new Set(b.agentIds).size !== b.agentIds.length || new Set(b.monitorIds).size !== b.monitorIds.length) return 거절(400, 'INVALID_REQUEST', '에이전트가 겹칩니다');
+  if (new Set(b.agentIds).size !== b.agentIds.length || new Set(b.monitorIds).size !== b.monitorIds.length) return 거절(400, 'INVALID_REQUEST', '에이전트가 중복됩니다');
   const pool = await 표.풀();
   const s = await pool.query<{ service_id: string; version: number; accounts_csv: string | null; body: ScenarioBody }>(
     `SELECT s.service_id, s.version, s.accounts_csv, v.body FROM perf_scenario s
@@ -80,7 +80,7 @@ export async function 실행세우기(b: 실행입력, 누가: 실행만든이):
   const load = { basis: b.basis, stages: b.stages };
   const durationSec = totalDuration(load);
   if (durationSec > 최대실행초) return 거절(400, 'INVALID_REQUEST', '실행 시간은 24시간까지입니다');
-  if (b.basis === 'VUS' && Math.max(...b.stages.map((x) => x.target)) > maxVus) return 거절(400, 'INVALID_REQUEST', `가상 사용자는 고른 에이전트의 최대 ${maxVus}명까지입니다`);
+  if (b.basis === 'VUS' && Math.max(...b.stages.map((x) => x.target)) > maxVus) return 거절(400, 'INVALID_REQUEST', `가상 사용자는 선택한 에이전트의 최대 ${maxVus}명까지입니다`);
 
   // 잴 페이지는 그 대상 서버의 가장 최근 단독 측정 것이다. 로그인할 페이지가 있는데 계정이 없으면 오류로 끝날 실행을 만들지 않는다
   const pages = b.pageCheck ? await 최근페이지(serviceId, b.env) : undefined;

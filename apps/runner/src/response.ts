@@ -60,7 +60,7 @@ function 파일결과(자식: 끝난자식, 결과줄: RunnerResult | null, 지�
   return { status: 'FAIL', durationMs, steps: [], error: { message: tail(kit경고뺌(자식.stderr)) || tail(자식.stdout) } };
 }
 
-const 줄없음글 = '케이스 판정 줄 없이 프로세스가 끝났다';
+const 줄없음글 = '케이스 판정 줄 없이 프로세스가 종료됐다';
 
 // kit 은 보류가 아닌 케이스가 하나라도 통과가 아니면 테스트를 실패로 끝낸다 — 그런 판정인가.
 // 미실행 가운데 보류 · 바뀐 프로시저는 돌지 않은 것이라 시작한 때도 막은 케이스도 없다

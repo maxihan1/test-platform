@@ -248,7 +248,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   it('대상 서버 이름이 없거나 그 애플리케이션에 없는 이름이면 400 ENV_NOT_FOUND 다', async () => {
     const 빈이름 = await 시작({ ...정상, env: undefined, baseUrl: 'https://qa.example.com' });
     expect(빈이름.statusCode).toBe(400);
-    expect(빈이름.json()).toEqual({ error: 'ENV_NOT_FOUND', detail: '대상 서버를 고르지 않았습니다' });
+    expect(빈이름.json()).toEqual({ error: 'ENV_NOT_FOUND', detail: '대상 서버를 선택하지 않았습니다' });
     const 모르는이름 = await 시작({ ...정상, env: 'prod' });
     expect(모르는이름.statusCode).toBe(400);
     expect(모르는이름.json()).toEqual({ error: 'ENV_NOT_FOUND', detail: 'XTR 에 prod 대상 서버가 없습니다' });

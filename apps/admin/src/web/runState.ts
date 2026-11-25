@@ -71,10 +71,11 @@ export function 미실행사유(error: { message: string } | null, 언어: 언�
   // Playwright 테스트 제한 시간 초과도 사람에게는 같은 말이다. 러너의 TIMEOUT(러너가 끊음)과 값은 다르게 둔다 — trace 사유가 그 값으로 갈린다
   if (글 === 시간초과 || /^Test timeout of \d+ms exceeded/.test(글)) return t('제한 시간 초과', 언어);
   // 한국어 문장이면 서버가 사람이 읽으라고 넣은 것이다. 영문·기호로 시작하면 원문 오류다.
-  // 제품 이름(2026-11-02 — Device VISION · Issue Bunker · Test Commander)으로 시작하는 서버 문장도 사람이 읽을 글이다 — 막으면 「빈 폰이 없다」가 실행기 장애로 보인다
+  // 영문 낱말 한두 개 뒤에 한글이 오는 것(「Device VISION 에 …」 · 「Windows PC 를 …」 · 「MTA-TP-012에 …」)도 서버가 쓴 문장이다 — 막으면 「빈 디바이스가 없다」가 실행기 장애로 보인다.
+  // 제품 이름만 적어 두고 받았더니 「Windows PC 를 잡지 않은 항목입니다」가 실행기 장애로 덮였다(2026-11-25 WEB-F10-07)
   // 서버가 준 문장은 그대로 낸다 — 화면이 지어낸 글자가 아니라 옮길 표에 없다
   // 서버가 이미 저장해 둔 글에는 옛 낱말(러너)이 남아 있다 — 화면 낱말 표(공통/5-화면공통 §8)대로 보인다
-  return /^([가-힣]|Device VISION|Issue Bunker|Test Commander)/.test(글) ? t(글.replaceAll('러너', '테스트 실행기'), 언어) : t('테스트 실행기에 닿지 못했습니다', 언어);
+  return /^(?:[A-Za-z][\w-]* ?){0,2}[가-힣]/.test(글) ? t(글.replaceAll('러너', '테스트 실행기'), 언어) : t('테스트 실행기에 닿지 못했습니다', 언어);
 }
 
 /**

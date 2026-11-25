@@ -29,7 +29,7 @@ describe('값연결제안들', () => {
         to: { method: 'PUT', path: '/api/orders/{}', value: { fromSeq: 1, method: 'POST', urlPattern: '**/api/orders{,?*}', jsonPath: '' } },
       },
       needs: ['jsonPath'],
-      why: '2번이 부른 POST /api/orders 을 PUT /api/orders/{} 로 바꿔 1번이 만든 것을 고칩니다',
+      why: '2번이 부른 POST /api/orders 을 PUT /api/orders/{} 로 변경해 1번이 만든 것을 수정합니다',
     }]);
   });
 

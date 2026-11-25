@@ -12,5 +12,5 @@ export const 사유: Record<string, string> = {
 
 /** 디바이스 측정에는 부하 발생 에이전트가 없다 — 같은 AGENT_LOST 라도 디바이스에서 측정값이 안 온 것이다 (§7 「팜 폰」) */
 export function 사유글(reason: string, kind: string): string {
-  return kind === 'DEVICE' && reason === 'AGENT_LOST' ? '기기에서 측정값이 오지 않아 중단했습니다' : (사유[reason] ?? reason);
+  return kind === 'DEVICE' && reason === 'AGENT_LOST' ? '디바이스에서 측정값이 오지 않아 중단했습니다' : (사유[reason] ?? reason);
 }

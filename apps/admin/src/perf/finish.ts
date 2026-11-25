@@ -23,8 +23,8 @@ export type 끝 = { kind: 'DONE' } | { kind: 'STOP'; stop: Stop | { reason: 'USE
 
 function 끝줄(v: 표.끝값): string {
   if (v.stopReason !== null) return 사유[v.stopReason] ?? v.stopReason;
-  if (v.status === 'DONE') return `실행이 끝났습니다 — ${v.verdict === 'PASS' ? 'Pass' : 'Fail'}`;
-  return '실행이 오류로 끝났습니다';
+  if (v.status === 'DONE') return `실행이 종료되었습니다 — ${v.verdict === 'PASS' ? 'Pass' : 'Fail'}`;
+  return '실행이 오류로 종료되었습니다';
 }
 
 // 전체 줄과 성능 목표가 가리키는 트랜잭션 줄만 읽는다 — 24시간 실행의 모든 트랜잭션 줄을 메모리에 올리지 않는다
@@ -53,7 +53,7 @@ async function 페이지닫기(run: 표.실행행, samples: 페이지표본[], �
     if (못잰.length > 0) await 표.로그(run.id, `재지 못한 페이지 — ${못잰.map((p) => p.url).join(', ')}`, 'WARN');
     await 단독쓰기(run.id, cfg, rows);
   }
-  if (오류 !== null) await 표.로그(run.id, `실행이 오류로 끝났습니다 — ${오류}`, 'WARN');
+  if (오류 !== null) await 표.로그(run.id, `실행이 오류로 종료되었습니다 — ${오류}`, 'WARN');
   if (!(await 표.끝쓰기(run.id, 값))) return null;
   await 표.로그(run.id, 끝줄(값));
   return 값;
@@ -79,16 +79,16 @@ async function 기기끝내기(runId: number, 끝: 끝): Promise<표.끝값 | nu
       멈춤글 = 사유글(끝.stop.reason, 'DEVICE');
     } else {
       const rows = await 기기줄읽기(runId);
-      if (rows.length === 0) 오류 = '기기 숫자를 하나도 받지 못했습니다';
+      if (rows.length === 0) 오류 = '디바이스 측정값을 하나도 받지 못했습니다';
       else {
         const targets = cfg.devices.flatMap((d) => 기기판정(d.serial, cfg.targets, 기기요약하기(rows.filter((r) => r.serial === d.serial)), d.launchMs));
         // 목표가 없어도 숫자를 한 줄도 안 보낸 기기가 통과로 세지면 안 된다
         const 빈기기 = cfg.devices.filter((d) => !rows.some((r) => r.serial === d.serial));
-        if (빈기기.length > 0) await 표.로그(runId, `숫자를 받지 못한 기기 — ${빈기기.map((d) => `${d.model}(${d.serial})`).join(', ')}`, 'WARN');
+        if (빈기기.length > 0) await 표.로그(runId, `측정값을 받지 못한 디바이스 — ${빈기기.map((d) => `${d.model}(${d.serial})`).join(', ')}`, 'WARN');
         값 = { ...빈끝, status: 'DONE', verdict: 빈기기.length === 0 && targets.every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL', targets };
       }
     }
-    if (오류 !== null) await 표.로그(runId, `실행이 오류로 끝났습니다 — ${오류}`, 'WARN');
+    if (오류 !== null) await 표.로그(runId, `실행이 오류로 종료되었습니다 — ${오류}`, 'WARN');
     if (!(await 표.끝쓰기(runId, 값))) return null;
     await 표.로그(runId, 멈춤글 ?? 끝줄(값));
     return 값;
@@ -108,7 +108,7 @@ async function 부하닫기(run: 표.실행행, 끝: 끝): Promise<{ 값: 표.�
   const base: 표.끝값 = { status: 'ERROR', verdict: null, stopReason: null, targets: null, peakVus: s.maxVus || null, maxTps: s.maxTps, p95: s.p95, errorRate: s.errorRate, degraded: null };
   let 값 = base;
   if (끝.kind === 'ERROR') {
-    await 표.로그(runId, `실행이 오류로 끝났습니다 — ${끝.why}`, 'WARN');
+    await 표.로그(runId, `실행이 오류로 종료되었습니다 — ${끝.why}`, 'WARN');
   } else if (끝.kind === 'STOP' && !(끝.stop.reason === 'ERROR_LIMIT' || 끝.stop.reason === 'TARGET_EXCEEDED')) {
     값 = { ...base, status: 'STOPPED', stopReason: 끝.stop.reason };
   } else {
