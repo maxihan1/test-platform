@@ -21,6 +21,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 | `tpx-author/references/game.md` | 게임 화면 절을 읽을 때 · 역방향이면 `reverse.md` §2~§3.5 대신 §7 · 탐색 플레이 절이 있으면 §8 |
 | `tpx-cases/references/game.md` | 게임 화면 절이 있을 때 표를 쓰기 전 |
 | `tpx-cases/references/game-scenario.md` | `game.md` 와 같이 — 플레이 값 · 목표 흐름(퀘스트 · 레벨 업 · 클리어) 규칙의 미션 목록 · 게임 시나리오 |
+| `tpx-cases/references/game-control.md` | 걷기 · 싸우기처럼 움직임이 이어지는 조작을 해 보거나 쓸 때 — 탐색 플레이 · 미션 · 조작 도우미 |
 | `tpx-cases/references/4-selector-common.md` | 공통 절차 4 에서 `4-selector.md` 대신 |
 | `tpx-cases/references/5-stable-game.md` | `5-stable.md` 를 열 때 이어서 — 기다림 |
 | `tpx-cases/references/test-design-game.md` | `test-design.md` 를 열 때 이어서 — 게임 관점 칸 |
@@ -40,7 +41,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 보조 AI 에게 넘길 읽기 목록
 
-- **케이스 작성 보조** — `fanout-game.md` 「§4 뼈대에서 바꾸는 줄」대로 고친 「먼저 Read 로 연다」 줄에 `4-selector-common.md` · `5-stable-game.md` · `test-design-game.md` 를 더하고, 줄 끝에 「종류는 「게임」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다. 프로시저로 쓰는 작성이면 단계마다 여는 것이 다르다 — `fanout-procedure.md` 를 따른다
+- **케이스 작성 보조** — `fanout-game.md` 「§4 뼈대에서 바꾸는 줄」대로 고친 「먼저 Read 로 연다」 줄에 `4-selector-common.md` · `5-stable-game.md` · `game-control.md` · `test-design-game.md` 를 더하고, 줄 끝에 「종류는 「게임」이다 — 이어 여는 뗀 파일은 이 줄에 적은 것만 연다」를 붙인다. 프로시저로 쓰는 작성이면 단계마다 여는 것이 다르다 — `fanout-procedure.md` 를 따른다
 
 ## 이 종류만의 규칙
 

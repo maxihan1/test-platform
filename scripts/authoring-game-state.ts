@@ -1,6 +1,6 @@
 // 작성 중 상태 도우미 부르기 — 게임 작성 AI 가 helpers/game-state.helper.ts 의 어드민 API 꼴 함수를 하나 불러 본다 (SPEC 도메인/게임 §3.10 「작성 — 한 바퀴」 4 · 「창 훑기」 ④)
 // 장소 순간이동 · 조건부 창 조건 만들기 · 스폰 목록 읽기 · 크롤 캐릭터 정리를 이 명령으로 한다. 케이스가 받는 몸통 admin 과 같은 키 · 같은 서버로 부른다
-// 쓰는 법: npx tsx scripts/authoring-game-state.ts <테스트 폴더> <함수 이름> ['<인자 JSON 배열>'] — GM 명령 꼴(첫 인자 game) 도우미는 못 부른다(폰 채팅 칸에 control-cli 로 넣는다)
+// 쓰는 법: npx tsx scripts/authoring-game-state.ts <테스트 폴더> <함수 이름> ['<인자 JSON 배열>'] — GM 명령 꼴(첫 인자 game) 도우미는 못 부른다(authoring-game-play.ts 로 부른다)
 
 import { lstatSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
@@ -90,7 +90,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     값 = await (함수 as (...a: unknown[]) => unknown)(admin, ...넘길);
   } catch (e) {
     // ⑥ GM 명령 꼴(첫 인자 game)은 admin 을 받아 엉뚱한 곳에서 깨진다 — 경로 · 본문을 의심하기 전에 그것부터 보게
-    console.error(`[상태 도우미] ${이름} 이 던졌다 — ${비밀가리기(e instanceof Error ? e.message : String(e), 비밀들)}\n첫 인자가 game 인 GM 명령 도우미면 이 명령으로 못 부른다 — 폰 채팅 칸에 control-cli 로 넣는다. 아니면 경로 · 본문을 가이드와 다시 맞춘다`);
+    console.error(`[상태 도우미] ${이름} 이 던졌다 — ${비밀가리기(e instanceof Error ? e.message : String(e), 비밀들)}\n첫 인자가 game 인 GM 명령 도우미면 이 명령으로 못 부른다 — authoring-game-play.ts 로 부른다. 아니면 경로 · 본문을 가이드와 다시 맞춘다`);
     return 1;
   } finally {
     await admin.dispose();
