@@ -157,9 +157,10 @@ describe('조작 도우미 부르기', () => {
   });
 
   it('도중 화면 — 간격을 주면 도는 동안 여러 장 찍고, 안 주면 한 장도 안 찍고 명령도 더 안 보낸다', async () => {
-    const 함수 = (game: unknown) => new Promise((끝) => setTimeout(끝, 120)).then(() => ({ 이름: typeof game }));
+    // 간격의 스무 배를 돈다 — 다른 테스트 파일과 같이 돌아 타이머가 밀려도 두 장은 넘게 찍힌다
+    const 함수 = (game: unknown) => new Promise((끝) => setTimeout(끝, 400)).then(() => ({ 이름: typeof game }));
     const 켠 = 가짜();
-    const r = await 돌린다(켠.길, 함수, {}, 600, undefined, { 도중화면ms: 20 });
+    const r = await 돌린다(켠.길, 함수, {}, 800, undefined, { 도중화면ms: 20 });
     expect(r.도중화면.length).toBeGreaterThan(2);
     expect(r.도중화면[0]!.초).toBeGreaterThanOrEqual(0.02);
     expect(r.도중화면[0]!.그림.toString()).toBe('그림');

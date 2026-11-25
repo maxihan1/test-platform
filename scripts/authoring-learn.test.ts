@@ -377,11 +377,18 @@ describe('학습하기 — 쪽지', () => {
     expect(거리들[1]).toMatchObject({ 차례: 2, 쪽지: '첫 맵 3판 다 짐. 다음에는 길 옆에 심어 본다' });
     expect(거리들.find((x) => x.시험 === true)).not.toHaveProperty('쪽지');
   });
+
+  it('쪽지만 고쳐 쓴 세션은 한 줄도 안 배운 세션이다 — 배우는 세션을 더 띄우지 않고 시험으로 간다', async () => {
+    const 쪽지줄 = { kind: 'PLAY', key: 'play:쪽지', name: '쪽지', learned: { text: '아직 못 풀었다', belief: 'GUESS' } };
+    const { o, 거리들 } = 손([() => 적기(쪽지줄), () => undefined]);
+    await 학습하기(o);
+    expect(거리들.map((x) => x.시험 === true)).toEqual([false, true]);
+  });
 });
 
 describe('학습하기 — 멈춰 둔 판', () => {
   it('앞 세션이 판을 멈춘 채 끝났으면 쥔 디바이스의 다음 세션에 알리고, 디바이스를 놓을 때 표시를 지운다', async () => {
-    const 멈춘다 = () => 쓰기('game-freeze.json', { 배율: 1, 때: '2026-11-25T03:00:00.000Z' });
+    const 멈춘다 = () => 쓰기('game-freeze.json', { 배율: 1, 때: new Date().toISOString() });
     const { o, 거리들 } = 손([() => (적기(규칙('rule:1')), 멈춘다()), () => 적기(규칙('rule:2')), () => undefined, () => undefined]);
     await 학습하기(o);
     expect(거리들[0]).not.toHaveProperty('멈춤');
@@ -391,7 +398,7 @@ describe('학습하기 — 멈춰 둔 판', () => {
   });
 
   it('표시가 남아 있어도 디바이스를 안 쥐고 있으면 멈춘 판이 아니다 — 놓은 게임은 꺼졌다', async () => {
-    쓰기('game-freeze.json', { 배율: 1, 때: '2026-11-25T03:00:00.000Z' });
+    쓰기('game-freeze.json', { 배율: 1, 때: new Date().toISOString() });
     const { o, 거리들 } = 손([() => 적기(규칙('rule:1')), () => undefined, () => undefined]);
     await 학습하기(o);
     expect(거리들[0]).not.toHaveProperty('멈춤');

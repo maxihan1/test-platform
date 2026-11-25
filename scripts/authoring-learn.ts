@@ -10,7 +10,7 @@ import { 멈춤표시읽기, 멈춤표시지우기 } from './authoring-game-free
 import type { 돌린결과 } from './authoring-io.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
 import { 배움올리기, 상태쓰기, 상태읽기 } from './authoring-learn-io.js';
-import { type 배울것, 배울것고르기, 배울것없나, 쪽지글 } from './authoring-learn-map.js';
+import { type 배울것, 배울것고르기, 배울것없나, 쪽지글, 쪽지열쇠 } from './authoring-learn-map.js';
 import { 끝낼상태 } from './authoring-progress.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -174,7 +174,9 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     상태.세션 += 1;
     상태쓰기(o.자료, 상태);
     o.알린다(`게임 학습 세션 ${상태.세션} 끝(${r.돌린것.마감으로끊김 === true ? '마감' : '스스로 끝냄'} · 지금까지 ${Math.round(상태.쓴ms / 분)}분) — 지도에 올린 줄 ${올림.열쇠.length}`);
-    return { 열쇠수: 올림.열쇠.length + (올림.못올림.length > 0 ? 적은줄들(안전히읽기(o.자료, 게임자리.배운글, 요소상한)).length : 0) };
+    // 쪽지는 배운 줄이 아니다 — 세션마다 고쳐 쓰는 줄이라 이것까지 세면 「한 줄도 안 적은 세션 뒤에는 더 띄우지 않는다」가 안 걸린다
+    const 배운수 = (열쇠들: readonly string[]): number => 열쇠들.filter((k) => k !== 쪽지열쇠).length;
+    return { 열쇠수: 배운수(올림.열쇠) + (올림.못올림.length > 0 ? 배운수(적은줄들(안전히읽기(o.자료, 게임자리.배운글, 요소상한)).map((e) => e.key)) : 0) };
   };
   // 글을 지을 때마다 읽는다 — 크레딧이 떨어져 이어 띄운 자식도 방금 적힌 쪽지를 받는다(아직 안 올린 줄도 얹혀 온다)
   const 쪽지 = (): { 쪽지?: string } => {

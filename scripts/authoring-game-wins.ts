@@ -59,6 +59,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
         return 못셈(`게임에 못 붙었다(${e instanceof Error ? e.message : String(e)})`);
       }
       const 기록 = 기록남기기(자료, 이름, 넘길, r, 비밀들);
+      // 「판이 안 흐른다」 같은 알림을 여기서도 보인다 — 안 보이면 멈춘 게임에서 진 판의 까닭이 묻힌다
+      for (const 말 of r.알림말) console.log(비밀가리기(`${머리} ${말}`, 비밀들));
       if (r.멈춘채) return 못셈('멈춰 둔 게임을 못 풀었다 — 판이 안 흐른다');
       // 멈춘 화면(0배)에서 시작하는 것은 게임이 멈춘 것이다 — 그 밖의 배율은 원래 속도가 아니다
       if (r.배율바꿈 || (r.배율 !== null && r.배율 !== 0 && r.배율 !== 1)) return 못셈(`원래 속도가 아니다(${r.배율바꿈 ? '함수가 시간 배율을 바꿨다' : `배율 ${r.배율}`}) — \`npx control-cli -s=g timescale-set 1\` 뒤 다시 부른다`);

@@ -163,6 +163,30 @@ describe('멈춰 가며 하기', () => {
     expect(r.멈춘채).toBe(true);
     expect(r.배율).toBe(0);
     expect(멈춤표시읽기(d)).not.toBeNull();
+    // 안 흐르는 판에서 한도까지 돌지 않는다 — 함수를 부르지 않고 까닭을 오류로 낸다
+    expect(r.오류).toContain('함수를 부르지 않았다');
+    expect(g.명령).not.toContain('get');
+  });
+
+  it('멈추라 했는데 못 멈췄으면 함수가 바꾼 배율을 부르기 앞 값으로 되돌린다 — 바뀐 속도로 계속 흐르지 않게', async () => {
+    const 빨리 = async (game: unknown) => (game as 드라이버).setTimeScale(3);
+    const g = 가짜(1, 'ignore');
+    const r = await 돌린다(g.길, 빨리, {}, 5_000, undefined, { 멈춤: true, 자료: 새자료() });
+    expect(r.멈춘뒤배율).toBe(3);
+    expect(g.배율()).toBe(1);
+  });
+
+  it('함수가 스스로 0배로 만들고 끝나면 우리가 멈춘 것처럼 표시를 남긴다 — 다음에 부르면 풀린다', async () => {
+    const d = 새자료();
+    const 스스로 = async (game: unknown) => (game as 드라이버).setTimeScale(0);
+    const g = 가짜(1);
+    const r = await 돌린다(g.길, 스스로, {}, 5_000, undefined, { 멈춤: true, 자료: d });
+    expect(r.멈춘뒤배율).toBe(0);
+    expect(멈춤표시읽기(d)?.배율).toBe(1);
+    expect(g.배율()).toBe(0);
+    const 다음 = await 돌린다(g.길, 읽기만, {}, 5_000, undefined, { 자료: d });
+    expect(다음.배율).toBe(1);
+    expect(g.배율()).toBe(1);
   });
 
   it('조작 도우미 --freeze — 출력에 멈춤 확인 한 줄, 다음에 부르면 풀고 잇는다', async () => {

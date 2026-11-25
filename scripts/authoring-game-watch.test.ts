@@ -151,6 +151,10 @@ describe('실행', () => {
     expect(String(찍힘.mock.calls.at(-1)?.[0])).toBe('※ 정리하라');
     expect(readdirSync(join(t, 'data', 'game-play')).some((x) => x.endsWith('s.jpg'))).toBe(true);
     찍힘.mockClear();
+    // --do 앞에 준 간격도 먹는다 — 뒤에 안 주면 앞 값을 쓴다
+    expect(await 실행(['--shots', '1', '--do', 'g', 'slow', '느림', '[]', '--max', '20'], t, 환경, 가짜([]))).toBe(0);
+    expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/도중 화면 \d+장\(1초 간격/);
+    찍힘.mockClear();
     const 명령: string[] = [];
     expect(await 실행(['--shots', '0', '--do', 'g', 'play', '공격', '[]', '--shots', '0'], t, 환경, 가짜(명령))).toBe(0);
     expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).not.toContain('도중 화면');

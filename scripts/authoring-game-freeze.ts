@@ -12,13 +12,21 @@ export interface 멈춤표시 {
   때: string;
 }
 
-/** 없거나 꼴이 틀리면(링크 · 큰 파일 · 깨진 글) null — 표시가 없는 것과 같다 */
-export function 멈춤표시읽기(자료: string): 멈춤표시 | null {
+/**
+ * 이보다 오래된 표시는 버린다 — 잡기 한 번이 30분이다. 표시는 디바이스를 놓을 때 지우지만(authoring-learn), 자식이 스스로 놓았거나 에이전트가 죽으면 남는다.
+ * 남은 표시가 새로 켠 게임의 일시정지 화면을 풀어 버리면 안 된다
+ */
+const 낡음ms = 30 * 60_000;
+
+/** 없거나 꼴이 틀리거나(링크 · 큰 파일 · 깨진 글) 낡았으면 null — 표시가 없는 것과 같다 */
+export function 멈춤표시읽기(자료: string, 지금 = Date.now()): 멈춤표시 | null {
   const 글 = 안전히읽기(자료, 게임자리.멈춤, 1_000);
   if (글 === null) return null;
   try {
     const x = JSON.parse(글) as { 배율?: unknown; 때?: unknown } | null;
-    return typeof x?.배율 === 'number' && Number.isFinite(x.배율) && typeof x.때 === 'string' ? { 배율: x.배율, 때: x.때 } : null;
+    if (typeof x?.배율 !== 'number' || !Number.isFinite(x.배율) || typeof x.때 !== 'string') return null;
+    // 때를 못 읽으면(NaN) 견줌이 거짓이라 낡은 것으로 친다
+    return 지금 - Date.parse(x.때) <= 낡음ms ? { 배율: x.배율, 때: x.때 } : null;
   } catch {
     return null;
   }

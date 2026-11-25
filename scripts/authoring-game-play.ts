@@ -106,10 +106,12 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 버려진 = (e: unknown): void => void 못한것.push(`기다리지 않은 일이 던짐: ${까닭(e)}`);
   process.on('unhandledRejection', 버려진);
   const 시작 = Date.now();
-  const 간격ms = 덧?.도중화면ms === undefined || 덧.도중화면ms <= 0 ? 0 : 간격정하기(덧.도중화면ms, 한도ms);
+  // 멈춰 둔 게임을 못 풀었으면 함수를 부르지 않는다 — 안 흐르는 판에서 한도까지 돌다 「넘겼습니다」로 끝나면 까닭이 묻힌다
+  const 돌릴까 = !풀림.멈춘채;
+  const 간격ms = !돌릴까 || 덧?.도중화면ms === undefined || 덧.도중화면ms <= 0 ? 0 : 간격정하기(덧.도중화면ms, 한도ms);
   const 찍기 = 간격ms === 0 ? null : 찍기시작(맨게임, 간격ms, 시작);
   let 값: unknown;
-  let 오류: string | undefined;
+  let 오류: string | undefined = 돌릴까 ? undefined : '멈춰 둔 게임을 못 풀어 함수를 부르지 않았다 — `npx control-cli -s=g timescale-set 1` 로 풀고 다시 부른다';
   let 시계: NodeJS.Timeout | undefined;
   try {
     const 넘음 = new Promise<never>((_, 거절) => {
@@ -118,7 +120,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
       if (끊김?.aborted === true) 끊음();
       else 끊김?.addEventListener('abort', 끊음, { once: true });
     });
-    값 = await Promise.race([Promise.resolve().then(() => 함수(game)), 넘음]);
+    if (돌릴까) 값 = await Promise.race([Promise.resolve().then(() => 함수(game)), 넘음]);
   } catch (e) {
     오류 = 까닭(e);
   } finally {
@@ -126,7 +128,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   }
   const 걸린ms = Date.now() - 시작;
   찍기?.그친다();
-  const 멈춤 = 덧?.멈춤 === true ? await 멈추기(맨게임, 덧.자료, 배율, 배율바꿈, 해본다) : null;
+  const 멈춤 = 덧?.멈춤 === true && 돌릴까 ? await 멈추기(맨게임, 덧.자료, 배율, 배율바꿈, 해본다) : null;
   막음 = true;
   for (const 끝 = Date.now() + 답기다림ms; 보내는중 > 0 && Date.now() < 끝; ) await 쉼(50);
   try {
@@ -135,7 +137,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     입력못놓음 = true;
     오류 = `${오류 === undefined ? '' : `${오류} · `}입력을 못 놓았습니다(${까닭(e)}) — control-cli input-reset 으로 놓습니다`;
   }
-  if (배율바꿈 && 배율 !== null && 멈춤 === null) await 해본다('시간 배율 되돌리기', () => 맨게임.setTimeScale(배율));
+  // 정말 멈췄을 때만 안 되돌린다 — 멈추라 했는데 못 멈춘 판(거절 · 표시를 못 씀)에 함수가 바꾼 배율이 남으면 게임이 그 속도로 계속 흐른다
+  if (배율바꿈 && 배율 !== null && 멈춤?.멈춘뒤배율 !== 0) await 해본다('시간 배율 되돌리기', () => 맨게임.setTimeScale(배율));
   const 로그 = 앞.로그 === null ? null : await 해본다('로그 읽기', () => 맨게임.logs(앞.로그!));
   const 게임오류 = 앞.오류 === null ? null : await 해본다('오류 읽기', () => 맨게임.errors(앞.오류!));
   const 알림 = 앞.알림 === null ? null : await 해본다('알림 읽기', () => 맨게임.events(앞.알림!));
