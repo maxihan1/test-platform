@@ -378,6 +378,7 @@ button.smoke-chip:focus-visible {
   max-height: 440px;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .filter-field {
@@ -886,5 +887,17 @@ button.smoke-chip:focus-visible {
 
   .row.pickable.case-line .pick {
     padding-top: 12px;
+  }
+}
+
+/* 휴대폰 — 손가락으로 누르는 자리 44px. 실제 값은 46px 다 (공통/5 §8 「휴대폰 화면」) */
+@media (max-width: 620px) {
+  .result-tabs {
+    gap: 2px 6px;
+  }
+
+  .result-tab {
+    min-width: 46px;
+    min-height: 46px;
   }
 }

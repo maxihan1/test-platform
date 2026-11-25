@@ -534,3 +534,20 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* 휴대폰 — 손가락으로 누르는 자리 44px. 실제 값은 46px 다 (공통/5 §8 「휴대폰 화면」) */
+@media (max-width: 620px) {
+  .wz-stepbtn {
+    min-height: 46px;
+  }
+
+  /* 줄이 46px 라 단계 사이 여백은 없어도 되고, 잇는 선은 가운데 선 동그라미(24px) 사이에 선다 */
+  .wz-steps > li {
+    padding-bottom: 0;
+  }
+
+  .wz-steps > li:not(:last-child)::after {
+    top: 39px;
+    bottom: -7px;
+  }
+}

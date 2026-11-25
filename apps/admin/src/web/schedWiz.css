@@ -68,3 +68,18 @@
 /* 저장 뒤 화면 머리 아래 한 줄 (§8.20 5단계) */
 .sched-saved { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--well); font-size: 13px; }
 .sched-empty .btn { margin-top: 14px; }
+
+/* 휴대폰 — 손가락으로 누르는 자리 44px. 실제 값은 46px 다 (공통/5 §8 「휴대폰 화면」) */
+@media (max-width: 620px) {
+  /* 글자는 위에 두고 아래로만 넓힌다 — 막대 아래 빈 14px 까지 누르는 자리라 지금 단계 글자와 줄이 맞는다 */
+  .sched-wiz .wiz-new-steps li > button {
+    align-items: flex-start;
+    min-height: 46px;
+    margin-bottom: -14px;
+  }
+
+  .sched-wiz-basket .sched-link {
+    justify-content: center;
+    min-width: 46px;
+  }
+}

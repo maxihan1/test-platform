@@ -392,4 +392,14 @@
   .stab-cards a {
     min-height: 44px;
   }
+
+  /* 누르는 자리 44px — 실제 값은 46px 다 (공통/5 §8 「휴대폰 화면」) */
+  .stab-pick {
+    min-height: 46px;
+  }
+
+  .stab-seg button {
+    min-height: 46px;
+    min-width: 46px;
+  }
 }
