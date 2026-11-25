@@ -1,11 +1,12 @@
 // 도는 실행의 지금 — 러너가 알린 단계 · 보내고 아직 안 알린 항목 · E2E 지금 부품 (도메인/실행 §7 `GET /api/runs/:runId/progress`)
 // routes.ts 가 300줄을 넘어 떼어 냈다
 
+import type { Platform } from '@platform/kit';
 import type { FastifyInstance } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
-import { 케이스한도 } from '../scenario/procStep.js';
 
+import { 실제한도 } from './caseLimit.js';
 import { 실행남은시간 } from './eta.js';
 import { 보낸항목들, 항목화면 } from './live.js';
 import { 러너진행 } from './runner.js';
@@ -46,9 +47,9 @@ export async function 진행경로(app: FastifyInstance): Promise<void> {
     // 옛 꼴 케이스는 실행 단위 번호가 곧 케이스 줄 번호다. admin 이 다시 떠 잃은 프로시저는 싣지 않는다(재기동 복구가 그 실행을 닫는다)
     // 단계 제목은 실행에 박제하지 않고 지금 케이스 칸에서 읽는다 (공통/4-데이터모델 「단계 제목 칸」)
     const { pool } = await import('../db/index.js');
-    const 줄들 = await pool.query<{ 번호: string; history_id: string; tc_id: string; timeout_ms: number; proc_id: string | null; step_titles: string[] | null }>(
-      `SELECT COALESCE(ri.exec_id, ri.history_id) AS "번호", ri.history_id, ri.tc_id, ri.timeout_ms, re.proc_id, tc.step_titles
-         FROM run_item ri LEFT JOIN test_case tc ON tc.tc_id = ri.tc_id LEFT JOIN run_exec re ON re.exec_id = ri.exec_id
+    const 줄들 = await pool.query<{ 번호: string; history_id: string; tc_id: string; platform: Platform; timeout_ms: number; step_titles: string[] | null }>(
+      `SELECT COALESCE(ri.exec_id, ri.history_id) AS "번호", ri.history_id, ri.tc_id, ri.platform, ri.timeout_ms, tc.step_titles
+         FROM run_item ri LEFT JOIN test_case tc ON tc.tc_id = ri.tc_id
         WHERE ri.run_id = $1 AND ri.history_id = ANY($2)
         ORDER BY ri.exec_seq NULLS FIRST, ri.history_id`,
       [runId, [...돌고있는것들.map((it) => it.historyId), ...보낸것들.map((칸) => 칸.번호)].flatMap((번호) => 항목화면(번호)?.보냄?.줄들 ?? [번호])],
@@ -62,9 +63,7 @@ export async function 진행경로(app: FastifyInstance): Promise<void> {
       const 지금줄 = 케이스들.find((r) => r.tc_id === tcId) ?? 케이스들[0]!;
       // 한 프로시저의 케이스 단계 제목을 차례대로 이으면 러너의 단계 번호 차례다. 하나라도 못 셌으면 싣지 않는다 (카탈로그 §3.1 「케이스 구간」)
       const 제목 = 케이스들.every((r) => r.step_titles !== null) ? 케이스들.flatMap((r) => r.step_titles ?? []) : null;
-      // 프로시저 안 케이스 줄에 박제된 300000 은 러너 안전판의 몫이라 실제로 끊기는 2분을 싣는다 — 그대로 실으면 카드가 「제한 5분」인데 2분에 끊긴다
-      const timeoutMs = 지금줄.proc_id === null ? 지금줄.timeout_ms : 케이스한도;
-      return { historyId: Number(지금줄.history_id), execId: 번호, timeoutMs, ...화면칸(번호), ...(제목 !== null && { stepTitles: 제목 }) };
+      return { historyId: Number(지금줄.history_id), execId: 번호, timeoutMs: 실제한도(지금줄.platform, 지금줄.timeout_ms), ...화면칸(번호), ...(제목 !== null && { stepTitles: 제목 }) };
     };
 
     // 없는 runId 에도 200 빈 목록이다. 형제 라우트(findRun·findItem)는 404 를 내지만

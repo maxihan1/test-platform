@@ -8,7 +8,7 @@ export interface 프로시저정보 {
   cases: { tcId: string; name: string }[];
 }
 
-/** 프로시저 안 케이스가 실제로 끊기는 한도 — kit 이 케이스마다 건다 (도메인/러너 §5.2 「케이스별 한도」) */
+/** 앱 · 게임 케이스가 실제로 끊기는 한도(android · 윈도우 PC 프로젝트의 timeout). 프로시저는 kit 이 케이스마다 건다 (도메인/러너 §5.2 「케이스별 한도」). 진행 카드의 제한도 이 값이다(execution/caseLimit.ts) */
 export const 케이스한도 = 120000;
 const 단계여유 = 180000;
 
