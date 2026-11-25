@@ -255,6 +255,16 @@
   color: var(--ink);
 }
 
+/* 체크칸 · 라디오는 글 칸 폭을 안 쓴다 — 포커스 테두리가 빈 자리까지 감싼다 */
+.perf-field input:is([type='checkbox'], [type='radio']) {
+  min-width: 0;
+  padding: 0;
+}
+
+.perf-field .err {
+  font-weight: 400;
+}
+
 .perf-graph {
   width: 100%;
   height: 140px;
