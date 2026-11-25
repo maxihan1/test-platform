@@ -65,12 +65,12 @@ async function 짓는다(driver: AppDriver, 바꿀: 폰상태): Promise<할것[]
   if (바꿀.방향 !== undefined) {
     const 앞 = String(await 막히면('화면 방향을 못 읽었다', () => driver.getOrientation())).toUpperCase();
     const 뒤 = 바꿀.방향 === '가로' ? 'LANDSCAPE' : 'PORTRAIT';
-    목록.push({ 못함: '화면을 못 돌렸다', 무엇: '화면 방향', 바꾸기: 앞 === 뒤 ? [] : [방향요청(뒤)], 되돌리기: 앞 === 뒤 ? [] : [방향요청(앞)] });
+    목록.push({ 못함: '화면을 회전하지 못했다', 무엇: '화면 방향', 바꾸기: 앞 === 뒤 ? [] : [방향요청(뒤)], 되돌리기: 앞 === 뒤 ? [] : [방향요청(앞)] });
   }
   if (바꿀.위치 !== undefined) {
     const { 위도, 경도 } = 바꿀.위치;
     // Appium Settings 가 가짜 위치를 내는 동안만 바뀐다 — 거두면 폰의 진짜 위치로 돌아가 앞 값을 읽을 것이 없다
-    목록.push({ 못함: '위치를 못 바꿨다', 무엇: '위치', 바꾸기: [실행('mobile: setGeolocation', { latitude: 위도, longitude: 경도 })], 되돌리기: [실행('mobile: resetGeolocation')] });
+    목록.push({ 못함: '위치를 변경하지 못했다', 무엇: '위치', 바꾸기: [실행('mobile: setGeolocation', { latitude: 위도, longitude: 경도 })], 되돌리기: [실행('mobile: resetGeolocation')] });
   }
   if (바꿀.어두운화면 !== undefined) {
     const 앞 = String(await 읽는다(driver, '어두운 화면 설정을 못 읽었다', 실행('mobile: getUiMode', { mode: 'night' })));
@@ -79,7 +79,7 @@ async function 짓는다(driver: AppDriver, 바꿀: 폰상태): Promise<할것[]
     목록.push({ 못함: '어두운 화면을 못 바꿨다', 무엇: '어두운 화면', 바꾸기: 꼴(뒤), 되돌리기: 꼴(앞) });
   }
   if (바꿀.글자크기 !== undefined) {
-    const 셸 = '(폰 셸 — 팜이 adb_shell 을 열어야 한다)';
+    const 셸 = '(디바이스 셸 — Device VISION 이 adb_shell 을 열어야 한다)';
     const 앞 = String(await 읽는다(driver, `글자 크기를 못 읽었다${셸}`, 글자크기셸(['get', 'system', 'font_scale']))).trim();
     // 한 번도 안 바꾼 폰은 null — 되돌리기는 값을 지워 기본(1)으로
     const 기본 = 앞 === 'null' || 앞 === '';
@@ -207,7 +207,7 @@ export async function 폰상태에서<값>(driver: AppDriver, 바꿀: 폰상태,
     }
     if (구간.거둠) return 값;
     const 못한 = await 되돌린다(driver, 목록);
-    if (못한 !== null) throw new Error(`폰 상태를 구간 전으로 못 되돌렸다 — ${못한}`);
+    if (못한 !== null) throw new Error(`디바이스 상태를 구간 전으로 복원하지 못했다 — ${못한}`);
     return 값;
   } finally {
     구간중.delete(driver);

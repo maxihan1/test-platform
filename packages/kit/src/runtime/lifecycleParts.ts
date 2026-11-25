@@ -81,11 +81,11 @@ function 앱파일(이름: 'PLATFORM_APP' | 'PLATFORM_APP_PREVIOUS', 부품: str
     throw new Error(
       이름 === 'PLATFORM_APP'
         ? `${부품} — 깔 앱 파일(PLATFORM_APP)이 없다`
-        : `${부품} — 앞 빌드가 없다. 이 대상 서버 줄의 빌드 목록에 빌드가 둘 이상 있어야 한다(앱 파일 경로로 도는 줄 · 빌드를 한 번만 올린 줄은 못 쓴다)`,
+        : `${부품} — 앞 빌드가 없다. 이 대상 서버 줄의 빌드 목록에 빌드가 둘 이상 있어야 한다(앱 파일 경로로 실행하는 줄 · 빌드를 한 번만 업로드한 줄은 못 쓴다)`,
     );
   }
   // 패키지 이름으로 준 스토어 앱은 팜이 「남길 앱」으로 둔 것이라 지우면 다음 실행이 그 폰을 못 잡는다
-  if (패키지이름인가(값)) throw new Error(`${부품} — 패키지 이름으로 준 스토어 앱(${값})은 지우거나 다시 깔지 않는다`);
+  if (패키지이름인가(값)) throw new Error(`${부품} — 패키지 이름으로 준 스토어 앱(${값})은 삭제하거나 다시 설치하지 않는다`);
   return 값;
 }
 
@@ -95,10 +95,10 @@ async function 깔기(driver: AppDriver, 파일: string, 무엇: string, 부품:
     await driver.execute('mobile: installApp', { appPath: 파일 });
   } catch (err) {
     const 가린 = 오류글(err).split(파일).join('<앱 파일>').replace(/([?&]sig=)[^&\s'"]+/g, '$1…');
-    throw new Error(`${부품} — ${무엇} 못 깔았다 — ${가린}`);
+    throw new Error(`${부품} — ${무엇} 설치하지 못했다 — ${가린}`);
   }
   // 지금 판을 깔았으면 폰 쪽지를 고친다 — 안 고치면 다음 항목이 「그사이 누가 다시 깔았다」로 보고 데이터째 또 깐다 (appBuild.ts)
-  if (무엇 === '지금 판을') await 쪽지쓰기((script, args) => driver.execute(script, args), 시험앱(driver, 부품), 파일);
+  if (무엇 === '지금 버전을') await 쪽지쓰기((script, args) => driver.execute(script, args), 시험앱(driver, 부품), 파일);
 }
 
 /** 시험 대상 앱을 지우고 지금 판을 다시 깐 뒤 켠다 — 처음 깐 상태(첫 실행 안내 · 권한 창)를 보는 케이스 */
@@ -107,7 +107,7 @@ export async function 앱다시깔기(driver: AppDriver): Promise<void> {
   const 지금 = 앱파일('PLATFORM_APP', '앱다시깔기');
   const 꾸러미 = 시험앱(driver, '앱다시깔기');
   await driver.execute('mobile: removeApp', { appId: 꾸러미 });
-  await 깔기(driver, 지금, '지금 판을', '앱다시깔기');
+  await 깔기(driver, 지금, '지금 버전을', '앱다시깔기');
   // 백업이 켜진 폰은 설치 순간 옛 데이터를 되살린다 — 처음 깐 상태가 안 나온다 (app.ts 켜기전에)
   await driver.execute('mobile: clearApp', { appId: 꾸러미 });
   await driver.activateApp(꾸러미);
@@ -131,11 +131,11 @@ export async function 옛판에서올리기<값>(driver: AppDriver, 할일: () =
     값 = await 할일();
   } catch (err) {
     try {
-      await 깔기(driver, 지금, '지금 판을', '옛판에서올리기');
+      await 깔기(driver, 지금, '지금 버전을', '옛판에서올리기');
       // 실패 사진 · 이어 쓰는 연결이 런처가 아닌 앱 화면을 보게
       await driver.activateApp(꾸러미);
     } catch (깔기오류) {
-      const 덧 = ` (지금 판도 다시 못 깔았다 — ${오류글(깔기오류)})`;
+      const 덧 = ` (지금 버전도 다시 설치하지 못했다 — ${오류글(깔기오류)})`;
       if (!(err instanceof Error)) throw new Error(`${String(err)}${덧}`);
       // 보고가 stack 을 찍는 길도 있어 둘 다 고친다 — stack 은 만들 때 글이 굳는다
       err.message += 덧;
@@ -143,7 +143,7 @@ export async function 옛판에서올리기<값>(driver: AppDriver, 할일: () =
     }
     throw err;
   }
-  await 깔기(driver, 지금, '지금 판을', '옛판에서올리기');
+  await 깔기(driver, 지금, '지금 버전을', '옛판에서올리기');
   await driver.activateApp(꾸러미);
   return 값;
 }

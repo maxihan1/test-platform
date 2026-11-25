@@ -68,10 +68,10 @@ describe('POST /execute-scenario — 앱 · 게임 단계', () => {
   });
 
   it.each([
-    ['앞 응답 돌려주기를 건다', [케이스(), 앱({ links: [{ kind: 'reuse', method: 'GET', urlPattern: '**/a', fromSeq: 1 }] })], '값 꽂기만 건다'],
-    ['요청 막기를 건다', [앱({ links: [{ kind: 'block', method: 'DELETE', urlPattern: '**/a' }] })], '값 꽂기만 건다'],
-    ['바꿔 보내기를 건다', [앱({ links: [{ kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '/a/{}', value: 앞응답 } }] })], '값 꽂기만 건다'],
-    ['넘겨받기를 끈다', [앱({ carryOver: false })], '넘겨받기를 끌 수 없다'],
+    ['앞 응답 돌려주기를 건다', [케이스(), 앱({ links: [{ kind: 'reuse', method: 'GET', urlPattern: '**/a', fromSeq: 1 }] })], '값 주입만 건다'],
+    ['요청 막기를 건다', [앱({ links: [{ kind: 'block', method: 'DELETE', urlPattern: '**/a' }] })], '값 주입만 건다'],
+    ['바꿔 보내기를 건다', [앱({ links: [{ kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '/a/{}', value: 앞응답 } }] })], '값 주입만 건다'],
+    ['넘겨받기를 끈다', [앱({ carryOver: false })], '로그인 이어받기를 끌 수 없다'],
     ['모킹 구간 안에 있다', [모킹, 케이스(), 앱()], '3번 앱 · 게임 단계가 모킹 구간 안에 있다'],
   ])('앱 단계에 %s 면 400 이다', async (_이름, parts, 까닭) => {
     const res = await 보냄(요청({ parts }));
@@ -84,7 +84,7 @@ describe('POST /execute-scenario — 앱 · 게임 단계', () => {
   it('앱 파일 · Appium 주소가 없으면 웹 단계가 돌기 전에 400 이다 — 웹만의 시나리오는 상관없다', async () => {
     vi.stubEnv('PLATFORM_APP', '');
     const 앱없음 = await 보냄(요청({ parts: [케이스(), 앱()] }));
-    expect(앱없음.json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('깔 앱 파일이 없다') });
+    expect(앱없음.json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('설치할 앱 파일이 없다') });
     expect((await 보냄(요청({ app: '/apk/dma.apk' }))).statusCode).toBe(200);
 
     vi.stubEnv('PLATFORM_APPIUM_URL', '');

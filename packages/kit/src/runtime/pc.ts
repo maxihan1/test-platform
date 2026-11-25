@@ -9,7 +9,7 @@ function PC자리(env: Env): { farm: { base: string; headers: Record<string, str
   const serial = env.PLATFORM_DEVICE_UDID;
   const appium = env.PLATFORM_APPIUM_URL;
   // 내 컴퓨터 러너의 USB 길은 PC 에 없다 — 러너가 udid 없는 windows 항목을 400 으로 막지만 사람이 직접 돌릴 때를 위해 여기서도 던진다
-  if (!serial || !appium) throw new Error('윈도우 PC 항목은 VISION 이 잡아 준 PC 번호(PLATFORM_DEVICE_UDID)와 VISION 주소(PLATFORM_APPIUM_URL)가 있어야 돈다');
+  if (!serial || !appium) throw new Error('윈도우 PC 항목은 Device VISION 이 할당한 PC 번호(PLATFORM_DEVICE_UDID)와 Device VISION 주소(PLATFORM_APPIUM_URL)가 있어야 실행된다');
   return { farm: 팜원점(appium, env.PLATFORM_APPIUM_TOKEN), serial };
 }
 

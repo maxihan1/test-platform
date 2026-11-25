@@ -154,7 +154,7 @@ describe('프로시저 단계', () => {
 
     const 결과 = await 프로시저단계(프로시저([a]), vi.fn(), a.tcId)(입력({ driver: undefined }));
 
-    expect(결과).toMatchObject({ failed: true, error: { message: 'DEMO-TP-701에 폰 연결이 없다' } });
+    expect(결과).toMatchObject({ failed: true, error: { message: 'DEMO-TP-701에 디바이스 연결이 없다' } });
     expect(결과.cases).toBeUndefined();
   });
 });

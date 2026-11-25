@@ -23,7 +23,7 @@ const DEFAULT_PORTS: Record<string, number> = { 'http:': 80, 'https:': 443 };
 
 function required(env: Env, name: string): string {
   const value = env[name];
-  if (!value) throw new Error(`Android 앱 케이스를 돌리려면 ${name} 이 필요하다`);
+  if (!value) throw new Error(`Android 앱 케이스를 실행하려면 ${name} 이 필요하다`);
   return value;
 }
 

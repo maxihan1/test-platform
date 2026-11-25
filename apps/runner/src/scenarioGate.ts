@@ -14,8 +14,8 @@ export function 앱단계에못거는것(parts: readonly 부품[]): string | und
     if (part.kind !== 'case' || part.appStep !== true) continue;
     const 번 = `${i + 1}번 앱 · 게임 단계`;
     if (켜진모킹.size > 0) return `${번}가 모킹 구간 안에 있다 — 모킹은 앱 단계 앞에서 끈다`;
-    if (part.carryOver === false) return `${번}는 넘겨받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다`;
-    if (part.links?.some((link) => link.kind !== 'bind')) return `${번}에는 값 꽂기만 건다 — 앞 응답 돌려주기 · 요청 막기 · 바꿔 보내기는 앱 요청에 안 걸린다`;
+    if (part.carryOver === false) return `${번}는 로그인 이어받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다`;
+    if (part.links?.some((link) => link.kind !== 'bind')) return `${번}에는 값 주입만 건다 — 이전 응답 재사용 · 요청 차단 · 수정 요청으로 변경은 앱 요청에 적용되지 않는다`;
   }
   return undefined;
 }
@@ -23,7 +23,7 @@ export function 앱단계에못거는것(parts: readonly 부품[]): string | und
 // 앱 파일 · Appium 주소가 없으면 첫 앱 단계에서야 터진다 — 그 앞 웹 단계가 이미 대상 서버를 바꾼 뒤다. 돌기 전에 거절한다
 export function 폰값이없다(req: Pick<ScenarioExecuteRequest, 'parts' | 'app'>, env: Record<string, string | undefined>): string | undefined {
   if (!req.parts.some((p) => p.kind === 'case' && p.appStep === true)) return undefined;
-  if (!env.PLATFORM_APPIUM_URL) return '앱 · 게임 단계를 돌릴 Appium 주소(PLATFORM_APPIUM_URL)가 이 러너에 없다';
-  if (req.app === undefined && !env.PLATFORM_APP) return '앱 · 게임 단계에 깔 앱 파일이 없다 — 요청의 app 이나 러너의 PLATFORM_APP 이 필요하다';
+  if (!env.PLATFORM_APPIUM_URL) return '앱 · 게임 단계를 실행할 Appium 주소(PLATFORM_APPIUM_URL)가 이 러너에 없다';
+  if (req.app === undefined && !env.PLATFORM_APP) return '앱 · 게임 단계에 설치할 앱 파일이 없다 — 요청의 app 이나 러너의 PLATFORM_APP 이 필요하다';
   return undefined;
 }

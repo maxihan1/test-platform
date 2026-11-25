@@ -97,7 +97,7 @@ describe('빌드맞추기', () => {
       return true;
     });
     const 오류 = await 빌드맞추기(p.실행, 'com.g', 주소, 0).catch((e: Error) => e.message);
-    expect(오류).toContain('다시 깔지 못했다 — Cannot install <앱 파일>');
+    expect(오류).toContain('다시 설치하지 못했다 — Cannot install <앱 파일>');
     expect(오류).not.toContain('secret');
   });
 });
