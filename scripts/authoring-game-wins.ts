@@ -54,11 +54,12 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       }
       let r: 조작결과;
       try {
-        r = await 돌린다(길 ?? (await gameLink(것.환경)), 것.함수, 것.환경, 초 * 1000, 끊기.signal);
+        r = await 돌린다(길 ?? (await gameLink(것.환경)), 것.함수, 것.환경, 초 * 1000, 끊기.signal, { 자료 });
       } catch (e) {
         return 못셈(`게임에 못 붙었다(${e instanceof Error ? e.message : String(e)})`);
       }
       const 기록 = 기록남기기(자료, 이름, 넘길, r, 비밀들);
+      if (r.멈춘채) return 못셈('멈춰 둔 게임을 못 풀었다 — 판이 안 흐른다');
       // 멈춘 화면(0배)에서 시작하는 것은 게임이 멈춘 것이다 — 그 밖의 배율은 원래 속도가 아니다
       if (r.배율바꿈 || (r.배율 !== null && r.배율 !== 0 && r.배율 !== 1)) return 못셈(`원래 속도가 아니다(${r.배율바꿈 ? '함수가 시간 배율을 바꿨다' : `배율 ${r.배율}`}) — \`npx control-cli -s=g timescale-set 1\` 뒤 다시 부른다`);
       // 작전 탓이 아닌 판 — 밖에서 끊음 · 입력을 못 놓음 · 명령의 답을 못 받고 못 이김(팜 거절 · 시간 초과). 답을 못 받고도 이긴 판은 이긴 것이다

@@ -1,6 +1,6 @@
 // 조작 도우미 부르기 — 게임 작성 AI 가 잡은 디바이스에서 tests/<폴더>/helpers/ 의 함수(첫 인자 game)를 한 프로세스로 돌린다 (도메인/게임 §3.10 「조작 도우미」)
 // control-cli 는 명령마다 화면이 멎기를 기다렸다 찍어 움직임이 끊긴다. 이 명령은 묶음을 한 번에 돌리고, 어떻게 끝나든 눌러 둔 입력을 놓는다
-// 쓰는 법: npx tsx scripts/authoring-game-play.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초>] — game 은 케이스 몸통이 받는 것과 같은 드라이버다
+// 쓰는 법: npx tsx scripts/authoring-game-play.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초>] [--shots <초>] [--freeze] — game 은 케이스 몸통이 받는 것과 같은 드라이버다
 
 import { pathToFileURL } from 'node:url';
 
@@ -8,7 +8,8 @@ import { gameLink, openGame } from '@platform/kit/game';
 import { Game, type Command, type Link } from 'control-cli';
 
 import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
-import { 기록남기기, 도중화면줄, 몇줄 } from './authoring-game-play-log.js';
+import { 멈추기, 풀기 } from './authoring-game-play-freeze.js';
+import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
 import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 정리알림 } from './authoring-game-find.js';
@@ -29,7 +30,7 @@ export interface 조작결과 {
   알림: string[];
   화면?: Buffer;
   못한것: string[];
-  /** 부르기 앞의 시간 배율(못 읽으면 null)과 함수가 배율을 바꿨나 — 10판 확인(authoring-game-wins)은 원래 속도만 센다 */
+  /** 함수가 돈 시간 배율(못 읽으면 null) — 멈춘 게임을 풀었으면 푼 뒤 값이다. 함수가 배율을 바꿨나와 함께 10판 확인(authoring-game-wins)이 원래 속도만 센다 */
   배율: number | null;
   배율바꿈: boolean;
   /** 명령의 답을 못 받은 일 — 게임이 실패로 답한 것과 다르다(팜 거절 · 시간 초과 · 끊김) */
@@ -39,17 +40,27 @@ export interface 조작결과 {
   도중화면: 도중화면[];
   /** 실제로 쓴 도중 화면 간격(ms) — 한도 안에 40장이 다 들어가게 넓혔을 수 있다. 안 켰으면 0 */
   도중간격ms: number;
+  /** 멈춰 가며 하기 — 멈추고 되읽은 배율(멈추기를 안 했으면 없다) */
+  멈춘뒤배율?: number | null;
+  /** 멈춤 · 풀기에서 AI 가 알아야 할 줄 */
+  알림말: string[];
+  /** 멈춤 표시가 있는데 못 풀었다 — 10판 확인은 이 판을 안 센다 */
+  멈춘채: boolean;
 }
 
 export interface 덧 {
   /** 도중 화면 간격(ms) — 안 주거나 0 이면 한 장도 안 찍고 명령도 더 안 보낸다 */
   도중화면ms?: number;
+  /** 함수가 끝나면 게임을 멈추고 다음에 부를 때 푼다 */
+  멈춤?: boolean;
+  /** 멈춤 표시를 두는 자료 폴더 — 표시가 있으면 멈춤을 안 줘도 부르기 직전에 푼다 */
+  자료?: string;
 }
 
 /**
  * 함수를 돌리고 거둔다. 끝나면(끝까지 · 던짐 · 한도 · 밖에서 끊음) 함수가 보내는 명령부터 막고 보낸 것의 답을 기다렸다 입력을 놓는다.
  * 막힌 명령은 답하지 않는다 — 던지면 오류를 삼키고 다시 부르는 반복이 쉬지 않고 돌아 거두는 시간이 안 온다.
- * 시간 배율은 함수가 바꿨을 때만 되돌린다 — 게임이 스스로 멈추고 푼 것(일시정지 창)을 덮지 않게
+ * 시간 배율은 함수가 바꿨을 때만 되돌린다(멈춤이면 멈추고 표시에 앞 값을 둔다) — 게임이 스스로 멈추고 푼 것(일시정지 창)을 덮지 않게
  */
 export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, 환경: Record<string, string | undefined>, 한도ms: number, 끊김?: AbortSignal, 덧?: 덧): Promise<조작결과> {
   let 막음 = false;
@@ -89,6 +100,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     오류: (await 해본다('오류 읽기', () => 맨게임.errors(0)))?.last ?? null,
     알림: (await 해본다('알림 읽기', () => 맨게임.events(0)))?.last ?? null,
   };
+  const 풀림 = await 풀기(맨게임, 덧?.자료, 앞.배율, 해본다);
+  const { 배율 } = 풀림;
   // 함수가 따로 띄운 일이 던지면 node 가 바로 꺼져 거두지 못한다 — 적어 두고 거두기까지 간다
   const 버려진 = (e: unknown): void => void 못한것.push(`기다리지 않은 일이 던짐: ${까닭(e)}`);
   process.on('unhandledRejection', 버려진);
@@ -113,6 +126,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   }
   const 걸린ms = Date.now() - 시작;
   찍기?.그친다();
+  const 멈춤 = 덧?.멈춤 === true ? await 멈추기(맨게임, 덧.자료, 배율, 배율바꿈, 해본다) : null;
   막음 = true;
   for (const 끝 = Date.now() + 답기다림ms; 보내는중 > 0 && Date.now() < 끝; ) await 쉼(50);
   try {
@@ -121,8 +135,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     입력못놓음 = true;
     오류 = `${오류 === undefined ? '' : `${오류} · `}입력을 못 놓았습니다(${까닭(e)}) — control-cli input-reset 으로 놓습니다`;
   }
-  const { 배율 } = 앞;
-  if (배율바꿈 && 배율 !== null) await 해본다('시간 배율 되돌리기', () => 맨게임.setTimeScale(배율));
+  if (배율바꿈 && 배율 !== null && 멈춤 === null) await 해본다('시간 배율 되돌리기', () => 맨게임.setTimeScale(배율));
   const 로그 = 앞.로그 === null ? null : await 해본다('로그 읽기', () => 맨게임.logs(앞.로그!));
   const 게임오류 = 앞.오류 === null ? null : await 해본다('오류 읽기', () => 맨게임.errors(앞.오류!));
   const 알림 = 앞.알림 === null ? null : await 해본다('알림 읽기', () => 맨게임.events(앞.알림!));
@@ -148,6 +161,9 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     입력못놓음,
     도중화면: 찍기?.장들 ?? [],
     도중간격ms: 간격ms,
+    ...(멈춤?.멈춘뒤배율 === undefined ? {} : { 멈춘뒤배율: 멈춤.멈춘뒤배율 }),
+    알림말: [...풀림.알림말, ...(멈춤?.알림말 ?? [])],
+    멈춘채: 풀림.멈춘채,
   };
 }
 
@@ -163,7 +179,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   process.once('SIGTERM', 끊음);
   process.once('SIGINT', 끊음);
   try {
-    r = await 돌린다(길 ?? (await gameLink(환경)), 것.함수, 환경, 초 * 1000, 끊기.signal, { 도중화면ms: (것.화면초 ?? 기본화면초) * 1000 });
+    r = await 돌린다(길 ?? (await gameLink(환경)), 것.함수, 환경, 초 * 1000, 끊기.signal, { 도중화면ms: (것.화면초 ?? 기본화면초) * 1000, 멈춤: 것.멈춤, 자료 });
   } catch (e) {
     console.error(`[조작 도우미] 게임에 못 붙었다 — ${비밀가리기(까닭(e), 비밀들)}`);
     return 2;
@@ -174,7 +190,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 기록 = 기록남기기(자료, 이름, 넘길, r, 비밀들);
   const 글 = [
     `[조작 도우미] ${이름} ${r.오류 === undefined ? '끝' : '멈춤'} · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json${r.화면 === undefined ? '' : ' · 끝 화면 .jpg'}`}`,
-    ...도중화면줄(r, 기록),
+    ...덧줄(r, 기록),
     ...(r.오류 === undefined ? [] : [`오류: ${r.오류}`]),
     ...몇줄('게임 로그', r.로그),
     ...몇줄('게임 오류', r.게임오류),

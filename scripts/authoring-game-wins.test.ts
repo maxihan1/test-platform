@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 게임자료환경 } from './authoring-check-game.js';
 import { 실행 } from './authoring-game-wins.js';
+import { 멈춤표시쓰기, 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { 작전지문, 이긴판읽기 } from './authoring-game-wins-log.js';
 
 let 트리 = '';
@@ -15,6 +16,7 @@ let 자료 = '';
 let 값들: unknown[] = [];
 let 배율 = 1;
 let 놓기막힘 = false;
+let 풀기막힘 = false;
 const 길 = (async (c: Command) => {
   const cmd = c as unknown as Record<string, unknown>;
   switch (cmd.cmd) {
@@ -25,7 +27,7 @@ const 길 = (async (c: Command) => {
       return { ok: true, value: v ?? null };
     }
     case 'timescale-get': return { ok: true, timeScale: 배율 };
-    case 'timescale-set': 배율 = Number(cmd.scale); return { ok: true };
+    case 'timescale-set': if (풀기막힘) throw new Error('풀기 거절'); 배율 = Number(cmd.scale); return { ok: true };
     case 'logs': return { ok: true, last: 0, logs: [] };
     case 'errors': return { ok: true, last: 0, errors: [] };
     case 'events': return { ok: true, last: 0, events: [] };
@@ -56,6 +58,7 @@ beforeEach(() => {
   writeFileSync(join(트리, '.control-cli', 'held'), 'pc-pc1\n');
   값들 = [];
   배율 = 1;
+  풀기막힘 = false;
   vi.spyOn(console, 'log').mockImplementation(() => undefined);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
@@ -149,6 +152,22 @@ describe('10판 확인', () => {
     expect(await 부르기()).toBe(2);
     expect(찍힘()).toContain('원래 속도가 아니다');
     expect(판()).toEqual({ 이김: 1, 짐: 0 });
+  });
+
+  it('멈춰 둔 표시가 있고 0배이면 풀고 센다 — 못 풀어 멈춘 채인 판은 세지 않고 2', async () => {
+    멈춤표시쓰기(자료, 1);
+    배율 = 0;
+    값들 = Array.from({ length: 10 }, () => true);
+    expect(await 부르기()).toBe(0);
+    expect(판()).toEqual({ 이김: 10, 짐: 0 });
+    expect(멈춤표시읽기(자료)).toBeNull();
+    배율 = 0;
+    멈춤표시쓰기(자료, 1);
+    풀기막힘 = true;
+    값들 = [true];
+    expect(await 부르기('한판', undefined, '["더 쉬움"]')).toBe(2);
+    expect(판(['더 쉬움'])).toEqual({ 이김: 0, 짐: 0 });
+    expect(찍힘()).toContain('멈춰 둔 게임을 못 풀었다');
   });
 
   it('함수가 던지거나 한도를 넘기면 이긴 판이 아니다', async () => {

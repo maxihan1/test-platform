@@ -10,7 +10,7 @@ import { Game, type Link } from 'control-cli';
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
-import { 기록남기기, 도중화면줄 } from './authoring-game-play-log.js';
+import { 기록남기기, 덧줄 } from './authoring-game-play-log.js';
 import { type 조작결과, 돌린다 } from './authoring-game-play.js';
 import { 정리알림 } from './authoring-game-find.js';
 import { 결과글 } from './authoring-game-state.js';
@@ -260,7 +260,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       보기 = 본다(new Game(연결), a, () => 그만, 본, 봤다);
       보기.then(봤다, 봤다);
     }), 쉼(거둠ms)]);
-    r = await 돌린다(연결, 것?.함수 ?? (() => 쉼(a.초 * 1000)), 환경, (것?.초 ?? a.초 + 5) * 1000, 끊기.signal, { 도중화면ms: (것 === null ? a.화면초 : (것.화면초 ?? 기본화면초)) * 1000 });
+    r = await 돌린다(연결, 것?.함수 ?? (() => 쉼(a.초 * 1000)), 환경, (것?.초 ?? a.초 + 5) * 1000, 끊기.signal, { 도중화면ms: (것 === null ? a.화면초 : (것.화면초 ?? 기본화면초)) * 1000, 멈춤: 것?.멈춤, 자료 });
     그만 = true;
     await Promise.race([보기, 쉼(거둠ms)]);
   } catch (e) {
@@ -276,7 +276,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 기록 = 기록남기기(자료, 이름, 것?.넘길 ?? [], { ...r, 값: { 지켜본것: 줄, ...(r.값 === undefined ? {} : { 함수값: r.값 }) } }, 비밀들);
   console.log(비밀가리기([
     `[지켜보기] ${본.표본들.length}번 봄 · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json${r.화면 === undefined ? '' : ' · 끝 화면 .jpg'}`}`,
-    ...도중화면줄(r, 기록),
+    ...덧줄(r, 기록),
     ...(r.오류 === undefined ? [] : [`함수 오류: ${r.오류}`]),
     ...줄.map((x) => x.slice(0, 900)),
     ...(Object.keys(본.뺀것).length === 0 ? [] : [`다른 복제본 안에 들어 있어 뺀 것(--nested 로 본다): ${Object.entries(본.뺀것).map(([이름, 수]) => `${이름}×${수}`).slice(0, 20).join(' · ')}`]),
