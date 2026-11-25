@@ -103,6 +103,14 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
     expect(미실행사유({ message: 'Error: connect ECONNREFUSED 127.0.0.1:4001' }, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');
   });
 
+  it('영문 낱말로 시작해도 한글 문장이면 서버가 쓴 사유다 — Windows PC 를 할당하지 못한 항목이 실행기 장애로 보이면 안 된다', () => {
+    // DB 에 남은 옛 글과 지금 글을 다 받는다
+    for (const 글 of ['Windows PC 를 잡지 않은 항목입니다', 'Windows PC 를 할당하지 않은 항목입니다', 'Windows 빌드를 깔지 못했습니다: HTTP 500', 'Windows 빌드를 설치하지 못했습니다: HTTP 500']) {
+      expect(미실행사유({ message: 글 }, 'ko')).toBe(글);
+    }
+    expect(미실행사유({ message: 'Test failed with exit code 1' }, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');
+  });
+
   it('사유가 없으면 줄을 안 그린다', () => {
     expect(미실행사유(null, 'ko')).toBe(null);
   });
