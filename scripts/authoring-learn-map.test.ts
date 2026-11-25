@@ -84,16 +84,20 @@ describe('빈칸들 — 무엇을 재야 하나', () => {
       줄('INPUT', 'input:쪽 넘기기', { 칸: '아님 — 가이드 창에서만 쓴다' }),
       줄('INPUT', 'input:폭탄', { 쿨타임: 3 }),
       줄('BEHAVIOR', 'behavior:유령', { 칸: { 오브젝트: 'B3_MonsterGhost_Wave1(Clone)', 길: '두 길', 빠르기: 2.1, 하는일: '기지를 친다', 없어질때: '막힘 — 한 마리도 못 잡았다' } }),
+      줄('BEHAVIOR', 'behavior:고기', { 칸: '모름' }),
+      줄('BEHAVIOR', 'behavior:글', { 칸: '아님 — behavior:유령 줄에 적음' }, 'GAME_TEXT'),
+      줄('BEHAVIOR', 'behavior:보스', { 칸: { 오브젝트: 'ㄱ', 길: 'ㄴ', 빠르기: 1, 하는일: 'ㄷ', 없어질때: '막힘' } }),
+      줄('INPUT', 'input:대강', { 칸: '아님' }),
       줄('WORLD', 'world:길 띠', { 본것: 24 }),
       줄('WORLD', 'world:첫 맵', { 칸: { 나오는곳: ['왼쪽 아래', '오른쪽 아래'], 가는곳: '세계수', 막힌곳: {}, 쓸자리: '없음 — 아무 데나', 지킬것: '세계수' } }),
     ]);
-    expect(빈칸들(m)).toEqual(['input:공격 — 닿는곳 · 안될때', 'input:폭탄 — 칸 없음', 'world:첫 맵 — 막힌곳']);
+    expect(빈칸들(m)).toEqual(['world:첫 맵 — 막힌곳', 'behavior:고기 — 칸 없음', 'input:공격 — 닿는곳 · 안될때', 'behavior:보스 — 없어질때', 'input:폭탄 — 칸 없음', 'input:대강 — 칸 없음']);
   });
 
-  it('맵 줄이 없거나 조작 줄에 칸이 하나도 없으면 그것부터다 — 없는 게임은 없음 줄로 닫고, 뒤집힌 줄은 안 본다', () => {
+  it('맵 줄이 없거나 조작 줄에 칸이 하나도 없으면 그것부터다 — 없는 게임은 없음 줄로 닫고, 뒤집힌 줄만 남은 종류는 다시 배울 것이다', () => {
     expect(빈칸들(지도([]))).toEqual([expect.stringContaining('WORLD')]);
     expect(빈칸들(지도([줄('INPUT', 'input:창', { 칸: '아님 — 메뉴' }), 줄('WORLD', 'world:없음', {})]))).toEqual([expect.stringContaining('INPUT')]);
-    expect(빈칸들(지도([줄('INPUT', 'input:없음', {}), 줄('BEHAVIOR', 'behavior:옛것', {}, 'OVERTURNED'), 줄('WORLD', 'world:없음', {})]))).toEqual([]);
+    expect(빈칸들(지도([줄('INPUT', 'input:없음', {}), 줄('BEHAVIOR', 'behavior:옛것', {}, 'OVERTURNED'), 줄('WORLD', 'world:없음', {})]))).toEqual([expect.stringContaining('BEHAVIOR')]);
     expect(배울것고르기(지도([]), 볼).칸).toHaveLength(1);
   });
 });

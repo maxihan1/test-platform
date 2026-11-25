@@ -200,7 +200,8 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
 
   /** 시험 세션이 남긴 조작 기록인가 — 앞 학습 세션의 기록 이름을 적으면 해 보지 않은 판이 해 본 것이 된다 */
   function 이번기록인가(이름: string | undefined, 시작: number): boolean {
-    if (이름 === undefined || /[/\\]/.test(이름)) return false;
+    // 지켜보기는 가만히 보기만 한 기록이다
+    if (이름 === undefined || /[/\\]/.test(이름) || /-지켜보기\.json$/.test(이름)) return false;
     const 정보 = lstatSync(join(o.자료, 게임자리.조작기록, 이름), { throwIfNoEntry: false });
     return 정보?.isFile() === true && 정보.mtimeMs >= 시작;
   }

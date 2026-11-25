@@ -53,6 +53,13 @@ describe('요약', () => {
     expect(글).toContain('가만히 있는 것: 나무');
   });
 
+  it('나온 때 자리를 못 읽은 것은 나온 자리로 치지 않고, 같은 값이 새로 와도 바뀐 것이 아니다', () => {
+    const 들 = [본것(0, {}), { ...본것(1, { '유령-1#1': [0, 0, 0], '유령-2#1': [5, 0, 5] }), 자리: { '유령-1#1': [0, 0, 0] as 자리 } }, 본것(2, { '유령-1#1': [0, 0, 9], '유령-2#1': [5, 0, 20] }, { 앞: { '유령-1#1': [1, 2] } }), 본것(3, { '유령-1#1': [0, 0, 9], '유령-2#1': [5, 0, 20] }, { 앞: { '유령-1#1': [1, 2] } })];
+    const 글 = 요약(들, {}, null).join('\n');
+    expect(글).toContain('나온 자리 1곳 (0.0,0.0,0.0)×1 (1개는 나온 때 자리를 못 읽음)');
+    expect(글).toContain('앞 읽은 1개는 안 바뀜 — 1개는 안 읽음');
+  });
+
   it('자리 묶기 · 이름 · 화면 그림', () => {
     expect(자리묶기([[0, 0, 0], [1, 0, 0], [30, 0, 0]])).toEqual([{ 자리: [0, 0, 0], 수: 2 }, { 자리: [30, 0, 0], 수: 1 }]);
     expect(이름만('/Pool/Ghost(Clone)[12]')).toBe('Ghost(Clone)');
@@ -63,7 +70,8 @@ describe('요약', () => {
 
 describe('인자읽기', () => {
   it('초 · 곁 · 칸 · 같이 돌릴 함수', () => {
-    expect(인자읽기(['--sec', '20', '--near', '/P', '--get', 'Ghost(Clone):HP.HP.Value', '--do', 'g', 'play', '걷기', '[1]', '--max', '5'])).toEqual({ 초: 20, 곁: '/P', 칸: { 'Ghost(Clone)': ['HP.HP.Value'] }, 할일: ['g', 'play', '걷기', '[1]', '--max', '5'] });
+    expect(인자읽기(['--sec', '20', '--near', '/P', '--get', 'Ghost(Clone):HP.HP.Value', '--do', 'g', 'play', '걷기', '[1]', '--max', '5'])).toEqual({ 초: 20, 곁: '/P', 칸: { 'Ghost(Clone)': ['HP.HP.Value'] }, 안에든것: false, 할일: ['g', 'play', '걷기', '[1]', '--max', '5'] });
+    expect(인자읽기(['--nested', '--sec', '9'])).toMatchObject({ 초: 9, 안에든것: true });
     expect([인자읽기(['--sec', '0']), 인자읽기(['--sec', '999']), 인자읽기(['--get', 'Ghost']), 인자읽기(['--do', 'g']), 인자읽기(['--what', '1'])]).toEqual([null, null, null, null, null]);
   });
 });
@@ -108,10 +116,21 @@ describe('실행', () => {
     expect(글).toContain('나온 자리 1곳 (20.0,0.0,0.0)×1');
     expect(글).toContain('컴포넌트 MonsterHP — 칸 MonsterHP.HP.Value · MonsterHP.MaxHP=20');
     expect(글).not.toContain('Icon');
-    expect(글).not.toContain('Fx');
+    expect(글).toContain('뺀 것(--nested 로 본다): Fx(Clone)×1');
+    expect(글).not.toContain('■ Fx');
     expect(글).toContain('눌렀나');
     expect(명령).toContain('key');
     expect(명령).toContain('input-reset');
+  });
+
+  it('함수가 바로 끝나도 앞뒤를 견주고, 안 보인 이름은 못 읽은 것으로 적는다', async () => {
+    const 찍힘 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const t = 트리();
+    writeFileSync(join(t, 'tests', 'g', 'helpers', 'play.helper.ts'), 'export const 바로 = () => 1;\n');
+    expect(await 실행(['--get', 'Ghost:HP.Value', '--do', 'g', 'play', '바로'], t, {}, 가짜([]))).toBe(0);
+    const 글 = 찍힘.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(글).toContain('새로 1');
+    expect(글).toContain('Ghost 은 한 번도 안 보였다');
   });
 
   it('잡은 디바이스가 없으면 2', async () => {

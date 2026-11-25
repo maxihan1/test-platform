@@ -40,6 +40,8 @@ export function 자리묶기(들: readonly 자리[]): { 자리: 자리; 수: num
   return 묶음.sort((a, b) => b.수 - a.수);
 }
 
+/** 값은 부를 때마다 새것으로 온다 — 글로 견준다 */
+const 글 = (v: unknown): string => (typeof v === 'object' ? JSON.stringify(v) : String(v));
 const 자리글 = (들: readonly 자리[]): string => {
   const 묶음 = 자리묶기(들);
   return `${묶음.length}곳 ${묶음.slice(0, 줄수).map((m) => `${점(m.자리)}×${m.수}`).join(' ')}${묶음.length > 줄수 ? ' …' : ''}`;
@@ -59,6 +61,8 @@ export function 요약(들: readonly 표본[], 칸: 칸정보, 곁이름: string
       if (p !== undefined) 길들.get(열쇠)!.push({ 초: s.초, p, 곁: s.곁 });
     }
   }
+  const 첫본초 = new Map<string, number>();
+  for (const s of 들) for (const { 열쇠 } of s.보인) if (!첫본초.has(열쇠)) 첫본초.set(열쇠, s.초);
   const 줄: string[] = [];
   const 덩이 = [...이름들].map(([이름, 길들]) => {
     const 열쇠들 = [...길들.keys()];
@@ -74,8 +78,9 @@ export function 요약(들: readonly 표본[], 칸: 칸정보, 곁이름: string
   const 볼것 = 덩이.filter((x) => x.새것.length + x.간것.length + x.움직인.length > 0 || (칸[x.이름]?.칸.length ?? 0) > 0);
   for (const { 이름, 길들, 열쇠들, 새것, 간것, 움직인 } of 볼것.sort((a, b) => b.새것.length + b.간것.length + b.움직인.length - (a.새것.length + a.간것.length + a.움직인.length))) {
     줄.push(`■ ${이름} — 처음 ${열쇠들.filter((k) => 처음.has(k)).length} · 새로 ${새것.length} · 사라짐 ${간것.length} · 움직임 ${움직인.length}`);
-    const 첫자리 = 새것.flatMap((k) => (길들.get(k)![0] === undefined ? [] : [길들.get(k)![0]!.p]));
-    if (첫자리.length > 0) 줄.push(`  나온 자리 ${자리글(첫자리)}`);
+    // 나온 때 자리를 못 읽은 것은 뺀다 — 길 가운데를 나온 자리로 적지 않게
+    const 첫자리 = 새것.flatMap((k) => (길들.get(k)![0]?.초 === 첫본초.get(k) ? [길들.get(k)![0]!.p] : []));
+    if (첫자리.length > 0) 줄.push(`  나온 자리 ${자리글(첫자리)}${첫자리.length < 새것.length ? ` (${새것.length - 첫자리.length}개는 나온 때 자리를 못 읽음)` : ''}`);
     const 길있는 = 움직인.filter((k) => 길들.get(k)!.length >= 2);
     const 쓴자리: 자리[] = [];
     for (const k of [...길있는].sort((a, b) => 길들.get(b)!.length - 길들.get(a)!.length)) {
@@ -106,12 +111,13 @@ export function 요약(들: readonly 표본[], 칸: 칸정보, 곁이름: string
         for (const s of 들) {
           const v = s.값[칸이름]?.[k];
           if (v === undefined) continue;
-          if (앞 !== undefined && v !== 앞) 바뀜.push(`${s.초.toFixed(1)}s ${String(앞)}→${String(v)}${s.곁 !== null && s.자리[k] !== undefined ? `(${곁이름} 과 ${거리(s.자리[k]!, s.곁).toFixed(1)})` : ''}`);
+          if (앞 !== undefined && 글(v) !== 글(앞)) 바뀜.push(`${s.초.toFixed(1)}s ${글(앞)}→${글(v)}${s.곁 !== null && s.자리[k] !== undefined ? `(${곁이름} 과 ${거리(s.자리[k]!, s.곁).toFixed(1)})` : ''}`);
           앞 = v;
         }
       }
       if (바뀜.length > 0) 줄.push(`  ${칸이름} 바뀜 ${바뀜.length}번: ${바뀜.slice(0, 12).join(' · ')}${바뀜.length > 12 ? ' …' : ''}`);
-      else if (들.some((s) => 열쇠들.some((k) => s.값[칸이름]?.[k] !== undefined))) 줄.push(`  ${칸이름} 안 바뀜`);
+      const 읽은 = 열쇠들.filter((k) => 들.some((s) => s.값[칸이름]?.[k] !== undefined)).length;
+      if (바뀜.length === 0 && 읽은 > 0) 줄.push(`  ${칸이름} 읽은 ${읽은}개는 안 바뀜${읽은 < 열쇠들.length ? ` — ${열쇠들.length - 읽은}개는 안 읽음` : ''}`);
     }
     const 아는 = 칸[이름];
     if (아는 !== undefined && 아는.컴포넌트.length > 0) 줄.push(`  컴포넌트 ${아는.컴포넌트.join(' · ')}${아는.칸.length === 0 ? '' : ` — 칸 ${아는.칸.join(' · ')}`}`);
