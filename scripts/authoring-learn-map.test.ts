@@ -83,6 +83,11 @@ describe('빠진게임글', () => {
     expect(배울것고르기(m, { ...볼, 게임글: 글 }).게임글).toEqual(['방향키로 움직인다']);
     expect(빠진게임글(null, m)).toEqual([]);
   });
+
+  it('짧은 줄은 남의 문장에 들어 있는 것으로 치지 않는다 — 그대로 적은 줄이 있어야 든 것이다', () => {
+    const m = 지도([['RULE', 'rule:방패', '방패 들기', { text: '방패를 들면 느려진다', belief: 'SEEN' }], ['RULE', 'rule:특기', '특기', { text: 'ㄱ', belief: 'GAME_TEXT', data: { 글: '감속 / 다중 타격' } }]]);
+    expect(빠진게임글('방패\n감속\n다중 타격', m)).toEqual(['방패']);
+  });
 });
 
 describe('사람줄', () => {

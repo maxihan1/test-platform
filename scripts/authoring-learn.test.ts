@@ -388,6 +388,11 @@ describe('학습프롬프트', () => {
     expect(글).toContain('글로 된 자료가 없다');
     expect(글).toContain('튜토리얼 끝까지');
     expect(글).toContain('하나도 없을 때만 끝낸다');
+    for (const 좁은 of [{ 부분: true, 차례: 1 }, { 부분: false, 차례: 3, 틀림: true as const }]) {
+      const 좁은글 = 학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], ...좁은 });
+      expect(좁은글).not.toContain('튜토리얼 끝까지');
+      expect(좁은글).toContain('위에 적은 것을 다 배웠을 때 끝낸다');
+    }
     expect(글).not.toMatch(/^\/tpx-author/);
   });
 
