@@ -365,6 +365,17 @@ describe('배움올리기', () => {
   });
 });
 
+describe('학습하기 — 쪽지', () => {
+  it('앞 세션이 지도에 남긴 쪽지를 다음 학습 세션에 넘긴다 — 시험 세션에는 안 준다', async () => {
+    const 쪽지줄 = { kind: 'PLAY', key: 'play:쪽지', name: '쪽지', learned: { text: '첫 맵 3판 다 짐. 다음에는 길 옆에 심어 본다', belief: 'GUESS' } };
+    const { o, 거리들 } = 손([() => 적기(규칙('rule:1'), 쪽지줄), () => 적기(규칙('rule:2')), () => undefined, () => undefined]);
+    await 학습하기(o);
+    expect(거리들[0]).not.toHaveProperty('쪽지');
+    expect(거리들[1]).toMatchObject({ 차례: 2, 쪽지: '첫 맵 3판 다 짐. 다음에는 길 옆에 심어 본다' });
+    expect(거리들.find((x) => x.시험 === true)).not.toHaveProperty('쪽지');
+  });
+});
+
 describe('학습번호들', () => {
   it('반영은 다시 씀 · 새 항목, 이어 작성은 남은 번호, 그 밖은 전체다', () => {
     expect(학습번호들({ 반영: { 다시씀: [{ 번호: 'A' }], 새항목: ['B'] } })).toEqual(['A', 'B']);
@@ -395,6 +406,15 @@ describe('학습프롬프트', () => {
       expect(좁은글).toContain('위에 적은 것을 다 배웠을 때 끝낸다');
     }
     expect(글).not.toMatch(/^\/tpx-author/);
+  });
+
+  it('쪽지 — 앞 AI 가 남긴 말을 「배울 것」 맨 위에 생각일 뿐이라는 말과 함께 싣는다. 없으면 안 싣는다', () => {
+    const 글 = 학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: false, 못올림: [], 부분: false, 차례: 2, 쪽지: '첫 맵 3판 다 짐\n다음에는 길 옆에 심어 본다' });
+    expect(글).toContain('> 첫 맵 3판 다 짐\n> 다음에는 길 옆에 심어 본다');
+    expect(글).toContain('생각일 뿐이다');
+    expect(글.indexOf('앞 AI 가 남긴 쪽지')).toBeGreaterThan(글.indexOf('--- 배울 것 ---'));
+    expect(글.indexOf('앞 AI 가 남긴 쪽지')).toBeLessThan(글.indexOf('빈 종류'));
+    expect(학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], 부분: false, 차례: 1 })).not.toContain('남긴 쪽지');
   });
 
   it('이어진 세션 — 앞 세션의 대화가 없다고 알리고 쥔 디바이스를 다시 잡지 않게 하며 못 올린 것부터 고치게 한다', () => {

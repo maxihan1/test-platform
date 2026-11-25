@@ -9,7 +9,7 @@ import { 적은줄들, 지금지도 } from './authoring-game-find.js';
 import type { 돌린결과 } from './authoring-io.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
 import { 배움올리기, 상태쓰기, 상태읽기 } from './authoring-learn-io.js';
-import { type 배울것, 배울것고르기, 배울것없나 } from './authoring-learn-map.js';
+import { type 배울것, 배울것고르기, 배울것없나, 쪽지글 } from './authoring-learn-map.js';
 import { 끝낼상태 } from './authoring-progress.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -32,7 +32,8 @@ type 한번결과 = { 돌린것: 돌린결과; 크레딧으로: boolean; 앞낸�
 export type 세션거리 =
   | { 시험: true; 남은분: number; 빌드?: string; 놓음: boolean }
   /** 틀림 — 시험에서 틀린 줄만 다시 배운다 */
-  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number; 틀림?: true };
+  /** 쪽지 — 앞 AI 가 지도에 남긴 말(authoring-learn-map `쪽지열쇠`) */
+  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number; 틀림?: true; 쪽지?: string };
 
 export interface 학습손 {
   통로: 화면통로;
@@ -128,7 +129,7 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
       }
     };
     const 끊기 = new AbortController();
-    const 정리때 = setTimeout(() => 알림('세션 끝까지 5분 남았다 — 하던 것을 적고 정리한 뒤 끝낸다'), Math.max(0, 제한 - 정리앞_ms));
+    const 정리때 = setTimeout(() => 알림('세션 끝까지 5분 남았다 — 하던 것을 적고 쪽지(`play:쪽지`)를 고쳐 쓴 뒤 끝낸다'), Math.max(0, 제한 - 정리앞_ms));
     const 마감 = setTimeout(() => 끊기.abort(), 제한);
     let 알렸나 = false;
     const 먹기 = (줄: string): void => {
@@ -137,7 +138,7 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
       if (크기 >= 교대토큰) 끊기.abort();
       else if (크기 >= 정리토큰 && !알렸나) {
         알렸나 = true;
-        알림('컨텍스트가 거의 찼다 — 하던 것을 적고 정리한 뒤 끝낸다(다음 세션이 지도만 보고 잇는다)');
+        알림('컨텍스트가 거의 찼다 — 하던 것을 적고 쪽지(`play:쪽지`)를 고쳐 쓴 뒤 끝낸다(다음 세션이 지도만 보고 잇는다)');
       }
     };
     const 시작 = 지금();
@@ -165,7 +166,13 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     o.알린다(`게임 학습 세션 ${상태.세션} 끝(${r.돌린것.마감으로끊김 === true ? '마감' : '스스로 끝냄'} · 지금까지 ${Math.round(상태.쓴ms / 분)}분) — 지도에 올린 줄 ${올림.열쇠.length}`);
     return { 열쇠수: 올림.열쇠.length + (올림.못올림.length > 0 ? 적은줄들(안전히읽기(o.자료, 게임자리.배운글, 요소상한)).length : 0) };
   };
-  const 배우기 = (b: 배울것, 틀림?: true) => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? {} : { 틀림 }) }));
+  // 글을 지을 때마다 읽는다 — 크레딧이 떨어져 이어 띄운 자식도 방금 적힌 쪽지를 받는다(아직 안 올린 줄도 얹혀 온다)
+  const 쪽지 = (): { 쪽지?: string } => {
+    const 지도 = 지금지도(o.자료);
+    const 글 = 지도 === null ? null : 쪽지글(지도);
+    return 글 === null ? {} : { 쪽지: 글 };
+  };
+  const 배우기 = (b: 배울것, 틀림?: true) => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? {} : { 틀림 }), ...쪽지() }));
   const 끝내며 = (끝: 띄운결과): 학습결과 => ({ 끝: { ...끝, 돌린것: 못뜬것은끊김(끝.돌린것, 앞낸것) }, 앞낸것 });
 
   const 늘리기끄기 = o.늘리기();

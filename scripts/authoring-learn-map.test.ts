@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 지도읽기 } from './authoring-game-find.js';
 import { type 시험감, 답더하기, 맞나, 시험감고르기, 시험답읽기, 시험줄, 실행 as 시험실행, 채점하기 } from './authoring-learn-exam.js';
-import { 배울것고르기, 배울것없나, 배울종류, 빠진게임글, 사람줄 } from './authoring-learn-map.js';
+import { 배울것고르기, 배울것없나, 배울종류, 빠진게임글, 사람줄, 쪽지글, 쪽지열쇠 } from './authoring-learn-map.js';
 import { 합치기, 실행 as 적기실행 } from './authoring-learn-note.js';
 
 type 줄재료 = [kind: string, key: string, name: string, learned?: object, 앞?: string];
@@ -79,6 +79,32 @@ describe('옛 칸', () => {
   it('지도 줄에 `data.칸` 이 비어 남아 있어도 배울 것으로 세지 않는다 — 칸 세기는 걷어냈다(2026-11-25 GAME-F6-05)', () => {
     const 옛줄: 줄재료 = ['INPUT', 'input:공격', '공격', { text: 'ㄱ', belief: 'SEEN', build: '59', data: { 칸: { 어디서: '모름', 닿는곳: '' } } }];
     expect(배울것없나(배울것고르기(지도([...다배움, 옛줄]), 볼))).toBe(true);
+  });
+});
+
+describe('쪽지 — 다음 AI 에게 남기는 말', () => {
+  const 쪽지 = (learned: object | undefined): 줄재료 => ['PLAY', 쪽지열쇠, '쪽지', learned];
+  it('지도의 쪽지 줄 글을 준다 — 없거나 비웠거나 뒤집었으면 없다. 서버가 받는 길이에서 자른다', () => {
+    expect(쪽지글(지도([쪽지({ text: ' 첫 맵 3판 다 짐\n다음에는 길 옆에 심어 본다 ', belief: 'GUESS' })]))).toBe('첫 맵 3판 다 짐\n다음에는 길 옆에 심어 본다');
+    expect(쪽지글(지도(다배움))).toBeNull();
+    expect(쪽지글(지도([쪽지(undefined)]))).toBeNull();
+    expect(쪽지글(지도([쪽지({ text: ' ', belief: 'GUESS' })]))).toBeNull();
+    expect(쪽지글(지도([쪽지({ text: '옛 생각', belief: 'OVERTURNED' })]))).toBeNull();
+    expect(쪽지글(지도([쪽지({ text: 'ㄱ'.repeat(1_200), belief: 'GUESS' })]))).toHaveLength(1_001);
+  });
+
+  it('쪽지는 배운 줄이 아니다 — 「이기는 법」 종류를 채우지 않고, 빌드가 달라도 다시 볼 줄이 아니고, 게임 글이 든 것으로 치지 않는다', () => {
+    const 줄들: 줄재료[] = [...다배움.filter((x) => x[0] !== 'PLAY'), 쪽지({ text: '악마가 기지에 닿으면 진다고 한다', belief: 'GUESS', build: '58' })];
+    const b = 배울것고르기(지도(줄들), { ...볼, 게임글: '악마가 기지에 닿으면 진다고 한다' });
+    expect(b.빈종류).toEqual(['PLAY']);
+    expect(b.빌드다름).toEqual([]);
+    expect(b.게임글).toEqual(['악마가 기지에 닿으면 진다고 한다']);
+  });
+
+  it('적는 명령이 쪽지 열쇠를 받는다 — 글이 서버 길이를 넘으면 거절한다', () => {
+    const 줄 = (글: string) => ({ kind: 'PLAY', key: 쪽지열쇠, name: '쪽지', learned: { text: 글, belief: 'GUESS' } });
+    expect(합치기(지도([]), [], 줄('첫 맵 3판 다 짐'))).toMatchObject({ 수: 1 });
+    expect(합치기(지도([]), [], 줄('ㄱ'.repeat(1_001)))).toContain('learned.text');
   });
 });
 

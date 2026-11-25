@@ -8,6 +8,14 @@ export type 지도 = ReturnType<typeof 지도읽기>;
 /** 비어 있으면 배울 것인 기본 종류 — 기획서에서 온 다섯, 남은 것이 곧 할 일인 궁금한 것, 없어야 좋은 이상한 것, 종류 정의는 뺀다 */
 export const 배울종류: readonly string[] = Object.keys(요소종류).filter((k) => !기획서종류.has(k) && k !== 'ASK' && k !== 'ODD' && k !== 'KIND');
 
+/**
+ * 다음 AI 에게 남기는 쪽지 — 배운 것이 아니라 앞 AI 의 지금 생각이다(어디까지 왔나 · 다음에 해 볼 것).
+ * 세션은 대화를 못 넘기는데 지도 줄만으로는 「그래서 지금 무엇을 하려던 참이었나」가 안 보여 새 AI 가 처음부터 다시 헤맸다(2026-11-25 GAME-F6-05 실측)
+ */
+export const 쪽지열쇠 = 'play:쪽지';
+/** 서버가 `learned.text` 를 받는 길이다 */
+const 쪽지상한 = 1_000;
+
 export interface 배울것 {
   빈종류: string[];
   궁금: string[];
@@ -40,7 +48,7 @@ const 짧은줄 = 12;
 export function 빠진게임글(글: string | null, 지금: 지도): string[] {
   const 문장들 = [...new Set((글 ?? '').split('\n').map(한칸).filter((s) => s !== '' && !s.startsWith('#')))];
   if (문장들.length === 0) return [];
-  const 담긴 = 지금.줄들.flatMap((x) => (x.learned === null ? [] : 글자들(x.learned))).flatMap((t) => [t, ...t.split(/\n| \/ | · /)]).map(한칸);
+  const 담긴 = 지금.줄들.flatMap((x) => (x.learned === null || x.key === 쪽지열쇠 ? [] : 글자들(x.learned))).flatMap((t) => [t, ...t.split(/\n| \/ | · /)]).map(한칸);
   // 「방패」 같은 짧은 줄은 남의 문장에 우연히 들어 있다 — 그 줄을 그대로 적었을 때만 든 것이다
   return 문장들.filter((s) => !담긴.some((t) => (s.length < 짧은줄 ? t === s : t.includes(s))));
 }
@@ -56,17 +64,26 @@ export function 배울것고르기(지금: 지도, 것: { 빌드?: string; 오�
     return { 빈종류: [], 궁금: [], 빌드다름: [], 게임글: [], 번호 };
   }
   return {
-    빈종류: 배울종류.filter((k) => !지금.줄들.some((x) => x.kind === k && x.learned !== null)),
+    // 쪽지 한 줄로 「이기는 법」 종류가 찬 것으로 보이면 안 된다
+    빈종류: 배울종류.filter((k) => !지금.줄들.some((x) => x.kind === k && x.learned !== null && x.key !== 쪽지열쇠)),
     궁금: 지금.줄들.filter((x) => 열린궁금(x, 것.오늘, 것.빌드)).map((x) => x.key),
-    빌드다름: 지금.줄들.filter((x) => x.kind !== 'ASK' && x.kind !== 'KIND' && x.learned !== null && x.learned.belief !== 'OVERTURNED' && 빌드다른가(x, 것.빌드)).map((x) => x.key),
+    빌드다름: 지금.줄들.filter((x) => x.kind !== 'ASK' && x.kind !== 'KIND' && x.key !== 쪽지열쇠 && x.learned !== null && x.learned.belief !== 'OVERTURNED' && 빌드다른가(x, 것.빌드)).map((x) => x.key),
     게임글: 빠진게임글(것.게임글, 지금),
     번호: [],
   };
 }
 
+export const 자름 = (글: string, 수: number): string => (글.length > 수 ? `${글.slice(0, 수)}…` : 글);
+
+/** 뒤집었거나 비운 쪽지는 없는 것이다 */
+export function 쪽지글(지금: 지도): string | null {
+  const 줄 = 지금.줄들.find((x) => x.key === 쪽지열쇠);
+  if (줄 === undefined || 줄.learned === null || 줄.learned.belief === 'OVERTURNED' || !글인가(줄.learned.text)) return null;
+  return 자름(줄.learned.text.trim(), 쪽지상한);
+}
+
 export const 배울것없나 = (b: 배울것): boolean => Object.values(b).every((x: string[]) => x.length === 0);
 
-export const 자름 = (글: string, 수: number): string => (글.length > 수 ? `${글.slice(0, 수)}…` : 글);
 export const 목록글 = (들: readonly string[], 수: number): string => `${들.slice(0, 수).join(' · ')}${들.length > 수 ? ` 외 ${들.length - 수}개` : ''}`;
 
 /**
