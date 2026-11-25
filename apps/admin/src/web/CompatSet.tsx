@@ -9,6 +9,7 @@ import { CompatDevicePick } from './CompatDevicePick.js';
 import { CompatStart } from './CompatStart.js';
 import { 세트주소 } from './CompatSets.js';
 import { 디바이스구획, 예상구획, 커버리지구획, 케이스구획 } from './CompatSetParts.js';
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { Head } from './Head.js';
 import { t as 번역, use말, use언어 } from './i18n.js';
 import { 떠나기로했다, 떠나기상자 } from './leaveGuard.js';
@@ -49,6 +50,8 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
   const [창, set창] = useState<'디바이스' | '케이스' | '실행' | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   const [저장중, set저장중] = useState(false);
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
 
   useEffect(() => {
     if (처음.data === null) return;
@@ -112,6 +115,8 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
   }
 
   async function 저장() {
+    set눌렀나(true);
+    if (지금.name.trim() === '' || 지금.devices.length === 0) return 첫오류로();
     set저장중(true);
     set오류(null);
     const 몸 = { serviceId, name: 지금.name.trim(), onePerModel: 지금.onePerModel, devices: 지금.devices.map((d) => ({ serial: d.serial })), addedCases: 지금.addedCases };
@@ -132,7 +137,9 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
     }
   }
 
-  const 저장되나 = 쓰나 && !저장중 && (id === 'new' || 바뀜) && 지금.name.trim() !== '' && 지금.devices.length > 0;
+  const 저장되나 = !저장중 && (id === 'new' || 바뀜);
+  const 이름사유 = 눌렀나 && 지금.name.trim() === '' ? t('세트 이름을 입력해 주세요') : null;
+  const 기기사유 = 눌렀나 && 지금.devices.length === 0 ? t('디바이스를 하나 이상 선택해 주세요') : null;
   const 상세 = 처음.data.상세;
 
   return (
@@ -149,7 +156,7 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
               </button>
               {/* 저장한 세트로만 돈다 — 고치는 중이면 서버의 세트와 화면이 달라 무엇이 돌지 헷갈린다 */}
               {id === 'new' ? null : (
-                <button type="button" className="btn" disabled={바뀜} title={바뀜 ? t('저장한 뒤 실행합니다') : undefined} onClick={() => set창('실행')}>
+                <button type="button" className="btn" disabled={바뀜} onClick={() => set창('실행')}>
                   {t('실행')}
                 </button>
               )}
@@ -157,17 +164,22 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
           ) : undefined
         }
       />
-      <div className="screen compat-set">
+      <div className="screen compat-set" ref={상자}>
+        {/* 머리의 「실행」이 꺼진 까닭 — 말풍선은 휴대폰에서 못 본다 (DESIGN.md 「접근성 기준」) */}
+        {쓰나 && id !== 'new' && 바뀜 ? <p className="compat-faint compat-why">{t('저장한 뒤 실행합니다')}</p> : null}
         <p className="compat-back">
           <a href={`#/compat?service=${encodeURIComponent(service)}`}>{t('세트 목록으로')}</a>
         </p>
-        <label className="compat-name-field">
-          <span>{t('세트 이름')}</span>
-          <input value={지금.name} maxLength={100} disabled={!쓰나} onChange={(e) => set지금((앞) => ({ ...앞, name: e.target.value }))} />
-        </label>
+        <div>
+          <label className="compat-name-field">
+            <span>{t('세트 이름')}</span>
+            <input value={지금.name} maxLength={100} disabled={!쓰나} {...오류속성('compat-name-err', 이름사유)} onChange={(e) => set지금((앞) => ({ ...앞, name: e.target.value }))} />
+          </label>
+          <칸오류 id="compat-name-err" 사유={이름사유} />
+        </div>
         {오류 === null ? null : <p className="compat-err" role="alert">{오류}</p>}
         {이름오류 === null ? null : <p className="compat-err">{이름오류}</p>}
-        <디바이스구획 고른={지금.devices} 팜={팜.data?.devices ?? null} 팜오류={팜.error} 쓰나={쓰나} 열기={() => set창('디바이스')} />
+        <디바이스구획 고른={지금.devices} 팜={팜.data?.devices ?? null} 팜오류={팜.error} 쓰나={쓰나} 사유={기기사유} 열기={() => set창('디바이스')} />
         <케이스구획
           auto={셈.auto}
           직접={직접}

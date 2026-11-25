@@ -132,6 +132,13 @@ describe('설정 › BTS 연결', () => {
     fireEvent.change(screen.getByLabelText('QA Review'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
     expect(await screen.findByText('비어 있는 단계가 있습니다. 모든 단계에 Issue Bunker 상태를 선택해 주세요')).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByLabelText('QA Review'));
+    fireEvent.change(screen.getByLabelText('Issue Bunker 주소'), { target: { value: ' ' } });
+    fireEvent.change(screen.getByLabelText('Issue Bunker 프로젝트 키'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    expect(screen.getByText('Issue Bunker 주소를 적어 주세요')).toBeTruthy();
+    expect(screen.getByText('Issue Bunker 프로젝트 키를 적어 주세요')).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByLabelText('Issue Bunker 주소'));
     expect(저장).not.toHaveBeenCalled();
   });
 

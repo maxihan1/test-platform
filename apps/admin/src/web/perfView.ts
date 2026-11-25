@@ -67,13 +67,32 @@ export function 저장값(metric: Target['metric'], 화면: number): number {
   return metric === 'P95' ? Math.round(화면 * 1000) : 화면;
 }
 
-/** 다음 단계로 넘어가도 되나. 막는 까닭을 돌려준다 — 버튼을 잠그지 않고 누르면 까닭을 보인다 (SPEC §8.2) */
-export function 넘길까닭(단계: 1 | 2 | 3, 값: { name: string; txCount: number; dummy: boolean; dummyPicked?: boolean; stages: readonly Stage[] }, 언어: 언어): string | null {
+export type 넘길칸 = 'name' | 'dummy' | 'tx' | 'vus' | 'env' | 'agents';
+
+/** 다음 단계로 못 넘어가게 막는 칸과 까닭 */
+export interface 넘길막힘 {
+  칸: 넘길칸;
+  글: string;
+}
+
+/** 그 칸 아래에 적을 사유. 걸린 칸이 아니면 null */
+export const 틀린글 = (막힘: 넘길막힘 | null, 칸: 넘길칸) => (막힘?.칸 === 칸 ? 막힘.글 : null);
+
+/** 다음 단계로 넘어가도 되나(4단계는 실행해도 되나). 막는 칸과 까닭을 돌려준다 — 버튼을 잠그지 않고 누르면 그 칸 아래에 보인다 (SPEC §8.2) */
+export function 넘길까닭(
+  단계: 1 | 2 | 3 | 4,
+  값: { name: string; txCount: number; dummy: boolean; dummyPicked?: boolean; stages: readonly Stage[]; env: string; agentCount: number },
+  언어: 언어,
+): 넘길막힘 | null {
   if (단계 === 1) {
-    if (값.name.trim() === '') return t('시나리오 이름을 적어 주세요', 언어);
-    if (값.dummy && 값.dummyPicked === false) return t('더미 클라이언트를 선택해 주세요', 언어);
-    if (값.txCount === 0 && !값.dummy) return t('트랜잭션이 하나도 없습니다. 가져오거나 추가해 주세요', 언어);
+    if (값.name.trim() === '') return { 칸: 'name', 글: t('시나리오 이름을 적어 주세요', 언어) };
+    if (값.dummy && 값.dummyPicked === false) return { 칸: 'dummy', 글: t('더미 클라이언트를 선택해 주세요', 언어) };
+    if (값.txCount === 0 && !값.dummy) return { 칸: 'tx', 글: t('트랜잭션이 하나도 없습니다. 가져오거나 추가해 주세요', 언어) };
   }
-  if (단계 === 2 && 최대목표(값.stages) === 0) return t('가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요', 언어);
+  if (단계 === 2 && 최대목표(값.stages) === 0) return { 칸: 'vus', 글: t('가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요', 언어) };
+  if (단계 === 4) {
+    if (값.env === '') return { 칸: 'env', 글: t('대상 서버를 선택해 주세요', 언어) };
+    if (값.agentCount === 0) return { 칸: 'agents', 글: t('부하 발생 에이전트를 선택해 주세요', 언어) };
+  }
   return null;
 }

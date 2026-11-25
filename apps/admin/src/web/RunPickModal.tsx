@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { PC항목인가 } from '@platform/kit/types';
 import { ApiError, type ServiceRow, type User, type 모바일위치 } from './api.js';
+import { use첫오류 } from './FieldError.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -80,6 +81,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const [mobileOn, setMobileOn] = useState<모바일위치>(초기모바일 ?? 'server');
   const [notifySlack, setNotifySlack] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [서버사유, set서버사유] = useState<string | null>(null);
+  const { 상자, 첫오류로 } = use첫오류();
   // 칸 아래 사유를 언제 보일까. 치는 동안 빨간 글이 따라다니면 다 적기도 전에 틀렸다고 말한다
   const [오류보임, set오류보임] = useState(false);
   // 값 칸을 편 케이스(여러 건은 접힌 채 시작한다). 저절로 접지 않는다 — 고치는 도중 사유가 사라졌다고 칸이 닫히면 안 된다 (도메인/실행 §8.10)
@@ -90,6 +93,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   /** 사람이 뭔가 손댔다. 방금 누른 것에 대한 답과 옛 사유를 함께 치운다 */
   function 손댐() {
     setNotice(null);
+    set서버사유(null);
     on값고침?.();
   }
 
@@ -99,6 +103,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
     set오류보임(true);
     set펼친((전) => new Set([...전, ...틀린]));
     setNotice(t('입력값이 명세와 맞지 않습니다.'));
+    첫오류로();
   });
   // 창의 케이스는 한 서비스 것이다 (SPEC §7) — 권한은 맨 앞 케이스의 서비스로 본다
   const 저장된다 = 할수있나(user ?? null, 케이스서비스(케이스들[0]?.tcId ?? ''), '입력값저장');
@@ -129,6 +134,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       // 여러 건 창은 값 칸이 접혀 있다 — 사유가 붙은 케이스를 편다
       if (tcId !== undefined) set펼친((전) => new Set([...전, tcId]));
       setNotice(t('입력값이 명세와 맞지 않습니다.'));
+      첫오류로();
     } else {
       setNotice(message(err, 언어));
     }
@@ -140,18 +146,22 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
     if (Object.keys(값.오류).length === 0) return true;
     set펼친((전) => new Set([...전, ...Object.keys(값.오류)]));
     setNotice(t('입력값이 명세와 맞지 않습니다.'));
+    첫오류로();
+    return false;
+  }
+
+  /** 대상 서버를 골랐나. 버튼을 비활성화하지 않는다 — 누르면 서버 칸 아래에 사유를 보이고 그 칸으로 간다 (SPEC §8.2 · DESIGN.md) */
+  function 서버골랐나(사유글: string): boolean {
+    if (env !== '') return true;
+    set서버사유(사유글);
+    첫오류로();
     return false;
   }
 
   /** 「실행」 — 걸기 전에 시작 확인 창을 띄운다. 결과 창의 「재실행」도 같은 길이다 (§8.16 ② ④) */
   function 실행() {
     if (다껐나 || !값이맞나()) return;
-    if (env === '') {
-      // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
-      setNotice(t('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
-      return;
-    }
-    시험.정식묻기();
+    if (서버골랐나(t('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'))) 시험.정식묻기();
   }
 
   function 건다() {
@@ -197,7 +207,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
             {t('취소')}
           </button>
           <실행버튼들
-            on시험={() => { if (값이맞나()) 시험.누름(); }}
+            on시험={() => { if (값이맞나() && 서버골랐나(t('시험 실행할 대상 서버를 선택하세요.'))) 시험.누름(); }}
             on실행={실행}
             다껐나={다껐나}
             실행막힘={너무많나}
@@ -214,8 +224,10 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           mobileOn={모바일 ? mobileOn : null} 원래실행={원래실행} onClose={시험.확인닫기} on시작={시험.확인 === 'trial' ? 시험.시작 : 건다} />
       )}
       <중단확인 시험={시험} />
-      {시험.보기 !== 'edit' ? <시험화면 시험={시험} 케이스들={돌릴것} env={env} /> : (<>
-      <머리줄 디바이스={디바이스} service={service} env={env} on서버={(값) => { 손댐(); setEnv(값); }}
+      {시험.보기 !== 'edit' ? <시험화면 시험={시험} 케이스들={돌릴것} env={env} /> : (
+      // 첫 오류 칸을 찾는 범위다. 창 본문의 배치는 그대로 둔다
+      <div ref={상자} style={{ display: 'contents' }}>
+      <머리줄 디바이스={디바이스} service={service} env={env} 서버사유={서버사유} on서버={(값) => { 손댐(); setEnv(값); }}
         mobileOn={mobileOn} on모바일={(값) => { 손댐(); setMobileOn(값); }} />
       <RunLocation android={android} 앱종류={service?.kind} 게임플랫폼={service?.gamePlatform} />
       {한건 === null ? null : <한건머리 케이스={한건} />}
@@ -276,7 +288,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         })}
       </div>
       )}
-      </>)}
+      </div>)}
     </Modal>
   );
 }

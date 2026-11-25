@@ -3,6 +3,7 @@
 
 import { useState, type ReactNode } from 'react';
 
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { perfApi, type PerfAgent } from './perfApi.js';
@@ -24,6 +25,8 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
   const [고칠, set고칠] = useState<{ id: number; name: string; maxVus: string } | null>(null);
   const [지울것, set지울것] = useState<PerfAgent | null>(null);
   const [오류, set오류] = useState<string | null>(null);
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
 
   if (list.error !== null) return <Failed error={list.error} />;
   if (list.data === null) return <Loading />;
@@ -40,15 +43,23 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
     }
   }
 
+  const 이름빔 = 고칠 !== null && 고칠.name.trim() === '';
+  // 편집 줄은 하나만 열린다. 이름이 비면 그 사유를, 서버가 거절하면 그 까닭을 그 줄에 적는다. 삭제 실패는 삭제 상자가 적는다
+  const 줄사유 = 눌렀나 && 이름빔 ? t('이름을 적어 주세요') : 지울것 === null ? 오류 : null;
+  const 삭제닫기 = () => {
+    set오류(null);
+    set지울것(null);
+  };
+  const 이름속성 = 오류속성('perf-agent-err', 눌렀나 && 이름빔 ? 줄사유 : null);
+
   return (
-    <div className="set-panel">
+    <div className="set-panel" ref={상자}>
       <h2 className="set-panel-h">{t('성능 에이전트')}</h2>
       <div className="set-card">
         <div className="set-card-h">
           <h3>{t('등록된 에이전트')}</h3>
           <p>{t('Test Commander 가 보낸 테스트만 실행하고 대상 서버로 등록된 주소에만 부하를 보냅니다')}</p>
         </div>
-        {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
         {줄들.length === 0 ? (
           <div className="empty">{t('아직 붙은 에이전트가 없습니다')}</div>
         ) : (
@@ -70,7 +81,8 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
                   고칠?.id === a.id ? (
                     <tr key={a.id} className="perf-open">
                       <td>
-                        <input aria-label={t('이름')} value={고칠.name} maxLength={100} onChange={(e) => set고칠({ ...고칠, name: e.target.value })} />
+                        <input aria-label={t('이름')} value={고칠.name} maxLength={100} {...이름속성} onChange={(e) => set고칠({ ...고칠, name: e.target.value })} />
+                        <칸오류 id="perf-agent-err" 사유={줄사유} />
                       </td>
                       <td>{t(역할글자[a.mode])}</td>
                       <td className="mono">{a.host ?? '-'}</td>
@@ -88,12 +100,14 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
                           <button
                             type="button"
                             className="btn small"
-                            onClick={() =>
+                            onClick={() => {
+                              set눌렀나(true);
+                              if (이름빔) return 첫오류로();
                               void 해보기(
                                 () => perfApi.editAgent(a.id, { name: 고칠.name.trim(), ...(a.mode === 'LOAD' && 고칠.maxVus !== '' && { maxVus: Number(고칠.maxVus) }) }),
                                 () => set고칠(null),
-                              )
-                            }
+                              );
+                            }}
                           >
                             {t('저장')}
                           </button>
@@ -115,10 +129,10 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
                       <td className="perf-faint">{when(a.lastSeenAt, 언어)}</td>
                       <td>
                         <div className="perf-row">
-                          <button type="button" className="btn ghost small" aria-label={t('{이름} 편집', { 이름: a.name })} onClick={() => set고칠({ id: a.id, name: a.name, maxVus: a.maxVus === null ? '' : String(a.maxVus) })}>
+                          <button type="button" className="btn ghost small" aria-label={t('{이름} 편집', { 이름: a.name })} onClick={() => { set오류(null); set눌렀나(false); set고칠({ id: a.id, name: a.name, maxVus: a.maxVus === null ? '' : String(a.maxVus) }); }}>
                             {t('편집')}
                           </button>
-                          <button type="button" className="btn ghost small" aria-label={t('{이름} 삭제', { 이름: a.name })} onClick={() => set지울것(a)}>
+                          <button type="button" className="btn ghost small" aria-label={t('{이름} 삭제', { 이름: a.name })} onClick={() => { set오류(null); set지울것(a); }}>
                             {t('삭제')}
                           </button>
                         </div>
@@ -136,10 +150,10 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
       {지울것 === null ? null : (
         <Modal
           제목={t('에이전트를 삭제할까요?')}
-          onClose={() => set지울것(null)}
+          onClose={삭제닫기}
           버튼={
             <>
-              <button type="button" className="btn ghost" onClick={() => set지울것(null)}>
+              <button type="button" className="btn ghost" onClick={삭제닫기}>
                 {t('취소')}
               </button>
               <button type="button" className="btn" onClick={() => void 해보기(() => perfApi.removeAgent(지울것.id), () => set지울것(null))}>
@@ -149,6 +163,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
           }
         >
           <p>{t('「{이름}」을 삭제하면 그 토큰도 끊겨 다시 연결하려면 재설치해야 합니다', { 이름: 지울것.name })}</p>
+          {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
         </Modal>
       )}
     </div>
@@ -164,18 +179,21 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
   const [명령, set명령] = useState<string | null>(null);
   const [복사함, set복사함] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
+  const 이름오류 = 눌렀나 && name.trim() === '' ? t('이름을 적어 주세요') : null;
+  const 프로젝트오류 = 눌렀나 && projectId === '' ? t('프로젝트를 선택해 주세요') : null;
 
   async function 추가() {
     set오류(null);
-    if (name.trim() === '' || (mode === 'MONITOR' && projectId === '')) {
-      set오류(mode === 'MONITOR' ? t('이름과 프로젝트를 정해 주세요') : t('이름을 적어 주세요'));
-      return;
-    }
+    set눌렀나(true);
+    if (name.trim() === '' || (mode === 'MONITOR' && projectId === '')) return 첫오류로();
     try {
       const r = await perfApi.addAgent(name.trim(), mode, mode === 'MONITOR' ? Number(projectId) : undefined);
       set명령(r.installCommand);
       set복사함(false);
       setName('');
+      set눌렀나(false);
       붙음();
     } catch (err) {
       set오류(message(err, 언어));
@@ -183,7 +201,7 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
   }
 
   return (
-    <div className="set-card">
+    <div className="set-card" ref={상자}>
       <div className="set-card-h">
         <h3>{t('에이전트 추가')}</h3>
         <p>{t('부하 발생은 부하를 보낼 기계에, 모니터링은 대상 서버에 설치합니다. 프로그램은 같습니다')}</p>
@@ -199,22 +217,28 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
             ))}
           </span>
         </div>
-        <label className="perf-field">
-          {t('이름')}
-          <input value={name} maxLength={100} onChange={(e) => setName(e.target.value)} />
-        </label>
-        {mode === 'MONITOR' ? (
+        <div className="perf-cell">
           <label className="perf-field">
-            {t('프로젝트')}
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-              <option value="">{t('선택')}</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            {t('이름')}
+            <input value={name} maxLength={100} {...오류속성('perf-add-name', 이름오류)} onChange={(e) => setName(e.target.value)} />
           </label>
+          <칸오류 id="perf-add-name" 사유={이름오류} />
+        </div>
+        {mode === 'MONITOR' ? (
+          <div className="perf-cell">
+            <label className="perf-field">
+              {t('프로젝트')}
+              <select value={projectId} {...오류속성('perf-add-project', 프로젝트오류)} onChange={(e) => setProjectId(e.target.value)}>
+                <option value="">{t('선택')}</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <칸오류 id="perf-add-project" 사유={프로젝트오류} />
+          </div>
         ) : null}
         <button type="button" className="btn" onClick={() => void 추가()}>
           {t('추가')}

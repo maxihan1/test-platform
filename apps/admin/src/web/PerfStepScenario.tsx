@@ -4,10 +4,12 @@ import { Fragment, useState } from 'react';
 
 import type { ServiceRow } from './api.js';
 import { 두번삭제 } from './ConfirmBox.js';
+import { 오류묶음, 오류속성, 칸오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import type { Transaction, 더미클라이언트, 초안결과 } from './perfApi.js';
 import { PerfImport } from './PerfImport.js';
 import { PerfTxDetail, 종류글자, 종류의 } from './PerfTxDetail.js';
+import { 틀린글, type 넘길막힘 } from './perfView.js';
 
 export interface 일단계값 {
   name: string;
@@ -29,6 +31,7 @@ export function PerfStepScenario({
   초안받음,
   더미들,
   더미오류,
+  틀림,
 }: {
   값: 일단계값;
   고침: (값: 일단계값) => void;
@@ -40,6 +43,8 @@ export function PerfStepScenario({
   /** 이 애플리케이션에 올린 더미 클라이언트. 없으면 방식 고르개를 안 보인다 */
   더미들: 더미클라이언트[];
   더미오류: string | null;
+  /** 「다음」을 막은 칸 — 그 칸 아래에 적는다 */
+  틀림: 넘길막힘 | null;
 }) {
   const t = use말();
   const [편줄, set편줄] = useState<number | null>(null);
@@ -63,14 +68,17 @@ export function PerfStepScenario({
     <section className="perf-panel" aria-labelledby="perf-s1">
       <h2 id="perf-s1">{t('시나리오 구성')}</h2>
       {새것 ? (
-        <label className="perf-field">
-          {t('시나리오 이름')}
-          <input value={값.name} maxLength={100} onChange={(e) => 고침({ ...값, name: e.target.value })} />
-        </label>
+        <div className="perf-cell">
+          <label className="perf-field">
+            {t('시나리오 이름')}
+            <input value={값.name} maxLength={100} {...오류속성('perf-name-err', 틀린글(틀림, 'name'))} onChange={(e) => 고침({ ...값, name: e.target.value })} />
+          </label>
+          <칸오류 id="perf-name-err" 사유={틀린글(틀림, 'name')} />
+        </div>
       ) : null}
       {더미오류 === null ? null : <p className="perf-err" role="alert">{더미오류}</p>}
       {더미들.length === 0 && 값.방식 === 'TX' ? null : (
-        <더미고르개 값={값} 고침={고침} 더미들={더미들} 쓰나={쓰나} />
+        <더미고르개 값={값} 고침={고침} 더미들={더미들} 쓰나={쓰나} 틀림={틀린글(틀림, 'dummy')} />
       )}
       {값.방식 === 'DUMMY' ? null : 쓰나 ? (
         <PerfImport
@@ -149,11 +157,14 @@ export function PerfStepScenario({
           </table>
         </div>
       )}
-      {쓰나 && 값.방식 === 'TX' ? (
-        <div>
-          <button type="button" className="btn ghost small" onClick={추가}>
-            {t('트랜잭션 추가')}
-          </button>
+      {값.방식 === 'TX' && (쓰나 || 틀린글(틀림, 'tx') !== null) ? (
+        <div {...오류묶음('perf-tx-err', 틀린글(틀림, 'tx'))}>
+          <칸오류 id="perf-tx-err" 사유={틀린글(틀림, 'tx')} />
+          {쓰나 ? (
+            <button type="button" className="btn ghost small" onClick={추가}>
+              {t('트랜잭션 추가')}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </section>
@@ -206,7 +217,7 @@ function 가져온줄({ 결과 }: { 결과: 초안결과 }) {
   );
 }
 
-function 더미고르개({ 값, 고침, 더미들, 쓰나 }: { 값: 일단계값; 고침: (값: 일단계값) => void; 더미들: 더미클라이언트[]; 쓰나: boolean }) {
+function 더미고르개({ 값, 고침, 더미들, 쓰나, 틀림 }: { 값: 일단계값; 고침: (값: 일단계값) => void; 더미들: 더미클라이언트[]; 쓰나: boolean; 틀림: string | null }) {
   const t = use말();
   return (
     <div className="perf-well">
@@ -223,16 +234,19 @@ function 더미고르개({ 값, 고침, 더미들, 쓰나 }: { 값: 일단계값
           </select>
         </label>
         {값.방식 === 'DUMMY' ? (
-          <label className="perf-field">
-            {t('더미 클라이언트')}
-            <select value={값.더미번호 ?? ''} disabled={!쓰나} onChange={(e) => 고침({ ...값, 더미번호: Number(e.target.value) })}>
-              {더미들.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="perf-cell">
+            <label className="perf-field">
+              {t('더미 클라이언트')}
+              <select value={값.더미번호 ?? ''} disabled={!쓰나} {...오류속성('perf-dummy-err', 틀림)} onChange={(e) => 고침({ ...값, 더미번호: Number(e.target.value) })}>
+                {더미들.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <칸오류 id="perf-dummy-err" 사유={틀림} />
+          </div>
         ) : null}
       </div>
       {값.방식 === 'DUMMY' ? <span className="perf-faint">{t('업로드해 둔 실행 파일을 에이전트마다 한 번 실행합니다. 동시 사용자 기준으로만 걸 수 있고 트랜잭션 목록은 쓰지 않습니다')}</span> : null}

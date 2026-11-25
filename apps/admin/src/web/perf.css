@@ -216,6 +216,23 @@
   align-items: flex-end;
 }
 
+/* 칸과 칸 아래 사유 한 묶음 */
+.perf-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 사유가 선 줄은 위를 맞춘다 — 아래를 맞추면 옆 칸이 사유 높이만큼 내려간다. 단추는 칸 이름 높이만큼 내려 칸과 나란히 */
+.perf-fields:has(.err) {
+  align-items: flex-start;
+}
+
+.perf-fields:has(.err) > .btn {
+  margin-top: 23px;
+}
+
 .perf-field {
   display: flex;
   flex-direction: column;
@@ -236,6 +253,16 @@
   border-radius: 4px;
   background: var(--bg);
   color: var(--ink);
+}
+
+/* 체크칸 · 라디오는 글 칸 폭을 안 쓴다 — 포커스 테두리가 빈 자리까지 감싼다 */
+.perf-field input:is([type='checkbox'], [type='radio']) {
+  min-width: 0;
+  padding: 0;
+}
+
+.perf-field .err {
+  font-weight: 400;
 }
 
 .perf-graph {

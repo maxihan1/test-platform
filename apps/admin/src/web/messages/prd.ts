@@ -153,4 +153,6 @@ export const 기획서말: Record<string, string> = {
   '거치는 API {건수}개': 'APIs used: {건수}',
   '{케이스} {단계}단계': '{케이스} step {단계}',
   펴기: 'Expand',
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '출처는 하나 이상 있어야 해서 하나뿐이면 제거할 수 없습니다': 'At least one source is required, so the only one cannot be removed',
 };

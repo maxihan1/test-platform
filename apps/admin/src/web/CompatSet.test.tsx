@@ -72,7 +72,11 @@ describe('새 호환성 세트', () => {
     render(<CompatSet envs={[]} id="new" serviceId={7} service="MKA" kind="APP" 쓰나 />);
     await screen.findByText('새 호환성 세트');
     const 저장 = screen.getByRole('button', { name: '저장' }) as HTMLButtonElement;
-    expect(저장.disabled).toBe(true);
+    fireEvent.click(저장);
+    expect(screen.getByText('디바이스를 하나 이상 선택해 주세요')).toBeTruthy();
+    expect(screen.getByText('세트 이름을 입력해 주세요')).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: '세트 이름' }));
+    expect(만들기).not.toHaveBeenCalled();
     expect(screen.getByText('저장하면 예상 소요 시간을 계산합니다')).toBeTruthy();
 
     fireEvent.click(await screen.findByRole('button', { name: '디바이스 선택' }));
@@ -142,6 +146,8 @@ describe('저장한 호환성 세트', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'MKA-FN-046 제외' }));
     await waitFor(() => expect(미리셈).toHaveBeenLastCalledWith(7, []));
     expect(screen.getByText('저장하면 예상 소요 시간을 계산합니다')).toBeTruthy();
+    expect((screen.getByRole('button', { name: '실행' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('저장한 뒤 실행합니다')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: '케이스 추가' }));
     const 창 = within(screen.getByRole('dialog', { name: '케이스 추가' }));

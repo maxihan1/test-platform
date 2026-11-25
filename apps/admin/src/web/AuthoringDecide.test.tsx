@@ -153,7 +153,14 @@ describe('결정 목록', () => {
     fireEvent.click(screen.getByRole('button', { name: '수정' }));
     const 칸 = screen.getByRole('textbox', { name: /수정할 요구사항/ }) as HTMLTextAreaElement;
     expect(칸.value).toBe('DMW-REQ-349 제목이 보인다');
+    for (const [글, 까닭] of [['  ', '문장을 적어 주세요'], ['가'.repeat(1001), '문장은 1000자까지 적을 수 있습니다']] as const) {
+      fireEvent.change(칸, { target: { value: 글 } });
+      fireEvent.click(screen.getByRole('button', { name: '저장' }));
+      expect(screen.getByRole('alert').textContent).toBe(까닭);
+      expect(document.activeElement).toBe(칸);
+    }
     fireEvent.change(칸, { target: { value: '큰 제목 「서비스 이용약관」' } });
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.getByText('저장하지 않은 수정 1건은 빠집니다')).toBeTruthy();
     expect(screen.getByText('15 / 1000')).toBeTruthy();
     expect(적용().disabled).toBe(true);

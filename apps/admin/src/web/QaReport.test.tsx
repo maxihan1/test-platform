@@ -118,6 +118,11 @@ describe('QA 리포트 보기', () => {
     fireEvent.click(await screen.findByRole('button', { name: '남은 리스크 문장 수정' }));
     const 칸 = screen.getByLabelText('남은 리스크') as HTMLTextAreaElement;
     expect(칸.value).toBe('기능 리스크\n- 결제 금액 회귀 실패 2건');
+    fireEvent.change(칸, { target: { value: ' ' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('alert').textContent).toBe('리스크 문장을 적어 주세요');
+    expect(document.activeElement).toBe(칸);
+    expect(저장).not.toHaveBeenCalled();
     fireEvent.change(칸, { target: { value: '기능 리스크\n- 결제 금액 회귀 실패 2건 · DM-215' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => expect(저장).toHaveBeenCalledWith(31, '기능 리스크\n- 결제 금액 회귀 실패 2건 · DM-215'));

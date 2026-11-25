@@ -195,6 +195,19 @@ describe('QA 리포트 › 프로젝트 탭', () => {
     vi.useRealTimers();
   });
 
+  it('직접 선택에서 날짜를 비우고 만들면 보내지 않고 그 날짜 칸으로 간다', async () => {
+    vi.spyOn(qaReportApi, 'projectList').mockResolvedValue({ items: [], total: 0 });
+    const 만들기 = vi.spyOn(qaReportApi, 'projectCreate');
+    render(<QaReports service={앱} tab="project" 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '리포트 만들기' }));
+    fireEvent.click(screen.getByRole('button', { name: '직접 선택' }));
+    fireEvent.change(screen.getByLabelText('종료일'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    expect(screen.getByRole('alert').textContent).toBe('종료일을 선택해 주세요');
+    expect(document.activeElement).toBe(screen.getByLabelText('종료일'));
+    expect(만들기).not.toHaveBeenCalled();
+  });
+
   it('서버가 기간을 거절하면 까닭을 보이고 창을 둔다', async () => {
     vi.spyOn(qaReportApi, 'projectList').mockResolvedValue({ items: [], total: 0 });
     vi.spyOn(qaReportApi, 'projectCreate').mockRejectedValue(new ApiError(400, 'INVALID_REQUEST', '기간은 92일까지입니다'));

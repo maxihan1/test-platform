@@ -10,7 +10,7 @@ import { api, ApiError, type EnvRow, type 패드, type 앱종류 } from './api.j
 import { ApiDocFields, useApiDocs } from './AuthoringNewApi.js';
 import { 빌드없음말, 패드칸, type PC게임 } from './AuthoringNewPads.js';
 import { 단계띠, 단계머리, 방법칸, 서버칸, 파일칸, 확인요약, 확인칸, type 단계, type 방법 } from './AuthoringNewSteps.js';
-import { 거절사유, 자료상한, 작성오류말, 피그마거절말 } from './authoringNewText.js';
+import { 거절사유, 자료상한, 작성오류말, 피그마거절말, 가이드까닭 } from './authoringNewText.js';
 import { GuideBody, useGuideEdit } from './GuideBody.js';
 import { 구획들 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
@@ -217,6 +217,7 @@ export function AuthoringNew({
         <button className="btn ghost wiz-new-left" type="button" onClick={닫기}>
           {t('취소')}
         </button>
+        <span className="wiz-new-why">{t(가이드까닭(문서.대기, 가이드.바뀜))}</span>
         <button className="btn ghost" type="button" disabled={가이드.busy || 가이드.바뀜 || 문서.대기} onClick={앞으로}>
           {t('건너뛰기')}
         </button>

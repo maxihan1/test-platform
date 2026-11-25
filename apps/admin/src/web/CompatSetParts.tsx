@@ -2,12 +2,13 @@
 
 import { type CompatAuto, type CompatDevice, type CompatPreview, type CompatSetDetail, type CompatSetDevice, 자동케이스 } from './compatApi.js';
 import { 디바이스요약글, 요약, 커버율 } from './compatView.js';
+import { 오류묶음, 칸오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 
 /** 자동 선택은 앞 넷만 줄로 보이고 나머지는 「외 N건 · 화면 M개」로 접는다 (시안 ②) */
 const 보이는자동 = 4;
 
-export function 디바이스구획({ 고른, 팜, 팜오류, 쓰나, 열기 }: { 고른: CompatSetDevice[]; 팜: CompatDevice[] | null; 팜오류: string | null; 쓰나: boolean; 열기: () => void }) {
+export function 디바이스구획({ 고른, 팜, 팜오류, 쓰나, 사유, 열기 }: { 고른: CompatSetDevice[]; 팜: CompatDevice[] | null; 팜오류: string | null; 쓰나: boolean; 사유: string | null; 열기: () => void }) {
   const t = use말();
   const 팜사본 = new Map((팜 ?? []).map((d) => [d.serial, d]));
   const 읽은것 = 고른.flatMap((d) => { const x = 팜사본.get(d.serial); return x === undefined ? [] : [x]; });
@@ -15,7 +16,7 @@ export function 디바이스구획({ 고른, 팜, 팜오류, 쓰나, 열기 }: {
   // 요약은 팜에 있는 디바이스로만 센다 — 빠진 수를 같이 보여 머리 「N대」와 숫자가 맞게 한다
   const 빠진수 = 팜 === null ? 0 : 고른.length - 읽은것.length;
   return (
-    <section className="compat-panel" aria-labelledby="cs-dev">
+    <section className="compat-panel" aria-labelledby="cs-dev" {...오류묶음('cs-dev-err', 사유)}>
       <div className="compat-ph">
         <h2 id="cs-dev">{t('디바이스 {수}대', { 수: 고른.length })}</h2>
         {쓰나 ? (
@@ -26,7 +27,10 @@ export function 디바이스구획({ 고른, 팜, 팜오류, 쓰나, 열기 }: {
       </div>
       {팜오류 === null ? null : <p className="compat-err">{팜오류}</p>}
       {고른.length === 0 ? (
-        <p className="compat-faint compat-pad">{t('아직 선택한 디바이스가 없습니다. 「디바이스 선택」에서 선택합니다')}</p>
+        <div className="compat-pad">
+          <p className="compat-faint" style={{ margin: 0 }}>{t('아직 선택한 디바이스가 없습니다. 「디바이스 선택」에서 선택합니다')}</p>
+          <칸오류 id="cs-dev-err" 사유={사유} />
+        </div>
       ) : (
         <>
           {팜 === null ? null : (

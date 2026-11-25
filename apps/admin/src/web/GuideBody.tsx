@@ -148,6 +148,7 @@ export function GuideBody({ service, 가이드, 쓰나, 예, 한번에 = false }
             아래={
               수정중 && !한번에 ? (
                 <>
+                  {가이드.바뀐(s) ? null : <span className="hint">{t('수정한 내용이 없어 저장할 수 없습니다')}</span>}
                   <button className="btn ghost" disabled={가이드.busy} onClick={() => 가이드.취소(s)}>
                     {t('취소')}
                   </button>

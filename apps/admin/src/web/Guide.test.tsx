@@ -113,7 +113,9 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     await screen.findByText(/버전 3/);
     수정('정책');
     expect(저장버튼().disabled).toBe(true);
+    expect(screen.getByText('수정한 내용이 없어 저장할 수 없습니다')).toBeTruthy();
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
+    expect(screen.queryByText('수정한 내용이 없어 저장할 수 없습니다')).toBeNull();
     fireEvent.click(저장버튼());
     await vi.waitFor(() =>
       expect(저장).toHaveBeenCalledWith('MKT', 3, {

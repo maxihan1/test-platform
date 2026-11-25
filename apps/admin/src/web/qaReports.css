@@ -422,6 +422,10 @@
   gap: 8px;
 }
 
+.qar-dates .err {
+  margin-top: 4px;
+}
+
 .qar-dates input {
   min-height: 36px;
   font: inherit;

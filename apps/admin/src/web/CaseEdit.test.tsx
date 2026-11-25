@@ -64,6 +64,17 @@ describe('코드 기본값 변경 요청', () => {
     expect((자리().getByRole('button', { name: '요청 보내기' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('고친 칸이 명세에 안 맞으면 보내지 않고 그 칸으로 간다', () => {
+    const 보냄 = vi.spyOn(api, 'createAuthoringEdit');
+    render(<코드기본값고치기 row={케이스()} service="XEW" />);
+    const 칸 = 자리().getByLabelText(/상품 수/);
+    fireEvent.change(칸, { target: { value: '0' } });
+    fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
+    expect(보냄).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(칸);
+    expect(document.getElementById(칸.getAttribute('aria-describedby')!)?.className).toBe('err');
+  });
+
   it('바꾼 칸만 보내고, 보낸 뒤 작성 요청 번호로 가는 길을 보인다', async () => {
     const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 41 });
     render(<코드기본값고치기 row={케이스()} service="XEW" />);

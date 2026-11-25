@@ -161,4 +161,7 @@ export const 결정말: Record<string, string> = {
   // 반려가 섞인 적용 확인 (WEB-F10-02)
   '{수}건을 적용할까요?': 'Apply {수}?',
   '반려 {수}건은 복구할 수 없습니다': '{수} rejected cannot be restored',
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '문장을 적어 주세요': 'Enter the text',
+  '문장은 {상한}자까지 적을 수 있습니다': 'The text can be up to {상한} characters long',
 };

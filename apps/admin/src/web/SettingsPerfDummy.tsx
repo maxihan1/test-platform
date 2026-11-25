@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { ApiError } from './api.js';
 import { 확인창 } from './ConfirmBox.js';
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { perfApi } from './perfApi.js';
 import { message, useAsync, when } from './ui.js';
@@ -27,6 +28,8 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
   const [판, set판] = useState(0);
   const [오류, set오류] = useState<string | null>(null);
   const [하는중, set하는중] = useState(false);
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
   const [지울것, set지울것] = useState<{ id: number; name: string } | null>(null);
   const list = useAsync(() => (앱 === '' ? Promise.resolve({ clients: [] }) : perfApi.dummyClients(Number(앱))), [앱]);
 
@@ -54,33 +57,30 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
   }
 
   function 올리기() {
-    if (이름.trim() === '' || 명령.trim() === '') {
-      set오류(t('이름과 실행 명령을 적어 주세요'));
-      return;
-    }
-    if (파일 === null) {
-      set오류(t('업로드할 .zip 파일을 선택해 주세요'));
-      return;
-    }
-    // 서버 상한(§7)과 같은 값 — 다 보낸 뒤에야 413 을 받지 않게 미리 막는다
-    if (파일.size > 200 * 1024 * 1024) {
-      set오류(t('파일은 200MB 까지입니다'));
-      return;
-    }
+    set오류(null);
+    set눌렀나(true);
+    if (이름.trim() === '' || 명령.trim() === '' || 파일 === null || 파일막힘 !== null) return 첫오류로();
     void 해보기(
       () => perfApi.addDummyClient(Number(앱), 이름.trim(), 명령.trim(), 파일),
       () => {
         set이름('');
         set명령('');
         set파일(null);
+        set눌렀나(false);
         set판((n) => n + 1);
       },
     );
   }
 
+  // 서버 상한(§7)과 같은 값 — 다 보낸 뒤에야 413 을 받지 않게 미리 막는다
+  const 파일막힘 = 파일 === null ? t('업로드할 .zip 파일을 선택해 주세요') : 파일.size > 200 * 1024 * 1024 ? t('파일은 200MB 까지입니다') : null;
+  const 이름오류 = 눌렀나 && 이름.trim() === '' ? t('이름을 적어 주세요') : null;
+  const 명령오류 = 눌렀나 && 명령.trim() === '' ? t('실행 명령을 적어 주세요') : null;
+  const 파일오류 = 눌렀나 ? 파일막힘 : null;
+
   const 클라이언트들 = list.data?.clients ?? [];
   return (
-    <div className="set-card">
+    <div className="set-card" ref={상자}>
       <div className="set-card-h">
         <h3>{t('더미 클라이언트')}</h3>
         <p>{t('게임 서버 부하에 쓰는 리눅스 실행 파일입니다. 부하 발생 에이전트마다 한 번 띄우고 맡을 가상 사용자 수를 QAHUB_USERS 로 알려 줍니다')}</p>
@@ -133,18 +133,27 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
       {관리자 ? (
         <>
           <div className="perf-fields">
-            <label className="perf-field">
-              {t('더미 클라이언트 이름')}
-              <input value={이름} maxLength={40} onChange={(e) => set이름(e.target.value)} />
-            </label>
-            <label className="perf-field">
-              {t('실행 명령')}
-              <input value={명령} placeholder="./bot" onChange={(e) => set명령(e.target.value)} />
-            </label>
-            <label className="perf-field">
-              {t('zip 파일')}
-              <input key={판} type="file" accept=".zip" onChange={(e) => set파일(e.target.files?.[0] ?? null)} />
-            </label>
+            <div className="perf-cell">
+              <label className="perf-field">
+                {t('더미 클라이언트 이름')}
+                <input value={이름} maxLength={40} {...오류속성('perf-dummy-name', 이름오류)} onChange={(e) => set이름(e.target.value)} />
+              </label>
+              <칸오류 id="perf-dummy-name" 사유={이름오류} />
+            </div>
+            <div className="perf-cell">
+              <label className="perf-field">
+                {t('실행 명령')}
+                <input value={명령} placeholder="./bot" {...오류속성('perf-dummy-cmd', 명령오류)} onChange={(e) => set명령(e.target.value)} />
+              </label>
+              <칸오류 id="perf-dummy-cmd" 사유={명령오류} />
+            </div>
+            <div className="perf-cell">
+              <label className="perf-field">
+                {t('zip 파일')}
+                <input key={판} type="file" accept=".zip" {...오류속성('perf-dummy-zip', 파일오류)} onChange={(e) => set파일(e.target.files?.[0] ?? null)} />
+              </label>
+              <칸오류 id="perf-dummy-zip" 사유={파일오류} />
+            </div>
             <button type="button" className="btn" disabled={하는중} onClick={올리기}>
               {t('업로드')}
             </button>

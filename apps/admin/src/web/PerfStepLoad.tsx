@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import { perfApi, type Basis, type Stage, type TestType, type 부하추천 } from './perfApi.js';
-import { 구간만들기, 그래프점, 기본부하칸, 총초, 최대목표, 피크계산, type 부하칸 } from './perfView.js';
+import { 구간만들기, 그래프점, 기본부하칸, 총초, 최대목표, 틀린글, 피크계산, type 넘길막힘, type 부하칸 } from './perfView.js';
 import { 기다림글자 } from './ui.js';
 import { usePerfJob } from './usePerfJob.js';
 
@@ -23,7 +24,7 @@ export const 유형글자: Record<TestType, { 이름: string; 설명: string }> 
 };
 const 유형들: TestType[] = ['LOAD', 'STRESS', 'SPIKE', 'SOAK'];
 
-export function PerfStepLoad({ 값, 고침, serviceId, 쓰나, 더미 }: { 값: 이단계값; 고침: (값: 이단계값) => void; serviceId: number; 쓰나: boolean; 더미: boolean }) {
+export function PerfStepLoad({ 값, 고침, serviceId, 쓰나, 더미, 틀림 }: { 값: 이단계값; 고침: (값: 이단계값) => void; serviceId: number; 쓰나: boolean; 더미: boolean; 틀림: 넘길막힘 | null }) {
   const t = use말();
   // 칸을 고치면 구간을 다시 짓는다 — 「상세 설정」에서 고친 구간은 칸을 다시 고칠 때까지 남는다
   const 칸고침 = (덮: Partial<부하칸>, 유형 = 값.testType) => {
@@ -57,10 +58,13 @@ export function PerfStepLoad({ 값, 고침, serviceId, 쓰나, 더미 }: { 값: 
         <h2 id="perf-l">{t('부하 설정')}</h2>
         {쓰나 ? <AI산정 serviceId={serviceId} 스트레스={값.testType === 'STRESS'} 적용={(peakVus, maxVus) => 칸고침({ peakVus, maxVus })} /> : null}
         <div className="perf-fields">
-          <label className="perf-field">
-            {단위}
-            <input type="number" min={1} value={값.칸.maxVus} disabled={!쓰나} onChange={(e) => 칸고침({ maxVus: Number(e.target.value) })} />
-          </label>
+          <div className="perf-cell">
+            <label className="perf-field">
+              {단위}
+              <input type="number" min={1} value={값.칸.maxVus} disabled={!쓰나} {...오류속성('perf-vus-err', 틀린글(틀림, 'vus'))} onChange={(e) => 칸고침({ maxVus: Number(e.target.value) })} />
+            </label>
+            <칸오류 id="perf-vus-err" 사유={틀린글(틀림, 'vus')} />
+          </div>
           <label className="perf-field">
             {t('램프업 시간 (분)')}
             <input type="number" min={1} value={값.칸.rampMin} disabled={!쓰나} onChange={(e) => 칸고침({ rampMin: Number(e.target.value) })} />
@@ -160,6 +164,8 @@ function AI산정({ serviceId, 스트레스, 적용 }: { serviceId: number; 스�
     set결과(out);
     set세값({ visitors: 글(out.dailyVisitors), ratio: out.peakRatio === null ? '' : String(Math.round(out.peakRatio * 100)), stay: 글(out.avgStayMin) });
   });
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
   const 맡기기 = () => void 일.맡기기(() => perfApi.suggest(serviceId, 'LOAD'));
 
   if (결과 === null) {
@@ -183,15 +189,26 @@ function AI산정({ serviceId, 스트레스, 적용 }: { serviceId: number; 스�
   const 집중 = 수(세값.ratio);
   const 피크 = 피크계산(수(세값.visitors), 집중 === null ? null : 집중 / 100, 수(세값.stay), 결과.peakMinutes);
   const 최대 = 피크 === null ? null : 스트레스 ? 피크 * 5 : 피크;
-  const 칸 = (이름: string, 키: keyof typeof 세값) => (
-    <label className="perf-field">
-      {이름}
-      <input type="number" min={0} value={세값[키]} onChange={(e) => set세값({ ...세값, [키]: e.target.value })} />
-    </label>
-  );
+  const 적용하기 = () => {
+    set눌렀나(true);
+    if (피크 === null || 최대 === null) return 첫오류로();
+    적용(피크, 최대);
+  };
+  const 칸 = (이름: string, 키: keyof typeof 세값) => {
+    const 사유 = 눌렀나 && 수(세값[키]) === null ? t('{이름} 값을 적어 주세요', { 이름 }) : null;
+    return (
+      <div className="perf-cell">
+        <label className="perf-field">
+          {이름}
+          <input type="number" min={0} value={세값[키]} {...오류속성(`perf-ai-${키}`, 사유)} onChange={(e) => set세값({ ...세값, [키]: e.target.value })} />
+        </label>
+        <칸오류 id={`perf-ai-${키}`} 사유={사유} />
+      </div>
+    );
+  };
 
   return (
-    <div className="perf-well">
+    <div className="perf-well" ref={상자}>
       <span>
         <span className="perf-ai">{t('AI 동시 사용자 산정')}</span>
       </span>
@@ -214,7 +231,7 @@ function AI산정({ serviceId, 스트레스, 적용 }: { serviceId: number; 스�
         </span>
       )}
       <div className="perf-row">
-        <button type="button" className="btn small" disabled={피크 === null || 최대 === null} onClick={() => 피크 !== null && 최대 !== null && 적용(피크, 최대)}>
+        <button type="button" className="btn small" onClick={적용하기}>
           {t('적용')}
         </button>
         <button type="button" className="btn ghost small" disabled={일.도나} onClick={맡기기}>

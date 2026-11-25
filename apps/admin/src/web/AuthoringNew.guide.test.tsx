@@ -32,6 +32,7 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     expect(screen.getAllByRole('textbox')).toHaveLength(3);
     expect(screen.getByText('애플리케이션 정보 입력')).toBeTruthy();
     expect(버튼('저장 후 다음').disabled).toBe(true);
+    expect(screen.getByText('적은 내용이 없어 저장할 수 없습니다. 건너뛸 수 있습니다')).toBeTruthy();
     fireEvent.click(버튼('건너뛰기'));
     expect(지금단계()).toBe('2 작성 방식');
     expect(저장).not.toHaveBeenCalled();
@@ -43,6 +44,7 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     render(<AuthoringNew service="PAY" on넣었다={() => {}} onClose={() => (닫음 += 1)} />);
     fireEvent.change(await screen.findByRole('textbox', { name: '정책' }), { target: { value: '실카드 금지' } });
     expect(버튼('건너뛰기').disabled).toBe(true);
+    expect(screen.getByText('적은 내용이 있어 건너뛸 수 없습니다. 저장하거나 칸을 비워 주세요')).toBeTruthy();
     fireEvent.change(screen.getByRole('textbox', { name: '정책' }), { target: { value: '' } });
     expect(버튼('건너뛰기').disabled).toBe(false);
     fireEvent.click(버튼('취소'));

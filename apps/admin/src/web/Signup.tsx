@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { 비밀번호최대, 비밀번호최소, 아이디모양, 이름최대 } from '../auth/rules.js';
 
 import { api, ApiError } from './api.js';
+import { use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
@@ -17,6 +18,7 @@ export function Signup() {
   const [사유, set사유] = useState<Partial<Record<칸, string>>>({});
   const [failed, setFailed] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류<HTMLFormElement>();
   const [보냄, set보냄] = useState(false);
 
   // 서버도 같은 규칙으로 다시 막는다. 화면이 먼저 보는 것은 칸 아래에 바로 알려 주려는 것이다
@@ -38,14 +40,16 @@ export function Signup() {
     const 찾은것 = 살핀다();
     set사유(찾은것);
     setFailed(null);
-    if (Object.keys(찾은것).length > 0) return;
+    if (Object.keys(찾은것).length > 0) return 첫오류로();
     setBusy(true);
     try {
       await api.signup({ username: 값.username, displayName: 값.displayName.trim(), password: 값.password });
       set보냄(true);
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'USERNAME_TAKEN') set사유({ username: t('이미 쓰는 아이디입니다') });
-      else setFailed(message(err, 언어));
+      if (err instanceof ApiError && err.code === 'USERNAME_TAKEN') {
+        set사유({ username: t('이미 쓰는 아이디입니다') });
+        첫오류로();
+      } else setFailed(message(err, 언어));
     } finally {
       setBusy(false);
     }
@@ -94,7 +98,7 @@ export function Signup() {
 
   return (
     <div className="login">
-      <form className="login-box" onSubmit={(e) => void submit(e)} noValidate>
+      <form className="login-box" ref={상자} onSubmit={(e) => void submit(e)} noValidate>
         <div className="login-title">Test Commander</div>
         <h1 className="login-greet">{t('계정을 신청합니다')}</h1>
         <p className="login-sub">{t('관리자가 승인하면 로그인할 수 있습니다.')}</p>
