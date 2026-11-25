@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type 세션거리, type 학습손, 못뜬것은끊김, 학습번호들, 학습하기 } from './authoring-learn.js';
 import { 배움올리기, 학습끝줄 } from './authoring-learn-io.js';
-import { 배울종류 } from './authoring-learn-map.js';
+import { 배울종류, 칸틀 } from './authoring-learn-map.js';
 import { 학습프롬프트 } from './authoring-learn-prompt.js';
 import type { 돌린결과 } from './authoring-spawn.js';
 import { 컨텍스트크기 } from './authoring-usage.js';
@@ -18,7 +18,7 @@ const 결과 = (x: Partial<돌린결과> = {}): 돌린결과 => ({ 코드: 0, �
 const 규칙 = (key: string, x: object = {}) => ({ kind: 'RULE', key, name: '가', learned: { text: 'ㄱ', belief: 'CONFIRMED', seen: 2, build: '59', data: 1, ...x } });
 const 지도글 = (줄들: { kind: string; key: string; name: string; learned: object }[]) =>
   ['# 게임 지도', '', ...[...new Set(줄들.map((x) => x.kind))].flatMap((k) => [`## ${k} (${k}) — ${줄들.filter((x) => x.kind === k).length}개`, ...줄들.filter((x) => x.kind === k).map((x) => `- ${x.key} · ${x.name} · 배움 ${JSON.stringify(x.learned)}`)])].join('\n');
-const 다배움 = 배울종류.map((k) => ({ ...규칙(`${k.toLowerCase()}:하나`), kind: k }));
+const 다배움 = [...배울종류, 'WORLD'].map((k) => ({ ...규칙(`${k.toLowerCase()}:하나`, { data: { 칸: Object.fromEntries((칸틀[k] ?? []).map((c) => [c, '쟀다'])) } }), kind: k }));
 
 let 자료 = '';
 /** 서버 지도 — PUT 을 받으면 합치고 GET 이 글로 준다 */
@@ -375,7 +375,7 @@ describe('학습번호들', () => {
 
 describe('학습프롬프트', () => {
   const 재료 = { 서비스: 'CGP', 폴더: 'catsgo-pc', 자료: '/자료', 화면: { 못읽음: 'ㄱ', 게임: true as const, PC: { 패드: [] } }, 계획: [], 지금판: '/자료/prd-now.json', 항목수: 0, 가이드: null };
-  const 배울것 = { 빈종류: ['RULE'], 궁금: ['ask:1'], 빌드다름: [], 게임글: [], 번호: [] };
+  const 배울것 = { 칸: ['input:공격 — 닿는곳'], 빈종류: ['RULE'], 궁금: ['ask:1'], 빌드다름: [], 게임글: [], 번호: [] };
 
   it('학습 — 지침 · 남은 시간 · 빌드 · 배울 것을 주고 놓지 말라고 한다. 케이스 작성 스킬은 부르지 않는다', () => {
     const 글 = 학습프롬프트(재료, { 배울것, 남은분: 30, 빌드: '59', 놓음: true, 못올림: [], 부분: false, 차례: 1 });
@@ -383,6 +383,7 @@ describe('학습프롬프트', () => {
     expect(글).toContain('이 세션은 30분이다');
     expect(글).toContain('지금 빌드: 59');
     expect(글).toContain('빈 종류: RULE');
+    expect(글).toContain('아직 안 잰 칸 1 — 이것부터 잰다**: input:공격 — 닿는곳');
     expect(글).toContain('`release` 하지 마라');
     expect(글).toContain('[단계] 게임 배우기');
     expect(글).toContain('글로 된 자료가 없다');

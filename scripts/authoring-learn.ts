@@ -100,7 +100,7 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
   };
   const 처음 = 볼것();
   if (처음 === null) return 건너뛴다('게임 지도를 못 받았다', true);
-  if (상태.쓴ms === 0 && 배울것없나(처음)) return 건너뛴다('배울 것이 없다(빈 종류 · 궁금한 것 · 다시 볼 빌드가 없다)', false);
+  if (상태.쓴ms === 0 && 배울것없나(처음)) return 건너뛴다('배울 것이 없다(안 잰 칸 · 빈 종류 · 궁금한 것 · 다시 볼 빌드가 없다)', false);
 
   const 부분 = o.번호들 !== undefined;
   const 총 = 부분 ? 세션_ms : 최대세션 * 세션_ms;
@@ -185,7 +185,7 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
       if ('끝' in 틀린) return 끝내며(틀린.끝);
       // 틀린 줄만 — 나머지 궁금한 것은 다음 작성이 이어 배운다(2026-11-25 사용자)
       if (틀린.열쇠.length > 0 && 상태.세션 < 최대세션 && 남은() >= 최소_ms) {
-        const r = await 배우기({ 빈종류: [], 궁금: 틀린.열쇠, 빌드다름: [], 게임글: [], 번호: [] }, true);
+        const r = await 배우기({ 칸: [], 빈종류: [], 궁금: 틀린.열쇠, 빌드다름: [], 게임글: [], 번호: [] }, true);
         if ('끝' in r) return 끝내며(r.끝);
       }
     } else if (부분) 상태.시험 ??= '안 봄(고친 요구에 닿는 줄만 30분 배움)';
@@ -200,7 +200,8 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
 
   /** 시험 세션이 남긴 조작 기록인가 — 앞 학습 세션의 기록 이름을 적으면 해 보지 않은 판이 해 본 것이 된다 */
   function 이번기록인가(이름: string | undefined, 시작: number): boolean {
-    if (이름 === undefined || /[/\\]/.test(이름)) return false;
+    // 지켜보기는 가만히 보기만 한 기록이다
+    if (이름 === undefined || /[/\\]/.test(이름) || /-지켜보기\.json$/.test(이름)) return false;
     const 정보 = lstatSync(join(o.자료, 게임자리.조작기록, 이름), { throwIfNoEntry: false });
     return 정보?.isFile() === true && 정보.mtimeMs >= 시작;
   }
