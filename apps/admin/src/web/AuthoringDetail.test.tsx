@@ -117,7 +117,7 @@ describe('작성 한 건 상세', () => {
     await 첫읽기끝();
     const 앞 = 부른횟수;
     fireEvent.click(await screen.findByRole('button', { name: '테스트 반영하기' }));
-    expect(screen.getByText('#7 테스트를 케이스 목록에 등록합니다. 반영한 뒤에는 취소할 수 없습니다')).toBeTruthy();
+    expect(screen.getByText('#7 테스트를 케이스 목록에 반영합니다. 반영한 뒤에는 취소할 수 없습니다')).toBeTruthy();
     물음누름('취소');
     expect(부른횟수).toBe(앞);
     fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));

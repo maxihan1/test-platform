@@ -6,7 +6,7 @@ import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
 
 /** 쓰는 자리는 DESIGN.md 「모달」 ① 「되돌리기 어려운 동작 전 확인」 목록뿐이다 */
-export function 확인창({ 제목, 확인, 막힘 = false, onClose, on확인, children }: { 제목: string; 확인: string; 막힘?: boolean; onClose: () => void; on확인: () => void; children: ReactNode }) {
+export function 확인창({ 제목, 확인, onClose, on확인, children }: { 제목: string; 확인: string; onClose: () => void; on확인: () => void; children: ReactNode }) {
   const t = use말();
   return (
     <Modal
@@ -18,7 +18,7 @@ export function 확인창({ 제목, 확인, 막힘 = false, onClose, on확인, c
           <button type="button" className="btn ghost" onClick={onClose} data-first>
             {t('취소')}
           </button>
-          <button type="button" className="btn" disabled={막힘} onClick={on확인}>
+          <button type="button" className="btn" onClick={on확인}>
             {확인}
           </button>
         </>
@@ -42,6 +42,12 @@ export function 두번삭제({ 라벨, 모양 = 'btn ghost small', on삭제 }: {
       className={확인 ? `${모양} set-warn` : 모양}
       aria-label={확인 ? `${라벨} · ${t('삭제 확인')}` : 라벨}
       onBlur={() => set확인(false)}
+      // Safari 는 단추를 눌러도 포커스를 안 줘서, 확인하려고 다시 누르는 순간 포커스가 빠져 확인이 풀린다 — 누르기로는 포커스를 안 움직인다
+      onMouseDown={(e) => e.preventDefault()}
+      // Enter 를 누르고 있으면 되풀이되는 누름이 확인이 된다
+      onKeyDown={(e) => {
+        if (e.repeat) e.preventDefault();
+      }}
       onClick={(e) => {
         // 더블클릭의 두 번째 누름은 세지 않는다 — 한 번 누른 것과 같다
         if (확인) {
@@ -51,7 +57,7 @@ export function 두번삭제({ 라벨, 모양 = 'btn ghost small', on삭제 }: {
           on삭제();
           return;
         }
-        // Safari 는 단추를 눌러도 포커스를 안 줘서, 다른 데를 눌러도 확인이 안 풀린다
+        // 포커스를 줘야 다른 데를 눌렀을 때 확인이 풀린다
         e.currentTarget.focus();
         set확인(true);
       }}

@@ -109,11 +109,11 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
     set오류(null);
     set끌것(null);
     try {
-      // 끄면 대기 중인 회차가 빠지고 다시 켜도 안 돌아온다 — 있을 때만 묻는다. 보는 달력에 오늘이 없을 수 있어 따로 읽는다. 자정을 넘겨 기다리는 회차도 본다
+      // 끄면 대기 중인 회차가 날짜와 상관없이 다 빠지고 다시 켜도 안 돌아온다 — 있을 때만 묻는다. 보는 달력에 오늘이 없을 수 있어 따로 읽고, 못 읽으면 묻는다
       if (세트.isOn && !물었나) {
         const 오늘날 = 시간대로(new Date(), 세트.tz).날;
-        const { occurrences } = await schedApi.calendar(service.projectId, 날더하기(오늘날, -1), 오늘날);
-        if (occurrences.some((o) => o.setId === 세트.id && o.state === 'QUEUED')) return set끌것(세트);
+        const 읽은 = await schedApi.calendar(service.projectId, 날더하기(오늘날, -60), 오늘날).catch(() => null);
+        if (읽은 === null || 읽은.occurrences.some((o) => o.setId === 세트.id && o.state === 'QUEUED')) return set끌것(세트);
       }
       await schedApi.setOn(세트.id, !세트.isOn);
       await Promise.all([세트목록.reload(), 회차목록.reload()]);
@@ -235,7 +235,7 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
       )}
       {끌것 === null ? null : (
         <확인창 제목={t('「{이름}」 세트를 끌까요?', { 이름: 끌것.name })} 확인={t('끄기')} onClose={() => set끌것(null)} on확인={() => void 켜기(끌것, true)}>
-          <p>{t('대기 중인 오늘 실행이 빠집니다. 다시 켜도 복원되지 않습니다')}</p>
+          <p>{t('끄면 대기 중인 실행이 빠지고 다시 켜도 복원되지 않습니다')}</p>
         </확인창>
       )}
       {창}

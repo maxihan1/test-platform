@@ -109,7 +109,7 @@ describe('프로젝트 고치기', () => {
     const { rerender } = render(<ProjectPanel row={프로젝트들[1]!} projects={프로젝트들} services={서비스들} onDone={() => {}} />);
     fireEvent.change(document.getElementById('pf-move-3')!, { target: { value: '1' } });
     expect(screen.getByText('마지막 애플리케이션이라 「사내 포털」 프로젝트가 삭제됩니다. 아래 항목도 같이 삭제되고 복구할 수 없습니다')).toBeTruthy();
-    expect(screen.getByText(/권한 배정 · 정기 실행 세트 · Issue Bunker 연결 · 프로젝트 노트 · Scout 대화/)).toBeTruthy();
+    expect(screen.getByText(/권한 배정 · 정기 실행 세트 · Issue Bunker 연결과 기록 · 프로젝트 노트 · Scout 대화/)).toBeTruthy();
 
     rerender(<ProjectPanel row={프로젝트들[1]!} projects={프로젝트들} services={[...서비스들, { ...앱(5, 'HRO', '옛 포털', 2), isActive: false }]} onDone={() => {}} />);
     expect(screen.queryByText(/마지막 애플리케이션이라/)).toBeNull();

@@ -44,6 +44,9 @@ describe('두번삭제', () => {
     render(<두번삭제 라벨="삭제" on삭제={지움} />);
     fireEvent.click(screen.getByRole('button'), { detail: 1 });
     fireEvent.click(screen.getByRole('button'), { detail: 2 });
+    // 누르고 있는 Enter 의 되풀이와 Safari 의 누르기는 브라우저 기본 동작을 막아 둔다
+    expect(fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter', repeat: true })).toBe(false);
+    expect(fireEvent.mouseDown(screen.getByRole('button'))).toBe(false);
     expect(지움).not.toHaveBeenCalled();
     expect(screen.getByRole('button').textContent).toBe('삭제 확인');
     fireEvent.blur(screen.getByRole('button'));

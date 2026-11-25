@@ -226,8 +226,8 @@ describe('정기 실행 화면', () => {
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
     const [첫째, 둘째] = await screen.findAllByRole('button', { name: '끄기' });
     fireEvent.click(첫째!);
-    expect(await screen.findByText('대기 중인 오늘 실행이 빠집니다. 다시 켜도 복원되지 않습니다')).toBeTruthy();
-    expect(schedApi.calendar).toHaveBeenLastCalledWith(10, '2026-11-12', '2026-11-13');
+    expect(await screen.findByText('끄면 대기 중인 실행이 빠지고 다시 켜도 복원되지 않습니다')).toBeTruthy();
+    expect(schedApi.calendar).toHaveBeenLastCalledWith(10, '2026-09-14', '2026-11-13');
     물음누름('취소');
     expect(끄기).not.toHaveBeenCalled();
     fireEvent.click(첫째!);
@@ -236,6 +236,18 @@ describe('정기 실행 화면', () => {
     await waitFor(() => expect(끄기).toHaveBeenCalledWith(1, false));
     fireEvent.click(둘째!);
     await waitFor(() => expect(끄기).toHaveBeenCalledWith(2, false));
+  });
+
+  it('대기 회차를 못 읽으면 끄기를 막지 않고 묻는다', async () => {
+    차리기([세트하나()]);
+    const 끄기 = vi.spyOn(schedApi, 'setOn').mockResolvedValue({});
+    render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+    const 단추 = await screen.findByRole('button', { name: '끄기' });
+    vi.spyOn(schedApi, 'calendar').mockRejectedValue(new Error('끊김'));
+    fireEvent.click(단추);
+    await screen.findByRole('dialog');
+    물음누름('끄기');
+    await waitFor(() => expect(끄기).toHaveBeenCalledWith(1, false));
   });
 
   it('세트가 없으면 달력 자리에 안내만 둔다', async () => {

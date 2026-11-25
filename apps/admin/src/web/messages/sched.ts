@@ -112,5 +112,5 @@ export const 정기실행말: Record<string, string> = {
   '「{이름}」 리포트 일정을 저장했습니다 · 다음 {날} {시각}': 'Saved report schedule "{이름}" · Next {날} {시각}',
   // 끄기 확인 (WEB-F10-02)
   '「{이름}」 세트를 끌까요?': 'Turn off "{이름}"?',
-  '대기 중인 오늘 실행이 빠집니다. 다시 켜도 복원되지 않습니다': "Today's queued run is dropped. Turning it back on does not bring it back",
+  '끄면 대기 중인 실행이 빠지고 다시 켜도 복원되지 않습니다': "Any queued run is dropped. Turning it back on does not bring it back",
 };
