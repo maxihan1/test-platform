@@ -12,6 +12,7 @@ import { 멈추기, 풀기 } from './authoring-game-play-freeze.js';
 import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
 import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
 import { type 나온것, 세기시작, 지도글 } from './authoring-game-play-spawns.js';
+import { 막는글, 안적은새것 } from './authoring-game-play-gate.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 정리알림 } from './authoring-game-find.js';
 import { 비밀가리기 } from './authoring-reverse.js';
@@ -185,6 +186,11 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 것 = await 부를준비('authoring-game-play', '[조작 도우미]', 인자, 트리, env);
   if (것 === null) return 2;
   const { 이름, 넘길, 초, 환경, 비밀들, 자료 } = 것;
+  const 안적은 = 안적은새것(자료);
+  if (안적은 !== null) {
+    console.error(막는글(안적은));
+    return 2;
+  }
   let r: 조작결과;
   // 셸이 한도에서 끊으면 SIGTERM 이 온다 — 눌러 둔 입력을 놓고 끝낸다
   const 끊기 = new AbortController();

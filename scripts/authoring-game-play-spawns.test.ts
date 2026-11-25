@@ -7,7 +7,8 @@ import type { Found, Game } from 'control-cli';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 기록남기기 } from './authoring-game-play-log.js';
-import { type 나온것, 나온것줄, 세기, 세기시작, 안적은새것, 종류, 지도글, 펼칠상한 } from './authoring-game-play-spawns.js';
+import { type 나온것, 나온것줄, 세기, 세기시작, 종류, 지도글, 지도에있나, 펼칠상한 } from './authoring-game-play-spawns.js';
+import { 안적은새것 } from './authoring-game-play-gate.js';
 import { 돌린다, 실행 } from './authoring-game-play.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 
@@ -170,7 +171,7 @@ describe('판 도중 새로 나온 것', () => {
     const 나온 = { 간격ms: 5000, 처음: {}, 장면바뀜: [], 센때: [], 첫초: { Boss: 10, Slime: 12 }, 화면것: [], 지도에없음: ['Boss', 'Slime'], 펼침: [], 안펼침: [] };
     writeFileSync(join(d, 'game-play', '20261126010000000-깨기.json'), JSON.stringify({ 함수: '깨기', 나온것: 나온 }));
     writeFileSync(join(d, 'game-play', '20261126020000000-깨기.json'), JSON.stringify({ 함수: '깨기' }));
-    writeFileSync(join(d, 'game-map.txt'), '- rule:x · Slime 은 느리다');
+    writeFileSync(join(d, 'game-map.txt'), '- rule:x · Slime 은 느리다 · BossSpawner 가 있다');
     expect(안적은새것(d)).toBeNull();
     writeFileSync(join(d, 'game-learning.now'), '1');
     expect(안적은새것(d)).toEqual({ 기록: join(d, 'game-play', '20261126010000000-깨기'), 이름들: ['Boss'] });
@@ -182,6 +183,7 @@ describe('판 도중 새로 나온 것', () => {
     expect(String(오류.mock.calls[0]?.[0])).toContain('새로 나온 Boss 이(가) 지도에 없다');
     writeFileSync(join(d, 'game-learned.json'), JSON.stringify({ elements: [{ kind: 'ASK', key: 'ask:boss', name: 'Boss 는 무엇에 약한가' }] }));
     expect(안적은새것(d)).toBeNull();
+    expect([지도에있나('BossSpawner', 'Boss'), 지도에있나('보스 Boss 는', 'Boss'), 지도에있나('"name":"Boss"', 'Boss'), 지도에있나('a.b', 'a+b')]).toEqual([false, true, true, false]);
   });
 
   it('판 돌리기는 도중 화면을 켰을 때만 세고, 기록 json 에는 펼친 글 없이 · 펼친 글은 -새것.txt 로 남긴다', async () => {

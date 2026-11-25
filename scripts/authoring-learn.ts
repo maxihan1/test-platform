@@ -9,7 +9,7 @@ import { 적은줄들, 지금지도 } from './authoring-game-find.js';
 import { 멈춤표시읽기, 멈춤표시지우기 } from './authoring-game-freeze.js';
 import type { 돌린결과 } from './authoring-io.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
-import { 배움올리기, 상태쓰기, 상태읽기 } from './authoring-learn-io.js';
+import { 배우는중에, 배우는중지우기, 배움올리기, 상태쓰기, 상태읽기, 케이스시작적기 } from './authoring-learn-io.js';
 import { 물음트리, 오늘글 } from './authoring-game-tree.js';
 import { type 배울것, 배울것고르기, 배울것없나, 쪽지글, 쪽지열쇠 } from './authoring-learn-map.js';
 import { 끝낼상태 } from './authoring-progress.js';
@@ -89,13 +89,16 @@ export interface 학습결과 {
 export const 못뜬것은끊김 = (돌린것: 돌린결과, 앞낸것: readonly string[]): 돌린결과 =>
   앞낸것.length > 0 && 돌린것.코드 === null && !돌린것.시간초과 && !돌린것.멈춤으로죽음 ? { ...돌린것, 코드: 1 } : 돌린것;
 
-export async function 학습하기(o: 학습손): Promise<학습결과> {
+/** 건너뛰었어도 끝에 케이스 시작을 적는다 — 게임 규칙 보류가 대는 판 기록은 이 뒤 것이어야 한다 */
+export const 학습하기 = (o: 학습손): Promise<학습결과> => 배우고(o).finally(() => 케이스시작적기(o.자료, (o.지금 ?? Date.now)()));
+
+async function 배우고(o: 학습손): Promise<학습결과> {
   const 앞낸것: string[] = [];
   // 앞 실행이 남긴 「정리하라」 알림이 케이스를 쓰는 세션의 찾기 명령에 찍히지 않게 — 배우지 않는 길에서도 지운다
   const 알림지우기 = (): void => rmSync(join(o.자료, 게임자리.학습알림), { force: true });
   알림지우기();
   // 앞 실행이 끊겨 남긴 표시가 케이스를 쓰는 세션의 판을 막지 않게
-  rmSync(join(o.자료, 게임자리.배우는중), { force: true });
+  배우는중지우기(o.자료);
   const 지금 = o.지금 ?? Date.now;
   // 케이스 작성 세션부터 잇는 폴더 · 학습을 마친 폴더다
   if ((안전히읽기(o.자료, 게임자리.탐색지남, 1_000_000)?.trim() ?? '') !== '') return { 앞낸것 };
@@ -206,14 +209,8 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     const 줄 = 지도 === null ? [] : 물음트리(지도, 오늘글(지금()), 빌드);
     return 줄.length === 0 ? {} : { 트리: 줄 };
   };
-  const 배우기 = async (b: 배울것, 틀림?: true): Promise<세션끝> => {
-    새로쓰기(join(o.자료, 게임자리.배우는중), String(지금()));
-    try {
-      return await 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? 트리() : { 틀림 }), ...쪽지(), ...멈춤() }), 틀림 === undefined ? 배움남은 : 시험제한);
-    } finally {
-      rmSync(join(o.자료, 게임자리.배우는중), { force: true });
-    }
-  };
+  const 배우기 = (b: 배울것, 틀림?: true): Promise<세션끝> =>
+    배우는중에(o.자료, () => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? 트리() : { 틀림 }), ...쪽지(), ...멈춤() }), 틀림 === undefined ? 배움남은 : 시험제한), 지금());
   const 끝내며 = (끝: 띄운결과): 학습결과 => ({ 끝: { ...끝, 돌린것: 못뜬것은끊김(끝.돌린것, 앞낸것) }, 앞낸것 });
 
   const 늘리기끄기 = o.늘리기();

@@ -6,17 +6,17 @@ import { join } from 'node:path';
 import { 게임자리 } from './authoring-game.js';
 import { 백틱벗기기, 표읽기 } from './authoring-md-table.js';
 
-/** 환경 때문인 보류와 판정 갈래 — 해 본 기록 없이도 된다(game.md §6 · §7 5) */
-const 환경보류 = /창을 못 엶|계정|어드민 API|게임 글과 잰 값이 다름|잠깐 떠서 못 찍음/;
+/** 환경 때문인 보류와 판정 갈래 — 해 본 기록 없이도 된다(game.md §6 · §7 5). 까닭 머리로만 본다 — 「계정 레벨이 오르는 조건」 같은 게임 규칙이 빠지지 않게 */
+const 환경보류 = /^(?:창을 못 엶|계정 미등록|계정이 없|어드민 API|게임 글과 잰 값이 다름|잠깐 떠서 못 찍음)/;
 const 기록꼴 = /\d{17}-[^\s)·,]+?\.json/g;
 
 /**
- * 판 기록 이름이 이번 케이스 세션 것인가 — 학습을 마친 뒤(학습 상태 파일을 마지막에 쓴 뒤) 남은 조작 기록. 지켜보기만 한 기록은 해 본 것이 아니다.
- * 학습이 없었으면 자료 폴더의 기록은 다 이번 작성 것이다
+ * 이번 케이스 세션의 조작 기록 — 학습이 끝나며(건너뛰었어도) 적은 케이스 시작 표시 뒤에 남은 것. 가만히 지켜본 기록(`-지켜보기.json`)은 해 본 것이 아니다 —
+ * 함수를 돌리며 지켜본 기록(`-지켜보기-<함수>.json`)은 판을 한 것이라 받는다(학습 시험의 「첫 판」 기록과 같은 기준). 표시가 없으면 자료 폴더의 기록을 다 받는다
  */
 function 이번기록들(자료: string): Set<string> {
-  const 학습 = lstatSync(join(자료, 게임자리.학습), { throwIfNoEntry: false });
-  const 뒤 = 학습?.isFile() === true ? 학습.mtimeMs : 0;
+  const 표시 = lstatSync(join(자료, 게임자리.케이스시작), { throwIfNoEntry: false });
+  const 뒤 = 표시?.isFile() === true ? 표시.mtimeMs : 0;
   const 폴더 = join(자료, 게임자리.조작기록);
   let 이름들: string[];
   try {
@@ -32,13 +32,16 @@ function 이번기록들(자료: string): Set<string> {
   );
 }
 
-/** 해 본 기록을 안 댄 게임 규칙 보류 줄 — 볼(이번에 바뀐 tcId)을 주면 그 줄만 본다 */
+/**
+ * 해 본 기록을 안 댄 게임 규칙 보류 줄. 볼(이번에 바뀐 케이스의 tcId)을 주면 그 밖의 줄은 「해 본 것」을 이미 적은 줄만 넘어간다 —
+ * 케이스 파일은 그대로 두고 목록 줄만 보류로 바꾼 것 · 이 검사 전에 적힌 보류도 본다
+ */
 export function 안해본보류(표글: string, 자료: string, 볼?: ReadonlySet<string>): string[] {
   const 이번 = 이번기록들(자료);
   return 표읽기(표글, '요구사항').flatMap((줄) => {
     const tcId = 백틱벗기기(줄['tcId'] ?? '');
     const 까닭 = /보류 — (.+)$/.exec(줄['출처'] ?? '')?.[1];
-    if (까닭 === undefined || 환경보류.test(까닭) || (볼 !== undefined && !볼.has(tcId))) return [];
+    if (까닭 === undefined || 환경보류.test(까닭) || (볼 !== undefined && !볼.has(tcId) && /해 본 것:/.test(까닭))) return [];
     // 디바이스를 한 번도 못 잡았으면(이번 기록 0) 그 까닭은 환경이다
     if (이번.size === 0 && /디바이스를 못 잡음/.test(까닭)) return [];
     if (/해 본 것:/.test(까닭) && [...까닭.matchAll(기록꼴)].some((m) => 이번.has(m[0]))) return [];
