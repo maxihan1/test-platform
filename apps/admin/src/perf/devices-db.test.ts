@@ -56,7 +56,7 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     try {
       expect((await 앱({ devices: [{ serial: 'FA1', where: 'FARM' }, { serial: 'FA2', where: 'FARM' }] })).json()).toMatchObject({
         error: 'INVALID_REQUEST',
-        detail: '고른 폰 FA2 에 com.xq.app 가 설치되어 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 디바이스를 선택합니다',
+        detail: '선택한 디바이스 FA2 에 com.xq.app 가 설치되어 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 디바이스를 선택합니다',
       });
     } finally {
       await 판.pool.query(`UPDATE service_env SET app_path = '/apps/demo.apk' WHERE service_id = $1 AND env = 'qa'`, [판.서비스]);

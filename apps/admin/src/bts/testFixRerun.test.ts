@@ -161,7 +161,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await 테스트수정점검(답());
     expect((await 줄(id)).state).toBe('PASSED');
     expect(await 보낼것('DM-1')).toEqual([
-      { kind: 'TRANSITION', payload: { toStatusKey: 'closed', resolutionId: 'r-test', comment: `실제 폰 · PC 에서 통과했어요 · RUN ${붙은}\n${공개}/#/runs/${붙은}` } },
+      { kind: 'TRANSITION', payload: { toStatusKey: 'closed', resolutionId: 'r-test', comment: `실제 디바이스 · PC 에서 통과했어요 · RUN ${붙은}\n${공개}/#/runs/${붙은}` } },
     ]);
     expect((await pool.query(`SELECT closed_at IS NOT NULL AS closed, resolution FROM bts_issue_case WHERE issue_key = 'DM-1' AND project_id = $1`, [프로젝트])).rows[0]).toEqual({
       closed: true,
