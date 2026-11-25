@@ -128,7 +128,7 @@ describe('폰상태에서', () => {
   it('팜이 막은 바꾸기는 까닭을 붙여 던지고 이미 바꾼 것은 되돌린다 — 할일은 돌지 않는다', async () => {
     const { driver, 폰 } = 가짜폰({}, (명령) => 명령 === 'mobile: setUiMode');
     const 할일 = vi.fn(async () => undefined);
-    await expect(폰상태에서(driver, { 네트워크: '끊김', 어두운화면: true }, 할일)).rejects.toThrow('어두운 화면을 못 바꿨다 — 팜이 막았다');
+    await expect(폰상태에서(driver, { 네트워크: '끊김', 어두운화면: true }, 할일)).rejects.toThrow('어두운 화면을 변경하지 못했다 — 팜이 막았다');
     expect(할일).not.toHaveBeenCalled();
     expect(폰.망.wifi).toBe(true);
   });
@@ -160,8 +160,8 @@ describe('폰상태에서', () => {
     expect(existsSync(phoneStateFile())).toBe(false);
     끄고나서 = false;
     const 오류 = await 폰상태에서(가짜폰({}, 막을).driver, { 네트워크: '끊김' }, async () => Promise.reject(new Error('verify 실패'))).catch((e: Error) => e);
-    expect((오류 as Error).message).toBe('verify 실패 (폰 상태도 못 되돌렸다 — 네트워크: 팜이 막았다)');
-    expect((오류 as Error).stack).toContain('(폰 상태도 못 되돌렸다 — 네트워크: 팜이 막았다)');
+    expect((오류 as Error).message).toBe('verify 실패 (디바이스 상태도 복원하지 못했다 — 네트워크: 팜이 막았다)');
+    expect((오류 as Error).stack).toContain('(디바이스 상태도 복원하지 못했다 — 네트워크: 팜이 막았다)');
   });
 
   it('빈 값 · 틀린 값 · 겹친 구간 · 웹뷰 구간 안은 폰에 보내기 전에 던진다', async () => {

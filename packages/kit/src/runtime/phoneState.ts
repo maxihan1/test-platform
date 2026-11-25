@@ -76,7 +76,7 @@ async function 짓는다(driver: AppDriver, 바꿀: 폰상태): Promise<할것[]
     const 앞 = String(await 읽는다(driver, '어두운 화면 설정을 못 읽었다', 실행('mobile: getUiMode', { mode: 'night' })));
     const 뒤 = 바꿀.어두운화면 ? 'yes' : 'no';
     const 꼴 = (value: string): 폰요청[] => (앞 === 뒤 ? [] : [실행('mobile: setUiMode', { mode: 'night', value })]);
-    목록.push({ 못함: '어두운 화면을 못 바꿨다', 무엇: '어두운 화면', 바꾸기: 꼴(뒤), 되돌리기: 꼴(앞) });
+    목록.push({ 못함: '어두운 화면을 변경하지 못했다', 무엇: '어두운 화면', 바꾸기: 꼴(뒤), 되돌리기: 꼴(앞) });
   }
   if (바꿀.글자크기 !== undefined) {
     const 셸 = '(디바이스 셸 — Device VISION 이 adb_shell 을 열어야 한다)';
@@ -85,7 +85,7 @@ async function 짓는다(driver: AppDriver, 바꿀: 폰상태): Promise<할것[]
     const 기본 = 앞 === 'null' || 앞 === '';
     const 같음 = Number(기본 ? '1' : 앞) === 바꿀.글자크기;
     목록.push({
-      못함: `글자 크기를 못 바꿨다${셸}`,
+      못함: `글자 크기를 변경하지 못했다${셸}`,
       무엇: '글자 크기',
       바꾸기: 같음 ? [] : [글자크기셸(['put', 'system', 'font_scale', String(바꿀.글자크기)])],
       되돌리기: 같음 ? [] : [글자크기셸(기본 ? ['delete', 'system', 'font_scale'] : ['put', 'system', 'font_scale', 앞])],
@@ -197,7 +197,7 @@ export async function 폰상태에서<값>(driver: AppDriver, 바꿀: 폰상태,
       if (구간.거둠) throw err;
       const 못한 = await 되돌린다(driver, 목록);
       if (못한 !== null) {
-        const 덧 = ` (폰 상태도 못 되돌렸다 — ${못한})`;
+        const 덧 = ` (디바이스 상태도 복원하지 못했다 — ${못한})`;
         if (!(err instanceof Error)) throw new Error(`${String(err)}${덧}`);
         // 보고가 stack 을 찍는 길도 있어 둘 다 고친다 — stack 은 만들 때 글이 굳는다
         err.message += 덧;

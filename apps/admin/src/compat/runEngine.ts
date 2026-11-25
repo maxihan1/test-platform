@@ -85,7 +85,7 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
   try {
     토큰 = await 실행팜토큰(runId);
   } catch (e) {
-    return { 까닭: `누른 사람의 Device VISION 토큰을 찾지 못했습니다: ${글(e)}` };
+    return { 까닭: `누른 사람의 Device VISION 토큰을 받지 못했습니다: ${글(e)}` };
   }
   const 줄 = await 대상줄읽기(머리.serviceId, 머리.env);
   if (줄 === null) return { 까닭: `${머리.env} 대상 서버가 없어졌습니다` };

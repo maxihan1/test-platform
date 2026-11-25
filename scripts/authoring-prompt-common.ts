@@ -23,6 +23,8 @@ export function 낱말(md = readFileSync(new URL('../docs/WORDS.md', import.meta
     const 칸 = 줄.startsWith('|') ? 줄.split(/(?<!\\)\|/u).slice(1, -1).map((c) => c.trim()) : [];
     const [뜻, 쓰는, 안쓰는, 무늬] = 칸;
     if (칸.length !== 4 || !뜻 || !쓰는 || !안쓰는 || !/^`.+`$/u.test(무늬 ?? '')) return [];
+    // 말끝 줄(「~합니다」)은 낱말이 아니라 꼴이다. 말끝은 지시문마다 `말투()` 의 등급이 정한다 — 실으면 해요체 지시문(Scout · 수정 AI)이 스스로와 부딪힌다
+    if (쓰는.startsWith('~')) return [];
     const 말 = 쓰는.replace(코드메모, '');
     return [말.startsWith('쓰지 않는다') ? `- ${뜻머리(뜻)}: 「${안쓰는}」은 ${말}` : `- ${뜻머리(뜻)}: 「${안쓰는}」 → 「${말}」`];
   });

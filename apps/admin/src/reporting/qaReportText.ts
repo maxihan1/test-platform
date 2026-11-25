@@ -54,7 +54,7 @@ const 원인이름: Record<실패유형 | 'stopped' | 'blocked' | 'prepFailed', 
   timeout: '타임아웃',
   environment: '환경 오류',
   other: '그 밖',
-  stopped: '멈춤',
+  stopped: '중단',
   blocked: 'Blocked',
   prepFailed: '준비 실패',
 };

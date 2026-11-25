@@ -36,7 +36,7 @@ export async function 팜폰에서돌린다(
   try {
     토큰 = await 사람팜토큰(사람);
   } catch (err) {
-    return 못감('누른 사람의 Device VISION 토큰을 찾지 못했습니다', err instanceof Error ? err.message : String(err));
+    return 못감('누른 사람의 Device VISION 토큰을 받지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   let app: string | null = null;
   let 앞: string | null = null;

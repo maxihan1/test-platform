@@ -246,7 +246,7 @@ export async function 폰에보낸다(runId: number, 것: 보낼것, 멈췄나: 
   try {
     토큰 = await 실행팜토큰(runId);
   } catch (err) {
-    return 못감('누른 사람의 Device VISION 토큰을 찾지 못했습니다', err instanceof Error ? err.message : String(err));
+    return 못감('누른 사람의 Device VISION 토큰을 받지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   if (폰Chrome) {
     return 폰Chrome으로(

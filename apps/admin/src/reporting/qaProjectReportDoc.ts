@@ -125,7 +125,7 @@ function 결함추이(b: 몸): 덩이[] {
 }
 
 function 비기능품질(b: 몸): 덩이[] {
-  const 성능종류 = { LOAD: '부하', PAGE: '페이지', DEVICE: '기기' } as const;
+  const 성능종류 = { LOAD: '부하', PAGE: '페이지', DEVICE: '디바이스' } as const;
   return [
     { 꼴: '절', 글: '비기능 품질' },
     ...b.nonFunctional.flatMap((a): 덩이[] => {

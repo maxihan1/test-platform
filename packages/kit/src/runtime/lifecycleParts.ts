@@ -80,7 +80,7 @@ function 앱파일(이름: 'PLATFORM_APP' | 'PLATFORM_APP_PREVIOUS', 부품: str
   if (값 === undefined || 값 === '') {
     throw new Error(
       이름 === 'PLATFORM_APP'
-        ? `${부품} — 깔 앱 파일(PLATFORM_APP)이 없다`
+        ? `${부품} — 설치할 앱 파일(PLATFORM_APP)이 없다`
         : `${부품} — 앞 빌드가 없다. 이 대상 서버 줄의 빌드 목록에 빌드가 둘 이상 있어야 한다(앱 파일 경로로 실행하는 줄 · 빌드를 한 번만 업로드한 줄은 못 쓴다)`,
     );
   }

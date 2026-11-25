@@ -104,7 +104,7 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
     vi.stubEnv('PLATFORM_APP', 'com.shop');
     await expect(앱다시깔기(폰.driver)).rejects.toThrow('패키지 이름으로 준 스토어 앱(com.shop)은 삭제하거나 다시 설치하지 않는다');
     vi.stubEnv('PLATFORM_APP', '');
-    await expect(앱다시깔기(폰.driver)).rejects.toThrow('깔 앱 파일(PLATFORM_APP)이 없다');
+    await expect(앱다시깔기(폰.driver)).rejects.toThrow('설치할 앱 파일(PLATFORM_APP)이 없다');
     expect(폰.보낸).toEqual([]);
   });
 

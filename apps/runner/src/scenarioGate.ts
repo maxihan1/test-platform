@@ -15,7 +15,7 @@ export function 앱단계에못거는것(parts: readonly 부품[]): string | und
     const 번 = `${i + 1}번 앱 · 게임 단계`;
     if (켜진모킹.size > 0) return `${번}가 모킹 구간 안에 있다 — 모킹은 앱 단계 앞에서 끈다`;
     if (part.carryOver === false) return `${번}는 로그인 이어받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다`;
-    if (part.links?.some((link) => link.kind !== 'bind')) return `${번}에는 값 주입만 건다 — 이전 응답 재사용 · 요청 차단 · 수정 요청으로 변경은 앱 요청에 적용되지 않는다`;
+    if (part.links?.some((link) => link.kind !== 'bind')) return `${번}에는 값 주입만 건다 — 이전 응답 재사용 · 요청 차단 · 수정 요청은 앱 요청에 적용되지 않는다`;
   }
   return undefined;
 }

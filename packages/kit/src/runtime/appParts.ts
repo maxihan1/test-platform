@@ -215,7 +215,7 @@ export async function 권한상태에서<값>(driver: AppDriver, 바꿀: 바꿀�
     try {
       await 되돌리기();
     } catch (되돌림오류) {
-      const 덧 = ` (권한도 못 되돌렸다 — ${오류글(되돌림오류)})`;
+      const 덧 = ` (권한도 복원하지 못했다 — ${오류글(되돌림오류)})`;
       if (!(err instanceof Error)) throw new Error(`${String(err)}${덧}`);
       // 보고가 stack 을 찍는 길도 있어 둘 다 고친다 — stack 은 만들 때 글이 굳는다
       err.message += 덧;
@@ -226,7 +226,7 @@ export async function 권한상태에서<값>(driver: AppDriver, 바꿀: 바꿀�
   try {
     await 되돌리기();
   } catch (err) {
-    throw new Error(`권한을 구간 전으로 못 되돌렸다 — ${오류글(err)}`);
+    throw new Error(`권한을 구간 전으로 복원하지 못했다 — ${오류글(err)}`);
   }
   return 값;
 }

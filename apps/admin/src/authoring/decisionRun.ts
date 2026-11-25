@@ -23,7 +23,7 @@ import { 줄세우기, 한건 } from './store.js';
 /** 트랜잭션 안에서 그만둘 때 던진다 — 잠그고 가 되돌리고, 바깥에서 결과로 바꾼다 */
 class 되돌림 extends Error {
   constructor(readonly 결과: 진행결과) {
-    super('결정 진행을 그만뒀다');
+    super('결정 진행을 되돌렸다');
   }
 }
 

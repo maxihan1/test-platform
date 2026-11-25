@@ -106,7 +106,8 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
 
   it('영문 낱말로 시작해도 한글 문장이면 서버가 쓴 사유다 — Windows PC 를 할당하지 못한 항목이 실행기 장애로 보이면 안 된다', () => {
     // DB 에 남은 옛 글과 지금 글을 다 받는다
-    for (const 글 of ['Windows PC 를 잡지 않은 항목입니다', 'Windows PC 를 할당하지 않은 항목입니다', 'Windows 빌드를 깔지 못했습니다: HTTP 500', 'Windows 빌드를 설치하지 못했습니다: HTTP 500']) {
+    // 케이스 번호 · 환경 변수 이름처럼 숫자 · 줄표가 섞인 낱말로 시작해도 같다
+    for (const 글 of ['Windows PC 를 잡지 않은 항목입니다', 'Windows PC 를 할당하지 않은 항목입니다', 'Windows 빌드를 깔지 못했습니다: HTTP 500', 'Windows 빌드를 설치하지 못했습니다: HTTP 500', 'MTA-TP-012에 디바이스 연결이 없다', 'E2E 시나리오를 끝까지 실행하지 못했습니다']) {
       expect(미실행사유({ message: 글 }, 'ko')).toBe(글);
     }
     expect(미실행사유({ message: 'Test failed with exit code 1' }, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');

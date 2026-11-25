@@ -150,7 +150,7 @@ describe('케이스응답 — 못 간 케이스 채우기', () => {
     const r = 답(케이스들('A-1', 'A-2'), { stdout: 결과줄({ status: 'PASS' }) });
 
     expect(r.results.map((x) => x.status)).toEqual(['FAIL', 'FAIL']);
-    expect(r.results[0]?.error?.message).toBe('케이스 판정 줄 없이 프로세스가 끝났다');
+    expect(r.results[0]?.error?.message).toBe('케이스 판정 줄 없이 프로세스가 종료됐다');
   });
 });
 

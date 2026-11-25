@@ -92,7 +92,7 @@ export async function 팜폰으로돌린다(
   try {
     토큰 = await 토큰찾기();
   } catch (err) {
-    return 못돌린응답(요청.parts.length, `누른 사람의 Device VISION 토큰을 찾지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
+    return 못돌린응답(요청.parts.length, `누른 사람의 Device VISION 토큰을 받지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
   }
   const 못잡음 = (까닭: string) => 못돌린응답(요청.parts.length, 까닭);
   if (폰 === 'chrome') {
