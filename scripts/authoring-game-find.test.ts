@@ -109,5 +109,6 @@ describe('아직 안 올린 배운 줄 얹기', () => {
   it('깨진 파일은 빈 목록이다', () => {
     expect(적은줄들('{')).toEqual([]);
     expect(적은줄들(null)).toEqual([]);
+    expect(적은줄들(JSON.stringify({ elements: [null, { kind: 'RULE', key: 'rule:a', name: 'a', learned: {} }, { kind: 'RULE', key: 'rule:b', name: 'b', learned: null, reqIds: 'x' }] }))).toEqual([]);
   });
 });

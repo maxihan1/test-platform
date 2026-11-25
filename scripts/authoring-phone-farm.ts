@@ -43,24 +43,6 @@ export async function 폰목록(팜: 팜, 질의 = ''): Promise<팜폰[] | null>
   }
 }
 
-/**
- * 정식 실행에 PC 를 비켜 준 뒤 다시 빌 때까지 기다린다 — 비었으면 참, 한도까지 안 비면 거짓. 사람이 멈추면 바로 참(부르는 쪽이 멈춤을 본다).
- * 놓자마자 다시 잡으면 1분마다 잡아 보는 정식 실행보다 먼저 가져간다 — 처음에는 그보다 길게 쉰다
- */
-export async function 빈PC기다리기(
-  팜: () => 팜,
-  멈추라했다: () => boolean,
-  한도_ms = 120 * 60_000,
-  쉬기: (ms: number) => Promise<unknown> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
-): Promise<boolean> {
-  for (let 지남 = 0, 쉴 = 90_000; 지남 < 한도_ms; 지남 += 쉴, 쉴 = 60_000) {
-    await 쉬기(쉴);
-    if (멈추라했다()) return true;
-    if ((await 폰목록(팜()))?.some((p) => p.serial.startsWith('pc-') && p.state === 'IDLE') === true) return true;
-  }
-  return false;
-}
-
 export const 빈폰질의 = (앱: string | undefined): string => (앱 !== undefined && 패키지이름인가(앱) ? `?app=${encodeURIComponent(앱)}&status=idle` : '?status=idle');
 
 /** 끊긴 폰 — 뽑혔거나 adb 가 답이 없거나 팜이 빼 뒀다. 목록에 없거나 목록을 못 읽었으면 끊겼다고 하지 않는다 */

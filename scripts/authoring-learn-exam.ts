@@ -87,11 +87,29 @@ export function 시험줄(점: 채점, 답: 시험답, 판기록있나: boolean)
   return `${판글} · 예측 ${점.맞음.length + 점.틀림.length + 점.표본.length + 점.못잼.length}개 — ${낱}${점.틀림.length === 0 ? '' : ` — 「확인」에서 내린 줄: ${목록글(점.틀림, 8)}`}`;
 }
 
-/** 시험 자식이 쓴 답 — 못 읽으면 빈 답이다(전부 못 잼이 된다) */
+const 수인가 = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const 예측인가 = (v: unknown): v is 예측 => {
+  if (typeof v !== 'object' || v === null) return false;
+  const x = v as Record<string, unknown>;
+  return Object.hasOwn(x, '값') || (수인가(x.최소) && 수인가(x.최대) && x.최소 <= x.최대) || (Array.isArray(x.목록) && x.목록.length > 0);
+};
+const 판읽기 = (v: unknown): 시험답['판'] | undefined => {
+  const p = (typeof v === 'object' && v !== null ? v : {}) as Record<string, unknown>;
+  if (typeof p.끝 !== 'boolean' || (p.이김 !== undefined && typeof p.이김 !== 'boolean')) return undefined;
+  return { 끝: p.끝, ...(typeof p.이김 === 'boolean' ? { 이김: p.이김 } : {}), ...(글인가(p.까닭) ? { 까닭: p.까닭 } : {}), ...(글인가(p.기록) ? { 기록: p.기록 } : {}) };
+};
+
+/** 시험 자식이 쓴 답 — 못 읽으면 빈 답이다(전부 못 잼이 된다). 자식이 파일을 직접 고쳤을 수 있어 꼴이 틀린 칸은 버린다 */
 export function 시험답읽기(글: string | null): 시험답 {
   try {
-    const 몸 = JSON.parse(글 ?? '{}') as Partial<시험답>;
-    return { 예측: Array.isArray(몸.예측) ? 몸.예측 : [], 결과: Array.isArray(몸.결과) ? 몸.결과 : [], ...(typeof 몸.판 === 'object' && 몸.판 !== null ? { 판: 몸.판 } : {}) };
+    const 몸 = (JSON.parse(글 ?? '{}') ?? {}) as Partial<Record<keyof 시험답, unknown>>;
+    const 줄들 = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'object' && x !== null) : []);
+    const 판 = 판읽기(몸.판);
+    return {
+      예측: 줄들(몸.예측).filter((x) => 글인가(x.열쇠) && 글인가(x.조건) && 예측인가(x.예측)) as unknown as 시험답['예측'],
+      결과: 줄들(몸.결과).filter((x) => 글인가(x.열쇠) && (x.잰값 === undefined || Array.isArray(x.잰값))) as unknown as 시험답['결과'],
+      ...(판 === undefined ? {} : { 판 }),
+    };
   } catch {
     return { 예측: [], 결과: [] };
   }
@@ -106,20 +124,12 @@ export function 시험감읽기(글: string | null): 시험감[] {
   }
 }
 
-const 수인가 = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-const 예측인가 = (v: unknown): v is 예측 => {
-  if (typeof v !== 'object' || v === null) return false;
-  const x = v as Record<string, unknown>;
-  return Object.hasOwn(x, '값') || (수인가(x.최소) && 수인가(x.최대) && x.최소 <= x.최대) || (Array.isArray(x.목록) && x.목록.length > 0);
-};
-
 /** 답 하나를 더한다. 예측은 재기 전에 한 번만 — 재고 나서 예측을 고치면 시험이 아니다. 틀리면 까닭 글 */
 export function 답더하기(감들: readonly 시험감[], 앞: 시험답, 무엇: string, 몸: unknown): 시험답 | string {
   const 열쇠들 = new Set(감들.map((x) => x.열쇠));
   if (무엇 === '판') {
-    const p = (typeof 몸 === 'object' && 몸 !== null ? 몸 : {}) as Record<string, unknown>;
-    if (typeof p.끝 !== 'boolean' || (p.이김 !== undefined && typeof p.이김 !== 'boolean')) return '판은 { "끝": true, "이김": false, "까닭": "…", "기록": "<game-play 파일 이름>" } 꼴이다';
-    return { ...앞, 판: { 끝: p.끝, ...(typeof p.이김 === 'boolean' ? { 이김: p.이김 } : {}), ...(글인가(p.까닭) ? { 까닭: p.까닭 } : {}), ...(글인가(p.기록) ? { 기록: p.기록 } : {}) } };
+    const 판 = 판읽기(몸);
+    return 판 === undefined ? '판은 { "끝": true, "이김": false, "까닭": "…", "기록": "<game-play 파일 이름>" } 꼴이다' : { ...앞, 판 };
   }
   const 줄들 = (Array.isArray(몸) ? 몸 : [몸]) as Record<string, unknown>[];
   let 답 = 앞;

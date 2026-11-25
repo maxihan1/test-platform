@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 지도읽기 } from './authoring-game-find.js';
-import { type 시험감, 답더하기, 맞나, 시험감고르기, 시험줄, 실행 as 시험실행, 채점하기 } from './authoring-learn-exam.js';
+import { type 시험감, 답더하기, 맞나, 시험감고르기, 시험답읽기, 시험줄, 실행 as 시험실행, 채점하기 } from './authoring-learn-exam.js';
 import { 배울것고르기, 배울것없나, 배울종류, 빠진게임글, 사람줄 } from './authoring-learn-map.js';
 import { 합치기, 실행 as 적기실행 } from './authoring-learn-note.js';
 
@@ -148,6 +148,13 @@ describe('시험', () => {
     expect(답더하기(들, 잼, '판', { 끝: '네' })).toContain('꼴');
   });
 
+  it('자식이 답 파일을 직접 고쳐 꼴이 틀리면 그 칸만 버린다 — 작성이 깨지지 않는다', () => {
+    const 글 = JSON.stringify({ 예측: [null, { 열쇠: 'a:1', 조건: 'ㄱ', 예측: { 값: 1 } }, { 열쇠: 'a:2', 조건: 'ㄱ', 예측: 5 }], 결과: [{ 열쇠: 'a:1', 잰값: 5 }, 3], 판: { 끝: true, 기록: 1 } });
+    expect(시험답읽기(글)).toEqual({ 예측: [{ 열쇠: 'a:1', 조건: 'ㄱ', 예측: { 값: 1 } }], 결과: [], 판: { 끝: true } });
+    expect(시험답읽기('null')).toEqual({ 예측: [], 결과: [] });
+    expect(시험답읽기('[')).toEqual({ 예측: [], 결과: [] });
+  });
+
   it('명령은 자료 폴더의 답 파일에 쌓는다', () => {
     writeFileSync(join(자료, 'game-exam.json'), JSON.stringify([감('a:1')]));
     expect(시험실행([자료, '예측'], '{"열쇠":"a:1","조건":"ㄱ","예측":{"값":1}}')).toBe(0);
@@ -177,6 +184,13 @@ describe('배운 줄 적기', () => {
     expect(합치기(지도([]), [], { kind: 'RULE', key: 'rule:가', name: '가' })).toContain('learned 가 없다');
   });
 
+  it('기획서에서 온 줄에는 근거를 안 싣는다 — 실으면 서버가 「기획서가 바뀜」을 비워 다음 세션이 옛 값을 못 본다. 배운 종류 줄은 앞 근거에 더한다', () => {
+    const m = 지도([['DATA', 'item:검', '검', undefined, ' · 기획서 {"값":1} · 근거 R-12 · 기획서가 바뀜(R-12) — 지금 판으로 다시 올린다'], ['RULE', 'rule:가', '가', 배움, ' · 근거 R-1']]);
+    const r = 합치기(m, [], [{ ...규칙('item:검'), kind: 'DATA', reqIds: ['R-12'] }, { ...규칙('rule:가'), reqIds: ['R-2'] }, { ...규칙('rule:새'), reqIds: ['R-3'] }]);
+    if (typeof r === 'string') throw new Error(r);
+    expect(r.elements.map((e) => (e as { reqIds?: string[] }).reqIds)).toEqual([undefined, ['R-1', 'R-2'], ['R-3']]);
+  });
+
   it('게임이 만든 종류는 지도나 같은 세션에 정의가 있어야 받는다', () => {
     const 눈 = { kind: 'WEATHER', key: 'weather:눈', name: '눈', learned: 배움 };
     expect(합치기(지도([]), [], 눈)).toContain('elements.0.kind');
@@ -197,6 +211,7 @@ describe('배운 줄 적기', () => {
     writeFileSync(join(자료, 'game-map.txt'), 지도글([]));
     const env = { PLATFORM_ACCOUNTS: JSON.stringify([{ role: '일반 회원', loginId: 'a', loginPassword: 'pw-secret-1' }]) };
     expect(적기실행([자료], JSON.stringify(규칙('rule:가', { text: '비번은 pw-secret-1', belief: 'GUESS' })), env)).toBe(1);
+    expect(적기실행([자료], JSON.stringify(규칙('rule:가', { text: 'ㄱ', belief: 'GUESS', data: { 'pw-secret-1': '됨' } })), env)).toBe(1);
     expect(existsSync(join(자료, 'game-learned.json'))).toBe(false);
     expect(적기실행([join(자료, '없음')], '[]', {})).toBe(2);
     expect(적기실행([자료], '{', {})).toBe(1);

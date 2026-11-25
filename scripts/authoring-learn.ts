@@ -1,14 +1,15 @@
 // 게임 배우기 — 케이스를 쓰기 전에 학습 세션을 30분씩 띄워 게임을 배우고, 지도만 본 새 세션이 시험을 본다 (도메인/게임 §3.10 「게임 배우기」 · GAME-F6-03)
 // 세션끼리는 대화를 넘기지 않는다 — 세션이 끝날 때마다 배운 줄을 올리고 지도를 다시 받아 다음 세션이 지도만 이어받는다
-import { existsSync, rmSync } from 'node:fs';
+import { lstatSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type 띄운결과, 맵올리기 } from './authoring-explore.js';
-import { 게임자리, 글받기, 요소상한 } from './authoring-game.js';
+import type { 띄운결과 } from './authoring-explore.js';
+import { 게임자리, 요소상한 } from './authoring-game.js';
 import { 적은줄들, 지금지도 } from './authoring-game-find.js';
-import { type 돌린결과, 부른다 } from './authoring-io.js';
+import type { 돌린결과 } from './authoring-io.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
-import { type 배울것, 글자들, 배울것고르기, 배울것없나, 사람줄 } from './authoring-learn-map.js';
+import { 배움올리기, 상태쓰기, 상태읽기 } from './authoring-learn-io.js';
+import { type 배울것, 배울것고르기, 배울것없나 } from './authoring-learn-map.js';
 import { 끝낼상태 } from './authoring-progress.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -25,69 +26,13 @@ const 정리앞_ms = 5 * 분;
 /** 이보다 적게 남았으면 세션을 새로 띄우지 않는다 — 게임을 켜고 그 자리까지 가는 데만 몇 분이다 */
 const 최소_ms = 10 * 분;
 
-/** 에이전트가 자료 폴더에 남기는 기록 — 이어받은 실행이 쓴 시간을 잇고, 끝났으면 건너뛴다 */
-interface 학습상태 {
-  쓴ms: number;
-  세션: number;
-  끝: boolean;
-  안함?: string;
-  시험?: string;
-  /** 이번 작성이 올린 열쇠 — PR 머리의 사람이 볼 줄은 이 가운데서만 싣는다 */
-  열쇠: string[];
-}
-
-function 상태읽기(자료: string): 학습상태 {
-  const 없음: 학습상태 = { 쓴ms: 0, 세션: 0, 끝: false, 열쇠: [] };
-  try {
-    const 몸 = JSON.parse(안전히읽기(자료, 게임자리.학습, 1_000_000) ?? 'null') as Partial<학습상태> | null;
-    if (몸 === null) return 없음;
-    const 수 = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
-    return {
-      쓴ms: 수(몸.쓴ms),
-      세션: 수(몸.세션),
-      끝: 몸.끝 === true,
-      ...(typeof 몸.안함 === 'string' ? { 안함: 몸.안함 } : {}),
-      ...(typeof 몸.시험 === 'string' ? { 시험: 몸.시험 } : {}),
-      열쇠: Array.isArray(몸.열쇠) ? 몸.열쇠.filter((k): k is string => typeof k === 'string') : [],
-    };
-  } catch {
-    return 없음;
-  }
-}
-const 상태쓰기 = (자료: string, 상태: 학습상태): void => 새로쓰기(join(자료, 게임자리.학습), JSON.stringify(상태));
-
-/**
- * 적은 줄을 서버 지도에 올리고 지도 글을 다시 받는다. 다시 받기까지 되어야 적은 파일을 지운다 — 먼저 지우면 다음 세션의 지도에서 이번 줄이 사라진다.
- * 조작 맵에 적은 행도 같이 올린다. 못 올려도 다음 세션은 적은 파일을 얹어 본다
- */
-export async function 배움올리기(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<{ 열쇠: string[]; 못올림: string[] }> {
-  const 맵 = await 맵올리기(통로, 자료, 비밀);
-  const 못올림 = 맵.틀림 === null ? [] : [맵.틀림];
-  const 글 = 안전히읽기(자료, 게임자리.배운글, 요소상한);
-  if (글 === null) return { 열쇠: [], 못올림: existsSync(join(자료, 게임자리.배운글)) ? [...못올림, `${게임자리.배운글} 이 4MB 를 넘거나 일반 파일이 아니다`] : 못올림 };
-  const elements = 적은줄들(글);
-  if (elements.length === 0) return { 열쇠: [], 못올림 };
-  if (계정섞였나(글자들(elements), 비밀)) return { 열쇠: [], 못올림: [...못올림, '배운 줄에 테스트 계정 비밀번호가 들어 있다'] };
-  try {
-    const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/game-elements`, { method: 'PUT', body: { elements } });
-    if (답.status !== 204) {
-      const 자리 = (답.몸 as { detail?: unknown } | null)?.detail;
-      return { 열쇠: [], 못올림: [...못올림, `배운 줄을 서버가 안 받았다(${답.status}${typeof 자리 === 'string' ? ` ${자리.slice(0, 100)}` : ''})`] };
-    }
-  } catch (e) {
-    return { 열쇠: [], 못올림: [...못올림, `배운 줄을 못 올렸다 — ${e instanceof Error ? e.message : String(e)}`] };
-  }
-  const 왜 = await 글받기(통로, 자료, 'game-map', 게임자리.지도);
-  if (왜 === null) rmSync(join(자료, 게임자리.배운글), { force: true });
-  return { 열쇠: elements.map((e) => e.key), 못올림: 왜 === null ? 못올림 : [...못올림, `올린 뒤 지도를 다시 못 받았다 — ${왜}`] };
-}
-
 type 한번결과 = { 돌린것: 돌린결과; 크레딧으로: boolean; 앞낸것: string | null };
 
 /** 세션 하나에 주는 재료 — 프롬프트는 부르는 쪽이 짓는다(authoring-learn-prompt) */
 export type 세션거리 =
   | { 시험: true; 남은분: number; 빌드?: string; 놓음: boolean }
-  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number };
+  /** 틀림 — 시험에서 틀린 줄만 다시 배운다 */
+  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number; 틀림?: true };
 
 export interface 학습손 {
   통로: 화면통로;
@@ -99,10 +44,13 @@ export interface 학습손 {
   못함: string | null;
   빌드: () => Promise<string | undefined>;
   프롬프트: (거리: 세션거리) => string;
-  한번: (글: string, 끊기: AbortSignal, 먹기: (줄: string) => void) => Promise<한번결과>;
+  /** 글은 띄울 때마다 짓는다 — 크레딧이 도중에 떨어져 구독으로 이어 띄우면 쥔 디바이스 · 남은 시간이 첫 자식 때와 다르다 */
+  한번: (글짓기: () => string, 끊기: AbortSignal, 먹기: (줄: string) => void) => Promise<한번결과>;
   /** 앞 자식이 남긴 프로세스를 거둔다 — 디바이스는 쥔 채다 */
   거두기: () => Promise<boolean>;
   늘리기: () => () => void;
+  /** 지금 디바이스를 쥐고 있나(잡기 기록) */
+  쥐었나: () => boolean;
   놓기: () => Promise<void>;
   /** 디바이스를 기다리는 정식 실행이 있나 — 있으면 다음 세션 앞에서 놓는다 */
   양보: () => Promise<boolean>;
@@ -123,8 +71,15 @@ export interface 학습결과 {
 /** 한국 날짜 — 「다음 날 볼 것」의 날과 견준다 */
 const 오늘글 = (지금: number): string => new Date(지금).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 
+/** 앞에 돈 학습 자식이 있는데 다음 자식이 못 떴다 — 실패로 끝내면 배운 폴더와 토큰을 잃어 끊김(코드 1)으로 바꾼다(탐색 세션과 같다) */
+export const 못뜬것은끊김 = (돌린것: 돌린결과, 앞낸것: readonly string[]): 돌린결과 =>
+  앞낸것.length > 0 && 돌린것.코드 === null && !돌린것.시간초과 && !돌린것.멈춤으로죽음 ? { ...돌린것, 코드: 1 } : 돌린것;
+
 export async function 학습하기(o: 학습손): Promise<학습결과> {
   const 앞낸것: string[] = [];
+  // 앞 실행이 남긴 「정리하라」 알림이 케이스를 쓰는 세션의 찾기 명령에 찍히지 않게 — 배우지 않는 길에서도 지운다
+  const 알림지우기 = (): void => rmSync(join(o.자료, 게임자리.학습알림), { force: true });
+  알림지우기();
   const 지금 = o.지금 ?? Date.now;
   // 케이스 작성 세션부터 잇는 폴더 · 학습을 마친 폴더다
   if ((안전히읽기(o.자료, 게임자리.탐색지남, 1_000_000)?.trim() ?? '') !== '') return { 앞낸것 };
@@ -143,12 +98,11 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
   };
   const 처음 = 볼것();
   if (처음 === null) return 건너뛴다('게임 지도를 못 받았다', true);
-  if (상태.세션 === 0 && 배울것없나(처음)) return 건너뛴다('배울 것이 없다(빈 종류 · 궁금한 것 · 다시 볼 빌드가 없다)', false);
+  if (상태.쓴ms === 0 && 배울것없나(처음)) return 건너뛴다('배울 것이 없다(빈 종류 · 궁금한 것 · 다시 볼 빌드가 없다)', false);
 
   const 부분 = o.번호들 !== undefined;
   const 총 = 부분 ? 세션_ms : 최대세션 * 세션_ms;
   let 못올림: string[] = [];
-  let 놓음 = true;
   const 남은 = (): number => 총 - 상태.쓴ms;
 
   type 세션끝 = { 열쇠수: number } | { 끝: 띄운결과 } | { 못잡음: true };
@@ -156,16 +110,14 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
   /** 세션 하나 — 마감 · 컨텍스트에서 끊고, 적은 줄을 올린다. 작성을 끝내야 하면 띄운결과 */
   const 한세션 = async (거리: (남은분: number) => 세션거리): Promise<세션끝> => {
     // 다음 세션을 띄울 때만 묻는다 — 다 배웠으면 어차피 놓는다. 기다린 시간은 배운 시간에 안 넣는다
-    if (!놓음 && (await o.양보())) {
+    if (앞낸것.length > 0 && o.쥐었나() && (await o.양보())) {
       o.알린다('PC 를 기다리는 정식 실행이 있어 비켜 준다 — 다시 비면 배운 조작 도우미로 그 자리까지 가서 잇는다');
       await o.놓기();
-      놓음 = true;
       const 비었나 = await o.빈것기다리기();
       if (o.멈추라했다()) return { 끝: { 돌린것: { 코드: null, 낸것: '', 오류: '', 시간초과: false, 멈춤으로죽음: true }, 크레딧으로: false, 앞낸것: [] } };
       if (!비었나) return { 못잡음: true };
     }
     const 제한 = Math.min(세션_ms, 남은());
-    rmSync(join(o.자료, 게임자리.학습알림), { force: true });
     const 알림 = (글: string): void => {
       try {
         새로쓰기(join(o.자료, 게임자리.학습알림), 글);
@@ -186,12 +138,15 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
         알림('컨텍스트가 거의 찼다 — 하던 것을 적고 정리한 뒤 끝낸다(다음 세션이 지도만 보고 잇는다)');
       }
     };
-    상태.세션 += 1;
-    상태쓰기(o.자료, 상태);
     const 시작 = 지금();
-    const r = await o.한번(o.프롬프트(거리(Math.round(제한 / 분))), 끊기.signal, 먹기).finally(() => (clearTimeout(정리때), clearTimeout(마감)));
+    const 글짓기 = (): string => {
+      // 이어 띄운 자식은 컨텍스트가 새것이다
+      알림지우기();
+      알렸나 = false;
+      return o.프롬프트(거리(Math.max(1, Math.round((제한 - (지금() - 시작)) / 분))));
+    };
+    const r = await o.한번(글짓기, 끊기.signal, 먹기).finally(() => (clearTimeout(정리때), clearTimeout(마감)));
     상태.쓴ms += 지금() - 시작;
-    놓음 = false;
     const 끝으로 = (돌린것 = r.돌린것): { 끝: 띄운결과 } => ({ 끝: { ...r, 돌린것, 앞낸것: r.앞낸것 === null ? [] : [r.앞낸것] } });
     if (!(await o.거두기())) return 끝으로();
     const 올림 = await 배움올리기(o.통로, o.자료, o.비밀);
@@ -202,16 +157,20 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     if (r.돌린것.마감으로끊김 !== true && (r.돌린것.코드 === null || 끝낼상태(r.돌린것, false) !== null)) return 끝으로();
     if (o.멈추라했다()) return 끝으로({ ...r.돌린것, 멈춤으로죽음: true });
     앞낸것.push(...(r.앞낸것 === null ? [] : [r.앞낸것]), r.돌린것.낸것);
+    // 끝까지 간 세션만 센다 — 끊긴 세션을 세면 이어받았을 때 한 번도 안 배우고 끝난다
+    상태.세션 += 1;
+    상태쓰기(o.자료, 상태);
     o.알린다(`게임 학습 세션 ${상태.세션} 끝(${r.돌린것.마감으로끊김 === true ? '마감' : '스스로 끝냄'} · 지금까지 ${Math.round(상태.쓴ms / 분)}분) — 지도에 올린 줄 ${올림.열쇠.length}`);
     return { 열쇠수: 올림.열쇠.length + (올림.못올림.length > 0 ? 적은줄들(안전히읽기(o.자료, 게임자리.배운글, 요소상한)).length : 0) };
   };
-  const 배우기 = (b: 배울것) => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음, 못올림, 부분, 차례: 상태.세션 }));
+  const 배우기 = (b: 배울것, 틀림?: true) => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? {} : { 틀림 }) }));
+  const 끝내며 = (끝: 띄운결과): 학습결과 => ({ 끝: { ...끝, 돌린것: 못뜬것은끊김(끝.돌린것, 앞낸것) }, 앞낸것 });
 
   const 늘리기끄기 = o.늘리기();
   try {
     for (let b: 배울것 | null = 처음; b !== null && !배울것없나(b) && 상태.세션 < (부분 ? 1 : 최대세션 - 1) && 남은() >= 최소_ms; b = 볼것()) {
       const r = await 배우기(b);
-      if ('끝' in r) return { 끝: r.끝, 앞낸것 };
+      if ('끝' in r) return 끝내며(r.끝);
       if ('못잡음' in r) {
         상태.시험 = '시험을 못 봄(정식 실행에 비켜 준 PC 가 다시 비지 않음)';
         break;
@@ -221,19 +180,27 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     }
     if (!부분 && 상태.시험 === undefined) {
       const 틀린 = await 시험보기();
-      if ('끝' in 틀린) return { 끝: 틀린.끝, 앞낸것 };
-      const b = 볼것();
-      if (틀린.열쇠.length > 0 && b !== null && 상태.세션 < 최대세션 && 남은() >= 최소_ms) {
-        const r = await 배우기({ ...b, 궁금: [...new Set([...틀린.열쇠, ...b.궁금])] });
-        if ('끝' in r) return { 끝: r.끝, 앞낸것 };
+      if ('끝' in 틀린) return 끝내며(틀린.끝);
+      // 틀린 줄만 — 나머지 궁금한 것은 다음 작성이 이어 배운다(2026-11-25 사용자)
+      if (틀린.열쇠.length > 0 && 상태.세션 < 최대세션 && 남은() >= 최소_ms) {
+        const r = await 배우기({ 빈종류: [], 궁금: 틀린.열쇠, 빌드다름: [], 게임글: [], 번호: [] }, true);
+        if ('끝' in r) return 끝내며(r.끝);
       }
     } else if (부분) 상태.시험 ??= '안 봄(고친 요구에 닿는 줄만 30분 배움)';
     상태.끝 = true;
     상태쓰기(o.자료, 상태);
     return { 앞낸것 };
   } finally {
+    알림지우기();
     늘리기끄기();
     await o.놓기();
+  }
+
+  /** 시험 세션이 남긴 조작 기록인가 — 앞 학습 세션의 기록 이름을 적으면 해 보지 않은 판이 해 본 것이 된다 */
+  function 이번기록인가(이름: string | undefined, 시작: number): boolean {
+    if (이름 === undefined || /[/\\]/.test(이름)) return false;
+    const 정보 = lstatSync(join(o.자료, 게임자리.조작기록, 이름), { throwIfNoEntry: false });
+    return 정보?.isFile() === true && 정보.mtimeMs >= 시작;
   }
 
   /** 지도만 본 새 세션 — 첫 판을 끝까지 가 보고, 확인된 줄의 값을 먼저 적고 재서 맞힌다. 틀린 줄은 「덜 봄」으로 내린다 */
@@ -246,7 +213,8 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     const 감들 = 시험감고르기(지도);
     새로쓰기(join(o.자료, 게임자리.시험감), JSON.stringify(감들, null, 1));
     rmSync(join(o.자료, 게임자리.시험답), { force: true });
-    const r = await 한세션((남은분) => ({ 시험: true, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음 }));
+    const 시험시작 = Date.now();
+    const r = await 한세션((남은분) => ({ 시험: true, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나() }));
     if ('끝' in r) return r;
     if ('못잡음' in r) {
       상태.시험 = '시험을 못 봄(정식 실행에 비켜 준 PC 가 다시 비지 않음)';
@@ -254,9 +222,9 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     }
     const 답 = 시험답읽기(안전히읽기(o.자료, 게임자리.시험답, 요소상한));
     const 점 = 채점하기(감들, 답);
-    const 기록이름 = 답.판?.기록 ?? '';
-    const 기록 = 기록이름 !== '' && !/[/\\]/.test(기록이름) && existsSync(join(o.자료, 게임자리.조작기록, 기록이름));
-    상태.시험 = 시험줄(점, 답, 기록);
+    // 자르기 전에 본다 — 자른 자리에 걸친 비밀번호 앞부분이 공개 PR 에 남지 않게
+    if (답.판?.까닭 !== undefined && 계정섞였나([답.판.까닭], o.비밀)) delete 답.판.까닭;
+    상태.시험 = 시험줄(점, 답, 이번기록인가(답.판?.기록, 시험시작));
     // 시험 자식이 그 줄을 새로 적었을 수 있다 — 지금 지도의 줄에서 믿음만 내린다
     const 내릴 = (지금지도(o.자료)?.줄들 ?? []).flatMap((x) => (점.틀림.includes(x.key) && x.learned !== null ? [{ kind: x.kind, key: x.key, name: x.name, learned: { ...x.learned, belief: 'SEEN' as const } }] : []));
     if (내릴.length > 0) {
@@ -268,19 +236,6 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     o.알린다(`게임 학습 시험 — ${상태.시험}`);
     return { 열쇠: 점.틀림 };
   }
-}
-
-/** 작성 끝에 PR 머리에 싣는 줄 — 못 올린 배운 줄을 한 번 더 올리고, 시험 성적 · 버그 후보 · 사람에게 물을 것만 적는다. 배우지 않은 작성이면 빈 목록 */
-export async function 학습끝줄(통로: 화면통로, 자료: string, 비밀: readonly string[]): Promise<string[]> {
-  const 상태 = 상태읽기(자료);
-  if (상태.세션 === 0) return 상태.안함 === undefined ? [] : [`게임 학습: 안 함 — ${상태.안함}`];
-  const 올림 = 안전히읽기(자료, 게임자리.배운글, 요소상한) === null ? { 열쇠: [], 못올림: [] } : await 배움올리기(통로, 자료, 비밀);
-  const 지도 = 지금지도(자료);
-  return [
-    `게임 학습: 세션 ${상태.세션}번 · ${Math.round(상태.쓴ms / 분)}분 — 시험: ${상태.시험 ?? '못 봄'}`,
-    ...올림.못올림.map((왜) => `게임 학습: ${왜}`),
-    ...(지도 === null ? [] : 사람줄(지도, new Set([...상태.열쇠, ...올림.열쇠]), 비밀)),
-  ].map((줄) => (계정섞였나([줄], 비밀) ? `${줄.split(':')[0]!}: 테스트 계정 비밀번호가 들어 있어 안 적음` : 줄));
 }
 
 export interface 학습대상 {

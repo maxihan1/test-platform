@@ -67,7 +67,13 @@ interface 적은줄 {
 export function 적은줄들(글: string | null): 적은줄[] {
   try {
     const 몸 = JSON.parse(글 ?? '{}') as { elements?: unknown };
-    return (Array.isArray(몸.elements) ? (몸.elements as 적은줄[]) : []).filter((e) => typeof e?.kind === 'string' && typeof e.key === 'string' && typeof e.name === 'string' && typeof e.learned === 'object');
+    return (Array.isArray(몸.elements) ? (몸.elements as 적은줄[]) : []).filter(
+      // 자식이 파일을 직접 고쳤을 수 있다 — 꼴이 틀린 줄은 버린다
+      (e) =>
+        typeof e?.kind === 'string' && typeof e.key === 'string' && typeof e.name === 'string' &&
+        (e.learned === null || (typeof e.learned === 'object' && typeof e.learned.text === 'string')) &&
+        (e.reqIds === undefined || (Array.isArray(e.reqIds) && e.reqIds.every((r) => typeof r === 'string'))),
+    );
   } catch {
     return [];
   }
@@ -82,7 +88,8 @@ export function 얹기(지도: ReturnType<typeof 지도읽기>, 적은: readonly
     if (e.kind === 'KIND' && e.learned !== null) 이름.set(e.key.slice('kind:'.length), e.name);
     // 기획서에서 온 다섯 종류 줄은 배운 것만 올려서는 종류와 이름이 안 바뀐다(서버 요소넣기와 같다)
     const 기획서줄 = 옛 !== undefined && 기획서종류.has(옛.kind);
-    const 앞 = 옛 === undefined ? `${e.key} · ${e.name}${(e.reqIds ?? []).length === 0 ? '' : ` · 근거 ${e.reqIds!.join(', ')}`}` : 배움떼기(옛.line).앞;
+    // 근거를 실은 배운 줄은 서버가 근거를 새것으로 바꾸고 「기획서가 바뀜」을 비운다 — 기획서 줄에는 적는 명령이 근거를 안 싣는다
+    const 앞 = 옛 === undefined || (!기획서줄 && e.reqIds !== undefined) ? `${e.key} · ${e.name}${(e.reqIds ?? []).length === 0 ? '' : ` · 근거 ${e.reqIds!.join(', ')}`}` : 배움떼기(옛.line).앞;
     if (e.learned === null) {
       if (옛 !== undefined && / · (기획서|근거) /.test(앞)) 줄들.set(e.key, { ...옛, learned: null, line: 앞 });
       else 줄들.delete(e.key);

@@ -119,6 +119,8 @@ describe('박동손 — 집은 뒤부터 끝내기 전까지 신호를 보낸다
     const 글들 = 오류.mock.calls.map((c) => String(c[0]));
     expect(글들.some((g) => g.includes('500'))).toBe(true);
     expect(글들.some((g) => g.includes('409'))).toBe(true);
+    // 자식이 없는 사이에 보는 쪽(게임 학습이 비켜 준 PC 를 기다릴 때)도 새 자식을 안 띄운다
+    expect(박동.멈추라했다()).toBe(true);
   });
 
   it('거절이면 멈춤.까닭 을 채우고 자식을 멈춘다 · 다른 오류는 로그만', async () => {

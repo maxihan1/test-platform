@@ -5,10 +5,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { 기획서종류 } from '../apps/admin/src/prd/gameKinds.js';
 import { 요소검사 } from '../apps/admin/src/prd/gameMap.js';
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자리, 요소상한, 지도상한 } from './authoring-game.js';
-import { 적은줄들, 정리알림, 지금지도, 지도읽기 } from './authoring-game-find.js';
+import { 근거들, 적은줄들, 정리알림, 지금지도, 지도읽기 } from './authoring-game-find.js';
 import { type 지도, 글자들, 빠진게임글 } from './authoring-learn-map.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -27,8 +28,14 @@ export function 합치기(서버지도: 지도, 앞: readonly { key: string }[],
     if (Object.hasOwn(x, 'value')) return `${x.key} — value 는 기획서 값이라 싣지 않는다. 잰 값은 learned.data 에 적는다`;
   }
   const 합 = new Map(앞.map((e) => [e.key, e]));
+  const 서버줄 = new Map(서버지도.줄들.map((x) => [x.key, x]));
   for (const x of 줄들) {
-    const { kind, key, name, learned, reqIds } = x;
+    const { kind, key, name, learned } = x;
+    const 옛 = 서버줄.get(key as string);
+    // 기획서에서 온 줄에 근거를 실으면 서버가 「기획서가 바뀜」을 비우고 값은 옛것 그대로다 — 다음 세션이 고칠 줄을 못 본다. 근거는 이미 있다
+    const 근거 = 옛 !== undefined && 기획서종류.has(옛.kind) ? undefined : x.reqIds;
+    // 서버는 근거를 통째로 바꾼다 — 앞에 확인한 요구가 빠지지 않게 합친다
+    const reqIds = 근거 === undefined || 옛 === undefined || !Array.isArray(근거) ? 근거 : [...new Set([...근거들(옛), ...(근거 as unknown[])])];
     합.set(key as string, { kind, key, name, learned, ...(reqIds === undefined ? {} : { reqIds }) } as { key: string });
   }
   // 이 세션에서 적었다가 지운 줄은 서버에 없다 — 실으면 서버가 모르는 종류 · 열쇠로 볼 수 있다

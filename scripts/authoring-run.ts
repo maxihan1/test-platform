@@ -30,7 +30,7 @@ import { 크롤끄기 } from './authoring-app-crawl.js';
 import { 앱탐색잇기 } from './authoring-app-explore.js';
 import { 저장본넣기 } from './authoring-screens-keep-io.js';
 import { 잡기늘리기 } from './authoring-app-hold.js';
-import { PC게임못함, PC기다리는실행, 게임화면받기, 받은빌드이름, 빌드이름기다리기, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 잡은폰토큰, 탐색환경, 팜주소 } from './authoring-app-screen.js';
+import { PC게임못함, 게임화면받기, 받은빌드이름, 빌드이름기다리기, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 잡은폰토큰, 탐색환경, 팜주소 } from './authoring-app-screen.js';
 import { 코드자리비우기, 코드저장소받기 } from './authoring-code-repos.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
@@ -38,9 +38,10 @@ import { 고칠케이스환경 } from './authoring-run3-env.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
 import { 미션줄 } from './authoring-missions.js';
 import { type 탐색단계, 병합팝업행, 세션띄우기, 탐색끝줄, 탐색하나, 팝업싣는손 } from './authoring-explore.js';
-import { 학습끝줄, 학습번호들, 학습하기 } from './authoring-learn.js';
+import { 못뜬것은끊김, 학습번호들, 학습하기 } from './authoring-learn.js';
+import { 학습끝줄 } from './authoring-learn-io.js';
 import { 학습프롬프트 } from './authoring-learn-prompt.js';
-import { 빈PC기다리기 } from './authoring-phone-farm.js';
+import { PC기다리는실행, 빈PC기다리기, 쥐었나 } from './authoring-learn-device.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 새로쓰기, 원장과남은번호 } from './authoring-ledger-io.js';
 import { 기준목록이름 } from './authoring-base-list.js';
@@ -311,25 +312,29 @@ async function 사본에서(
     if (게임화면 === undefined || !탐색하나(것, true)) return { 앞낸것: [] };
     const 번호들 = 학습번호들({ 반영: 원장.반영?.계획, 이어작성: 원장.이어작성 });
     const 화면 = 앱화면!;
+    // 에이전트가 거절로 멈추는 중이면 새 자식을 안 띄운다 — 자식이 없는 사이(비켜 준 PC 를 기다릴 때)에는 죽일 자식이 없어 여기서 본다
+    const 그만두나 = () => 박동.멈추라했다() || 멈춤.까닭 !== null;
     const 놓기 = () => 잡은폰놓기(자리.트리, 화면, 것.id, fetch, Date.now(), 자리.자료);
     return 학습하기({
       통로, 자료: 자리.자료, 비밀: 비밀번호들(것), 번호들, 못함: 화면.탐색 === undefined ? '디바이스 팜이 연결되지 않아 게임을 켤 수 없다' : null,
       빌드: () => 빌드이름기다리기(자리.자료, 화면),
       프롬프트: (거리) => 학습프롬프트({ 서비스, 폴더: 케이스자리, 자료: 자리.자료, 화면, 계획, 지금판: 기획서.입력.지금판, 항목수: 기획서.입력.항목수, 가이드: 가이드판 === 0 ? null : join(가이드폴더(자리.자료), 'guide.md'), 번호들 }, 거리),
-      한번: (글, 끊기, 먹기) => {
-        const 띄울 = (키: string | undefined) => 띄운다(키, undefined, { 인자, 글 }, undefined, { 끊기, 먹기 });
+      한번: (글짓기, 끊기, 먹기) => {
+        const 띄울 = (키: string | undefined) => 띄운다(키, undefined, { 인자, 글: 글짓기() }, undefined, { 끊기, 먹기 });
         return 크레딧먼저(process.env[크레딧키이름] || undefined, 띄울, 알린다, { 멈추라했다: 박동.멈추라했다, 거두기: () => 자식거두기(자식), 띄운다: () => 띄울(undefined) });
       },
       거두기: () => 자식거두기(자식),
       늘리기: () => 잡기늘리기(자리.트리, 팜주소(화면.탐색!), () => 잡은폰토큰(화면, 자리.자료), 것.id, 자리.자료, '.control-cli'),
-      놓기, 양보: () => PC기다리는실행({ 주소기지, 토큰 }, 것.id, 화면), 빈것기다리기: () => 빈PC기다리기(() => ({ 부르기: fetch, 주소: 팜주소(화면.탐색!), 토큰: 잡은폰토큰(화면, 자리.자료) }), 박동.멈추라했다), 멈추라했다: 박동.멈추라했다, 알린다,
+      쥐었나: () => 쥐었나(자리.트리),
+      놓기, 양보: () => PC기다리는실행({ 주소기지, 토큰 }, 것.id, 화면), 빈것기다리기: () => 빈PC기다리기(() => ({ 부르기: fetch, 주소: 팜주소(화면.탐색!), 토큰: 잡은폰토큰(화면, 자리.자료) }), 그만두나), 멈추라했다: 그만두나, 알린다,
     });
   };
   const { 배움, 띄움 } = await (async () => {
     const 배움 = await 배우기();
     return { 배움, 띄움: 배움.끝 ?? await 세션띄우기({ 탐색: 탐색하나(것, 게임화면 !== undefined) || 앱탐색, 갈래: 앱.갈래, 통로, 자료: 자리.자료, 비밀: 비밀번호들(것), 이어하기: 방.이어하기, 한번, 거두기, 멈추라했다: 박동.멈추라했다, 알린다 }) };
   })().finally(() => (링크끄기(), 늘리기끄기()));
-  const { 돌린것, 크레딧으로, 거절: 탐색거절 } = 띄움;
+  const { 크레딧으로, 거절: 탐색거절 } = 띄움;
+  const 돌린것 = 못뜬것은끊김(띄움.돌린것, 배움.앞낸것);
   const 앞낸것 = [...배움.앞낸것, ...띄움.앞낸것];
   const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
   console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`);

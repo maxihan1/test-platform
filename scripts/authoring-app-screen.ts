@@ -54,7 +54,7 @@ const 받은팜토큰_상한 = 50;
 const 최신팜토큰 = new Map<string, string>();
 /**
  * 작성(자료 폴더)마다 app-link 가 처음 알려 준 빌드 이름 — crawl 결과를 앱 조작 맵에 올릴 때 단다 (§3.6 「★ 앱 탐색」 「crawl 결과 → 맵 줄」).
- * 따로 부르지 않는다 — app-link 는 부를 때마다 서버가 팜 토큰을 챙겨 Auth 대신 PAT 한도를 쓴다. 처음 것을 지킨다 — crawl 은 작성 앞머리에 돈다
+ * 빌드 이름만 보려고 따로 부르지 않는다 — app-link 는 부를 때마다 서버가 팜 토큰을 챙긴다. 처음 것을 지킨다 — crawl 은 작성 앞머리에 돈다
  */
 const 빌드이름 = new Map<string, string>();
 export const 받은빌드이름 = (자료: string): string | undefined => 빌드이름.get(자료);
@@ -179,22 +179,6 @@ export function 앱링크갈기(서버: { 주소기지: string; 토큰: string }
   void 링크받아쓰기(주소, 서버.토큰, 번호, 자료, 토큰도);
   const 타이머 = setInterval(() => void 링크받아쓰기(주소, 서버.토큰, 번호, 자료, 토큰도), 링크갈기_ms);
   return () => clearInterval(타이머);
-}
-
-/**
- * PC 게임 — 빈 PC 를 기다리는 정식 실행이 있나(app-link 의 pcWaiting). 있으면 게임 학습이 세션 경계에서 PC 를 놓는다 (도메인/게임 §3.10 「게임 배우기」 양보).
- * 폰은 안 본다 — 정식 실행이 빈 폰을 기다리지 않는다. 못 물어보면 없는 것으로 본다(다음 경계에서 다시 묻는다)
- */
-export async function PC기다리는실행(서버: { 주소기지: string; 토큰: string }, 번호: number, 앱: 앱화면 | undefined): Promise<boolean> {
-  if (앱?.PC === undefined) return false;
-  try {
-    const 답 = await fetch(`${서버.주소기지}/api/authoring/requests/${String(번호)}/app-link`, { headers: 인증헤더(서버.토큰), signal: AbortSignal.timeout(링크_제한_ms) });
-    if (답.ok) return ((await 답.json()) as { pcWaiting?: unknown } | null)?.pcWaiting === true;
-    console.error(`[작성] ${번호}번 — PC 를 기다리는 실행이 있는지 못 물어봤다: 서버 ${답.status}`);
-  } catch (err) {
-    console.error(`[작성] ${번호}번 — PC 를 기다리는 실행이 있는지 못 물어봤다: ${err instanceof Error ? err.name : '알 수 없는 오류'}`);
-  }
-  return false;
 }
 
 async function 링크받아쓰기(주소: string, 토큰: string, 번호: number, 자료: string, 토큰도: boolean): Promise<void> {

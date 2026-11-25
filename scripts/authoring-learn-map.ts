@@ -31,7 +31,8 @@ function 열린궁금(x: 지도줄, 오늘: string, 빌드?: string): boolean {
   return !(글인가(d.볼날) && d.볼날 > 오늘);
 }
 
-export const 글자들 = (v: unknown): string[] => (typeof v === 'string' ? [v] : typeof v === 'object' && v !== null ? Object.values(v).flatMap(글자들) : []);
+// 열쇠 이름까지 — 비밀번호를 칸 이름으로 적어도 잡는다(authoring-game 요소올리기와 같다)
+export const 글자들 = (v: unknown): string[] => (typeof v === 'string' ? [v] : typeof v === 'object' && v !== null ? Object.entries(v).flatMap(([k, x]) => [k, ...글자들(x)]) : []);
 
 /** 게임 안 글(한 줄에 한 문장 · `#` 줄은 어디서 읽었나) 가운데 지도의 배운 줄 어디에도 안 든 문장 */
 export function 빠진게임글(글: string | null, 지금: 지도): string[] {
