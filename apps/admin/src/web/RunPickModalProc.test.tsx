@@ -161,6 +161,31 @@ describe('실행 창의 테스트 프로시저', () => {
     expect(document.body.textContent).not.toContain('BLOCKED');
   });
 
+  it('준비 절차를 돌다 깨진 Blocked 줄은 선행 케이스와 같이 자기 단계를 보이고, 막은 케이스가 시간 초과가 아닌 미실행이면 번호까지만 적는다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    const 단계 = { seq: 4, tcId: 'MTA-3', title: '글쓰기를 연다', status: 'FAIL' as const, durationMs: 1, assertions: [], error: { message: '단추를 찾지 못했습니다' } };
+    vi.spyOn(api, 'getTrial').mockResolvedValue({
+      status: 'DONE',
+      result: { status: 'NA', durationMs: 0, steps: [단계], error: { message: 'BLOCKED' } },
+      results: [
+        { tcId: 'MTA-1', status: 'NA', durationMs: 1000, steps: [], error: { message: '프로세스가 종료 코드 1로 끝났습니다' } },
+        { tcId: 'MTA-2', status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 'MTA-1' },
+        { tcId: 'MTA-3', status: 'NA', durationMs: 0, steps: [단계], error: { message: 'BLOCKED' }, blockedBy: 'MTA-1' },
+      ],
+    } as Awaited<ReturnType<typeof api.getTrial>>);
+    그리기();
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
+    await screen.findByText('시험 실행 결과');
+
+    const 글 = [...document.querySelectorAll('.trial-res > li .why')].map((칸) => 칸.textContent);
+    expect(글[1]).toBe('선행 케이스 MTA-1');
+    expect(글[2]).toContain('선행 케이스 MTA-1');
+    expect(글[2]).toContain('4단계 · 글쓰기를 연다');
+    expect(글[2]).toContain('단추를 찾지 못했습니다');
+    expect(document.querySelector('.trial-res')?.textContent).not.toContain('BLOCKED');
+  });
+
   it('시험 실행 시작 확인의 케이스 줄 — 프로시저 하나면 건수만, 다른 것과 섞이면 「차례로 실행」, 프로시저가 없으면 「한 건씩 차례로」', () => {
     const 글 = (케이스들: 담은줄[]) => {
       그리기(케이스들);

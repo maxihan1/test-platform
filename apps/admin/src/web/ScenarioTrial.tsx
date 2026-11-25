@@ -3,6 +3,7 @@
 import type { ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
 import type { ReactNode } from 'react';
 
+import { 제한글풀기 } from '../reporting/failureType.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type TrialResult } from './scenarioApi.js';
 import { 프로시저결과 } from './ScenarioProcCases.js';
@@ -198,7 +199,7 @@ export function TrialRow({
     );
   const 안돌았다 = part.status === 'NA' && part.error?.message === 'NOT_RUN';
   const 적용됨 = (종류 === 'mock' || 종류 === 'unmock') && part.status === 'PASS';
-  const 사유 = 멈춘사유글자(part.error?.message ?? '', 언어);
+  const 사유 = 제한글풀기(멈춘사유글자(part.error?.message ?? '', 언어));
   // 사진은 실패한 절차의 순번으로 저장된다. 부품 번호와 다르다
   const 실패절차 = part.steps.find((s) => s.status === 'FAIL');
   return (

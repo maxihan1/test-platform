@@ -133,8 +133,10 @@ function 표(d: Extract<덩이, { 꼴: '표' }>): string[] {
   // 숫자 · 건수만 든 열(「2건」 · 「3개」)은 머리까지 오른쪽으로 붙인다 — 개요 같은 이름-값 표(머리 없음)의 빌드 번호는 글이라 뺀다
   const 본줄 = d.줄.filter((z) => z.결 !== '묶음');
   const 숫자열 = (i: number) => d.머리.length > 0 && 본줄.length > 0 && 본줄.every((z) => /^\d[\d,]*(건|개|회)?$/.test(z.칸[i] ?? ''));
+  // 격자는 머리(폰 이름)가 여럿이라 다 붙이면 A4 폭을 넘는다
+  const 짧은한도 = d.격자 === true ? 7 : 9;
   // 짧은 글만 든 열(구분 · 출처 · 판정 전 · Android 앱)은 줄을 안 바꾼다 — 폰 폭에서 「신/규」처럼 한 글자씩 꺾였다
-  const 짧은열 = (i: number) => d.머리.length > 0 && 본줄.length > 0 && (d.머리[i] ?? '').length <= 9 && 본줄.every((z) => (z.칸[i] ?? '').length <= 9);
+  const 짧은열 = (i: number) => d.머리.length > 0 && 본줄.length > 0 && (d.머리[i] ?? '').length <= 짧은한도 && 본줄.every((z) => (z.칸[i] ?? '').length <= 짧은한도);
   const n = (i: number) => (숫자열(i) ? ' class="n"' : 짧은열(i) ? ' class="s"' : '');
   const 칸 = (글: string, i: number, 고리?: string | null) => {
     if (고리 !== undefined && 고리 !== null) return `<td${n(i)}><a href="${안전(고리)}" target="_blank" rel="noreferrer">${안전(글)}</a></td>`;

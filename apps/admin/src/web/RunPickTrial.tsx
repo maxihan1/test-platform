@@ -8,8 +8,7 @@ import { 원문보기 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import type { 담은줄 } from './pickProc.js';
 import { type 고친값표, 실행항목, 윈도우펼침 } from './pickRun.js';
-import { 시험막힘 } from './RunPickTrialDone.js';
-import { 걸린글 } from './trialView.js';
+import { 걸린글, 시험막힘 } from './trialView.js';
 import { PLATFORM_LABEL, Verdict } from './ui.js';
 import { type 디바이스칸, type 시험줄, type 시험항목, useTrialQueue } from './useTrialQueue.js';
 

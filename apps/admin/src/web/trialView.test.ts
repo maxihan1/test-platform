@@ -72,6 +72,9 @@ describe('대기열 알약', () => {
   });
 
   it('중단 · 미실행 · 안내가 섞이면 통과 아닌 칸을 미실행으로 센다', () => {
+    const 막힘: 디바이스칸 = { platform: 'android', 줄: { 종류: 'done', 결과: { status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 'A-1' } } };
+    expect(대기열알약([막힘])).toEqual({ 종류: 'blocked', 수: 1 });
+    expect(대기열알약([막힘, 끝('NA')])).toEqual({ 종류: 'na', 수: 2 });
     expect(대기열알약([끝('PASS'), 끝('NA'), { platform: 'android', 줄: { 종류: 'skip' } }])).toEqual({ 종류: 'na', 수: 2 });
   });
 });
