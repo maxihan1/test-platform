@@ -1,7 +1,7 @@
 // 호환성 결과 화면 조각 — 머리 숫자 띠 · 「화면 × 디바이스」 표 · 미점검 화면 · 미커버 화면 (도메인/호환성 §8.17 ④). 카드는 CompatCards.tsx
 
 import type { CompatRunDevice, CompatRunResult } from './compatApi.js';
-import { 발생글, 미점검들, 접힘글자, 칸글자 } from './compatRunView.js';
+import { 발생글, 미점검들, 한도줄들, 접힘글자, 칸글자 } from './compatRunView.js';
 import { use말 } from './i18n.js';
 
 /** 표 칸 · 카드가 서로 찾는 자리 */
@@ -115,6 +115,12 @@ export function 미점검구획({ data, 세트주소 }: { data: CompatRunResult;
         </h2>
         <span className="compat-faint">{t('점검하지 못한 화면은 UI 결함 여부를 알 수 없습니다')}</span>
       </div>
+      {한도줄들(data.devices, t).map((줄) => (
+        <div key={줄.열쇠} className="cr-line">
+          <b>{줄.디바이스}</b>
+          <span>{줄.글}</span>
+        </div>
+      ))}
       {줄들.map((줄) => (
         <div key={줄.key} className="cr-line">
           <b>{줄.name}</b>

@@ -53,6 +53,7 @@ const 정본: Record<string, 칸[]> = {
     // 프로시저를 통째로 돌릴 때 쓰는 두 칸 — 정본은 공통/4-데이터모델 「테스트 프로시저 표」 (TP-F2-09)
     ['exec_id', 'bigint', 'YES', false],
     ['blocked_by', 'text', 'YES', false],
+    ['check_cap', 'integer', 'YES', false],
   ],
   compat_screen: [
     ['id', 'bigint', 'NO', true],

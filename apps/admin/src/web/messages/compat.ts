@@ -169,6 +169,7 @@ export const 호환성말: Record<string, string> = {
   '점검하지 못한 화면은 UI 결함 여부를 알 수 없습니다': 'Unchecked screens cannot tell whether they have UI defects',
   '{수}대 미점검': '{수} devices unchecked',
   '찍힌 화면이 없습니다': 'No screen was captured',
+  '{케이스} 부터 AI 점검을 하지 못했습니다 · 연결 하나에 {수}장 한도': 'Not checked by AI from {케이스} on · limit of {수} shots per session',
   '참고 · 미커버 화면 {수}': 'Note · {수} uncovered screens',
   '모든 화면을 지나는 케이스가 있었습니다': 'Every screen had a case passing through it',
   '이 화면을 지나는 TC 가 없어 실행 대상에서 빠졌습니다': 'Left out of the run because no test case passes through these screens',

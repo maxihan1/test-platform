@@ -15,6 +15,7 @@ export const 상태 = (seq: number, 덮: Partial<CompatRunDevice> = {}): CompatR
   skipReason: null,
   now: null,
   vision: null,
+  capped: [],
   ...덮,
 });
 

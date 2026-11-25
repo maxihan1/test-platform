@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { compatApi } from './compatApi.js';
 import { CompatResult } from './CompatResult.js';
-import { 결과 } from './compatRun.fixture.js';
+import { 결과, 상태 } from './compatRun.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -33,6 +33,15 @@ describe('호환성 결과', () => {
     expect(screen.getByText(/1대 미점검 — DMA-UI-031 이 3단계에서 실패/)).toBeTruthy();
     expect(screen.getByText(/리뷰 작성 —/)).toBeTruthy();
     expect(screen.getByRole('link', { name: '세트 보기' }).getAttribute('href')).toBe('#/compat/3?service=DMA');
+  });
+
+  it('화면 수 상한에 걸린 디바이스는 미점검 화면 구획 맨 위에 어느 케이스부터인지 선다 — 안 걸렸으면 줄이 없다', async () => {
+    await 그리기(true, 결과({ devices: [상태(1), 상태(2, { capped: [{ tcId: 'MKA-FN-905', max: 400 }] }), 상태(3)] }));
+    const 첫줄 = screen.getByRole('region', { name: /미점검 화면/ }).querySelector('.cr-line');
+    expect(첫줄?.textContent).toBe('SM-A102NMKA-FN-905 부터 AI 점검을 하지 못했습니다 · 연결 하나에 400장 한도');
+    cleanup();
+    await 그리기();
+    expect(screen.queryByText(/장 한도/)).toBeNull();
   });
 
   it('결함 확정을 누르면 그 칸을 판정하고 다시 읽는다 · 이미 누른 판정을 다시 누르면 미판정으로 되돌린다', async () => {
