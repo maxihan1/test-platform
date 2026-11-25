@@ -7,7 +7,7 @@ import { 집은쪽인가 } from '../authoring/agentRoutes.js';
 import { 문서설정읽기 } from '../apidoc/store.js';
 import { 대상줄들읽기, 작성계정줄고르기, 폰앱인가 } from '../authoring/reverse.js';
 import { 지도를읽는다 } from './apiMap.js';
-import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
+import { 게임서비스인가, 만든종류읽기, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
 import { 고침이팝업을올렸나, 맵글, 조작행검사, 조작행넣기 } from './gameRoute.js';
 import { 맵줄검사, 맵줄넣기, 앱맵글, 앱서비스인가 } from './appRoute.js';
 import type { 앱요청 } from '../authoring/store.js';
@@ -129,7 +129,7 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
-    const 읽음 = 요소검사(req.body);
+    const 읽음 = 요소검사(req.body, await 만든종류읽기(행.serviceId));
     if ('error' in 읽음) return reply.code(400).send(읽음);
     await 요소넣기(행.serviceId, 읽음.elements, 읽음.remove);
     return reply.code(204).send();

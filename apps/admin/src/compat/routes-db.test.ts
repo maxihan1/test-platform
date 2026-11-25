@@ -100,7 +100,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       `INSERT INTO screen_record (service_id, env, state, url, name, text_fp, struct_fp, record, crawled_at) VALUES ($1, 'qa', '로그아웃', '/login', '로그인', 'a', 'b', '# /login', now())`,
       [앱],
     );
-    await pool.query(`INSERT INTO game_element (service_id, kind, key, name) VALUES ($1, 'WORLD', 'zone:Town', '마을'), ($1, 'DATA', 'item:sword', '검')`, [앱]);
+    await pool.query(`INSERT INTO game_element (service_id, kind, key, name, learned) VALUES ($1, 'WORLD', 'zone:Town', '마을', NULL), ($1, 'WORLD', 'zone:Learned', '배운 것만 있는 구역', '{"text":"어둡다"}'), ($1, 'DATA', 'item:sword', '검', NULL)`, [앱]);
     await pool.query(`INSERT INTO game_element_case (service_id, key, tc_id) VALUES ($1, 'zone:Town', 'XCP-003')`, [앱]);
 
     const r = await pool.query<{ run_id: string }>(
