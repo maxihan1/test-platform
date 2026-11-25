@@ -11,7 +11,7 @@ import { 케이스판 } from '../apidoc/caseDoc.js';
 import { 서명주소 } from './buildFile.js';
 import { 거를패키지, 단위잡는분, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
-import { 항목폰화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
+import { 항목을보냈다, 항목폰화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
 import { PC화면을단다 } from './pcScreen.js';
 import type { 줄결과 } from './runLifecycle.js';
 import { runnerUrl, 답하나, 러너머리 } from './runnerAddr.js';
@@ -263,7 +263,7 @@ export async function 폰에보낸다(runId: number, 것: 보낼것, 멈췄나: 
 
 // 러너가 거절하거나 못 닿으면 그 실행 단위의 케이스만 NA 로 접는다 — 정식 실행 · 케이스 테스트 실행 · 호환성 · 기기 성능이 같은 문장으로 접는다
 export async function 보낸다(body: ExecuteRequest): Promise<ExecuteResponse> {
-  const startedAt = Date.now();
+  const startedAt = 항목을보냈다(body.historyId);
   try {
     const res = await 러너에보낸다('/execute', body, httpTimeoutMs(body.timeoutMs));
     if (res.status < 200 || res.status >= 300) return 못간답(body, 거절사유(res.status, res.json), undefined, Date.now() - startedAt);

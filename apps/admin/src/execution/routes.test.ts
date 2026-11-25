@@ -189,6 +189,17 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     }
   });
 
+  it('박제된 값이 더 길면 그 디바이스에서 실제로 끊기는 한도를 싣는다 — 웹은 30초', async () => {
+    const 보낸항목 = await 항목넣는다(내실행, 'XBR-016', 300_000);
+    항목화면을연다(보낸항목, true, { runId: 내실행, timeoutMs: 300_000 });
+    try {
+      const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
+      expect(body.items.find((i: { historyId: number }) => i.historyId === 보낸항목)).toMatchObject({ timeoutMs: 30_000 });
+    } finally {
+      항목화면을닫는다(보낸항목);
+    }
+  });
+
   it('스캔이 단계 제목을 저장한 케이스면 보낸 항목에도 stepTitles 를 싣고, 못 셌으면(NULL) 안 싣는다 (점검표 B11)', async () => {
     await pool.query(
       `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, step_titles)

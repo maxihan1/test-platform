@@ -466,7 +466,7 @@ export interface 다시실행 {
  */
 export type 항목진행 = Pick<RunningStep, 'historyId'> & Partial<Omit<RunningStep, 'historyId'>> & {
   timeoutMs: number;
-  /** 러너에 보낸 뒤 흐른 시간 — 단계 경과는 단계마다 0으로 돌아간다. admin 이 다시 떠 잃은 항목은 없다 (점검표 B13) */
+  /** 러너에 보낸 뒤 흐른 시간(아직 폰을 잡는 중이면 그 시간) — 단계 경과는 단계마다 0으로 돌아간다. admin 이 다시 떠 잃은 항목은 없다 (점검표 B13) */
   itemElapsedMs?: number;
   /** 장면을 찍는 항목인가(브라우저를 여는 desktop · mobile). 옛 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/실행 §7 `GET /api/runs/:runId/progress`) */
   live?: boolean;

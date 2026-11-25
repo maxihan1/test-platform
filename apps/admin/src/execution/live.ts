@@ -60,6 +60,13 @@ function 화면칸() {
       화면들.set(번호, { ...(열쇠 !== undefined && { 열쇠 }), ...(보냄 !== undefined && { 보냄: { ...보냄, 보낸때: Date.now() } }) });
       return 열쇠;
     },
+    /** 러너에 보내는 순간부터 다시 잰다 — 폰을 잡고 Chrome 을 켠 시간까지 세면 제한(테스트 시계)을 넘어 보인다. 모르는 번호(시험 · 호환성 · 성능)는 지나간다. 보낸 때를 돌려준다 */
+    보냈다(번호: number): number {
+      const 지금 = Date.now();
+      const 보냄 = 화면들.get(번호)?.보냄;
+      if (보냄 !== undefined) 보냄.보낸때 = 지금;
+      return 지금;
+    },
     /** 폰을 잡으면 링크를 달고 놓으면 뗀다 — 놓은 폰의 링크는 닫혀 있다 */
     폰(번호: number, url: string | undefined, 이름?: string): void {
       const 칸 = 화면들.get(번호);
@@ -83,6 +90,7 @@ function 화면칸() {
 
 const 항목칸 = 화면칸();
 export const 항목화면을연다 = 항목칸.연다;
+export const 항목을보냈다 = 항목칸.보냈다;
 export const 항목폰화면 = 항목칸.폰;
 export const 항목화면을닫는다 = 항목칸.닫는다;
 export const 항목화면 = 항목칸.본다;

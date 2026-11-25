@@ -8,7 +8,7 @@ import type { ExecuteRequest, ScenarioExecuteRequest } from '@platform/kit';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
-import { 항목화면 } from './live.js';
+import { 항목화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
 import { PC화면자리 } from './pcScreen.js';
 import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 보낸다, 시험진행, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
@@ -143,6 +143,23 @@ describe('callRunner', () => {
     const 보냄 = { runId: 7, timeoutMs: 5000, 보낸때: expect.any(Number) };
     expect(도는중).toEqual([{ 보냄 }, { 보냄, 열쇠: 받은것[1]!.live, vision: 'https://vision.example.com/#phone=R3' }]);
     expect(항목화면(42)).toBeUndefined();
+  });
+
+  it('항목 경과는 폰을 잡고 Chrome 을 켠 시간 말고 러너에 보낸 때부터 잰다 — 제한이 테스트 시계라 앞 시간까지 세면 멀쩡한 케이스가 제한을 넘어 보인다', async () => {
+    let 보낸때 = 0;
+    await 띄운다((body) => {
+      보낸때 = 항목화면(body.historyId)!.보냄!.보낸때;
+      return 러너답(body);
+    });
+    항목화면을연다(42, true, { runId: 7, timeoutMs: 5000 });
+    const 연때 = 항목화면(42)!.보냄!.보낸때;
+    try {
+      await new Promise((r) => setTimeout(r, 50));
+      await 보낸다({ runId: 7, historyId: 42, platform: 'mobile', filePath: 'demo/DEMO-001.spec.ts', baseUrl: 'https://qa.example.com', timeoutMs: 5000, cases: [{ tcId: 'DEMO-001', params: {}, expected: {} }] });
+      expect(보낸때 - 연때).toBeGreaterThanOrEqual(40);
+    } finally {
+      항목화면을닫는다(42);
+    }
   });
 
   it('항목의 엔진 칸을 그대로 싣는다 (도메인/게임 §3.10 결정 6)', async () => {
