@@ -4947,6 +4947,12 @@ details[open]:not(.ph-me)::details-content {
   font-size: 12px;
 }
 
+/* 항목 상세 · E2E 결과는 판에 바로 놓여 안쪽 여백을 스스로 준다 — 실패 카드의 증거 칸은 카드가 준다 */
+.screen > .farm-ev,
+.screen > section > .farm-ev {
+  padding: 8px 24px 16px;
+}
+
 .farm-ev-row {
   display: flex;
   flex-wrap: wrap;
@@ -5091,7 +5097,9 @@ a.fr-id {
 }
 
 /* 변화 글자는 판정이 아니라 테두리 글자다 — 판정 색은 판정 배지만 갖는다 */
+/* 글이 길어 두 줄이 되면 테두리가 줄 끝에서 끊기지 않게 한 상자로 선다 */
 .fc-tag {
+  display: inline-block;
   border: 1px solid var(--line-2);
   border-radius: 4px;
   padding: 1px 6px;
@@ -5106,6 +5114,12 @@ a.fr-id {
   gap: 8px;
   min-width: 0;
   font-size: 13px;
+}
+
+/* 한 줄이 길어도 칩은 접히지 않는다 — 「타임아웃」 · 「요소를 찾지 못함」이 두 줄로 꺾였다 */
+.fail-why .fail-type {
+  flex: none;
+  white-space: nowrap;
 }
 
 .fail-why .fail-reason {

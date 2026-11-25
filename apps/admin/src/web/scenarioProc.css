@@ -36,6 +36,40 @@
   color: var(--ink-muted);
 }
 
+/* 휴대폰 — 한 줄에 다 세우면 케이스 이름이 한 글자로 잘린다. 실행 결과 줄처럼 이름을 첫 줄에 펴고 번호는 그 아래다 */
+@media (max-width: 620px) {
+  .scn-pc li {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    gap: 2px 8px;
+  }
+
+  .scn-pc .t {
+    grid-area: 1 / 2;
+    white-space: normal;
+  }
+
+  .scn-pc .id {
+    grid-area: 2 / 2;
+  }
+
+  .scn-pc .vd,
+  .scn-pc .verdict {
+    grid-area: 1 / 3;
+    justify-self: end;
+  }
+
+  .scn-pc .dur {
+    grid-area: 2 / 3;
+    justify-self: end;
+  }
+
+  .scn-pc .why {
+    grid-column: 2 / -1;
+    padding-left: 0;
+  }
+}
+
 /* 조립 화면 단계 카드의 케이스 목록 */
 .scn-card-cases {
   grid-column: 1;
