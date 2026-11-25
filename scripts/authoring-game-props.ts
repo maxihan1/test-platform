@@ -9,7 +9,7 @@ import { Game, type Link } from 'control-cli';
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 import { 정리알림 } from './authoring-game-find.js';
-import { 엔진것, 틀칸 } from './authoring-game-watch.js';
+import { 엔진것, 틀칸 } from './authoring-game-watch-report.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
 import { 잡은폰 } from './authoring-run3-game.js';
@@ -97,6 +97,23 @@ export function 펼친글(주소: string, 이름: string, 들: readonly 펼친�
   ];
 }
 
+/** 오브젝트 하나를 펼친 글 — 판 돌리기도 판 도중 새로 나온 것에 부른다. 이름은 자기 컴포넌트를 가리키는 칸을 거르는 데 쓴다 */
+export async function 펼친다(game: Game, 주소: string, 이름 = 주소.split('/').pop()!.replace(/\[\d+\]$/, '')): Promise<string[]> {
+  const 컴포넌트 = await game.components(주소);
+  const 들: 펼친것[] = [];
+  const 게임것 = 컴포넌트.filter((x) => !엔진것.test(x.type));
+  for (const c of 게임것.filter((x, i) => 게임것.findIndex((y) => y.type === x.type) === i)) 들.push({ ...c, ...(await game.members(주소, c.name)), 수: 게임것.filter((x) => x.type === c.type).length });
+  const 읽은 = new Map<string, unknown>();
+  for (const 칸이름 of 더읽을것(들)) {
+    try {
+      읽은.set(칸이름, await game.get(주소, 칸이름));
+    } catch {
+      // 값이 아직 없는 네트워크 값이다 — 이름만 보인다
+    }
+  }
+  return 펼친글(주소, 이름, 들, 컴포넌트.filter((x) => 엔진것.test(x.type)).map((x) => x.name), 읽은);
+}
+
 /** 0 펼쳤다 · 1 그 주소를 못 읽었다 · 2 부를 수 없다 */
 export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env, 길?: Link): Promise<number> {
   const [주소] = 인자;
@@ -121,20 +138,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   }
   let 글: string[];
   try {
-    const 컴포넌트 = await game.components(주소);
-    const 들: 펼친것[] = [];
-    const 게임것 = 컴포넌트.filter((x) => !엔진것.test(x.type));
-    for (const c of 게임것.filter((x, i) => 게임것.findIndex((y) => y.type === x.type) === i)) 들.push({ ...c, ...(await game.members(주소, c.name)), 수: 게임것.filter((x) => x.type === c.type).length });
-    const 읽은 = new Map<string, unknown>();
-    for (const 칸이름 of 더읽을것(들)) {
-      try {
-        읽은.set(칸이름, await game.get(주소, 칸이름));
-      } catch {
-        // 값이 아직 없는 네트워크 값이다 — 이름만 보인다
-      }
-    }
-    const 이름 = 주소.split('/').pop()!.replace(/\[\d+\]$/, '');
-    글 = 펼친글(주소, 이름, 들, 컴포넌트.filter((x) => 엔진것.test(x.type)).map((x) => x.name), 읽은);
+    글 = await 펼친다(game, 주소);
   } catch (e) {
     console.error(`[펼치기] ${비밀가리기(까닭(e), 비밀들)}`);
     return 1;

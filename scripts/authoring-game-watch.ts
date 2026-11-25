@@ -14,7 +14,7 @@ import { 기록남기기, 덧줄 } from './authoring-game-play-log.js';
 import { type 조작결과, 돌린다 } from './authoring-game-play.js';
 import { 정리알림 } from './authoring-game-find.js';
 import { 결과글 } from './authoring-game-state.js';
-import { type 자리, type 칸정보, type 표본, 요약, 이름만, 화면그림인가 } from './authoring-game-watch-report.js';
+import { type 자리, type 칸정보, type 표본, 요약, 엔진것, 이름만, 틀칸, 화면그림인가 } from './authoring-game-watch-report.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
 import { 잡은폰 } from './authoring-run3-game.js';
@@ -33,9 +33,6 @@ const 동시 = 5;
 const 알아볼이름 = 20;
 const 칸수 = 14;
 const 먼저볼칸 = /hp|health|life|damage|dmg|level|score|count|speed|range|cool|state|dead|target|attack/i;
-/** 네트워크 틀(Netcode)이 모든 컴포넌트에 물려준 칸 — 게임 값이 아니다 */
-export const 틀칸 = /^(?:m_TargetIdBeingSynchronized|m_VarInit|IsLocalPlayer|IsOwner|IsOwnedByServer|IsServer|IsClient|IsHost|IsSpawned|HasAuthority|NetworkObjectId|OwnerClientId|NetworkBehaviourId.*|ServerIsHost|IsSessionOwner|HasNetworkObject|IsDestroying|enabled|isActiveAndEnabled)$/;
-export const 엔진것 = /^(?:UnityEngine|UnityEditor|Unity\.|TMPro|Cinemachine|DG\.)/;
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const 쉼 = (ms: number): Promise<void> => new Promise((깨운다) => setTimeout(깨운다, ms));

@@ -11,6 +11,7 @@ import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
 import { 멈추기, 풀기 } from './authoring-game-play-freeze.js';
 import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
 import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
+import { type 나온것, 세기시작, 지도글 } from './authoring-game-play-spawns.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 정리알림 } from './authoring-game-find.js';
 import { 비밀가리기 } from './authoring-reverse.js';
@@ -46,6 +47,8 @@ export interface 조작결과 {
   알림말: string[];
   /** 멈춤 표시가 있는데 못 풀었다 — 10판 확인은 이 판을 안 센다 */
   멈춘채: boolean;
+  /** 판 도중 새로 나온 것 · 수가 바뀐 것 — 도중 화면을 켰을 때만 센다 */
+  나온것?: 나온것;
 }
 
 export interface 덧 {
@@ -110,6 +113,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 돌릴까 = !풀림.멈춘채;
   const 간격ms = !돌릴까 || 덧?.도중화면ms === undefined || 덧.도중화면ms <= 0 ? 0 : 간격정하기(덧.도중화면ms, 한도ms);
   const 찍기 = 간격ms === 0 ? null : 찍기시작(맨게임, 간격ms, 시작);
+  // 10판 확인처럼 화면을 끈 판은 원래 속도만 본다 — 세기도 같이 끈다
+  const 세기 = 간격ms === 0 ? null : 세기시작(맨게임, 간격ms, 시작, 지도글(덧?.자료));
   let 값: unknown;
   let 오류: string | undefined = 돌릴까 ? undefined : '멈춰 둔 게임을 못 풀어 함수를 부르지 않았다 — `npx control-cli -s=g timescale-set 1` 로 풀고 다시 부른다';
   let 시계: NodeJS.Timeout | undefined;
@@ -144,6 +149,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 알림 = 앞.알림 === null ? null : await 해본다('알림 읽기', () => 맨게임.events(앞.알림!));
   const 찍기못함 = await 찍기?.끝난다();
   if (찍기못함 !== null && 찍기못함 !== undefined) 못한것.push(찍기못함);
+  const 셈 = await 세기?.끝난다();
+  if (typeof 셈?.못함 === 'string') 못한것.push(셈.못함);
   const 화면 = await 해본다('화면 찍기', () => 맨게임.screenshot());
   process.off('unhandledRejection', 버려진);
   for (const [이름, 답] of [['게임 로그', 로그], ['게임 오류', 게임오류], ['알림', 알림]] as const) {
@@ -167,6 +174,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     ...(멈춤?.멈춘뒤배율 === undefined ? {} : { 멈춘뒤배율: 멈춤.멈춘뒤배율 }),
     알림말: [...풀림.알림말, ...(멈춤?.알림말 ?? [])],
     멈춘채: 풀림.멈춘채,
+    ...(셈?.나온 ? { 나온것: 셈.나온 } : {}),
   };
 }
 
