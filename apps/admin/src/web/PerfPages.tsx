@@ -238,7 +238,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
               {추천.도나
                 ? t('AI 가 측정할 페이지를 선택하는 중입니다')
                 : 출처 === 'AI'
-                  ? t('측정 대상: 화면 지도 기준 주요 페이지 {수}개', { 수: 목록.length })
+                  ? t('측정 대상: 화면 목록 기준 주요 페이지 {수}개', { 수: 목록.length })
                   : t('측정 대상: 페이지 {수}개', { 수: 목록.length })}
             </span>
             {쓰나 ? (

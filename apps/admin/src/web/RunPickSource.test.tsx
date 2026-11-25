@@ -49,7 +49,7 @@ describe('출처 줄', () => {
     expect(screen.getByText('저장값과 다릅니다 · 이번 실행에만 씁니다')).toBeTruthy();
     expect(단추('이 값 저장')).toBeTruthy();
     expect(단추('복원')).toBeTruthy();
-    expect(screen.getByText('팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('팀 전체와 정기 실행에 쓰입니다')).toBeTruthy();
   });
 
   it('저장값이 없는 케이스는 코드 기본값과 다르다고 적는다', async () => {
@@ -176,7 +176,7 @@ describe('저장 안 한 채 닫기', () => {
     fireEvent.click(단추('창 닫기'));
     fireEvent.click(단추('창 닫기'));
 
-    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 전체와 정기 실행에 쓰입니다')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -192,7 +192,7 @@ describe('저장 안 한 채 닫기', () => {
 
     fireEvent.click(단추('창 닫기'));
 
-    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 전체와 정기 실행에 쓰입니다')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -202,7 +202,7 @@ describe('저장 안 한 채 닫기', () => {
     고친다('user2');
 
     Esc();
-    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 전체와 정기 실행에 쓰입니다')).toBeTruthy();
     fireEvent.click(단추('저장하고 닫기'));
 
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());

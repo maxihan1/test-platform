@@ -56,7 +56,7 @@ describe('한 건 실행 진행 창 (도메인/실행 §8.9 「완료 모달」)
       await vi.advanceTimersByTimeAsync(2000);
     });
 
-    expect(screen.getByText('RUN 40 결과에 다시 실행으로 붙었습니다')).toBeTruthy();
+    expect(screen.getByText('RUN 40 결과에 다시 실행으로 추가됐습니다')).toBeTruthy();
     // 무엇의 수인지 풀어 쓴다 — 앞 판 「실패 11 → 10」은 무엇을 센 수인지 몰랐다 (점검표 B15d)
     expect(screen.getByText('RUN 40 Fail 11건 → 10건')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '결과 보기' }));
@@ -103,7 +103,7 @@ describe('한 건 실행 진행 창 (도메인/실행 §8.9 「완료 모달」)
       Promise.resolve(runId === 붙은 ? 붙은실행(10, true) : { ...끝난응답, ...한건, rerunOf: 붙은 }),
     );
     await 그린다();
-    expect(screen.getByText('RUN 40 결과에 다시 실행으로 붙었습니다')).toBeTruthy();
+    expect(screen.getByText('RUN 40 결과에 다시 실행으로 추가됐습니다')).toBeTruthy();
   });
 
   it('도는 동안 읽은 붙은 실행에 이미 이 한 건이 덮은 항목이 있으면 앞 수로 쓰지 않는다', async () => {
@@ -117,7 +117,7 @@ describe('한 건 실행 진행 창 (도메인/실행 §8.9 「완료 모달」)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
-    expect(screen.getByText('RUN 40 결과에 다시 실행으로 붙었습니다')).toBeTruthy();
+    expect(screen.getByText('RUN 40 결과에 다시 실행으로 추가됐습니다')).toBeTruthy();
   });
 
   it('붙은 곳이 없으면 케이스 상세 「실행 기록」에 남았다고 적고 「결과 보기」는 케이스 상세로 간다', async () => {

@@ -47,7 +47,7 @@ describe('설정 › 성능 에이전트', () => {
     vi.spyOn(perfApi, 'agents').mockResolvedValue({ agents: [에이전트({ id: 5, name: '사무실-2' })] });
     const 고치기 = vi.spyOn(perfApi, 'editAgent').mockRejectedValue(new Error('거절'));
     render(<SettingsPerfAgents projects={[]} />);
-    fireEvent.click(await screen.findByRole('button', { name: '사무실-2 편집' }));
+    fireEvent.click(await screen.findByRole('button', { name: '사무실-2 수정' }));
     const 칸 = screen.getAllByLabelText('이름').find((x) => x.closest('tr') !== null)!;
     const 줄 = within(칸.closest('tr')!);
     fireEvent.change(칸, { target: { value: ' ' } });

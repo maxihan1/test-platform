@@ -100,7 +100,7 @@ export function PerfStepRun({
         <span className="perf-faint">{t('실서비스 서버로는 부하를 걸 수 없습니다')}</span>
         <div className="perf-field" {...오류묶음('perf-run-agents', 틀린글(틀림, 'agents'))}>
           {t('부하 발생 에이전트')}
-          {부하.length === 0 ? <span className="perf-faint">{t('붙은 부하 발생 에이전트가 없습니다. 관리자가 설정 › 성능 에이전트에서 붙입니다')}</span> : 고르개(부하, 값.agentIds, 'agentIds')}
+          {부하.length === 0 ? <span className="perf-faint">{t('연결된 부하 발생 에이전트가 없습니다. 관리자가 설정 › 성능 에이전트에서 연결합니다')}</span> : 고르개(부하, 값.agentIds, 'agentIds')}
           <칸오류 id="perf-run-agents" 사유={틀린글(틀림, 'agents')} />
           {값.agentIds.length > 0 && 감당 < 최대목표 ? (
             <span className="perf-err">{t('선택한 에이전트가 감당하는 가상 사용자는 {수}명입니다. 에이전트를 더 선택하거나 부하를 줄여 주세요', { 수: 감당.toLocaleString() })}</span>
@@ -121,7 +121,7 @@ export function PerfStepRun({
               }}
             />
           ) : null}
-          <span className="perf-faint">{t('한 줄에 아이디,비밀번호 · 가상 사용자마다 다른 계정으로 로그인합니다')}</span>
+          <span className="perf-faint">{t('한 줄에 아이디, 비밀번호 · 가상 사용자마다 다른 계정으로 로그인합니다')}</span>
         </div>
         <div className="perf-field">
           {t('서버 모니터링')}

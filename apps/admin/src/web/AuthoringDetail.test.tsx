@@ -95,7 +95,7 @@ describe('작성 한 건 상세', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     await screen.findByText('테스터');
     expect(screen.queryByRole('button', { name: '테스트 반영하기' })).toBeNull();
-    expect(screen.getByText('반영은 관리자만 할 수 있습니다.')).toBeTruthy();
+    expect(screen.getByText('반영할 권한이 없습니다. 관리자에게 요청하세요.')).toBeTruthy();
   });
 
   it('아직 안 끝난 요청에는 반영 버튼이 없고 할 일이 없다고 말한다', async () => {
@@ -301,7 +301,7 @@ describe('작성 진척 · 중단 · 삭제', () => {
   it('시스템이 멈춘 것은 시스템이라고 적는다', async () => {
     답 = 줄({ status: 'STOPPED', prUrl: null, stopReason: 'TIMEOUT', stoppedBy: 'system', stoppedByName: null });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-    expect(await screen.findByText('시스템 · 시간초과')).toBeTruthy();
+    expect(await screen.findByText('시스템 · 제한 시간 초과')).toBeTruthy();
   });
 
   it('실패한 정방향 작성은 같은 자료로 다시 작성하면 재실행 줄을 세우고 같은 요청 쪽에서 다시 읽는다', async () => {
@@ -469,7 +469,7 @@ describe('작성 진척 · 중단 · 삭제', () => {
   it('보기 등급에게는 다시 작성 버튼 대신 누가 하는지 알린다', async () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함' });
     render(<AuthoringDetail service="PAY" id={7} 할수={보기만} />);
-    expect(await screen.findByText('다시 작성은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
+    expect(await screen.findByText('다시 작성할 권한이 없습니다. 관리자에게 작성 쓰기 권한을 요청하세요.')).toBeTruthy();
   });
 
   it('화면과 대조한 요청도 같은 자료로 다시 작성하고, 대상 서버·시작 주소도 그대로라고 알린다', async () => {

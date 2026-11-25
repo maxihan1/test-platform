@@ -93,7 +93,7 @@ export function ApiDocFields({
         {envs.length === 0 ? (
           <span className="error-text">
             {운영자
-              ? t('등록된 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 등록하세요')
+              ? t('등록된 대상 서버가 없습니다. 설정 › 애플리케이션에서 먼저 등록하세요')
               : t('등록된 대상 서버가 없습니다. 관리자에게 등록을 요청하세요')}
           </span>
         ) : (

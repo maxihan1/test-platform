@@ -437,7 +437,7 @@ describe('값 저장 — 누르기 전에 누구에게 닿는지 적는다 (점�
 
     그린다({ 글자: 고친글자, 저장된다: true });
 
-    expect(screen.getByText('팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('팀 전체와 정기 실행에 쓰입니다')).toBeTruthy();
     expect(screen.getByRole('button', { name: '모두에게 저장' })).toBeTruthy();
   });
 
@@ -561,7 +561,7 @@ describe('요구 번호 — 덮는 요구 전부를 상세에서 본다', () => 
 
     expect(screen.getByRole('link', { name: 'MKT-REQ-001' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'OLD-9' })).toBeNull();
-    expect(screen.getByText('PRD 에 없는 번호예요')).toBeTruthy();
+    expect(screen.getByText('PRD 에 없는 번호입니다')).toBeTruthy();
   });
 
   it('요구보나 가 아니면 번호가 글자다', () => {

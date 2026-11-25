@@ -72,7 +72,7 @@ describe('작성 줄 한 줄을 어떻게 보이나', () => {
 describe('중단 이유를 사람 말로', () => {
   it('이유마다 사람 말로 낸다', () => {
     expect(중단이유라벨('USER', 'ko')).toBe('사용자가 중단');
-    expect(중단이유라벨('TIMEOUT', 'ko')).toBe('시간초과');
+    expect(중단이유라벨('TIMEOUT', 'ko')).toBe('제한 시간 초과');
     expect(중단이유라벨('LIMIT', 'ko')).toBe('구독 한도');
     expect(중단이유라벨('AGENT_RESTART', 'ko')).toBe('작성 재시작');
     expect(중단이유라벨('AGENT_LOST', 'ko')).toBe('작성 응답 없음');

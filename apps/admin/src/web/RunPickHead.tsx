@@ -86,7 +86,7 @@ function 모바일고르개({ service, 값, on바꿈, 꺼짐 }: { service: Servi
       </span>
       <span className="segc" role="radiogroup" aria-labelledby={이름}>
         {칸('server', '가상 디바이스', 'iPhone 14')}
-        {칸('vision', '실제 디바이스', 폰있나 ? t('빈 디바이스 {수}대', { 수: 빈폰 }) : null)}
+        {칸('vision', '실제 디바이스', 폰있나 ? t('사용 가능한 디바이스 {수}대', { 수: 빈폰 }) : null)}
       </span>
     </span>
   );

@@ -47,7 +47,7 @@ export function ApiDocList({ coverage, doc }: { coverage: ApiCoverage; doc: Open
                       {g.태그 ?? t('태그 없음')}
                       <span>
                         {t('{건수}개', { 건수: g.줄들.length })}
-                        {안거친 === 0 ? null : <> · {t('안 거친 응답 {건수}개', { 건수: 안거친 })}</>}
+                        {안거친 === 0 ? null : <> · {t('확인하지 않은 응답 {건수}개', { 건수: 안거친 })}</>}
                       </span>
                     </td>
                   </tr>

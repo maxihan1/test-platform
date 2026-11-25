@@ -47,10 +47,10 @@ describe('계정 서랍', () => {
 
     줄열기('agent');
     fireEvent.click(screen.getByText('토큰 취소'));
-    expect(screen.queryByText('취소한다')).not.toBeNull();
+    expect(screen.queryByText('토큰 취소 확인')).not.toBeNull();
 
     줄열기('old');
-    expect(screen.queryByText('취소한다')).toBeNull();
+    expect(screen.queryByText('토큰 취소 확인')).toBeNull();
     expect(취소).not.toHaveBeenCalled();
   });
 
@@ -79,11 +79,11 @@ describe('계정 서랍', () => {
     fireEvent.click(screen.getByRole('button', { name: '그만두기' }));
     expect(보냄).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '비활성으로 내리기' }));
-    fireEvent.click(screen.getByRole('button', { name: '비활성으로 내린다' }));
+    fireEvent.click(screen.getByRole('button', { name: '비활성화 확인' }));
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('lee', { isActive: false }));
 
     줄열기('park');
-    fireEvent.click(await screen.findByRole('button', { name: '다시 활성으로' }));
+    fireEvent.click(await screen.findByRole('button', { name: '다시 활성화' }));
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('park', { isActive: true }));
   });
 

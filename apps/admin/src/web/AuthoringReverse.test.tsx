@@ -129,7 +129,7 @@ describe('새 작성 마법사 — 실제 화면과 대조', () => {
     폼();
     방법을('화면 대조');
     다음();
-    expect(screen.getByText('PRD 에 아직 없는 화면의 케이스를 작성합니다')).toBeTruthy();
+    expect(screen.getByText('미검증 화면의 케이스를 작성합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '테스트 작성 시작' }));
     await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
     expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
@@ -166,7 +166,7 @@ describe('새 작성 마법사 — 실제 화면과 대조', () => {
     피그마를적는다('https://www.figma.com/design/AbC/');
     다음();
     다음();
-    expect(screen.getByText('PRD 에 있는 화면을 먼저 작성한 뒤 PRD 에 아직 없는 화면을 이어서 작성합니다')).toBeTruthy();
+    expect(screen.getByText('PRD 에 있는 화면을 먼저 작성한 뒤 미검증 화면을 이어서 작성합니다')).toBeTruthy();
     expect(screen.getByText('qa')).toBeTruthy();
   });
 
@@ -227,7 +227,7 @@ describe('새 작성 마법사 — 실제 화면과 대조', () => {
     방법을('화면 대조');
     시작주소를적는다('https://example.com/');
     시작한다();
-    expect(await screen.findByText('대상 서버에 테스트 계정이 없거나 실서비스 서버로 지정되어 있습니다. 설정 > 애플리케이션에서 확인하세요')).toBeTruthy();
+    expect(await screen.findByText('대상 서버에 테스트 계정이 없거나 실서비스 서버로 지정되어 있습니다. 설정 › 애플리케이션에서 확인하세요')).toBeTruthy();
   });
 
   it('Android 앱이면 계정이 아니라 켤 앱이 없다고 알린다 — 앱 대조는 계정 없이도 간다 (APP-F2-05 리뷰)', async () => {
@@ -236,7 +236,7 @@ describe('새 작성 마법사 — 실제 화면과 대조', () => {
       render(<AuthoringNew service="MKA" envs={서버들} 운영자={운영자} 앱종류="APP" on넣었다={() => {}} />);
       방법을('화면 대조');
       시작한다();
-      const 뒤 = 운영자 ? '설정 > 애플리케이션에서 확인하세요' : '관리자에게 확인을 요청하세요';
+      const 뒤 = 운영자 ? '설정 › 애플리케이션에서 확인하세요' : '관리자에게 확인을 요청하세요';
       expect(await screen.findByText(`대상 서버에 디바이스에서 실행할 앱(앱 파일 경로 또는 업로드한 빌드)이 없거나 실서비스 서버로 지정되어 있습니다. ${뒤}`)).toBeTruthy();
       cleanup();
     }
@@ -266,7 +266,7 @@ describe('새 작성 마법사 — 실제 화면과 대조', () => {
   it('대상 서버가 하나도 없으면 설정으로 안내하고 다음으로 못 간다', () => {
     폼([]);
     방법을('화면 대조');
-    expect(screen.getByText('등록된 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 등록하세요')).toBeTruthy();
+    expect(screen.getByText('등록된 대상 서버가 없습니다. 설정 › 애플리케이션에서 먼저 등록하세요')).toBeTruthy();
     expect(screen.queryByLabelText('시작 주소')).toBeNull();
     expect(다음버튼().disabled).toBe(true);
   });

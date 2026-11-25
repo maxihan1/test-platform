@@ -25,10 +25,10 @@ export const 고치기말: Record<string, string> = {
   '삭제 요청 보내기': 'Send deletion request',
   '케이스 파일을 삭제하는 PR 을 등록합니다. 반영하면 실행 대상에서 빠지고, 이 케이스를 쓰는 E2E 시나리오도 더 이상 실행되지 않습니다. 실행 기록은 남습니다.':
     'This opens a PR that deletes the case files. Once merged they are no longer run, and E2E scenarios that use them stop running too. Run history is kept.',
-  '비활성 {수}건은 뺐습니다': '{수} inactive left out',
-  '테스트 프로시저의 케이스 {수}건은 작성 요청으로 보냅니다. 프로시저에서 빼고 다시 실행한 뒤 PR 을 등록합니다':
+  '비활성 {수}건은 제외했습니다': '{수} inactive left out',
+  '테스트 프로시저의 케이스 {수}건은 작성 요청으로 보냅니다. 프로시저에서 제거하고 다시 실행한 뒤 PR 을 등록합니다':
     '{수} case(s) in a test procedure go as an authoring request. They are removed from the procedure, which is run again before the PR opens',
-  '테스트 프로시저의 케이스라 작성 요청으로 보냅니다. 프로시저에서 빼고 다시 실행한 뒤 PR 을 등록합니다':
+  '테스트 프로시저의 케이스라 작성 요청으로 보냅니다. 프로시저에서 제거하고 다시 실행한 뒤 PR 을 등록합니다':
     'This case is in a test procedure, so it goes as an authoring request. It is removed from the procedure, which is run again before the PR opens',
   '나머지 {수}건은 보내지 못했습니다. {까닭}': 'The other {수} could not be sent. {까닭}',
   '한 번에 {상한}건까지 요청할 수 있습니다. 선택한 것을 줄이세요': 'You can request up to {상한} at a time. Select fewer cases',
@@ -44,7 +44,7 @@ export const 고치기말: Record<string, string> = {
   '변경 전 값은 PR 본문에 있습니다.': 'The previous values are in the PR description.',
   '목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.':
     'It disappears from the list. The PR stays open on GitHub — close it there.',
-  '작성 소식이 한동안 없습니다. 검사가 길어지는 중일 수도 있습니다. 응답이 없는 것 같으면 작성 중단을 누른 뒤 다시 적용하세요':
+  '작성 진행 알림이 한동안 없습니다. 검사가 길어지는 중일 수도 있습니다. 응답이 없는 것 같으면 작성 중단을 누른 뒤 다시 적용하세요':
     'No word from authoring for a while. The checks may just be slow. If it looks stuck, stop it, then re-apply',
   '작성 순서를 기다리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Waiting for its authoring turn. You can close this page.',
   '테스트를 반영하는 중입니다. 검사가 완료되길 기다려 반영하므로 몇 분 걸립니다. 이 페이지를 닫아도 됩니다.':
@@ -63,6 +63,6 @@ export const 고치기말: Record<string, string> = {
   '수정한 케이스 보기 (PR)': 'View the changed cases (PR)',
   '지금까지 반영된 케이스를 기준으로 같은 내용으로 다시 수정합니다. 지금까지의 실행은 실행 기록에 남습니다.':
     'Applies the same changes again on top of the cases applied so far. Earlier runs stay in the run history.',
-  '다시 적용은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.': 'Only people with authoring write access can re-apply.',
-  '한동안 소식이 없는 수정을 중단합니다. 중단한 뒤 다시 적용할 수 있습니다.': 'Stops the change that has been quiet for a while. You can re-apply it afterwards.',
+  '다시 적용할 권한이 없습니다. 관리자에게 작성 쓰기 권한을 요청하세요.': 'You do not have permission to re-apply. Ask an admin for authoring write access.',
+  '한동안 응답이 없는 수정을 중단합니다. 중단한 뒤 다시 적용할 수 있습니다.': 'Stops the change that has been quiet for a while. You can re-apply it afterwards.',
 };

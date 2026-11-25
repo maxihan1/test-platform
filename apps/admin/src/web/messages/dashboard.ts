@@ -5,7 +5,7 @@ export const 대시보드말: Record<string, string> = {
   // 머리와 읽기
   '애플리케이션 {수}개 · 최근 {일}일 · {날짜} 기준': '{수} applications · last {일} days · as of {날짜}',
   '최근 {일}일': 'Last {일} days',
-  '서버가 시간대 「{시간대}」를 알아보지 못해 현황을 불러오지 못했습니다':
+  '서버가 시간대 「{시간대}」를 읽지 못해 현황을 불러오지 못했습니다':
     'The server does not recognize the time zone “{시간대}”, so the overview could not be loaded',
 
   // 실행 중 줄
@@ -19,7 +19,7 @@ export const 대시보드말: Record<string, string> = {
   '{수}건 더 있습니다': '{수} more',
   '실행 기록에서 보기': 'View in run history',
   '이 실행에서 실패 카드를 찾지 못했습니다': 'Could not find the failure card in this run',
-  '견줄 앞 실행이 없습니다': 'No earlier run to compare with',
+  '비교할 앞 실행이 없습니다': 'No earlier run to compare with',
 
   // 통과율
   '통과율': 'Pass rate',
@@ -43,7 +43,7 @@ export const 대시보드말: Record<string, string> = {
 
   // 실패 유형
   '실패 유형': 'Failure types',
-  '최근 {일}일 Fail · Not tested 가 없습니다': 'No Fail or Not tested tests in the last {일} days',
+  '최근 {일}일 동안 Fail · Not tested 가 없습니다': 'No Fail or Not tested tests in the last {일} days',
   '기대 결과 불일치': 'Expected result mismatch',
   '요소를 찾지 못함': 'Element not found',
   타임아웃: 'Timeout',
@@ -89,7 +89,7 @@ export const 대시보드말: Record<string, string> = {
   '기획서 {수}개 · 확인 필요 {확인}': '{수} specs · {확인} to check',
   '기획서로 테스트를 작성하고 실행하면 여기에 요구사항 추적 · 실행 결과 · 성능이 쌓입니다': 'Write tests from your specs and run them — requirement tracing, results and performance will build up here',
   '기획서와 실제 화면이 다른 곳': 'Where the spec and the actual screen differ',
-  '더보기 ({수})': 'Show more ({수})',
+  '더 보기 ({수})': 'Show more ({수})',
   '디스크': 'Disk',
   '모니터링 에이전트 연결 전': 'Monitoring agent not connected',
   '부하 테스트 기록 없음': 'No load tests yet',

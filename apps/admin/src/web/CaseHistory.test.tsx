@@ -32,7 +32,7 @@ describe('실행 이력의 한 건 실행 줄', () => {
       />,
     );
     const 줄들 = screen.getAllByRole('row').map((r) => r.textContent);
-    expect(줄들[0]).toContain('ZRS-001 실행 · RUN 10에 다시 실행으로 붙음');
+    expect(줄들[0]).toContain('ZRS-001 실행 · RUN 10에 다시 실행으로 추가됨');
     expect(줄들[1]).toContain('ZRS-001 실행 · 한 건 실행');
     expect(줄들[2]).not.toContain('다시 실행');
   });

@@ -151,7 +151,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
   it('없는 프로젝트 번호면 그 사실을 적는다', async () => {
     펼친다('project-99');
 
-    expect(await screen.findByText('그런 프로젝트가 없습니다')).toBeTruthy();
+    expect(await screen.findByText('그 프로젝트를 찾지 못했습니다')).toBeTruthy();
   });
 
   it('프로젝트 이름을 바꾸면 프로젝트 · 애플리케이션 · 계정을 다시 읽고 껍데기 재료도 다시 읽는다', async () => {
@@ -215,7 +215,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
   it('없는 접두사면 그 사실을 적는다', async () => {
     펼친다('NOPE');
 
-    expect(await screen.findByText('그런 애플리케이션이 없습니다')).toBeTruthy();
+    expect(await screen.findByText('그 애플리케이션을 찾지 못했습니다')).toBeTruthy();
   });
 
   it('주소에 자리가 없으면 맨 위에서 고른 애플리케이션으로 열고 메뉴 표시도 맞는다 — 목록 앞이 아니라도', async () => {
@@ -291,7 +291,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     fireEvent.change(screen.getByLabelText('Slack 웹훅'), { target: { value: 'https://hooks.slack.com/x' } });
     목록.mockResolvedValue({ items: [{ ...서비스, isActive: false }] });
     fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
-    fireEvent.click(screen.getByRole('button', { name: '비활성화한다' }));
+    fireEvent.click(screen.getByRole('button', { name: '비활성화 확인' }));
 
     expect(await screen.findByRole('button', { name: '다시 활성화' })).toBeTruthy();
     expect(고침).toHaveBeenCalledWith(1, { isActive: false });

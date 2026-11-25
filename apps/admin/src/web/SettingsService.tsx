@@ -119,7 +119,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         <span className="set-sub">{t('케이스 {건수}건', { 건수: row.caseCount })}</span>
       </h2>
 
-      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호, 애플리케이션 선택 목록, 스크립트 폴더에 쓰는 정보입니다')}>
+      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호, 애플리케이션 선택 목록, 테스트 폴더에 쓰는 정보입니다')}>
         <프로젝트칸 지금={{ id: row.projectId, name: row.projectName }} />
         <접두사칸 값={row.prefix} />
         <종류칸 값={kind} 게임플랫폼={row.gamePlatform} />
@@ -145,7 +145,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
               onChange={(e) => setTestsDir(e.target.value)}
               placeholder="pay"
             />
-            <div className="hint">{t('플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다')}</div>
+            <div className="hint">{t('케이스 파일을 읽어 오는 폴더입니다')}</div>
           </div>
         </div>
 
@@ -176,7 +176,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
           비울때={t('이대로 저장하면 알림이 꺼집니다. 유지하려면 「변경 취소」를 누릅니다')} />
       </구획>
 
-      <구획 제목={t('테스트 작성')} 쓰임={t('기획서와 피그마로 테스트 스크립트를 만들 때만 사용합니다. 실행에는 영향을 주지 않습니다')}>
+      <구획 제목={t('테스트 작성')} 쓰임={t('기획서와 피그마로 케이스를 만들 때만 씁니다. 실행에는 영향을 주지 않습니다')}>
         {/* 규칙은 웹훅과 같다. 발급 안내를 옆에 둔다 — 어디서 만드는지 모르면 칸이 비어 남는다 (도메인/인증 §8.8) */}
         <비밀칸 id="sf-figma" 이름={t('피그마 토큰')} 설정됨={row.hasFigmaToken ?? false}
           값={figma} 바꾼다={setFigma} placeholder="figd_..."
@@ -216,7 +216,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
 
-      <구획 제목={t('화면 크기')} 쓰임={t('테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지 모바일도 같이 만들지 이 판정으로 정합니다')}>
+      <구획 제목={t('화면 크기')} 쓰임={t('테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지, 모바일도 같이 만들지를 이 판정으로 정합니다')}>
         <ViewportSection serviceId={row.id} envs={row.envs} />
       </구획>
 
@@ -225,13 +225,13 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
       </구획>
 
       {/* 저장과 다른 일이라 따로 둔다 — 적다 만 칸은 저장하지 않고 상태만 뒤집는다 */}
-      <구획 제목={t('애플리케이션 비활성화')} 쓰임={t('비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다')} 경고>
+      <구획 제목={t('애플리케이션 비활성화')} 쓰임={t('비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다')} 경고>
         {비활성확인 && row.isActive ? (
           // 결과를 먼저 말하고 확정은 글자가 다른 따로 된 버튼으로 둔다 — SettingsPending.tsx 의 거절 확인과 같은 모양
           <div className="set-warn">
             {t('애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다')}{' '}
             <button className="btn ghost set-warn" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
-              {t('비활성화한다')}
+              {t('비활성화 확인')}
             </button>{' '}
             <button className="btn ghost" disabled={보내는중} onClick={() => set비활성확인(false)}>
               {t('그만두기')}

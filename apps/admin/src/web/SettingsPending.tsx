@@ -83,7 +83,7 @@ export function PendingSection({
                   disabled={보내는중}
                   onClick={() => void 한다(() => api.rejectUser(it.username))}
                 >
-                  {t('삭제한다')}
+                  {t('삭제 확인')}
                 </button>{' '}
                 <button className="btn ghost" onClick={() => set여는것(null)}>
                   {t('그만두기')}
@@ -144,7 +144,7 @@ function ApproveForm({
             void onApprove({ role, dashboard, projects: 배정들 }).finally(() => set보내는중(false));
           }}
         >
-          {t('승인한다')}
+          {t('승인 확인')}
         </button>
       </div>
     </div>

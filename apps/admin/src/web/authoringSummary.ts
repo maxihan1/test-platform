@@ -12,7 +12,7 @@ import { 서울시각 } from './seoul.js';
 const 종류글: Record<요약종류, string> = {
   PRD: '기획서로 작성',
   API_DOC: 'API 문서로 작성',
-  UNCOVERED: '기획서에 없는 화면',
+  UNCOVERED: '미검증 화면',
   SCREEN_ONLY: '화면만 대조',
   CONTINUE: '남은 요구사항 이어 작성',
   PRD_APPLY: '변경된 요구사항 다시 작성',
@@ -44,7 +44,7 @@ function 자료이름(a: { name: string; figma: boolean }, 언어: 언어): stri
 export function 무슨테스트(s: 목록요약, 언어: 언어): string {
   const w = s.what;
   if ((s.kind === 'PRD' || s.kind === 'API_DOC' || s.kind === 'CONTINUE') && w.features.length > 0) {
-    return t('기능 {수}개 테스트 · {이름들}', 언어, { 수: w.features.length + w.featuresMore, 이름들: 셋과나머지(w.features, w.featuresMore, 언어) });
+    return t('기능 {수}개의 테스트 · {이름들}', 언어, { 수: w.features.length + w.featuresMore, 이름들: 셋과나머지(w.features, w.featuresMore, 언어) });
   }
   if ((s.kind === 'UNCOVERED' || s.kind === 'SCREEN_ONLY') && w.screens.length > 0) {
     return t('{이름들} 화면 테스트', 언어, { 이름들: 셋과나머지(w.screens, w.screensMore, 언어) });

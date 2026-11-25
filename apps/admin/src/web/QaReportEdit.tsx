@@ -16,7 +16,7 @@ const 승인거절: Record<string, string> = {
   RUNNING: '진행 중인 실행이 완료되면 승인할 수 있습니다',
   AI_PENDING: 'AI 가 남은 리스크를 작성하는 중입니다. 작성이 완료되면 승인할 수 있습니다',
   ALREADY_APPROVED: '이미 승인된 리포트입니다',
-  NOT_LATEST: '더 새 버전이 있습니다. 마지막 버전에서 승인할 수 있습니다',
+  NOT_LATEST: '새 버전이 있습니다. 가장 최근 버전에서 승인할 수 있습니다',
   APPROVED: '승인된 버전은 수정할 수 없습니다',
 };
 

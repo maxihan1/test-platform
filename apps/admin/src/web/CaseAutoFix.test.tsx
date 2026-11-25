@@ -101,7 +101,7 @@ describe('서랍 「자동 수정 기록」', () => {
   it('반영을 기다리는 줄에 사람 확인 댓글이 있으면 그 한 줄', async () => {
     vi.spyOn(api, 'caseFix').mockResolvedValue({ autoFix: 상세({ state: 'WAIT_MERGE', merge: null, needsPerson: true, rerunId: null, devices: [] }) });
     render(<상자 tcId="DMW-FN-378" />);
-    expect(await screen.findByText('반영을 기다리는 중 — 사람 확인이 필요해요')).toBeTruthy();
+    expect(await screen.findByText('반영을 기다리는 중 — 사람 확인이 필요합니다')).toBeTruthy();
     expect(screen.queryByText('확인')).toBeNull();
   });
 
@@ -123,13 +123,13 @@ describe('서랍 「자동 수정 기록」', () => {
       autoFix: 상세({ issueKey: null, issueUrl: null, failedRun: 21154, failure: 'timeout', state: 'WAIT_MERGE', merge: null, needsPerson: true, personWhy: ['확인 문장이 줄었어요'], rerunId: null, devices: [] }),
     });
     render(<상자 tcId="ARG-FN-012" />);
-    expect(await screen.findByText('반영을 기다리는 중 — 사람 확인이 필요해요 · 확인 문장이 줄었어요')).toBeTruthy();
+    expect(await screen.findByText('반영을 기다리는 중 — 사람 확인이 필요합니다 · 확인 문장이 줄었어요')).toBeTruthy();
   });
 
   it('그만둔 줄은 까닭을 붙인다', async () => {
     vi.spyOn(api, 'caseFix').mockResolvedValue({ autoFix: 상세({ state: 'GAVE_UP', reason: '테스트 수정 작성이 실패했어요' }) });
     render(<상자 tcId="DMW-FN-378" />);
-    expect(await screen.findByText('그만뒀어요 · 테스트 수정 작성이 실패했어요')).toBeTruthy();
+    expect(await screen.findByText('그만뒀습니다 · 테스트 수정 작성이 실패했어요')).toBeTruthy();
   });
 });
 

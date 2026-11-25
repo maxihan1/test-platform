@@ -129,7 +129,7 @@ export function 보임라벨(보: 보임, 언어: 언어): string {
 export function 중단이유라벨(reason: string | null | undefined, 언어: 언어): string {
   if (reason === 'USER') return t('사용자가 중단', 언어);
   // 제한 시간 숫자를 박지 않는다 — 에이전트 설정이 바뀌면 글이 거짓말을 한다(분모는 progress.limitSec 이 준다)
-  if (reason === 'TIMEOUT') return t('시간초과', 언어);
+  if (reason === 'TIMEOUT') return t('제한 시간 초과', 언어);
   if (reason === 'LIMIT') return t('구독 한도', 언어);
   if (reason === 'AGENT_RESTART') return t('작성 재시작', 언어);
   if (reason === 'AGENT_LOST') return t('작성 응답 없음', 언어);

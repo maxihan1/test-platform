@@ -63,7 +63,7 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
             {t('취소')}
           </button>
           <button type="button" className="btn" disabled={상세 === null || envs.length === 0 || 하는중} onClick={() => void 시작()}>
-            {하는중 ? t('실행을 만드는 중') : t('실행')}
+            {하는중 ? t('실행을 준비하는 중') : t('실행')}
           </button>
         </>
       }

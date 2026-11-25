@@ -51,7 +51,7 @@ describe('실행 기록 › 호환성', () => {
     expect(끝난.getByText('결함 확정 2')).toBeTruthy();
     expect(끝난.getByText('미판정 4')).toBeTruthy();
     expect(끝난.getByText('발생 6 / 14 상태')).toBeTruthy();
-    expect(끝난.getByText('2화면')).toBeTruthy();
+    expect(끝난.getByText('2개 화면')).toBeTruthy();
     expect(끝난.getByText('빌드 1.4.2')).toBeTruthy();
 
     const 도는 = within(screen.getByRole('link', { name: 'RUN 21112' }).closest('tr')!);

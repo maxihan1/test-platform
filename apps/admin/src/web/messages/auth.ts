@@ -26,7 +26,7 @@ export const 계정말: Record<string, string> = {
     'Sign-up sent. You can sign in once an admin accepts it.',
   '로그인 화면으로': 'Back to sign in',
   '이미 쓰는 아이디입니다': 'That ID is already taken',
-  '영문 소문자·숫자·. _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다':
+  '영문 소문자 · 숫자 · . _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다':
     'Lowercase letters, digits, . _ - only, 2–32 characters, starting with a letter or digit',
   '두 비밀번호가 다릅니다': 'The two passwords do not match',
   '비밀번호는 8자 이상이어야 합니다': 'Passwords must be at least 8 characters',
@@ -48,8 +48,8 @@ export const 계정말: Record<string, string> = {
   '승인 대기 {건수}': 'Pending approval {건수}',
   승인: 'Approve',
   거절: 'Decline',
-  승인한다: 'Accept now',
+  '승인 확인': 'Confirm approval',
   '가입 신청을 삭제합니다. 복원할 수 없습니다': 'This deletes the sign-up request. It cannot be undone',
-  삭제한다: 'Delete now',
+  '삭제 확인': 'Confirm deletion',
   '다른 관리자가 먼저 처리했습니다': 'Another admin already handled this',
 };

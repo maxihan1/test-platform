@@ -155,7 +155,7 @@ describe('끝 화면', () => {
     await 다만든다();
 
     expect(screen.queryByRole('button', { name: '테스트 작성 시작' })).toBeNull();
-    expect(screen.getByText('맨 위 드롭다운에서 선택하려면 「계정」에서 이 프로젝트를 나에게 배정합니다')).toBeTruthy();
+    expect(screen.getByText('맨 위 드롭다운에서 선택하려면 「계정」에서 이 프로젝트를 나에게 배정하세요')).toBeTruthy();
   });
 
   it('배정된 프로젝트인데 맨 위 재료를 아직 다시 읽는 중이면 배정 안내를 띄우지 않는다', async () => {
@@ -163,6 +163,6 @@ describe('끝 화면', () => {
     await 다만든다();
 
     expect(screen.queryByRole('button', { name: '테스트 작성 시작' })).toBeNull();
-    expect(screen.queryByText(/「계정」에서 이 프로젝트를 나에게 배정합니다/)).toBeNull();
+    expect(screen.queryByText(/「계정」에서 이 프로젝트를 나에게 배정하세요/)).toBeNull();
   });
 });

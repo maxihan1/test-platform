@@ -126,7 +126,7 @@ describe('시험 실행 돌리기', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
     await act(async () => {
-      fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '중단하고 닫기' }));
+      fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 중단합니다' })).getByRole('button', { name: '중단하고 닫기' }));
     });
 
     expect(중단).toHaveBeenCalledWith('t-1');

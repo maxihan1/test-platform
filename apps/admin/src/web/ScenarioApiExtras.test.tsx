@@ -46,7 +46,7 @@ describe('API 호출 단계 — API 인증', () => {
     expect((screen.getByLabelText('API 인증') as HTMLSelectElement).value).toBe('옛 인증');
     cleanup();
     그리기(api({ service: undefined }));
-    expect(screen.getByText('이 애플리케이션 대상 서버에 등록한 API 인증이 없습니다')).toBeTruthy();
+    expect(screen.getByText('이 애플리케이션의 대상 서버에 등록한 API 인증이 없습니다')).toBeTruthy();
   });
 });
 

@@ -14,7 +14,7 @@ export function CompatShot({ runId, screenId, issues, 이름, 작게 = false }: 
   return (
     <div className={작게 ? 'cr-shot small' : 'cr-shot'}>
       {없음 ? (
-        <span className="cr-shot-none">{t('화면 그림을 받지 못했습니다')}</span>
+        <span className="cr-shot-none">{t('화면 캡처를 받지 못했습니다')}</span>
       ) : (
         <>
           <img

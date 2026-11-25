@@ -161,14 +161,14 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
             />
           ) : 프로젝트자리 ? (
             프로젝트 === undefined ? (
-              <div className="empty">{t('그런 프로젝트가 없습니다')}</div>
+              <div className="empty">{t('그 프로젝트를 찾지 못했습니다')}</div>
             ) : BTS자리 ? (
               <SettingsBts row={프로젝트} services={서비스들} onDone={() => void services.reload()} />
             ) : (
               <ProjectPanel key={`${프로젝트.id}-${판}`} row={프로젝트} projects={프로젝트들} services={서비스들} onDone={() => void 프로젝트다시()} />
             )
           ) : 서비스 === undefined ? (
-            <div className="empty">{t('그런 애플리케이션이 없습니다')}</div>
+            <div className="empty">{t('그 애플리케이션을 찾지 못했습니다')}</div>
           ) : (
             // 서비스마다 · 저장할 때마다 새로 그린다 — 앞 서비스에서 적다 만 글자가 다른 서비스 칸에 남으면 남의 서비스에 저장된다
             <ServicePanel

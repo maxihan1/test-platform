@@ -177,7 +177,7 @@ export function 저장한값줄({
           <button type="button" className="btn" onClick={() => void 저장()} disabled={busy}>
             {t('저장')}
           </button>
-          <span className="hint">{t('이 이름의 묶음으로 따로 저장합니다')}</span>
+          <span className="hint">{t('이 이름으로 묶음을 따로 저장합니다')}</span>
         </div>
       )}
     </div>

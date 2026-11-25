@@ -106,7 +106,7 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
   it('작성 요청 권한이 없으면 버튼 대신 까닭을 말한다', () => {
     카드(줄({}), 셈, 작성못함);
     expect(screen.queryByRole('button', { name: '남은 요구사항으로 이어 작성' })).toBeNull();
-    expect(screen.getByText('이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
+    expect(screen.getByText('이어 작성할 권한이 없습니다. 관리자에게 작성 쓰기 권한을 요청하세요.')).toBeTruthy();
   });
 
   it('이미 넘겼으면 맡은 요청으로 가는 고리를 보인다', () => {
@@ -198,7 +198,7 @@ describe('이어 작성 요청 — 원본 표시', () => {
         <AuthoringDetail service="MKT" id={5901} 할수={다됨} />
       </언어함>,
     );
-    const 고리 = await screen.findByRole('link', { name: '#5873 다음 · 기획서에 없는 화면' });
+    const 고리 = await screen.findByRole('link', { name: '#5873 다음 · 미검증 화면' });
     expect(고리.getAttribute('href')).toBe('#/authoring/5873');
     expect(screen.queryByRole('link', { name: /남은 요구사항/ })).toBeNull();
   });

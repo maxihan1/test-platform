@@ -103,7 +103,7 @@ describe('ScenarioPalette 목록', () => {
 
     await screen.findByRole('button', { name: 'ZSP-001 추가' });
     expect(screen.queryByRole('button', { name: 'ZSP-002 추가' })).toBeNull();
-    expect(screen.getByText('모바일에서 실행되지 않는 케이스 2건은 뺐습니다')).toBeTruthy();
+    expect(screen.getByText('모바일에서 실행되지 않는 케이스 2건은 제외했습니다')).toBeTruthy();
   });
 
   it('케이스 찾기는 tcId 와 이름에 든 글자로 거르고 대소문자를 가리지 않는다', async () => {
@@ -127,7 +127,7 @@ describe('ScenarioPalette 목록', () => {
     await screen.findByRole('button', { name: 'ZSP-001 추가' });
 
     expect(screen.getByText('업무 흐름 케이스')).toBeTruthy();
-    expect(screen.getByText('상태 전이 사용 또는 기법 표시 없음')).toBeTruthy();
+    expect(screen.getByText('상태 전이를 쓰지 않고 기법 표시도 없습니다')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'ZSP-003 추가' })).toBeTruthy();
 
     const 머리 = screen.getByRole('button', { name: /입력값 검증 케이스 1/ });

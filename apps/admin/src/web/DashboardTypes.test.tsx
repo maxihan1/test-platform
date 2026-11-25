@@ -44,7 +44,7 @@ describe('실패 유형 칸', () => {
 
   it('실패 · 미실행이 하나도 없으면 줄 대신 짧게 알린다', () => {
     const 칸 = 칸을그린다({});
-    expect(within(칸).getByText('최근 14일 Fail · Not tested 가 없습니다')).toBeTruthy();
+    expect(within(칸).getByText('최근 14일 동안 Fail · Not tested 가 없습니다')).toBeTruthy();
     expect(칸.querySelector('.dash-ftr')).toBeNull();
     expect(칸.textContent).not.toContain('세지 않았습니다');
   });
@@ -57,7 +57,7 @@ describe('실패 유형 칸', () => {
 
   it('Blocked 는 유형에 넣지 않고 아래 줄에도 적지 않는다 — Blocked 뿐이면 「없습니다」를 띄우지 않는다', () => {
     const 칸 = 칸을그린다({}, 0, 2);
-    expect(within(칸).queryByText('최근 14일 Fail · Not tested 가 없습니다')).toBeNull();
+    expect(within(칸).queryByText('최근 14일 동안 Fail · Not tested 가 없습니다')).toBeNull();
     expect(칸.textContent).not.toContain('Blocked');
     cleanup();
     const 섞인 = 칸을그린다({ mismatch: [1, 0] }, 1, 3);

@@ -74,7 +74,7 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
     <div className="ev" ref={뿌리}>
       <div className="ev-tl">
         <div className="ev-tl-h">
-          <span>{t('시간축 · 단계를 누르면 증거 칸이 그 단계로 변경됩니다')}</span>
+          <span>{t('타임라인 · 단계를 누르면 증거 칸이 그 단계로 변경됩니다')}</span>
           <span className="mono">{seconds(전체ms, 언어)}</span>
         </div>
         <div className="ev-track" role="group" aria-label={t('단계 선택')}>

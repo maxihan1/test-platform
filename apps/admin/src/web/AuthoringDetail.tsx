@@ -155,7 +155,7 @@ export function AuthoringDetail({
         {앞대조 === null ? null : (
           <>
             {' · '}
-            <a href={`#/authoring/${String(앞대조)}`}>{t('#{번호} 다음 · 기획서에 없는 화면', { 번호: 앞대조 })}</a>
+            <a href={`#/authoring/${String(앞대조)}`}>{t('#{번호} 다음 · 미검증 화면', { 번호: 앞대조 })}</a>
           </>
         )}
       </>

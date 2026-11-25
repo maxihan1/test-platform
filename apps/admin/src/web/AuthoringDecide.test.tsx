@@ -93,7 +93,7 @@ describe('결정 목록', () => {
     const 셈있음: 결정항목 = { ...반영, summary: 요약({ what: { features: ['회원가입'] }, result: { casesMade: 410, casesFixed: 2 } }) };
     render(<AuthoringDecide service="DMW" 목록={목록([셈있음])} envs={[]} 다시읽기={() => {}} />);
     expect(screen.getByText('테스트 412건을 승인할까요?')).toBeTruthy();
-    expect(screen.getByText(/기능 1개 테스트 · 회원가입/)).toBeTruthy();
+    expect(screen.getByText(/기능 1개의 테스트 · 회원가입/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '반려' }));
     expect(screen.getByText('#10 작성 결과를 삭제합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
@@ -108,7 +108,7 @@ describe('결정 목록', () => {
     render(<AuthoringDecide service="DMW" 목록={목록([반영])} envs={[]} 다시읽기={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '반려' }));
     fireEvent.click(적용());
-    expect(screen.getByText('반려 1건은 복구할 수 없습니다')).toBeTruthy();
+    expect(screen.getByText('반려 1건은 복원할 수 없습니다')).toBeTruthy();
     expect(within(screen.getByRole('dialog')).getByText('#10 작성 결과를 삭제합니다')).toBeTruthy();
     물음누름('취소');
     expect(보낸).toEqual([]);
@@ -292,7 +292,7 @@ describe('결정 목록', () => {
   it('요구사항 확인은 명세 표 차례 — 화면 기준 → 기획서 간 불일치', () => {
     const { container } = render(<AuthoringDecide service="DMW" 목록={목록([문구(), 화면확인('DMW-REQ-349')])} envs={[]} 다시읽기={() => {}} />);
     const 질문들 = [...container.querySelectorAll('.decide-q')].map((x) => x.textContent ?? '');
-    expect(질문들.map((q) => q.slice(0, 8))).toEqual(['기획서에 없어서', '기획서 2개가 ']);
+    expect(질문들.map((q) => q.slice(0, 8))).toEqual(['기획서에 없어서', '기획서 2개에 ']);
     expect(screen.getByRole('link', { name: 'DMW-REQ-349' }).getAttribute('href')).toBe('#/prd/DMW-REQ-349');
   });
 
@@ -303,7 +303,7 @@ describe('결정 목록', () => {
     });
     const { container } = render(<AuthoringDecide service="ARG" 목록={목록([카드('ARG-REQ-350', 'EXPLORE'), 카드('ARG-REQ-412', 15402), 카드('ARG-REQ-413', 'APP_STRINGS'), 문구(), 화면확인('ARG-REQ-118')])} envs={[]} 다시읽기={() => {}} />);
     const 질문들 = [...container.querySelectorAll('.decide-q')].map((x) => (x.textContent ?? '').slice(0, 8));
-    expect(질문들).toEqual(['기획서에 없어서', '기획서 2개가 ', '기획서가 정하지']);
+    expect(질문들).toEqual(['기획서에 없어서', '기획서 2개에 ', '기획서가 정하지']);
     expect(screen.getByText('· 탐색 플레이 · 빌드 23 · 3번 확인')).toBeTruthy();
     expect(screen.getByText('· RUN 15402 · 빌드 23 · 3번 확인')).toBeTruthy();
     expect(screen.getByText('· 앱 문구 · 빌드 23 · 3번 확인')).toBeTruthy();
@@ -354,7 +354,7 @@ describe('결정 목록', () => {
     expect(칸().map((c) => c.disabled)).toEqual([false, false, false, false, true]);
     fireEvent.click(screen.getByRole('button', { name: '전체 선택' }));
     expect(칸().map((c) => c.checked)).toEqual([true, true, false, false, false]);
-    expect(screen.getByText('지금 기획서에 없는 요구사항이라 선택할 수 없어요', { exact: false })).toBeTruthy();
+    expect(screen.getByText('지금 기획서에 없는 요구사항이라 선택할 수 없습니다', { exact: false })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '초안 삭제' }));
     expect(칸().every((c) => c.disabled)).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: '초안 삭제' }));

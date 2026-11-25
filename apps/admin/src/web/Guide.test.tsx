@@ -316,7 +316,7 @@ describe('애플리케이션 가이드 — 쓰던 글을 두고 떠나기 (점�
 
     expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
     expect(바꾼다).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 나가기' }));
     expect(바꾼다).toHaveBeenCalledOnce();
   });
 

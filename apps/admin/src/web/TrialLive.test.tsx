@@ -42,7 +42,7 @@ describe('장면칸', () => {
     expect(받기).toHaveBeenCalledWith(주소);
     expect(장면()).toBe('blob:1');
     expect(screen.getByText('실시간 화면')).toBeTruthy();
-    expect(screen.getByText('동작마다 1초 천천히')).toBeTruthy();
+    expect(screen.getByText('동작마다 1초씩 느리게 실행')).toBeTruthy();
 
     await 흘리기(250);
     expect(받기).toHaveBeenCalledTimes(2);
@@ -61,7 +61,7 @@ describe('장면칸', () => {
     expect(받기).toHaveBeenCalledTimes(1);
     expect(장면()).toBe('blob:1');
     expect(screen.getByText('마지막 화면')).toBeTruthy();
-    expect(screen.queryByText('동작마다 1초 천천히')).toBeNull();
+    expect(screen.queryByText('동작마다 1초씩 느리게 실행')).toBeNull();
   });
 
   it('장면이 오기 전에는 기다린다고 알리고, 장면 없이 끝나면 칸을 그리지 않는다', async () => {
@@ -147,7 +147,7 @@ describe('장면칸', () => {
     expect(screen.getByText('디바이스 화면')).toBeTruthy();
     expect(screen.getByText('Device VISION 디바이스')).toBeTruthy();
     expect(screen.getByRole('img').getAttribute('alt')).toBe('디바이스의 지금 화면');
-    expect(screen.queryByText('동작마다 1초 천천히')).toBeNull();
+    expect(screen.queryByText('동작마다 1초씩 느리게 실행')).toBeNull();
     expect(받기).toHaveBeenCalledTimes(2);
 
     await 흘리기(250);
@@ -183,7 +183,7 @@ describe('장면칸', () => {
     expect(장면()).toBe('blob:1');
     expect(screen.getByRole('img').getAttribute('alt')).toBe('디바이스의 지금 화면');
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
-    expect(screen.queryByText('동작마다 1초 천천히')).toBeNull();
+    expect(screen.queryByText('동작마다 1초씩 느리게 실행')).toBeNull();
   });
 
   it('모바일 웹은 폰을 잡으면 실제 폰 Chrome 장면을 「폰 화면」으로 그린다 — 앱 단계라고 하지 않는다', async () => {
@@ -203,7 +203,7 @@ describe('장면칸', () => {
     expect(장면()).not.toBeNull();
     expect(screen.getByText('디바이스 화면')).toBeTruthy();
     expect(screen.getByText('실제 디바이스 Chrome')).toBeTruthy();
-    expect(screen.getByText('동작마다 1초 천천히')).toBeTruthy();
+    expect(screen.getByText('동작마다 1초씩 느리게 실행')).toBeTruthy();
     expect(screen.queryByText(/앱 단계/)).toBeNull();
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
   });

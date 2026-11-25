@@ -227,7 +227,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
               <li key={줄.rootId}>{차례글(줄, t)}</li>
             ))}
           </ul>
-          <p>{t('반려 {수}건은 복구할 수 없습니다', { 수: 반려.length })}</p>
+          <p>{t('반려 {수}건은 복원할 수 없습니다', { 수: 반려.length })}</p>
         </확인창>
       )}
     </section>

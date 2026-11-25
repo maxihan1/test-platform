@@ -208,7 +208,7 @@ export function 문구고르기({ x, 고른표, on고름, 편집, on편집 }: { 
   const 저장함 = 고른?.pick === 'OWN' ? (고른.text ?? '') : null;
   return (
     <fieldset className="decide-item decide-docs">
-      <legend className="decide-q">{고르나 ? t('기획서 {수}개가 서로 다르게 적었습니다. 맞는 쪽을 체크해 주세요', { 수: 자료수 }) : t('기획서 {수}개가 서로 다르게 적었습니다', { 수: 자료수 })}</legend>
+      <legend className="decide-q">{고르나 ? t('기획서 {수}개에 서로 다르게 적혀 있습니다. 맞는 쪽을 체크해 주세요', { 수: 자료수 }) : t('기획서 {수}개가 서로 다르게 적었습니다', { 수: 자료수 })}</legend>
       <small className="hint">
         <span className="prd-id">{x.reqId}</span> {x.feature}
         {나이 === null ? null : ` · ${나이}`}

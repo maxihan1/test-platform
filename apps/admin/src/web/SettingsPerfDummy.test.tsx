@@ -66,7 +66,7 @@ describe('설정 › 더미 클라이언트', () => {
     그리기();
     vi.spyOn(perfApi, 'addDummyClient').mockRejectedValue(new ApiError(413, '413', '', []));
     await 채우고올리기(new File(['PK'], 'bot.zip'));
-    expect((await screen.findByRole('alert')).textContent).toBe('파일은 200MB 까지입니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('파일은 200MB까지 업로드할 수 있습니다');
   });
 
   it('쓰는 시나리오가 있으면 지우지 못한다는 문구를 보인다', async () => {

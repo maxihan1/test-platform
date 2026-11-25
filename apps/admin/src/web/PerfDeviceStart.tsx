@@ -174,9 +174,9 @@ export function PerfDeviceStart({
           <h2 id="pd-m">{t('조작 방식')}</h2>
           <div className="pd-kinds" role="radiogroup" aria-label={t('조작 방식')}>
             {게임
-              ? 조작칸('GAME', '게임 케이스', '선택한 게임 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 디바이스만 됩니다')
-              : 조작칸('APPIUM', 'Appium 케이스', '선택한 Android 앱 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 디바이스만 됩니다')}
-            {조작칸('MANUAL', '직접 플레이', 'Device VISION 에 꽂힌 디바이스를 손에 들고 플레이하는 동안 기록합니다')}
+              ? 조작칸('GAME', '게임 케이스', '선택한 게임 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 에 연결된 디바이스만 쓸 수 있습니다')
+              : 조작칸('APPIUM', 'Appium 케이스', '선택한 Android 앱 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 에 연결된 디바이스만 쓸 수 있습니다')}
+            {조작칸('MANUAL', '직접 플레이', 'Device VISION 에 연결된 디바이스를 손에 들고 플레이하는 동안 기록합니다')}
           </div>
         </section>
 
@@ -251,7 +251,7 @@ export function PerfDeviceStart({
               </fieldset>
             )
           ) : (
-            <span className="perf-faint">{t('직접 플레이는 반복 없이 한 번 잽니다. 정한 시간이 지나면 끝납니다')}</span>
+            <span className="perf-faint">{t('직접 플레이는 반복 없이 한 번 잽니다. 정한 시간이 지나면 종료됩니다')}</span>
           )}
           <칸오류 id="pd-cases-err" 사유={틀린('cases')} />
         </section>

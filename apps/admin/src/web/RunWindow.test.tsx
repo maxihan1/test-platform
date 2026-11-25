@@ -135,7 +135,7 @@ describe('RunWindow', () => {
     읽기모킹([케이스('ZRS-001', { isActive: false })]);
     render(<RunWindow tcIds={['ZRS-001']} onClose={vi.fn()} />);
 
-    expect(await screen.findByText('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다')).toBeTruthy();
+    expect(await screen.findByText('실행할 케이스가 없습니다. 선택한 케이스가 전부 비활성이거나 필터에서 빠졌습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
   });
 

@@ -92,7 +92,7 @@ describe('ScenarioList 머리 · 표머리', () => {
     const 머리 = container.querySelector('.head');
     expect(머리?.querySelector('h1')?.textContent).toBe('E2E 테스트');
     expect(머리?.querySelector('.head-meta')?.textContent).toBe(
-      '기능 테스트 스크립트를 차례로 실행해 흐름이 끊기지 않는지 확인합니다',
+      '기능 케이스를 차례로 실행해 흐름이 끊기지 않는지 확인합니다',
     );
     expect(screen.getByRole('link', { name: '새 시나리오' }).getAttribute('href')).toBe('#/scenarios/new');
   });
@@ -310,7 +310,7 @@ describe('ScenarioList 실행', () => {
     expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole('radio', { name: '실제 디바이스' }));
     // 시나리오는 폰을 한 번 잡는다 — 케이스 글(「케이스마다 …」)이 아니다
-    expect(screen.getByText('시나리오 하나 동안 유휴 디바이스를 한 번 할당받고 모두 실행하면 반납합니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')).toBeTruthy();
+    expect(screen.getByText('시나리오 하나를 실행하는 동안 유휴 디바이스를 한 번 할당받고, 모두 실행하면 반납합니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')).toBeTruthy();
     expect(screen.queryByText(/케이스마다 빈 폰을/)).toBeNull();
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
     expect(확인상자().getByText('모바일 (실제 디바이스)')).toBeTruthy();
@@ -351,7 +351,7 @@ describe('ScenarioList 빈 목록 · 오류', () => {
     await 그리기([]);
 
     expect(await screen.findByText(/아직 만든 시나리오가 없습니다/)).toBeTruthy();
-    expect(screen.getByText('기능 테스트 스크립트를 단계로 이어 붙여 만듭니다')).toBeTruthy();
+    expect(screen.getByText('기능 케이스를 단계로 이어 붙여 만듭니다')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: '새 시나리오' }).length).toBeGreaterThan(0);
   });
 

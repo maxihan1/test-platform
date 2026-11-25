@@ -60,8 +60,8 @@ export const 정기실행말: Record<string, string> = {
     'A stability baseline set holds only functional and UI tests of one application and repeats daily or on chosen days',
   '안정화 기준 세트의 조건에 맞지 않거나 이 애플리케이션에 다른 기준 세트가 있습니다':
     'This set does not fit a stability baseline, or the application already has another baseline set',
-  '기능 전체': 'All functional',
-  'UI 전체': 'All UI',
+  '기능 테스트 전체': 'All functional',
+  'UI 테스트 전체': 'All UI',
   '{번호} 외 {수}건': '{번호} and {수} more',
   '전체 {수}건': 'All {수} cases',
   '실행 시점의 활성 케이스 전체(이후 추가된 케이스 포함)': 'All active cases at run time (including cases added later)',
@@ -87,7 +87,7 @@ export const 정기실행말: Record<string, string> = {
   '호환성 테스트는 디바이스별로 차례대로 실행한 뒤 AI 점검까지 진행해 2~3시간 걸릴 수 있습니다':
     'Compatibility tests run on each device in turn and then go through AI review, so they can take 2–3 hours',
   '다음 실행': 'Next runs',
-  '기능 · UI 실행 결과 Slack 전송': 'Functional and UI results sent to Slack',
+  '기능 테스트 · UI 테스트 실행 결과 Slack 전송': 'Functional and UI results sent to Slack',
   '전송 안 함': 'Not sent',
   '안정화 지표에 사용': 'Use for stability metrics',
   '안정화 기준 세트는 애플리케이션당 하나입니다. 안정화 지표는 이 세트의 실행 결과만 집계합니다':

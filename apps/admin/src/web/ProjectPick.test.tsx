@@ -133,7 +133,7 @@ describe('프로젝트 고르기 화면', () => {
     expect(screen.queryByRole('button', { name: /사내 포털/ })).toBeNull();
 
     fireEvent.change(검색, { target: { value: '없는 이름' } });
-    expect(screen.getByText('찾은 것이 없습니다')).toBeTruthy();
+    expect(screen.getByText('검색 결과가 없습니다')).toBeTruthy();
   });
 
   it('여기서도 로그아웃할 수 있다', () => {

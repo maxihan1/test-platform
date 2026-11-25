@@ -42,7 +42,7 @@ describe('PRD 관리 — 목차의 정리 필요 묶음', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await 정리목차());
     const 서랍 = screen.getByRole('complementary');
-    expect(within(서랍).getByText('이 묶음 이름은 목차 규칙에 맞지 않아요')).toBeTruthy();
+    expect(within(서랍).getByText('이 묶음 이름은 목차 규칙에 맞지 않습니다')).toBeTruthy();
     expect(within(서랍).getByText('이름이 문장 꼴입니다')).toBeTruthy();
     expect(within(서랍).getByText('들어 있는 요구사항 1건')).toBeTruthy();
     // 요구 문장에 「로그인」 이 들어 있어 그 묶음을 미리 고른다

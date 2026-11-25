@@ -129,7 +129,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
                       <td className="perf-faint">{when(a.lastSeenAt, 언어)}</td>
                       <td>
                         <div className="perf-row">
-                          <button type="button" className="btn ghost small" aria-label={t('{이름} 편집', { 이름: a.name })} onClick={() => { set오류(null); set눌렀나(false); set고칠({ id: a.id, name: a.name, maxVus: a.maxVus === null ? '' : String(a.maxVus) }); }}>
+                          <button type="button" className="btn ghost small" aria-label={t('{이름} 수정', { 이름: a.name })} onClick={() => { set오류(null); set눌렀나(false); set고칠({ id: a.id, name: a.name, maxVus: a.maxVus === null ? '' : String(a.maxVus) }); }}>
                             {t('편집')}
                           </button>
                           <button type="button" className="btn ghost small" aria-label={t('{이름} 삭제', { 이름: a.name })} onClick={() => { set오류(null); set지울것(a); }}>
@@ -162,7 +162,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
             </>
           }
         >
-          <p>{t('「{이름}」을 삭제하면 그 토큰도 끊겨 다시 연결하려면 재설치해야 합니다', { 이름: 지울것.name })}</p>
+          <p>{t('「{이름}」을 삭제하면 그 토큰도 무효가 되어 다시 연결하려면 재설치해야 합니다', { 이름: 지울것.name })}</p>
           {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
         </Modal>
       )}
@@ -258,7 +258,7 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
               {복사함 ? t('복사함') : t('복사')}
             </button>
           </div>
-          <span className="perf-faint">{t('토큰은 지금 한 번만 보입니다. 설치할 기계에서 실행하면 목록에 나타납니다')}</span>
+          <span className="perf-faint">{t('토큰은 지금 한 번만 보입니다. 설치할 컴퓨터에서 실행하면 목록에 나타납니다')}</span>
         </div>
       )}
     </div>

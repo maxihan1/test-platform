@@ -20,7 +20,7 @@ export function 실행이력칸({ 묶음 }: { 묶음: 이력묶음[] | null | un
       {묶음 === undefined ? (
         <p className="hint">{t('불러오는 중입니다')}</p>
       ) : 묶음 === null ? (
-        <p className="hint">{t('이력을 불러오지 못했습니다')}</p>
+        <p className="hint">{t('실행 기록을 불러오지 못했습니다')}</p>
       ) : 묶음.length === 0 ? (
         <p className="hint">{t('아직 기록이 없습니다§이력')}</p>
       ) : (
@@ -40,7 +40,7 @@ export function 실행이력칸({ 묶음 }: { 묶음: 이력묶음[] | null | un
                   {!줄.한건 ? null : (
                     <span className="hint">
                       {' · '}
-                      {줄.붙은 === null ? t('한 건 실행') : t('RUN {번호}에 다시 실행으로 붙음', { 번호: 줄.붙은 })}
+                      {줄.붙은 === null ? t('한 건 실행') : t('RUN {번호}에 다시 실행으로 추가됨', { 번호: 줄.붙은 })}
                     </span>
                   )}
                   {줄.수정후 ? <span className="fix-tag">{t('수정 후')}</span> : null}

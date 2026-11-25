@@ -121,10 +121,10 @@ function Attachments({ step, tcId, runId, historyId, 코드, 화면, className }
         </div>
       )}
 
-      {/* API 케이스는 화면이 없다. 같은 자리에 요청·응답 원문을 남긴다 (SPEC §4) */}
+      {/* API 케이스는 화면이 없다. 같은 자리에 요청 · 응답 원문을 남긴다 (SPEC §4) */}
       {!hasTrace ? null : (
         <details className="code">
-          <summary>{t말('요청·응답 원문')}</summary>
+          <summary>{t말('요청 · 응답 원문')}</summary>
           <pre>{JSON.stringify(step.httpTrace, null, 2)}</pre>
         </details>
       )}

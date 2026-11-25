@@ -67,11 +67,11 @@ describe('케이스 상세 칸의 저장 (도메인/실행 §8.2 · ⑫ 점검 7
     expect(저장).toHaveBeenCalledWith('ZSV-001', { params: { userId: 'user2' }, expected: {} });
   });
 
-  it('누르기 전에 팀 모두와 정기 실행이 이 값을 쓴다고 적는다', () => {
+  it('누르기 전에 팀 전체와 정기 실행이 이 값을 쓴다고 적는다', () => {
     const 저장 = vi.spyOn(api, 'saveInput').mockResolvedValue(null);
     줄({ params: { userId: 'user2' }, expected: {} });
 
-    expect(screen.getByText('팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('팀 전체와 정기 실행에 쓰입니다')).toBeTruthy();
     expect(저장).not.toHaveBeenCalled();
   });
 

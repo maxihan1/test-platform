@@ -79,7 +79,7 @@ describe('로그인 화면', () => {
 
     expect(screen.getByText('Test Commander')).toBeTruthy();
     // 들어가는 자리임을 분명히 한다. 빈 상자 하나만 두면 무엇을 하는 화면인지 안 읽힌다
-    expect(screen.getByText(/맡은 애플리케이션이 열립니다/)).toBeTruthy();
+    expect(screen.getByText(/배정된 애플리케이션을 쓸 수 있습니다/)).toBeTruthy();
   });
 
   it('머리 글자는 「로그인」 하나다 — 맞이 인사 대신 이 화면이 무엇인지 적는다', () => {

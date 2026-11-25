@@ -70,7 +70,7 @@ export function RunFailDevice({
     if (d.attempts <= 1) return seconds(d.item.durationMs, 언어);
     const 칸 = items.filter((i) => i.tcId === d.item.tcId && i.platform === d.platform);
     const 평균 = 칸.length === 0 ? d.item.durationMs : 회차요약(칸).평균소요ms;
-    return t('{시간} 평균', { 시간: seconds(평균, 언어) });
+    return t('평균 {시간}', { 시간: seconds(평균, 언어) });
   };
 
   return (

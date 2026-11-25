@@ -17,7 +17,7 @@ export const 결정말: Record<string, string> = {
   '테스트 검토하기': 'Review tests',
   '#{번호} 반영이 실패했습니다': 'Applying #{번호} failed',
   '#{번호} 케이스 {수}건에 값이 필요합니다': '{수} cases in #{번호} need values',
-  '#{번호} 케이스 {수}건이 다른 요청과 겹칩니다': '{수} cases in #{번호} overlap another request',
+  '#{번호} 케이스 {수}건이 다른 요청과 중복됩니다': '{수} cases in #{번호} overlap another request',
   '뒤에서': 'Behind it,',
   '이 기다립니다 — 수정하거나 삭제하면 이어서 실행됩니다': 'is waiting — it runs once this is fixed or deleted',
 
@@ -29,9 +29,9 @@ export const 결정말: Record<string, string> = {
   '기획서에서 변경된 요구사항 {수}건의 테스트를 다시 만들까요?': 'Rewrite the tests for {수} changed requirements?',
   '이번 반영으로 변경되거나 삭제될 수 있는 케이스를 쓰는 E2E 시나리오 {수}개': '{수} E2E scenarios use cases this may change or remove',
   '반영한 뒤 시험 실행으로 확인하고 삭제한 케이스는 다른 케이스로 변경합니다': 'After applying, check them with a trial run and replace removed cases',
-  'API 문서가 버전 {앞} 에서 {뒤} 로 변경되었습니다. 변경된 API 의 테스트를 다시 만들까요?':
+  'API 문서가 버전 {앞}에서 {뒤}로 변경되었습니다. 변경된 API 의 테스트를 다시 만들까요?':
     'The API document changed from version {앞} to {뒤}. Rewrite the tests for the changed APIs?',
-  'API 문서가 버전 {앞} 에서 {뒤} 로 변경되었습니다. 변경된 API {수}건의 테스트를 다시 만들까요?':
+  'API 문서가 버전 {앞}에서 {뒤}로 변경되었습니다. 변경된 API {수}건의 테스트를 다시 만들까요?':
     'The API document changed from version {앞} to {뒤}. Rewrite the tests for {수} changed APIs?',
   '{역할} 로그인': 'Signed in as {역할}',
   '테스트가 호출하지 않은 API': 'APIs no test calls',
@@ -54,15 +54,15 @@ export const 결정말: Record<string, string> = {
   '대상 서버를 선택하면 진행에 들어갑니다': 'Choose a target server to include this',
 
   // PRD 초안 카드 (BTS-F5-04)
-  '배포된 기능 {수}건으로 변경된 요구사항이 없어요': 'No requirement changed with {수} deployed features',
+  '배포된 기능 {수}건에서 변경된 요구사항이 없습니다': 'No requirement changed with {수} deployed features',
   '확인§초안': 'OK',
   '초안 삭제': 'Delete draft',
   '빌드 {번호}': 'Build {번호}',
   '화면만 보고 적음': 'Based on the screen only',
-  '지금 기획서에 없는 요구사항이라 선택할 수 없어요': 'This requirement is no longer in the spec, so it cannot be picked',
-  '체크하지 않으면 「확인 필요」로 남아요': 'Unchecked, it stays as "Needs check"',
+  '지금 기획서에 없는 요구사항이라 선택할 수 없습니다': 'This requirement is no longer in the spec, so it cannot be picked',
+  '체크하지 않으면 「확인 필요」로 남습니다': 'Unchecked, it stays as "Needs check"',
   'E2E 제안': 'E2E suggestion',
-  '테스트를 다시 만든 뒤 E2E 메뉴에서 만들 수 있어요': 'After the tests are rebuilt, you can build it from the E2E menu',
+  '테스트를 다시 만든 뒤 E2E 메뉴에서 만들 수 있습니다': 'After the tests are rebuilt, you can build it from the E2E menu',
   '{키들} 초안을 삭제합니다': 'Delete the draft for {키들}',
   '초안 {내용}': 'Draft: {내용}',
   '추가 {수}': 'Add {수}',
@@ -107,7 +107,7 @@ export const 결정말: Record<string, string> = {
   '확인이 필요한 요구사항 {수}건입니다. 이대로 확정할까요?': '{수} requirements need checking. Confirm them as they are?',
   '일괄 확정': 'Confirm all',
   '수정할 요구사항': 'Requirement to edit',
-  '기획서 {수}개가 서로 다르게 적었습니다. 맞는 쪽을 체크해 주세요': '{수} specs say different things. Check the right one',
+  '기획서 {수}개에 서로 다르게 적혀 있습니다. 맞는 쪽을 체크해 주세요': '{수} specs say different things. Check the right one',
   '기획서 {수}개가 서로 다르게 적었습니다': '{수} specs say different things',
   '둘 다 아니면 직접 입력': 'If neither, type it',
   '기획서가 정하지 않은 요구사항 {수}건입니다. 현재 동작과 기획서 중 어느 쪽이 맞나요?':
@@ -125,8 +125,8 @@ export const 결정말: Record<string, string> = {
   '배포된 기능 {수}건으로 PRD 를 수정할까요?': 'Update the PRD with {수} deployed features?',
   '전체 선택': 'Select all',
   재생성: 'Regenerate',
-  '{키들} PRD 초안을 만들지 못했어요': 'Could not build the PRD draft for {키들}',
-  '{키들} PRD 초안 만들기가 중단됐어요': 'Building the PRD draft for {키들} stopped',
+  '{키들} PRD 초안을 만들지 못했습니다': 'Could not build the PRD draft for {키들}',
+  '{키들} PRD 초안 만들기가 중단되었습니다': 'Building the PRD draft for {키들} stopped',
   '몇 건인지는 승인한 테스트가 반영된 뒤에 집계합니다': 'The count is known after the approved tests are applied',
   재작성: 'Rewrite',
   '테스트 추가': 'Add tests',
@@ -160,7 +160,7 @@ export const 결정말: Record<string, string> = {
   '{번호} 설명 안 되는 줄을 결함으로 기록합니다': 'Record the {번호} unexplained lines as a defect',
   // 반려가 섞인 적용 확인 (WEB-F10-02)
   '{수}건을 적용할까요?': 'Apply {수}?',
-  '반려 {수}건은 복구할 수 없습니다': '{수} rejected cannot be restored',
+  '반려 {수}건은 복원할 수 없습니다': '{수} rejected cannot be restored',
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '문장을 적어 주세요': 'Enter the text',
   '문장은 {상한}자까지 적을 수 있습니다': 'The text can be up to {상한} characters long',

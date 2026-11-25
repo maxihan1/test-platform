@@ -39,7 +39,7 @@ export const 시나리오마법사말: Record<string, string> = {
   '다음 단계 추천은 화면 이동 기록으로 선택합니다': 'Suggested next steps come from recorded screen navigation',
   '정상 케이스를 먼저 추가합니다. 경계 · 예외 케이스는 「케이스 검색」으로 찾습니다': 'Normal cases come first. Find boundary and exception cases with “Find a case”',
   '화면 이동 기록이 없는 화면에서는 추천이 비어 있습니다. 그때도 「케이스 검색」으로 선택합니다': 'Screens without navigation records have no suggestions. Pick with “Find a case” then too',
-  '계정을 미리 심거나 응답을 대체해야 하면 「API 호출」 · 「모킹 켜기」를 끼웁니다': 'To seed an account or swap a response, insert “API call” or “Mock on”',
+  '계정을 미리 넣어 두거나 응답을 대체해야 하면 「API 호출」 · 「모킹 켜기」를 끼웁니다': 'To seed an account or swap a response, insert “API call” or “Mock on”',
   '저장하기 전까지 순서를 변경할 수 있습니다': 'You can reorder until you save',
   '주문 상세 열기': 'Open order details',
   '앞 단계가 받은 값을 뒤 단계로 넘깁니다': 'Passes a value an earlier step received to a later step',
@@ -87,10 +87,10 @@ export const 시나리오마법사말: Record<string, string> = {
   '후보를 하나 선택해 주세요. 맞는 후보가 없으면 「이전」에서 「직접 선택」으로 변경합니다': 'Pick a candidate. If none fits, go “Previous” and switch to “Pick yourself”',
   '단계를 하나 이상 넣습니다': 'Add at least one step',
   '조립 화면으로': 'To the builder',
-  '빈 칸이 남은 값 연결이 있습니다. 적거나 삭제합니다': 'Some value links still have blank fields. Fill them in or delete them',
+  '빈 칸이 남은 값 연결이 있습니다. 값을 적거나 그 연결을 삭제합니다': 'Some value links still have blank fields. Fill them in or delete them',
   '시험 실행이 완료되면 넘어갑니다': 'You can move on when the trial run finishes',
   '확인하지 않은 값 연결이 {수}곳 있습니다': '{수} value links are not checked yet',
-  '시험 없이 넘어가도 저장할 수 있습니다': 'You can save without a trial run',
+  '시험 실행 없이 넘어가도 저장할 수 있습니다': 'You can save without a trial run',
   '중단된 채로도 저장할 수 있습니다': 'You can save even though it stopped',
   '「{이름}」 시나리오를 저장했습니다 · v{버전}': 'Saved the “{이름}” scenario · v{버전}',
   '실행할 때마다 실행 기록과 리포트가 남습니다. 다음에 수정할 때는 조립 화면에서 바로 수정합니다': 'Every run leaves a run record and a report. Next time, edit it directly in the builder',
@@ -138,7 +138,7 @@ export const 시나리오마법사말: Record<string, string> = {
   '중단 · 쓰였는지는 결과에 남지 않습니다': 'Stopped · the result doesn’t record whether it was used',
   '대상 서버를 먼저 선택합니다': 'Pick a target server first',
   '다시 실행': 'Run again',
-  'Android 앱 애플리케이션은 디바이스 한 대에서 실행합니다. 단계 사이에 앱을 다시 켜지 않고, 앞 단계가 완료된 화면에서 이어 갑니다':
+  'Android 앱은 디바이스 한 대에서 실행합니다. 단계 사이에 앱을 다시 켜지 않고, 앞 단계가 완료된 화면에서 이어 갑니다':
     'Android app applications run on one phone. The app is not restarted between steps; each step continues from the screen the previous one ended on',
   '{번호}번 {이름} 값 연결 삭제': 'Delete value link of step {번호} {이름}',
 };

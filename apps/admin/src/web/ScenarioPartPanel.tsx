@@ -44,7 +44,7 @@ export function ScenarioPartPanel(props: Props) {
             <button type="button" className="btn" onClick={props.on케이스바꾸기}>
               {t('케이스 변경')}
             </button>
-            <p className="hint">{t('다른 케이스로 변경하면 이 단계의 사전 단계 · 입력값 설정은 처음부터 다시 합니다')}</p>
+            <p className="hint">{t('다른 케이스로 변경하면 이 단계의 사전 단계와 입력값 설정을 처음부터 다시 해야 합니다')}</p>
           </>
         )}
       </div>

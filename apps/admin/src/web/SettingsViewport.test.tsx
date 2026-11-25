@@ -63,7 +63,7 @@ describe('애플리케이션 설정 「화면 크기」 구획 (도메인/인증
     expect(within(구획()).getByText('배치가 다름')).toBeTruthy();
     expect(within(구획()).getByText('PC 에만 장바구니 담기')).toBeTruthy();
     expect(within(구획()).getByText('모바일에만 메뉴 열기')).toBeTruthy();
-    expect(within(구획()).getByText('나머지 18장은 PC 와 모바일이 같습니다')).toBeTruthy();
+    expect(within(구획()).getByText('나머지 18개 화면은 PC 와 모바일이 같습니다')).toBeTruthy();
   });
 
   it('서버를 번갈아 누르면 마지막에 연 서버 것만 보이고, 늦게 온 앞 응답이 덮지 않는다', async () => {

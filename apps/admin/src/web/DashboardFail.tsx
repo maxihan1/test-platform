@@ -60,7 +60,7 @@ export function 신규실패표({ 값, 이동 }: { 값: 자료; 이동: 이동�
         견줄앞실행있나(값.byService) ? (
           <p className="dash-calm good">{t('회귀 실패가 없습니다')}</p>
         ) : (
-          <p className="dash-calm">{t('견줄 앞 실행이 없습니다')}</p>
+          <p className="dash-calm">{t('비교할 앞 실행이 없습니다')}</p>
         )
       ) : (
         <div className="dash-list">

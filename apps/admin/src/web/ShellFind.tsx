@@ -71,7 +71,7 @@ function 찾기창({ 자리들, prefix, onClose }: { 자리들: readonly 자리[
   const [말, set말] = useState('');
   const [케이스, set케이스] = useState<CaseRow[]>([]);
   const [오류, set오류] = useState<string | null>(null);
-  // 케이스 답이 어느 말에 대한 것인가 — 치는 동안(답이 오기 전)에 「찾은 것이 없습니다」가 깜박이지 않게
+  // 케이스 답이 어느 말에 대한 것인가 — 치는 동안(답이 오기 전)에 「검색 결과가 없습니다」가 깜박이지 않게
   const [답한말, set답한말] = useState('');
   const [고른칸, set고른칸] = useState(0);
 
@@ -126,7 +126,7 @@ function 찾기창({ 자리들, prefix, onClose }: { 자리들: readonly 자리[
       <input
         className="find-input"
         type="search"
-        aria-label={t('찾을 말')}
+        aria-label={t('검색어')}
         placeholder={prefix === null ? t('메뉴 이름') : t('TC ID · 케이스 이름 · 메뉴 이름')}
         value={말}
         onChange={(e) => {
@@ -146,10 +146,10 @@ function 찾기창({ 자리들, prefix, onClose }: { 자리들: readonly 자리[
       />
       {오류 === null ? null : <p className="find-error">{오류}</p>}
       {말.trim() === '' || 찾은것들.length > 0 || 오류 !== null || (prefix !== null && 답한말 !== 말.trim()) ? null : (
-        <p className="find-none">{t('찾은 것이 없습니다')}</p>
+        <p className="find-none">{t('검색 결과가 없습니다')}</p>
       )}
       {찾은것들.length === 0 ? null : (
-        <ul className="find-list" aria-label={t('찾은 것')}>
+        <ul className="find-list" aria-label={t('검색 결과')}>
           {찾은것들.map((it, 차례) => (
             <li key={`${it.해시}·${it.번호 ?? ''}`}>
               <a

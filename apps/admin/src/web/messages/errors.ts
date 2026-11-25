@@ -6,7 +6,7 @@ export const 오류영어: Record<string, string> = {
   '이 애플리케이션에 배정받지 않았습니다. 관리자에게 배정을 요청합니다':
     'You are not assigned to this application. Ask an admin to assign you.',
   '로그인이 풀렸습니다. 다시 로그인합니다': 'Your session ended. Please sign in again.',
-  '어느 애플리케이션인지 선택하지 않았습니다. 맨 위 띠에서 애플리케이션을 선택합니다':
+  '어느 애플리케이션인지 선택하지 않았습니다. 맨 위 드롭다운에서 애플리케이션을 선택합니다':
     'No application selected. Choose one in the sidebar.',
 
   // 못 찾은 것들
@@ -42,12 +42,12 @@ export const 오류영어: Record<string, string> = {
   '그 프로젝트를 찾지 못했습니다. 다른 사람이 애플리케이션을 모두 옮겨 비었을 수 있습니다':
     'That project was not found. Someone may have moved out all its applications',
   '그 접두사는 이미 다른 애플리케이션이 쓰고 있습니다': 'Another application already uses that prefix',
-  '접두사 형식이 맞지 않습니다. 대문자로 시작하는 영문·숫자 12자 이내여야 합니다':
+  '접두사 형식이 맞지 않습니다. 대문자로 시작하는 영문 · 숫자 12자 이내여야 합니다':
     'Bad prefix. Start with a capital letter, letters and digits, 12 characters or fewer.',
   '접두사는 만든 뒤에 변경할 수 없습니다. 케이스 번호에 이미 들어가 있습니다':
     'A prefix cannot change once set. It is baked into case IDs.',
   '그 아이디는 이미 있습니다': 'That username is taken',
-  '아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다':
+  '아이디는 영문 소문자 · 숫자 · 마침표(.) · 밑줄(_) · 하이픈(-)으로 2~32자입니다':
     'Usernames are 2 to 32 lowercase letters, digits, dots, underscores or hyphens',
   '비밀번호를 먼저 변경해야 합니다. 비밀번호 변경 화면에서 변경합니다':
     'You must change your password first. Use the password change screen.',
@@ -63,8 +63,8 @@ export const 오류영어: Record<string, string> = {
   '입력한 값 중에 형식이 맞지 않는 것이 있습니다': 'Some values are not in the right shape',
 
   // 등급과 마지막 폴백
-  '이 일을 할 수 있는 등급이 아닙니다': 'Your role cannot do this',
-  '이 일에는 「{등급}」 등급이 필요합니다': 'This needs the {등급} role',
+  '이 작업을 할 권한이 없습니다': 'You do not have permission to do this',
+  '이 작업을 할 권한이 없습니다. 「{등급}」 등급이 필요합니다': 'You do not have permission to do this. It needs the {등급} role',
   '이 애플리케이션에서 케이스 읽기 권한이 없습니다': 'You do not have read access to cases in this application',
   '이 애플리케이션에서 케이스 쓰기 권한이 없습니다': 'You do not have write access to cases in this application',
   '이 애플리케이션에서 실행 읽기 권한이 없습니다': 'You do not have read access to runs in this application',
@@ -84,7 +84,7 @@ export const 오류영어: Record<string, string> = {
   '실행이 완료되면 리포트를 만들 수 있습니다': 'Reports can be generated once the run finishes',
   '열기 ↗': 'Open ↗',
   다운로드: 'Download',
-  '이 요청은 이미 다른 실행이 대기 중이거나 작성 중입니다. 새로고침해 보세요':
+  '이 요청으로 이미 다른 실행이 대기 중이거나 작성 중입니다. 새로고침해 보세요':
     'Another run of this request is queued or writing. Refresh the page',
   '이 요청에 더 최근 실행이 있습니다. 새로고침한 뒤 최신 실행에서 반영하세요':
     'This request has a newer run. Refresh and merge from the latest run',
@@ -128,10 +128,10 @@ export const 오류영어: Record<string, string> = {
     'Requirement IDs are used up to 999. Talk to an admin before adding more',
   '다른 사람이 먼저 가이드를 변경했습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다':
     'Someone else changed the guide first. The latest version is loaded. Check it and try again',
-  '첨부 파일 수가 상한에 닿았습니다. 지금 버전은 20개, 애플리케이션 전체는 뺀 것까지 200개입니다':
+  '첨부 파일 수가 상한에 닿았습니다. 지금 버전은 20개, 애플리케이션 전체는 제거한 첨부까지 합쳐 200개입니다':
     'Attachment limit reached: 20 in the current version, 200 per application including removed ones',
   '글이 너무 깁니다. 구획마다 20,000자까지입니다': 'Too long. Each section takes up to 20,000 characters',
-  '글자를 뽑을 수 없는 파일입니다. 파일 이름을 눌러 다운로드합니다': 'This file has no readable text. Click the file name to download it',
+  '텍스트를 가져올 수 없는 파일입니다. 파일 이름을 눌러 다운로드합니다': 'This file has no readable text. Click the file name to download it',
   '반영하지 않은 테스트 작성 요청이 있습니다. 그 요청을 반영하거나 삭제한 뒤에 할 수 있습니다':
     'An authoring request is not merged yet. Merge or discard it first',
   '그 사이 변경된 것이 있습니다. 화면을 다시 불러온 뒤 다시 합니다': 'Something changed in the meantime. Reload the page and try again',
@@ -141,13 +141,13 @@ export const 오류영어: Record<string, string> = {
     'No API doc path or reference server in settings. Add them in settings or attach a file',
   '기준 서버에서 API 문서를 받지 못했습니다': 'Could not fetch the API doc from the reference server',
   '읽을 수 없는 API 문서입니다. OpenAPI 3 JSON 파일만 받습니다': 'Unreadable API doc. Only OpenAPI 3 JSON is accepted',
-  '현재 버전이 아닙니다. 새로고침해서 최신 버전으로 다시 누릅니다': 'Not the current version. Refresh and try again with the latest version',
+  '현재 버전이 아닙니다. 새로고침해서 최신 버전에서 다시 누릅니다': 'Not the current version. Refresh and try again with the latest version',
   'API 애플리케이션은 API 문서 버전을 선택해야 합니다': 'API applications need an API doc version',
   '애플리케이션 종류가 맞지 않습니다': 'Invalid application type',
   '종류는 만든 뒤에 변경할 수 없습니다': 'The type cannot be changed after creation',
   'API 문서 경로는 / 로 시작해야 하고, 기준 서버는 대상 서버 중 하나여야 합니다':
     'The API doc path must start with / and the reference server must be one of the target servers',
-  'API 인증 칸이 맞지 않습니다. 이름은 1~20자이고 한 서버 안에서 겹치지 않아야 합니다':
+  'API 인증 칸이 맞지 않습니다. 이름은 1~20자이고 한 서버 안에서 중복되지 않아야 합니다':
     'Invalid API auth. Names are 1–20 characters and must be unique per server',
   '어드민 키는 게임 · API 애플리케이션에만 넣을 수 있습니다': 'Admin keys can only be set on game and API applications',
   '게임 플랫폼은 모바일 게임 · PC 게임 중 하나만 선택할 수 있습니다': 'A game platform must be either mobile game or PC game',
@@ -159,7 +159,7 @@ export const 오류영어: Record<string, string> = {
   '지원 패드는 PS5 · PS4 · Switch · Xbox 중에서 겹치지 않게 선택합니다': 'Pick supported gamepads from PS5 · PS4 · Switch · Xbox without duplicates',
   '어드민 키 칸이 맞지 않습니다. 헤더 이름은 영문 · 숫자 · - 이고 값은 12자 이상이며 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다': 'Admin key is invalid. The header name uses letters, digits and -, and the value needs 12+ characters with at most one space in the middle',
   '새 어드민 키 헤더에는 값을 넣어야 합니다': 'A new admin key header needs a value',
-  '테스트 데이터 준비 칸이 맞지 않습니다. 주소는 http(s) 이고 헤더 이름은 영문 · 숫자 · - 이며 값은 12자 이상, 시간 한도 범위는 10~600초입니다':
+  '테스트 데이터 준비 칸이 맞지 않습니다. 주소는 http(s)여야 하고, 헤더 이름은 영문 · 숫자 · 하이픈(-)이며, 값은 12자 이상, 제한 시간은 10~600초입니다':
     'Test data setup is invalid. The URL is http(s), the header name uses letters, digits and -, the value needs 12+ characters and the time limit is 10–600 seconds',
   '준비 헤더 값을 넣어야 합니다. 신규 준비 주소이거나 준비 주소 · 헤더 이름 · 대상 서버 이름을 변경하면 다시 넣어야 합니다': 'Enter the setup header value. A new setup URL, or a changed setup URL, header name or target server name, needs it again',
   '새 API 인증에는 비밀값을 넣어야 합니다': 'A new API auth needs a client secret',

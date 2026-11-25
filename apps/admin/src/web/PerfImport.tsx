@@ -35,7 +35,7 @@ export function PerfImport({ service, 받음 }: { service: ServiceRow; 받음: (
         <div className="perf-acts">
           {단추('RECORD', t('E2E 녹화'))}
           {단추('SWAGGER', t('Swagger 가져오기'))}
-          {단추('FILE', t('JMeter·nGrinder 가져오기'))}
+          {단추('FILE', t('JMeter · nGrinder 가져오기'))}
         </div>
       </div>
       {일.도나 ? (
@@ -61,7 +61,7 @@ export function PerfImport({ service, 받음 }: { service: ServiceRow; 받음: (
               }}
             />
           </label>
-          <span className="perf-faint">{t('옮기지 못한 부분(BeanShell · 자바 코드)은 따로 보여 줍니다. 1MB 까지 업로드할 수 있습니다')}</span>
+          <span className="perf-faint">{t('변환하지 못한 부분(BeanShell · 자바 코드)은 따로 보여 줍니다. 1MB까지 업로드할 수 있습니다')}</span>
         </div>
       ) : null}
       {일.오류 === null ? null : <p className="perf-err" role="alert">{일.오류}</p>}
@@ -182,7 +182,7 @@ function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 
 
   return (
     <div className="perf-well">
-      <span className="perf-faint">{t('API 문서 버전 {번호} · 선택한 순서대로 트랜잭션이 됩니다 (50개까지)', { 번호: version })}</span>
+      <span className="perf-faint">{t('API 문서 버전 {번호} · 선택한 순서대로 트랜잭션이 만들어집니다 (50개까지)', { 번호: version })}</span>
       <div className="perf-picks">
         {작업들.map((op) => {
           const 키 = `${op.method} ${op.path}`;

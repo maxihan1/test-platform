@@ -64,9 +64,9 @@ export function UserActions({
       {마지막운영 ? null : 비활성확인 && row.isActive ? (
         // 애플리케이션 비활성화와 같은 확인 줄이다 — 확정은 글자가 다른 따로 된 버튼으로 둔다
         <span className="set-warn set-ask">
-          {t('비활성으로 내리면 이 계정은 바로 로그인할 수 없습니다. 다시 활성으로 변경할 수 있습니다')}{' '}
+          {t('비활성으로 내리면 이 계정은 바로 로그인할 수 없습니다. 다시 활성화할 수 있습니다')}{' '}
           <button className="btn ghost set-warn" disabled={보내는중} onClick={뒤집는다}>
-            {t('비활성으로 내린다')}
+            {t('비활성화 확인')}
           </button>{' '}
           <button className="btn ghost" disabled={보내는중} onClick={() => set비활성확인(false)}>
             {t('그만두기')}
@@ -74,7 +74,7 @@ export function UserActions({
         </span>
       ) : (
         <button className="btn ghost" disabled={보내는중} onClick={() => (row.isActive ? set비활성확인(true) : 뒤집는다())}>
-          {row.isActive ? t('비활성으로 내리기') : t('다시 활성으로')}
+          {row.isActive ? t('비활성으로 내리기') : t('다시 활성화')}
         </button>
       )}
     </>

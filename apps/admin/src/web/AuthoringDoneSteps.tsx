@@ -48,7 +48,7 @@ export function 작성끝단계({ service, 요청, 할수, 차이수, 커버리�
   if (요청.prUrl === null) {
     return (
       <>
-        <p>{t('올라간 PR 이 없습니다. 아래 만든 것을 확인하세요.')}</p>
+        <p>{t('등록한 PR 이 없습니다. 아래 만든 것을 확인하세요.')}</p>
         {폐기버튼 === null ? null : <div className="btns">{폐기버튼}</div>}
       </>
     );
@@ -56,7 +56,7 @@ export function 작성끝단계({ service, 요청, 할수, 차이수, 커버리�
   return (
     <ol>
       {만든것 === null ? (
-        <일 표={다음()} 제목={t('만든 케이스 검토')} 설명={t('검토용 PR 로 올라갔습니다. 읽어 보고 이상하면 PR에 댓글을 남기세요.')}>
+        <일 표={다음()} 제목={t('만든 케이스 검토')} 설명={t('검토용 PR 로 등록했습니다. 읽어 보고 이상하면 PR 에 댓글을 남기세요.')}>
           <a className="btn ghost" href={요청.prUrl} target="_blank" rel="noreferrer">
             {t('만든 케이스 보기 (PR)')}
           </a>

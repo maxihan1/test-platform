@@ -121,7 +121,7 @@ describe('종류별 자리 목록', () => {
   it('기능 칸이 다 none 이면 Bunker 를 이었어도 결함 관리가 없고 「권한을 받지 않았습니다」 안내가 그대로 뜬다', () => {
     const 칸없음: User = { ...사람({ btsUrl: 'https://bunker.example.com', permissions: { cases: 'none', runs: 'none', authoring: 'none' } }), dashboard: 'none' };
     expect(자리목록(칸없음, 'PAY', 'ko')).toEqual([]);
-    expect(빈띠사유(칸없음, 'PAY', 'ko')?.무엇).toBe('권한을 받지 않았습니다. 관리자에게 요청하세요');
+    expect(빈띠사유(칸없음, 'PAY', 'ko')?.무엇).toBe('화면을 볼 권한이 없습니다. 관리자에게 요청하세요');
   });
 
   it('종류를 모르면 웹으로 읽는다 — 기기 성능이 없다', () => {

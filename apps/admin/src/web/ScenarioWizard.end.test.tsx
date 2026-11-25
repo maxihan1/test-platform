@@ -106,7 +106,7 @@ describe('ScenarioWizard 값 연결', () => {
     expect(screen.getByText('1번 「ZSB-001 케이스」부터 끝까지 같은 계정으로 이어 갑니다. 뒤 단계에서 앞 단계와 같은 사전 단계는 건너뜁니다')).toBeTruthy();
 
     다음();
-    expect(screen.getByRole('alert').textContent).toBe('빈 칸이 남은 값 연결이 있습니다. 적거나 삭제합니다');
+    expect(screen.getByRole('alert').textContent).toBe('빈 칸이 남은 값 연결이 있습니다. 값을 적거나 그 연결을 삭제합니다');
 
     fireEvent.change(screen.getByLabelText('JSON 경로'), { target: { value: 'id' } });
     fireEvent.click(within(연결).getByRole('button', { name: '맞아요' }));
@@ -164,7 +164,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     localStorage.setItem('대상서버:ZSB', 'stg');
     await 경로채우고시험으로();
     expect(screen.getByText('지난번에 선택한 서버를 미리 선택해 두었습니다')).toBeTruthy();
-    expect(바닥()).toBe('시험 없이 넘어가도 저장할 수 있습니다');
+    expect(바닥()).toBe('시험 실행 없이 넘어가도 저장할 수 있습니다');
 
     const 시작 = vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
     vi.spyOn(scenarioApi, 'trial').mockResolvedValue({
@@ -257,7 +257,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     fireEvent.click(screen.getByRole('switch', { name: '로그인 이어받기' }));
     다음();
     expect(screen.queryByText(/^끝까지 이어졌습니다/)).toBeNull();
-    expect(바닥()).toBe('시험 없이 넘어가도 저장할 수 있습니다');
+    expect(바닥()).toBe('시험 실행 없이 넘어가도 저장할 수 있습니다');
   });
 
   it('저장하고 실행은 대상 서버가 없으면 저장 단계에 고르개를 열고, 고르면 저장 · 실행 뒤 결과로 간다', async () => {

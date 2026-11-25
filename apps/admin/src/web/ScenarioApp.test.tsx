@@ -20,7 +20,7 @@ afterEach(() => {
   localStorage.clear();
 });
 
-const 실행위치 = '시나리오 하나 동안 유휴 디바이스를 한 번 할당받고 모두 실행하면 반납합니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다';
+const 실행위치 = '시나리오 하나를 실행하는 동안 유휴 디바이스를 한 번 할당받고, 모두 실행하면 반납합니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다';
 
 const 행 = (tcId: string, platforms: Platform[]): CaseRow => ({
   tcId,
@@ -46,7 +46,7 @@ describe('마법사 디바이스 칩', () => {
     const 칩들 = screen.getByRole('group', { name: '디바이스' }).querySelectorAll('button');
     expect([...칩들].map((b) => b.textContent)).toEqual(['Android 앱']);
     expect(칩들[0]!.getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByText(/Android 앱 애플리케이션은 디바이스 한 대에서 실행합니다/u)).toBeTruthy();
+    expect(screen.getByText(/Android 앱은 디바이스 한 대에서 실행합니다/u)).toBeTruthy();
   });
 
   it('웹 애플리케이션으로 바꾸면 PC · 모바일 칩으로 돌아가고 PC 가 골라진다', () => {
@@ -171,7 +171,7 @@ describe('조립 화면 — 디바이스 고르개와 실행 위치', () => {
     render(<ScenarioBuild id={12} 띠서비스={앱서비스()} user={앱사람()} />);
 
     expect(await screen.findByText(실행위치)).toBeTruthy();
-    expect(screen.getByText('시험 실행도 Device VISION 디바이스에서 실행됩니다. 디바이스 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다')).toBeTruthy();
+    expect(screen.getByText('시험 실행도 Device VISION 디바이스에서 실행됩니다. 디바이스 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」를 눌러 새 탭에서도 봅니다')).toBeTruthy();
   });
 
   it('PC 로 저장된 옛 Android 앱 시나리오는 그 값도 보이고 바꾸라고 알린다', async () => {

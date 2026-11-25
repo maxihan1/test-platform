@@ -75,18 +75,18 @@ describe('절차 부품 (항목 상세 · 실패 카드 공용)', () => {
     expect(container.querySelector('img')!.getAttribute('loading')).toBe('lazy');
   });
 
-  it('코드 = false 면 스크린샷만 남고 코드 뷰와 요청·응답 원문은 안 나온다', () => {
+  it('코드 = false 면 스크린샷만 남고 코드 뷰와 요청 · 응답 원문은 안 나온다', () => {
     vi.spyOn(api, 'source').mockResolvedValue({ lines: [], focus: 19 });
     const { container } = 그린다({ 코드: false });
     expect(container.querySelector('img')).toBeTruthy();
     expect(screen.queryByText('실패 지점 코드')).toBeNull();
-    expect(screen.queryByText('요청·응답 원문')).toBeNull();
+    expect(screen.queryByText('요청 · 응답 원문')).toBeNull();
   });
 
-  it('코드를 숨기지 않으면 코드 뷰와 요청·응답 원문이 나온다', () => {
+  it('코드를 숨기지 않으면 코드 뷰와 요청 · 응답 원문이 나온다', () => {
     그린다();
     expect(screen.getByText('실패 지점 코드')).toBeTruthy();
-    expect(screen.getByText('요청·응답 원문')).toBeTruthy();
+    expect(screen.getByText('요청 · 응답 원문')).toBeTruthy();
   });
 });
 

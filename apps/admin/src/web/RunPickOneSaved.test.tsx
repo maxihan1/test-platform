@@ -140,8 +140,8 @@ describe('「묶음으로 저장」', () => {
   it('이름 칸 곁에 묶음으로 따로 저장한다고 적는다 — 팀이 같이 쓰는 저장값은 여기서 안 바뀐다', async () => {
     await 그린다(값케이스);
     저장열기();
-    expect(screen.getByText('이 이름의 묶음으로 따로 저장합니다')).toBeTruthy();
-    expect(screen.queryByText(/팀 모두와 정기 실행에 쓰입니다/)).toBeNull();
+    expect(screen.getByText('이 이름으로 묶음을 따로 저장합니다')).toBeTruthy();
+    expect(screen.queryByText(/팀 전체와 정기 실행에 쓰입니다/)).toBeNull();
   });
 
   it('서버가 400 을 내면 칸 아래에 사유를 붙인다', async () => {

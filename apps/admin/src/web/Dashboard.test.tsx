@@ -331,7 +331,7 @@ describe('애플리케이션 카드', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText('애플리케이션 6개');
     expect(document.querySelectorAll('.dash-app')).toHaveLength(4);
-    act(() => screen.getByRole('button', { name: '더보기 (2)' }).click());
+    act(() => screen.getByRole('button', { name: '더 보기 (2)' }).click());
     expect(document.querySelectorAll('.dash-app')).toHaveLength(6);
     expect(screen.queryByRole('button', { name: /더보기/ })).toBeNull();
   });
@@ -418,7 +418,7 @@ describe('회귀 실패 목록', () => {
   it('회귀 실패가 없고 견줄 앞 실행도 없으면 견줄 것이 없다고 중립으로 적는다', async () => {
     읽기를(응답({ newFailures: [], byService: 응답().byService.map((서비스) => ({ ...서비스, newFailureCount: 0, compared: false })) }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    expect(await screen.findByText('견줄 앞 실행이 없습니다')).toBeTruthy();
+    expect(await screen.findByText('비교할 앞 실행이 없습니다')).toBeTruthy();
     expect(screen.queryByText('회귀 실패가 없습니다')).toBeNull();
   });
 

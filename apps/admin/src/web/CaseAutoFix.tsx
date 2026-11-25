@@ -13,17 +13,17 @@ function 상태글(줄: 자동수정상세, t: ReturnType<typeof use말>): strin
     case 'FIXING':
       return t('테스트를 수정하는 중');
     case 'WAIT_MERGE':
-      if (줄.needsPerson && 줄.personWhy.length > 0) return t('반영을 기다리는 중 — 사람 확인이 필요해요 · {까닭}', { 까닭: 줄.personWhy.join(' · ') });
-      if (줄.needsPerson) return t('반영을 기다리는 중 — 사람 확인이 필요해요');
+      if (줄.needsPerson && 줄.personWhy.length > 0) return t('반영을 기다리는 중 — 사람 확인이 필요합니다 · {까닭}', { 까닭: 줄.personWhy.join(' · ') });
+      if (줄.needsPerson) return t('반영을 기다리는 중 — 사람 확인이 필요합니다');
       return 줄.merge === 'AUTO' ? t('자동 반영하는 중') : t('반영을 기다리는 중');
     case 'RERUNNING':
       return t('다시 실행하는 중');
     case 'FAILED':
-      return 줄.rerunId === null ? t('수정 후에도 실패했어요') : t('수정 후에도 실패했어요 · RUN {번호}', { 번호: 줄.rerunId });
+      return 줄.rerunId === null ? t('수정 후에도 실패했습니다') : t('수정 후에도 실패했습니다 · RUN {번호}', { 번호: 줄.rerunId });
     case 'FLAKY':
-      return t('다시 실행하니 통과해서 수정하지 않았어요');
+      return t('다시 실행하니 통과해서 수정하지 않았습니다');
     default:
-      return 줄.reason === null ? t('그만뒀어요') : t('그만뒀어요 · {까닭}', { 까닭: 줄.reason });
+      return 줄.reason === null ? t('그만뒀습니다') : t('그만뒀습니다 · {까닭}', { 까닭: 줄.reason });
   }
 }
 

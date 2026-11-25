@@ -7,7 +7,7 @@ export const 설정말: Record<string, string> = {
   ...설정API말,
   ...설정준비말,
   // 로그인 화면 (§8.6)
-  '아이디와 비밀번호를 넣으면 맡은 애플리케이션이 열립니다.': 'Sign in to open the applications assigned to you.',
+  '아이디와 비밀번호를 넣으면 배정된 애플리케이션을 쓸 수 있습니다.': 'Sign in to open the applications assigned to you.',
   '아이디': 'ID',
   '비밀번호': 'Password',
   '로그인': 'Sign in',
@@ -33,7 +33,6 @@ export const 설정말: Record<string, string> = {
   '비활성화': 'Deactivate',
   '다시 활성화': 'Reactivate',
   '비활성으로 내리기': 'Deactivate',
-  '다시 활성으로': 'Reactivate',
   '아직 애플리케이션이 없습니다': 'No applications yet',
   '케이스 {건수}건': '{건수} cases',
   '배정 없음': 'Unassigned',
@@ -42,7 +41,7 @@ export const 설정말: Record<string, string> = {
   '접두사': 'Prefix',
   '만든 뒤에는 변경할 수 없습니다. 케이스 번호에 이미 쓰고 있습니다':
     'Cannot be changed after creation. It is already baked into the case IDs',
-  '대문자로 시작하는 영문·숫자 12자 이내로 적습니다. 예: PAY · MEM2':
+  '대문자로 시작하는 영문 · 숫자 12자 이내로 적습니다. 예: PAY · MEM2':
     'Up to 12 letters and digits, starting with a capital. e.g. PAY · MEM2',
   '이름': 'Name',
   '결제 페이지': 'Payments',
@@ -50,7 +49,7 @@ export const 설정말: Record<string, string> = {
   '테스트 저장소': 'Tests repository',
   '작성 요청이 등록한 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다':
     'Used to check that the PR from an authoring request belongs to this repository. Leave it empty and the cases it wrote cannot be applied',
-  '플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다': 'The folder the platform reads test scripts from',
+  '케이스 파일을 읽어 오는 폴더입니다': 'The folder the platform reads test scripts from',
   '탐색 제외 경로': 'Excluded paths',
   '한 줄에 하나씩 /로 시작하게 적습니다. 실제 화면과 대조해 테스트를 만들 때 이 경로와 하위 화면은 탐색하지 않습니다. 비워 두면 모든 화면을 탐색합니다':
     'One per line, starting with /. When building tests against the live screens, these paths and everything under them are not explored. Leave it empty to explore every screen',
@@ -90,8 +89,8 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',
   '앱 파일 경로 (Android 앱 · 게임)': 'App file path (Android apps · games)',
   '앱 파일 경로 또는 패키지 이름': 'App file path or package name',
-  'APK 가 없으면 Device VISION 디바이스에 스토어로 설치해 둔 앱의 패키지 이름을 적습니다': 'If there is no APK, enter the package name of the app installed from the store on a Device VISION phone',
-  '앱 파일 경로는 Android 앱 · 게임 케이스를 실행할 때 설치할 apk 입니다. Device VISION 이 실행 중인 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
+  'APK 가 없으면 Device VISION 디바이스에 스토어에서 설치해 둔 앱의 패키지 이름을 적습니다': 'If there is no APK, enter the package name of the app installed from the store on a Device VISION phone',
+  '앱 파일 경로는 Android 앱 · 게임 케이스를 실행할 때 설치할 apk 입니다. Device VISION 이 실행 중인 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 지정한 PLATFORM_APP 을 씁니다':
     'The app file path is the apk installed when Android app cases run. Enter a file path on the PC running Device VISION or an http(s) URL. Leave it empty to use PLATFORM_APP given when the runner started',
   '역할 이름': 'Role name',
   '+ 역할 추가': '+ Add role',
@@ -130,7 +129,7 @@ export const 설정말: Record<string, string> = {
   '대상 서버에 비어 있는 항목이 있습니다. 입력하거나 그 서버를 삭제해 주세요':
     'A target server has an empty field. Fill it in or delete that server',
   '같은 키의 대상 서버가 둘 있습니다. 키를 다르게 적어 주세요': 'Two target servers have the same key. Give each a different key',
-  '「{줄}」 — / 로 시작하고 글자·숫자·. _ ~ % - 만 쓸 수 있습니다':
+  '「{줄}」 — / 로 시작하고 글자 · 숫자 · . _ ~ % - 만 쓸 수 있습니다':
     '"{줄}" must start with / and use only letters, digits and . _ ~ % -',
   '경로는 {글자}자까지 적을 수 있습니다': 'A path can be up to {글자} characters long',
   '경로는 {개수}개까지 적을 수 있습니다': 'You can enter up to {개수} paths',
@@ -141,8 +140,8 @@ export const 설정말: Record<string, string> = {
   '「일반 회원」은 역할 이름으로 쓸 수 없습니다': '"Regular user" cannot be used as a role name',
   '「어드민 키」는 역할 이름으로 쓸 수 없습니다. 어드민 키 칸에 넣어 주세요': '"Admin key" cannot be used as a role name. Enter it in the admin key fields',
   '역할 이름은 {글자}자까지 적을 수 있습니다': 'A role name can be up to {글자} characters long',
-  '한 대상 서버 줄 안에서 역할 이름이 겹칩니다': 'Role names repeat within one target server row',
-  '역할 이름은 1~40자이고 「일반 회원」이 아니며 한 대상 서버 줄 안에서 겹치지 않아야 합니다. 한 줄에 20개까지 넣을 수 있습니다':
+  '한 대상 서버 줄 안에서 역할 이름이 중복됩니다': 'Role names repeat within one target server row',
+  '역할 이름은 1~40자이고 「일반 회원」이 아니며 한 대상 서버 줄 안에서 중복되지 않아야 합니다. 한 줄에 20개까지 넣을 수 있습니다':
     'A role name must be 1–40 characters, not "Regular user", and unique within one target server row. Up to 20 per row',
   '역할 계정은 한 줄에 {개수}개까지 넣을 수 있습니다': 'Up to {개수} role accounts per row',
 
@@ -178,7 +177,7 @@ export const 설정말: Record<string, string> = {
   '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 프로젝트를 끄세요.':
     'All three set to Off cannot be saved. To unassign, turn the project off.',
   '먼저 프로젝트를 만듭니다': 'Create a project first',
-  '프로젝트를 선택하면 그 안의 애플리케이션이 모두 열리고, 새 애플리케이션이 들어와도 바로 열립니다. 배정받지 않은 프로젝트는 그 사람의 프로젝트 선택 목록에 뜨지 않습니다':
+  '프로젝트를 선택하면 그 안의 애플리케이션을 모두 쓸 수 있고, 새 애플리케이션이 들어와도 바로 쓸 수 있습니다. 배정받지 않은 프로젝트는 그 사람의 프로젝트 선택 목록에 뜨지 않습니다':
     'Choosing a project opens every application in it, including ones added later. Projects not assigned do not show up in their project picker',
   '애플리케이션 {수}개': '{수} applications',
   '비밀번호는 시스템이 만듭니다. 만든 직후': 'The system generates the password. It is shown',
@@ -205,11 +204,11 @@ export const 설정말: Record<string, string> = {
   '발급': 'Issue',
   '다시 발급': 'Reissue',
   '토큰 취소': 'Revoke token',
-  '작성 에이전트가 지금 멈춥니다.': 'The authoring agent stops now.',
+  '작성 에이전트가 지금 중단됩니다.': 'The authoring agent stops now.',
   '새 토큰을 다시 넣어야 합니다': 'The new token must be put in again',
-  '다시 발급할 때까지 작성이 멈춥니다': 'Authoring stays stopped until a token is issued again',
-  '다시 발급한다': 'Reissue now',
-  '취소한다': 'Revoke now',
+  '다시 발급할 때까지 작성이 중단됩니다': 'Authoring stays stopped until a token is issued again',
+  '다시 발급 확인': 'Confirm reissue',
+  '토큰 취소 확인': 'Confirm revoke',
   '그만두기': 'Never mind',
   '의 작성 에이전트 토큰입니다. 선택해 복사하세요': "'s authoring agent token. Select it to copy",
   '서버는 .env 의 AUTHORING_AGENT_TOKEN 에, 맥은 처음 켤 때 묻는 칸에 넣습니다': 'On the server put it in AUTHORING_AGENT_TOKEN in .env; on a Mac paste it at the prompt on first start',
@@ -220,11 +219,11 @@ export const 설정말: Record<string, string> = {
   '프로젝트§칸': 'Project',
   '아직 프로젝트가 없습니다': 'No projects yet',
   '+ 프로젝트 추가': '+ Add project',
-  '그런 프로젝트가 없습니다': 'No such project',
+  '그 프로젝트를 찾지 못했습니다': 'No such project',
   '새 프로젝트': 'New project',
   '프로젝트 이름': 'Project name',
   '대표 애플리케이션': 'Primary application',
-  '목록 맨 위에 서고 프로젝트를 처음 열 때 이 애플리케이션으로 엽니다': 'Shown at the top of the list and opened first when you open the project',
+  '목록 맨 위에 보이고 프로젝트를 처음 열 때 이 애플리케이션으로 엽니다': 'Shown at the top of the list and opened first when you open the project',
   '데모마켓': 'Demo Market',
   '프로젝트 하나에 애플리케이션 여럿이 들어갑니다. 권한은 프로젝트마다 줍니다':
     'A project holds several applications. Permissions are given per project',
@@ -232,7 +231,7 @@ export const 설정말: Record<string, string> = {
   '옮기면 그 애플리케이션은 옮겨 간 프로젝트의 권한을 따릅니다. 모두 옮기면 빈 프로젝트는 저절로 사라집니다':
     'A moved application follows the permissions of the project it moves to. A project left empty disappears on its own',
   '옮길 프로젝트': 'Move to project',
-  '케이스가 뒤에서 부른 서버에 이름을 붙이면 케이스 목록에 이름표가 붙습니다. 같은 이름을 여러 주소에 써도 됩니다':
+  '케이스가 실행 중에 부르는 서버에 이름을 붙이면 케이스 목록에 이름표가 붙습니다. 같은 이름을 여러 주소에 써도 됩니다':
     'Name the servers your cases call behind the scenes and the case list shows those names as tags. You can use one name for several addresses',
   '케이스를 실행하면 부른 서버가 여기 뜹니다': 'Servers called by your cases show up here after you run them',
   '케이스 {수}건': '{수} cases',
@@ -242,24 +241,23 @@ export const 설정말: Record<string, string> = {
   '프로젝트를 선택해 주세요': 'Choose a project',
   '사람': 'People',
   '기다리는 가입 신청이 없습니다': 'No sign-up requests waiting',
-  '그런 애플리케이션이 없습니다': 'No such application',
+  '그 애플리케이션을 찾지 못했습니다': 'No such application',
   '새 애플리케이션': 'New application',
   '저장했습니다': 'Saved',
   '기본 정보': 'Basics',
-  '케이스 번호, 애플리케이션 선택 목록, 스크립트 폴더에 쓰는 정보입니다':
+  '케이스 번호, 애플리케이션 선택 목록, 테스트 폴더에 쓰는 정보입니다':
     'Used for case IDs, the application picker and the scripts folder',
   '테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다':
     'The servers tests run against. Register at least one to run',
   '실행 알림': 'Run notifications',
   '실행할 때 「완료 시 Slack 알림」을 켜면 이 채널로 결과를 보냅니다':
     'Results go to this channel when Notify Slack when done is on for a run',
-  '기획서와 피그마로 테스트 스크립트를 만들 때만 사용합니다. 실행에는 영향을 주지 않습니다':
+  '기획서와 피그마로 케이스를 만들 때만 씁니다. 실행에는 영향을 주지 않습니다':
     'Only used when building test scripts from specs and Figma. Runs are not affected',
   '애플리케이션 비활성화': 'Deactivate application',
-  '비활성화한다': 'Deactivate now',
   '애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다':
     'It disappears from the application picker. Run history and cases are kept',
-  '비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다':
+  '비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다':
     'Once deactivated, it disappears from the application picker. Run history and scripts are kept',
 
   // 성능 · 정기 실행 화면과 같이 쓴다
@@ -268,7 +266,7 @@ export const 설정말: Record<string, string> = {
 
   // 화면 크기 구획 (§8.8 · PRD-F10-08)
   '화면 크기': 'Screen size',
-  '테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지 모바일도 같이 만들지 이 판정으로 정합니다':
+  '테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지, 모바일도 같이 만들지를 이 판정으로 정합니다':
     'What test authoring saw when it opened each page on desktop and mobile. This decides whether new cases cover desktop only or mobile too',
   '판정 시각': 'Checked at',
   '반응형': 'Responsive',
@@ -288,16 +286,16 @@ export const 설정말: Record<string, string> = {
   '배치가 다름': 'Different layout',
   'PC 에만': 'Only on desktop:',
   '모바일에만': 'Only on mobile:',
-  '나머지 {건수}장은 PC 와 모바일이 같습니다': 'The other {건수} pages are the same on desktop and mobile',
+  '나머지 {건수}개 화면은 PC 와 모바일이 같습니다': 'The other {건수} pages are the same on desktop and mobile',
   '다른 화면 {전체}장 가운데 앞 {건수}장만 보입니다': 'Showing the first {건수} of {전체} pages that differ',
   // 확인 (WEB-F10-02)
-  '비활성으로 내린다': 'Deactivate now',
-  '비활성으로 내리면 이 계정은 바로 로그인할 수 없습니다. 다시 활성으로 변경할 수 있습니다': 'This account can no longer sign in. You can activate it again',
+  '비활성화 확인': 'Confirm deactivation',
+  '비활성으로 내리면 이 계정은 바로 로그인할 수 없습니다. 다시 활성화할 수 있습니다': 'This account can no longer sign in. You can activate it again',
   '애플리케이션을 옮길까요?': 'Move this application?',
   옮기기: 'Move',
   '「{이름}」을 「{프로젝트}」 프로젝트로 옮깁니다. 볼 수 있는 사람이 「{프로젝트}」 권한대로 변경됩니다':
     'Moves "{이름}" to project "{프로젝트}". Who can see it then follows the permissions of "{프로젝트}"',
-  '마지막 애플리케이션이라 「{프로젝트}」 프로젝트가 삭제됩니다. 아래 항목도 같이 삭제되고 복구할 수 없습니다':
+  '마지막 애플리케이션이라 「{프로젝트}」 프로젝트가 삭제됩니다. 아래 항목도 같이 삭제되고 복원할 수 없습니다':
     'This is the last application, so project "{프로젝트}" is deleted. The items below are deleted with it and cannot be restored',
   '권한 배정 · 정기 실행 세트 · {bts} 연결과 기록 · 프로젝트 노트 · Scout 대화 · 모니터링 에이전트 · API 서버 이름':
     'Permissions · Scheduled sets · {bts} link and records · Project notes · Scout chats · Monitoring agents · API server names',

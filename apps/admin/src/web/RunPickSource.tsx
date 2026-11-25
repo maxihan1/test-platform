@@ -89,7 +89,7 @@ export function 출처줄({
       </p>
     );
   }
-  // 저장값은 팀 모두와 정기 실행에 바로 쓰여 저절로 저장하지 않는다 — 고친 값은 사람이 고를 때까지 이번 실행에만 간다
+  // 저장값은 팀 전체와 정기 실행에 바로 쓰여 저절로 저장하지 않는다 — 고친 값은 사람이 고를 때까지 이번 실행에만 간다
   return (
     <p className="prow-src changed">
       <span>{saved === undefined ? t('코드 기본값과 다릅니다 · 이번 실행에만 씁니다') : t('저장값과 다릅니다 · 이번 실행에만 씁니다')}</span>
@@ -99,7 +99,7 @@ export function 출처줄({
             {t('이 값 저장')}
           </button>
           {/* 누르기 전에 팀 값이 바뀐다는 것을 알아야 한다 — 상세 칸 「모두에게 저장」과 같다 (도메인/실행 §8.2 · 점검 7.6) */}
-          <span className="hint">{t('팀 모두와 정기 실행에 쓰입니다')}</span>
+          <span className="hint">{t('팀 전체와 정기 실행에 쓰입니다')}</span>
         </>
       )}
       <button type="button" className="btn small ghost" onClick={on되돌리기} disabled={저장중}>

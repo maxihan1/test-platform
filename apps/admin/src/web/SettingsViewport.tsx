@@ -99,7 +99,7 @@ function 판정줄({ env, 판정, 시각, 열림, 연다 }: {
 
 function 화면차이표({ env, 결과 }: { env: string; 결과: ViewportScreens }) {
   const t = use말();
-  const 같음 = 결과.same === 0 ? null : <div className="hint">{t('나머지 {건수}장은 PC 와 모바일이 같습니다', { 건수: 결과.same })}</div>;
+  const 같음 = 결과.same === 0 ? null : <div className="hint">{t('나머지 {건수}개 화면은 PC 와 모바일이 같습니다', { 건수: 결과.same })}</div>;
   if (결과.items.length === 0) {
     return (
       <div className="vp-screens">

@@ -104,7 +104,7 @@ describe('UserSection', () => {
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '최민수' } });
     fireEvent.click(screen.getByText('계정 추가'));
 
-    expect(screen.getByText('아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다')).toBeTruthy();
+    expect(screen.getByText('아이디는 영문 소문자 · 숫자 · 마침표(.) · 밑줄(_) · 하이픈(-)으로 2~32자입니다')).toBeTruthy();
     expect(만들기).not.toHaveBeenCalled();
   });
 

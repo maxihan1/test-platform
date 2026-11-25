@@ -26,7 +26,7 @@ export function Signup() {
     const 결과: Partial<Record<칸, string>> = {};
     if (값.username.trim() === '') 결과.username = t('아이디를 채웁니다');
     else if (!아이디모양.test(값.username)) {
-      결과.username = t('영문 소문자·숫자·. _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다');
+      결과.username = t('영문 소문자 · 숫자 · . _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다');
     }
     if (값.displayName.trim() === '') 결과.displayName = t('이름을 채웁니다');
     if (값.password === '') 결과.password = t('비밀번호를 채웁니다');

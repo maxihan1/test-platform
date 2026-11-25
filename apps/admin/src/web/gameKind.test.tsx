@@ -66,7 +66,7 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
 
   it('머리 이름이나 대상 서버 이름 · 주소를 바꾸고 값을 안 넣으면 저장 전에 까닭을 말한다', () => {
     render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
-    const 까닭 = '새 어드민 키는 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다';
+    const 까닭 = '새 어드민 키라면 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다';
 
     fireEvent.change(머리칸(), { target: { value: 'X-Gm-Key' } });
     expect(screen.getByText(까닭)).toBeTruthy();
@@ -89,7 +89,7 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
     fireEvent.change(값칸(), { target: { value: 'secret-admin-0001' } });
     expect(screen.getByText('어드민 키 헤더 이름을 입력해 주세요')).toBeTruthy();
     fireEvent.change(머리칸(), { target: { value: 'X-Admin-Key' } });
-    const 값까닭 = '어드민 키 값은 12자 이상 500자 이하로 입력해 주세요. 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다';
+    const 값까닭 = '어드민 키 값은 12자 이상 500자 이하로 입력해 주세요. 공백은 가운데 한 칸만 넣을 수 있습니다';
     fireEvent.change(값칸(), { target: { value: 'has space 12345' } });
     expect(screen.getByText(값까닭)).toBeTruthy();
     for (const 값 of ['short', ' Bearer secret-admin-0001', 'Bearer\tsecret-admin-0001', 'Bearer abcde12345']) {

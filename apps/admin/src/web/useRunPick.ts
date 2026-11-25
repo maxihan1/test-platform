@@ -121,7 +121,7 @@ export function useRunPick(옵션: {
       const 담을 = 디바이스 === undefined ? 채움.줄들 : 디바이스만(채움.줄들, 디바이스);
       if (담을.length === 0) {
         // 빈 모달을 열지 않는다. 열어 봐야 실행이 서버에서 400 으로 되돌아온다
-        알림(t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다'));
+        알림(t('실행할 케이스가 없습니다. 선택한 케이스가 전부 비활성이거나 필터에서 빠졌습니다'));
         return;
       }
       const 앱 = await 사람읽기();
@@ -130,7 +130,7 @@ export function useRunPick(옵션: {
       // 지원 패드에 남은 패드가 없는 버튼 그림 케이스는 돌 값이 없어 뺀다 (pickRun 윈도우접기)
       const 접은 = 담을.map((c) => 윈도우접기(c, 앱?.gamePads ?? [])).filter((c) => c.platforms.length > 0);
       if (접은.length === 0) {
-        알림(t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다'));
+        알림(t('실행할 케이스가 없습니다. 선택한 케이스가 전부 비활성이거나 필터에서 빠졌습니다'));
         return;
       }
       set담은것(접은);
@@ -157,7 +157,7 @@ export function useRunPick(옵션: {
   async function 여럿열기(rows: readonly CaseRow[], 디바이스?: Platform) {
     알림(null);
     // 빈 창을 열지 않는다. 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다
-    const 없음 = t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다');
+    const 없음 = t('실행할 케이스가 없습니다. 선택한 케이스가 전부 비활성이거나 필터에서 빠졌습니다');
     const 산것 = rows.filter((row) => row.isActive);
     if (산것.length === 0) return 알림(없음);
     try {

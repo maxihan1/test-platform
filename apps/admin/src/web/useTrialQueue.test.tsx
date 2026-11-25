@@ -133,7 +133,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
 
     expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'notice' });
-    expect(첫칸(result.current.줄들, 'X-2')).toEqual({ 종류: 'notice', 글: '앞 케이스 오류로 실행하지 않았습니다' });
+    expect(첫칸(result.current.줄들, 'X-2')).toEqual({ 종류: 'notice', 글: '선행 케이스 오류로 실행하지 않았습니다' });
   });
 
   it('PC 칸에서 멈추면 같은 케이스의 모바일 칸도 대기로 남기지 않는다', async () => {
@@ -144,7 +144,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
       await result.current.시작([{ ...항목('X-1'), platforms: ['desktop', 'mobile'] }], 'qa');
     });
 
-    expect(result.current.줄들['X-1']?.[1]).toEqual({ platform: 'mobile', 줄: { 종류: 'notice', 글: '앞 디바이스 오류로 실행하지 않았습니다' } });
+    expect(result.current.줄들['X-1']?.[1]).toEqual({ platform: 'mobile', 줄: { 종류: 'notice', 글: '앞선 디바이스 오류로 실행하지 않았습니다' } });
   });
 
   it('모바일 폰이 바쁘면(DEVICE_BUSY) 그 칸만 안내하고 다음 케이스를 이어 돈다', async () => {

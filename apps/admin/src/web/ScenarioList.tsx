@@ -82,7 +82,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
     <>
       <Head
         제목={t('E2E 테스트')}
-        부제={t('기능 테스트 스크립트를 차례로 실행해 흐름이 끊기지 않는지 확인합니다')}
+        부제={t('기능 케이스를 차례로 실행해 흐름이 끊기지 않는지 확인합니다')}
         행동={새시나리오}
       />
 
@@ -117,7 +117,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
           {줄들.length === 0 ? (
             <div className="empty">
               {t('아직 만든 시나리오가 없습니다')}
-              <small>{t('기능 테스트 스크립트를 단계로 이어 붙여 만듭니다')}</small>
+              <small>{t('기능 케이스를 단계로 이어 붙여 만듭니다')}</small>
               {새시나리오 === null ? null : <div style={{ marginTop: '14px' }}>{새시나리오}</div>}
             </div>
           ) : (

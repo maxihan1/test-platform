@@ -103,12 +103,12 @@ describe('만든 케이스 표', () => {
     render(<AuthoringCases cases={[결제, 버튼]} prUrl={null} 등록됨 뺀번호={new Set(['PAY-UI-002'])} />);
     expect(screen.getByRole('link', { name: 'PAY-FN-001' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'PAY-UI-002' })).toBeNull();
-    expect(screen.getByText(/반영 때 뺌/)).toBeTruthy();
+    expect(screen.getByText(/반영 때 제외/)).toBeTruthy();
   });
 
   it('목록이 null 이고 PR 이 있으면 남기지 않았다는 문장과 PR 고리를 낸다', () => {
     render(<AuthoringCases cases={null} prUrl="https://github.com/x/y/pull/3" 등록됨={false} />);
-    expect(screen.getByText(/이 요청은 만든 케이스 목록을 남기지 않았습니다/)).toBeTruthy();
+    expect(screen.getByText(/이 요청에는 만든 케이스 목록이 없습니다/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'PR 에서 보기' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
     expect(screen.queryByRole('table')).toBeNull();
   });
@@ -202,7 +202,7 @@ describe('계정 없음 단계', () => {
     지금([{ role: '판매자', count: 1, registered: false }], { 'FR-021': ['판매자'], 'FR-030': ['구매자'] });
     render(<AuthoringTodo service="PAY" 요청={반영줄()} 커버리지={계정셈} 할수={운영} 차이수={0} reload={reload} />);
     expect(screen.getByText('계정이 없어 못 쓴 요구사항 2건')).toBeTruthy();
-    expect(await screen.findByText('판매자 계정이 없어 테스트를 못 썼습니다. 계정을 넣으면 이 요구사항만 이어 작성합니다')).toBeTruthy();
+    expect(await screen.findByText('판매자 계정이 없어 테스트를 못 썼습니다. 계정을 등록하면 이 요구사항만 이어 작성합니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'FR-021' }).getAttribute('href')).toBe('#/prd/FR-021');
     expect(screen.queryByRole('link', { name: 'FR-030' })).toBeNull();
     expect(screen.getByRole('link', { name: '설정에서 판매자 계정 등록' }).getAttribute('href')).toBe('#/settings/PAY');
@@ -218,7 +218,7 @@ describe('계정 없음 단계', () => {
   it('그새 계정을 다 넣었으면 PRD 관리에서 이어 작성하라고 하고 역할 이름은 안 적는다', async () => {
     지금([{ role: '판매자', count: 1, registered: true }], { 'FR-021': ['판매자'] });
     render(<AuthoringTodo service="PAY" 요청={반영줄()} 커버리지={계정셈} 할수={운영} 차이수={0} reload={reload} />);
-    expect(await screen.findByText('필요한 계정을 모두 넣었습니다. PRD 관리에서 이 요구사항만 이어 작성하세요')).toBeTruthy();
+    expect(await screen.findByText('필요한 계정을 모두 등록했습니다. PRD 관리에서 이 요구사항만 이어 작성하세요')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'PRD 관리로 가기' }).getAttribute('href')).toBe('#/prd');
     expect(screen.queryByRole('link', { name: /설정에서/ })).toBeNull();
   });

@@ -81,7 +81,7 @@ describe('새 호환성 세트', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '디바이스 선택' }));
     const 상자 = within(screen.getByRole('dialog', { name: '디바이스 선택' }));
-    expect(상자.getByText('Device VISION 등록 디바이스 5대')).toBeTruthy();
+    expect(상자.getByText('Device VISION 에 등록된 디바이스 5대')).toBeTruthy();
     const 같은 = 상자.getAllByRole('checkbox', { name: 'Galaxy S21+ SM-G996N' });
     expect((같은[0] as HTMLInputElement).disabled).toBe(false);
     expect((같은[1] as HTMLInputElement).disabled).toBe(true);
@@ -95,7 +95,7 @@ describe('새 호환성 세트', () => {
     fireEvent.click(상자.getByRole('button', { name: '선택 완료' }));
 
     expect(screen.getByText('디바이스 2대')).toBeTruthy();
-    expect(screen.getByText('폴더블 1대는 꽂힌 상태 그대로 한 번 점검합니다')).toBeTruthy();
+    expect(screen.getByText('폴더블 1대는 연결한 상태 그대로 한 번 점검합니다')).toBeTruthy();
     fireEvent.change(screen.getByRole('textbox', { name: '세트 이름' }), { target: { value: ' 출시 전 점검 ' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => expect(window.location.hash).toBe('#/compat/9?service=MKA'));
@@ -166,7 +166,7 @@ describe('저장한 호환성 세트', () => {
     const { 미리셈 } = 차림();
     vi.spyOn(compatApi, 'set').mockResolvedValue({ ...상세, addedCases: ['MKA-FN-046', 'MKA-FN-099'] });
     render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
-    expect(await screen.findByText('케이스가 없어 실행 때 건너뜀')).toBeTruthy();
+    expect(await screen.findByText('케이스가 없어 실행할 때 건너뜁니다')).toBeTruthy();
     expect(screen.getByText('케이스 3')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'MKA-FN-046 제외' }));
     await waitFor(() => expect(미리셈).toHaveBeenLastCalledWith(7, []));
@@ -208,6 +208,6 @@ describe('저장한 호환성 세트', () => {
     vi.spyOn(compatApi, 'preview').mockResolvedValue({ auto: [], coverage: { covered: 0, total: 0, fallback: true }, uncovered: [] });
     render(<CompatSet envs={[]} id="new" serviceId={7} service="MKW" kind="SCREEN" 쓰나 />);
     expect(await screen.findByText('실제 디바이스에서 실행되는 모바일 웹 케이스가 없습니다')).toBeTruthy();
-    expect(screen.getByText('전체 화면 목록이 없어 케이스가 아는 화면으로 집계합니다')).toBeTruthy();
+    expect(screen.getByText('전체 화면 목록이 없어 케이스가 지나는 화면으로 집계합니다')).toBeTruthy();
   });
 });

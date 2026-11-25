@@ -104,16 +104,16 @@ describe('API 문서', () => {
 
 
 
-  it('바뀐 API 를 테스트에 반영하는 카드는 이제 없다 — 결정 필요 한 곳으로 옮겼다. 안 거친 응답 카드는 그대로다', async () => {
+  it('바뀐 API 를 테스트에 반영하는 카드는 이제 없다 — 결정 필요 한 곳으로 옮겼다. 확인하지 않은 응답 카드는 그대로다', async () => {
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
-    expect(await screen.findByRole('region', { name: '케이스가 안 거친 응답 2개' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: '케이스가 확인하지 않은 응답 2개' })).toBeTruthy();
     expect(screen.queryByRole('region', { name: /반영 안 됨/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();
   });
 
   it('작성 read 만 있으면 받기 · 첨부 버튼이 없다', async () => {
     render(<ApiDocs service={앱} 할수={보는사람} 설정보나={false} />);
-    await screen.findByRole('region', { name: '케이스가 안 거친 응답 2개' });
+    await screen.findByRole('region', { name: '케이스가 확인하지 않은 응답 2개' });
     expect(screen.queryByRole('button', { name: '문서 가져오기' })).toBeNull();
     expect(screen.queryByRole('button', { name: '파일 첨부' })).toBeNull();
     expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();

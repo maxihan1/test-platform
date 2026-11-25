@@ -79,9 +79,9 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
-  it('집계가 있으면 요구 수 · 케이스로 만든 수와 % · 입력이 필요한 케이스로만 · 제외(다음 작성) · 빠짐을 한 줄에 적는다', () => {
+  it('집계가 있으면 요구 수 · 케이스로 만든 수와 % · 입력이 필요한 케이스 · 제외(다음 작성) · 빠짐을 한 줄에 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 지금={지금} />);
-    expect(셈줄().textContent).toBe('PRD 요구사항요구사항 172건 중 케이스로 만듦 48건 (28%) · 입력이 필요한 케이스로만 3 · 제외 124 (다음 작성 100) · 누락 0');
+    expect(셈줄().textContent).toBe('PRD 요구사항요구사항 172건 중 케이스로 만듦 48건 (28%) · 입력이 필요한 케이스 3건 · 제외 124 (다음 작성 100) · 누락 0');
   });
 
   it('보류를 모르면 끝난 실행에서만 보류 여부 확인 불가라고 적는다 — 보류는 끝났을 때만 센다', () => {
@@ -96,7 +96,7 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
   it('갈래 수가 있으면 첫 줄은 그대로 두고 둘째 줄에 기능 · UI 테스트가 덮은 수를 따로 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, casedFn: 40, casedUi: 12 } })} 지금={지금} />);
     const 글 = 셈줄().textContent ?? '';
-    expect(글).toContain('요구사항 172건 중 케이스로 만듦 48건 (28%) · 입력이 필요한 케이스로만 3 · 제외 124 (다음 작성 100) · 누락 0');
+    expect(글).toContain('요구사항 172건 중 케이스로 만듦 48건 (28%) · 입력이 필요한 케이스 3건 · 제외 124 (다음 작성 100) · 누락 0');
     expect(글).toContain('만든 48건 중 기능 테스트가 커버한 것 40 · UI 테스트가 커버한 것 12 — 둘 다 커버한 요구사항은 양쪽에 집계합니다');
     expect(글.split('기능 테스트')).toHaveLength(2);
   });
@@ -116,7 +116,7 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
     expect(셈줄().textContent).not.toContain('커버한 것');
   });
 
-  it('입력이 필요한 케이스로만 쓴 것이 0 이면 그 칸을 뺀다', () => {
+  it('입력이 필요한 케이스가 0 이면 그 칸을 뺀다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, held: 0 } })} 지금={지금} />);
     expect(셈줄().textContent).not.toContain('입력이 필요한 케이스');
   });

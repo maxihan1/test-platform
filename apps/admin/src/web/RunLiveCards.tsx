@@ -24,7 +24,7 @@ function 단계(절차: 항목진행 | null): (항목진행 & { seq: number; tit
 }
 
 /**
- * `3 / 5단계 · 제목` — 저장한 단계 제목이 지금 단계와 맞을 때만 분모를 붙인다.
+ * `5단계 중 3번째 · 제목` — 저장한 단계 제목이 지금 단계와 맞을 때만 분모를 붙인다.
  * 어긋나면 저장값을 버린다(도메인/실행 §3.2 「단계 목록은 처음부터 다 보인다」) — 동적으로 만든 단계면 전체 수가 틀린다
  */
 function 전체단계수(절차: 항목진행 & { seq: number; title: string }): number | null {
@@ -36,15 +36,15 @@ export function 단계글(절차: 항목진행 & { seq: number; title: string },
   const 전체 = 전체단계수(절차);
   return 전체 === null
     ? t('{번호}단계 · {제목}', { 번호: 절차.seq, 제목: 절차.title })
-    : t('{번호} / {전체}단계 · {제목}', { 번호: 절차.seq, 전체, 제목: 절차.title });
+    : t('{전체}단계 중 {번호}번째 · {제목}', { 번호: 절차.seq, 전체, 제목: 절차.title });
 }
 
-/** 왼쪽 「진행 중」 줄의 짧은 단계 글 — `3단계` · `3 / 5단계`. 아직 안 알렸으면 null */
+/** 왼쪽 「진행 중」 줄의 짧은 단계 글 — `3단계` · `5단계 중 3번째`. 아직 안 알렸으면 null */
 export function 짧은단계글(절차: 항목진행 | null, t: 말): string | null {
   const 지금 = 단계(절차);
   if (지금 === null) return null;
   const 전체 = 전체단계수(지금);
-  return 전체 === null ? t('{번호}단계', { 번호: 지금.seq }) : t('{번호} / {전체}단계', { 번호: 지금.seq, 전체 });
+  return 전체 === null ? t('{번호}단계', { 번호: 지금.seq }) : t('{전체}단계 중 {번호}번째', { 번호: 지금.seq, 전체 });
 }
 
 /**
@@ -77,7 +77,7 @@ function 기기글({ 항목, 절차 }: 도는것, t: 말): string | null {
 /** 첫 단계 전 발 글 — 브라우저를 여는 4~5초 · 폰을 잡는 동안 카드가 멈춘 것처럼 보이지 않게 (점검표 B1 · B2) */
 function 첫단계전글({ 항목, 절차 }: 도는것, t: 말): string {
   // PC 는 정식 실행이면 빈 PC 를 120분까지 기다린다 — 「찾는 중」보다 「기다리는 중」이 맞다 (도메인/게임 §3.10 「윈도우 PC」)
-  if (PC항목인가(항목.platform)) return 절차?.vision === undefined ? t('빈 Windows PC 를 기다리는 중') : t('게임을 여는 중');
+  if (PC항목인가(항목.platform)) return 절차?.vision === undefined ? t('사용 가능한 Windows PC 를 기다리는 중') : t('게임을 여는 중');
   if (항목.platform !== 'android') return t('브라우저를 여는 중');
   return 절차?.vision === undefined ? t('사용할 디바이스를 찾는 중') : t('앱을 여는 중');
 }

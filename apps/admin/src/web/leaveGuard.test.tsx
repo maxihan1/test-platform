@@ -217,7 +217,7 @@ describe('떠나기상자 · 버리기전', () => {
     await 옮긴다('#/b');
     const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+      fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 나가기' }));
       await 도착;
     });
     expect(화면해시()).toBe('#/b');
@@ -229,7 +229,7 @@ describe('떠나기상자 · 버리기전', () => {
     act(() => 버리기전(한다));
     expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
     expect(한다).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 나가기' }));
     expect(한다).toHaveBeenCalledOnce();
   });
 

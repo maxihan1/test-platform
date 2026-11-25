@@ -49,7 +49,7 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
 
     const 창 = screen.getByRole('dialog', { name: 'E2E 시험 실행' });
     expect(within(창).getByText('결과는 이 창에서만 보이고 실행 기록에 남지 않습니다')).toBeTruthy();
-    expect(within(창).getByText('동작마다 1초 천천히')).toBeTruthy();
+    expect(within(창).getByText('동작마다 1초씩 느리게 실행')).toBeTruthy();
     expect(within(창).queryByText('경과 0:21')).toBeNull();
     expect(within(창).getByText(/· 경과 00:21/)).toBeTruthy();
     const 줄들 = [...창.querySelectorAll('.e2e-steps li')];
@@ -116,11 +116,11 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
     const { 닫기 } = 그리기(것);
 
     fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
-    const 묻기 = within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' }));
+    const 묻기 = within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 중단합니다' }));
     expect(document.activeElement).toBe(묻기.getByRole('button', { name: '계속 보기' }));
     fireEvent.click(묻기.getByRole('button', { name: '계속 보기' }));
 
-    expect(screen.queryByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '닫으면 시험 실행을 중단합니다' })).toBeNull();
     expect(것.중단).not.toHaveBeenCalled();
     expect(닫기).not.toHaveBeenCalled();
   });
@@ -130,7 +130,7 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
     const { 닫기 } = 그리기(것);
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '중단하고 닫기' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 중단합니다' })).getByRole('button', { name: '중단하고 닫기' }));
 
     expect(것.중단).toHaveBeenCalledTimes(1);
     expect(닫기).toHaveBeenCalledTimes(1);
