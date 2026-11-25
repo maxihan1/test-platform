@@ -26,6 +26,54 @@ describe('게임 요소 본문 검사', () => {
     expect(요소검사({ elements: [장검], remove: ['item:sword_long'] })).toEqual({ error: 'BAD_ELEMENT', detail: 'remove.0' });
   });
 
+  const 배움 = { text: '고기 5 를 쓴다', belief: 'CONFIRMED', seen: 2, build: '59', shape: 'FIXED', data: { 앞: 20, 뒤: 15 }, related: ['item:meat'] };
+  const 규칙 = { kind: 'RULE', key: 'rule:심기', name: '심기', learned: 배움 };
+  const 날씨 = { kind: 'KIND', key: 'kind:WEATHER', name: '날씨', learned: { text: '날씨가 무엇을 바꾸나' } };
+  const 눈 = { kind: 'WEATHER', key: 'weather:눈', name: '눈', learned: { text: '느려진다', belief: 'GUESS' } };
+
+  it('배운 것의 칸이 틀리면 그 칸을 돌려준다 — 모르는 칸도 거절한다', () => {
+    const 칸 = (learned: unknown) => 요소검사({ elements: [{ ...규칙, learned }] });
+    expect(칸({ ...배움, text: ' ' })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned.text' });
+    expect(칸({ ...배움, belief: '확인' })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned.belief' });
+    expect(칸({ text: '믿음 없음' })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned.belief' });
+    expect(칸({ ...배움, seen: -1 })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned.seen' });
+    expect(칸({ ...배움, marks: ['CHEAT', 'CHEAT'] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned.marks' });
+    expect(칸({ ...배움, related: ['고기'] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned.related' });
+    expect(칸({ ...배움, confidence: 1 })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned.confidence' });
+    expect(칸({ ...배움, data: 'x'.repeat(10_000) })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
+    expect(칸({ ...배움, data: '\u0000' })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
+  });
+
+  it('배운 것만 실은 줄은 기획서 값과 근거를 본문에 만들지 않는다', () => {
+    expect(요소검사({ elements: [규칙] })).toEqual({ elements: [규칙], remove: [] });
+  });
+
+  it('기획서에서 온 다섯 밖의 종류는 종류 이름이 열쇠 앞머리다', () => {
+    expect(요소검사({ elements: [{ ...규칙, key: 'item:심기' }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.key' });
+  });
+
+  it('게임이 만든 종류는 지도나 본문에 정의가 있어야 하고 기본 종류 · 정해진 앞머리 이름은 못 쓴다', () => {
+    expect(요소검사({ elements: [눈] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.kind' });
+    expect(요소검사({ elements: [눈, 날씨] })).toEqual({ elements: [눈, 날씨], remove: [] });
+    expect(요소검사({ elements: [눈] }, new Map([['WEATHER', []]]))).toEqual({ elements: [눈], remove: [] });
+    expect(요소검사({ elements: [{ ...날씨, key: 'kind:RULE' }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.key' });
+    expect(요소검사({ elements: [{ ...날씨, key: 'kind:ITEM' }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.key' });
+    expect(요소검사({ elements: [{ kind: 'KIND', key: 'kind:WEATHER', name: '날씨' }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
+  });
+
+  it('정의를 지우려면 그 종류를 쓰던 줄도 같은 본문에서 옮기거나 지운다', () => {
+    const 지움 = { ...날씨, learned: null };
+    const 지도 = new Map([['WEATHER', ['weather:눈']]]);
+    expect(요소검사({ elements: [지움] }, 지도)).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
+    expect(요소검사({ elements: [지움, { ...눈, learned: null }] }, 지도)).toEqual({ elements: [지움, { ...눈, learned: null }], remove: [] });
+  });
+
+  it('게임이 만든 종류는 게임 하나에 스무 개까지다', () => {
+    const 스물 = new Map(Array.from({ length: 20 }, (_, i) => [`X${String.fromCharCode(65 + i)}`, []]));
+    expect(요소검사({ elements: [날씨] }, 스물)).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.kind' });
+    expect(요소검사({ elements: [{ ...날씨, key: 'kind:XA' }] }, 스물)).not.toHaveProperty('error');
+  });
+
   it('값과 근거가 없어도 되고 remove 는 없으면 빈 목록이다', () => {
     expect(요소검사({ elements: [보라] })).toEqual({ elements: [{ ...보라, value: null }], remove: [] });
   });
@@ -106,6 +154,50 @@ describe.skipIf(연결 === undefined)('게임 지도 에이전트 통로', () =>
     ]);
     const 틀림 = await 올리기(id, { elements: [{ ...장검, key: '' }] });
     expect([틀림.statusCode, 틀림.json()]).toEqual([400, { error: 'BAD_ELEMENT', detail: 'elements.0.key' }]);
+  });
+
+  it('배운 것은 기획서 값과 섞이지 않는다 — 어느 쪽을 올려도 다른 쪽이 남고, remove 는 기획서 몫만 비운다', async () => {
+    const id = await 요청넣기();
+    const 줄 = async () =>
+      (await q<{ key: string; value: unknown; req_ids: string[]; prd_changed: string[]; text: string | null }>(`SELECT key, value, req_ids, prd_changed, learned->>'text' AS text FROM game_element WHERE service_id = $1 ORDER BY key`, [서비스])).rows;
+    const 배움 = { text: '두 번 같았다', belief: 'CONFIRMED', seen: 2 };
+    await 올리기(id, { elements: [장검] });
+    await q(`UPDATE game_element SET prd_changed = '{REQ-ITEM-001}' WHERE service_id = $1`, [서비스]);
+
+    expect((await 올리기(id, { elements: [{ kind: 'DATA', key: 'item:sword_long', name: '장검', learned: 배움 }] })).statusCode).toBe(204);
+    expect(await 줄()).toEqual([{ key: 'item:sword_long', value: 장검.value, req_ids: 장검.reqIds, prd_changed: ['REQ-ITEM-001'], text: '두 번 같았다' }]);
+
+    await 올리기(id, { elements: [장검] });
+    expect(await 줄()).toEqual([{ key: 'item:sword_long', value: 장검.value, req_ids: 장검.reqIds, prd_changed: [], text: '두 번 같았다' }]);
+
+    await 올리기(id, { elements: [], remove: ['item:sword_long'] });
+    expect(await 줄()).toEqual([{ key: 'item:sword_long', value: null, req_ids: [], prd_changed: [], text: '두 번 같았다' }]);
+
+    await 올리기(id, { elements: [{ kind: 'DATA', key: 'item:sword_long', name: '장검', learned: null }] });
+    expect(await 줄()).toEqual([]);
+  });
+
+  it('게임이 만든 종류 — 정의가 지도에 있으면 받고, 지도 글에 그 이름으로 찍히며, 정의 없이 남은 줄도 빠지지 않는다', async () => {
+    const id = await 요청넣기();
+    const 날씨 = { kind: 'KIND', key: 'kind:WEATHER', name: '날씨', learned: { text: '날씨가 무엇을 바꾸나' } };
+    const 눈 = { kind: 'WEATHER', key: 'weather:눈', name: '눈', learned: { text: '느려진다', belief: 'GUESS' } };
+    expect((await 올리기(id, { elements: [눈] })).json()).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.kind' });
+    expect((await 올리기(id, { elements: [날씨] })).statusCode).toBe(204);
+    expect((await 올리기(id, { elements: [눈] })).statusCode).toBe(204);
+    expect((await 올리기(id, { elements: [{ ...날씨, learned: null }] })).json()).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
+    expect(await 지도(id)).toBe(
+      [
+        '# 게임 지도 — 요소 2개 · 배운 줄 2개. 기대값의 근거가 아니다 — 근거는 표준 기획서 항목뿐이다',
+        '',
+        '## 게임이 만든 종류 (KIND) — 1개',
+        '- kind:WEATHER · 날씨 · 배움 {"text":"날씨가 무엇을 바꾸나"}',
+        '',
+        '## 날씨 (WEATHER) — 1개',
+        '- weather:눈 · 눈 · 배움 {"text":"느려진다","belief":"GUESS"}',
+      ].join('\n') + '\n',
+    );
+    await q(`DELETE FROM game_element WHERE service_id = $1 AND kind = 'KIND'`, [서비스]);
+    expect(await 지도(id)).toContain('## WEATHER (WEATHER) — 1개\n- weather:눈');
   });
 
   it('지도 글은 종류마다 요소 한 줄 — 기획서 값 · 근거 · 서버 값과 같은지 · 거친 케이스', async () => {

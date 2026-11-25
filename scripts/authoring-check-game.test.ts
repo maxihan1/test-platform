@@ -47,6 +47,13 @@ describe('지도열쇠들', () => {
     expect([...지도열쇠들(지도글, null).열쇠]).not.toContain('#');
   });
 
+  it('케이스가 다룰 것은 기획서에서 온 다섯 종류뿐이다 — 배운 줄은 열쇠이기만 하다', () => {
+    const 글 = '## 월드 (WORLD) — 1개\n- zone:Town · 마을 · 거친 케이스 없음\n\n## 규칙 (RULE) — 1개\n- rule:심기 · 심기 · 배움 {"text":"고기 5"}\n';
+    const r = 지도열쇠들(글, JSON.stringify({ elements: [{ kind: 'ASK', key: 'ask:웨이브', name: '웨이브' }, { kind: 'DATA', key: 'item:고기', name: '고기' }] }));
+    expect([...r.열쇠].sort()).toEqual(['ask:웨이브', 'item:고기', 'rule:심기', 'zone:Town']);
+    expect([...r.다룰].sort()).toEqual(['item:고기', 'zone:Town']);
+  });
+
   it('요소 파일이 JSON 이 아니면 지난 지도만 쓰고 까닭을 남긴다', () => {
     const r = 지도열쇠들(지도글, '{');
     expect(r.열쇠.size).toBe(3);

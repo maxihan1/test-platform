@@ -89,6 +89,14 @@ describe.skipIf(연결 === undefined)('기획서 새 판이 게임 지도를 끌
     ]);
   });
 
+  it('지운 요구에만 붙었어도 배운 것이 있는 요소는 남고 기획서 값과 번호만 빠진다', async () => {
+    await 요소넣기(서비스, [{ kind: 'DATA', key: 'shop:단검', name: '단검', learned: { text: '80에 산다', belief: 'SEEN' } }], []);
+    await 판저장(판1.filter((x) => x.reqId !== 'XGV-REQ-001'));
+
+    const 행 = (await q<{ value: unknown; req_ids: string[]; text: string }>(`SELECT value, req_ids, learned->>'text' AS text FROM game_element WHERE service_id = $1 AND key = 'shop:단검'`, [서비스])).rows;
+    expect(행).toEqual([{ value: null, req_ids: [], text: '80에 산다' }]);
+  });
+
   it('지운 상태 요소와 조각이 겹치는 다른 상태 요소가 남아 있으면 그 조각으로 가는 행은 남는다', async () => {
     await 요소넣기(서비스, [{ kind: 'STATE', key: 'state:채팅=없음,레벨=1', name: '채팅 없음 레벨 1', value: null, reqIds: ['XGV-REQ-004'] }], []);
     await 판저장(판1.filter((x) => x.reqId !== 'XGV-REQ-002'));
