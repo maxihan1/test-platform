@@ -55,7 +55,7 @@ describe('앱역방향절 — 웹 크롤러 대신 appium-cli crawl', () => {
 });
 
 describe('게임역방향절 — 정방향과 같은 창 훑기', () => {
-  const 절 = (화면만: boolean) => 게임역방향절({ 화면만, 산출물폴더: '/w/9/자료/out', 요청번호: 9 }).join('\n');
+  const 절 = (화면만: boolean) => 게임역방향절({ 화면만, 산출물폴더: '/w/9/자료/out', 요청번호: 9, 접두사: 'ASH' }).join('\n');
 
   it('game.md §7 을 열게 하고 훑은 창 자리를 준다 — 웹 크롤러 · appium-cli crawl · 시작 주소는 안 쓴다', () => {
     for (const 화면만 of [false, true]) {
@@ -74,6 +74,14 @@ describe('게임역방향절 — 정방향과 같은 창 훑기', () => {
     expect(절(true)).toContain('PRD 에 없는 화면 0');
     expect(절(false)).not.toContain('covered.json');
     expect(절(false)).toContain('기획서가 말하는 창 · 장소뿐');
+  });
+
+  it('배운 것을 PRD 로 옮기는 명령과 표 자리를 준다 — 화면만은 빠진 줄이 있으면 체크포인트를 못 지난다', () => {
+    expect(절(true)).toContain('authoring-learn-prd.ts /w/9/자료 ASH 화면만');
+    expect(절(true)).toContain('/w/9/자료/game-prd.json');
+    expect(절(true)).toContain('체크포인트를 못 지난다');
+    expect(절(false)).toContain('authoring-learn-prd.ts /w/9/자료 ASH`');
+    expect(절(false)).not.toContain('체크포인트를 못 지난다');
   });
 
   it('줄프롬프트는 게임 표시가 있을 때 이 절을 싣고 계정 값은 싣지 않는다', () => {

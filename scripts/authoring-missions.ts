@@ -5,6 +5,7 @@ import { readdirSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 import type { 원장 } from './authoring-ledger.js';
+import { type 작전, 다채웠나, 안건드린작전, 이긴판읽기, 채울판 } from './authoring-game-wins-log.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 기준결정, 원장대조, tcId들 } from './authoring-ledger-check.js';
 import { 안전히읽기, 폴더인가 } from './authoring-screens-keep-io.js';
@@ -18,6 +19,8 @@ export interface 미션 {
   success: string;
   /** 확인할 로그 한 줄 = 기획서 규칙 하나 */
   logs: { text: string; reqId: string }[];
+  /** 이기는 미션만 — 원래 속도로 10판을 다 이긴 조작 도우미 함수와 인자(게임 §3.10 「배운 것을 PRD · 테스트로」) */
+  plan?: 작전;
 }
 
 const 글상한 = 2_000_000;
@@ -55,13 +58,24 @@ function 덩이줄들(몸: string[]): string[] {
   return 봄 ? 안 : 몸;
 }
 
+function 작전읽기(글: string): 작전 | null {
+  const m = /^([a-z][a-z0-9-]*)\s+([\p{L}\p{N}_$]+)(?:\s+(\[.*\]))?$/u.exec(글);
+  if (m === null) return null;
+  try {
+    const 인자 = JSON.parse(m[3] ?? '[]') as unknown;
+    return Array.isArray(인자) ? { 파일: m[1]!, 함수: m[2]!, 인자 } : null;
+  } catch {
+    return null;
+  }
+}
+
 function 미션읽기몸(id: string, 머리제목: string, 줄들: string[]): { 미션: 미션 } | { 틀림: string } {
   const 칸: Record<string, string> = {};
   const logs: 미션['logs'] = [];
   let 로그중 = false;
   for (const 줄 of 줄들) {
     const t = 줄.trim();
-    const 필드 = /^(미션|시작 조건|할 일|성공 조건)\s*:\s*(.*)$/.exec(t);
+    const 필드 = /^(미션|시작 조건|할 일|성공 조건|작전)\s*:\s*(.*)$/.exec(t);
     if (필드 !== null) {
       칸[필드[1] ?? ''] = (필드[2] ?? '').trim();
       로그중 = false;
@@ -74,6 +88,11 @@ function 미션읽기몸(id: string, 머리제목: string, 줄들: string[]): { 
     }
   }
   const 미션: 미션 = { id, title: 칸['미션'] || 머리제목, start: 칸['시작 조건'] ?? '', todo: 칸['할 일'] ?? '', success: 칸['성공 조건'] ?? '', logs };
+  if (칸['작전'] !== undefined) {
+    const plan = 작전읽기(칸['작전']);
+    if (plan === null) return { 틀림: `${id} — 작전 줄이 「<도우미 파일 이름> <함수> <인자 JSON 배열>」 꼴이 아니다` };
+    미션.plan = plan;
+  }
   const 빈칸 = (['title', 'start', 'todo', 'success'] as const).find((k) => 미션[k].trim() === '') ?? (logs.length === 0 ? 'logs' : undefined);
   return 빈칸 === undefined ? { 미션 } : { 틀림: `${id} — ${빈칸} 칸이 비었다` };
 }
@@ -156,11 +175,29 @@ const 번호들 = (xs: readonly string[]): string => {
   return 번호.length === 0 ? '' : `(${번호.slice(0, 번호상한).join(' · ')}${번호.length > 번호상한 ? ` 외 ${String(번호.length - 번호상한)}건` : ''})`;
 };
 
+/** 작전이 적힌 미션 가운데 원래 속도로 10판을 다 못 이긴 것 — 막지 않고 보이기만 한다 */
+function 못채운글(입력: { 트리: string; 케이스폴더: string; 자료?: string; 기준표글?: string; 바뀐?: readonly string[] | null }, 미션들: readonly 미션[]): string {
+  const { 자료 } = 입력;
+  if (자료 === undefined) return '';
+  // 이긴 판 기록은 작성마다 새것이다 — 앞 작성의 작전(기준 표와 같고 이번에 안 돌리고 도우미도 안 고친 것)을 0판으로 세지 않는다. 바뀐 파일을 못 읽었으면 센다
+  const 앞작전 = new Map((입력.기준표글 === undefined ? [] : (미션절읽기(입력.기준표글)?.items ?? [])).map((m) => [m.id, JSON.stringify(m.plan)]));
+  const 작전들 = 미션들.flatMap((m) => {
+    if (m.plan === undefined) return [];
+    const 폴더 = basename(입력.케이스폴더);
+    const 그대로 = 앞작전.get(m.id) === JSON.stringify(m.plan) && Array.isArray(입력.바뀐) && 안건드린작전(자료, 입력.트리, 폴더, m.plan, 입력.바뀐);
+    return 그대로 ? [] : [{ id: m.id, 판: 이긴판읽기(자료, 입력.트리, 폴더, m.plan) }];
+  });
+  const 못채움 = 작전들.filter((x) => !다채웠나(x.판));
+  if (작전들.length === 0) return '';
+  const 낱 = 못채움.slice(0, 번호상한).map((x) => `${x.id} ${x.판.짐 > 0 ? '짐' : `${String(x.판.이김)}/${String(채울판)}`}`).join(' · ');
+  return ` · 이기는 미션 ${String(작전들.length)}개 가운데 ${String(채울판)}판을 못 채운 것 ${String(못채움.length)}개${못채움.length === 0 ? '' : `(${낱})`}`;
+}
+
 /**
  * 자식 뒤 — 케이스 목록 파일의 미션 절을 읽어 PR 본문 머리 줄을 돌려준다. 절이 없으면 줄도 없다.
  * 공식 빈칸 · 미션도 테스트도 없는 규칙은 번호까지 싣는다 — 앞 판의 「미션 승인」 탭 경고를 사람이 PR 에서 본다. 어떻게 끝나도 던지지 않는다
  */
-export function 미션줄(입력: { 트리: string; 서비스: string; 케이스폴더: string; 원장값: 원장 | { 없음: string }; 기준?: 기준결정; 비밀: readonly string[] }): string[] {
+export function 미션줄(입력: { 트리: string; 서비스: string; 케이스폴더: string; 원장값: 원장 | { 없음: string }; 기준?: 기준결정; 비밀: readonly string[]; 자료?: string; 기준표글?: string; 바뀐?: readonly string[] | null }): string[] {
   try {
     const 표글 = 안전히읽기(join(입력.트리, 'docs', 'cases'), `${입력.서비스}.md`, 글상한);
     const 읽음 = 표글 === null ? null : 미션절읽기(표글);
@@ -168,7 +205,7 @@ export function 미션줄(입력: { 트리: string; 서비스: string; 케이스
     const 글 = 케이스글들읽기(입력.케이스폴더);
     const 빠짐 = 빠진규칙(입력.원장값, 표글, 입력.기준, 읽음.items, 글 === undefined ? undefined : tcId들(글));
     const 못읽음글 = 읽음.못읽음.length === 0 ? '' : ` · 못 읽은 미션 ${String(읽음.못읽음.length)}개(${읽음.못읽음.slice(0, 3).join(' / ')})`;
-    const 줄 = `게임 시나리오 미션: ${String(읽음.items.length)}개 · 공식 빈칸 ${String(읽음.gaps.length)}개${번호들(읽음.gaps.map((g) => g.reqId))} · 미션도 테스트도 없는 규칙 ${String(빠짐.length)}개${번호들(빠짐.map((b) => b.reqId))}${못읽음글}`;
+    const 줄 = `게임 시나리오 미션: ${String(읽음.items.length)}개 · 공식 빈칸 ${String(읽음.gaps.length)}개${번호들(읽음.gaps.map((g) => g.reqId))} · 미션도 테스트도 없는 규칙 ${String(빠짐.length)}개${번호들(빠짐.map((b) => b.reqId))}${못읽음글}${못채운글(입력, 읽음.items)}`;
     return [계정섞였나([줄], 입력.비밀) ? '게임 시나리오 미션: 줄에 테스트 계정 비밀번호가 들어 있어 뺌' : 줄];
   } catch (e) {
     return [`게임 시나리오 미션: 못 읽음 — ${e instanceof Error ? e.message : String(e)}`];

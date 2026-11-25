@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { 사본 } from './authoring-copy.js';
 import type { 원장 } from './authoring-ledger.js';
+import { 목록지문 } from './authoring-game-crawl.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
 
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
@@ -118,9 +119,11 @@ describe('앞결과 — 이어받은 폴더의 결과 파일', () => {
     결과쓰기({ items: [{ ...올라간, reqId: 'MKT-NEW-001' }] });
     writeFileSync(join(자리.트리, 'docs', 'cases', 'MKT.md'), '| 1 | 정상 | 전 | 조 | 결 | MKT-NEW-001 | MKT-FN-010 |\n');
     writeFileSync(join(자리.자료, 'game-elements.json'), JSON.stringify({ elements: [{ kind: 'DATA', key: 'item:a', name: 'a', reqIds: ['MKT-NEW-001'] }] }));
+    writeFileSync(join(자리.자료, 'game-prd.json'), JSON.stringify({ 옮김: { 'rule:심기': ['MKT-NEW-001'] } }));
     const 몸 = 앞결과(자리, [올라간 as never], 'MKT') as { items: { reqId: string }[] };
     expect(몸.items[0]?.reqId).toBe('MKT-REQ-009');
     expect(readFileSync(join(자리.자료, 'game-elements.json'), 'utf8')).toContain('"reqIds":["MKT-REQ-009"]');
+    expect(readFileSync(join(자리.자료, 'game-prd.json'), 'utf8')).toContain('"rule:심기":["MKT-REQ-009"]');
     expect(readFileSync(join(자리.트리, 'docs', 'cases', 'MKT.md'), 'utf8')).toContain('| MKT-REQ-009 |');
     expect(readFileSync(join(자리.자료, 'out', 'prd.json'), 'utf8')).not.toContain('MKT-NEW-001');
   });
@@ -147,6 +150,22 @@ describe('옮기기올리기', () => {
     expect(건것).not.toHaveBeenCalled();
     writeFileSync(join(자리.자료, 'crawl', 'list.json'), JSON.stringify([{ 틀: '/', 덮음: true }, { 틀: '/cart' }]));
     expect(await 올리기()).toEqual({ 거절: '표준 기획서 결과(out/prd.json)가 없다', 줄: [] });
+  });
+
+  it('게임은 크롤 목록 대신 훑은 창과 배운 줄로 본다 — 창이 다 덮이고 옮길 줄도 없으면 거절하지 않는다 (GAME-F6-04)', async () => {
+    const 건것 = vi.fn(async () => 답(200));
+    vi.stubGlobal('fetch', 건것);
+    const 훑기 = join(자리.자료, 'game-crawl', 'login');
+    mkdirSync(훑기, { recursive: true });
+    const 목록글 = JSON.stringify([{ 주소: 'scene:World', 이름: 'World', 틀: 'scene:World', 파일: '001.yml', 지문: 'a', 글자지문: 'b', 연곳: null }]);
+    writeFileSync(join(훑기, 'list.json'), 목록글);
+    writeFileSync(join(훑기, 'game.json'), JSON.stringify({ 상태: '로그아웃', 목록: 목록지문(목록글), 창: [] }));
+    writeFileSync(join(자리.자료, 'covered.json'), JSON.stringify(['game:World']));
+    const 게임올림 = () => 옮기기올리기(서버, 'MKT', 7, 자리, 앞, 원장하나, {}, null, 'mkt', [], true);
+    expect('거절' in (await 게임올림())).toBe(false);
+    writeFileSync(join(자리.자료, 'game-map.txt'), '## 규칙 (RULE) — 1개\n- rule:심기 · 심기 · 배움 {"text":"글","belief":"GAME_TEXT"}\n');
+    expect(await 게임올림()).toEqual({ 거절: '표준 기획서 결과(out/prd.json)가 없다', 줄: [] });
+    expect(건것).not.toHaveBeenCalled();
   });
 
   it('테스트 계정 비밀번호가 들었으면 이스케이프돼 있어도 올리지 않고 거절한다', async () => {

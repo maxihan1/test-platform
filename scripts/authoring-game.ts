@@ -20,6 +20,8 @@ export const 게임자리 = {
   배운글: 'game-learned.json', 게임글: 'game-guide.txt', 학습: 'game-learn.json', 학습알림: 'game-learn.wrap', 시험감: 'game-exam.json', 시험답: 'game-exam-answer.json',
   // 조작 도우미를 부를 때마다의 기록 (authoring-game-play)
   조작기록: 'game-play',
+  // 배운 줄 → 요구 번호 표(자식이 쓴다) · 지금 빌드 이름(에이전트가 쓴다) · 이긴 판 기록(authoring-game-wins) (도메인/게임 §3.10 「배운 것을 PRD · 테스트로」)
+  옮김: 'game-prd.json', 빌드: 'game-build.txt', 이긴판: 'game-wins.json',
 } as const;
 
 const 기록상한 = 200_000;

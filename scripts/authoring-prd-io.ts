@@ -17,8 +17,8 @@ import { 제목밖묶음 } from './authoring-prd-feature.js';
 import { type 옮긴것, 대조줄들, 보낼항목, 비밀번호꼴가리기, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 import { 계정섞였나, 글모두, 비밀가리기 } from './authoring-reverse.js';
 import { 게임자리 } from './authoring-game.js';
-import { 안전히읽기, 지도받기, 크롤모두덮음 } from './authoring-screens-keep-io.js';
-import { 산출물읽기 } from './authoring-upload-reverse.js';
+import { 안전히읽기, 지도받기 } from './authoring-screens-keep-io.js';
+import { 산출물읽기, 화면만다덮음 } from './authoring-upload-reverse.js';
 
 export type 서버 = { 주소기지: string; 토큰: string };
 
@@ -125,10 +125,12 @@ export function 앞결과(자리: 사본, 지금: readonly PrdItem[], 서비스:
   return 가려읽기(새글);
 }
 
-/** 게임 지도 요소의 근거 번호도 표 · 결과 파일과 같이 바꾼다 — 자식은 옮긴 항목을 임시 번호로 적는다. 올리기(authoring-game)는 이 뒤에 돈다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」) */
+/** 게임 지도 요소의 근거 번호 · 배운 줄의 옮김 표도 표 · 결과 파일과 같이 바꾼다 — 자식은 옮긴 항목을 임시 번호로 적는다. 올리기(authoring-game)는 이 뒤에 돈다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」) */
 function 요소번호바꾸기(자료: string, 맞춤: ReadonlyMap<string, string>): void {
-  const 요소글 = 맞춤.size === 0 ? null : 안전히읽기(자료, 게임자리.요소, 4_000_000);
-  if (요소글 !== null) writeFileSync(join(자료, 게임자리.요소), 번호바꾸기(요소글, 맞춤));
+  for (const 이름 of 맞춤.size === 0 ? [] : [게임자리.요소, 게임자리.옮김]) {
+    const 글 = 안전히읽기(자료, 이름, 4_000_000);
+    if (글 !== null) writeFileSync(join(자료, 이름), 번호바꾸기(글, 맞춤));
+  }
 }
 
 /**
@@ -177,8 +179,8 @@ export async function 옮기기올리기(
 ): Promise<{ 줄: string[]; 원장: 원장 | { 없음: string }; 기준: 기준결정 } | { 거절: string; 줄: string[] }> {
   const 읽음 = 결과읽기(자리, 서비스, 비밀);
   if (읽음 === null) {
-    if (크롤모두덮음(자리.자료) === null) return { 거절: `표준 기획서 결과(out/${결과이름})가 없다`, 줄: [] };
-    // 크롤 목록이 전부 PRD 에 있으면 자식이 아무것도 안 쓴 것이 맞다 — 올릴 판이 없다. 올리기가 「기획서에 없는 화면이 없다」로 끝낸다 (PRD-F6-03)
+    if (화면만다덮음(자리.자료, 게임) === null) return { 거절: `표준 기획서 결과(out/${결과이름})가 없다`, 줄: [] };
+    // 찾은 화면이 전부 PRD 에 있으면(게임은 훑은 창 · 배운 줄) 자식이 아무것도 안 쓴 것이 맞다 — 올릴 판이 없다. 올리기가 「기획서에 없는 화면이 없다」로 끝낸다 (PRD-F6-03)
     const 원장값 = 표준원장(앞.items, api, 게임);
     return { 줄: [], 원장: 원장값, 기준: 기준결정만들기(기준 === null ? null : { ...기준, 접두사: 서비스 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(앞.items)) };
   }

@@ -21,6 +21,7 @@ import { 머지행처리 } from './authoring-merge-row.js';
 import { 고치기실행인가, 편집처리 } from './authoring-edit.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
+import { 게임쓸것없나 } from './authoring-upload-reverse.js';
 import { 사용량보고, 세션번호, 흐름풀기 } from './authoring-usage.js';
 import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
@@ -39,7 +40,8 @@ import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-g
 import { 미션줄 } from './authoring-missions.js';
 import { type 탐색단계, 병합팝업행, 세션띄우기, 탐색끝줄, 탐색하나, 팝업싣는손 } from './authoring-explore.js';
 import { 못뜬것은끊김, 학습번호들, 학습하기 } from './authoring-learn.js';
-import { 학습끝줄 } from './authoring-learn-io.js';
+import { 번호달기, 학습끝줄 } from './authoring-learn-io.js';
+import { 화면만못옮김 } from './authoring-learn-prd.js';
 import { 학습프롬프트 } from './authoring-learn-prompt.js';
 import { PC기다리는실행, 빈PC기다리기, 쥐었나 } from './authoring-learn-device.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
@@ -331,7 +333,7 @@ async function 사본에서(
   };
   const { 배움, 띄움 } = await (async () => {
     const 배움 = await 배우기();
-    return { 배움, 띄움: 배움.끝 ?? await 세션띄우기({ 탐색: 탐색하나(것, 게임화면 !== undefined) || 앱탐색, 갈래: 앱.갈래, 통로, 자료: 자리.자료, 비밀: 비밀번호들(것), 이어하기: 방.이어하기, 한번, 거두기, 멈추라했다: 박동.멈추라했다, 알린다 }) };
+    return { 배움, 띄움: 배움.끝 ?? await 세션띄우기({ 탐색: 탐색하나(것, 게임화면 !== undefined) || 앱탐색, 갈래: 앱.갈래, ...(역방향?.화면만 === true && 게임화면 !== undefined ? { 더볼것: () => 화면만못옮김(자리.자료, 서비스), 쓸것없나: () => 게임쓸것없나(자리.자료) } : {}), 통로, 자료: 자리.자료, 비밀: 비밀번호들(것), 이어하기: 방.이어하기, 한번, 거두기, 멈추라했다: 박동.멈추라했다, 알린다 }) };
   })().finally(() => (링크끄기(), 늘리기끄기()));
   const { 크레딧으로, 거절: 탐색거절 } = 띄움;
   const 돌린것 = 못뜬것은끊김(띄움.돌린것, 배움.앞낸것);
@@ -366,7 +368,7 @@ async function 사본에서(
     console.log(`[작성] ${것.id}번 표준 기획서를 못 올려 거절한다\n${옮김.줄.join('\n')}`);
     return void (await 손.끝내기(거절로(사유거르기(옮김.거절, 비밀번호들(것)))));
   }
-  const 게임줄 = 게임화면 === undefined ? [] : [...(await 게임올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...(await 탐색끝줄({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것), 테스트고침읽기(것) == null ? undefined : 받은빌드이름(자리.자료), 탐색하나(것, true))), ...(await 학습끝줄({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...안다룬요소줄(자리.자료, join(자리.트리, 'tests', 케이스자리), 비밀번호들(것)), ...미션줄({ 트리: 자리.트리, 서비스, 케이스폴더: join(자리.트리, 'tests', 케이스자리), 원장값: 옮김.원장, 기준: 옮김.기준, 비밀: 비밀번호들(것) })]; // 훑은 창 · 게임 지도 · 탐색 플레이 · 조작 맵 · 배우기 · 안 다룬 요소 · 미션 절 — 못 올려도 PR 은 간다
+  const 게임줄 = 게임화면 === undefined ? [] : [...(await 게임올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...(await 탐색끝줄({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것), 테스트고침읽기(것) == null ? undefined : 받은빌드이름(자리.자료), 탐색하나(것, true))), ...(await 학습끝줄({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...(await 번호달기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 서비스, 역방향?.화면만 === true)), ...안다룬요소줄(자리.자료, join(자리.트리, 'tests', 케이스자리), 비밀번호들(것)), ...미션줄({ 트리: 자리.트리, 서비스, 케이스폴더: join(자리.트리, 'tests', 케이스자리), 원장값: 옮김.원장, 기준: 옮김.기준, 비밀: 비밀번호들(것), 자료: 자리.자료, 기준표글: 원장.기준표?.표글, 바뀐: 고친테스트파일들(자리.트리, join(자리.자료, 기준목록이름)) })]; // 훑은 창 · 게임 지도 · 탐색 플레이 · 조작 맵 · 배우기 · 안 다룬 요소 · 미션 절 — 못 올려도 PR 은 간다
   const 앱줄 = 설정.종류 === 'APP' ? await 앱.끝줄() : []; // crawl 결과 → 앱 조작 맵 · 화면 기록 · 탐색 줄 (§3.6 「★ 앱 탐색」 · APP-F4-05 · 06) — 못 올려도 PR 은 간다
   // 테스트 고침 자식이 요약을 빠뜨렸으면 같은 세션을 한 번 되묻는다 — 고장 내 보기 단계에 들어간 자식만(안 했으면 숫자를 지어 적는다). 멈춤 · 거절 · 거두기 실패는 위처럼 끝낸다.
   // ponytail: 되물은 몫 토큰은 안 센다(서버가 사용량을 한 번만 받는다) — 세려면 사용량보고 앞으로 옮긴다

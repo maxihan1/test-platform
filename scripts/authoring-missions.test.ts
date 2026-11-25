@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { 원장 } from './authoring-ledger.js';
+import { 이긴판적기 } from './authoring-game-wins-log.js';
 import { 미션절읽기, 미션줄, 빠진규칙 } from './authoring-missions.js';
 
 const 표 = `# ARG 케이스
@@ -156,6 +157,28 @@ describe('미션줄', () => {
     expect(부르기()[0]).not.toContain('qa1');
     표쓰기(표.replace(' - ARG-REQ-070 — 공식에 보정 값이 비어 있다 — 기획서 확인 필요', ' - 계정 qa1 Pw1234! 로 로그인'));
     expect(부르기(['Pw1234!'])).toEqual(['게임 시나리오 미션: 줄에 테스트 계정 비밀번호가 들어 있어 뺌']);
+  });
+
+  it('작전이 적힌 이기는 미션은 10판을 못 채우면 수와 번호를 싣는다 — 앞 작성이 확인한 작전은 안 센다', () => {
+    const 작전표 = 표.replace('할 일: 전투 망치로', '작전: play 한판 ["쉬움"]\n할 일: 전투 망치로').replace('할 일: 임프 1마리', '작전: play 한판 ["보통"]\n할 일: 임프 1마리');
+    표쓰기(작전표);
+    expect(미션절읽기(작전표)?.items.map((m) => m.plan)).toEqual([{ 파일: 'play', 함수: '한판', 인자: ['쉬움'] }, { 파일: 'play', 함수: '한판', 인자: ['보통'] }]);
+    const 자료 = join(트리, 'data');
+    mkdirSync(자료);
+    const 줄 = (기준표글?: string, 바뀐: string[] = []) => 미션줄({ 트리, 서비스: 'ARG', 케이스폴더: join(트리, 'tests', 'arg'), 원장값: 원장값(), 비밀: [], 자료, 기준표글, 바뀐 })[0]!;
+    mkdirSync(join(트리, 'tests', 'arg', 'helpers'));
+    writeFileSync(join(트리, 'tests', 'arg', 'helpers', 'play.helper.ts'), 'export const a = 1;\n');
+    expect(줄()).toContain(' · 이기는 미션 2개 가운데 10판을 못 채운 것 2개(M01 0/10 · M02 0/10)');
+    이긴판적기(자료, 트리, 'arg', { 파일: 'play', 함수: '한판', 인자: ['쉬움'] }, { 이김: 10, 짐: 0 });
+    이긴판적기(자료, 트리, 'arg', { 파일: 'play', 함수: '한판', 인자: ['보통'] }, { 이김: 4, 짐: 1 });
+    expect(줄()).toContain(' · 이기는 미션 2개 가운데 10판을 못 채운 것 1개(M02 짐)');
+    writeFileSync(join(트리, 'tests', 'arg', 'helpers', 'play.helper.ts'), 'export const a = 2;\n');
+    expect(줄(작전표)).toContain('못 채운 것 2개(M01 0/10 · M02 0/10)');
+    rmSync(join(자료, 'game-wins.json'));
+    expect(줄(작전표, ['tests/arg/helpers/play.helper.ts'])).toContain('못 채운 것 2개');
+    expect(줄(작전표)).not.toContain('이기는 미션');
+    expect(부르기()[0]).not.toContain('이기는 미션');
+    expect(미션절읽기(작전표.replace('play 한판 ["쉬움"]', '한판만'))?.못읽음[0]).toContain('M01 — 작전 줄이');
   });
 
   it('번호가 열을 넘으면 「외 N건」', () => {
