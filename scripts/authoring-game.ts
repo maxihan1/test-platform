@@ -21,6 +21,8 @@ export const 게임자리 = {
 const 기록상한 = 200_000;
 // 서버 game-elements 본문 상한(prd 통로와 같은 4MiB)보다 작게 — 넘으면 서버가 413 으로 돌려보낸다
 const 요소상한 = 4_000_000;
+// 배운 것이 쌓인 지도 글은 요소 파일보다 크다 — 모자라면 못 읽은 것이 빈 지도로 보인다
+export const 지도상한 = 20_000_000;
 
 /** 서버 화면 기록 가운데 게임 창(`game:`)만 — 웹 저장본(받은저장본)은 기록 첫 줄이 http 주소인 것만 받아 게임 창을 버린다 */
 function 받은창들(몸: unknown): (저장한창 & { 글: string; 훑은때: string })[] {
@@ -95,7 +97,7 @@ const 안다룬상한 = 20;
  */
 export function 안다룬요소줄(자료: string, 케이스폴더: string, 비밀: readonly string[]): string[] {
   try {
-    const { 다룰: 열쇠 } = 지도열쇠들(안전히읽기(자료, 게임자리.지도, 요소상한), 안전히읽기(자료, 게임자리.요소, 요소상한));
+    const { 열쇠 } = 지도열쇠들(안전히읽기(자료, 게임자리.지도, 지도상한), 안전히읽기(자료, 게임자리.요소, 요소상한));
     if (열쇠.size === 0) return [];
     const 케이스들 = 폴더인가(케이스폴더) ? readdirSync(케이스폴더, { recursive: true, encoding: 'utf8' }).filter((p) => p.endsWith('.spec.ts')) : [];
     const 다룬 = new Set(케이스들.flatMap((p) => 케이스요소들(안전히읽기(join(케이스폴더, dirname(p)), basename(p), 기록상한 * 5) ?? '')));

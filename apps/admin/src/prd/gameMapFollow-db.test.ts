@@ -97,6 +97,14 @@ describe.skipIf(연결 === undefined)('기획서 새 판이 게임 지도를 끌
     expect(행).toEqual([{ value: null, req_ids: [], text: '80에 산다' }]);
   });
 
+  it('지운 상태에 배운 것이 있어 줄이 남아도 그 상태를 목표로 하는 행은 뺀다', async () => {
+    await 요소넣기(서비스, [{ kind: 'STATE', key: 'state:채팅=없음', name: '채팅 없음', learned: { text: '새 방에서 시작하면 없다', belief: 'SEEN' } }], []);
+    await 판저장(판1.filter((x) => x.reqId !== 'XGV-REQ-002'));
+
+    expect((await 요소들()).some((x) => x.key === 'state:채팅=없음')).toBe(true);
+    expect((await 행들()).some((x) => x.to_key === 'state:채팅=없음' && x.from_key === 'game:Lobby')).toBe(false);
+  });
+
   it('지운 상태 요소와 조각이 겹치는 다른 상태 요소가 남아 있으면 그 조각으로 가는 행은 남는다', async () => {
     await 요소넣기(서비스, [{ kind: 'STATE', key: 'state:채팅=없음,레벨=1', name: '채팅 없음 레벨 1', value: null, reqIds: ['XGV-REQ-004'] }], []);
     await 판저장(판1.filter((x) => x.reqId !== 'XGV-REQ-002'));

@@ -3,7 +3,7 @@
 import { pathToFileURL } from 'node:url';
 
 import { type 배운것, 꼴, 믿음, 요소종류, 표시 } from '../apps/admin/src/prd/gameKinds.js';
-import { 게임자리 } from './authoring-game.js';
+import { 게임자리, 지도상한 } from './authoring-game.js';
 import { 안전히읽기 } from './authoring-screens-keep-io.js';
 
 export interface 지도줄 {
@@ -15,7 +15,6 @@ export interface 지도줄 {
   line: string;
 }
 
-const 지도상한 = 20_000_000;
 const 줄상한 = 240;
 const 찾은상한 = 40;
 const 배움표 = ' · 배움 {';
@@ -57,9 +56,14 @@ const 배움요약 = (l: 배운것): string =>
     .filter((x) => x !== null)
     .join(' · ');
 
+const 바뀜 = (x: 지도줄): string | null => / · 기획서가 바뀜\(([^)]*)\)/.exec(배움떼기(x.line).앞)?.[1] ?? null;
 const 자름 = (글: string): string => (글.length > 줄상한 ? `${글.slice(0, 줄상한)}…` : 글);
-const 요약줄 = (x: 지도줄): string =>
-  자름(x.learned === null ? `- ${x.line}` : `- ${x.key} · ${x.name} · [${배움요약(x.learned)}] ${x.learned.text}${x.line.includes(' · 기획서 ') ? ' · 기획서 값 있음' : ''}`);
+const 요약줄 = (x: 지도줄): string => {
+  // 고칠 줄 표시는 줄이 길어 잘려도 남게 앞에 둔다
+  const 표 = 바뀜(x) === null ? '' : `기획서가 바뀜(${바뀜(x)!}) · `;
+  const 앞 = `- ${표}`;
+  return 자름(x.learned === null ? `${앞}${x.line}` : `${앞}${x.key} · ${x.name} · [${배움요약(x.learned)}] ${x.learned.text}${x.line.includes(' · 기획서 ') ? ' · 기획서 값 있음' : ''}`);
+};
 
 /** 종류마다 줄 수와 믿음 — 비어 있는 기본 종류도 찍는다. 빈 종류가 곧 배울 것이다 */
 export function 목차(지도: ReturnType<typeof 지도읽기>): string[] {
@@ -89,29 +93,28 @@ export function 찾기(지도: ReturnType<typeof 지도읽기>, 찾을: readonly
   });
 }
 
-/** 줄 안 `기획서 {…}` 의 객체 — 배움 앞에서만 찾는다. 객체가 아니면 null */
-function 기획서값(x: 지도줄): Record<string, unknown> | null {
-  const { 앞 } = 배움떼기(x.line);
-  const 자리 = 앞.indexOf(' · 기획서 {');
-  if (자리 < 0) return null;
-  const 글 = 앞.slice(자리 + ' · 기획서 '.length);
-  for (let i = 글.indexOf('}'); i >= 0; i = 글.indexOf('}', i + 1)) {
+/** 줄 안 「기획서 <JSON>」 값 — 배움 앞에서만 찾는다. 값 안에 「 · 」가 들 수 있어 풀리는 자리까지 넓힌다 */
+function 기획서값(x: 지도줄): unknown {
+  const 칸들 = (배움떼기(x.line).앞.split(' · 기획서 ').slice(1).join(' · 기획서 ')).split(' · ');
+  for (let i = 1; i <= 칸들.length; i++) {
     try {
-      return JSON.parse(글.slice(0, i + 1)) as Record<string, unknown>;
+      return JSON.parse(칸들.slice(0, i).join(' · ')) as unknown;
     } catch {
-      // 안쪽 괄호다 — 다음 자리를 본다
+      // 값 안의 「 · 」다 — 한 칸 더 잇는다
     }
   }
-  return null;
+  return undefined;
 }
 
 const 객체인가 = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** 고칠 줄 — 근거 없음 · 값 다름 · 빌드 다름(재확인) · 지도에 없는 관련 열쇠 · 줄이 셋 밑인 만든 종류 */
+/** 고칠 줄 — 기획서가 바뀜 · 근거 없음 · 값 다름 · 빌드 다름(재확인) · 지도에 없는 관련 열쇠 · 줄이 셋 밑인 만든 종류 */
 export function 점검(지도: ReturnType<typeof 지도읽기>, 빌드?: string): string[] {
   const 열쇠들 = new Set(지도.줄들.map((x) => x.key));
   const 짚음: string[] = [];
   for (const x of 지도.줄들) {
+    const 바뀐 = 바뀜(x);
+    if (바뀐 !== null) 짚음.push(`기획서가 바뀜: ${x.key} — ${바뀐}`);
     if (/ · 서버 .+ 다름( \(실행 #\d+\))?( · |$)/.test(배움떼기(x.line).앞)) 짚음.push(`값 다름: ${x.key} — 기획서 값과 서버 값`);
     const l = x.learned;
     if (l === null || x.kind === 'KIND') continue;
@@ -119,19 +122,24 @@ export function 점검(지도: ReturnType<typeof 지도읽기>, 빌드?: string)
       const 빠짐 = [l.data === undefined ? '잰 값' : null, (l.seen ?? 0) === 0 ? '본 횟수' : null, l.build === undefined ? '빌드' : null].filter((v) => v !== null);
       if (빠짐.length > 0) 짚음.push(`근거 없음: ${x.key} — ${믿음[l.belief]}인데 ${빠짐.join(' · ')} 없음`);
       else if (l.belief === 'CONFIRMED' && l.seen! < 2) 짚음.push(`근거 없음: ${x.key} — 확인인데 한 번 봄`);
-      if (빌드 !== undefined && l.build !== undefined && l.build !== 빌드) 짚음.push(`빌드 다름: ${x.key} — ${l.build} 에서 봄, 지금 ${빌드} · 재확인`);
     }
+    if (빌드 !== undefined && l.build !== undefined && l.build !== 빌드) 짚음.push(`빌드 다름: ${x.key} — ${l.build} 에서 봄, 지금 ${빌드} · 재확인`);
     const 기획 = 기획서값(x);
-    if (기획 !== null && 객체인가(l.data)) {
-      const 다른 = Object.keys(기획).filter((k) => Object.hasOwn(l.data as object, k) && JSON.stringify(기획[k]) !== JSON.stringify((l.data as Record<string, unknown>)[k]));
+    const 잰 = l.data;
+    if (객체인가(기획) && 객체인가(잰)) {
+      const 다른 = Object.keys(기획).filter((k) => Object.hasOwn(잰, k) && JSON.stringify(기획[k]) !== JSON.stringify(잰[k]));
       if (다른.length > 0) 짚음.push(`값 다름: ${x.key} — 기획서 값과 배운 값(${다른.join(', ')})`);
+    } else if (기획 !== undefined && 잰 !== undefined && !객체인가(기획) && !객체인가(잰) && JSON.stringify(기획) !== JSON.stringify(잰)) {
+      짚음.push(`값 다름: ${x.key} — 기획서 값과 배운 값`);
     }
     const 없는 = (l.related ?? []).filter((k) => !열쇠들.has(k));
     if (없는.length > 0) 짚음.push(`관련 열쇠 없음: ${x.key} — ${없는.join(', ')}`);
   }
   for (const [kind, 이름] of 지도.이름) {
     const 수 = 지도.줄들.filter((x) => x.kind === kind).length;
-    if (!Object.hasOwn(요소종류, kind) && 수 < 3) 짚음.push(`만든 종류: ${kind} ${이름} — ${수}줄이다. 셋이 안 되면 기본 종류로 되돌린다`);
+    if (Object.hasOwn(요소종류, kind)) continue;
+    if (!열쇠들.has(`kind:${kind}`)) 짚음.push(`만든 종류: ${kind} — 정의 줄(kind:${kind})이 없다`);
+    if (수 < 3) 짚음.push(`만든 종류: ${kind} ${이름} — ${수}줄이다. 셋이 안 되면 기본 종류로 되돌린다`);
   }
   // 정의만 있고 줄이 없는 종류는 지도 글에 머리가 없다
   for (const x of 지도.줄들) if (x.kind === 'KIND' && !지도.이름.has(x.key.slice('kind:'.length))) 짚음.push(`만든 종류: ${x.key} — 쓰는 줄이 없다. 되돌린다`);

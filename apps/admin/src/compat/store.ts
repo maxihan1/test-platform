@@ -48,8 +48,9 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
        ) t GROUP BY url ORDER BY url COLLATE "C"`,
       [serviceId],
     ),
+    // 배운 것만 있는 구역은 뺀다 — 기획서에 없는 장소가 미커버로 뜬다
     pool.query<{ key: string; name: string }>(
-      `SELECT key, name FROM game_element WHERE service_id = $1 AND kind = 'WORLD' AND key LIKE 'zone:%' ORDER BY key COLLATE "C"`,
+      `SELECT key, name FROM game_element WHERE service_id = $1 AND kind = 'WORLD' AND key LIKE 'zone:%' AND (learned IS NULL OR value IS NOT NULL OR req_ids <> '{}') ORDER BY key COLLATE "C"`,
       [serviceId],
     ),
     pool.query<{ tc_id: string; name: string; proc_id: string | null; proc_name: string | null; proc_seq: number | null }>(

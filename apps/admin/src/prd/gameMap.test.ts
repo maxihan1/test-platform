@@ -42,6 +42,8 @@ describe('게임 요소 본문 검사', () => {
     expect(칸({ ...배움, confidence: 1 })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned.confidence' });
     expect(칸({ ...배움, data: 'x'.repeat(10_000) })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
     expect(칸({ ...배움, data: '\u0000' })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
+    expect(칸({ ...배움, text: '잘린 \ud83d' })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
+    expect(칸({ ...배움, text: '로그에 \\u0000 · 이모지 😀' })).not.toHaveProperty('error');
   });
 
   it('배운 것만 실은 줄은 기획서 값과 근거를 본문에 만들지 않는다', () => {
@@ -66,6 +68,9 @@ describe('게임 요소 본문 검사', () => {
     const 지도 = new Map([['WEATHER', ['weather:눈']]]);
     expect(요소검사({ elements: [지움] }, 지도)).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
     expect(요소검사({ elements: [지움, { ...눈, learned: null }] }, 지도)).toEqual({ elements: [지움, { ...눈, learned: null }], remove: [] });
+    expect(요소검사({ elements: [지움, 눈] }, 지도)).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.learned' });
+    expect(요소검사({ elements: [{ ...날씨, value: 1 }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.value' });
+    expect(요소검사({ elements: [{ ...눈, reqIds: ['R-1'] }] }, 지도)).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.reqIds' });
   });
 
   it('게임이 만든 종류는 게임 하나에 스무 개까지다', () => {
@@ -174,7 +179,29 @@ describe.skipIf(연결 === undefined)('게임 지도 에이전트 통로', () =>
     expect(await 줄()).toEqual([{ key: 'item:sword_long', value: null, req_ids: [], prd_changed: [], text: '두 번 같았다' }]);
 
     await 올리기(id, { elements: [{ kind: 'DATA', key: 'item:sword_long', name: '장검', learned: null }] });
+    expect((await 줄()).map((x) => x.text)).toEqual([null]);
+    await 올리기(id, { elements: [], remove: ['item:sword_long'] });
     expect(await 줄()).toEqual([]);
+
+    const 규칙 = { kind: 'RULE', key: 'rule:심기', name: '심기' };
+    await 올리기(id, { elements: [{ ...규칙, learned: 배움 }] });
+    await 올리기(id, { elements: [{ ...규칙, learned: null }] });
+    expect(await 줄()).toEqual([]);
+  });
+
+  it('배운 것만 올려서는 기획서에서 온 종류와 이름이 안 바뀌고, 배운 것만 있는 줄은 「거친 케이스 없음」을 안 찍는다', async () => {
+    const id = await 요청넣기();
+    await 올리기(id, { elements: [{ kind: 'DATA', key: 'stage:1', name: '1스테이지', reqIds: ['R-1'] }] });
+    await 올리기(id, {
+      elements: [
+        { kind: 'STAGE', key: 'stage:1', name: '첫 판', learned: { text: '웨이브 여섯', belief: 'SEEN' } },
+        { kind: 'WORLD', key: 'zone:Cave', name: '동굴', learned: { text: '어둡다', belief: 'SEEN' } },
+      ],
+    });
+    const 글 = await 지도(id);
+    expect(글).toContain('- stage:1 · 1스테이지 · 근거 R-1 · 서버 값 대조 전 · 거친 케이스 없음 · 배움 {');
+    expect(글).toContain('## 게임 데이터 (DATA) — 1개');
+    expect(글).toContain('- zone:Cave · 동굴 · 배움 {');
   });
 
   it('게임이 만든 종류 — 정의가 지도에 있으면 받고, 지도 글에 그 이름으로 찍히며, 정의 없이 남은 줄도 빠지지 않는다', async () => {

@@ -47,6 +47,8 @@ export interface 배운것 {
 
 const 상한 = { 글: 1_000, 빌드: 100, 전체: 10_000, 횟수: 1_000_000, 관련: 50, 열쇠: 200 } as const;
 const 칸들 = new Set(['text', 'belief', 'seen', 'build', 'shape', 'marks', 'data', 'related']);
+// JSON 글에서 이스케이프된 NUL · 짝 없는 surrogate(짝이 맞으면 이스케이프되지 않는다). 글자 그대로의 역슬래시(\\\\u0000)는 지나친다
+const 못담는글자 = /(?<!\\)(?:\\\\)*\\u(?:0000|d[89a-f][0-9a-f]{2})/;
 // 열쇠는 「item:sword_short」 「move:성향 선량→보라」 꼴 — 앞머리 뒤에 무엇이든 온다
 export const 열쇠꼴 = /^[a-z_]+:\S/;
 
@@ -68,6 +70,6 @@ export function 배운것틀림(v: unknown, 종류: string): string | null {
   if (l.marks !== undefined && !(Array.isArray(l.marks) && new Set(l.marks).size === l.marks.length && l.marks.every((m) => 하나인가(m, 표시)))) return 'marks';
   if (l.related !== undefined && !(Array.isArray(l.related) && l.related.length <= 상한.관련 && l.related.every((k) => 글인가(k, 상한.열쇠) && 열쇠꼴.test(k)))) return 'related';
   const 글 = JSON.stringify(l);
-  // jsonb 는 NUL 을 못 담는다 — 그대로 넣으면 500 이 난다
-  return 글.length > 상한.전체 || 글.includes('\\u0000') ? '' : null;
+  // jsonb 는 NUL 과 짝 없는 surrogate 를 못 담는다 — 그대로 넣으면 500 이 난다
+  return 글.length > 상한.전체 || 못담는글자.test(글) ? '' : null;
 }

@@ -16,36 +16,33 @@ export const 게임자료환경 = 'AUTHORING_GAME_DIR';
 /** PC 게임 작성이면 에이전트가 'windows' 로 준다 — 빠른 검사의 platforms 기준 · 돌려 보기 명령의 PC 갈래 (도메인/게임 §3.10 「작성 — PC 게임은 PC 에서 읽고 돌려 본다」) */
 export const PC게임환경 = 'AUTHORING_GAME_PLATFORM';
 
-/** 지도 열쇠 — 지난 지도 글의 요소 줄(`- <열쇠> · <이름> …` — prd/gameMap.ts 지도글)과 이번 요소 파일의 열쇠, 이번에 지우는 열쇠는 뺀다.
- * 다룰 것은 그 가운데 기획서에서 온 다섯 종류만 — 배운 줄(궁금한 것 · 보는 법 · 이기는 법)은 케이스가 다룰 대상이 아니다 */
-export function 지도열쇠들(지도글: string | null, 요소글: string | null): { 열쇠: Set<string>; 다룰: Set<string>; 까닭?: string } {
+const 배움표 = ' · 배움 {';
+
+/**
+ * 지도 열쇠 — 지난 지도 글의 요소 줄(`- <열쇠> · <이름> …` — prd/gameMap.ts 지도글)과 이번 요소 파일의 열쇠, 이번에 지우는 열쇠는 뺀다.
+ * 기획서에서 온 다섯 종류만이고 그 가운데 배운 것만 있는 줄은 뺀다 — 궁금한 것 · 이기는 법 같은 배운 줄은 케이스가 다룰 대상이 아니다
+ */
+export function 지도열쇠들(지도글: string | null, 요소글: string | null): { 열쇠: Set<string>; 까닭?: string } {
   const 열쇠 = new Set<string>();
-  const 다룰 = new Set<string>();
-  const 더하기 = (k: string, 종류: string) => {
-    열쇠.add(k);
-    if (기획서종류.has(종류)) 다룰.add(k);
-    else 다룰.delete(k);
-  };
   let 종류 = '';
   for (const 줄 of (지도글 ?? '').split('\n')) {
     종류 = /^## .+ \(([A-Z_]+)\) — \d+개$/.exec(줄)?.[1] ?? 종류;
     const m = /^- (.+?) · /.exec(줄);
-    if (m) 더하기(m[1]!, 종류);
+    const 배움 = 줄.indexOf(배움표);
+    if (m !== null && 기획서종류.has(종류) && (배움 < 0 || / · (기획서|근거) /.test(줄.slice(0, 배움)))) 열쇠.add(m[1]!);
   }
-  if (요소글 === null) return { 열쇠, 다룰 };
+  if (요소글 === null) return { 열쇠 };
   let 몸: { elements?: unknown; remove?: unknown };
   try {
     몸 = JSON.parse(요소글) as typeof 몸;
   } catch {
-    return { 열쇠, 다룰, 까닭: 'game-elements.json 을 JSON 으로 못 읽었다 — 이번에 쓴 요소는 지도에 없는 것으로 본다' };
+    return { 열쇠, 까닭: 'game-elements.json 을 JSON 으로 못 읽었다 — 이번에 쓴 요소는 지도에 없는 것으로 본다' };
   }
-  for (const e of Array.isArray(몸.elements) ? (몸.elements as { key?: unknown; kind?: unknown }[]) : []) if (typeof e?.key === 'string') 더하기(e.key, String(e.kind));
-  for (const k of Array.isArray(몸.remove) ? 몸.remove : []) {
-    if (typeof k !== 'string') continue;
-    열쇠.delete(k);
-    다룰.delete(k);
+  for (const e of Array.isArray(몸.elements) ? (몸.elements as { key?: unknown; kind?: unknown; learned?: unknown; value?: unknown; reqIds?: unknown }[]) : []) {
+    if (typeof e?.key === 'string' && 기획서종류.has(String(e.kind)) && (e.learned === undefined || e.value !== undefined || e.reqIds !== undefined)) 열쇠.add(e.key);
   }
-  return { 열쇠, 다룰 };
+  for (const k of Array.isArray(몸.remove) ? 몸.remove : []) if (typeof k === 'string') 열쇠.delete(k);
+  return { 열쇠 };
 }
 
 /** 부른 사슬의 맨 앞 — `driver.action('pointer').move(…)` 는 `driver` */

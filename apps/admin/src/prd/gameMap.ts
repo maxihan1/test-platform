@@ -54,6 +54,11 @@ export function 요소검사(본문: unknown, 만든: 만든종류 = new Map()):
     // 종류 정의 줄은 배운 것이 곧 정의라 없으면 안 된다
     const 배움틀림 = 배움 === null || (배움 === undefined && e.kind !== 'KIND') ? null : 배운것틀림(배움, e.kind);
     if (배움틀림 !== null) return 틀림(`elements.${i}.learned${배움틀림 === '' ? '' : `.${배움틀림}`}`);
+    // 게임이 만든 종류와 그 정의는 배운 것뿐이다 — 기획서 몫이 붙으면 배운 것을 지워도 줄이 남는다
+    if (e.kind === 'KIND' || !기본종류인가(e.kind)) {
+      if (e.value !== undefined) return 틀림(`elements.${i}.value`);
+      if (reqIds.length > 0) return 틀림(`elements.${i}.reqIds`);
+    }
     본열쇠.add(e.key);
     elements.push({
       kind: e.kind,
@@ -66,7 +71,7 @@ export function 요소검사(본문: unknown, 만든: 만든종류 = new Map()):
   }
   // 정의를 지우면 그 종류를 쓰던 줄도 이 본문에서 옮기거나 지워야 한다
   for (const x of 정의줄.filter((d) => d.지움)) {
-    if ((만든.get(x.이름) ?? []).some((k) => !본열쇠.has(k))) return 틀림(`elements.${x.i}.learned`);
+    if ((만든.get(x.이름) ?? []).some((k) => !본열쇠.has(k)) || elements.some((e) => e.kind === x.이름 && e.learned !== null)) return 틀림(`elements.${x.i}.learned`);
     정의됨.delete(x.이름);
   }
   const 새정의 = 정의줄.filter((x) => !x.지움 && !만든.has(x.이름)).at(-1);
@@ -84,7 +89,7 @@ export async function 만든종류읽기(서비스: number): Promise<만든종�
     `SELECT substr(k.key, 6) AS name, COALESCE(array_agg(e.key) FILTER (WHERE e.key IS NOT NULL), '{}') AS keys
        FROM game_element k
        LEFT JOIN game_element e ON e.service_id = k.service_id AND e.kind = substr(k.key, 6)
-      WHERE k.service_id = $1 AND k.kind = 'KIND'
+      WHERE k.service_id = $1 AND k.kind = 'KIND' AND k.learned IS NOT NULL
       GROUP BY k.key`,
     [서비스],
   );
@@ -93,7 +98,8 @@ export async function 만든종류읽기(서비스: number): Promise<만든종�
 
 /**
  * 올린 열쇠만 넣거나 고친다. 그 애플리케이션 몫을 통째로 바꾸지 않는다 — 반영은 고친 요구의 요소만 다시 올린다.
- * remove 는 기획서 몫(값 · 근거)을 지운다 — 배운 것이 있는 줄은 그 몫만 비우고 남긴다. learned 가 null 이면 배운 것을 지우고, 기획서 몫도 없으면 줄을 뺀다
+ * remove 는 기획서 몫(값 · 근거)을 지운다 — 배운 것이 있는 줄은 그 몫만 비우고 남긴다. learned 가 null 이면 배운 것을 지우고, 기획서에서 온 다섯 밖의 줄은 기획서 몫도 없으면 줄을 뺀다
+ * (다섯은 값도 근거도 없는 기획서 줄이 있어 remove 로만 뺀다). 배운 것만 올린 줄은 기획서에서 온 종류와 이름을 안 바꾼다 — 바꾸면 그 요소가 기획서 요소에서 빠진다
  */
 export async function 요소넣기(서비스: number, elements: 게임요소[], remove: string[]): Promise<void> {
   const 손 = await (await db()).connect();
@@ -106,7 +112,10 @@ export async function 요소넣기(서비스: number, elements: 게임요소[], 
     // server_value · checked_run 은 그대로 둔다 — 실행 결과만 쓴다. 기획서 몫을 다시 올린 요소는 지금 판으로 만든 것이라 「기획서가 바뀜」을 비운다
     await 손.query(
       `INSERT INTO game_element (service_id, kind, key, name, value, req_ids, learned, prd_changed)
-       SELECT $1, x.kind, x.key, x.name,
+       SELECT $1,
+              CASE WHEN g.kind = ANY($3::text[]) AND x.keep_value AND x.keep_reqs THEN g.kind ELSE x.kind END,
+              x.key,
+              CASE WHEN g.kind = ANY($3::text[]) AND x.keep_value AND x.keep_reqs THEN g.name ELSE x.name END,
               CASE WHEN x.keep_value THEN g.value ELSE x.value END,
               CASE WHEN x.keep_reqs THEN COALESCE(g.req_ids, '{}') ELSE ARRAY(SELECT jsonb_array_elements_text(x.req_ids)) END,
               CASE WHEN x.keep_learned THEN g.learned ELSE x.learned END,
@@ -124,11 +133,12 @@ export async function 요소넣기(서비스: number, elements: 게임요소[], 
             keep_value: e.value === undefined, keep_reqs: e.reqIds === undefined, keep_learned: e.learned === undefined,
           })),
         ),
+        [...기획서종류],
       ],
     );
     await 손.query(
-      `DELETE FROM game_element WHERE service_id = $1 AND key = ANY($2::text[]) AND learned IS NULL AND value IS NULL AND req_ids = '{}'`,
-      [서비스, elements.filter((e) => e.learned === null).map((e) => e.key)],
+      `DELETE FROM game_element WHERE service_id = $1 AND key = ANY($2::text[]) AND kind <> ALL($3::text[]) AND learned IS NULL AND value IS NULL AND req_ids = '{}'`,
+      [서비스, elements.filter((e) => e.learned === null).map((e) => e.key), [...기획서종류]],
     );
     await 손.query('COMMIT');
   } catch (err) {
@@ -156,17 +166,23 @@ export async function 기획서따라가기(손: { query: Awaited<ReturnType<typ
       [서비스, 지운],
     );
     // 배운 것이 있는 줄은 남긴다 — 근거가 다 없어졌으니 기획서 값을 빼고 번호는 아래에서 뗀다
-    await 손.query('UPDATE game_element SET value = NULL WHERE service_id = $1 AND req_ids <@ $2::text[] AND req_ids && $2::text[]', [서비스, 지운]);
+    const 비운 = await 손.query<{ key: string }>(
+      'UPDATE game_element SET value = NULL WHERE service_id = $1 AND req_ids <@ $2::text[] AND req_ids && $2::text[] RETURNING key',
+      [서비스, 지운],
+    );
     await 손.query(
       `UPDATE game_element SET req_ids = ARRAY(SELECT r FROM unnest(req_ids) r WHERE r <> ALL($2::text[])),
               prd_changed = ARRAY(SELECT r FROM unnest(prd_changed) r WHERE r <> ALL($2::text[]))
         WHERE service_id = $1 AND req_ids && $2::text[]`,
       [서비스, 지운],
     );
-    const 없는상태 = new Set(뺀.rows.filter((x) => x.key.startsWith('state:')).flatMap((x) => 상태조각(x.key)));
+    const 없는상태 = new Set([...뺀.rows, ...비운.rows].filter((x) => x.key.startsWith('state:')).flatMap((x) => 상태조각(x.key)));
     if (없는상태.size > 0) {
-      // 남은 상태 요소가 아직 가진 조각은 없어진 것이 아니다(겹친 상태 요소 하나만 빠진 경우)
-      const 남은 = await 손.query<{ key: string }>(`SELECT key FROM game_element WHERE service_id = $1 AND key LIKE 'state:%'`, [서비스]);
+      // 남은 상태 요소가 아직 가진 조각은 없어진 것이 아니다(겹친 상태 요소 하나만 빠진 경우). 배운 것만 남은 줄은 기획서의 상태가 아니다
+      const 남은 = await 손.query<{ key: string }>(
+        `SELECT key FROM game_element WHERE service_id = $1 AND key LIKE 'state:%' AND (learned IS NULL OR value IS NOT NULL OR req_ids <> '{}')`,
+        [서비스],
+      );
       for (const x of 남은.rows) for (const c of 상태조각(x.key)) 없는상태.delete(c);
     }
     if (없는상태.size > 0) {
@@ -210,6 +226,8 @@ export async function 지도글(서비스: number): Promise<string> {
       ORDER BY e.key`,
     [서비스],
   );
+  // 배운 것만 있는 줄은 케이스가 다룰 대상이 아니다
+  const 다룰 = (x: (typeof r.rows)[number]): boolean => 기획서종류.has(x.kind) && (x.learned === null || x.value !== null || x.req_ids.length > 0);
   const 줄 = (x: (typeof r.rows)[number]): string =>
     [
       `- ${x.key} · ${x.name}`,
@@ -218,9 +236,9 @@ export async function 지도글(서비스: number): Promise<string> {
       x.prd_changed.length === 0 ? null : `기획서가 바뀜(${x.prd_changed.join(', ')}) — 지금 판으로 다시 올린다`,
       // 실행 행을 지우면 checked_run 만 비고 서버 값은 남는다 — 서버 값으로 가른다. 기획서 값이 없으면 견줄 것이 없다
       x.server_value === null
-        ? (기획서종류.has(x.kind) ? '서버 값 대조 전' : null)
+        ? (다룰(x) ? '서버 값 대조 전' : null)
         : `서버 ${JSON.stringify(x.server_value)} ${x.same === null ? '비교할 기획서 값 없음' : x.same ? '같음' : '다름'}${x.checked_run === null ? '' : ` (실행 #${x.checked_run})`}`,
-      x.cases.length > 0 ? `케이스 ${x.cases.join(', ')}` : 기획서종류.has(x.kind) ? '거친 케이스 없음' : null,
+      x.cases.length > 0 ? `케이스 ${x.cases.join(', ')}` : 다룰(x) ? '거친 케이스 없음' : null,
       // 늘 맨 끝에 둔다 — 찾기 명령이 줄 끝까지 JSON 으로 읽는다
       x.learned === null ? null : `배움 ${JSON.stringify(x.learned)}`,
     ]
