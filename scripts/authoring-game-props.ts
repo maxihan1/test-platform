@@ -21,14 +21,17 @@ export interface 펼친것 {
   fields: 칸[];
   properties: 칸[];
   methods: { name: string; args: string[] }[];
+  /** 같은 컴포넌트가 몇 개 붙었나 — members · get 은 늘 첫째를 준다 */
+  수?: number;
 }
 
 const 줄상한 = 1_600;
 const 함수상한 = 40;
-/** 이만큼의 게임 컴포넌트에 똑같이 있는 이름은 게임이 물려준 틀이다 */
+/** 이만큼의 게임 컴포넌트에 똑같이 있는 함수가 이만큼 많으면 같은 틀(네트워크 컴포넌트)을 물려받은 것이다 */
 const 되풀이 = 3;
-const 틀이름 = /^(?:__|k_Rpc|m_Delivery|NetworkVariable|m_?Network|NetworkManager$|NetworkObject$|NetworkBehaviour|RpcTarget$|.*Marker$)/;
-const 알림꼴 = /^(?:Action|Func|UnityEvent|UnityAction|Coroutine|MNMCoroutine|.*Delegate|.*Handler`?)/;
+const 틀함수수 = 15;
+const 틀이름 = /^(?:__|k_Rpc|m_Delivery|NetworkVariable(?:Fields|Indexes)|m_?Network(?:Manager|Object)$|NetworkManager$|NetworkObject$|NetworkBehaviour|RpcTarget$)/;
+const 알림꼴 = /^(?:(?:Action|Func|UnityEvent|UnityAction)(?:`\d+)?|Coroutine|ProfilerMarker|.*Delegate(?:Handler)?)$/;
 const 목록꼴 = /\[\]$|^(?:List|HashSet|Dictionary|SerializedDictionary|Queue|Stack|IReadOnly|IList|IEnumerable|NetworkList)/;
 const 묶음값 = /^(.*) \(([^()]+)\)$/s;
 
@@ -37,33 +40,30 @@ const 자름 = (글: string): string => (글.length > 줄상한 ? `${글.slice(0
 const 짧은 = (타입: string): string => 타입.split('.').pop()!;
 const 네트워크값 = (f: 칸): boolean => f.type.startsWith('NetworkVariable');
 
-/** 여러 컴포넌트에 똑같이 있는 이름 — 컴포넌트가 셋이 안 되면 셀 것이 없어 이름 꼴로만 거른다 */
-function 물려준이름(들: readonly 펼친것[]): Set<string> {
+/** 여러 컴포넌트가 물려받은 함수 — 값 칸은 이름이 같아도 게임 값일 수 있어 세어서 거르지 않는다 */
+function 물려준함수(들: readonly 펼친것[]): Set<string> {
   const 수 = new Map<string, number>();
-  for (const c of 들) for (const n of new Set([...c.fields, ...c.properties, ...c.methods].map((x) => x.name))) 수.set(n, (수.get(n) ?? 0) + 1);
-  return new Set([...수].filter(([, n]) => n >= 되풀이).map(([n]) => n));
+  for (const c of 들) for (const n of new Set(c.methods.map((x) => x.name))) 수.set(n, (수.get(n) ?? 0) + 1);
+  const 되풀이된 = [...수].filter(([, n]) => n >= 되풀이).map(([n]) => n);
+  return new Set(되풀이된.length >= 틀함수수 ? 되풀이된 : []);
 }
 
 /** 게임이 만든 칸만 — 켜짐 · 틀 · 알림(이벤트)은 뺀다 */
-const 볼칸들 = (c: 펼친것, 물려준: ReadonlySet<string>): 칸[] =>
-  [...c.fields, ...c.properties].filter((f) => !물려준.has(f.name) && !틀칸.test(f.name) && !틀이름.test(f.name) && !알림꼴.test(f.type));
+const 볼칸들 = (c: 펼친것): 칸[] => [...c.fields, ...c.properties].filter((f) => !틀칸.test(f.name) && !틀이름.test(f.name) && !알림꼴.test(f.type));
 
 /** `.Value` 로 읽을 칸 — 네트워크 값은 members 에 타입 이름만 찍힌다 */
-export const 더읽을것 = (들: readonly 펼친것[]): string[] => {
-  const 물려준 = 물려준이름(들);
-  return 들.flatMap((c) => 볼칸들(c, 물려준).filter(네트워크값).map((f) => `${c.name}.${f.name}.Value`));
-};
+export const 더읽을것 = (들: readonly 펼친것[]): string[] => 들.flatMap((c) => 볼칸들(c).filter(네트워크값).map((f) => `${c.name}.${f.name}.Value`));
 
 /** 컴포넌트마다 값 · 묶음(안에 칸이 더 있다) · 목록 · 빈 칸 · 함수 */
 export function 펼친글(주소: string, 이름: string, 들: readonly 펼친것[], 엔진: readonly string[], 읽은: ReadonlyMap<string, unknown>): string[] {
-  const 물려준 = 물려준이름(들);
+  const 물려준 = 물려준함수(들);
   const 줄: string[] = [`# ${주소}`, ...(엔진.length === 0 ? [] : [`엔진 부품: ${엔진.join(' · ')}`])];
   for (const c of 들) {
     const 값: string[] = [];
     const 묶음: string[] = [];
     const 목록: string[] = [];
     const 빈: string[] = [];
-    for (const f of 볼칸들(c, 물려준)) {
+    for (const f of 볼칸들(c)) {
       const 이름표 = `${f.name}${f.static === true ? '(static)' : ''}`;
       if (네트워크값(f)) {
         const v = 읽은.get(`${c.name}.${f.name}.Value`);
@@ -83,7 +83,7 @@ export function 펼친글(주소: string, 이름: string, 들: readonly 펼친�
     const 함수 = [...new Set(c.methods.filter((m) => !물려준.has(m.name) && !틀이름.test(m.name)).map((m) => `${m.name}(${m.args.join(', ')})`))];
     if (값.length + 묶음.length + 목록.length + 빈.length + 함수.length === 0) continue;
     줄.push(
-      `■ ${c.name}`,
+      `■ ${c.name}${c.수 === undefined || c.수 < 2 ? '' : ` ×${c.수} — 첫째만 읽힌다`}`,
       ...(값.length === 0 ? [] : [`  값 ${값.join(' · ')}`]),
       ...(묶음.length === 0 ? [] : [`  묶음 ${묶음.join(' · ')}`]),
       ...(목록.length === 0 ? [] : [`  목록 ${목록.join(' · ')}`]),
@@ -123,7 +123,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   try {
     const 컴포넌트 = await game.components(주소);
     const 들: 펼친것[] = [];
-    for (const c of 컴포넌트.filter((x) => !엔진것.test(x.type))) 들.push({ ...c, ...(await game.members(주소, c.name)) });
+    const 게임것 = 컴포넌트.filter((x) => !엔진것.test(x.type));
+    for (const c of 게임것.filter((x, i) => 게임것.findIndex((y) => y.type === x.type) === i)) 들.push({ ...c, ...(await game.members(주소, c.name)), 수: 게임것.filter((x) => x.type === c.type).length });
     const 읽은 = new Map<string, unknown>();
     for (const 칸이름 of 더읽을것(들)) {
       try {

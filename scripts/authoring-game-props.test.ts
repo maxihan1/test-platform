@@ -15,7 +15,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const 틀 = { fields: [{ name: 'm_NetworkManager', type: 'NetworkManager', value: 'NetworkManager (Unity.Netcode.NetworkManager)' }], properties: [{ name: 'IsOwner', type: 'Boolean', value: true }, { name: 'Shared', type: 'Int32', value: 1 }], methods: [{ name: 'OnNetworkSpawn', args: [] }, { name: '__initializeRpcs', args: [] }] };
+const 틀 = { fields: [{ name: 'm_NetworkManager', type: 'NetworkManager', value: 'NetworkManager (Unity.Netcode.NetworkManager)' }], properties: [{ name: 'IsOwner', type: 'Boolean', value: true }, { name: 'RpcTarget', type: 'RpcTarget', value: 'Unity.Netcode.RpcTarget' }], methods: [...Array.from({ length: 15 }, (_, i) => ({ name: `OnNetwork${i}`, args: [] })), { name: '__initializeRpcs', args: [] }] };
 const 만들기 = (name: string, x: Partial<펼친것>): 펼친것 => ({ name, type: `Game.${name}`, fields: [...틀.fields, ...(x.fields ?? [])], properties: [...틀.properties, ...(x.properties ?? [])], methods: [...틀.methods, ...(x.methods ?? [])] });
 const 악마 = [
   만들기('MonsterAI', {
@@ -26,7 +26,10 @@ const 악마 = [
       { name: 'Poison', type: 'PoisonStacks', value: 'Game.PoisonStacks' },
       { name: 'Self', type: 'MonsterHP', value: 'Ghost(Clone) (Game.MonsterHP)' },
       { name: 'OnDie', type: 'Action`1', value: null },
-      { name: 'State', type: 'ArriveState', value: 'TODESTINATION' },
+      { name: 'State', type: 'ActionState', value: 'TODESTINATION' },
+      { name: 'QuestMarker', type: 'Int32', value: 3 },
+      { name: 'Hit', type: 'DamageHandler', value: 'Hit (Game.DamageHandler)' },
+      { name: 'm_Load', type: 'ProfilerMarker', value: 'Unity.Profiling.ProfilerMarker' },
       { name: 'Label', type: 'String', value: '[Ghost] a.b' },
       { name: 'Rate', type: 'Single', value: 0.8, static: true },
     ],
@@ -44,8 +47,8 @@ describe('펼친글', () => {
       '# /Pool/Ghost(Clone)[0]',
       '엔진 부품: Transform · Rigidbody',
       '■ MonsterAI',
-      '  값 State=TODESTINATION · Label="[Ghost] a.b" · Rate(static)=0.8 · IsStunned=false',
-      '  묶음 TypeData → GhostData_1 (MonsterTypeData) · Poison → (PoisonStacks)',
+      '  값 State=TODESTINATION · QuestMarker=3 · Label="[Ghost] a.b" · Rate(static)=0.8 · IsStunned=false',
+      '  묶음 TypeData → GhostData_1 (MonsterTypeData) · Poison → (PoisonStacks) · Hit → Hit (DamageHandler)',
       '  목록 DeathSpawns',
       '  비어 있음 CurTarget',
       '  함수 GetStun(Single)',
@@ -53,6 +56,12 @@ describe('펼친글', () => {
       '  값 HP.Value=20 · MaxHP=20',
     ]);
     expect(글.at(-1)).toContain('static-get');
+  });
+
+  it('이름이 같은 값 칸은 컴포넌트가 여럿이어도 거르지 않고, 같은 컴포넌트가 여럿이면 한 번만 읽고 수를 단다', () => {
+    const 칸 = { fields: [{ name: 'Damage', type: 'Int32', value: 5 }], properties: [], methods: [] };
+    const 글 = 펼친글('/a', 'a', [{ name: 'A', type: 'G.A', ...칸 }, { name: 'B', type: 'G.B', ...칸 }, { name: 'Slot', type: 'G.Slot', ...칸, 수: 3 }], [], new Map());
+    expect(글.slice(0, -1)).toEqual(['# /a', '■ A', '  값 Damage=5', '■ B', '  값 Damage=5', '■ Slot ×3 — 첫째만 읽힌다', '  값 Damage=5']);
   });
 
   it('네트워크 값은 .Value 로 더 읽고, 못 읽으면 이름만 남긴다', () => {

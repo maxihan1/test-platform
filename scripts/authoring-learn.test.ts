@@ -75,6 +75,7 @@ function 손(세션들: 세션[], x: Partial<학습손> = {}) {
       시계 += 10 * 분;
       return { 돌린것: 결과(r ?? {}), 크레딧으로: false, 앞낸것: null };
     }),
+    도우미가져오기: vi.fn(),
     거두기: vi.fn(async () => true),
     늘리기: vi.fn(() => 끔),
     쥐었나: () => 쥠,
@@ -95,6 +96,7 @@ describe('학습하기 — 건너뛰기', () => {
     const { o } = 손([]);
     expect(await 학습하기(o)).toEqual({ 앞낸것: [] });
     expect(o.한번).not.toHaveBeenCalled();
+    expect(o.도우미가져오기).not.toHaveBeenCalled();
     expect(o.늘리기).not.toHaveBeenCalled();
     expect(await 학습끝줄(통로, 자료, [])).toEqual([]);
   });
@@ -147,7 +149,25 @@ describe('학습하기 — 세션을 잇는다', () => {
     };
     await 학습하기({ ...o, 한번: 띄운 });
     expect(거리들.map((x) => x.남은분)).toEqual([105, 95, 85, 75, 65, 55, 45, 35, 25, 15, 20]);
-    expect(거리들.map((x) => x.시험 === true).indexOf(true)).toBe(10);
+  });
+
+  it('배우기가 일찍 그쳐도 시험은 30분을 넘지 않는다 · 시험 뒤 5분이 남으면 틀린 줄을 다시 잰다', async () => {
+    const 이른 = 손([() => undefined, () => undefined, () => undefined]);
+    await 학습하기(이른.o);
+    expect(이른.거리들.at(-1)).toMatchObject({ 시험: true, 남은분: 30 });
+    rmSync(join(자료, 'game-learn.json'));
+    쓰기('game-learn.json', { 쓴ms: 105 * 분, 세션: 3, 끝: false, 열쇠: [] });
+    쓰기('game-map.txt', 지도글([규칙('rule:1')]));
+    const 답 = () => 쓰기('game-exam-answer.json', { 예측: [{ 열쇠: 'rule:1', 조건: 'ㄱ', 예측: { 값: 1 } }], 결과: [{ 열쇠: 'rule:1', 잰값: [9] }] });
+    const 끝 = 손([답, () => undefined]);
+    await 학습하기(끝.o);
+    expect(끝.거리들).toMatchObject([{ 시험: true, 남은분: 15 }, { 틀림: true, 남은분: 5 }]);
+  });
+
+  it('시험은 배우기가 끝난 뒤 한 번이다', async () => {
+    const { o, 거리들 } = 손([() => undefined, () => undefined]);
+    await 학습하기(o);
+    expect(거리들.map((x) => x.시험 === true)).toEqual([false, false, true]);
   });
 
   it('배울 시간 105분이면 끊고, 5분 전에 정리하라는 알림을 남긴다', async () => {
@@ -214,9 +234,21 @@ describe('학습하기 — 세션을 잇는다', () => {
   it('반영이 한도에 걸려 멈췄다 이어받으면 남은 시간만큼 다시 배운다', async () => {
     const 첫 = 손([() => ({ 코드: 1 })], { 번호들: ['CG-REQ-001'] });
     expect((await 학습하기(첫.o)).끝).toBeDefined();
+    expect(첫.o.도우미가져오기).toHaveBeenCalledTimes(1);
     const 둘 = 손([() => 적기(규칙('rule:1'))], { 번호들: ['CG-REQ-001'] });
     await 학습하기(둘.o);
     expect(둘.거리들).toMatchObject([{ 남은분: 20, 차례: 1 }]);
+    // 이어받은 트리는 앞 세션 것이다 — 다시 가져오면 지운 도우미가 되살아난다
+    expect(둘.o.도우미가져오기).not.toHaveBeenCalled();
+  });
+
+  it('반영을 이어받았는데 앞 세션이 이미 다 배워 올렸으면 빈 세션을 띄우지 않는다', async () => {
+    const 확인 = { ...규칙('rule:1'), reqIds: ['CG-REQ-001'] };
+    쓰기('game-learn.json', { 쓴ms: 10 * 분, 세션: 0, 끝: false, 열쇠: ['rule:1'] });
+    쓰기('game-map.txt', 지도글([확인]).replace('rule:1 · 가', 'rule:1 · 가 · 근거 CG-REQ-001'));
+    const { o } = 손([], { 번호들: ['CG-REQ-001'] });
+    await 학습하기(o);
+    expect(o.한번).not.toHaveBeenCalled();
   });
 
   it('앞 세션이 돈 뒤 다음 세션이 못 뜨면 실패가 아니라 끊김이다 — 배운 폴더와 토큰을 지킨다', async () => {

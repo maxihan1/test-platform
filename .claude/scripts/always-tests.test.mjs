@@ -66,6 +66,7 @@ const 면제 = new Map([
   ['scripts/authoring-held-merge.test.ts', '테스트가 만든 임시 사본의 케이스 목록 문서만 읽는다 (2026-11-25 PR #980 — PR #981 에서 더함)'],
   ['scripts/authoring-main-merge-proc.test.ts', '테스트가 만든 임시 git 저장소의 파일만 읽는다 (2026-11-25 PR #980 — PR #981 에서 더함)'],
   ['scripts/authoring-proc-run.test.ts', '가짜 npx 가 임시 폴더에 남긴 부른 기록만 읽는다 (2026-11-24 TP-F5-26 — PR #981 에서 더함)'],
+  ['scripts/authoring-learn-helpers.test.ts', '테스트가 만든 임시 작업 바탕(조작 도우미)만 읽고 쓴다 (2026-11-25 PR #1009)'],
   ['scripts/authoring-apply-proc.test.ts', '테스트가 만든 임시 자료 폴더(반영 계획 · 원장 사본)만 읽는다 (2026-11-25 PR #981)'],
 ]);
 

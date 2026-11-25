@@ -8,14 +8,12 @@ import type { PrdItem } from '@platform/kit/types';
 import { 꼴, 믿음, 요소종류 } from '../apps/admin/src/prd/gameKinds.js';
 import { 본문상한 } from '../apps/admin/src/prd/rules.js';
 import { 게임자리, 요소상한 } from './authoring-game.js';
-import { type 지도줄, 근거들, 배움떼기, 지금지도 } from './authoring-game-find.js';
+import { type 지도줄, 근거들, 배움떼기, 안옮길종류, 지금지도 } from './authoring-game-find.js';
 import { 랜덤꼴 } from './authoring-learn-exam.js';
 import { type 지도, 자름 } from './authoring-learn-map.js';
 import { type 옮긴항목, 옮긴것읽기 } from './authoring-prd.js';
 import { 안전히읽기 } from './authoring-screens-keep-io.js';
 
-/** 요구가 될 수 없는 종류 — 묶음 머리 · 이기는 법 · 진 까닭 · 재는 법 · 시험 기록 · 궁금한 것 · 이상한 것 · 종류 정의 */
-const 안옮길종류 = new Set(['SYSTEM', 'PLAY', 'FAIL', 'PROBE', 'TRIAL', 'ASK', 'ODD', 'KIND']);
 /** 2026-11-25 사용자가 정한 첫 값(계획 B-3) — 실측(GAME-F6-05)에서 고친다 */
 const 고정최소 = 2;
 const 랜덤최소 = 10;

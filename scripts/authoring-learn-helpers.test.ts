@@ -44,6 +44,26 @@ describe('조작 도우미 이어 쓰기', () => {
     expect(readFileSync(join(도우미폴더(자리(3)), 'stage.helper.ts'), 'utf8')).toBe('새것');
   });
 
+  it('AI 가 지운 것은 다음에 되살리지 않고, 임시 도우미(draft-)는 남기지 않는다', () => {
+    도우미남기기(새트리(1, { 'stage.helper.ts': 'ㄱ', 'try1.helper.ts': 'ㄱ' }), []);
+    expect(도우미남기기(새트리(2, { 'stage.helper.ts': 'ㄱ', 'draft-x.helper.ts': 'ㄱ' }), [])).toEqual(['stage.helper.ts']);
+    expect(도우미가져오기(새트리(3), null)).toEqual(['stage.helper.ts']);
+  });
+
+  it('가져다 쓰는 파일이 새 트리에 없는 도우미는 가져오지 않는다 — 그것을 쓰던 도우미도', () => {
+    도우미남기기(새트리(1, {
+      'hud.helper.ts': "import { 창 } from '../pages/hud.page.js';\n",
+      'play.helper.ts': "import { 읽기 } from './hud.helper.js';\n",
+      'walk.helper.ts': "import type { GameDriver } from '@platform/kit';\nimport { 위치 } from './pos.helper.js';\n",
+      'pos.helper.ts': 'ㄱ',
+    }), []);
+    expect(도우미가져오기(새트리(2), null)).toEqual(['pos.helper.ts', 'walk.helper.ts']);
+    const 있는 = 새트리(3);
+    mkdirSync(join(있는.트리, 'tests', 'cgp', 'pages'), { recursive: true });
+    writeFileSync(join(있는.트리, 'tests', 'cgp', 'pages', 'hud.page.ts'), 'ㄱ');
+    expect(도우미가져오기(있는, null)).toEqual(['hud.helper.ts', 'play.helper.ts', 'pos.helper.ts', 'walk.helper.ts']);
+  });
+
   it('비밀번호가 든 파일 · 링크는 남기지 않고, 링크로 바꾼 폴더에는 쓰지 않는다', () => {
     const 앞 = 새트리(1, { 'a.helper.ts': 'pw-secret-1', 'b.helper.ts': 'ㄱ' });
     writeFileSync(join(뿌리, '밖'), '밖');

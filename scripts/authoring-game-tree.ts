@@ -20,6 +20,11 @@ const 칸 = (x: 지도줄): Record<string, unknown> => 객체(x.learned?.data);
 export const 빌드다른가 = (x: 지도줄, 빌드?: string): boolean => 빌드 !== undefined && x.learned?.build !== undefined && x.learned.build !== 빌드;
 const 막혔나 = (x: 지도줄, 빌드?: string): boolean => 글인가(칸(x).막힘) && !빌드다른가(x, 빌드);
 
+const 볼수있나 = (x: 지도줄, 오늘: string, 빌드?: string): boolean => {
+  const 볼날 = 칸(x).볼날;
+  return !막혔나(x, 빌드) && !(글인가(볼날) && 볼날 > 오늘);
+};
+
 /** 한국 날짜 — 「다음 날 볼 것」의 날과 견준다 */
 export const 오늘글 = (지금: number): string => new Date(지금).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 
@@ -31,13 +36,12 @@ export const 열린물음 = (지금: 지도, 오늘: string, 빌드?: string): �
   지금.줄들.filter((x) => {
     if (x.learned === null || x.learned.belief === 'OVERTURNED' || x.key === 'ask:없음' || x.key === 쪽지열쇠) return false;
     if (x.kind !== 'ASK' && (x.learned.belief !== 'GAME_TEXT' || 글인가(칸(x).닫음))) return false;
-    const 볼날 = 칸(x).볼날;
-    return !막혔나(x, 빌드) && !(글인가(볼날) && 볼날 > 오늘);
+    return 볼수있나(x, 오늘, 빌드);
   });
 
-/** 판에서 쓸 법(`data.쓸법`)을 적었는데 써 본 적(`data.써봄`)이 없는 줄 */
-export const 안써봄들 = (지금: 지도): 지도줄[] =>
-  지금.줄들.filter((x) => x.learned !== null && x.learned.belief !== 'OVERTURNED' && x.key !== 쪽지열쇠 && 글인가(칸(x).쓸법) && !글인가(칸(x).써봄));
+/** 판에서 쓸 법(`data.쓸법`)을 적었는데 써 본 적(`data.써봄`)이 없는 줄 — 막힌 것은 안 센다(못 쓰는 줄 하나가 다음 작성마다 2시간을 부른다) */
+export const 안써봄들 = (지금: 지도, 오늘: string, 빌드?: string): 지도줄[] =>
+  지금.줄들.filter((x) => x.learned !== null && x.learned.belief !== 'OVERTURNED' && x.key !== 쪽지열쇠 && 글인가(칸(x).쓸법) && !글인가(칸(x).써봄) && 볼수있나(x, 오늘, 빌드));
 
 const 한줄 = (x: 지도줄, 열림: boolean): string =>
   `${열림 ? '? ' : ''}${x.key} · ${x.name}${x.kind === 'ASK' || x.learned?.belief === undefined ? '' : ` [${믿음[x.learned.belief]}]`}`;
@@ -86,7 +90,7 @@ function main(): void {
   }
   const 오늘 = 오늘글(Date.now());
   const 막힌 = 지도.줄들.filter((x) => x.learned !== null && x.learned.belief !== 'OVERTURNED' && 막혔나(x, 빌드));
-  const 안써본 = 안써봄들(지도);
+  const 안써본 = 안써봄들(지도, 오늘, 빌드);
   console.log([
     `# 물음 트리 — 열린 물음 ${열린물음(지도, 오늘, 빌드).length}`,
     ...물음트리(지도, 오늘, 빌드, true),

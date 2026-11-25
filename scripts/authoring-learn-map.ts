@@ -62,7 +62,7 @@ export function 배울것고르기(지금: 지도, 것: { 빌드?: string; 오�
     빈종류: 배울종류.filter((k) => !지금.줄들.some((x) => x.kind === k && x.learned !== null && x.key !== 쪽지열쇠)),
     궁금: 열린.filter((x) => x.kind === 'ASK').map((x) => x.key),
     안잰글: 열린.filter((x) => x.kind !== 'ASK').map((x) => x.key),
-    안써봄: 안써봄들(지금).map((x) => x.key),
+    안써봄: 안써봄들(지금, 것.오늘, 것.빌드).map((x) => x.key),
     빌드다름: 지금.줄들.filter((x) => x.kind !== 'ASK' && x.kind !== 'KIND' && x.key !== 쪽지열쇠 && x.learned !== null && x.learned.belief !== 'OVERTURNED' && 빌드다른가(x, 것.빌드)).map((x) => x.key),
     게임글: 빠진게임글(것.게임글, 지금),
     번호: [],
