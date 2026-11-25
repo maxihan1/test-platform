@@ -218,17 +218,18 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
             {오류}
           </p>
         )}
-        {!묻나 ? null : (
-          <확인창 제목={t('{수}건을 적용할까요?', { 수: 보냄.length })} 확인={t('{수}건 적용', { 수: 보냄.length })} onClose={() => set묻나(false)} on확인={() => void 적용하기()}>
-            <ul className="decide-list">
-              {반려.map((줄) => (
-                <li key={줄.rootId}>{차례글(줄, t)}</li>
-              ))}
-            </ul>
-            <p>{t('반려 {수}건은 복구할 수 없습니다', { 수: 반려.length })}</p>
-          </확인창>
-        )}
       </footer>
+      {/* 바닥 줄은 스크롤 칸에 붙어 있어(sticky) 그 안에 열면 상자가 다른 층 밑에 깔린다 */}
+      {!묻나 ? null : (
+        <확인창 제목={t('{수}건을 적용할까요?', { 수: 보냄.length })} 확인={t('{수}건 적용', { 수: 보냄.length })} onClose={() => set묻나(false)} on확인={() => void 적용하기()}>
+          <ul className="decide-list">
+            {반려.map((줄) => (
+              <li key={줄.rootId}>{차례글(줄, t)}</li>
+            ))}
+          </ul>
+          <p>{t('반려 {수}건은 복구할 수 없습니다', { 수: 반려.length })}</p>
+        </확인창>
+      )}
     </section>
   );
 }

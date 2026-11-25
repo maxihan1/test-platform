@@ -68,11 +68,8 @@ function 행동({ 상세, 쓰나, 다시읽기, t }: { 상세: 오류상세; 쓰
     ) : null;
   if (해결칸 === null && 등록칸 === null) return null;
   return (
-    <div className="stab-act-wrap">
-      <div className="stab-act">
-        {해결칸}
-        {등록칸}
-      </div>
+    <>
+      {/* 휴대폰은 아래 줄이 화면에 고정(z 25)이라 그 안에 열면 상자가 아래 탭 밑에 깔린다 */}
       {묻는것 === null ? null : (
         <확인창
           제목={묻는것 === 'resolve' ? t('이 오류를 해결 처리할까요?') : t('{bts} 에 이슈를 등록할까요?', { bts: BTS이름 })}
@@ -84,16 +81,22 @@ function 행동({ 상세, 쓰나, 다시읽기, t }: { 상세: 오류상세; 쓰
           <p>{묻는것 === 'resolve' ? t('해결 처리는 취소할 수 없습니다. 다음 실행에서 다시 나오면 재발로 표시됩니다') : t('등록한 이슈는 여기서 취소할 수 없습니다. {bts} 에서 처리합니다', { bts: BTS이름 })}</p>
         </확인창>
       )}
-      {/* 마지막 등록이 포기됐으면 까닭을 보이고 다시 누를 수 있다 (BTS §3.12 「버그 바퀴」) */}
-      {issue !== null && 'state' in issue && issue.state === 'GAVE_UP' ? (
-        <p className="stab-faint">{t('{bts} 등록 실패 · {까닭}', { bts: BTS이름, 까닭: issue.reason ?? '' })}</p>
-      ) : null}
-      {오류 === null ? null : (
-        <p className="note" role="alert">
-          {오류}
-        </p>
-      )}
-    </div>
+      <div className="stab-act-wrap">
+        <div className="stab-act">
+          {해결칸}
+          {등록칸}
+        </div>
+        {/* 마지막 등록이 포기됐으면 까닭을 보이고 다시 누를 수 있다 (BTS §3.12 「버그 바퀴」) */}
+        {issue !== null && 'state' in issue && issue.state === 'GAVE_UP' ? (
+          <p className="stab-faint">{t('{bts} 등록 실패 · {까닭}', { bts: BTS이름, 까닭: issue.reason ?? '' })}</p>
+        ) : null}
+        {오류 === null ? null : (
+          <p className="note" role="alert">
+            {오류}
+          </p>
+        )}
+      </div>
+    </>
   );
 }
 

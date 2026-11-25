@@ -2592,6 +2592,16 @@ input[type='file']::file-selector-button {
   border-top: 1px solid var(--line);
 }
 
+/* 서랍 바닥의 확인 줄은 온 폭이다 — 옆 단추와 한 줄에 서면 단추가 세로로 찌그러진다 (계정 「비활성으로 내리기」) */
+.set-foot:has(> .set-ask) {
+  flex-wrap: wrap;
+}
+
+.set-ask {
+  flex: 1 0 100%;
+  order: -1;
+}
+
 /* 버튼은 살아 있고 왜 안 되는지를 아래에 적는다 (SPEC §8.2 · DESIGN.md) */
 .set-why {
   text-align: right;
