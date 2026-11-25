@@ -104,12 +104,13 @@ export function 셈하기(전체: readonly 화면[], 후보들: readonly 후보[
 
 const 기본케이스ms = 60_000;
 const 화면당점검초 = 7;
-const 세션당화면상한 = 40;
+// 비전 openUiCheck 의 세션당 상한과 같은 값이다 (비전 ADR-052 §3.3)
+const 세션당화면상한 = 400;
 
 /**
  * 예상 소요 시간 — 테스트는 점검 상태마다 케이스를 한 번씩 돌린 합(최근 통과 소요 평균, 없으면 1분),
  * AI 점검은 마지막 상태의 화면 수 × 7초(비전 측정 중앙값 6.7초). 화면 수는 단위마다 지나는 화면 수의 합이다 — 단위(옛 꼴 케이스 하나 · 프로시저 하나)마다 연결이 하나라
- * 따로 찍고 한 연결에 40장까지다. 케이스 수 · 소요는 프로시저도 케이스로 센다 (§3.13 「테스트 프로시저」)
+ * 따로 찍고 한 연결에 400장까지다. 케이스 수 · 소요는 프로시저도 케이스로 센다 (§3.13 「테스트 프로시저」)
  */
 export function 예상하기(단위: readonly (readonly { 화면수: number; 평균ms: number | null }[])[], 상태수: number): { runs: number; testMinutes: number; checkMinutes: number } {
   const 케이스들 = 단위.flat();

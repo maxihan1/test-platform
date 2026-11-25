@@ -153,6 +153,16 @@ export function 미점검들(rows: readonly CompatRow[], devices: readonly Compa
   });
 }
 
+/** 화면 수 상한에 걸린 디바이스마다 한 줄 — 프로시저 여럿이 걸렸으면 그만큼 선다 */
+export const 한도줄들 = (devices: readonly CompatRunDevice[], t: 번역): { 열쇠: string; 디바이스: string; 글: string }[] =>
+  devices.flatMap((d) =>
+    d.capped.map((c) => ({
+      열쇠: `${String(d.seq)}-${c.tcId}`,
+      디바이스: 열이름(d, t),
+      글: t('{케이스} 부터 AI 점검을 하지 못했습니다 · 연결 하나에 {수}장 한도', { 케이스: c.tcId, 수: c.max }),
+    })),
+  );
+
 /** 표의 마지막 열 — 의심이 나온 상태 수 / 전체 상태, 의심 없이 미점검만 있으면 `미점검 N` */
 export function 발생글(r: CompatRow, 상태수: number, t: 번역): string {
   const 의심 = r.cells.filter((c) => c.value === 'PENDING' || c.value === 'CONFIRMED' || c.value === 'NOT_DEFECT').length;
