@@ -1,5 +1,8 @@
 // 마법사 3단계 — 성능 목표 표 · 목표 추가 · AI 추천 · 성능 저하 알림 · AI 추천 근거 (도메인/성능 §3.9 「성능 목표」 · §8.14)
 
+import { useState } from 'react';
+
+import { 두번삭제, 확인창 } from './ConfirmBox.js';
 import { use말 } from './i18n.js';
 import { perfApi, type Target, type 목표추천 } from './perfApi.js';
 import { 목표방향, 저장값, 화면값 } from './perfView.js';
@@ -36,12 +39,14 @@ export function PerfStepTargets({
   저장하고번호: () => Promise<number | null>;
 }) {
   const t = use말();
+  const [묻나, set묻나] = useState(false);
   const 일 = usePerfJob<목표추천>((out) => 고침({ ...값, targets: out.targets, aiBasis: out.basis }));
   // 사람이 고친 줄은 근거가 「직접 입력」이 된다 (§3.9 「근거 꼬리표」)
   const 줄고침 = (i: number, 덮: Partial<Target>) =>
     고침({ ...값, targets: 값.targets.map((tg, n) => (n === i ? { ...tg, ...덮, source: 'MANUAL', reqId: undefined } : tg)) });
 
   async function 추천() {
+    set묻나(false);
     const id = await 저장하고번호();
     if (id !== null) await 일.맡기기(() => perfApi.suggest(serviceId, 'TARGETS', id));
   }
@@ -54,12 +59,18 @@ export function PerfStepTargets({
           <span className="perf-faint">{t('기획서 수치 우선, 없으면 AI 추천값. 값을 수정하면 출처가 「직접 입력」으로 변경됩니다')}</span>
           {쓰나 ? (
             <div className="perf-acts">
-              <button type="button" className="btn ghost small" disabled={일.도나} onClick={() => void 추천()}>
+              <button type="button" className="btn ghost small" disabled={일.도나} onClick={() => (값.targets.length > 0 ? set묻나(true) : void 추천())}>
                 <기다림글자 중={일.도나} 평소={t('AI 추천')} 기다림={t('찾는 중')} />
               </button>
             </div>
           ) : null}
         </div>
+        {!묻나 ? null : (
+          // 저장보다 앞에서 묻는다 — 취소하면 시나리오도 저장하지 않는다
+          <확인창 제목={t('AI 추천 목표로 변경할까요?')} 확인={t('AI 추천')} onClose={() => set묻나(false)} on확인={() => void 추천()}>
+            <p>{t('지금 있는 성능 목표 {수}개가 AI 추천 목표로 모두 변경됩니다', { 수: 값.targets.length })}</p>
+          </확인창>
+        )}
         {일.오류 === null ? null : <p className="perf-err" role="alert">{일.오류}</p>}
         {값.targets.length === 0 ? (
           <div className="empty">{t('아직 성능 목표가 없습니다. 목표가 없으면 판정 없이 숫자만 남습니다')}</div>
@@ -128,9 +139,7 @@ export function PerfStepTargets({
                     </td>
                     {쓰나 ? (
                       <td>
-                        <button type="button" className="btn ghost small" aria-label={t('{번호}번째 목표 삭제', { 번호: i + 1 })} onClick={() => 고침({ ...값, targets: 값.targets.filter((_, n) => n !== i) })}>
-                          {t('삭제')}
-                        </button>
+                        <두번삭제 key={JSON.stringify(tg)} 라벨={t('{번호}번째 목표 삭제', { 번호: i + 1 })} on삭제={() => 고침({ ...값, targets: 값.targets.filter((_, n) => n !== i) })} />
                       </td>
                     ) : null}
                   </tr>

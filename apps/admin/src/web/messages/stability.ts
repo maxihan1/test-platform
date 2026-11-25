@@ -89,4 +89,9 @@ export const 안정화말: Record<string, string> = {
   '최근 7일 발생 케이스. {줄}': 'Cases with this error, last 7 days. {줄}',
   '{날} {수}건': '{날} {수}',
   'Device VISION · {수}건': 'Device VISION · {수}',
+  // 확인 (WEB-F10-02)
+  '이 오류를 해결 처리할까요?': 'Mark this error as fixed?',
+  '{bts} 에 이슈를 등록할까요?': 'File an issue in {bts}?',
+  '해결 처리는 취소할 수 없습니다. 다음 실행에서 다시 나오면 재발로 표시됩니다': 'This cannot be withdrawn. If it shows up in the next run, it is marked as recurring',
+  '등록한 이슈는 여기서 취소할 수 없습니다. {bts} 에서 처리합니다': 'A filed issue cannot be withdrawn here. Handle it in {bts}',
 };

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { ApiError } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { perfApi } from './perfApi.js';
 import { message, useAsync, when } from './ui.js';
@@ -26,6 +27,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
   const [판, set판] = useState(0);
   const [오류, set오류] = useState<string | null>(null);
   const [하는중, set하는중] = useState(false);
+  const [지울것, set지울것] = useState<{ id: number; name: string } | null>(null);
   const list = useAsync(() => (앱 === '' ? Promise.resolve({ clients: [] }) : perfApi.dummyClients(Number(앱))), [앱]);
 
   if (services.length === 0) return null;
@@ -117,7 +119,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
                   <td className="perf-faint">{when(c.createdAt, 언어)}</td>
                   {관리자 ? (
                     <td>
-                      <button type="button" className="btn ghost small" disabled={하는중} aria-label={t('{이름} 삭제', { 이름: c.name })} onClick={() => void 해보기(() => perfApi.removeDummyClient(c.id))}>
+                      <button type="button" className="btn ghost small" disabled={하는중} aria-label={t('{이름} 삭제', { 이름: c.name })} onClick={() => set지울것({ id: c.id, name: c.name })}>
                         {t('삭제')}
                       </button>
                     </td>
@@ -153,6 +155,19 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
         </>
       ) : null}
       {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
+      {지울것 === null ? null : (
+        <확인창
+          제목={t('더미 클라이언트를 삭제할까요?')}
+          확인={t('삭제')}
+          onClose={() => set지울것(null)}
+          on확인={() => {
+            set지울것(null);
+            void 해보기(() => perfApi.removeDummyClient(지울것.id));
+          }}
+        >
+          <p>{t('「{이름}」 파일이 삭제됩니다. 다시 쓰려면 zip 파일을 다시 업로드해야 합니다', { 이름: 지울것.name })}</p>
+        </확인창>
+      )}
     </div>
   );
 }

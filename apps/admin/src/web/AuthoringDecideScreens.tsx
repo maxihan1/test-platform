@@ -143,7 +143,7 @@ export function 화면고르기({
               </span>
               {!바꿀수있나 ? null : (
                 <button className="btn ghost small" type="button" disabled={바쁨} onClick={() => void 바꾸기(s.url, false)}>
-                  {t('실행 취소')}
+                  {t('복원')}
                 </button>
               )}
             </div>

@@ -210,7 +210,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                     <td className="held-btns">
                       {!편집 ? null : s === 'removed' ? (
                         <button className="btn ghost" type="button" onClick={() => 보낸다(h.tcId, () => api.deleteAuthoringHeld(service, 요청번호, h.tcId), null)}>
-                          {t('실행 취소')}
+                          {t('복원')}
                         </button>
                       ) : (
                         <>

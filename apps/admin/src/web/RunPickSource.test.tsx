@@ -42,13 +42,13 @@ describe('출처 줄', () => {
     expect(document.querySelector('.prow-src')?.textContent).toMatch(/^저장값 · 맥시 ·/);
   });
 
-  it('고치면 이번 실행에만 쓴다고 바뀌고 「이 값 저장」 · 「되돌리기」가 선다', async () => {
+  it('고치면 이번 실행에만 쓴다고 바뀌고 「이 값 저장」 · 「복원」가 선다', async () => {
     await 연다([저장값케이스]);
     고친다('user2');
 
     expect(screen.getByText('저장값과 다릅니다 · 이번 실행에만 씁니다')).toBeTruthy();
     expect(단추('이 값 저장')).toBeTruthy();
-    expect(단추('실행 취소')).toBeTruthy();
+    expect(단추('복원')).toBeTruthy();
     expect(screen.getByText('팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
   });
 
@@ -71,11 +71,11 @@ describe('출처 줄', () => {
     expect(screen.queryByRole('button', { name: '이 값 저장' })).toBeNull();
   });
 
-  it('「되돌리기」는 저장값으로 칸을 돌리고 실행에 고친 값을 싣지 않는다', async () => {
+  it('「복원」는 저장값으로 칸을 돌리고 실행에 고친 값을 싣지 않는다', async () => {
     const { onRun } = await 연다([저장값케이스]);
     고친다('user2');
 
-    fireEvent.click(단추('실행 취소'));
+    fireEvent.click(단추('복원'));
 
     expect(아이디칸().value).toBe('user1');
     expect(document.querySelector('.prow-src')?.textContent).toMatch(/^저장값 · 맥시 ·/);
@@ -84,11 +84,11 @@ describe('출처 줄', () => {
     expect(onRun.mock.calls[0]?.[0].items[0]?.params ?? {}).toEqual({});
   });
 
-  it('케이스 쓰기 권한이 없으면 「이 값 저장」은 없고 「되돌리기」는 있다', async () => {
+  it('케이스 쓰기 권한이 없으면 「이 값 저장」은 없고 「복원」는 있다', async () => {
     await 연다([저장값케이스], { user: 읽기만 });
     고친다('user2');
     expect(screen.queryByRole('button', { name: '이 값 저장' })).toBeNull();
-    expect(단추('실행 취소')).toBeTruthy();
+    expect(단추('복원')).toBeTruthy();
   });
 
   it('명세에 안 맞는 값은 저장하지 않고 칸 아래에 사유를 붙인다', async () => {

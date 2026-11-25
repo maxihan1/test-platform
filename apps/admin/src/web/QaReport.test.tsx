@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { ApiError, type User } from './api.js';
 import { QaReport } from './QaReport.js';
 import { qaReportApi, type 리포트응답 } from './qaReportApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 사람 = (덮: Partial<User> = {}): User =>
   ({
@@ -64,6 +65,11 @@ describe('QA 리포트 보기', () => {
     const 승인 = vi.spyOn(qaReportApi, 'approve').mockResolvedValue({ approval: null });
     render(<QaReport id={31} user={사람()} />);
     fireEvent.click(await screen.findByRole('button', { name: '승인' }));
+    expect(screen.getByText(/승인은 취소할 수 없고 이 버전은 더 이상 수정할 수 없습니다/)).toBeTruthy();
+    물음누름('취소');
+    expect(승인).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '승인' }));
+    물음누름('승인');
     await waitFor(() => expect(승인).toHaveBeenCalledWith(31));
     expect(await screen.findByText('abcdef012345')).toBeTruthy();
     expect(screen.getByText(/사후 승인/)).toBeTruthy();
@@ -94,6 +100,7 @@ describe('QA 리포트 보기', () => {
     vi.spyOn(qaReportApi, 'approve').mockRejectedValue(new ApiError(409, 'AI_PENDING', 'AI_PENDING'));
     render(<QaReport id={31} user={사람()} />);
     fireEvent.click(await screen.findByRole('button', { name: '승인' }));
+    물음누름('승인');
     expect((await screen.findByRole('alert')).textContent).toBe('AI 가 남은 리스크를 작성하는 중입니다. 작성이 완료되면 승인할 수 있습니다');
   });
 

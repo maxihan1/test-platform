@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { api, type AuthoringCoverage, type AuthoringRow } from './api.js';
 import { 값을채웠나 } from './AuthoringHeld.js';
 import { 남은수, 일 } from './authoringTodoParts.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말 } from './i18n.js';
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
 export function 반영단계({ service, 요청, 표, 반영권한, 보내는중, 새줄로, 커버리지 }: Props) {
   const t = use말();
   const [고른서버, set고른서버] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
   const held = 요청.held ?? [];
   const 남은 = 요청.heldOpen ?? 0;
   const 모름 = 요청.heldUnknown === true;
@@ -56,12 +58,33 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
           type="button"
           // 막는 것은 서버다(HELD_OPEN · HELD_UNKNOWN · CONFLICT_OPEN · BAD_ENV) — 여기서 막는 것은 누르기 전에 까닭을 보이려는 편의다
           disabled={보내는중 || 남은 > 0 || 모름 || 겹침 > 0 || 서버없음}
-          onClick={() => 새줄로(() => api.createAuthoringMerge(service, 요청.id, 서버고름 ? (서버 ?? undefined) : undefined))}
+          onClick={() => set묻나(true)}
         >
           {보내는중 ? t('반영하는 중') : t('테스트 반영하기')}
         </button>
       ) : (
         <span className="hint">{t('반영은 관리자만 할 수 있습니다.')}</span>
+      )}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('테스트를 반영할까요?')}
+          확인={t('테스트 반영하기')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            새줄로(() => api.createAuthoringMerge(service, 요청.id, 서버고름 ? (서버 ?? undefined) : undefined));
+          }}
+        >
+          <p>
+            {t('#{번호} 테스트를 케이스 목록에 등록합니다. 반영한 뒤에는 취소할 수 없습니다', { 번호: 요청.id })}
+            {서버고름 && 서버 !== null ? (
+              <>
+                <br />
+                {t('대상 서버 {서버} 에서 값을 채운 케이스를 먼저 실행합니다', { 서버 })}
+              </>
+            ) : null}
+          </p>
+        </확인창>
       )}
       {모름 ? <p className="held-why">{t('입력이 필요한 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')}</p> : null}
       {남은 > 0 ? <p className="held-why">{t('입력이 필요한 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.', { 수: 남은 })}</p> : null}

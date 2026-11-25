@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthoringRow } from './api.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 // 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
 const 운영: 판정 = () => true;
@@ -116,6 +117,11 @@ describe('작성 한 건 상세', () => {
     await 첫읽기끝();
     const 앞 = 부른횟수;
     fireEvent.click(await screen.findByRole('button', { name: '테스트 반영하기' }));
+    expect(screen.getByText('#7 테스트를 케이스 목록에 등록합니다. 반영한 뒤에는 취소할 수 없습니다')).toBeTruthy();
+    물음누름('취소');
+    expect(부른횟수).toBe(앞);
+    fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));
+    물음누름('테스트 반영하기');
     await vi.waitFor(() => expect(부른횟수).toBeGreaterThan(앞));
     expect(window.location.hash).toBe('');
   });

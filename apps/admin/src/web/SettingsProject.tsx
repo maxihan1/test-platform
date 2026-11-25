@@ -4,6 +4,8 @@
 import { useState } from 'react';
 
 import { api, type SettingsProject, type SettingsServiceRow } from './api.js';
+import { BTS이름 } from './btsName.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 오류문장 } from './SettingsService.js';
 import { ApiServers } from './SettingsApiServers.js';
@@ -27,6 +29,7 @@ export function ProjectPanel({
   const [대표, set대표] = useState(row.primaryServiceId ?? null);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [옮길것, set옮길것] = useState<{ 앱: SettingsServiceRow; 곳: SettingsProject } | null>(null);
   const 안의것 = services.filter((it) => it.projectId === row.id);
 
   async function 한다(일: () => Promise<unknown>) {
@@ -100,8 +103,8 @@ export function ProjectPanel({
               value={row.id}
               disabled={보내는중}
               onChange={(e) => {
-                const projectId = Number(e.target.value);
-                void 한다(() => api.updateService(it.id, { projectId }));
+                const 곳 = projects.find((p) => p.id === Number(e.target.value));
+                if (곳 !== undefined && 곳.id !== row.id) set옮길것({ 앱: it, 곳 });
               }}
             >
               {projects.map((p) => (
@@ -115,6 +118,27 @@ export function ProjectPanel({
       </구획>
 
       <ApiServers key={row.id} 프로젝트={row.id} />
+      {옮길것 === null ? null : (
+        <확인창
+          제목={t('애플리케이션을 옮길까요?')}
+          확인={t('옮기기')}
+          onClose={() => set옮길것(null)}
+          on확인={() => {
+            set옮길것(null);
+            void 한다(() => api.updateService(옮길것.앱.id, { projectId: 옮길것.곳.id }));
+          }}
+        >
+          <p>{t('「{이름}」을 「{프로젝트}」 프로젝트로 옮깁니다. 볼 수 있는 사람이 「{프로젝트}」 권한대로 변경됩니다', { 이름: 옮길것.앱.name, 프로젝트: 옮길것.곳.name })}</p>
+          {/* 마지막 하나면 서버가 빈 프로젝트를 지운다 — 같이 사라지는 것은 되살릴 길이 없다 (도메인/인증 §8.8) */}
+          {안의것.length > 1 ? null : (
+            <p>
+              <b>{t('마지막 애플리케이션이라 「{프로젝트}」 프로젝트가 삭제됩니다. 아래 항목도 같이 삭제되고 복구할 수 없습니다', { 프로젝트: row.name })}</b>
+              <br />
+              {t('권한 배정 · 정기 실행 세트 · {bts} 연결 · 프로젝트 노트 · Scout 대화 · 모니터링 에이전트 · API 서버 이름', { bts: BTS이름 })}
+            </p>
+          )}
+        </확인창>
+      )}
     </div>
   );
 }

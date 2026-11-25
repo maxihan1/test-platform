@@ -3,6 +3,7 @@
 import { Fragment, useState } from 'react';
 
 import type { ServiceRow } from './api.js';
+import { 두번삭제 } from './ConfirmBox.js';
 import { use말 } from './i18n.js';
 import type { Transaction, 더미클라이언트, 초안결과 } from './perfApi.js';
 import { PerfImport } from './PerfImport.js';
@@ -122,17 +123,14 @@ export function PerfStepScenario({
                       <td className="mono">{tx.thinkTimeSec === undefined ? '-' : t('{초}초', { 초: tx.thinkTimeSec })}</td>
                       {쓰나 ? (
                         <td>
-                          <button
-                            type="button"
-                            className="btn ghost small"
-                            aria-label={t('{이름} 삭제', { 이름: tx.name })}
-                            onClick={() => {
+                          <두번삭제
+                            key={JSON.stringify(tx)}
+                            라벨={t('{이름} 삭제', { 이름: tx.name })}
+                            on삭제={() => {
                               고침({ ...값, transactions: txs.filter((_, n) => n !== i) });
                               set편줄(null);
                             }}
-                          >
-                            {t('삭제')}
-                          </button>
+                          />
                         </td>
                       ) : null}
                     </tr>

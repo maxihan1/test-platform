@@ -4,8 +4,8 @@ import type { ScenarioPart } from '@platform/kit';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import type { Platform } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
-import { Modal } from './Modal.js';
 import { 단계앱, 섞였나, 모킹구간, 빼기, 순서바꾸기, 카드요약, 종류글, type 앱줄, type 재료들 } from './scenarioView.js';
 import type { 프로시저정보 } from './scenarioProc.js';
 import type { 조립탭 } from './ScenarioTabs.js';
@@ -192,31 +192,26 @@ export function ScenarioCards({
       )}
       {시험요약 === undefined ? null : <div className="scn-cards-trial">{시험요약}</div>}
       {뺄번호 === null ? null : (
-        <Modal
-          제목={t('{번호}번 단계를 삭제할까요?', { 번호: 뺄번호 })}
+        <단계삭제확인
+          번호={뺄번호}
           onClose={() => set뺄번호(null)}
-          버튼={
-            <>
-              <button type="button" className="btn ghost" onClick={() => set뺄번호(null)}>
-                {t('취소')}
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  빼내기(뺄번호);
-                  set뺄번호(null);
-                }}
-              >
-                {t('삭제')}
-              </button>
-            </>
-          }
-        >
-          <p>{t('이 단계의 설정도 같이 사라집니다')}</p>
-        </Modal>
+          on삭제={() => {
+            빼내기(뺄번호);
+            set뺄번호(null);
+          }}
+        />
       )}
     </div>
+  );
+}
+
+/** 마법사 2단계의 ✕ 도 같은 상자를 쓴다 (도메인/시나리오 §8.11) */
+export function 단계삭제확인({ 번호, onClose, on삭제 }: { 번호: number; onClose: () => void; on삭제: () => void }) {
+  const t = use말();
+  return (
+    <확인창 제목={t('{번호}번 단계를 삭제할까요?', { 번호 })} 확인={t('삭제')} onClose={onClose} on확인={on삭제}>
+      <p>{t('이 단계의 설정도 같이 사라집니다')}</p>
+    </확인창>
   );
 }
 

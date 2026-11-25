@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type CasePage, type CaseRow } from './api.js';
+import { 주소로간다, 주소보기, 주소에선다 } from './keepState.fixture.js';
 import { perfApi } from './perfApi.js';
 import { PerfDevices } from './PerfDevices.js';
 import { 결과, 기기들, 상세, 설정, 앱 } from './perfDevices.fixture.js';
@@ -49,6 +50,48 @@ describe('측정 시작', () => {
     expect(요청.devices).toEqual([{ serial: 'S24', where: 'FARM' }, { serial: 'A23', where: 'FARM' }]);
     expect(요청.targets.find((x) => x.metric === 'LAUNCH_MS')).toEqual({ metric: 'LAUNCH_MS', op: '<=', value: 3000, source: 'MANUAL' });
     expect(요청).not.toHaveProperty('durationSec');
+  });
+
+  it('적은 값이 있으면 다른 화면으로 가기 전에 묻고, 측정을 걸면 묻지 않는다 (공통/5-화면공통 §8)', async () => {
+    빈화면();
+    주소에선다('#/perf');
+    render(
+      <>
+        <주소보기 />
+        <PerfDevices service={앱} 쓰나 />
+      </>,
+    );
+    // 앞 검사가 측정을 걸며 남긴 「한 번은 통과」를 먼저 쓴다 — 앱에서는 뿌리가 늘 듣고 있어 남지 않는다
+    await 주소로간다('#/perf/devices');
+    fireEvent.click(await screen.findByLabelText(/ZQD-001/));
+    await 주소로간다('#/cases');
+    expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '머무르기' }));
+    expect(screen.getByTestId('hash').textContent).toBe('#/perf/devices');
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.market' } });
+    fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
+    fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    확인시작();
+    await waitFor(() => expect(screen.getByTestId('hash').textContent).toBe('#/perf/devices?run=41'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('손대지 않은 측정 시작 화면은 묻지 않고 떠난다', async () => {
+    빈화면();
+    주소에선다('#/perf');
+    render(
+      <>
+        <주소보기 />
+        <PerfDevices service={앱} 쓰나 />
+      </>,
+    );
+    await 주소로간다('#/perf/devices');
+    await screen.findByLabelText(/ZQD-001/);
+    await 주소로간다('#/cases');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByTestId('hash').textContent).toBe('#/cases');
   });
 
   it('측정 시작 전에 조작 · 반복 · 디바이스 · 앱 · 서버를 적어 묻고, 취소하면 측정을 만들지 않는다', async () => {
@@ -115,6 +158,7 @@ describe('측정 시작', () => {
     expect(screen.queryByLabelText(/Appium 케이스/)).toBeNull();
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.game' } });
+    await screen.findByLabelText(/ZQD-001/);
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
     expect((await screen.findByRole('alert')).textContent).toBe('측정하며 실행할 게임 케이스를 선택해 주세요');
     fireEvent.click(await screen.findByLabelText(/ZQD-001/));

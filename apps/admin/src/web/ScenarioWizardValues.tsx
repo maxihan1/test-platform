@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
+import { 두번삭제 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type CasePartMaterial } from './scenarioApi.js';
 import { ScenarioFields, 시작글자 } from './ScenarioFields.js';
@@ -165,18 +166,17 @@ export function 값연결칸(p: Props) {
                     >
                       {t('직접 수정')}
                     </button>
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      onClick={() => {
+                    <두번삭제
+                      key={JSON.stringify(link)}
+                      모양="btn ghost"
+                      라벨={t('{번호}번 {이름} 값 연결 삭제', { 번호: 받는번호, 이름: 이름(받는번호) })}
+                      on삭제={() => {
                         p.on지움(열쇠);
                         // 지우면 그 단계 뒤 카드의 자리가 하나씩 당겨진다 — 그 단계에서 펼친 것은 접어 다른 카드가 열리지 않게
                         set펼침((앞) => new Set([...앞].filter((k) => !k.startsWith(`${받는번호}-`))));
                         단계고침(받는번호, (s) => ({ ...s, links: (s.links ?? []).filter((_, j) => j !== 자리) }));
                       }}
-                    >
-                      {t('삭제')}
-                    </button>
+                    />
                   </div>
                   {!열림 ? null : (
                     <div className="scw-link-edit">

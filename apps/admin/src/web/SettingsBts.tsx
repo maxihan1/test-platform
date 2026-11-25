@@ -231,10 +231,10 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
           onClose={() => set다시발급묻기(false)}
           버튼={
             <>
-              <button type="button" className="btn ghost" onClick={() => set다시발급묻기(false)}>
+              <button type="button" className="btn ghost" data-first onClick={() => set다시발급묻기(false)}>
                 {t('취소')}
               </button>
-              <button type="button" className="btn danger" data-first onClick={() => void 배포토큰()}>
+              <button type="button" className="btn danger" onClick={() => void 배포토큰()}>
                 {t('다시 발급')}
               </button>
             </>
@@ -250,10 +250,10 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
           onClose={() => set끊기묻기(false)}
           버튼={
             <>
-              <button type="button" className="btn ghost" onClick={() => set끊기묻기(false)}>
+              <button type="button" className="btn ghost" data-first onClick={() => set끊기묻기(false)}>
                 {t('취소')}
               </button>
-              <button type="button" className="btn danger" data-first onClick={() => void 끊기()}>
+              <button type="button" className="btn danger" onClick={() => void 끊기()}>
                 {t('연결 해제')}
               </button>
             </>

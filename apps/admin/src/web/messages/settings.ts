@@ -290,4 +290,17 @@ export const 설정말: Record<string, string> = {
   '모바일에만': 'Only on mobile:',
   '나머지 {건수}장은 PC 와 모바일이 같습니다': 'The other {건수} pages are the same on desktop and mobile',
   '다른 화면 {전체}장 가운데 앞 {건수}장만 보입니다': 'Showing the first {건수} of {전체} pages that differ',
+  // 확인 (WEB-F10-02)
+  '비활성으로 내린다': 'Deactivate now',
+  '비활성으로 내리면 이 계정은 바로 로그인할 수 없습니다. 다시 활성으로 변경할 수 있습니다': 'This account can no longer sign in. You can activate it again',
+  '애플리케이션을 옮길까요?': 'Move this application?',
+  옮기기: 'Move',
+  '「{이름}」을 「{프로젝트}」 프로젝트로 옮깁니다. 볼 수 있는 사람이 「{프로젝트}」 권한대로 변경됩니다':
+    'Moves "{이름}" to project "{프로젝트}". Who can see it then follows the permissions of "{프로젝트}"',
+  '마지막 애플리케이션이라 「{프로젝트}」 프로젝트가 삭제됩니다. 아래 항목도 같이 삭제되고 복구할 수 없습니다':
+    'This is the last application, so project "{프로젝트}" is deleted. The items below are deleted with it and cannot be restored',
+  '권한 배정 · 정기 실행 세트 · {bts} 연결 · 프로젝트 노트 · Scout 대화 · 모니터링 에이전트 · API 서버 이름':
+    'Permissions · Scheduled sets · {bts} link · Project notes · Scout chats · Monitoring agents · API server names',
+  '더미 클라이언트를 삭제할까요?': 'Delete this dummy client?',
+  '「{이름}」 파일이 삭제됩니다. 다시 쓰려면 zip 파일을 다시 업로드해야 합니다': 'The file of "{이름}" is deleted. Upload the zip again to use it',
 };

@@ -179,6 +179,7 @@ describe('설정 › BTS 연결', () => {
     fireEvent.click(screen.getByRole('button', { name: '다시 발급' }));
     const 창 = screen.getByRole('dialog');
     expect(발급).toHaveBeenCalledTimes(1);
+    expect(document.activeElement?.textContent).toBe('취소');
     fireEvent.click(within(창).getByRole('button', { name: '다시 발급' }));
     await waitFor(() => expect(발급).toHaveBeenCalledTimes(2));
   });
@@ -213,6 +214,7 @@ describe('설정 › BTS 연결', () => {
     expect(screen.getByText('연결을 해제하면 이 프로젝트의 실패 판정은 Test Commander 에서 합니다')).toBeTruthy();
     expect(끊음).not.toHaveBeenCalled();
     const 창 = screen.getByRole('dialog');
+    expect(document.activeElement?.textContent).toBe('취소');
     fireEvent.click(within(창).getByRole('button', { name: '연결 해제' }));
     await waitFor(() => expect(끊음).toHaveBeenCalledWith(3));
     await waitFor(() => expect((screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }) as HTMLButtonElement).disabled).toBe(false));

@@ -6,6 +6,7 @@ import type { AuthoringHeld as 보류줄, AuthoringRow } from './api.js';
 import { AuthoringHeld } from './AuthoringHeld.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 운영: 판정 = () => true;
 
@@ -135,9 +136,9 @@ describe('보류 케이스 표', () => {
     await vi.waitFor(() => expect(넣기).toHaveBeenCalledWith('MKT', 7, 'MKT-033', { removed: true }));
   });
 
-  it('되돌리기는 DELETE 를 부른다', async () => {
+  it('복원은 DELETE 를 부른다', async () => {
     render(<AuthoringHeld service="MKT" 요청번호={7} held={[삭제글]} 편집 reload={reload} />);
-    fireEvent.click(screen.getByRole('button', { name: '실행 취소' }));
+    fireEvent.click(screen.getByRole('button', { name: '복원' }));
     await vi.waitFor(() => expect(지우기).toHaveBeenCalledWith('MKT', 7, 'MKT-035'));
   });
 
@@ -190,6 +191,7 @@ describe('다음 단계의 보류 진척과 반영', () => {
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [], heldOpen: 0 })} 할수={운영} 차이수={0} reload={reload} />);
     expect(screen.queryByText(/입력이 필요한 케이스/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));
+    물음누름('테스트 반영하기');
     await vi.waitFor(() => expect(머지).toHaveBeenCalledWith('MKT', 7, undefined));
   });
 
@@ -201,6 +203,8 @@ describe('다음 단계의 보류 진척과 반영', () => {
     expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['dev', 'stg']);
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stg' } });
     fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));
+    expect(screen.getByText(/대상 서버 stg 에서 값을 채운 케이스를 먼저 실행합니다/)).toBeTruthy();
+    물음누름('테스트 반영하기');
     await vi.waitFor(() => expect(머지).toHaveBeenCalledWith('MKT', 7, 'stg'));
   });
 
@@ -223,6 +227,7 @@ describe('다음 단계의 보류 진척과 반영', () => {
     머지.mockRejectedValueOnce(new ApiError(409, 'HELD_OPEN', ''));
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [삭제글], heldOpen: 0 })} 할수={운영} 차이수={0} reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));
+    물음누름('테스트 반영하기');
     expect(await screen.findByText('입력이 필요한 케이스가 남아 있어 아직 반영할 수 없습니다. 새로고침해 보세요')).toBeTruthy();
   });
 });

@@ -5,6 +5,7 @@ import type { ScenarioPart } from '@platform/kit';
 
 import type { CaseRow, Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { 단계삭제확인 } from './ScenarioCards.js';
 import { ScenarioOtherPanel } from './ScenarioOtherPanel.js';
 import { 다른단계들 } from './ScenarioPalette.js';
 import { 든프로시저들 } from './scenarioProc.js';
@@ -35,6 +36,7 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
   const 언어 = use언어();
   const [고른앱, set고른앱] = useState(시작);
   const [찾기, set찾기] = useState('');
+  const [뺄번호, set뺄번호] = useState<number | null>(null);
   const { 읽음, 오류 } = use케이스목록(고른앱);
   useEffect(() => {
     if (읽음 !== null) on읽음(읽음.목록);
@@ -80,6 +82,16 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
 
   return (
     <div className="scw-steps">
+      {뺄번호 === null ? null : (
+        <단계삭제확인
+          번호={뺄번호}
+          onClose={() => set뺄번호(null)}
+          on삭제={() => {
+            on단계들(빼기(단계들, 뺄번호));
+            set뺄번호(null);
+          }}
+        />
+      )}
       <section className="scw-sec" aria-label={t('지금 순서')}>
         <h3 className="scw-sec-h">
           {t('지금 순서')} <small>{t('{수}단계', { 수: 단계들.length })}</small>
@@ -116,7 +128,7 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
                     >
                       ↓
                     </button>
-                    <button type="button" className="scw-icon" aria-label={t('{번호}번 삭제', { 번호 })} onClick={() => on단계들(빼기(단계들, 번호))}>
+                    <button type="button" className="scw-icon" aria-label={t('{번호}번 삭제', { 번호 })} onClick={() => set뺄번호(번호)}>
                       ✕
                     </button>
                   </span>

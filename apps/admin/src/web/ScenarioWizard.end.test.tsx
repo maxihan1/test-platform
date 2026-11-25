@@ -123,7 +123,10 @@ describe('ScenarioWizard 값 연결', () => {
   it('지운 제안은 다시 들어와도 달지 않는다', async () => {
     await 값연결로();
     expect(바닥()).toBe('확인하지 않은 값 연결이 1곳 있습니다');
-    fireEvent.click(within(screen.getByText(제안.why).closest('li')!).getByRole('button', { name: '삭제' }));
+    const 카드 = screen.getByText(제안.why).closest('li')!;
+    fireEvent.click(within(카드).getByRole('button', { name: /값 연결 삭제$/ }));
+    expect(screen.getByText(제안.why)).toBeTruthy();
+    fireEvent.click(within(카드).getByRole('button', { name: /삭제 확인$/ }));
     expect(바닥()).toBe('');
     expect(screen.getByText('넘길 값이 없습니다. 단계끼리 값을 주고받지 않는 흐름입니다')).toBeTruthy();
     다음();

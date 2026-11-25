@@ -149,11 +149,11 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
                         <button
                           className="btn ghost"
                           type="button"
-                          aria-label={`${c.tcId} ${t('실행 취소')}`}
+                          aria-label={`${c.tcId} ${t('복원')}`}
                           disabled={보내는중}
                           onClick={() => 보낸다([() => api.deleteAuthoringConflict(service, 요청번호, c.tcId)])}
                         >
-                          {t('실행 취소')}
+                          {t('복원')}
                         </button>
                       )}
                     </>

@@ -11,6 +11,7 @@ import { 설명판정 } from './AuthoringDecideNote.js';
 import { 새로만들기 } from './AuthoringDecideNew.js';
 import { 화면고르기 } from './AuthoringDecideScreens.js';
 import { 판정카드 } from './AuthoringDecideVerdict.js';
+import { 확인창 } from './ConfirmBox.js';
 import { 진행중, 차례글 } from './AuthoringDecideRun.js';
 import { decideApi, type 결정목록, type 결정항목, type 진행단계 } from './decideApi.js';
 import { 고름바꾼표, 보낼것, 차례, 탭of, type 고른값, type 차례줄, type 탭 } from './decideView.js';
@@ -46,6 +47,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   const [바쁨, set바쁨] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const [다시불러옴, set다시불러옴] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const [진행, set진행] = useState<{ 줄들: 차례줄[]; steps: 진행단계[] } | null>(null);
   const items = 목록.items;
   const on고름 = (key: string, 값: 고른값 | null) => set고른((전) => 고름바꾼표(전, key, 값));
@@ -71,6 +73,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   const 탭고른 = new Map([...고른].filter(([key]) => 열쇠들.has(key)));
   const 보냄 = 보낼것(items, 탭고른);
   const 줄들 = 차례(items, 탭고른, 목록.prdVersion);
+  const 반려 = 줄들.flatMap((x) => (x.종류 === 'reject' ? [x] : []));
   // 수정 칸을 열기만 하면 원래 글이 들어간다 — 원래 글과 같은 칸은 고친 것이 아니다
   const 고침 = [...편집].some(([key, 글]) => {
     const x = items.find((y) => y.key === key);
@@ -92,6 +95,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   }
 
   async function 적용하기() {
+    set묻나(false);
     set바쁨(true);
     set오류(null);
     set다시불러옴(false);
@@ -205,7 +209,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
         )}
         <div className="decide-run">
           <small className="hint">{안저장 === 0 ? t('선택하지 않은 일은 이 목록에 남습니다') : t('저장하지 않은 수정 {수}건은 빠집니다', { 수: 안저장 })}</small>
-          <button className="btn" type="button" disabled={바쁨 || 보냄.length === 0} onClick={() => void 적용하기()}>
+          <button className="btn" type="button" disabled={바쁨 || 보냄.length === 0} onClick={() => (반려.length > 0 ? set묻나(true) : void 적용하기())}>
             <기다림글자 중={바쁨} 평소={t('{수}건 적용', { 수: 보냄.length })} 기다림={t('적용하는 중')} />
           </button>
         </div>
@@ -213,6 +217,16 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
           <p className="error-text" role="alert">
             {오류}
           </p>
+        )}
+        {!묻나 ? null : (
+          <확인창 제목={t('{수}건을 적용할까요?', { 수: 보냄.length })} 확인={t('{수}건 적용', { 수: 보냄.length })} onClose={() => set묻나(false)} on확인={() => void 적용하기()}>
+            <ul className="decide-list">
+              {반려.map((줄) => (
+                <li key={줄.rootId}>{차례글(줄, t)}</li>
+              ))}
+            </ul>
+            <p>{t('반려 {수}건은 복구할 수 없습니다', { 수: 반려.length })}</p>
+          </확인창>
         )}
       </footer>
     </section>
