@@ -34,12 +34,15 @@ function 열린궁금(x: 지도줄, 오늘: string, 빌드?: string): boolean {
 // 열쇠 이름까지 — 비밀번호를 칸 이름으로 적어도 잡는다(authoring-game 요소올리기와 같다)
 export const 글자들 = (v: unknown): string[] => (typeof v === 'string' ? [v] : typeof v === 'object' && v !== null ? Object.entries(v).flatMap(([k, x]) => [k, ...글자들(x)]) : []);
 
+const 짧은줄 = 12;
+
 /** 게임 안 글(한 줄에 한 문장 · `#` 줄은 어디서 읽었나) 가운데 지도의 배운 줄 어디에도 안 든 문장 */
 export function 빠진게임글(글: string | null, 지금: 지도): string[] {
   const 문장들 = [...new Set((글 ?? '').split('\n').map(한칸).filter((s) => s !== '' && !s.startsWith('#')))];
   if (문장들.length === 0) return [];
-  const 담긴 = 지금.줄들.flatMap((x) => (x.learned === null ? [] : 글자들(x.learned))).map(한칸);
-  return 문장들.filter((s) => !담긴.some((t) => t.includes(s)));
+  const 담긴 = 지금.줄들.flatMap((x) => (x.learned === null ? [] : 글자들(x.learned))).flatMap((t) => [t, ...t.split(/\n| \/ | · /)]).map(한칸);
+  // 「방패」 같은 짧은 줄은 남의 문장에 우연히 들어 있다 — 그 줄을 그대로 적었을 때만 든 것이다
+  return 문장들.filter((s) => !담긴.some((t) => (s.length < 짧은줄 ? t === s : t.includes(s))));
 }
 
 /** 번호를 주면(이어 작성 · 반영) 그 요구에 닿는 줄만 본다 — 전체를 다시 배우지 않는다 */
