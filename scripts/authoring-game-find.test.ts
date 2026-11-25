@@ -1,7 +1,7 @@
 // 게임 지도 찾기 — 목차(빈 종류까지) · 종류 요약 · 열쇠 하나 전부 · 낱말 찾기 · 점검(근거 없음 · 값 다름 · 빌드 다름 · 없는 관련 열쇠 · 줄 적은 만든 종류)
 import { describe, expect, it } from 'vitest';
 
-import { 목차, 점검, 지도읽기, 찾기 } from './authoring-game-find.js';
+import { 근거들, 목차, 얹기, 적은줄들, 점검, 지도읽기, 찾기 } from './authoring-game-find.js';
 
 const 배움 = (v: object) => ` · 배움 ${JSON.stringify(v)}`;
 const 글 = [
@@ -83,5 +83,31 @@ describe('게임 지도 찾기', () => {
       '만든 종류: kind:MOOD — 쓰는 줄이 없다. 되돌린다',
     ]);
     expect(점검(지도)[0]).toContain('빌드 다름은 안 봄');
+  });
+});
+
+describe('아직 안 올린 배운 줄 얹기', () => {
+  const 줄 = (x: object) => JSON.stringify({ elements: [x] });
+  it('새 줄은 더하고 있던 줄은 배움만 바꾼다 — 기획서 몫은 남는다', () => {
+    const r = 얹기(지도, 적은줄들(JSON.stringify({ elements: [
+      { kind: 'TIME', key: 'time:쿨', name: '쿨타임', learned: { text: '3초', belief: 'SEEN' }, reqIds: ['CGP-REQ-009'] },
+      { kind: 'RULE', key: 'item:고기', name: '다른 이름', learned: { text: '공격에도 쓴다', belief: 'GUESS' } },
+    ] })));
+    expect(r.줄들.find((x) => x.key === 'time:쿨')).toMatchObject({ kind: 'TIME', learned: { text: '3초' } });
+    const 고기 = r.줄들.find((x) => x.key === 'item:고기')!;
+    expect([고기.kind, 고기.name, 고기.learned?.text]).toEqual(['DATA', '고기', '공격에도 쓴다']);
+    expect(고기.line).toContain('기획서 {"가격":5,"글":"a · 배움 {b"}');
+    expect(근거들(고기)).toEqual(['CGP-REQ-001']);
+    expect(근거들(r.줄들.find((x) => x.key === 'time:쿨')!)).toEqual(['CGP-REQ-009']);
+  });
+
+  it('지운 줄(null)은 배운 것만 있던 줄이면 빠지고 기획서 줄이면 배움만 뗀다', () => {
+    expect(얹기(지도, 적은줄들(줄({ kind: 'RULE', key: 'rule:웨이브', name: '웨이브', learned: null }))).줄들.some((x) => x.key === 'rule:웨이브')).toBe(false);
+    expect(얹기(지도, 적은줄들(줄({ kind: 'DATA', key: 'item:고기', name: '고기', learned: null }))).줄들.find((x) => x.key === 'item:고기')?.learned).toBeNull();
+  });
+
+  it('깨진 파일은 빈 목록이다', () => {
+    expect(적은줄들('{')).toEqual([]);
+    expect(적은줄들(null)).toEqual([]);
   });
 });

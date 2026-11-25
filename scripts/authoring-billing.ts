@@ -62,7 +62,7 @@ export async function 크레딧먼저(
   if (키 === undefined) return { 돌린것: await 띄운다(undefined), 크레딧으로: false, 앞낸것: null };
   const 첫 = await 띄운다(키);
   const 그대로 = { 돌린것: 첫, 크레딧으로: true, 앞낸것: null };
-  if (첫.멈춤으로죽음 || 첫.시간초과) return 그대로;
+  if (첫.멈춤으로죽음 || 첫.시간초과 || 첫.마감으로끊김) return 그대로;
   const 풀린 = 흐름풀기(첫.낸것);
   const 까닭 = `${풀린.글.trim()}\n${첫.오류.trim()}`.trim().split('\n').pop()?.slice(0, 160) ?? '';
   // 종료 코드 0 이어도 끝 글이 크레딧 바닥이면 일을 마친 것이 아니다
@@ -72,7 +72,7 @@ export async function 크레딧먼저(
     알린다(`API 크레딧이 도중에 떨어졌다(${까닭}) — 같은 작업 폴더에서 구독으로 이어 띄운다`);
     const 이은 = await 이어.띄운다();
     // 구독 자식이 아예 안 떴으면 실패로 끝나 폴더가 지워진다 — 크레딧 결과로 한도 멈춤을 남긴다
-    if (이은.코드 === null && !이은.시간초과 && !이은.멈춤으로죽음) return 그대로;
+    if (이은.코드 === null && !이은.시간초과 && !이은.멈춤으로죽음 && !이은.마감으로끊김) return 그대로;
     return { 돌린것: 이은, 크레딧으로: false, 앞낸것: 첫.낸것 };
   }
   if (첫.코드 === 0 || 풀린.사용량.output > 0) return 그대로;

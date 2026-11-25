@@ -59,6 +59,13 @@ const 최신팜토큰 = new Map<string, string>();
 const 빌드이름 = new Map<string, string>();
 export const 받은빌드이름 = (자료: string): string | undefined => 빌드이름.get(자료);
 
+/** 자식을 띄우기 전에 빌드 이름이 있어야 하는 게임 학습이 쓴다 — app-link 는 자식과 나란히 부른다. 빌드 링크가 아니면(앱 파일 경로) 기다리지 않는다 */
+export async function 빌드이름기다리기(자료: string, 앱: 앱화면 | undefined, 한도_ms = 링크_제한_ms): Promise<string | undefined> {
+  if (앱?.탐색 === undefined || !/\/api\/builds\/\d+\/apk\?/.test(앱.탐색.app)) return undefined;
+  for (const 끝 = Date.now() + 한도_ms; !빌드이름.has(자료) && Date.now() < 끝; ) await new Promise((깨운다) => setTimeout(깨운다, 200));
+  return 빌드이름.get(자료);
+}
+
 /**
  * 자식을 띄우기 전에 부른다. 앱이 없는 서비스(경로가 없음)는 undefined — 프롬프트에 아무 절도 안 더한다.
  * 서버가 읽지 못한 까닭을 말했으면 그대로 돌려줘 자식이 화면을 짐작하지 않게 한다. 어느 경우도 작성은 간다.
@@ -155,6 +162,7 @@ export function 탐색환경(앱: 앱화면 | undefined, 자료: string, 부모N
 
 // 서명 링크는 받을 때 1~2시간 남는다(admin execution/buildFile.ts 서명주소). 30분마다 갈면 파일의 링크는 늘 30분 넘게 남는다
 const 링크갈기_ms = 30 * 60_000;
+const 링크_제한_ms = 30_000;
 
 /**
  * 자식이 도는 동안 앱 링크를 GET …/app-link 로 다시 받아 링크 파일에 갈아 끼운다 — 끄는 함수를 돌려준다 (§3.6 「앱 화면」 「링크 갈아 끼우기」).
@@ -176,7 +184,7 @@ export function 앱링크갈기(서버: { 주소기지: string; 토큰: string }
 async function 링크받아쓰기(주소: string, 토큰: string, 번호: number, 자료: string, 토큰도: boolean): Promise<void> {
   let 까닭: string;
   try {
-    const 답 = await fetch(주소, { headers: 인증헤더(토큰), signal: AbortSignal.timeout(30_000) });
+    const 답 = await fetch(주소, { headers: 인증헤더(토큰), signal: AbortSignal.timeout(링크_제한_ms) });
     const 몸 = (await 답.json().catch(() => null)) as { app?: unknown; token?: unknown; buildNo?: unknown } | null;
     // 토큰은 링크와 따로 갈아 끼운다 — 앱 줄이 바뀌어 링크를 못 받아도 잡은 폰은 놓아야 한다
     if (토큰도 && 답.ok && typeof 몸?.token === 'string' && 몸.token !== '') 토큰쓰기(번호, 자료, 몸.token);

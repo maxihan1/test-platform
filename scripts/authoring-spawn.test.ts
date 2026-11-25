@@ -39,6 +39,22 @@ describe('돌린다 — 멈출 신호', () => {
   });
 });
 
+describe('돌린다 — 마감으로 끊기 (게임 학습 세션 교대)', () => {
+  it('끊기 신호로 죽으면 마감으로끊김이고 사람 멈춤 · 시간초과가 아니다', async () => {
+    const 끊기 = new AbortController();
+    setTimeout(() => 끊기.abort(), 100);
+    const r = await 돌린다('sh', ['-c', 'sleep 5'], { cwd: tmpdir(), 신호: new AbortController().signal, 끊기: 끊기.signal });
+    expect(r).toMatchObject({ 코드: null, 시간초과: false, 멈춤으로죽음: false, 마감으로끊김: true });
+  });
+
+  it('스스로 끝난 자식에 늦게 온 끊기는 마감으로 안 센다', async () => {
+    const 끊기 = new AbortController();
+    const r = await 돌린다('sh', ['-c', 'exit 0'], { cwd: tmpdir(), 끊기: 끊기.signal });
+    끊기.abort();
+    expect(r.마감으로끊김).toBeUndefined();
+  });
+});
+
 describe('돌린다 — 응답 없음 제한 (작성 §7 TIMEOUT · 2026-10-03)', () => {
   it('출력이 계속 나오면 조용한 시간보다 오래 돌아도 죽이지 않는다', async () => {
     const r = await 돌린다('sh', ['-c', 'for i in 1 2 3 4 5 6; do echo $i; sleep 0.1; done'], {

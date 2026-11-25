@@ -16,11 +16,15 @@ export const 게임자리 = {
   저장본: 'game-kept', 훑기: 'game-crawl', 지도: 'game-map.txt', 요소: 'game-elements.json', 맵: 'game-route.txt',
   // 탐색 플레이 — 목표와 결과 · 이번 작성이 적은 맵 행(PUT game-route 본문) · 체크포인트를 지난 표시(결과 줄) (도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
   탐색: 'game-explore.json', 새맵행: 'game-route.json', 탐색지남: 'game-explore.done',
+  // 게임 배우기 — 아직 안 올린 배운 줄(PUT game-elements 본문) · 게임 안 글(한 줄에 한 문장) · 쓴 시간과 끝낸 표시(에이전트가 쓴다) · 정리하라는 알림 · 시험감 · 시험 답 (도메인/게임 §3.10 「게임 배우기」)
+  배운글: 'game-learned.json', 게임글: 'game-guide.txt', 학습: 'game-learn.json', 학습알림: 'game-learn.wrap', 시험감: 'game-exam.json', 시험답: 'game-exam-answer.json',
+  // 조작 도우미를 부를 때마다의 기록 (authoring-game-play)
+  조작기록: 'game-play',
 } as const;
 
 const 기록상한 = 200_000;
 // 서버 game-elements 본문 상한(prd 통로와 같은 4MiB)보다 작게 — 넘으면 서버가 413 으로 돌려보낸다
-const 요소상한 = 4_000_000;
+export const 요소상한 = 4_000_000;
 // 배운 것이 쌓인 지도 글은 요소 파일보다 크다 — 모자라면 못 읽은 것이 빈 지도로 보인다
 export const 지도상한 = 20_000_000;
 

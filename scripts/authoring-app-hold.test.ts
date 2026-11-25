@@ -36,6 +36,15 @@ describe('잡기한번늘리기', () => {
     expect(마지막늘림('/자료/b', 'R58N')).toBe(0);
   });
 
+  it('게임 학습은 control-cli 기록의 PC 를 늘린다 — 앱 기록은 안 본다', async () => {
+    기록('held', 'R58N');
+    mkdirSync(join(트리, '.control-cli'));
+    writeFileSync(join(트리, '.control-cli', 'held'), 'pc-pc1\n');
+    const 부름 = 답(200);
+    await 잡기한번늘리기(트리, 팜, undefined, 7, '/자료/g', 부름 as unknown as typeof fetch, 1_000, '.control-cli');
+    expect(부름.mock.calls.map((c) => c[0])).toEqual([`${팜}/api/devices/pc-pc1/hold/extend`]);
+  });
+
   it('409(아직 10분 넘게 남음)는 늘린 것으로 안 치고 조용히 넘긴다 · 폰 번호 꼴이 아니면 안 부른다', async () => {
     기록('held', 'R58N');
     기록('held-x', '../../etc');

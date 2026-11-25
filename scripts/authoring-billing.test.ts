@@ -179,6 +179,13 @@ describe('크레딧먼저 — 크레딧으로 먼저, 처음부터 없으면 구
     expect(알림).toMatch(/Credit balance is too low/);
   });
 
+  it('학습 세션의 마감으로 끊겼으면 다시 띄우지 않는다 — 출력이 0 이어도 교대는 에이전트가 정한다', async () => {
+    const f = 띄우기([{ ...실행('', 0), 코드: null, 마감으로끊김: true as const }]);
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
+    expect(f.받은키).toEqual(['sk-ant-api03-k']);
+    expect(r.돌린것.마감으로끊김).toBe(true);
+  });
+
   it('사람이 멈췄으면 다시 띄우지 않는다', async () => {
     const f = 띄우기([{ ...실행(결과줄('Credit balance is too low', 0)), 멈춤으로죽음: true }]);
     await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
