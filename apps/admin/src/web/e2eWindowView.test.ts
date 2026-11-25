@@ -1,8 +1,8 @@
 import type { ScenarioPart } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
-import { 경과글, 목록줄들, 번호꼬리, 시험이름줄들, 지금번호 } from './e2eWindowView.js';
-import type { CasePartMaterial } from './scenarioApi.js';
+import { 경과글, 목록줄들, 번호꼬리, 시험이름줄들, 정식이름줄들, 지금번호 } from './e2eWindowView.js';
+import type { CasePartMaterial, ScenarioRunPart } from './scenarioApi.js';
 
 const 케이스 = (tcId: string): ScenarioPart => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [] });
 const 이름들 = [{ 꼬리: 'FN-087', 제목: '로그인' }, { 꼬리: 'FN-213', 제목: '장바구니' }, { 꼬리: 'FN-234', 제목: '주문' }];
@@ -23,6 +23,16 @@ describe('시험이름줄들', () => {
       { 꼬리: 'FN-999', 제목: 'DMW-FN-999' },
       { 꼬리: '대기', 제목: '3초 기다림' },
     ]);
+  });
+});
+
+describe('프로시저 단계의 이름', () => {
+  it('케이스가 아니라 프로시저의 번호 꼬리와 이름이다 — 시험 · 정식 실행 둘 다', () => {
+    const 칸 = { procId: 'MKA-TP-902', procName: '담기부터 결제까지', cases: [] };
+    const 재료 = new Map<string, CasePartMaterial | null>([['MKA-FN-902', { name: '담는다', ...칸 } as unknown as CasePartMaterial]]);
+    const 이름 = { 꼬리: 'TP-902', 제목: '담기부터 결제까지' };
+    expect(시험이름줄들([케이스('MKA-FN-902')], 재료, 'ko')).toEqual([이름]);
+    expect(정식이름줄들([{ part: 케이스('MKA-FN-902'), tcName: '담는다', ...칸 } as unknown as ScenarioRunPart], 'ko')).toEqual([이름]);
   });
 });
 

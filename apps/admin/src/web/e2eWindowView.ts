@@ -4,7 +4,7 @@ import type { ScenarioPart } from '@platform/kit';
 
 import type { Platform, 모바일위치 } from './api.js';
 import { t, type 언어 } from './i18n.js';
-import type { ScenarioRunPart } from './scenarioApi.js';
+import type { ScenarioRunPart, 프로시저칸 } from './scenarioApi.js';
 import { 카드요약, 종류글, type 재료들 } from './scenarioView.js';
 import { PLATFORM_LABEL } from './ui.js';
 import { 도는단계줄들 } from './trialView.js';
@@ -28,17 +28,22 @@ export interface 목록줄 extends 이름줄 {
 /** `DMW-FN-087` → `FN-087`. 접두사 하나뿐이면 그대로 둔다 */
 export const 번호꼬리 = (tcId: string): string => (tcId.split('-').length >= 3 ? tcId.slice(tcId.indexOf('-') + 1) : tcId);
 
-function 이름(part: ScenarioPart, 케이스이름: string | null | undefined, 언어: 언어): 이름줄 {
+/** 프로시저 단계는 결과 화면처럼 프로시저로 부른다 — 단계에 적힌 케이스 하나의 이름이 서면 그 케이스만 도는 것으로 읽힌다 */
+function 이름(part: ScenarioPart, 케이스이름: string | null | undefined, 언어: 언어, 프로시저: 프로시저칸 | null | undefined): 이름줄 {
+  if (프로시저?.procId !== undefined) return { 꼬리: 번호꼬리(프로시저.procId), 제목: 프로시저.procName ?? 프로시저.procId };
   if (part.kind === 'case') return { 꼬리: 번호꼬리(part.tcId), 제목: 케이스이름 ?? part.tcId };
   return { 꼬리: t(종류글[part.kind], 언어), 제목: 카드요약(part, undefined, 언어) };
 }
 
 /** 시험 실행은 돌린 때의 단계와 불러 둔 케이스 재료로 이름을 만든다 */
 export const 시험이름줄들 = (단계들: ScenarioPart[], 재료: 재료들, 언어: 언어): 이름줄[] =>
-  단계들.map((p) => 이름(p, p.kind === 'case' ? 재료.get(p.tcId)?.name : null, 언어));
+  단계들.map((p) => {
+    const 것 = p.kind === 'case' ? 재료.get(p.tcId) : null;
+    return 이름(p, 것?.name, 언어, 것);
+  });
 
 /** 정식 실행은 서버가 준 부품에서 이름을 읽는다 */
-export const 정식이름줄들 = (부품들: ScenarioRunPart[], 언어: 언어): 이름줄[] => 부품들.map((p) => 이름(p.part, p.tcName, 언어));
+export const 정식이름줄들 = (부품들: ScenarioRunPart[], 언어: 언어): 이름줄[] => 부품들.map((p) => 이름(p.part, p.tcName, 언어, p));
 
 /**
  * 단계 목록 — 끝난 단계는 걸린 시간, 지금 단계는 경과, 남은 단계는 흐리게.
