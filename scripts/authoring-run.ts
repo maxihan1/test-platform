@@ -30,7 +30,7 @@ import { 크롤끄기 } from './authoring-app-crawl.js';
 import { 앱탐색잇기 } from './authoring-app-explore.js';
 import { 저장본넣기 } from './authoring-screens-keep-io.js';
 import { 잡기늘리기 } from './authoring-app-hold.js';
-import { PC게임못함, 게임화면받기, 받은빌드이름, 빌드이름기다리기, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 잡은폰토큰, 탐색환경, 팜주소 } from './authoring-app-screen.js';
+import { PC게임못함, PC기다리는실행, 게임화면받기, 받은빌드이름, 빌드이름기다리기, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 잡은폰토큰, 탐색환경, 팜주소 } from './authoring-app-screen.js';
 import { 코드자리비우기, 코드저장소받기 } from './authoring-code-repos.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
@@ -40,6 +40,7 @@ import { 미션줄 } from './authoring-missions.js';
 import { type 탐색단계, 병합팝업행, 세션띄우기, 탐색끝줄, 탐색하나, 팝업싣는손 } from './authoring-explore.js';
 import { 학습끝줄, 학습번호들, 학습하기 } from './authoring-learn.js';
 import { 학습프롬프트 } from './authoring-learn-prompt.js';
+import { 빈PC기다리기 } from './authoring-phone-farm.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 새로쓰기, 원장과남은번호 } from './authoring-ledger-io.js';
 import { 기준목록이름 } from './authoring-base-list.js';
@@ -321,7 +322,7 @@ async function 사본에서(
       },
       거두기: () => 자식거두기(자식),
       늘리기: () => 잡기늘리기(자리.트리, 팜주소(화면.탐색!), () => 잡은폰토큰(화면, 자리.자료), 것.id, 자리.자료, '.control-cli'),
-      놓기, 양보: () => Promise.resolve(false), 멈추라했다: 박동.멈추라했다, 알린다,
+      놓기, 양보: () => PC기다리는실행({ 주소기지, 토큰 }, 것.id, 화면), 빈것기다리기: () => 빈PC기다리기(() => ({ 부르기: fetch, 주소: 팜주소(화면.탐색!), 토큰: 잡은폰토큰(화면, 자리.자료) }), 박동.멈추라했다), 멈추라했다: 박동.멈추라했다, 알린다,
     });
   };
   const { 배움, 띄움 } = await (async () => {

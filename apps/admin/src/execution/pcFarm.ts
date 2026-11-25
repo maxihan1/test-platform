@@ -65,6 +65,10 @@ export async function 깐다(팜: string, serial: string, zip: string, 토큰: s
   }
 }
 
+// 빈 PC 를 기다리는 정식 실행 수 — 게임을 배우느라 PC 를 쥔 작성 에이전트가 비켜 줄지 본다 (도메인/게임 §3.10 「게임 배우기」)
+let 기다리는수 = 0;
+export const PC기다리는실행있나 = (): boolean => 기다리는수 > 0;
+
 export interface PC잡기설정 {
   // 0 이면 기다리지 않는다(케이스 테스트 실행). 정식 실행은 PC기다림_ms
   기다림ms: number;
@@ -100,7 +104,12 @@ export async function PC로<T>(팜: string, zip: string, 설정: PC잡기설정,
       break;
     }
     if (!답.다시 || Date.now() + 다시_잡기_ms > 끝) return 못잡음(답.거절);
-    await 쉬기(다시_잡기_ms);
+    기다리는수 += 1;
+    try {
+      await 쉬기(다시_잡기_ms);
+    } finally {
+      기다리는수 -= 1;
+    }
   }
   try {
     const 깔음 = await 깐다(팜, 잡음.serial, zip, await 설정.토큰().catch(() => 처음), 부르기);

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { PC로, PC기다림_ms } from './pcFarm.js';
+import { PC로, PC기다리는실행있나, PC기다림_ms } from './pcFarm.js';
 
 const 팜 = 'http://farm.test';
 
@@ -48,10 +48,12 @@ describe('PC로', () => {
 
   it('정식 실행은 빈 PC 가 없으면 1분마다 다시 잡는다', async () => {
     const { 호출, 부르기 } = 가짜팜([없음, 없음, 잡음]);
-    const 쉼: number[] = [];
-    const 결과 = await PC로(팜, zip, { 기다림ms: PC기다림_ms, 멈췄나: () => false, 토큰: async () => undefined, 부르기, 쉬기: async (ms) => void 쉼.push(ms) }, async () => '돌았다', (까닭) => 까닭);
+    const 쉼: [number, boolean][] = [];
+    const 결과 = await PC로(팜, zip, { 기다림ms: PC기다림_ms, 멈췄나: () => false, 토큰: async () => undefined, 부르기, 쉬기: async (ms) => void 쉼.push([ms, PC기다리는실행있나()]) }, async () => (PC기다리는실행있나() ? '기다림' : '돌았다'), (까닭) => 까닭);
     expect(결과).toBe('돌았다');
-    expect(쉼).toEqual([60_000, 60_000]);
+    // 기다리는 동안만 「기다리는 실행이 있다」 — 게임을 배우는 작성이 보고 비켜 준다
+    expect(쉼).toEqual([[60_000, true], [60_000, true]]);
+    expect(PC기다리는실행있나()).toBe(false);
     expect(호출.filter((h) => h.path === '/api/devices/acquire')).toHaveLength(3);
   });
 

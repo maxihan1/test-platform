@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { 덤폰놓기, 덤폰잡기, 빈폰질의 } from './authoring-phone-farm.js';
+import { 덤폰놓기, 덤폰잡기, 빈PC기다리기, 빈폰질의 } from './authoring-phone-farm.js';
 import {
   type 한판, type 일, 계정번호들, 기록자리, 끈묶음읽기, 끈묶음적기, 다음기록번호, 덤폰수, 묶음계정글, 묶음기록이름, 묶음짜기, 판정하기, 표본고르기, 혼자도나,
 } from './authoring-phone-split.js';
@@ -211,5 +211,25 @@ describe('덤폰잡기 · 덤폰놓기 — 팜에서 빈 폰을 더 잡고 기�
     expect(빈폰질의('com.shop.app')).toBe('?app=com.shop.app&status=idle');
     expect(빈폰질의('https://qa.test/api/builds/1/apk')).toBe('?status=idle');
     expect(빈폰질의(undefined)).toBe('?status=idle');
+  });
+});
+
+describe('빈PC기다리기 — 정식 실행에 비켜 준 뒤 (도메인/게임 §3.10 「게임 배우기」 양보)', () => {
+  const 판 = (상태들: string[]) => {
+    const 쉼: number[] = [];
+    const 부르기 = (async () => new Response(JSON.stringify({ value: { devices: [{ serial: 'R58N', state: 'IDLE' }, { serial: 'pc-pc1', state: 상태들.shift() ?? 'HELD' }] } }), { status: 200 })) as unknown as typeof fetch;
+    return { 쉼, 팜: () => ({ 부르기, 주소: 'http://farm' }), 쉬기: async (ms: number) => void 쉼.push(ms) };
+  };
+
+  it('놓자마자 다시 잡지 않고 1분 넘게 쉰 뒤 PC 가 빌 때까지 본다 — 빈 폰은 안 센다', async () => {
+    const p = 판(['HELD', 'HELD', 'IDLE']);
+    expect(await 빈PC기다리기(p.팜, () => false, undefined, p.쉬기)).toBe(true);
+    expect(p.쉼).toEqual([90_000, 60_000, 60_000]);
+  });
+
+  it('한도까지 안 비면 거짓, 사람이 멈추면 바로 참이다', async () => {
+    const p = 판([]);
+    expect(await 빈PC기다리기(p.팜, () => false, 5 * 60_000, p.쉬기)).toBe(false);
+    expect(await 빈PC기다리기(p.팜, () => true, undefined, p.쉬기)).toBe(true);
   });
 });

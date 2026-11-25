@@ -104,8 +104,10 @@ export interface 학습손 {
   거두기: () => Promise<boolean>;
   늘리기: () => () => void;
   놓기: () => Promise<void>;
-  /** 디바이스를 기다리는 정식 실행이 있나 — 있으면 세션 경계에서 놓는다 */
+  /** 디바이스를 기다리는 정식 실행이 있나 — 있으면 다음 세션 앞에서 놓는다 */
   양보: () => Promise<boolean>;
+  /** 비켜 준 뒤 다시 빌 때까지 기다린다 — 거짓이면 안 비었다 */
+  빈것기다리기: () => Promise<boolean>;
   멈추라했다: () => boolean;
   알린다: (글: string) => void;
   지금?: () => number;
@@ -149,8 +151,19 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
   let 놓음 = true;
   const 남은 = (): number => 총 - 상태.쓴ms;
 
+  type 세션끝 = { 열쇠수: number } | { 끝: 띄운결과 } | { 못잡음: true };
+
   /** 세션 하나 — 마감 · 컨텍스트에서 끊고, 적은 줄을 올린다. 작성을 끝내야 하면 띄운결과 */
-  const 한세션 = async (거리: (남은분: number) => 세션거리): Promise<{ 열쇠수: number } | { 끝: 띄운결과 }> => {
+  const 한세션 = async (거리: (남은분: number) => 세션거리): Promise<세션끝> => {
+    // 다음 세션을 띄울 때만 묻는다 — 다 배웠으면 어차피 놓는다. 기다린 시간은 배운 시간에 안 넣는다
+    if (!놓음 && (await o.양보())) {
+      o.알린다('PC 를 기다리는 정식 실행이 있어 비켜 준다 — 다시 비면 배운 조작 도우미로 그 자리까지 가서 잇는다');
+      await o.놓기();
+      놓음 = true;
+      const 비었나 = await o.빈것기다리기();
+      if (o.멈추라했다()) return { 끝: { 돌린것: { 코드: null, 낸것: '', 오류: '', 시간초과: false, 멈춤으로죽음: true }, 크레딧으로: false, 앞낸것: [] } };
+      if (!비었나) return { 못잡음: true };
+    }
     const 제한 = Math.min(세션_ms, 남은());
     rmSync(join(o.자료, 게임자리.학습알림), { force: true });
     const 알림 = (글: string): void => {
@@ -190,11 +203,6 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     if (o.멈추라했다()) return 끝으로({ ...r.돌린것, 멈춤으로죽음: true });
     앞낸것.push(...(r.앞낸것 === null ? [] : [r.앞낸것]), r.돌린것.낸것);
     o.알린다(`게임 학습 세션 ${상태.세션} 끝(${r.돌린것.마감으로끊김 === true ? '마감' : '스스로 끝냄'} · 지금까지 ${Math.round(상태.쓴ms / 분)}분) — 지도에 올린 줄 ${올림.열쇠.length}`);
-    if (남은() >= 최소_ms && (await o.양보())) {
-      o.알린다('디바이스를 기다리는 정식 실행이 있어 놓는다 — 다음 세션이 다시 잡아 배운 조작 도우미로 잇는다');
-      await o.놓기();
-      놓음 = true;
-    }
     return { 열쇠수: 올림.열쇠.length + (올림.못올림.length > 0 ? 적은줄들(안전히읽기(o.자료, 게임자리.배운글, 요소상한)).length : 0) };
   };
   const 배우기 = (b: 배울것) => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음, 못올림, 부분, 차례: 상태.세션 }));
@@ -204,6 +212,10 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     for (let b: 배울것 | null = 처음; b !== null && !배울것없나(b) && 상태.세션 < (부분 ? 1 : 최대세션 - 1) && 남은() >= 최소_ms; b = 볼것()) {
       const r = await 배우기(b);
       if ('끝' in r) return { 끝: r.끝, 앞낸것 };
+      if ('못잡음' in r) {
+        상태.시험 = '시험을 못 봄(정식 실행에 비켜 준 PC 가 다시 비지 않음)';
+        break;
+      }
       // 한 줄도 안 적은 세션 뒤에 같은 것을 또 띄우면 헛돈다
       if (r.열쇠수 === 0) break;
     }
@@ -236,6 +248,10 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
     rmSync(join(o.자료, 게임자리.시험답), { force: true });
     const r = await 한세션((남은분) => ({ 시험: true, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음 }));
     if ('끝' in r) return r;
+    if ('못잡음' in r) {
+      상태.시험 = '시험을 못 봄(정식 실행에 비켜 준 PC 가 다시 비지 않음)';
+      return { 열쇠: [] };
+    }
     const 답 = 시험답읽기(안전히읽기(o.자료, 게임자리.시험답, 요소상한));
     const 점 = 채점하기(감들, 답);
     const 기록이름 = 답.판?.기록 ?? '';

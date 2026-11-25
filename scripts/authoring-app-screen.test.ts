@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PC게임못함, 게임화면받기, 게임화면파일, 받은빌드이름, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱맵받기, 앱맵파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
+import { PC게임못함, PC기다리는실행, 게임화면받기, 게임화면파일, 받은빌드이름, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱맵받기, 앱맵파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
 import { 줄프롬프트 } from './authoring-prompt.js';
 
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
@@ -435,6 +435,24 @@ describe('줄프롬프트 — 앱 화면 절 (도메인/작성 §3.6 「앱 화�
 
   it('없으면 절이 없다 — 앱 없는 서비스의 프롬프트는 그대로다', () => {
     expect(부르기()).not.toContain('--- 앱 화면 ---');
+  });
+});
+
+describe('PC기다리는실행 — 빈 PC 를 기다리는 정식 실행 (도메인/게임 §3.10 「게임 배우기」 양보)', () => {
+  const PC앱 = { 못읽음: 'ㄱ', 게임: true as const, PC: { 패드: [] } };
+  const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('PC 게임만 app-link 에 묻고 pcWaiting 이 참일 때만 참이다 — 못 물어보면 없는 것으로 본다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const 답들 = [Response.json({ app: null, buildNo: null, pcWaiting: true }), Response.json({ app: null, buildNo: null }), new Response('', { status: 500 })];
+    const 부름 = vi.fn(async () => 답들.shift()!);
+    vi.stubGlobal('fetch', 부름);
+    expect(await PC기다리는실행(서버, 7, PC앱)).toBe(true);
+    expect(await PC기다리는실행(서버, 7, PC앱)).toBe(false);
+    expect(await PC기다리는실행(서버, 7, PC앱)).toBe(false);
+    expect(await PC기다리는실행(서버, 7, { 못읽음: 'ㄱ', 게임: true })).toBe(false);
+    expect(부름).toHaveBeenCalledTimes(3);
   });
 });
 

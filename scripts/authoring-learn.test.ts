@@ -74,6 +74,7 @@ function 손(세션들: 세션[], x: Partial<학습손> = {}) {
     늘리기: vi.fn(() => 끔),
     놓기: vi.fn(async () => undefined),
     양보: vi.fn(async () => false),
+    빈것기다리기: vi.fn(async () => true),
     멈추라했다: () => false,
     알린다: vi.fn(),
     지금: () => 시계,
@@ -208,6 +209,22 @@ describe('학습하기 — 세션을 잇는다', () => {
     await 학습하기(o);
     expect(거리들.map((x) => x.놓음)).toEqual([true, true, false]);
     expect(o.놓기).toHaveBeenCalledTimes(2);
+    // 첫 세션 앞과 다 배운 뒤에는 묻지 않는다
+    expect(o.양보).toHaveBeenCalledTimes(2);
+    expect(o.빈것기다리기).toHaveBeenCalledTimes(1);
+  });
+
+  it('비켜 준 뒤 다시 안 비면 배우기를 그치고 작성은 간다 · 기다리다 사람이 멈추면 멈춤으로 끝낸다', async () => {
+    const { o, 거리들 } = 손([() => 적기(규칙('rule:1'))], { 양보: async () => true, 빈것기다리기: async () => false });
+    expect((await 학습하기(o)).끝).toBeUndefined();
+    expect(거리들).toHaveLength(1);
+    expect((await 학습끝줄(통로, 자료, []))[0]).toContain('비켜 준 PC 가 다시 비지 않음');
+    rmSync(join(자료, 'game-learn.json'));
+    let 멈춤 = false;
+    const 손2 = 손([() => 적기(규칙('rule:2'))], { 양보: async () => true, 빈것기다리기: async () => (멈춤 = true), 멈추라했다: () => 멈춤 });
+    const r = await 학습하기(손2.o);
+    expect(r.끝?.돌린것.멈춤으로죽음).toBe(true);
+    expect(r.앞낸것).toEqual(['낸것']);
   });
 
   it('서버가 줄을 안 받으면 다음 세션에 까닭을 넘기고 적은 파일을 지키며, 작성 끝에 한 번 더 올린다', async () => {

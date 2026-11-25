@@ -6,6 +6,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { 깔앱, 깔앱파일 } from '../execution/buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 서버팜토큰 } from '../execution/farmToken.js';
+import { PC기다리는실행있나 } from '../execution/pcFarm.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 import { runnerUrl, 러너머리 } from '../execution/runnerAddr.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
@@ -144,6 +145,7 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     const { 링크, buildNo } = 줄 === null ? { 링크: null, buildNo: null } : await 깔앱(행.serviceId, 줄.env, 줄.appPath, 고정);
     // 링크가 없어도(도중에 앱 줄이 바뀜) 준다 — 잡은 폰은 그 토큰으로 놓아야 한다
     const 토큰 = 팜주소() === undefined ? undefined : await 서버팜토큰();
-    return { app: 링크, buildNo, ...(토큰 !== undefined && { token: 토큰 }) };
+    // 게임을 배우느라 PC 를 쥔 작성이 세션 경계에서 보고 비켜 준다 — 기다리는 실행이 있을 때만 싣는다 (도메인/게임 §3.10 「게임 배우기」 양보)
+    return { app: 링크, buildNo, ...(토큰 !== undefined && { token: 토큰 }), ...(PC기다리는실행있나() && { pcWaiting: true }) };
   });
 }
