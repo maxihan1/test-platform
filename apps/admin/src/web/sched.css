@@ -205,3 +205,12 @@
     scroll-snap-align: start;
   }
 }
+
+/* 휴대폰 — 손가락으로 누르는 자리 44px. 실제 값은 46px 다 (공통/5 §8 「휴대폰 화면」) */
+@media (max-width: 620px) {
+  .sched-link {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

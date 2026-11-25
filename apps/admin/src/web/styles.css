@@ -1988,6 +1988,7 @@ input[type='file']::file-selector-button {
   gap: 10px;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 /* 모달 안의 진행 막대. 본문이 세로 flex 라 6px 막대가 **flex-shrink 로 0 까지 줄어든다** —
@@ -5472,4 +5473,20 @@ details.raw {
 /* 머리의 진행 글 — 누르면 진행 상자가 무엇이 도는지까지 편다 (실행 §8.9) */
 .run-progress {
   font-variant-numeric: tabular-nums;
+}
+
+/* 휴대폰 — 손가락으로 누르는 자리 44px. 실제 값은 46px 다 (공통/5 §8 「휴대폰 화면」) */
+@media (max-width: 620px) {
+  .chip {
+    min-height: 46px;
+  }
+
+  .filter-on button {
+    min-height: 46px;
+    min-width: 46px;
+  }
+
+  .hint > .linklike {
+    min-height: 46px;
+  }
 }

@@ -871,3 +871,72 @@ describe('대시보드 (DESIGN.md 「대시보드」 · 원칙 1 · 4, 2026-11-1
     }
   });
 });
+
+describe('휴대폰 (SPEC 공통/5 §8 「휴대폰 화면」)', () => {
+  /** 그 선택자 하나에 마지막으로 걸린 높이 — 같은 우선순위는 뒤 규칙이 이기므로 620px 블록이 기본 규칙 앞에 있으면 기본 높이가 나온다 */
+  function 휴대폰높이(파일: string, 선택자: string): number {
+    const 글 = readFileSync(new URL(파일, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const 바깥: string[] = [];
+    let 높이 = 0;
+    for (const m of 글.matchAll(/([^{};]*)\{(?=([^{}]*))|\}/g)) {
+      if (m[0] === '}') {
+        바깥.pop();
+        continue;
+      }
+      const 머리 = m[1]!.trim();
+      바깥.push(머리);
+      const 매체 = 바깥.slice(0, -1);
+      const 걸린다 = 매체.every((x) => x === '@media (max-width: 620px)') && 머리.split(',').some((x) => x.trim() === 선택자);
+      const 값 = 걸린다 ? [...m[2]!.matchAll(/(?<![\w-])(?:min-)?height:\s*(\d+)px/g)].at(-1)?.[1] : undefined;
+      if (값 !== undefined) 높이 = Number(값);
+    }
+    return 높이;
+  }
+
+  it.each([
+    ['styles.css', '.chip'],
+    ['styles.css', '.filter-on button'],
+    ['styles.css', '.hint > .linklike'],
+    ['prd.css', '.prd-chip'],
+    ['dashboard.css', '.dash-pick button'],
+    ['dashboard.css', '.dash-menu .btn.small'],
+    ['perfDevices.css', '.pd-tabs button'],
+    ['perfPages.css', '.pp-seg label'],
+    ['stability.css', '.stab-pick'],
+    ['stability.css', '.stab-seg button'],
+    ['sched.css', '.sched-link'],
+    ['schedCal.css', '.sched-seg button'],
+    ['schedWiz.css', '.sched-wiz .wiz-new-steps li > button'],
+    ['caseList.css', '.result-tab'],
+    ['compat.css', '.compat-chip'],
+    ['compatResult.css', '.cr-c'],
+    ['wizard.css', '.wz-stepbtn'],
+    ['scoutAnswer.css', '.scout-win .btn.small'],
+    ['scoutAnswer.css', '.scout-chip'],
+    ['scoutAnswer.css', '.scout-fold'],
+    ['scoutAnswer.css', '.scout-more'],
+    ['runEvidence.css', '.ev-track'],
+    ['runFlow.css', '.rf-line'],
+    ['runNav.css', '.rm-more'],
+    ['runPrep.css', '.segc label'],
+    ['runWindow.css', '.frame-x'],
+    ['noticeBar.css', '.nt-more'],
+  ])('%s %s — 누르는 자리가 44px 이상이다', (파일, 선택자) => {
+    expect(휴대폰높이(파일, 선택자)).toBeGreaterThanOrEqual(44);
+  });
+
+  it.each([
+    ['scout.css', '.scout-body'],
+    ['drawer.css', '.drawer'],
+    ['styles.css', '.modal-body'],
+    ['phone.css', '.sheet'],
+    ['trialRunning.css', '.trial-queue'],
+    ['trialRunning.css', '.trial-now-steps'],
+    ['noticeDrawer.css', '.nt-list'],
+    ['caseList.css', '.filter-pop-body'],
+  ])('%s %s — 끝까지 민 스크롤이 뒤 화면으로 넘어가지 않는다', (파일, 선택자) => {
+    const 글 = readFileSync(new URL(파일, import.meta.url), 'utf8');
+    const 몸들 = [...글.matchAll(/([^{}]*)\{([^{}]*)\}/g)].filter((m) => m[1]!.trim().split('\n').at(-1) === 선택자);
+    expect(몸들.some((m) => /overscroll-behavior:\s*contain/.test(m[2]!))).toBe(true);
+  });
+});

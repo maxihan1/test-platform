@@ -10,6 +10,7 @@
   width: 480px;
   max-width: 100%;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--panel);
   border-left: 1px solid var(--line-2);
   box-shadow: var(--shadow);
