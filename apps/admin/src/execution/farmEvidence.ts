@@ -67,7 +67,7 @@ export async function 팜logcat읽기(runId: number, historyId: number): Promise
     return (await 볼륨파일읽기(join(폴더(runId, historyId), 'logcat.txt'))).toString('utf8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw new Error(`폰 logcat 을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`디바이스 logcat 을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -78,7 +78,7 @@ export async function 팜logcat있음(runId: number, historyId: number): Promise
     return true;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false;
-    throw new Error(`폰 logcat 이 있는지 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`디바이스 logcat 이 있는지 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -117,7 +117,7 @@ export async function 팜증적받는중(runId: number, historyId: number): Prom
     return true;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false;
-    throw new Error(`팜 연결 번호 파일을 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`Device VISION 연결 번호 파일을 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -137,7 +137,7 @@ async function 연결번호(runId: number, historyId: number): Promise<string | 
     return (await 볼륨파일읽기(join(runDir(String(runId), String(historyId)), APPIUM_SESSION_ID_FILE))).toString('utf8').trim() || null;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw new Error(`팜 연결 번호를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`Device VISION 연결 번호를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

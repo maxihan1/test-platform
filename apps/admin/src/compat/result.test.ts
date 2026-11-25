@@ -38,7 +38,7 @@ describe('결과셈', () => {
 
   it('미점검 까닭 — 실패 단계 · 못 잡은 디바이스 · 점검 결과 없음 · 찍힌 화면 없음', () => {
     const r = 결과셈(재료({
-      상태들: [상태(1), 상태(2, { state: 'SKIPPED', skipReason: '디바이스를 잡지 못했습니다' }), 상태(3)],
+      상태들: [상태(1), 상태(2, { state: 'SKIPPED', skipReason: '디바이스를 할당하지 못했습니다' }), 상태(3)],
       케이스들: [
         케이스(11, 1, 'A-1', { status: 'FAIL', failedStep: 5 }),
         케이스(21, 2, 'A-1', { started: false, finished: false, status: 'NA', checkState: null }),
@@ -48,7 +48,7 @@ describe('결과셈', () => {
     }));
     expect(r.rows[0]?.cells).toEqual([
       { seq: 1, value: 'UNCHECKED', reason: 'A-1 이 5단계에서 실패' },
-      { seq: 2, value: 'UNCHECKED', reason: '디바이스를 잡지 못했습니다' },
+      { seq: 2, value: 'UNCHECKED', reason: '디바이스를 할당하지 못했습니다' },
       { seq: 3, value: 'UNCHECKED', reason: 'AI 점검 결과를 받지 못했습니다' },
     ]);
     expect(r.counts.unchecked).toBe(1);

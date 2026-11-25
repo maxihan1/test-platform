@@ -63,7 +63,7 @@ async function 앱실기(요청: ScenarioExecuteRequest, 폰: 폰앱): Promise<S
   // PC 게임의 빌드는 윈도우 zip 이라 폰에 못 깐다 — PC 게임 E2E 시나리오는 1차 밖이다 (도메인/게임 §3.10 「1차 밖 · 나중」)
   const { pool } = await import('../db/index.js');
   const 플랫폼 = (await pool.query<{ game_platform: string | null }>('SELECT game_platform FROM service WHERE id = $1', [폰.serviceId])).rows[0]?.game_platform;
-  if (플랫폼 === 'windows') return 'PC 게임 케이스는 E2E 시나리오에서 돌지 않습니다';
+  if (플랫폼 === 'windows') return 'PC 게임 케이스는 E2E 시나리오에서 실행되지 않습니다';
   try {
     const app = await 깔앱파일(폰.serviceId, 폰.env, 폰.appPath);
     return app === null ? 요청 : { ...요청, app };
@@ -92,7 +92,7 @@ export async function 팜폰으로돌린다(
   try {
     토큰 = await 토큰찾기();
   } catch (err) {
-    return 못돌린응답(요청.parts.length, `누른 사람의 팜 토큰을 고르지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
+    return 못돌린응답(요청.parts.length, `누른 사람의 Device VISION 토큰을 찾지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
   }
   const 못잡음 = (까닭: string) => 못돌린응답(요청.parts.length, 까닭);
   if (폰 === 'chrome') {

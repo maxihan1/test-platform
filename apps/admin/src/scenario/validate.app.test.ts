@@ -45,8 +45,8 @@ describe('앱 · 게임 단계 조립 검사', () => {
   });
 
   it('앱 · 게임 애플리케이션이 시작이면 디바이스는 android 하나고, 웹이 시작이면 android 를 못 고른다', () => {
-    expect(검사([케이스('DMA-001')], 'desktop')).toEqual(['DMA 는 Android 앱 · 게임 애플리케이션이라 디바이스는 android 만 고른다']);
-    expect(검사([케이스('OPS-001')], 'android', 'OPS')).toEqual(['OPS 는 Android 앱 · 게임 애플리케이션이 아니라 android 를 고를 수 없다']);
+    expect(검사([케이스('DMA-001')], 'desktop')).toEqual(['DMA 는 Android 앱 · 게임 애플리케이션이라 디바이스는 android 만 선택한다']);
+    expect(검사([케이스('OPS-001')], 'android', 'OPS')).toEqual(['OPS 는 Android 앱 · 게임 애플리케이션이 아니라 android 를 선택할 수 없다']);
   });
 
   it('앱 · 게임 애플리케이션이 둘이면 거절한다 — 폰 연결 하나에 앱 하나다', () => {
@@ -57,12 +57,12 @@ describe('앱 · 게임 단계 조립 검사', () => {
     const 막기: ScenarioLink = { kind: 'block', method: 'GET', urlPattern: '**/orders' };
 
     expect(검사([케이스('DMA-001'), 케이스('DMA-002', { links: [막기] })])).toEqual([
-      '2번 단계: 앱 · 게임 단계에는 값 꽂기만 건다 — 앞 응답 돌려주기 · 요청 막기 · 바꿔 보내기는 앱 요청에 안 걸린다',
+      '2번 단계: 앱 · 게임 단계에는 값 주입만 건다 — 이전 응답 재사용 · 요청 차단 · 수정 요청으로 변경은 앱 요청에 적용되지 않는다',
     ]);
   });
 
   it('앱 단계의 넘겨받기를 끄면 거절한다', () => {
-    expect(검사([케이스('DMA-001', { carryOver: false })])).toEqual(['1번 단계: 앱 · 게임 단계는 넘겨받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다']);
+    expect(검사([케이스('DMA-001', { carryOver: false })])).toEqual(['1번 단계: 앱 · 게임 단계는 로그인 이어받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다']);
   });
 
   it('모킹 구간 안의 앱 단계는 거절하고, 모킹을 끈 뒤의 앱 단계는 통과한다', () => {

@@ -88,7 +88,7 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
     await 줄넣기('XQV', 'XQV-FN-002', 'WAIT_MERGE', { pr: 'https://github.com/o/r/pull/9', 늦게: 1 });
     await pool.query(
       `INSERT INTO bts_outbox (project_id, kind, issue_key, payload) VALUES ($1, 'COMMENT', 'MQA-21', $2)`,
-      [프로젝트, { body: '사람 확인이 필요해요 — 기대값이 바뀌었어요\nhttps://github.com/o/r/pull/9' }],
+      [프로젝트, { body: '사람 확인이 필요해요 — 기대 결과가 변경됐어요\nhttps://github.com/o/r/pull/9' }],
     );
     // 003 — 처음 실패가 반복 실행이라 바퀴가 새 RERUN 실행을 걸었고 수정 후에도 실패
     const 반복 = await 실행넣기('XQV', 'XQV-FN-003', [{ platform: 'desktop', status: 'FAIL' }]);

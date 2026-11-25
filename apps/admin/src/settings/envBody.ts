@@ -37,7 +37,7 @@ export const 게임패키지 = (kind: string, envs: { appPath?: string | null }[
 export const 게임패키지거절 = { error: 'INVALID_REQUEST', detail: 'appPath 는 게임 애플리케이션에서 패키지 이름을 받지 않습니다 — SDK 를 넣은 APK 경로나 http(s) 주소여야 합니다' };
 
 // 이름이 키다 — 겹치면 둘째 줄 INSERT 가 기본 키에 걸려 500 이 된다
-export const 대상서버목록 = z.array(대상서버).refine((envs) => new Set(envs.map((e) => e.env)).size === envs.length, 'envs 의 env 이름이 겹칩니다');
+export const 대상서버목록 = z.array(대상서버).refine((envs) => new Set(envs.map((e) => e.env)).size === envs.length, 'envs 의 env 이름이 중복됩니다');
 
 // 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다
 export const 역할틀림 = (envs: { accounts?: { role: string }[] }[] | undefined): boolean =>

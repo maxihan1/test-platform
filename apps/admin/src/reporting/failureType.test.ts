@@ -53,6 +53,13 @@ describe('원인을가른다', () => {
     expect(미실행('Device VISION 이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중')).toBe('environment');
   });
 
+  it('낱말을 표준 낱말로 고친 뒤의 문장도 환경 오류다 — 글 머리가 그대로라 옛 문장과 같이 가른다 (2026-11-25 WEB-F10-07)', () => {
+    expect(미실행('Device VISION 에 빈 디바이스가 없습니다')).toBe('environment');
+    expect(미실행('Device VISION 이 디바이스를 할당하지 않았습니다: 다른 사용자(maxi)가 쓰는 중')).toBe('environment');
+    expect(미실행('Device VISION 이 디바이스 목록을 주지 않았습니다 (HTTP 502)')).toBe('environment');
+    expect(미실행('Device VISION 에 com.shop.app 가 설치된 디바이스가 없습니다')).toBe('environment');
+  });
+
   it('앱(Appium) 이 요소를 못 찾아 누르지 못한 오류도 요소 미검출이다', () => {
     expect(실패('Error: Can\'t call click on element with selector "id=buy_now_button" because element wasn\'t found')).toBe('notFound');
   });

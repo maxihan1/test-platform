@@ -113,7 +113,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 파일', { timeout: 60_000 }
     expect(res.body).toContain(칩('XQE-FN-001', 'Pass', 'c-pass'));
     expect(res.body).toContain(칩('XQE-FN-002', 'Pass', 'c-pass'));
     expect(res.body).not.toContain(칩('XQE-FN-002', '실패', 'c-fail'));
-    expect(res.body).toContain('견줄 이전 빌드 없음');
+    expect(res.body).toContain('비교할 이전 빌드 없음');
     expect(res.body).toContain('Issue Bunker 미연결');
   });
 

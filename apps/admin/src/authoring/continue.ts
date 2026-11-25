@@ -214,7 +214,7 @@ async function 초안치우기(요청: number, 원래?: unknown): Promise<void> 
     await 초안지우기(요청);
     await rm(자료폴더(요청), { recursive: true, force: true });
   } catch (정리오류) {
-    if (원래 === undefined) throw new Error(`이어 작성 요청 ${String(요청)} 의 초안을 치우지 못했다`, { cause: 정리오류 });
-    throw new AggregateError([원래, 정리오류], `이어 작성 요청 ${String(요청)} 이 실패했고 초안도 치우지 못했다`);
+    if (원래 === undefined) throw new Error(`이어 작성 요청 ${String(요청)} 의 초안을 삭제하지 못했다`, { cause: 정리오류 });
+    throw new AggregateError([원래, 정리오류], `이어 작성 요청 ${String(요청)} 이 실패했고 초안도 삭제하지 못했다`);
   }
 }

@@ -46,7 +46,7 @@ export async function 연결칸(
   return { 칸: { cdpUrl: 켬.cdpUrl }, Chrome세션: 켬.sessionId };
 }
 
-const 없어짐 = '케이스가 없어졌거나 폰에서 돌지 않습니다';
+const 없어짐 = '케이스가 없어졌거나 디바이스에서 실행되지 않습니다';
 const 늘리는ms = 5 * 60_000;
 
 /** compat_run_case.steps 에 남기는 꼴 */

@@ -157,7 +157,7 @@ export async function scanApart(root: string): Promise<ScanResult> {
     const e = err as { killed?: boolean; signal?: unknown; code?: unknown; stderr?: unknown };
     const 끝 = typeof e.stderr === 'string' ? e.stderr.trim().slice(-500) : '';
     const 까닭 =
-      e.killed === true ? '10분 안에 못 끝내 끊었다' : typeof e.signal === 'string' ? `${e.signal} 로 꺼졌다` : `종료 ${String(e.code)}`;
+      e.killed === true ? '10분 안에 완료하지 못해 끊었다' : typeof e.signal === 'string' ? `${e.signal} 로 꺼졌다` : `종료 ${String(e.code)}`;
     throw new Error(`케이스를 따로 읽는 프로세스가 실패했다 (${까닭})${끝 === '' ? '' : `: ${끝}`}`, { cause: err });
   }
   const 자리 = stdout.lastIndexOf(결과표시);

@@ -84,7 +84,7 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
         await 지도채우기(service.id, service.prefix);
       } catch (err) {
         결과.problems.push(
-          `${service.prefix} 서비스의 요구사항 표로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+          `${service.prefix} 애플리케이션의 요구사항 표로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
 
@@ -104,7 +104,7 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
           found = { specs: [], failures: [], duplicates: [] };
         } else {
           결과.problems.push(
-            `${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+            `${service.prefix} 애플리케이션의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
           );
           continue;
         }
@@ -112,7 +112,7 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
 
       결과.duplicates.push(...found.duplicates.map((d) => ({ tcId: d.tcId, files: d.files })));
       결과.problems.push(
-        ...found.duplicates.map((d) => `tcId ${d.tcId}이 ${d.files[0]}와 ${d.files[1]}에 겹쳐 있다`),
+        ...found.duplicates.map((d) => `tcId ${d.tcId}이 ${d.files[0]}와 ${d.files[1]}에 중복되어 있다`),
         ...found.failures.map((f) => `${어디(f.file)}을 읽지 못했다: ${f.message}`),
       );
 
@@ -123,10 +123,10 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       const 올릴것인가 = (s: { procId?: string }): boolean => s.procId === undefined || service.procedureMode;
       const 내것 = found.specs.filter((s) => 제것인가(s.tcId) && 올릴것인가(s));
       for (const 남 of found.specs.filter((s) => !제것인가(s.tcId))) {
-        결과.problems.push(`${남.filePath}의 ${남.tcId}은 ${service.prefix} 서비스의 접두사가 아니라 걸러 냈다`);
+        결과.problems.push(`${남.filePath}의 ${남.tcId}은 ${service.prefix} 애플리케이션의 접두사가 아니라 제외했다`);
       }
       for (const 파일 of new Set(found.specs.filter((s) => 제것인가(s.tcId) && !올릴것인가(s)).map((s) => s.filePath))) {
-        결과.problems.push(`${파일}은 프로시저 파일인데 ${service.prefix} 애플리케이션은 「프로시저 작성」이 꺼져 있어 올리지 않았다`);
+        결과.problems.push(`${파일}은 프로시저 파일인데 ${service.prefix} 애플리케이션은 「프로시저 작성」이 꺼져 있어 등록하지 않았다`);
       }
 
       // 중복은 그 서비스의 스캔 실패다. 어느 쪽이 진짜인지 모르는 채로 캐시를 덮어쓰면
@@ -142,7 +142,7 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       결과.deactivated = saved.deactivated;
       // 통째로 내렸으면 알린다 — 일부러 비운 것과 폴더 이름을 잘못 적은 사고를 사람이 가르게
       if (내것.length === 0 && saved.deactivated > 0) {
-        결과.problems.push(`${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}에 케이스가 없어 ${saved.deactivated}건을 비활성으로 내렸다`);
+        결과.problems.push(`${service.prefix} 애플리케이션의 테스트 폴더 ${service.testsDir}에 케이스가 없어 ${saved.deactivated}건을 비활성으로 내렸다`);
       }
 
       // 지도 ② 는 케이스 파일에서 오므로 저장한 뒤에 채운다 — 표가 케이스를 외래 키로 건다
@@ -150,7 +150,7 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
         await 화면지도채우기(service.id, service.prefix, root, 내것, found.failures.length === 0);
       } catch (err) {
         결과.problems.push(
-          `${service.prefix} 서비스의 화면 파일로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+          `${service.prefix} 애플리케이션의 화면 파일로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
 

@@ -17,7 +17,7 @@ async function db(): Promise<Pool> {
 
 /** 고침 작성이 PR 없이 끝났거나 실패 · 멈춤 · 폐기됐으면 그 까닭. 아직 돌거나 PR 을 열었으면 null */
 async function 작성끝까닭(줄: 줄): Promise<string | null> {
-  if (줄.request_id === null) return '테스트 수정 작성이 지워졌어요';
+  if (줄.request_id === null) return '테스트 수정 작성이 삭제됐어요';
   const r = (
     await (await db()).query<{ discarded: boolean; kind: string; status: string; pr_url: string | null }>(
       `WITH RECURSIVE ${사슬식('id = $1')}
@@ -27,12 +27,12 @@ async function 작성끝까닭(줄: 줄): Promise<string | null> {
     )
   ).rows[0];
   if (r === undefined) return null;
-  if (r.discarded) return '테스트 수정 작성을 폐기했어요';
+  if (r.discarded) return '테스트 수정 작성을 삭제했어요';
   // PR 을 연 뒤의 재실행 실패는 PR 이 그대로라 사람이 반영할 수 있다 — 되돌리지 않는다
   if (줄.state !== 'FIXING') return null;
   if (r.status === 'FAILED') return '테스트 수정 작성이 실패했어요';
-  if (r.status === 'STOPPED') return '테스트 수정 작성이 멈췄어요';
-  if (r.status === 'DONE' && r.kind !== 'MERGE' && r.pr_url === null) return '고칠 곳을 찾지 못했어요';
+  if (r.status === 'STOPPED') return '테스트 수정 작성이 중단됐어요';
+  if (r.status === 'DONE' && r.kind !== 'MERGE' && r.pr_url === null) return '수정할 곳을 찾지 못했어요';
   return null;
 }
 

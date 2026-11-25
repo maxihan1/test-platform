@@ -117,7 +117,7 @@ describe('중복 케이스 표', () => {
   it('번호가 겹친 케이스를 유지하기로 했으면 새 번호를 받는다고 말한다', () => {
     const 남김 = { ...번호겹침, input: { action: 'KEEP' as const, by: 'maxi', at: '2026-10-01T05:00:00.000Z' } };
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[남김]} 편집 reload={reload} />);
-    expect(screen.getByText('번호가 겹쳐 반영할 때 새 번호를 받습니다')).toBeTruthy();
+    expect(screen.getByText('번호가 중복되어 반영할 때 새 번호를 받습니다')).toBeTruthy();
   });
 
   it('고른 줄에만 복원이 있고 DELETE 를 보낸다', async () => {

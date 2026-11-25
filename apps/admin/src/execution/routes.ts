@@ -141,16 +141,16 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     // 시나리오 실행은 케이스처럼 항목을 DB 에서 먼저 닫지 않는다 — 러너에 보냈으면 러너 답이 올 때까지 열어 둔다 (scenario/runAbort.ts)
     if (result === 'SCENARIO') {
       const 멈춤 = await 시나리오실행을멈춘다(runId);
-      if (멈춤 === null) return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
+      if (멈춤 === null) return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 종료되었거나 중단된 상태다` });
       return 멈춤;
     }
     if (result === 'COMPAT') {
       const 멈춤 = await 호환성중단(runId);
-      if (멈춤 === null) return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
+      if (멈춤 === null) return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 종료되었거나 중단된 상태다` });
       return 멈춤;
     }
     if (result === null) {
-      return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
+      return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 종료되었거나 중단된 상태다` });
     }
 
     markAborted(runId);

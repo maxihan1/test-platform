@@ -58,7 +58,7 @@ export async function 돌때가된시나리오(지금: Date | null = null, db?: 
 
 function 까닭글(거절: Extract<만들기결과, { error: string }>, env: string): string {
   if (거절.error === 'PROD_ENV_BLOCKED') return `대상 서버 ${env} 가 실서비스 서버가 되었습니다`;
-  if (거절.대상서버문제 === true) return `대상 서버 ${env} 가 지워졌습니다`;
+  if (거절.대상서버문제 === true) return `대상 서버 ${env} 가 삭제되었습니다`;
   if (거절.error === 'NO_AGENT') return '연결된 부하 발생 에이전트가 없습니다';
   if (거절.error === 'HOST_NOT_ALLOWED') return `허용하지 않은 호스트를 부릅니다 (${거절.detail ?? ''})`;
   return 거절.detail === undefined ? 거절.error : `${거절.error} — ${거절.detail}`;

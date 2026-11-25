@@ -40,16 +40,16 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
     const 목록 = await 부르기(주소, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
     // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다
     const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_RUN_AS · Auth delegated-pats clients 를 확인하세요' : 'Auth 의 대신 PAT 를 Device VISION 이 받지 않았습니다';
-    if (!목록.ok) return { reason: `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳}` : ''}` };
+    if (!목록.ok) return { reason: `Device VISION 이 디바이스 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳}` : ''}` };
     // 주소가 틀려 다른 쪽이 200 으로 HTML 을 주면 「닿지 못했다」가 아니라 이 말이어야 주소를 다시 본다
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;
-    if (몸 === null) return { reason: 'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
+    if (몸 === null) return { reason: 'Device VISION 의 디바이스 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
     const 기기들 = (몸.value?.devices ?? []).filter((d) => !PC기기인가(d));
     // 깔린 폰이 없으면 기다려도 안 생긴다 — 바쁜 것과 갈라 사람이 팜 「남길 앱」을 보게 한다
-    if (패키지 !== undefined && 기기들.length === 0) return { reason: `Device VISION 에 ${패키지} 가 깔린 폰이 없습니다` };
+    if (패키지 !== undefined && 기기들.length === 0) return { reason: `Device VISION 에 ${패키지} 가 설치된 디바이스가 없습니다` };
     const 빈폰 = 기기들.find((d) => d.state === 'IDLE' && typeof d.serial === 'string' && d.serial !== '');
     if (빈폰 !== undefined) return { serial: 빈폰.serial as string, ...(typeof 빈폰.model === 'string' && 빈폰.model !== '' && { model: 빈폰.model }) };
-    if (!기기들.some((d) => d.detail === 'cleaning') || Date.now() >= 끝) return { reason: 'Device VISION 에 빈 폰이 없습니다' };
+    if (!기기들.some((d) => d.detail === 'cleaning') || Date.now() >= 끝) return { reason: 'Device VISION 에 빈 디바이스가 없습니다' };
     await 쉬기(다시_볼_ms);
   }
 }
@@ -77,7 +77,7 @@ export async function 잡는다(팜: string, serial: string, 부르기: typeof f
   const 몸 = ((await 잡기.json().catch(() => null)) as { value?: { refused?: unknown; held?: { screen?: unknown } } } | null)?.value;
   if (잡기.ok) return { 화면: 웹주소(몸?.held?.screen) };
   // 목록을 본 사이에 남이 잡았을 때가 흔하다. 팜의 거절 문장이 까닭을 다 말한다
-  return { 거절: `Device VISION 이 폰을 내주지 않았습니다: ${typeof 몸?.refused === 'string' ? 몸.refused : `HTTP ${잡기.status}`}` };
+  return { 거절: `Device VISION 이 디바이스를 할당하지 않았습니다: ${typeof 몸?.refused === 'string' ? 몸.refused : `HTTP ${잡기.status}`}` };
 }
 
 // 놓아야 팜이 깐 앱 · 앱 데이터를 정리한다. 실패해도 던지지 않는다 — 이미 난 판정을 덮지 않고, 잡기는 30분 뒤 팜이 스스로 푼다
@@ -179,9 +179,9 @@ async function Chrome을켠다(팜: string, serial: string, 부르기: typeof fe
       signal: AbortSignal.timeout(Chrome_제한_ms),
     });
     const 값 = ((await res.json().catch(() => null)) as { value?: { cdpUrl?: unknown; message?: unknown } } | null)?.value;
-    if (!res.ok) return { 까닭: `Device VISION 이 폰 Chrome 을 켜지 못했습니다: ${typeof 값?.message === 'string' ? 값.message : `HTTP ${res.status}`}` };
+    if (!res.ok) return { 까닭: `Device VISION 이 디바이스 Chrome 을 켜지 못했습니다: ${typeof 값?.message === 'string' ? 값.message : `HTTP ${res.status}`}` };
     // 러너 입구도 ws(s) 만 받는다 — 여기서 걸러야 까닭이 VISION 쪽으로 남는다
-    if (typeof 값?.cdpUrl !== 'string' || !/^wss?:\/\//.test(값.cdpUrl)) return { 까닭: 'Device VISION 이 폰 Chrome 연결 주소를 주지 않았습니다' };
+    if (typeof 값?.cdpUrl !== 'string' || !/^wss?:\/\//.test(값.cdpUrl)) return { 까닭: 'Device VISION 이 디바이스 Chrome 연결 주소를 주지 않았습니다' };
     return { cdpUrl: 값.cdpUrl };
   } catch (err) {
     return { 까닭: 닿지못함(err) };

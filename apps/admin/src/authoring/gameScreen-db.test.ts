@@ -219,7 +219,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     try {
       expect(await 받기(id, 'app-screen')).toMatchObject({
         screen: null,
-        reason: 'Device VISION 에 com.xgs.app 가 깔린 폰이 없습니다',
+        reason: 'Device VISION 에 com.xgs.app 가 설치된 디바이스가 없습니다',
         appium: { url: `${주소}/wd/hub`, app: 'com.xgs.app' },
       });
     } finally {

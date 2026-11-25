@@ -19,7 +19,7 @@ export const 스트레스배수 = 5;
 export const 일제한분 = 20;
 
 const 트랜잭션목록 = z.array(트랜잭션).min(1).max(200)
-  .refine((txs) => new Set(txs.map((t) => t.name)).size === txs.length, '트랜잭션 이름이 겹칩니다');
+  .refine((txs) => new Set(txs.map((t) => t.name)).size === txs.length, '트랜잭션 이름이 중복됩니다');
 const 설명 = z.record(z.string().max(100), z.string().max(2000)).default({});
 const 근거 = z.array(z.string().max(500)).max(30).default([]);
 
@@ -50,13 +50,13 @@ const 출력: Record<AI일종류, z.ZodType> = {
   // 화면 기록에서 고른 주요 페이지 (§3.9 「잴 페이지」). 저장 · 측정과 같은 검사다
   SUGGEST_PAGES: z.object({
     pages: z.array(페이지.extend({ why: z.string().max(500).default('') })).min(1).max(10)
-      .refine((ps) => new Set(ps.map((p) => p.url)).size === ps.length, '경로가 겹칩니다'),
+      .refine((ps) => new Set(ps.map((p) => p.url)).size === ps.length, '경로가 중복됩니다'),
     basis: 근거,
   }),
   // 팜 기기 목록에서 고른 기기 (§7 「기기 추천」). 목록에 없는 기기는 결과를 다듬을 때 버린다
   SUGGEST_DEVICES: z.object({
     devices: z.array(z.object({ serial: z.string().regex(시리얼), why: z.string().max(500).default('') })).min(1).max(5)
-      .refine((ds) => new Set(ds.map((d) => d.serial)).size === ds.length, '기기가 겹칩니다'),
+      .refine((ds) => new Set(ds.map((d) => d.serial)).size === ds.length, '디바이스가 중복됩니다'),
     basis: 근거,
   }),
   // 결과 화면 「AI 분석」 — 제목 한 줄과 개조식 항목. perf_run.ai 에 그대로 쓰고 PDF 가 같은 꼴로 읽는다.
@@ -116,7 +116,7 @@ export function 결과다듬기(kind: string, input: unknown, output: unknown): 
   if (kind === 'SUGGEST_DEVICES') {
     const 목록 = new Set(((input as { devices?: { serial: string }[] }).devices ?? []).map((d) => d.serial));
     const 남김 = (값 as { devices: { serial: string }[] }).devices.filter((d) => 목록.has(d.serial));
-    return 남김.length === 0 ? { error: '팜 기기 목록에 있는 기기가 하나도 없습니다' } : { output: { ...값, devices: 남김 } };
+    return 남김.length === 0 ? { error: 'Device VISION 디바이스 목록에 있는 디바이스가 하나도 없습니다' } : { output: { ...값, devices: 남김 } };
   }
   if (kind === 'ANALYZE_RUN' && (값 as { markers?: unknown }).markers !== undefined) {
     // 그 실행의 기기이고 잰 초 안인 표시만 남긴다
@@ -151,7 +151,7 @@ export async function 오래된일닫기(): Promise<void> {
   await pool.query(
     `UPDATE perf_ai_job SET status = 'FAILED', error = $1, finished_at = now()
       WHERE status = 'RUNNING' AND claimed_at < now() - make_interval(mins => $2)`,
-    [`작성 에이전트가 ${일제한분}분 안에 끝내지 못했습니다`, 일제한분],
+    [`작성 에이전트가 ${일제한분}분 안에 완료하지 못했습니다`, 일제한분],
   );
   // 막 만든 녹화 일은 번호를 목록에 넣기 전일 수 있어 1분은 기다린다
   await pool.query(

@@ -92,7 +92,7 @@ async function 게임실행(runId: number, 단위들: 실행단위[]): Promise<v
     try {
       토큰 = await 실행팜토큰(runId);
     } catch (err) {
-      await 닫는다('누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
+      await 닫는다('누른 사람의 Device VISION 토큰을 찾지 못했습니다', err instanceof Error ? err.message : String(err));
       return;
     }
     const 처음토큰 = 토큰;
@@ -140,7 +140,7 @@ async function PC실행(runId: number, 단위들: 실행단위[]): Promise<void>
     try {
       처음토큰 = await 실행팜토큰(runId);
     } catch (err) {
-      return 닫는다(`누른 사람의 팜 토큰을 고르지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
+      return 닫는다(`누른 사람의 Device VISION 토큰을 찾지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
     }
     const 다시받기 = (): Promise<string | undefined> => 실행팜토큰(runId).catch(() => 처음토큰);
     await PC로(

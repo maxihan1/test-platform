@@ -21,7 +21,7 @@ export function 문서읽기(글: string): { 문서: 객체 } | { reason: string
   // Postgres JSONB 가 못 담는 글자는 바꿔서 받는다. 안 바꾸면 저장에서 터져 500 이 된다
   if (typeof 값.openapi === 'string' && 값.openapi.startsWith('3.')) return { 문서: jsonb에맞춘다(값) };
   return {
-    reason: 'swagger' in 값 ? 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 올려 주세요' : '최상위 openapi 가 3. 으로 시작하지 않습니다',
+    reason: 'swagger' in 값 ? 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 업로드해 주세요' : '최상위 openapi 가 3. 으로 시작하지 않습니다',
   };
 }
 

@@ -65,7 +65,7 @@ async function 케이스돌리기(jobId: number, 줄: 대상줄, 케이스: Extr
     await rm(join(artifactsDir(), 'runs', '0', String(요청.historyId)), { recursive: true, force: true });
     if (res.status < 200 || res.status >= 300) throw new Error(`러너가 ${c.tcId} 녹화를 ${res.status}로 거절했습니다`);
     // 판정을 못 낸 실행은 중간에 끊겼을 수 있다 — 반쪽 녹화로 초안을 만들지 않는다. FAIL 은 요청이 다 오가서 쓴다
-    if (((res.json as Partial<ExecuteResponse> | null)?.results?.[0]?.status ?? 'NA') === 'NA') throw new Error(`${c.tcId} 를 끝까지 돌리지 못했습니다`);
+    if (((res.json as Partial<ExecuteResponse> | null)?.results?.[0]?.status ?? 'NA') === 'NA') throw new Error(`${c.tcId} 를 끝까지 실행하지 못했습니다`);
   }
   return 비밀;
 }
@@ -88,7 +88,7 @@ async function 시나리오돌리기(jobId: number, env: string, 대상: Extract
   );
   await rm(join(artifactsDir(), 'runs', 'trial', trialId), { recursive: true, force: true });
   // 러너 거절 · 끊김도 NA 로 접혀 온다 — 반쪽 녹화로 초안을 만들지 않고 러너가 준 까닭을 남긴다
-  if (응답.status === 'NA') throw new Error(`E2E 시나리오를 끝까지 돌리지 못했습니다${응답.error === undefined ? '' : ` — ${응답.error.message.slice(0, 300)}`}`);
+  if (응답.status === 'NA') throw new Error(`E2E 시나리오를 끝까지 실행하지 못했습니다${응답.error === undefined ? '' : ` — ${응답.error.message.slice(0, 300)}`}`);
   // 계정은 비밀 목록이 아니라 계정으로 넘긴다 — 짧은 아이디를 꼬리표로 바꾸면 주소의 /admin/ 까지 망가진다
   return { 비밀, 계정들: [...앱들.values()].flatMap((앱) => 앱.계정들) };
 }

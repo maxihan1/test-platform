@@ -14,18 +14,18 @@ import { 그만두기, 이슈확인, type 이슈자리 } from './testFixIssue.js
 import { 사람확인글 } from './testFixView.js';
 
 const 까닭글: Record<걸린까닭, string> = {
-  EXPECTED_CHANGED: '기대값이 바뀌었어요',
+  EXPECTED_CHANGED: '기대 결과가 변경됐어요',
   VERIFY_FEWER: '확인 문장이 줄었어요',
-  MUTATION_MISSED: '일부러 고장 내 보기에서 못 잡은 고장이 있어요',
-  NOT_MEASURED: '자동 병합 조건을 재지 못했어요',
+  MUTATION_MISSED: '일부러 고장 내 보기에서 찾지 못한 고장이 있어요',
+  NOT_MEASURED: '자동 반영 조건을 확인하지 못했어요',
 };
 
 // 머지세우기가 막은 까닭 — 사람이 테스트 작성 화면에서 풀 일이다
 const 막힘글: Record<string, string> = {
-  HELD_OPEN: '값을 안 채운 보류 케이스가 남았어요',
-  HELD_UNKNOWN: '보류 케이스가 몇 건인지 모르는 작성이에요',
-  CONFLICT_OPEN: '겹치는 케이스를 아직 고르지 않았어요',
-  BAD_ENV: '반영할 대상 서버를 고르지 못했어요',
+  HELD_OPEN: '입력이 필요한 케이스가 남았어요',
+  HELD_UNKNOWN: '입력이 필요한 케이스가 몇 건인지 모르는 작성이에요',
+  CONFLICT_OPEN: '중복 케이스를 아직 선택하지 않았어요',
+  BAD_ENV: '반영할 대상 서버를 선택하지 못했어요',
 };
 
 async function db(): Promise<Pool> {

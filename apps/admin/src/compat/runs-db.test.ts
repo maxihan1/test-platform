@@ -261,6 +261,6 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
     expect(머리.rows[0]?.status).toBe('ABORTED');
     // 돌던 케이스는 결과를 받을 쪽이 없어 미실행으로 닫는다 — 안 닫으면 결과 칸이 영영 「도는 중」이다
     expect(케이스.rows).toEqual([{ check_state: 'missing', status: 'NA', finished: true }, { check_state: null, status: 'NA', finished: true }]);
-    expect(상태.rows[0]).toEqual({ state: 'STOPPED', skip_reason: '서버가 다시 켜져 실행이 멈췄습니다', held_serial: null });
+    expect(상태.rows[0]).toEqual({ state: 'STOPPED', skip_reason: '서버가 다시 켜져 실행이 중단되었습니다', held_serial: null });
   });
 });

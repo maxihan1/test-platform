@@ -118,7 +118,7 @@ export function 알릴말(model: string, loop: number, 답: 단위답): string[]
   const 말 = 답.끝들.flatMap((k) => {
     if (k.status === 'PASS') return [];
     if (k.blockedBy !== undefined) return [`${머리} ${k.tcId} 는 선행 케이스 ${k.blockedBy} 가 통과하지 못해 실행하지 못했습니다`];
-    return [`${머리} ${k.tcId} 가 ${k.status} 로 끝났습니다${k.까닭 === undefined ? '' : ` — ${k.까닭}`}`];
+    return [`${머리} ${k.tcId} 가 ${k.status} 로 종료되었습니다${k.까닭 === undefined ? '' : ` — ${k.까닭}`}`];
   });
   return 답.오류 === undefined ? 말 : [...말, `${머리} 테스트 프로시저 실행 오류 — ${답.오류}`];
 }

@@ -34,7 +34,7 @@ const 녹화 = z.object({
   env: z.string().min(1).max(100),
   caseIds: z.array(z.string().min(1).max(100)).min(1).max(녹화케이스상한).optional(),
   scenarioId: z.number().int().positive().optional(),
-}).refine((b) => (b.caseIds === undefined) !== (b.scenarioId === undefined), '케이스와 E2E 시나리오 중 하나만 고릅니다');
+}).refine((b) => (b.caseIds === undefined) !== (b.scenarioId === undefined), '케이스와 E2E 시나리오 중 하나만 선택합니다');
 const 스웨거 = z.object({
   serviceId: z.number().int().positive(),
   from: z.literal('SWAGGER'),
@@ -104,7 +104,7 @@ async function 녹화세우기(b: z.infer<typeof 녹화>, who: string): Promise<
 
 async function 스웨거재료(b: z.infer<typeof 스웨거>): Promise<{ input: unknown } | { error: string; detail: string }> {
   const 판 = await 판원문(b.serviceId, b.apiDocVersion);
-  if (판 === null) return { error: 'INVALID_REQUEST', detail: `API 문서 판이 없습니다: ${b.apiDocVersion}` };
+  if (판 === null) return { error: 'INVALID_REQUEST', detail: `API 문서 버전이 없습니다: ${b.apiDocVersion}` };
   const paths = (판.doc.paths ?? {}) as Record<string, Record<string, unknown> | undefined>;
   const operations = [];
   for (const o of b.operations) {
@@ -178,7 +178,7 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     }
     if (kind === 'DEVICES') {
       const devices = await 팜기기재료();
-      if (devices.length === 0) return reply.code(409).send({ error: 'NO_DATA', detail: '팜 기기가 없습니다' });
+      if (devices.length === 0) return reply.code(409).send({ error: 'NO_DATA', detail: 'Device VISION 디바이스가 없습니다' });
       return reply.code(202).send({ jobId: await 일만들기('SUGGEST_DEVICES', serviceId, { devices }, who) });
     }
     const prd = await 기획서재료(serviceId);

@@ -20,7 +20,7 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-const 고칠곳없음 = '고칠 곳을 찾지 못했어요';
+const 고칠곳없음 = '수정할 곳을 찾지 못했어요';
 
 interface 끝난실행 {
   service_id: string;
@@ -146,7 +146,7 @@ export async function 게임자동수정실행뒤(runId: number): Promise<number
 
 /** 케이스 끝을 줄 끝으로 — 결과에 없는 케이스는 고쳤다는 말이 없어 그만둔다 */
 function 끝나눔(x: 케이스끝 | undefined): { 끝: 'FIXED' | 'FLAKY' } | { 끝: 'GAVE_UP'; 까닭: string } {
-  if (x === undefined) return { 끝: 'GAVE_UP', 까닭: '고침 결과에 이 케이스가 없어요' };
+  if (x === undefined) return { 끝: 'GAVE_UP', 까닭: '수정 결과에 이 케이스가 없어요' };
   if (x.outcome === 'NOT_FOUND') return { 끝: 'GAVE_UP', 까닭: x.note === undefined || x.note === '' ? 고칠곳없음 : `${고칠곳없음} — ${x.note}` };
   return { 끝: x.outcome };
 }
@@ -191,12 +191,12 @@ export async function 게임PR열림(뿌리번호: number, prUrl: string, 요약
 
 /**
  * 게임 고침 작성이 PR 없이 끝났거나 실패 · 멈춤 · 폐기됐는지 보고 줄을 끝낸다 — 끝났으면 true.
- * PR 없이 DONE 은 결과의 케이스 끝대로(칸이 없으면 모두 「고칠 곳을 찾지 못했어요」), 실패 · 멈춤은 FAILED.
+ * PR 없이 DONE 은 결과의 케이스 끝대로(칸이 없으면 모두 「수정할 곳을 찾지 못했어요」), 실패 · 멈춤은 FAILED.
  * 어느 쪽이든 요청 뿌리를 서버가 폐기한다 — 끝난 작성은 폐기 전까지 열린 작성이라 그 애플리케이션의 새 작성과 다음 자동 수정을 막는다
  */
 export async function 게임작성끝살피기(줄: 줄): Promise<boolean> {
   if (줄.request_id === null) {
-    await 게임줄끝내기([줄.id], 'FAILED', '테스트 수정 작성이 지워졌어요');
+    await 게임줄끝내기([줄.id], 'FAILED', '테스트 수정 작성이 삭제됐어요');
     return true;
   }
   const pool = await db();
@@ -213,18 +213,18 @@ export async function 게임작성끝살피기(줄: 줄): Promise<boolean> {
     await pool.query<{ id: string; tc_id: string; state: string }>(`SELECT id, tc_id, state FROM bts_test_fix WHERE request_id = $1 AND issue_key IS NULL AND state = ANY($2) ORDER BY id`, [줄.request_id, 도는상태])
   ).rows;
   if (r.discarded) {
-    await 게임줄끝내기(도는줄들.map((x) => x.id), 'FAILED', '테스트 수정 작성을 폐기했어요');
+    await 게임줄끝내기(도는줄들.map((x) => x.id), 'FAILED', '테스트 수정 작성을 삭제했어요');
     return true;
   }
   // PR 을 연 뒤의 재실행 실패는 PR 이 그대로라 사람이 반영할 수 있다 — 끝내지 않는다
   if (줄.state !== 'FIXING') return false;
   const 고치는줄들 = 도는줄들.filter((x) => x.state === 'FIXING');
   if (r.status === 'FAILED' || r.status === 'STOPPED') {
-    await 게임줄끝내기(고치는줄들.map((x) => x.id), 'FAILED', r.status === 'FAILED' ? '테스트 수정 작성이 실패했어요' : '테스트 수정 작성이 멈췄어요');
+    await 게임줄끝내기(고치는줄들.map((x) => x.id), 'FAILED', r.status === 'FAILED' ? '테스트 수정 작성이 실패했어요' : '테스트 수정 작성이 중단됐어요');
   } else if (r.status === 'DONE' && r.kind !== 'MERGE' && r.pr_url === null) {
     const 끝 = new Map((케이스끝읽기(r.result) ?? []).map((x) => [x.tcId, x]));
     for (const x of 고치는줄들) {
-      // 칸이 없거나 고쳤다고 했는데 PR 이 없으면 「고칠 곳을 찾지 못했어요」다
+      // 칸이 없거나 고쳤다고 했는데 PR 이 없으면 「수정할 곳을 찾지 못했어요」다
       const 이것 = 끝.has(x.tc_id) ? 끝나눔(끝.get(x.tc_id)) : { 끝: 'GAVE_UP' as const, 까닭: 고칠곳없음 };
       await 게임줄끝내기([x.id], 이것.끝 === 'FLAKY' ? 'FLAKY' : 'GAVE_UP', 이것.끝 === 'GAVE_UP' ? 이것.까닭 : 이것.끝 === 'FIXED' ? 고칠곳없음 : null);
     }

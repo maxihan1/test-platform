@@ -154,11 +154,11 @@ describe('dispatch 의 프로시저 실행 단위', () => {
     const [번호, 받은답] = vi.mocked(finishExec).mock.calls[0]!;
     expect(번호).toBe(50);
     expect(받은답.results.map((r) => [r.tcId, r.status, r.error?.message])).toEqual([
-      ['XDP-FN-101', 'NA', 'Device VISION 에 빈 폰이 없습니다'],
-      ['XDP-FN-102', 'NA', 'Device VISION 에 빈 폰이 없습니다'],
-      ['XDP-FN-103', 'NA', 'Device VISION 에 빈 폰이 없습니다'],
+      ['XDP-FN-101', 'NA', 'Device VISION 에 빈 디바이스가 없습니다'],
+      ['XDP-FN-102', 'NA', 'Device VISION 에 빈 디바이스가 없습니다'],
+      ['XDP-FN-103', 'NA', 'Device VISION 에 빈 디바이스가 없습니다'],
     ]);
-    expect(받은답.error?.message).toBe('Device VISION 에 빈 폰이 없습니다');
+    expect(받은답.error?.message).toBe('Device VISION 에 빈 디바이스가 없습니다');
   });
 
   it('저장이 깨지면 그 실행 단위의 케이스 줄을 미실행으로 닫아 실행이 RUNNING 에 남지 않게 한다', async () => {

@@ -92,14 +92,14 @@ describe('팜폰으로', () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [pc있음] });
     expect(await 팜폰으로(팜, async (udid) => udid, (까닭) => 까닭, 부르기, 안쉼)).toBe('R3CR10TCVCD');
     const pc만 = 가짜팜({ 목록: [{ status: 200, body: { value: { devices: [{ serial: 'pc-pc1', state: 'IDLE', platform: 'windows' }] } } }] });
-    expect(await 팜폰으로(팜, async (udid) => udid, (까닭) => 까닭, pc만.부르기, 안쉼)).toBe('Device VISION 에 빈 폰이 없습니다');
+    expect(await 팜폰으로(팜, async (udid) => udid, (까닭) => 까닭, pc만.부르기, 안쉼)).toBe('Device VISION 에 빈 디바이스가 없습니다');
     expect(받음[1]).toContain('/api/devices/R3CR10TCVCD/hold');
   });
 
   it('빈 폰이 없으면 잡지도 놓지도 않고 까닭을 넘긴다 — 사람이 잡은 폰은 기다리지 않는다', async () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [남이씀] });
 
-    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe('Device VISION 에 빈 폰이 없습니다');
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe('Device VISION 에 빈 디바이스가 없습니다');
     expect(받음).toEqual(['GET /api/devices']);
   });
 
@@ -115,12 +115,12 @@ describe('팜폰으로', () => {
   it('그 앱이 깔린 폰이 하나도 없으면 깔린 폰이 없다고 하고, 깔린 폰이 다 바쁘면 지금처럼 빈 폰이 없다고 한다', async () => {
     const 없음 = 가짜팜({});
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 없음.부르기, 안쉼, undefined, undefined, 'com.shop.app')).toBe(
-      'Device VISION 에 com.shop.app 가 깔린 폰이 없습니다',
+      'Device VISION 에 com.shop.app 가 설치된 디바이스가 없습니다',
     );
     expect(없음.받음).toEqual(['GET /api/devices?app=com.shop.app']);
 
     const 바쁨 = 가짜팜({ 목록: [남이씀] });
-    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 바쁨.부르기, 안쉼, undefined, undefined, 'com.shop.app')).toBe('Device VISION 에 빈 폰이 없습니다');
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 바쁨.부르기, 안쉼, undefined, undefined, 'com.shop.app')).toBe('Device VISION 에 빈 디바이스가 없습니다');
   });
 
   it('앞 항목이 막 놓아 정리 중인 폰은 빈 폰이 될 때까지 다시 본다', async () => {
@@ -143,7 +143,7 @@ describe('팜폰으로', () => {
     const { 부르기 } = 가짜팜({ 목록: [{ status: 200, body: '<html>다른 곳</html>' }] });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
-      'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요',
+      'Device VISION 의 디바이스 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요',
     );
   });
 
@@ -151,7 +151,7 @@ describe('팜폰으로', () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 409, body: { value: { refused: '다른 사용자(maxi)가 쓰는 중' } } } });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
-      'Device VISION 이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중',
+      'Device VISION 이 디바이스를 할당하지 않았습니다: 다른 사용자(maxi)가 쓰는 중',
     );
     expect(받음.some((줄) => 줄.startsWith('DELETE'))).toBe(false);
   });
@@ -249,7 +249,7 @@ describe('팜머리', () => {
     const { 부르기 } = 가짜팜({ 목록: [{ status: 401, body: {} }] });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼, 30, 'pat_dlg')).toBe(
-      'Device VISION 이 기기 목록을 주지 않았습니다 (HTTP 401) — Auth 의 대신 PAT 를 Device VISION 이 받지 않았습니다',
+      'Device VISION 이 디바이스 목록을 주지 않았습니다 (HTTP 401) — Auth 의 대신 PAT 를 Device VISION 이 받지 않았습니다',
     );
   });
 
@@ -257,7 +257,7 @@ describe('팜머리', () => {
     const { 부르기 } = 가짜팜({ 목록: [{ status: 401, body: {} }] });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
-      'Device VISION 이 기기 목록을 주지 않았습니다 (HTTP 401) — DEVICE_FARM_RUN_AS · Auth delegated-pats clients 를 확인하세요',
+      'Device VISION 이 디바이스 목록을 주지 않았습니다 (HTTP 401) — DEVICE_FARM_RUN_AS · Auth delegated-pats clients 를 확인하세요',
     );
   });
 });
@@ -319,12 +319,12 @@ describe('폰Chrome으로', () => {
   it('Chrome 을 못 켜면 VISION 문장을 까닭으로 넘기고 폰을 놓는다', async () => {
     const 거절 = Chrome팜({ status: 409, body: { value: { error: 'unknown error', message: '내 자동 테스트가 도는 중 — 끝나면 다시' } } });
     expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 거절.부르기)).toBe(
-      'Device VISION 이 폰 Chrome 을 켜지 못했습니다: 내 자동 테스트가 도는 중 — 끝나면 다시',
+      'Device VISION 이 디바이스 Chrome 을 켜지 못했습니다: 내 자동 테스트가 도는 중 — 끝나면 다시',
     );
     expect(거절.받음.at(-1)).toMatch(/^DELETE \/api\/devices\/R3CR10TCVCD\/hold/);
 
     const 옛팜 = Chrome팜({ status: 404, body: 'Not Found' });
-    expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 옛팜.부르기)).toBe('Device VISION 이 폰 Chrome 을 켜지 못했습니다: HTTP 404');
+    expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 옛팜.부르기)).toBe('Device VISION 이 디바이스 Chrome 을 켜지 못했습니다: HTTP 404');
 
     const 늦음 = Chrome팜('throw');
     expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 늦음.부르기)).toBe(
@@ -336,7 +336,7 @@ describe('폰Chrome으로', () => {
   it('연결 주소가 ws(s) 가 아니면 러너에 안 넘긴다', async () => {
     for (const cdpUrl of ['http://farm.test/x', undefined]) {
       const { 부르기 } = Chrome팜({ status: 200, body: { value: { cdpUrl } } });
-      expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 부르기)).toBe('Device VISION 이 폰 Chrome 연결 주소를 주지 않았습니다');
+      expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 부르기)).toBe('Device VISION 이 디바이스 Chrome 연결 주소를 주지 않았습니다');
     }
   });
 });

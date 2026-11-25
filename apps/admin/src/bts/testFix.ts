@@ -60,7 +60,7 @@ export async function 댓글한번(projectId: number, issueKey: string, body: st
 }
 
 const 막맡음 = '같은 테스트를 다른 알림이 막 맡았다';
-const 못세움글 = '테스트를 수정하지 못했어요 — 처음 실패한 실행이 지워졌거나 그 실행에 이 테스트의 실패 기록이 없어요';
+const 못세움글 = '테스트를 수정하지 못했어요 — 처음 실패한 실행이 삭제됐거나 그 실행에 이 테스트의 실패 기록이 없어요';
 
 interface 짝줄 {
   tc_id: string;
@@ -156,7 +156,7 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
     )
   ).rows.map((r) => Number(r.service_id));
   if (서비스들.length === 0) {
-    await 댓글한번(연결.projectId, 이슈.key, 'Test Commander 가 올린 실패 이슈만 테스트를 수정할 수 있어요');
+    await 댓글한번(연결.projectId, 이슈.key, 'Test Commander 가 등록한 실패 이슈만 테스트를 수정할 수 있어요');
     return 결과;
   }
   // BTS 는 잠금 밖에서 부른다 — 기다리는 동안 그 애플리케이션의 기획서 잠금을 쥐지 않게

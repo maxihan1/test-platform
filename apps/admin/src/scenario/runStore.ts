@@ -86,7 +86,7 @@ export async function 실행만들기(id: number, env: string, 사람: 저장하
     const 결과 = await 잠그고만들기(id, env, 사람, mobileOn, 판정, 정기);
     if (결과 !== null) return 결과;
   }
-  throw new 시나리오실행오류('NOT_RUNNABLE', '실행하는 사이 시나리오가 계속 새로 저장됐다. 다시 눌러 달라');
+  throw new 시나리오실행오류('NOT_RUNNABLE', '실행하는 사이 시나리오가 계속 다시 저장됐다. 다시 눌러 달라');
 }
 
 async function 미리판정(id: number): Promise<판정 | undefined> {
@@ -127,14 +127,14 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     );
     const 행 = 머리.rows[0];
     if (행 === undefined) throw new 시나리오실행오류('NOT_FOUND', `없는 시나리오다: ${id}`);
-    if (!행.is_active) throw new 시나리오실행오류('ARCHIVED', '치운 시나리오는 실행할 수 없다');
-    if (!행.service_active) throw new 시나리오실행오류('SERVICE_INACTIVE', `모르는 서비스다: ${행.prefix}`);
+    if (!행.is_active) throw new 시나리오실행오류('ARCHIVED', '삭제한 시나리오는 실행할 수 없다');
+    if (!행.service_active) throw new 시나리오실행오류('SERVICE_INACTIVE', `알 수 없는 애플리케이션이다: ${행.prefix}`);
 
     // 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (execution/store.ts createRun 과 같다).
     // 섞인 애플리케이션마다 같은 이름의 줄을 찾고 하나라도 없으면 거절한다 (§3.7 결정 13)
     const 쓰는 = 쓰는접두사(행.parts, 행.prefix);
     const { 앱들, 없음 } = await 쓰는앱읽기(쓰는, env, c);
-    if (없음 !== null) throw new 시나리오실행오류('ENV_NOT_FOUND', `${없음} 서비스에 ${env} 대상 서버가 없다`);
+    if (없음 !== null) throw new 시나리오실행오류('ENV_NOT_FOUND', `${없음} 애플리케이션에 ${env} 대상 서버가 없다`);
     const baseUrl = 앱들.get(행.prefix)!.baseUrl;
     const 종류 = 앱종류들(앱들);
     // 되돌린 옛 버전 · 저장 뒤 종류를 바꾼 애플리케이션은 조립 검사를 안 거쳤다 — 연결 하나에 앱 하나를 여기서 다시 본다 (결정 16)
@@ -156,7 +156,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     // 저장 뒤 애플리케이션을 다른 프로젝트로 옮겼으면 API 단계는 케이스처럼 비활성으로 드러나지 않는다 — 여기서 막는다
     const 밖 = 쓰는.filter((a) => !판정.허용.includes(a));
     if (밖.length > 0) {
-      throw new 시나리오실행오류('NOT_RUNNABLE', `${밖.join(' · ')} 는 ${행.prefix} 서비스와 같은 프로젝트가 아니다`);
+      throw new 시나리오실행오류('NOT_RUNNABLE', `${밖.join(' · ')} 는 ${행.prefix} 애플리케이션과 같은 프로젝트가 아니다`);
     }
 
     // 저장 뒤 케이스가 바뀌어 건너뛸 수 없게 된 제목은 뺀다. 러너는 받은 제목이면 확인 절차도 건너뛴다 (결정 8)

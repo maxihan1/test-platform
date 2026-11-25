@@ -244,7 +244,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'R3CR1' }, { serial: 'R3CR1' }] })).statusCode).toBe(400);
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, addedCases: ['XCP-004'] })).json()).toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-004'] });
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, addedCases: ['XCP-GS-001'] })).json()).toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-GS-001'] });
-      expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'R3CR1' }, { serial: 'R3CR2' }] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '모델별 1대를 켠 세트는 같은 모델을 한 대만 고릅니다' });
+      expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'R3CR1' }, { serial: 'R3CR2' }] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '모델별 1대를 켠 세트는 같은 모델을 한 대만 선택합니다' });
       expect((await 부르기('xcp-reader', 'POST', '/api/compat-sets', 몸)).statusCode).toBe(403);
     });
     expect((await 부르기('xcp-none', 'GET', `/api/compat-sets?serviceId=${앱}`)).statusCode).toBe(403);

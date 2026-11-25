@@ -175,7 +175,7 @@ describe.skipIf(연결 === undefined)('모바일 시나리오를 실제 폰 Chro
   });
 
   it('폰을 못 잡으면 러너에 안 보내고 첫 단계를 그 까닭, 뒤 단계를 NOT_RUN 으로 닫는다', async () => {
-    가짜.못잡음 = 'Device VISION 에 빈 폰이 없습니다';
+    가짜.못잡음 = 'Device VISION 에 빈 디바이스가 없습니다';
     const { runId, 요청, 폰 } = await 실행만들기(await 모바일시나리오(), 'stg', 사람, 'vision');
 
     await 시나리오분배(runId, 요청, 폰);
@@ -183,7 +183,7 @@ describe.skipIf(연결 === undefined)('모바일 시나리오를 실제 폰 Chro
     expect(가짜.요청).toHaveLength(0);
     const 부품 = await q('SELECT status, error FROM scenario_run_part WHERE run_id = $1 ORDER BY seq', [runId]);
     expect(부품.rows.map((r: { status: string; error: { message: string } }) => [r.status, r.error.message])).toEqual([
-      ['NA', 'Device VISION 에 빈 폰이 없습니다'],
+      ['NA', 'Device VISION 에 빈 디바이스가 없습니다'],
       ['NA', 'NOT_RUN'],
     ]);
   });

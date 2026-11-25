@@ -268,7 +268,7 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
       for (const 요청 of 고치기와되돌리기(id)) {
         const res = await app.inject(요청);
         expect(res.statusCode, 요청.url).toBe(400);
-        expect(res.json()).toEqual({ error: 'INVALID_REQUEST', detail: '모르는 서비스다: XSR' });
+        expect(res.json()).toEqual({ error: 'INVALID_REQUEST', detail: '알 수 없는 애플리케이션이다: XSR' });
       }
       expect(await 버전수(id)).toBe(1);
     } finally {

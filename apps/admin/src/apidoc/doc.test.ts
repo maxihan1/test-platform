@@ -43,7 +43,7 @@ describe('문서읽기', () => {
     expect(문서읽기(JSON.stringify(판1))).toEqual({ 문서: 판1 });
     expect(문서읽기('openapi: 3.0.0')).toEqual({ reason: 'JSON 이 아닙니다 — YAML 은 받지 않습니다' });
     expect(문서읽기('[]')).toEqual({ reason: 'JSON 객체가 아닙니다' });
-    expect(문서읽기('{"swagger":"2.0"}')).toEqual({ reason: 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 올려 주세요' });
+    expect(문서읽기('{"swagger":"2.0"}')).toEqual({ reason: 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 업로드해 주세요' });
     expect(문서읽기('{"openapi":"4.0"}')).toEqual({ reason: '최상위 openapi 가 3. 으로 시작하지 않습니다' });
   });
 

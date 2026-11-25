@@ -126,7 +126,7 @@ async function 검사(b: 본문, projectId: number, tz: string, 옛: 세트 | nu
   if (onceOn !== null && !그대로 && (await 지났나(onceOn, b.at, tz))) return 'PAST_ONCE';
   const report = b.report ?? null;
   // 세트 ↔ 리포트 일정을 바꾸면 지난 회차의 실행 · 리포트가 다른 꼴의 줄을 가리킨다
-  if (옛 !== null && (옛.report === null) !== (report === null)) return report === null ? 'report: 리포트 일정을 세트로 바꾸지 못합니다' : 'report: 세트를 리포트 일정으로 바꾸지 못합니다';
+  if (옛 !== null && (옛.report === null) !== (report === null)) return report === null ? 'report: 리포트 일정을 세트로 변경하지 못합니다' : 'report: 세트를 리포트 일정으로 변경하지 못합니다';
   const 정리days = days === null ? null : [...new Set(days)].sort((x, y) => x - y);
   if (report !== null) return { name: b.name, at: b.at, days: 정리days, onceOn, report, 줄들: [], 고름: new Map() };
   // 줄이 가리키는 번호를 먼저 읽어야 E2E · 호환성의 애플리케이션을 안다 — 애플리케이션 칸은 판정 재료를 읽은 뒤 채운다

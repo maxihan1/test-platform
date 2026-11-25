@@ -41,7 +41,7 @@ async function 잡는다(팜: string, 토큰: string | undefined, 부르기: typ
   const 몸 = ((await res.json().catch(() => null)) as { value?: { refused?: unknown; held?: { serial?: unknown; screen?: unknown } } } | null)?.value;
   if (res.ok && typeof 몸?.held?.serial === 'string' && 몸.held.serial !== '') return { 잡음: { serial: 몸.held.serial, 화면: 웹주소(몸.held.screen) } };
   const 까닭 = typeof 몸?.refused === 'string' ? 몸.refused : `HTTP ${String(res.status)}`;
-  return { 거절: res.status === 409 ? `빈 Windows PC 가 없습니다 — ${까닭}` : `Device VISION 이 Windows PC 를 내주지 않았습니다: ${까닭}`, 다시: res.status === 409 };
+  return { 거절: res.status === 409 ? `빈 Windows PC 가 없습니다 — ${까닭}` : `Device VISION 이 Windows PC 를 할당하지 않았습니다: ${까닭}`, 다시: res.status === 409 };
 }
 
 /** 고정한 zip 을 잡은 PC 에 깐다 — 본문은 zip 바이트 그대로. 깐 게임 이름(exe 이름)이나 거절 문장 */
@@ -59,9 +59,9 @@ export async function 깐다(팜: string, serial: string, zip: string, 토큰: s
     const 몸 = ((await res.json().catch(() => null)) as { value?: { game?: unknown; message?: unknown; refused?: unknown } } | null)?.value;
     if (res.ok && typeof 몸?.game === 'string' && 몸.game !== '') return { 게임: 몸.game };
     const 까닭 = typeof 몸?.message === 'string' ? 몸.message : typeof 몸?.refused === 'string' ? 몸.refused : `HTTP ${String(res.status)}`;
-    return { 까닭: `Device VISION 이 Windows 빌드를 깔지 못했습니다: ${까닭}` };
+    return { 까닭: `Device VISION 이 Windows 빌드를 설치하지 못했습니다: ${까닭}` };
   } catch (err) {
-    return { 까닭: `Windows 빌드를 깔지 못했습니다: ${err instanceof Error ? err.message : String(err)}` };
+    return { 까닭: `Windows 빌드를 설치하지 못했습니다: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -90,7 +90,7 @@ export async function PC로<T>(팜: string, zip: string, 설정: PC잡기설정,
   const 끝 = Date.now() + 설정.기다림ms;
   let 잡음: { serial: string; 화면: string | undefined };
   for (;;) {
-    if (설정.멈췄나()) return 못잡음('멈춘 실행이라 Windows PC 를 잡지 않았습니다');
+    if (설정.멈췄나()) return 못잡음('중단된 실행이라 Windows PC 를 할당하지 않았습니다');
     let 답: 잡기답;
     try {
       // 120분까지 기다리는 사이 대신 PAT 가 끝날 수 있다 — 잡을 때마다 다시 고른다(주인은 같다)

@@ -67,7 +67,7 @@ describe('ScenarioList 삭제', () => {
     const 상자 = screen.getByRole('dialog', { name: 'SC-2 시나리오를 삭제할까요?' });
     expect(상자.textContent).toContain('ZSM 시나리오 2');
     expect(상자.textContent).toContain('지난 실행 기록과 리포트는 그대로 남습니다.');
-    expect(상자.textContent).toContain('삭제한 시나리오는 되살릴 수 없습니다.');
+    expect(상자.textContent).toContain('삭제한 시나리오는 복원할 수 없습니다.');
     expect(document.activeElement).toBe(within(상자).getByRole('button', { name: '취소' }));
 
     fireEvent.click(within(상자).getByRole('button', { name: '취소' }));

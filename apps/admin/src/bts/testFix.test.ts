@@ -166,7 +166,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
   it('사람이 올린 이슈는 맡지 않고 한 번만 알린다 · 다른 이슈가 이미 고치는 테스트는 그 이슈 키를 알린다', async () => {
     expect(await 테스트수정처리(이은(), 이슈('DM-3'), 옮김, 답())).toEqual({ 요청들: [], 기록만: [] });
     await 테스트수정처리(이은(), 이슈('DM-3'), 옮김, 답());
-    expect(await 보낼것('DM-3')).toEqual([{ kind: 'COMMENT', payload: { body: 'Test Commander 가 올린 실패 이슈만 테스트를 수정할 수 있어요' } }]);
+    expect(await 보낼것('DM-3')).toEqual([{ kind: 'COMMENT', payload: { body: 'Test Commander 가 등록한 실패 이슈만 테스트를 수정할 수 있어요' } }]);
     // 열린 짝은 테스트마다 하나다 — 앞 이슈의 짝이 닫혔는데 고침 줄이 아직 도는 때다
     await pool.query(`UPDATE bts_issue_case SET closed_at = now(), resolution = 'DUPLICATE' WHERE issue_key = 'DM-1' AND service_id = $1`, [서비스]);
     await 짝넣기('DM-4', 'XQF-FN-001');
@@ -219,7 +219,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
     expect(기록만).toEqual(['XQF-FN-006 — 처음 등록한 실행이 삭제됐다']);
     expect(await 보낼것('DM-8')).toEqual([
       { kind: 'ASSIGN', payload: { assigneeId: 'u-qa' } },
-      { kind: 'COMMENT', payload: { body: '테스트를 수정하지 못했어요 — 처음 실패한 실행이 지워졌거나 그 실행에 이 테스트의 실패 기록이 없어요' } },
+      { kind: 'COMMENT', payload: { body: '테스트를 수정하지 못했어요 — 처음 실패한 실행이 삭제됐거나 그 실행에 이 테스트의 실패 기록이 없어요' } },
     ]);
   });
 

@@ -172,12 +172,12 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     }
     const 대상 = await 대상줄찾기(tcId, env);
     if (대상 === null) {
-      const detail = env === '' ? '대상 서버를 고르지 않았습니다' : `${prefixOf(tcId)} 에 ${env} 대상 서버가 없습니다`;
+      const detail = env === '' ? '대상 서버를 선택하지 않았습니다' : `${prefixOf(tcId)} 에 ${env} 대상 서버가 없습니다`;
       return reply.code(400).send({ error: 'ENV_NOT_FOUND', detail });
     }
     const { 줄, 종류, 게임플랫폼, serviceId } = 대상;
     const PC씀 = PC항목인가(platform);
-    if (플랫폼밖인가(종류, 게임플랫폼, platform)) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 의 ${platform} 디바이스는 이 애플리케이션에서 돌지 않습니다` });
+    if (플랫폼밖인가(종류, 게임플랫폼, platform)) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 의 ${platform} 디바이스는 이 애플리케이션에서 실행되지 않습니다` });
 
     const 곳: 돌릴곳 = {
       tcId,

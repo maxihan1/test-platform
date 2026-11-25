@@ -6,7 +6,7 @@ import type { PoolClient } from 'pg';
 import { 저장값칸지우기 } from '../execution/savedInput.js';
 import { 행의고칠것 } from './edit.js';
 
-export const 못받은까닭 = 'main 을 못 받아 와 저장값을 안 지웠다';
+export const 못받은까닭 = 'main 을 못 받아 와 저장값을 삭제하지 않았다';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

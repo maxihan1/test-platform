@@ -129,7 +129,7 @@ async function 회차밀기(occ: { id: number; set_id: number; planned_on: strin
   if (report !== null) return 리포트회차(occ, { ...기억.set, report }, 로그);
   // 도는 실행은 멈추지 않는다. 실행 하나가 끝나지 않아 프로젝트의 정기 실행이 다 멈추는 것을 막는다 (§3.16 「회차 상한」)
   if (occ.넘김) {
-    await 닫기(occ.id, { kind: null, service: null, reason: '6시간이 지나 다음 세트를 이어 돌렸습니다' });
+    await 닫기(occ.id, { kind: null, service: null, reason: '6시간이 지나 다음 세트를 이어서 실행했습니다' });
     return true;
   }
   const 지난줄 = Math.max(occ.cur_seq ?? 0, 기억.만든);

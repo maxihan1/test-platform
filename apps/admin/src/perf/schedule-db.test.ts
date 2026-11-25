@@ -101,7 +101,7 @@ describe.skipIf(연결 === undefined)('성능 정기 실행', { timeout: 60_000 
     await 켜기(시나리오, 'tmp');
     await f.pool.query(`DELETE FROM service_env WHERE service_id = $1 AND env = 'tmp'`, [f.서비스]);
     const 지움 = await 정기성능점검(new Date('2001-02-02T03:30:00Z'), 보내기, 범위());
-    expect(지움[0]).toMatchObject({ 거절: '대상 서버 tmp 가 지워졌습니다', 껐다: true });
+    expect(지움[0]).toMatchObject({ 거절: '대상 서버 tmp 가 삭제되었습니다', 껐다: true });
     expect(보낸것[0]).toContain('정기 실행을 껐습니다');
   });
 

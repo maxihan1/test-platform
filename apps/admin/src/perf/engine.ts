@@ -190,7 +190,7 @@ export async function 끝받기(agentId: number, runId: number, body: { status: 
   const live = 도는것.get(runId);
   if (live === undefined || live.ending) return;
   if (live.monitors.includes(agentId)) {
-    if (body.status === 'ERROR') await 표.로그(runId, `서버 모니터링이 멈췄습니다 — ${body.reason ?? ''}`.trim(), 'WARN');
+    if (body.status === 'ERROR') await 표.로그(runId, `서버 모니터링이 중단되었습니다 — ${body.reason ?? ''}`.trim(), 'WARN');
     return;
   }
   if (!live.agents.includes(agentId)) return;
@@ -264,7 +264,7 @@ async function 대기열(지금: number): Promise<void> {
     }
     const agents = await 표.에이전트들(run.config.agentIds);
     if (agents.length !== run.config.agentIds.length) {
-      await 끝내기(run.id, { kind: 'ERROR', why: '고른 부하 발생 에이전트가 지워졌습니다' });
+      await 끝내기(run.id, { kind: 'ERROR', why: '선택한 부하 발생 에이전트가 삭제되었습니다' });
       continue;
     }
     const 빈가 = agents.every((a) => !바쁜.has(a.id) && (a.busyRunId === null || a.busyRunId === run.id) && 표.연결됐나(a, 지금));

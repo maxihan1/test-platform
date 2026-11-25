@@ -23,7 +23,7 @@ export const 페이지 = z.object({
 export const 측정본문 = z.object({
   serviceId: z.number().int().positive(),
   env: z.string().min(1).max(100),
-  pages: z.array(페이지).min(1).max(10).refine((ps) => new Set(ps.map((p) => p.url)).size === ps.length, '경로가 겹칩니다'),
+  pages: z.array(페이지).min(1).max(10).refine((ps) => new Set(ps.map((p) => p.url)).size === ps.length, '경로가 중복됩니다'),
   device: z.enum(['desktop', 'mobile']),
   network: z.enum(['NONE', 'SLOW_4G']),
 });

@@ -99,6 +99,7 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
 
   it('제품 이름(Device VISION · Issue Bunker · Test Commander)으로 시작하는 서버 문장도 사람이 읽을 글이라 그대로 쓴다 — 실행기 장애로 바꾸지 않는다', () => {
     expect(미실행사유({ message: 'Device VISION 에 빈 폰이 없습니다' }, 'ko')).toBe('Device VISION 에 빈 폰이 없습니다');
+    expect(미실행사유({ message: 'Device VISION 에 빈 디바이스가 없습니다' }, 'ko')).toBe('Device VISION 에 빈 디바이스가 없습니다');
     expect(미실행사유({ message: 'Device VISION 이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중' }, 'ko')).toBe('Device VISION 이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중');
     expect(미실행사유({ message: 'Error: connect ECONNREFUSED 127.0.0.1:4001' }, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');
   });

@@ -32,10 +32,10 @@ export const 측정본문 = z.object({
   record: z.boolean(),
 }).superRefine((b, ctx) => {
   const 막음 = (message: string) => ctx.addIssue({ code: 'custom', message });
-  if (new Set(b.devices.map((d) => d.serial)).size !== b.devices.length) 막음('기기가 겹칩니다');
-  if (new Set(b.metrics).size !== b.metrics.length) 막음('측정 항목이 겹칩니다');
-  if (b.caseIds !== undefined && new Set(b.caseIds).size !== b.caseIds.length) 막음('케이스가 겹칩니다');
-  if (b.drive !== 'MANUAL' && b.caseIds === undefined) 막음('Appium · 게임 케이스는 케이스를 고릅니다');
+  if (new Set(b.devices.map((d) => d.serial)).size !== b.devices.length) 막음('디바이스가 중복됩니다');
+  if (new Set(b.metrics).size !== b.metrics.length) 막음('측정 항목이 중복됩니다');
+  if (b.caseIds !== undefined && new Set(b.caseIds).size !== b.caseIds.length) 막음('케이스가 중복됩니다');
+  if (b.drive !== 'MANUAL' && b.caseIds === undefined) 막음('Appium · 게임 케이스는 케이스를 선택합니다');
   if (b.drive === 'MANUAL' && (b.durationSec === undefined || b.repeat !== 1)) 막음('직접 플레이는 측정 시간을 적고 반복은 1회입니다');
 });
 
@@ -118,13 +118,13 @@ export async function 팜기기재료(): Promise<{ serial: string; model: string
 async function 앱없는폰(팜: string, 패키지: string, serials: string[]): Promise<string | null> {
   try {
     const res = await fetch(`${팜}/api/devices?app=${encodeURIComponent(패키지)}`, { headers: 팜머리(process.env, await 서버팜토큰()), signal: AbortSignal.timeout(목록제한ms) });
-    if (!res.ok) return `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${res.status})`;
+    if (!res.ok) return `Device VISION 이 디바이스 목록을 주지 않았습니다 (HTTP ${res.status})`;
     // 주소가 틀려 다른 쪽이 HTML 을 주면 「닿지 못했다」가 아니라 주소를 보라고 한다 (execution/farm.ts 와 같은 말)
     const 몸 = (await res.json().catch(() => null)) as { value?: { devices?: { serial?: unknown }[] } } | null;
-    if (몸 === null) return 'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요';
+    if (몸 === null) return 'Device VISION 의 디바이스 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요';
     const 깔린 = new Set((몸.value?.devices ?? []).map((d) => d.serial));
     const 없는 = serials.find((serial) => !깔린.has(serial));
-    return 없는 === undefined ? null : `고른 폰 ${없는} 에 ${패키지} 가 깔려 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 폰을 고릅니다`;
+    return 없는 === undefined ? null : `선택한 디바이스 ${없는} 에 ${패키지} 가 설치되어 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 디바이스를 선택합니다`;
   } catch (err) {
     return `Device VISION 에 닿지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -141,7 +141,7 @@ async function 케이스검사(serviceId: number, caseIds: string[], 이름: str
   const 행 = new Map(r.rows.map((x) => [x.tc_id, x]));
   for (const id of caseIds) {
     const x = 행.get(id);
-    if (게임시나리오인가(id)) return `게임 시나리오는 기기 성능에 쓰지 않습니다: ${id}`;
+    if (게임시나리오인가(id)) return `게임 시나리오는 디바이스 성능에 쓰지 않습니다: ${id}`;
     if (x === undefined) return `이 애플리케이션의 케이스가 아닙니다: ${id}`;
     if (!x.platforms.includes('android')) return `${이름} 케이스가 아닙니다: ${id}`;
     // 프로시저에서 빠져 내려간 케이스는 같이 돌 수도 혼자 돌 수도 없다 (실행 §3.2 「반영」)
@@ -154,9 +154,9 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
   const 나쁨 = (detail: string): 거절 => ({ status: 400, error: 'INVALID_REQUEST', detail });
   const 종류 = (await (await 표.풀()).query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [b.serviceId])).rows[0]?.kind;
   if (종류 === undefined) return 나쁨('애플리케이션이 없습니다');
-  if (종류 === 'API') return 나쁨('API 애플리케이션은 기기 성능을 잴 수 없습니다');
+  if (종류 === 'API') return 나쁨('API 애플리케이션은 디바이스 성능을 잴 수 없습니다');
   // 게임 화면은 엔진이 그림으로 그려 Appium 이 버튼을 못 찾는다 — 게임은 게임 케이스로만 (§3.9 「조작 셋」)
-  if (b.drive === 'GAME' && 종류 !== 'GAME') return 나쁨('게임 케이스는 게임 애플리케이션만 고릅니다');
+  if (b.drive === 'GAME' && 종류 !== 'GAME') return 나쁨('게임 케이스는 게임 애플리케이션만 선택합니다');
   if (b.drive === 'APPIUM' && 종류 === 'GAME') return 나쁨('게임 애플리케이션은 게임 케이스로 잽니다');
   const 줄 = await 대상줄읽기(b.serviceId, b.env);
   if (줄 === null) return 나쁨('대상 서버가 없습니다');
@@ -166,7 +166,7 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
     if (까닭 !== null) return 나쁨(까닭);
     if (줄.appPath === null) return 나쁨('대상 서버 줄에 앱 파일이 없습니다');
     // 케이스는 서버 러너가 팜에서 잡은 폰으로 돌린다 — 내 컴퓨터 러너 폰에는 보낼 길이 없다
-    if (b.devices.some((d) => d.where !== 'FARM')) return 나쁨(`${b.drive === 'GAME' ? '게임' : 'Appium'} 케이스는 팜 폰만 잴 수 있습니다`);
+    if (b.devices.some((d) => d.where !== 'FARM')) return 나쁨(`${b.drive === 'GAME' ? '게임' : 'Appium'} 케이스는 Device VISION 디바이스만 잴 수 있습니다`);
     // 프로시저 안 케이스는 그 프로시저를 통째로 보낸다 — 못 돌리는 러너면 측정을 만들지 않는다 (§3.9 「기기 성능」)
     const 프로시저 = await (await 표.풀()).query('SELECT 1 FROM test_case WHERE tc_id = ANY($1::text[]) AND proc_id IS NOT NULL AND is_active LIMIT 1', [케이스]);
     if ((프로시저.rowCount ?? 0) > 0 && (await 프로시저못도는러너인가())) return { status: 409, error: 'RUNNER_NO_PROCEDURE' };
@@ -192,6 +192,6 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
     [b.serviceId, b.env, 줄.baseUrl, JSON.stringify(config), 누가.username, 누가.name],
   );
   const runId = Number(r.rows[0]?.id);
-  await 표.로그(runId, `기기 성능 측정을 만들었습니다 — 기기 ${b.devices.length}대`);
+  await 표.로그(runId, `디바이스 성능 측정을 만들었습니다 — 디바이스 ${b.devices.length}대`);
   return { runId };
 }

@@ -45,7 +45,7 @@ const 재료 = (p: 프로시저재료): 실패재료 => ({
 describe('프로시저 안 케이스의 이슈 본문', () => {
   it('프로시저 줄 · 앞서 실패한 케이스 · 후속 케이스를 적고 재현 단계를 프로시저 처음부터 번호를 이어 싣는다', () => {
     const 글 = 이슈본문(재료(프로시저()));
-    expect(글).toContain('**프로시저** — MTA-TP-012 글쓰기 — 입력 제한부터 게시까지 · 3번째 / 4');
+    expect(글).toContain('**프로시저** — MTA-TP-012 글쓰기 — 입력 제한부터 게시까지 · 4건 중 3번째');
     expect(글).toContain('**앞서 실패한 케이스** — MTA-FN-102');
     expect(글).toContain('**후속 케이스** — MTA-FN-104 게시 확인');
     const 재현 = 글.slice(글.indexOf('### 재현 단계'), 글.indexOf('### 기대 (PRD)'));
@@ -64,7 +64,7 @@ describe('프로시저 안 케이스의 이슈 본문', () => {
 
   it('앞서 실패한 케이스 · 후속 케이스가 없으면 그 줄을 적지 않는다', () => {
     const 글 = 이슈본문(재료(프로시저({ seq: 1, 앞케이스: [], 앞실패: [], 후속: [] })));
-    expect(글).toContain('· 1번째 / 4');
+    expect(글).toContain('· 4건 중 1번째');
     expect(글).not.toContain('앞서 실패한 케이스');
     expect(글).not.toContain('후속 케이스');
   });
@@ -74,7 +74,7 @@ describe('프로시저 안 케이스의 이슈 본문', () => {
     const 글 = 이슈본문(재료(프로시저({ 앞케이스: [{ tcId: 'MTA-FN-101', tcName: '글쓰기 창 열기', 판정: 'Pass', steps: 긴절차 }], 앞실패: [] })));
     expect(Buffer.byteLength(글, 'utf8')).toBeLessThanOrEqual(본문상한);
     expect(글).toContain('- MTA-FN-101 글쓰기 창 열기 — Pass');
-    expect(글).toContain('앞서 돈 케이스의 절차는 Test Commander 실행 결과에서');
+    expect(글).toContain('앞서 실행한 케이스의 절차는 Test Commander 실행 결과에서');
     expect(글).not.toContain('앞 절차 0');
     expect(글).toContain('2. 사진을 고른다 ← 여기서 실패');
   });

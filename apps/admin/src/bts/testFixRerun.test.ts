@@ -198,7 +198,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await pool.query(`UPDATE run_item SET status = 'NA', error = '{"message":"PREP_FAILED"}', finished_at = now() WHERE run_id = $1`, [다시]);
     await pool.query(`UPDATE test_run SET status = 'PREP_FAILED', prep_note = 'HTTP 503 · seed down' WHERE run_id = $1`, [다시]);
     await 테스트수정실행뒤(다시, 답());
-    const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 고친 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요\nHTTP 503 · seed down';
+    const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 수정한 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요\nHTTP 503 · seed down';
     expect(await 줄(id)).toMatchObject({ state: 'FAILED', reason: 까닭 });
     expect(await 보낼것('DM-12')).toEqual(되돌림(까닭));
   });
@@ -225,8 +225,8 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
       [서비스, id],
     );
     await 테스트수정점검(답());
-    expect(await 줄(id)).toMatchObject({ state: 'FAILED', reason: '실제 폰을 못 잡아 확인하지 못했어요', rerun_id: null });
-    expect(await 보낼것('DM-4')).toEqual(되돌림('실제 폰을 못 잡아 확인하지 못했어요'));
+    expect(await 줄(id)).toMatchObject({ state: 'FAILED', reason: '실제 디바이스를 할당하지 못해 확인하지 못했어요', rerun_id: null });
+    expect(await 보낼것('DM-4')).toEqual(되돌림('실제 디바이스를 할당하지 못해 확인하지 못했어요'));
   });
 
   it('고침 작성이 실패 · 멈춤 · PR 없이 끝나면 점검이 되돌린다 · 자동 반영이 실패하면 사람 확인 댓글', async () => {
@@ -237,7 +237,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     expect(await 보낼것('DM-5')).toEqual(되돌림('테스트 수정 작성이 실패했어요'));
     const 없음 = await 바퀴('DM-6', 'XQR-FN-006', 실패, { pr: null });
     await 테스트수정점검(답());
-    expect(await 줄(없음)).toMatchObject({ state: 'FAILED', reason: '고칠 곳을 찾지 못했어요' });
+    expect(await 줄(없음)).toMatchObject({ state: 'FAILED', reason: '수정할 곳을 찾지 못했어요' });
 
     const 자동 = await 바퀴('DM-7', 'XQR-FN-007', 실패, { merge: 'AUTO' });
     const 뿌리 = Number((await pool.query<{ request_id: string }>('SELECT request_id FROM bts_test_fix WHERE id = $1', [자동])).rows[0]!.request_id);

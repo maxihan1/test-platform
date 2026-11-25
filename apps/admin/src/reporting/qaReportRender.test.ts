@@ -164,10 +164,10 @@ describe('QA 리포트 HTML', () => {
     expect(html).toContain('결제 API 가 느립니다\n· DB 잠금 대기');
     expect(html).toContain('<div class="trend"><svg');
     expect(칸글(html)).toContain('<td>POST /cart</td><td>1,200</td><td>1.00%</td>');
-    expect(html).toContain('PRF-0008 기기 성능');
+    expect(html).toContain('PRF-0008 디바이스 성능');
     expect(칸글(html)).toContain('<td>평균 FPS</td><td>SM-S918N (R3CT)</td><td>≥ 45.0 FPS</td><td>52.3 FPS</td>');
     expect(칸글(html)).toContain('<td>메모리 최대</td><td>전체</td>');
-    expect(html).toContain('기기 성능 · 판정 진행 중');
+    expect(html).toContain('디바이스 성능 · 판정 진행 중');
   });
 
   it('안정화는 세 겹 머리 뒤에 신규 · 증가 · 재발 오류 종류와 AI 실행 요약을 그대로 싣는다', () => {

@@ -49,9 +49,9 @@ describe('앱화면받기', () => {
   });
 
   it('서버가 읽지 못한 까닭을 말하면 그대로 돌려준다 — 작성은 간다', async () => {
-    서버가({ screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' });
+    서버가({ screen: null, reason: '디바이스가 다른 실행에 쓰이는 중이다' });
 
-    expect(await 앱화면받기(서버, 7, 자료)).toEqual({ 못읽음: '폰이 다른 실행에 쓰이는 중이다' });
+    expect(await 앱화면받기(서버, 7, 자료)).toEqual({ 못읽음: '디바이스가 다른 실행에 쓰이는 중이다' });
     expect(existsSync(앱화면파일(자료))).toBe(false);
   });
 
@@ -60,7 +60,7 @@ describe('앱화면받기', () => {
     await 앱화면받기(서버, 7, 자료);
     expect(existsSync(앱화면파일(자료))).toBe(true);
 
-    서버가({ screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' });
+    서버가({ screen: null, reason: '디바이스가 다른 실행에 쓰이는 중이다' });
     await 앱화면받기(서버, 7, 자료);
 
     expect(existsSync(앱화면파일(자료))).toBe(false);
@@ -420,7 +420,7 @@ describe('줄프롬프트 — 앱 화면 절 (도메인/작성 §3.6 「앱 화�
     const 탐색 = { url: 'http://farm:4723/wd/hub', app: 'http://files/app.apk' };
 
     expect(부르기({ 글: '/w/a.txt', 탐색 })).toContain('npx appium-cli');
-    const 글 = 부르기({ 못읽음: '폰이 다른 실행에 쓰이는 중이다', 탐색 });
+    const 글 = 부르기({ 못읽음: '디바이스가 다른 실행에 쓰이는 중이다', 탐색 });
     expect(글).toContain('「폰은 언제 놓나」');
     expect(글).toContain('Android 앱 작성은 close 만 하고 release 하지 않는다');
     expect(글).not.toContain('폰을 잡았으면 끝에 꼭 close · release');

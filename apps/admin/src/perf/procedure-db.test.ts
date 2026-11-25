@@ -107,9 +107,9 @@ describe.skipIf(연결 === undefined)('기기 성능 — 테스트 프로시저'
 
       const 로그 = (await f.판.pool.query<{ message: string }>(`SELECT message FROM perf_event WHERE run_id = $1 AND level = 'WARN' ORDER BY id`, [runId])).rows.map((x) => x.message);
       expect(로그).toEqual([
-        'SM-A236 1회차 XQDP-FN-102 가 FAIL 로 끝났습니다',
+        'SM-A236 1회차 XQDP-FN-102 가 FAIL 로 종료되었습니다',
         'SM-A236 1회차 XQDP-FN-103 는 선행 케이스 XQDP-FN-102 가 통과하지 못해 실행하지 못했습니다',
-        'SM-A236 2회차 XQDP-FN-102 가 FAIL 로 끝났습니다',
+        'SM-A236 2회차 XQDP-FN-102 가 FAIL 로 종료되었습니다',
         'SM-A236 2회차 XQDP-FN-103 는 선행 케이스 XQDP-FN-102 가 통과하지 못해 실행하지 못했습니다',
       ]);
     } finally {

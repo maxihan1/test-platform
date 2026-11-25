@@ -155,7 +155,7 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
   it('OpenAPI 3 JSON 이 아니면 400 BAD_API_DOC 과 까닭 · 5MB 를 넘으면 413', async () => {
     expect((await 올리기('{"swagger":"2.0"}')).json()).toEqual({
       error: 'BAD_API_DOC',
-      reason: 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 올려 주세요',
+      reason: 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 업로드해 주세요',
     });
     expect((await 올리기(Buffer.alloc(5 * 1024 * 1024 + 1, 32))).statusCode).toBe(413);
     const 이름둘 = await app.inject({

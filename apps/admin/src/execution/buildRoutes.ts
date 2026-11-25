@@ -156,7 +156,7 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
       const 지움 = await pool.query<{ file_path: string | null }>('DELETE FROM app_build WHERE id = $1 RETURNING file_path', [buildId]);
       const 파일 = 지움.rows[0]?.file_path;
       if (파일 != null) await rm(파일, { force: true });
-      throw new Error(`빌드 ${값.buildNo} 의 실행을 걸지 못해 빌드를 지웠다 — 같은 번호로 다시 부르면 된다: ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error(`빌드 ${값.buildNo} 의 실행을 걸지 못해 빌드를 삭제했다 — 같은 번호로 다시 부르면 된다: ${e instanceof Error ? e.message : String(e)}`);
     }
     // 실행을 다 건 뒤에 치운다 — 방금 건 실행이 쥔 빌드는 도는 중이라 남는다. 못 치워도 실행은 이미 섰다 — 로그로만 남기고 다음 올리기가 다시 치운다
     await 오래된빌드치우기(주인.serviceId, 값.env).catch((err: unknown) => {

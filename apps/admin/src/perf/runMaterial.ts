@@ -18,14 +18,14 @@ export async function 재료(runId: number): Promise<{ run: 표.실행행; txs: 
   const 줄 = await 대상줄읽기(run.serviceId, run.env);
   if (v.rows[0] === undefined || 줄 === null) throw new Error('시나리오 버전이나 대상 서버 줄이 없어졌습니다');
   // 대기하는 사이 그 줄이 실서비스 서버가 될 수 있다 — 부하를 걸기 직전에 한 번 더 본다 (§3.9 결정 10)
-  if (줄.isProd) throw new Error('대상 서버가 실서비스 서버로 바뀌어 부하를 걸지 않았습니다');
+  if (줄.isProd) throw new Error('대상 서버가 실서비스 서버로 변경되어 부하를 걸지 않았습니다');
   const env: Record<string, string> = { BASE_URL: run.baseUrl };
   if (줄.loginId) env.ACCOUNT_ID = 줄.loginId;
   if (줄.loginPassword) env.ACCOUNT_PW = 줄.loginPassword;
   const rows = (v.rows[0].accounts_csv ?? '').split(/\r?\n/).filter((l) => l.trim() !== '');
   const dummyId = v.rows[0].body.dummyClient;
   const dummy = dummyId === undefined ? null : await 더미읽기(dummyId);
-  if (dummyId !== undefined && dummy === null) throw new Error('더미 클라이언트가 지워졌습니다');
+  if (dummyId !== undefined && dummy === null) throw new Error('더미 클라이언트가 삭제되었습니다');
   return { run, txs: v.rows[0].body.transactions ?? [], env, rows, dummy };
 }
 

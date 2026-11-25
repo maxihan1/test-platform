@@ -117,9 +117,9 @@ export async function 걸기(줄: 줄, 부르기: 부르기함수): Promise<void
   const 차지 = await pool.query(`UPDATE bts_test_fix SET state = 'RERUNNING', updated_at = now() WHERE id = $1 AND state = 'WAIT_MERGE'`, [줄.id]);
   if (차지.rowCount !== 1) return;
   const 재료 = await 실행재료(줄);
-  if (재료 === null) return 되돌리기(줄, '처음 실패한 실행이 지워져 다시 실행하지 못했어요');
+  if (재료 === null) return 되돌리기(줄, '처음 실패한 실행이 삭제돼 다시 실행하지 못했어요');
   // 폰이 다른 실행에 쓰이는 중이면 보통 실행처럼 차례를 기다린다 — 팜이 아예 없을 때만 되돌린다
-  if (팜을본다(재료.items, process.env, 재료.mobileOn) !== null) return 되돌리기(줄, '실제 폰을 못 잡아 확인하지 못했어요');
+  if (팜을본다(재료.items, process.env, 재료.mobileOn) !== null) return 되돌리기(줄, '실제 디바이스를 할당하지 못해 확인하지 못했어요');
   try {
     // 실행 쪽이 bts 를 가져오므로(실행 끝 실패 등록) 부를 때 가져온다
     const { createRun } = await import('../execution/store.js');
@@ -193,7 +193,7 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
   if (!(await 이어가나(줄, 부르기))) return;
   // 고친 테스트가 틀린 것이 아니라 데이터 준비가 안 됐다 — 스스로 다시 걸지 않는다. 준비 주소가 꺼져 있으면 60초마다 실행이 쌓인다 (도메인/BTS 「테스트 수정 바퀴」 5)
   if (실행?.status === 'PREP_FAILED') {
-    const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 고친 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요';
+    const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 수정한 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요';
     return 되돌리기(줄, 실행.prep_note === null ? 까닭 : `${까닭}\n${실행.prep_note}`);
   }
   const 디바이스 = [...new Set(항목.filter((i) => 통과 || i.status !== 'PASS').map((i) => 디바이스이름(i.platform, i.real)))].join(' · ');

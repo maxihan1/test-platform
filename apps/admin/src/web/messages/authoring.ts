@@ -298,7 +298,7 @@ export const 작성말: Record<string, string> = {
   'GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구사항을 이어 작성할 수 있습니다.':
     'Even if the PR was applied on GitHub, apply here to follow up on the remaining requirements.',
   // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
-  '번호가 겹쳐 반영할 때 새 번호를 받습니다': 'The ID overlaps, so it gets a new ID when merged',
+  '번호가 중복되어 반영할 때 새 번호를 받습니다': 'The ID overlaps, so it gets a new ID when merged',
   '반영하지 못했습니다': 'The merge did not go through',
   '같은 자료로 다시 작성하면 지금까지 반영된 케이스를 기준으로 처음부터 다시 만듭니다. 지금까지의 실행은 실행 기록에 남습니다.':
     'Writing again from the same material rebuilds on the cases applied so far. Earlier runs stay in the run history.',

@@ -123,7 +123,7 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       }
       // 거절이면 남이 잡은 폰이다. 그 폰에 놓기를 보내면 쓰던 사람이 쫓겨난다
       if (res.ok) 시도함 = true;
-      if (!res.ok) throw new Error(`Device VISION 이 폰을 내주지 않았습니다: ${await 거절문장(res)}`);
+      if (!res.ok) throw new Error(`Device VISION 이 디바이스를 할당하지 않았습니다: ${await 거절문장(res)}`);
       잡음읽기(await res.json().catch(() => null));
     },
     async 새줄(since) {
@@ -136,7 +136,7 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       const res = await 부르기(`${주소()}/hold/extend`, {
         method: 'POST', headers: { 'content-type': 'application/json', ...(await 머리()) }, body: JSON.stringify({ minutes: 분 }), signal: AbortSignal.timeout(팜제한ms),
       });
-      if (!res.ok) throw new Error(`Device VISION 이 잡기를 늘려 주지 않았습니다: ${await 거절문장(res)}`);
+      if (!res.ok) throw new Error(`Device VISION 이 할당 시간을 늘려 주지 않았습니다: ${await 거절문장(res)}`);
       const 몸 = await res.json().catch(() => null);
       if ((몸 as { held?: unknown } | null)?.held !== undefined) 잡음읽기(몸);
       else 끝 = (끝 ?? Date.now()) + 분 * 60_000;
@@ -159,7 +159,7 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       if (!시도함) return;
       시도함 = false;
       const res = await 부르기(`${주소()}/hold`, { method: 'DELETE', headers: await 머리(), signal: AbortSignal.timeout(팜제한ms) });
-      if (!res.ok) throw new Error(`폰 ${serial} 을 놓지 못했습니다 (${await 거절문장(res)})`);
+      if (!res.ok) throw new Error(`디바이스 ${serial} 을 반납하지 못했습니다 (${await 거절문장(res)})`);
     },
   };
 }
@@ -200,7 +200,7 @@ export function 로컬기록기(serial: string, 주소: string, 부르기: typeo
       const id = recId;
       recId = null;
       const res = await 부르기(`${주소}/perf/device/${encodeURIComponent(id)}/stop`, { method: 'POST', headers: 러너머리(), signal: AbortSignal.timeout(파일제한ms) });
-      if (!res.ok) throw new Error(`내 컴퓨터 러너가 측정을 멈추지 않았습니다: ${await 거절문장(res)}`);
+      if (!res.ok) throw new Error(`내 컴퓨터 러너가 측정을 중단하지 않았습니다: ${await 거절문장(res)}`);
       const { files } = (await res.json().catch(() => ({}))) as { files?: unknown };
       const 조각 = Array.isArray(files) ? files.filter((f): f is string => typeof f === 'string' && f === basename(f)) : [];
       if (폴더 === null) return;

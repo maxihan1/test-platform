@@ -167,8 +167,8 @@ export function 조립검사(
 
   const 오류: string[] = [];
   // 시작 애플리케이션이 앱 · 게임이면 디바이스는 android 하나고, 웹이면 android 를 못 고른다 (결정 16)
-  if (종류.has(service) && platform !== 'android') 오류.push(`${service} 는 Android 앱 · 게임 애플리케이션이라 디바이스는 android 만 고른다`);
-  if (!종류.has(service) && platform === 'android') 오류.push(`${service} 는 Android 앱 · 게임 애플리케이션이 아니라 android 를 고를 수 없다`);
+  if (종류.has(service) && platform !== 'android') 오류.push(`${service} 는 Android 앱 · 게임 애플리케이션이라 디바이스는 android 만 선택한다`);
+  if (!종류.has(service) && platform === 'android') 오류.push(`${service} 는 Android 앱 · 게임 애플리케이션이 아니라 android 를 선택할 수 없다`);
   // 폰 연결 하나에 앱 하나다
   const 앱들 = [...new Set(parts.flatMap((p) => (p.kind === 'case' && 앱단계인가(p, 종류) ? [케이스접두사(p.tcId)] : [])))];
   if (앱들.length > 1) 오류.push(`앱 · 게임 애플리케이션은 한 시나리오에 하나다: ${앱들.join(' · ')}`);
@@ -183,8 +183,8 @@ export function 조립검사(
       if (!허용.some((접두사) => p.tcId.startsWith(`${접두사}-`))) {
         오류.push(
           허용.length === 1
-            ? `${자리}: ${p.tcId} 는 ${service} 서비스의 케이스가 아니다`
-            : `${자리}: ${p.tcId} 는 ${service} 서비스와 같은 프로젝트의 애플리케이션 케이스가 아니다`,
+            ? `${자리}: ${p.tcId} 는 ${service} 애플리케이션의 케이스가 아니다`
+            : `${자리}: ${p.tcId} 는 ${service} 애플리케이션과 같은 프로젝트의 케이스가 아니다`,
         );
         return;
       }
@@ -208,9 +208,9 @@ export function 조립검사(
       // 앱은 폰 안에서 자기 서버와 바로 주고받아 러너가 그 요청을 못 본다 — 결정 16 표가 정본이고 러너 입구(scenarioGate.ts)도 막는다
       if (앱단계) {
         if (켜진모킹.size > 0) 오류.push(`${자리}: 앱 · 게임 단계가 모킹 구간 안에 있다 — 모킹은 앱 단계 앞에서 끈다`);
-        if (p.carryOver === false) 오류.push(`${자리}: 앱 · 게임 단계는 넘겨받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다`);
+        if (p.carryOver === false) 오류.push(`${자리}: 앱 · 게임 단계는 로그인 이어받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다`);
         if (p.links?.some((l) => l.kind !== 'bind') === true) {
-          오류.push(`${자리}: 앱 · 게임 단계에는 값 꽂기만 건다 — 앞 응답 돌려주기 · 요청 막기 · 바꿔 보내기는 앱 요청에 안 걸린다`);
+          오류.push(`${자리}: 앱 · 게임 단계에는 값 주입만 건다 — 이전 응답 재사용 · 요청 차단 · 수정 요청으로 변경은 앱 요청에 적용되지 않는다`);
         }
       }
       if (케이스.proc !== undefined) {
@@ -254,7 +254,7 @@ export function 조립검사(
     } else if (p.kind === 'api') {
       if (!바른경로(p.path)) 오류.push(`${자리}: API 경로는 ${경로규칙}`);
       if (p.service !== undefined && !허용.includes(p.service)) {
-        오류.push(`${자리}: API 호출의 애플리케이션 ${p.service} 는 ${service} 서비스와 같은 프로젝트가 아니다`);
+        오류.push(`${자리}: API 호출의 애플리케이션 ${p.service} 는 ${service} 애플리케이션과 같은 프로젝트가 아니다`);
       }
       // API 인증 이름은 설정과 같은 1~20자다. 그 대상 서버에 있는지는 실행 때 러너가 본다 — 이름은 서버마다 따로 넣는다 (결정 14)
       if (p.auth !== undefined && (p.auth.length < 1 || p.auth.length > 20)) 오류.push(`${자리}: API 인증 이름은 1~20자다`);

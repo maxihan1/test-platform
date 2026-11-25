@@ -69,7 +69,7 @@ export function 실행돌리기(runId: number): void {
     .catch(async (e: unknown) => {
       console.error(`[compat] 실행 ${runId} 이 깨졌다: ${글(e)}`);
       // 깨진 채 RUNNING 으로 남으면 알림 줄 · 실행 기록이 영원히 「도는 중」이다. 돌던 케이스도 결과를 받을 쪽이 없어 닫는다
-      const 까닭 = `실행이 멈췄습니다: ${글(e)}`;
+      const 까닭 = `실행이 중단되었습니다: ${글(e)}`;
       await 실행멈추기(runId, 까닭).catch(() => undefined);
       await 안끝난케이스닫기(runId, 까닭).catch(() => undefined);
     })
@@ -85,7 +85,7 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
   try {
     토큰 = await 실행팜토큰(runId);
   } catch (e) {
-    return { 까닭: `누른 사람의 팜 토큰을 고르지 못했습니다: ${글(e)}` };
+    return { 까닭: `누른 사람의 Device VISION 토큰을 찾지 못했습니다: ${글(e)}` };
   }
   const 줄 = await 대상줄읽기(머리.serviceId, 머리.env);
   if (줄 === null) return { 까닭: `${머리.env} 대상 서버가 없어졌습니다` };
@@ -170,7 +170,7 @@ async function 돌기(runId: number, s: 도는실행): Promise<void> {
     for (const d of [...남은]) {
       const 합 = (기다림.get(d.seq) ?? 0) + 지남;
       기다림.set(d.seq, 합);
-      if (합 >= 설정.잡기상한ms) await 빼기(d.seq, '디바이스를 잡지 못했습니다');
+      if (합 >= 설정.잡기상한ms) await 빼기(d.seq, '디바이스를 할당하지 못했습니다');
     }
   }
   await Promise.all(s.점검들);
@@ -229,7 +229,7 @@ async function 케이스돌기(재: 실행재료, s: 도는실행, seq: number, 
   const 재료 = 재.케이스.get(c.tcId);
   // 지워졌거나 폰에서 안 도는 케이스 — 세트에는 남고 실행 때 건너뛴다 (§3.13 「호환성 세트」)
   if (재료 === undefined) {
-    await 케이스끝(c.id, { status: 'NA', failedStep: null, steps: [], error: { message: '케이스가 없어졌거나 폰에서 돌지 않습니다' }, checkState: null });
+    await 케이스끝(c.id, { status: 'NA', failedStep: null, steps: [], error: { message: '케이스가 없어졌거나 디바이스에서 실행되지 않습니다' }, checkState: null });
     return;
   }
   const 연결 = await 연결칸(재, 재료.platform, serial);

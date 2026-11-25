@@ -20,7 +20,7 @@ export async function 반영끝났나(뿌리: string): Promise<boolean> {
   return (r.rowCount ?? 0) > 0;
 }
 
-export const 디바이스이름 = (platform: string, real: boolean): string => (platform === 'desktop' ? 'PC' : platform === 'android' ? 'Android 앱' : real ? '실제 폰' : '모바일');
+export const 디바이스이름 = (platform: string, real: boolean): string => (platform === 'desktop' ? 'PC' : platform === 'android' ? 'Android 앱' : real ? '실제 디바이스' : '모바일');
 
 /**
  * 댓글의 「RUN N」 과 다음 줄 고리 — 사람이 화면에서 찾을 수 있는 실행이다. 붙은 한 건은 붙은 실행(그 화면에 결과가 바꿔 끼워진다),

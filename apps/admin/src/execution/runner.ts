@@ -198,9 +198,9 @@ export async function 폰에보낸다(runId: number, 것: 보낼것, 멈췄나: 
   const 폰Chrome = item.platform === 'mobile' && item.실제폰 === true;
   // 윈도우 PC 는 디스패처가 실행 하나 동안 잡고 깐 PC 로만 간다 — 러너 · kit 은 Appium 세션을 안 만든다
   if (PC항목인가(item.platform)) {
-    if (잡은폰?.게임 === undefined) return 못감('Windows PC 를 잡지 않은 항목입니다');
+    if (잡은폰?.게임 === undefined) return 못감('Windows PC 를 할당하지 않은 항목입니다');
     const pc = 잡은폰;
-    if (멈췄나()) return 못감('멈춘 실행이라 러너에 보내지 않았습니다');
+    if (멈췄나()) return 못감('중단된 실행이라 러너에 보내지 않았습니다');
     항목폰화면(번호, pc.화면, pc.이름);
     // PC 는 kit 이 장면 사진을 안 찍는다 — 카드가 VISION 화면 영상을 받아 간다 (도메인/게임 §3.10 「증적 · 결과」)
     PC화면을단다(`item:${String(번호)}`, { serial: pc.udid, 토큰: pc.토큰 });
@@ -213,7 +213,7 @@ export async function 폰에보낸다(runId: number, 것: 보낼것, 멈췄나: 
   }
   if (item.platform !== 'android' && !폰Chrome) return 보낸다(body);
   // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 닫는 쪽이 덮지 않는다(finished_at IS NULL). 폰을 잡는 몇 초 사이에 멈췄는지 잡은 뒤 본다
-  const 멈춤 = (): ExecuteResponse | null => (멈췄나() ? 못감('멈춘 실행이라 러너에 보내지 않았습니다') : null);
+  const 멈춤 = (): ExecuteResponse | null => (멈췄나() ? 못감('중단된 실행이라 러너에 보내지 않았습니다') : null);
   // 폰을 잡은 토큰을 러너도 써야 팜이 연결을 받는다. 서버 몫이면 안 싣는다 — 러너가 자기 환경값으로 같은 값을 든다
   const 보낸다폰 = async (udid: string, 토큰: string | undefined): Promise<ExecuteResponse> => {
     const 멈춘 = 멈춤();
@@ -246,7 +246,7 @@ export async function 폰에보낸다(runId: number, 것: 보낼것, 멈췄나: 
   try {
     토큰 = await 실행팜토큰(runId);
   } catch (err) {
-    return 못감('누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
+    return 못감('누른 사람의 Device VISION 토큰을 찾지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   if (폰Chrome) {
     return 폰Chrome으로(

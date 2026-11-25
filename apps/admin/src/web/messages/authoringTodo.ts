@@ -75,7 +75,7 @@ export const 작성할일말: Record<string, string> = {
   '요구사항 중복': 'Same requirement',
   '이름 중복': 'Same name',
   '중복 케이스': 'Duplicate cases',
-  '먼저 반영된 케이스와 번호 · 요구사항 · 이름이 겹칩니다. 케이스마다 선택한 뒤에 반영할 수 있습니다.': 'These share an ID, requirement or name with cases already applied. Choose for each case before applying.',
+  '먼저 반영된 케이스와 번호 · 요구사항 · 이름이 중복됩니다. 케이스마다 선택한 뒤에 반영할 수 있습니다.': 'These share an ID, requirement or name with cases already applied. Choose for each case before applying.',
   '모두 유지': 'Keep all',
   '중복 항목': 'What is the same',
   '기존 케이스': 'Existing case',

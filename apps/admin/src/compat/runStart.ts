@@ -42,7 +42,7 @@ export async function 호환성실행시작(
     if (정기 === undefined) throw new 호환성실행오류('RUNNER_NO_PROCEDURE', '서버 테스트 실행기가 테스트 프로시저를 실행하지 못하는 버전입니다');
     돌단위 = 단위.filter((x) => !프로시저(x.u));
   }
-  if (돌단위.length === 0) throw new 호환성실행오류('NO_CASE', '고를 케이스가 없습니다');
+  if (돌단위.length === 0) throw new 호환성실행오류('NO_CASE', '선택할 케이스가 없습니다');
   const 고른 = 돌단위.flatMap(({ u, picked }) => u.map((c) => ({ tcId: c.tcId, name: c.name, picked, ...(c.proc !== undefined && { procId: c.proc.id }) })));
   const 파일 = await (await db()).query<{ tc_id: string; file_path: string }>('SELECT tc_id, file_path FROM test_case WHERE tc_id = ANY($1::text[])', [
     고른.map((c) => c.tcId),

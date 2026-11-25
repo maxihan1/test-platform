@@ -17,7 +17,7 @@ const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XEC';
 const 맥 = 'xec-맥';
 const 케이스번호들 = ['XEC-001', 'XEC-002', 'XEC-003', 'XEC-004'];
-const 못받음 = 'main 을 못 받아 와 저장값을 안 지웠다';
+const 못받음 = 'main 을 못 받아 와 저장값을 삭제하지 않았다';
 
 const edits = [
   { tcId: 'XEC-001', expected: { title: '새 제목' } },
