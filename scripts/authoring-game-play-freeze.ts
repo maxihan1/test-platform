@@ -35,6 +35,9 @@ export async function 풀기(게임: Pick<Game, 'setTimeScale'>, 자료: string 
       return r;
     }
     r.배율 = 표시.배율;
+  } else if (앞배율 === 0) {
+    // 게임이 스스로 멈춘 채 불렸던 판을 멈춰 풀 값이 0 으로 적혔다 — 풀 것이 없지만 말없이 두면 판이 왜 안 흐르는지 모른다
+    r.알림말.push('지금 시간 배율이 0 이다 — 멈춤 표시의 풀 값도 0 이라 풀지 않았다. 판이 안 흐른다');
   }
   if (앞배율 !== null) 멈춤표시지우기(자료);
   return r;

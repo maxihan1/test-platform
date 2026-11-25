@@ -100,6 +100,17 @@ describe('멈춰 가며 하기', () => {
     expect((await 돌린다(덧없이.길, 읽기만, {}, 5_000)).알림말).toHaveLength(1);
   });
 
+  it('표시의 풀 값이 0 이면 풀 것이 없다 — 표시를 지우고 판이 안 흐른다고 알린다', async () => {
+    const d = 새자료();
+    멈춤표시쓰기(d, 0);
+    const g = 가짜(0);
+    const r = await 돌린다(g.길, 읽기만, {}, 5_000, undefined, { 자료: d });
+    expect(g.명령.filter((x) => x.startsWith('timescale-set'))).toEqual([]);
+    expect(r.배율).toBe(0);
+    expect(r.알림말).toEqual([expect.stringContaining('판이 안 흐른다')]);
+    expect(멈춤표시읽기(d)).toBeNull();
+  });
+
   it('이미 0배인 게임을 멈추라 하면 표시를 안 쓰고 알림만 싣는다', async () => {
     const d = 새자료();
     const g = 가짜(0);
