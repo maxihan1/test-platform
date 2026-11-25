@@ -34,12 +34,12 @@ export const 마지막늘림 = (자료: string | undefined, serial: string): num
 export const 늘림잊기 = (자료: string | undefined, serial: string): void => void (자료 !== undefined && 늘린때.delete(열쇠(자료, serial)));
 
 /**
- * 한 번 — 작업 폴더 `.appium-cli/held`(AI 가 잡은 폰)만 팜 `/hold/extend`. 409(아직 10분 넘게 남음 · 이미 풀림)는 조용히 넘긴다.
+ * 한 번 — 작업 폴더 `.appium-cli/held`(AI 가 잡은 폰 · 게임 학습은 `.control-cli/held` 의 폰이나 PC)만 팜 `/hold/extend`. 409(아직 10분 넘게 남음 · 이미 풀림)는 조용히 넘긴다.
  * `held-<번호>`(폰 돌려 보기가 더 잡은 폰)는 그 명령이 죽어 남은 것이라 늘리지 않는다 — 30분 뒤 팜이 풀어 다른 실행이 쓴다.
  * 던지지 않는다 — 못 늘리면 30분 뒤 팜이 풀고, AI 의 다음 명령이 「잡은 폰 없음」으로 알게 된다
  */
-export async function 잡기한번늘리기(트리: string, 팜: string, 토큰: string | undefined, 번호: number, 자료: string, 부르기: typeof fetch = fetch, 지금 = Date.now()): Promise<void> {
-  const 폴더 = join(트리, '.appium-cli');
+export async function 잡기한번늘리기(트리: string, 팜: string, 토큰: string | undefined, 번호: number, 자료: string, 부르기: typeof fetch = fetch, 지금 = Date.now(), 기록폴더 = '.appium-cli'): Promise<void> {
+  const 폴더 = join(트리, 기록폴더);
   for (const 이름 of (잡은기록들(폴더) ?? []).filter((n) => n === 'held')) {
     const 기록 = 기록읽기(join(폴더, 이름));
     if (기록 === null || '까닭' in 기록) continue;
@@ -61,7 +61,7 @@ export async function 잡기한번늘리기(트리: string, 팜: string, 토큰:
 const 늘리기_ms = 5 * 60_000;
 
 /** 자식이 도는 동안(세션 사이 · 크레딧→구독 이어 띄우기 포함) 5분마다 늘린다 — 끄는 함수를 돌려준다. 토큰은 부를 때마다 받는다(30분마다 갈아 끼운다) */
-export function 잡기늘리기(트리: string, 팜: string, 토큰: () => string | undefined, 번호: number, 자료: string): () => void {
-  const 타이머 = setInterval(() => void 잡기한번늘리기(트리, 팜, 토큰(), 번호, 자료), 늘리기_ms);
+export function 잡기늘리기(트리: string, 팜: string, 토큰: () => string | undefined, 번호: number, 자료: string, 기록폴더?: string): () => void {
+  const 타이머 = setInterval(() => void 잡기한번늘리기(트리, 팜, 토큰(), 번호, 자료, fetch, Date.now(), 기록폴더), 늘리기_ms);
   return () => clearInterval(타이머);
 }

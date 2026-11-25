@@ -33,8 +33,9 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 
 ## 열지 않는 파일
 
-웹 요소 찾기 파일과 다른 종류의 뗀 파일이다.
+웹 요소 찾기 파일과 다른 종류의 뗀 파일, 그리고 에이전트가 앞에서 따로 띄우는 학습 · 시험 세션만 여는 파일이다(배운 것은 게임 지도에서 찾기 명령으로 본다 — `game.md` §5).
 
+- `tpx-author/references/game-learn.md`
 - `tpx-cases/references/4-selector.md`
 - `tpx-cases/references/5-stable-web.md` · `tpx-cases/references/5-writing-web.md` · `tpx-cases/references/two-kinds-web.md` · `tpx-author/references/fanout-web.md` · `tpx-author/references/reverse-web.md`
 - `tpx-cases/references/5-stable-app.md` · `tpx-cases/references/5-writing-app.md`

@@ -11,6 +11,7 @@ import { Game, type Command, type Link } from 'control-cli';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
+import { 게임자리 } from './authoring-game.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
@@ -18,7 +19,7 @@ import { 잡은폰 } from './authoring-run3-game.js';
 import { 폴더인가 } from './authoring-screens-keep-io.js';
 
 /** 자료 폴더 안 기록 자리 — 부를 때마다 값 · 로그 · 오류 · 화면 한 벌 */
-export const 조작기록자리 = 'game-play';
+export const 조작기록자리 = 게임자리.조작기록;
 /** 셸 명령의 기본 한도(2분)에 게임에 붙는 시간과 거두는 시간을 남긴다 */
 const 기본초 = 90;
 /** 셸 명령의 최대 한도(10분)에 붙는 시간(켜지는 중이면 2분)과 거두는 시간을 남긴다 */

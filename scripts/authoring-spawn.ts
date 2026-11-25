@@ -16,6 +16,8 @@ export interface 돌린결과 {
   시간초과: boolean;
   /** 멈출 신호로 죽였다 — 사람이 「작성 중단」을 눌렀다 (작성 §7 「중단 · 폐기 · 진척」) */
   멈춤으로죽음: boolean;
+  /** 에이전트가 정한 마감(게임 학습 세션의 시간 · 컨텍스트)으로 죽였다 — 사람의 멈춤도 응답 없음도 아니다 */
+  마감으로끊김?: true;
 }
 
 /**
@@ -38,6 +40,8 @@ export function 돌린다(
     흘림?: boolean;
     흘림줄?: (줄: string) => string | null;
     신호?: AbortSignal;
+    /** 마감 신호 — 멈춤 신호와 따로 받는다. 같이 쓰면 교대가 사람의 「작성 중단」으로 적힌다 */
+    끊기?: AbortSignal;
   },
 ): Promise<돌린결과> {
   return new Promise((resolve) => {
@@ -45,6 +49,7 @@ export function 돌린다(
     let 오류 = '';
     let 시간초과 = false;
     let 멈춤으로죽음 = false;
+    let 마감으로끊김 = false;
     // 흘림줄이 있으면 표준출력을 줄로 잘라 고른 것만 흘린다. 조각이 줄 가운데서 끊기므로 남은 반쪽을 들고 있다
     let 반쪽 = '';
     const 자식 = spawn(명령, 인자, {
@@ -73,6 +78,13 @@ export function 돌린다(
     };
     if (선택.신호?.aborted) 멈추기();
     else 선택.신호?.addEventListener('abort', 멈추기, { once: true });
+    const 마감 = () => {
+      if (자식.exitCode !== null || 자식.signalCode !== null || 멈춤으로죽음) return;
+      마감으로끊김 = true;
+      자식.kill('SIGKILL');
+    };
+    if (선택.끊기?.aborted) 마감();
+    else 선택.끊기?.addEventListener('abort', 마감, { once: true });
     자식.stdout.on('data', (조각: Buffer) => {
       깨우기();
       const 글 = 조각.toString('utf8');
@@ -96,8 +108,9 @@ export function 돌린다(
       끝남 = true;
       clearTimeout(시계);
       선택.신호?.removeEventListener('abort', 멈추기);
+      선택.끊기?.removeEventListener('abort', 마감);
       도는자식.delete(자식);
-      resolve({ 코드, 낸것, 오류, 시간초과, 멈춤으로죽음 });
+      resolve({ 코드, 낸것, 오류, 시간초과, 멈춤으로죽음, ...(마감으로끊김 ? { 마감으로끊김 } : {}) });
     };
     자식.on('error', (err) => {
       오류 += err.message;
