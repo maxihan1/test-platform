@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
+import { 안적은새것 } from './authoring-game-play-spawns.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
 import { 잡은폰 } from './authoring-run3-game.js';
@@ -113,6 +114,11 @@ export async function 부를준비(명령: string, 머리: string, 인자: strin
     return null;
   }
   const 자료 = env[게임자료환경];
+  const 안적은 = 안적은새것(자료);
+  if (안적은 !== null) {
+    console.error(`${머리} 앞 판(${안적은.기록}.json)에 새로 나온 ${안적은.이름들.join(' · ')} 이(가) 지도에 없다 — ${안적은.기록}-새것.txt 의 펼친 글(없으면 다음에 보일 때 펼친다)을 보고 그 이름을 넣어 PROBE 나 ASK 줄로 적은 뒤 다시 부른다(회고 4 · 학습 세션만 막는다)`);
+    return null;
+  }
   const 환경 = { ...env, ...게임환경(폰), PLATFORM_PAD: '', PLATFORM_GAME_POPUPS: 돌발팝업값(자료) };
   return { 폴더, 파일, 이름, 자리, 넘길, 초, 함수: (game) => (함수 as (...a: unknown[]) => unknown)(game, ...넘길), 환경, 비밀들, 자료, ...(깃발.화면초 === undefined ? {} : { 화면초: 깃발.화면초 }), 멈춤: 깃발.멈춤 };
 }

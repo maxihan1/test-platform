@@ -1,6 +1,6 @@
 // 판 도중 새로 나온 것 — 도중 화면 간격마다 켜진 오브젝트를 종류별로 세고, 지도에 없는 새 종류는 처음 보일 때 한 번 펼친다 (도메인/게임 §3.10 「조작 도우미」)
 // 판이 끝나면 보스 · 웨이브의 적이 사라져 펼칠 것이 없다 — 보이는 그 자리에서 펼친다. 숨겨 뒀다 켠 것도 find-all(꺼진 것은 뺀다)에 켜지는 순간 나온다
-import { readFileSync } from 'node:fs';
+import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Found, Game } from 'control-cli';
@@ -234,6 +234,37 @@ export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number
       return { 나온: 처음경로 === null ? null : structuredClone(나온), 못함: 실패 === 0 ? null : `오브젝트 세기 ${실패}번 못 함: ${첫까닭}` };
     },
   };
+}
+
+/** 앞 판을 볼 기록 수 — 최근 것부터 이만큼에서 「새로 나온 것」을 센 기록을 찾는다 */
+const 볼기록 = 20;
+
+/**
+ * 학습 세션이면 앞 판에 새로 나온 것 가운데 아직 지도에 없는 이름 — 다음 판을 돌리기 전에 적게 한다(회고 4).
+ * 지침만으로는 AI 가 회고를 건너뛰고 다음 판으로 갔다(2026-11-26 사용자 「지침이 새지 않도록 강제화」). 학습 세션이 아니거나 없으면 null
+ */
+export function 안적은새것(자료: string | undefined): { 기록: string; 이름들: string[] } | null {
+  if (자료 === undefined || lstatSync(join(자료, 게임자리.배우는중), { throwIfNoEntry: false })?.isFile() !== true) return null;
+  const 폴더 = join(자료, 게임자리.조작기록);
+  let 이름들: string[];
+  try {
+    이름들 = readdirSync(폴더).filter((x) => /^\d{17}-.+\.json$/.test(x)).sort().reverse().slice(0, 볼기록);
+  } catch {
+    return null;
+  }
+  for (const 이름 of 이름들) {
+    let 나온: 나온것 | undefined;
+    try {
+      나온 = (JSON.parse(readFileSync(join(폴더, 이름), 'utf8')) as { 나온것?: 나온것 }).나온것;
+    } catch {
+      continue;
+    }
+    if (나온 === undefined) continue;
+    const 지도 = 지도글(자료);
+    const 안적은 = 나온.지도에없음.filter((k) => !지도.includes(k));
+    return 안적은.length === 0 ? null : { 기록: join(폴더, 이름.replace(/\.json$/, '')), 이름들: 안적은 };
+  }
+  return null;
 }
 
 /** 종류 하나의 수 — 그때 센 값이 없으면 처음과 같다 */

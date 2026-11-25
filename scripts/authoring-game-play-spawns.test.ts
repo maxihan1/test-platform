@@ -4,16 +4,18 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { Found, Game } from 'control-cli';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 기록남기기 } from './authoring-game-play-log.js';
-import { type 나온것, 나온것줄, 세기, 세기시작, 종류, 지도글, 펼칠상한 } from './authoring-game-play-spawns.js';
-import { 돌린다 } from './authoring-game-play.js';
+import { type 나온것, 나온것줄, 세기, 세기시작, 안적은새것, 종류, 지도글, 펼칠상한 } from './authoring-game-play-spawns.js';
+import { 돌린다, 실행 } from './authoring-game-play.js';
+import { 게임자료환경 } from './authoring-check-game.js';
 
 let 자리들: string[] = [];
 afterEach(() => {
   for (const d of 자리들) rmSync(d, { recursive: true, force: true });
   자리들 = [];
+  vi.restoreAllMocks();
 });
 
 const 것 = (path: string, id?: string): Found => ({ path, ...(id === undefined ? {} : { id }) });
@@ -154,6 +156,32 @@ describe('판 도중 새로 나온 것', () => {
     expect(지도글(d)).toContain('Ghost');
     expect(지도글(d)).toContain('Meat');
     expect(지도글(undefined)).toBe('');
+  });
+
+  it('학습 세션이면 앞 판에 새로 나온 것을 지도에 적기 전에는 다음 판을 안 돌린다 — 적으면 돌고, 학습 표시가 없으면(시험 · 케이스) 안 막는다', async () => {
+    const t = mkdtempSync(join(tmpdir(), 'spawns-'));
+    자리들.push(t);
+    mkdirSync(join(t, 'tests', 'g', 'helpers'), { recursive: true });
+    mkdirSync(join(t, '.control-cli'));
+    writeFileSync(join(t, '.control-cli', 'held'), 'pc-pc1\n');
+    writeFileSync(join(t, 'tests', 'g', 'helpers', 'play.helper.ts'), 'export async function 깨기() { return 1; }');
+    const d = join(t, 'data');
+    mkdirSync(join(d, 'game-play'), { recursive: true });
+    const 나온 = { 간격ms: 5000, 처음: {}, 장면바뀜: [], 센때: [], 첫초: { Boss: 10, Slime: 12 }, 화면것: [], 지도에없음: ['Boss', 'Slime'], 펼침: [], 안펼침: [] };
+    writeFileSync(join(d, 'game-play', '20261126010000000-깨기.json'), JSON.stringify({ 함수: '깨기', 나온것: 나온 }));
+    writeFileSync(join(d, 'game-play', '20261126020000000-깨기.json'), JSON.stringify({ 함수: '깨기' }));
+    writeFileSync(join(d, 'game-map.txt'), '- rule:x · Slime 은 느리다');
+    expect(안적은새것(d)).toBeNull();
+    writeFileSync(join(d, 'game-learning.now'), '1');
+    expect(안적은새것(d)).toEqual({ 기록: join(d, 'game-play', '20261126010000000-깨기'), 이름들: ['Boss'] });
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let 명령 = 0;
+    const 길 = (async () => (명령 += 1, { ok: true })) as never;
+    expect(await 실행(['g', 'play', '깨기', '[]', '--shots', '0'], t, { [게임자료환경]: d }, 길)).toBe(2);
+    expect(명령).toBe(0);
+    expect(String(오류.mock.calls[0]?.[0])).toContain('새로 나온 Boss 이(가) 지도에 없다');
+    writeFileSync(join(d, 'game-learned.json'), JSON.stringify({ elements: [{ kind: 'ASK', key: 'ask:boss', name: 'Boss 는 무엇에 약한가' }] }));
+    expect(안적은새것(d)).toBeNull();
   });
 
   it('판 돌리기는 도중 화면을 켰을 때만 세고, 기록 json 에는 펼친 글 없이 · 펼친 글은 -새것.txt 로 남긴다', async () => {
