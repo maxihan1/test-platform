@@ -25,8 +25,8 @@ const 상세 = (덮: Partial<오류상세> = {}): 오류상세 => ({
   ai: { headline: '빌드 #22 에서 처음 발생', impact: '1건 크래시로 실패', previous: '11-11 · 빌드 #21 오류 없음', cause: '제거된 캐릭터의 애니메이션 이벤트 호출', runId: 3044 },
   kpis: { cases: 2, runCases: 128, passCases: 1, crashCases: 1, firstCrashTcId: 'ARG-FN-112', hits: 11, previousHits: 0 },
   occurrences: [
-    { tcId: 'ARG-FN-031', name: '임프를 처치하면 경험치가 오른다', status: 'PASS', seq: 2, crash: false, historyId: 1, runId: 3044 },
-    { tcId: 'ARG-FN-112', name: '던전 입장 후 바닥을 눌러 이동한다', status: 'FAIL', seq: 3, crash: true, historyId: 2, runId: 3044 },
+    { tcId: 'ARG-FN-031', name: '임프를 처치하면 경험치가 오른다', status: 'PASS', blocked: false, seq: 2, crash: false, historyId: 1, runId: 3044 },
+    { tcId: 'ARG-FN-112', name: '던전 입장 후 바닥을 눌러 이동한다', status: 'FAIL', blocked: false, seq: 3, crash: true, historyId: 2, runId: 3044 },
   ],
   samples: [
     { text: 'NullReferenceException: 첫째', page: null, device: 'Galaxy S23 · Android 14', runId: 3044, tcId: 'ARG-FN-112', at: '2026-11-12T03:10:00Z' },
@@ -97,6 +97,13 @@ describe('안정화 지표 오류 상세', () => {
     expect(within(판).getByText('2단계 직후')).toBeTruthy();
     expect(within(판).getByText('Fail')).toBeTruthy();
     expect(within(판).getByText('Pass')).toBeTruthy();
+  });
+
+  it('발생 케이스 — 앞 케이스에 막혀 못 돈 케이스는 Blocked 칩이다 (정기 실행 21236)', async () => {
+    await 그리기(상세({ occurrences: [{ tcId: 'MKA-FN-992', name: '크래시', status: 'NA', blocked: true, seq: null, crash: true, historyId: 3, runId: 21236 }] }));
+    const 판 = screen.getByRole('heading', { name: '발생 케이스 · 단계' }).closest('section')!;
+    expect(within(판).getByText('Blocked')).toBeTruthy();
+    expect(within(판).queryByText('Fail')).toBeNull();
   });
 
   it('스택 트레이스는 견본을 1 / 2 로 넘긴다', async () => {

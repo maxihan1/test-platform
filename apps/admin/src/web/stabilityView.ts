@@ -1,5 +1,6 @@
 // 안정화 지표 화면의 판단 — 상태 칩 · 발생 케이스 글 · 추이 그래프 좌표. 그림은 Stability*.tsx (도메인/안정화 §8.19)
 
+import type { ItemStatus } from './api.js';
 import { 서울 } from './seoul.js';
 import type { 오류상세, 추이점 } from './stabilityApi.js';
 
@@ -59,8 +60,10 @@ export const 상세점들 = (trend: 오류상세['trend']): 추이점[] =>
 export interface 발생케이스 {
   tcId: string;
   name: string;
-  /** 그 케이스의 발생 항목이 다 통과면 통과다 — 디바이스 · 반복으로 항목이 여럿이면 하나라도 실패면 실패 (§7 passCases 와 같은 셈) */
-  통과: boolean;
+  /** 디바이스 · 반복으로 항목이 여럿이면 하나라도 실패면 실패, 실패 없이 못 돈 항목이 있으면 Not tested, 다 통과여야 통과다 (§7 passCases 와 같은 셈) */
+  status: ItemStatus;
+  /** Not tested 인데 앞 케이스에 막힌 항목이 있다 — 판정 글자가 Blocked 다 */
+  blocked: boolean;
   /** 오류가 난 단계 번호들. 모르면(앱 logcat) 빈 목록이다 */
   단계: number[];
   크래시: boolean;
@@ -70,13 +73,14 @@ export interface 발생케이스 {
 export function 케이스로묶기(줄들: 오류상세['occurrences']): 발생케이스[] {
   const 묶음 = new Map<string, 발생케이스>();
   for (const o of 줄들) {
-    const 있던 = 묶음.get(o.tcId) ?? { tcId: o.tcId, name: o.name, 통과: true, 단계: [], 크래시: false };
-    있던.통과 &&= o.status === 'PASS';
+    const 있던 = 묶음.get(o.tcId) ?? { tcId: o.tcId, name: o.name, status: 'PASS', blocked: false, 단계: [], 크래시: false };
+    if (o.status === 'FAIL' || (o.status === 'NA' && 있던.status === 'PASS')) 있던.status = o.status;
+    있던.blocked ||= o.blocked;
     있던.크래시 ||= o.crash;
     if (o.seq !== null && !있던.단계.includes(o.seq)) 있던.단계.push(o.seq);
     묶음.set(o.tcId, 있던);
   }
-  return [...묶음.values()].map((c) => ({ ...c, 단계: [...c.단계].sort((a, b) => a - b) }));
+  return [...묶음.values()].map((c) => ({ ...c, blocked: c.blocked && c.status === 'NA', 단계: [...c.단계].sort((a, b) => a - b) }));
 }
 
 export interface 추이그림 {

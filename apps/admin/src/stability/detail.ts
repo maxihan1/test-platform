@@ -2,6 +2,7 @@
 
 import type { Pool } from 'pg';
 
+import { Blocked줄 } from '../execution/notVerdict.js';
 import type { 상태 } from './state.js';
 import { 요약읽기 } from './view.js';
 
@@ -75,8 +76,8 @@ export async function 오류상세(e: 오류행, runId: number | null) {
         [errorId, serviceId, e.env, 번호],
       )
       .then((r) => r.rows[0]?.hits ?? 0),
-    pool.query<{ tc_id: string; name: string; status: string; seq: number | null; crash: boolean; history_id: string; run_id: string | null; device: string | null }>(
-      `SELECT o.tc_id, COALESCE(i.tc_name, c.name, o.tc_id) AS name, o.item_status AS status, o.seq, o.crash, o.history_id, i.run_id, o.device
+    pool.query<{ tc_id: string; name: string; status: string; blocked: boolean; seq: number | null; crash: boolean; history_id: string; run_id: string | null; device: string | null }>(
+      `SELECT o.tc_id, COALESCE(i.tc_name, c.name, o.tc_id) AS name, o.item_status AS status, COALESCE(${Blocked줄('i')}, false) AS blocked, o.seq, o.crash, o.history_id, i.run_id, o.device
          FROM stab_occurrence o LEFT JOIN run_item i ON i.history_id = o.history_id LEFT JOIN test_case c ON c.tc_id = o.tc_id
         WHERE o.run_id = $1 AND o.error_id = $2 ORDER BY o.tc_id, o.history_id`,
       [번호, errorId],
@@ -155,6 +156,7 @@ export async function 오류상세(e: 오류행, runId: number | null) {
       tcId: o.tc_id,
       name: o.name,
       status: o.status,
+      blocked: o.blocked,
       seq: o.seq,
       crash: o.crash,
       historyId: Number(o.history_id),
