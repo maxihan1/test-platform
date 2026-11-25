@@ -25,6 +25,9 @@ export function 셈알약({ 종류, 이름, 수, 덧 }: { 종류: 'pass' | 'fail
   );
 }
 
+/** Blocked 는 Not tested 의 사유다 — 0 이면 괄호를 안 적는다 (WORDS 「Not tested 3 (Blocked 2)」) */
+export const 막힌덧 = ({ blocked = 0 }: { blocked?: number }): string | undefined => (blocked === 0 ? undefined : `(Blocked ${String(blocked)})`);
+
 const 알약종류 = { PASS: 'pass', FAIL: 'fail', NA: 'na' } as const;
 
 function 줄({ 항목, 오른쪽, 흐림 = false }: { 항목: RunItemSummary; 오른쪽: ReactNode; 흐림?: boolean }) {
@@ -81,8 +84,7 @@ export function 진행왼쪽({ data, 진행: 지금, 남은ms }: { data: RunDeta
         <div className="rl-pills">
           <셈알약 종류="pass" 이름={t('Pass')} 수={막대.통과} />
           <셈알약 종류="fail" 이름={t('Fail')} 수={막대.실패} />
-          {/* Blocked 는 Not tested 의 사유다 — 0 이면 괄호를 안 적는다 (WORDS 「Not tested 3 (Blocked 2)」) */}
-          <셈알약 종류="na" 이름={t('Not tested')} 수={막대.미실행} 덧={(data.counts.blocked ?? 0) === 0 ? undefined : `(Blocked ${String(data.counts.blocked)})`} />
+          <셈알약 종류="na" 이름={t('Not tested')} 수={막대.미실행} 덧={막힌덧(data.counts)} />
         </div>
         {미확정 === '' ? null : <p className="hint">{미확정}</p>}
       </div>

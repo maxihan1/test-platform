@@ -1092,6 +1092,8 @@ export interface TrialResult {
   durationMs: number;
   steps: StepResult[];
   error?: { message: string };
+  /** 서버의 result 에는 없다 — 시험 큐가 답의 results 에서 자기 줄의 막은 케이스를 옮겨 담는다. Blocked 일 때만 찬다 */
+  blockedBy?: string;
 }
 
 /** 폰을 잡은 동안 도는 중 응답에 그 폰 화면 주소가 실린다 (도메인/실행 §7 「테스트 모드 통로」) */

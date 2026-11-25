@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import type { ItemStatus } from './api.js';
 import type { 추이점 } from './stabilityApi.js';
 import { PC틀, 날짜보임, 최초발생글, 추이그림, 케이스글, 케이스로묶기 } from './stabilityView.js';
 
@@ -56,14 +57,24 @@ describe('추이 그래프', () => {
 });
 
 describe('상세 발생 케이스 묶기', () => {
-  const 줄 = (tcId: string, status: string, seq: number | null, crash = false) => ({ tcId, name: tcId, status, seq, crash, historyId: 1, runId: 3044 });
+  const 줄 = (tcId: string, status: ItemStatus, seq: number | null, crash = false, blocked = false) => ({ tcId, name: tcId, status, blocked, seq, crash, historyId: 1, runId: 3044 });
 
   it('케이스 하나에 한 줄 — 항목이 하나라도 실패면 실패, 단계는 겹치지 않게 차례로, 크래시는 하나라도', () => {
     expect(
       케이스로묶기([줄('ARG-FN-031', 'PASS', 3), 줄('ARG-FN-031', 'PASS', 2), 줄('ARG-FN-031', 'PASS', 3), 줄('ARG-FN-112', 'PASS', 3), 줄('ARG-FN-112', 'FAIL', null, true)]),
     ).toEqual([
-      { tcId: 'ARG-FN-031', name: 'ARG-FN-031', 통과: true, 단계: [2, 3], 크래시: false },
-      { tcId: 'ARG-FN-112', name: 'ARG-FN-112', 통과: false, 단계: [3], 크래시: true },
+      { tcId: 'ARG-FN-031', name: 'ARG-FN-031', status: 'PASS', blocked: false, 단계: [2, 3], 크래시: false },
+      { tcId: 'ARG-FN-112', name: 'ARG-FN-112', status: 'FAIL', blocked: false, 단계: [3], 크래시: true },
+    ]);
+  });
+
+  it('실패 없이 못 돈 항목이 있으면 Not tested 이고 앞 케이스에 막힌 것이면 Blocked 다 — 실패로 세지 않는다', () => {
+    expect(
+      케이스로묶기([줄('MKA-FN-991', 'FAIL', null), 줄('MKA-FN-991', 'NA', null, false, true), 줄('MKA-FN-992', 'NA', null, true, true), 줄('MKA-FN-993', 'PASS', null), 줄('MKA-FN-993', 'NA', null)]),
+    ).toMatchObject([
+      { tcId: 'MKA-FN-991', status: 'FAIL', blocked: false },
+      { tcId: 'MKA-FN-992', status: 'NA', blocked: true },
+      { tcId: 'MKA-FN-993', status: 'NA', blocked: false },
     ]);
   });
 });

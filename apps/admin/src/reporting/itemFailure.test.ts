@@ -21,6 +21,10 @@ describe('항목실패를가른다', () => {
     expect(항목실패를가른다(재료({ status: 'NA', error: { message: 'BLOCKED' }, steps: [깨진절차] }), 그대로)).toBeNull();
   });
 
+  it('E2E 단계가 제한 시간에 끊긴 글은 밀리초 원문 대신 유형 문장이다', () => {
+    expect(항목실패를가른다(재료({ error: { message: '단계 제한 시간 120000ms 를 넘었다' } }), 그대로)).toEqual({ type: 'timeout', reason: 유형문장.timeout });
+  });
+
   it('앞 부품이 실패해 안 돈 시나리오 부품은 이유가 없다', () => {
     expect(항목실패를가른다(재료({ status: 'NA', error: { message: 'NOT_RUN' } }), 그대로)).toBeNull();
   });

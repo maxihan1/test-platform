@@ -82,6 +82,7 @@ describe('멈춘까닭', () => {
   it('확인 문장이 없으면 단계 오류의 첫 줄이고, 시간 초과로 NA 가 된 단계는 유형 꼬리표만 선다', () => {
     const 오류 = (status: 'FAIL' | 'NA', message: string): TrialResult['parts'][number] => ({ seq: 2, status, durationMs: 5, steps: [], mocks: [], error: { message } });
     expect(멈춘까닭(오류('FAIL', '\u001b[2m\n버튼이 없다\n적용되지 않은 값 연결 — 요청 차단 DELETE **/api/cart'))?.reason).toBe('버튼이 없다');
+    expect(멈춘까닭(오류('FAIL', '단계 제한 시간 120000ms 를 넘었다'))).toEqual({ type: 'timeout', reason: '제한 시간 안에 완료되지 않았습니다' });
     expect(멈춘까닭(오류('NA', 'TIMEOUT'))).toEqual({ type: 'timeout', reason: '' });
     expect(멈춘까닭(오류('NA', 'NOT_RUN'))).toBeNull();
   });

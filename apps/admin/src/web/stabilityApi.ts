@@ -1,6 +1,6 @@
 // 안정화 지표 화면이 서버를 부르는 호출 · 응답 모양 (도메인/안정화 §7 GET /api/stability)
 
-import { call } from './api.js';
+import { call, type ItemStatus } from './api.js';
 
 /** 오류 종류가 그 실행에서 받은 상태 — 신규 · 증가 · 재발 · 기존 (§3.15 「상태」) */
 export type 오류상태 = 'NEW' | 'UP' | 'REOPENED' | 'ONGOING';
@@ -84,7 +84,7 @@ export interface 오류상세 {
   btsLinked: boolean;
   ai: { headline: string; impact: string; previous: string; cause: string; runId: number } | null;
   kpis: { cases: number; runCases: number; passCases: number; crashCases: number; firstCrashTcId: string | null; hits: number; previousHits: number };
-  occurrences: { tcId: string; name: string; status: string; seq: number | null; crash: boolean; historyId: number; runId: number | null }[];
+  occurrences: { tcId: string; name: string; status: ItemStatus; blocked: boolean; seq: number | null; crash: boolean; historyId: number; runId: number | null }[];
   samples: { text: string; page: string | null; device: string | null; runId: number; tcId: string; at: string }[];
   trend: { day: string; cases: number }[];
   devices: { name: string; os: string | null; cases: number }[];

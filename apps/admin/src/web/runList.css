@@ -218,9 +218,12 @@
     width: 42px;
   }
 
+  /* 이름이 길면 꼬리표(회귀 실패 · 미확정)가 다음 줄로 내려간다 — 한 줄에 세우면 꼬리표가 한 글자로 잘린다 */
   .rt-line .rt-title {
     order: 2;
     flex: 1 1 0;
+    flex-wrap: wrap;
+    gap: 3px 8px;
   }
 
   .rt-line .rt-rate,

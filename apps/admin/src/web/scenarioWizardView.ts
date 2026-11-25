@@ -2,7 +2,7 @@
 
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
-import { 원인을가른다, 한줄로자른다 } from '../reporting/failureType.js';
+import { 원인을가른다, 이유한줄 } from '../reporting/failureType.js';
 import type { 항목실패 } from '../reporting/itemFailure.js';
 import { t, type 언어 } from './i18n.js';
 import type { LinkSuggestion, TrialResult } from './scenarioApi.js';
@@ -120,6 +120,6 @@ export function 멈춘까닭(part: TrialResult['parts'][number]): 항목실패 |
     stepMessage: 절차오류,
   });
   if (원인 === 'stopped' || 원인 === 'blocked') return null;
-  const 한줄 = 한줄로자른다(확인?.statement || part.error?.message || '');
+  const 한줄 = 이유한줄(확인?.statement || part.error?.message || '');
   return { type: 원인, reason: 러너글자.test(한줄) ? '' : 한줄 };
 }
