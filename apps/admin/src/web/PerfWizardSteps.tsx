@@ -1,8 +1,12 @@
 // 성능 시나리오 마법사의 위 단계 표시와 바닥 단추 — 끝낸 단계를 눌러 바로 간다 (도메인/성능 §8.14)
 
 import { use말 } from './i18n.js';
+import { 기다림글자 } from './ui.js';
 
 export type 단계 = 1 | 2 | 3 | 4;
+
+/** 서버를 기다리게 한 단추 — 머리의 임시 저장 · 바닥의 저장 · 실행 · 3단계 안의 AI 추천(자기 단추가 따로 알린다). 누른 단추만 글자가 바뀐다 */
+export type 누른곳 = 'draft' | 'save' | 'run' | 'step';
 
 export interface 단계줄 {
   번호: 단계;
@@ -43,7 +47,7 @@ export function PerfWizardSteps({ 단계들, 지금, 끝낸, on고름 }: { 단�
   );
 }
 
-export function PerfWizardFoot({ 지금, 쓰나, 하는중, on이전, on다음, on저장, on실행 }: { 지금: 단계; 쓰나: boolean; 하는중: boolean; on이전: () => void; on다음: () => void; on저장: () => void; on실행: () => void }) {
+export function PerfWizardFoot({ 지금, 쓰나, 하는중, on이전, on다음, on저장, on실행 }: { 지금: 단계; 쓰나: boolean; 하는중: 누른곳 | null; on이전: () => void; on다음: () => void; on저장: () => void; on실행: () => void }) {
   const t = use말();
   return (
     <div className="perf-foot">
@@ -62,11 +66,11 @@ export function PerfWizardFoot({ 지금, 쓰나, 하는중, on이전, on다음, 
         </button>
       ) : 쓰나 ? (
         <div className="perf-row">
-          <button type="button" className="btn ghost" disabled={하는중} onClick={on저장}>
-            {t('저장')}
+          <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={on저장}>
+            <기다림글자 중={하는중 === 'save'} 평소={t('저장')} 기다림={t('저장하는 중')} />
           </button>
-          <button type="button" className="btn" disabled={하는중} onClick={on실행}>
-            {t('실행')}
+          <button type="button" className="btn" disabled={하는중 !== null} onClick={on실행}>
+            <기다림글자 중={하는중 === 'run'} 평소={t('실행')} 기다림={t('시작하는 중')} />
           </button>
         </div>
       ) : null}

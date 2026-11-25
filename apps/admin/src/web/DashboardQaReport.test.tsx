@@ -45,11 +45,20 @@ describe('대시보드 QA 리포트 · 승인 전 칸', () => {
     expect(열기).not.toHaveBeenCalled();
   });
 
-  it('애플리케이션 하나가 실패해도 나머지 수는 보인다', async () => {
+  it('애플리케이션 하나가 실패해도 나머지 수는 보이고, 못 읽은 애플리케이션을 적는다', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.spyOn(qaReportApi, 'list').mockImplementation((service) => (service === 'DMA' ? Promise.reject(new Error('boom')) : Promise.resolve({ items: [], total: 2 })));
     render(<승인전칸 차례={5} 앱들={앱들} 서비스열기={vi.fn()} />);
-    expect(await screen.findByText('데모마켓 웹 2 · 데모마켓 API 2')).toBeTruthy();
+    expect(await screen.findByText('데모마켓 웹 2 · 데모마켓 API 2 · 데모마켓 앱 건수를 불러오지 못했습니다')).toBeTruthy();
+  });
+
+  it('못 읽은 애플리케이션을 0건으로 세지 않는다 — 나머지가 0 이어도 「승인 전 리포트 없음」이라 하지 않고 수를 비운다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(qaReportApi, 'list').mockImplementation((service) => (service === 'DMA' ? Promise.reject(new Error('boom')) : Promise.resolve({ items: [], total: 0 })));
+    render(<승인전칸 차례={5} 앱들={앱들} 서비스열기={vi.fn()} />);
+    expect(await screen.findByText('데모마켓 앱 건수를 불러오지 못했습니다')).toBeTruthy();
+    expect(screen.queryByText('승인 전 리포트 없음')).toBeNull();
+    expect(screen.getByText('—')).toBeTruthy();
   });
 
   it('칸은 관리자에게만 선다 — 고른 프로젝트의 애플리케이션을 센다', () => {

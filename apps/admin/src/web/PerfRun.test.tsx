@@ -178,6 +178,15 @@ describe('실행 중에서 결과로', () => {
     expect(screen.getByText('스모크 테스트 통과')).toBeTruthy();
   });
 
+  it('측정을 켰는데 첫 숫자가 오기 전이면 기다리는 중이라고 적는다', async () => {
+    const 상세 = 도는상세();
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue({ ...상세, config: { ...상세.config, pageCheck: true } });
+    숫자들만들기();
+    vi.spyOn(perfApi, 'pages').mockResolvedValue({ pages: [], compare: null });
+    render(<PerfRun runId={12} 판정하기={된다} />);
+    expect(await screen.findByText(/첫 측정값을 기다리는 중입니다/)).toBeTruthy();
+  });
+
   it('측정을 켜지 않은 실행에는 그 칸이 없다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(도는상세());
     숫자들만들기();
@@ -387,6 +396,16 @@ describe('결과', () => {
     확인시작();
     await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/13'));
     expect(실행).toHaveBeenCalledWith(expect.objectContaining({ scenarioId: 5, pageCheck: true }));
+  });
+
+  it('기다리는 동안 누른 단추만 글자가 바뀌고 나머지는 글자 그대로 잠긴다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ ai: null, aiJob: null }));
+    vi.spyOn(perfApi, 'pdf').mockReturnValue(new Promise(() => undefined));
+    render(<PerfRun runId={12} 판정하기={된다} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'PDF 다운로드' }));
+    expect(await screen.findByRole('button', { name: '만드는 중' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '다시 실행' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '다시 만들기' })).toHaveProperty('disabled', true);
   });
 
   it('PDF 로 내려받기는 실행 번호로 받는다', async () => {

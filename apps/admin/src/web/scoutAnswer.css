@@ -204,6 +204,12 @@
   font-size: 13px;
 }
 
+.scout-wait {
+  margin: auto 0 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
 /* 창 바닥 — 이 프로젝트의 데이터로만 답한다는 한 줄 */
 .scout-scope {
   flex: none;

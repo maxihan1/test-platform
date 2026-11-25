@@ -6,7 +6,7 @@ import { 프로시저파일인가 } from '../authoring/procFile.js';
 import { api, type AuthoringConflict, type AuthoringConflictAction, type AuthoringConflictKind, type AuthoringMadeCase, type CaseRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 케이스주소 } from './route.js';
-import { message, useAsync, when } from './ui.js';
+import { message, useAsync, when, 기다림글자 } from './ui.js';
 
 const 종류글: Record<AuthoringConflictKind, string> = {
   TCID: '케이스 번호 중복',
@@ -29,7 +29,9 @@ interface Props {
 export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = null, 편집, reload }: Props) {
   const t = use말();
   const 언어 = use언어();
-  const [보내는중, set보내는중] = useState(false);
+  /** 서버를 기다리게 한 단추(`all` · `KEEP PAY-041` …) — 표의 단추는 모두 잠기고 누른 것만 글자가 바뀐다 */
+  const [보내는것, set보내는것] = useState<string | null>(null);
+  const 보내는중 = 보내는것 !== null;
   const [오류, set오류] = useState<string | null>(null);
   const [열린, set열린] = useState<string | null>(null);
 
@@ -37,20 +39,24 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
   const 남은 = conflicts.filter((c) => c.input === null).length;
 
   // 막는 것은 서버다 — 한 줄이라도 실패하면 거기서 멈추고 까닭을 보인다. 이미 간 것은 그대로 남는다
-  function 보낸다(일들: (() => Promise<unknown>)[]) {
+  function 보낸다(무엇: string, 일들: (() => Promise<unknown>)[]) {
     if (보내는중) return;
-    set보내는중(true);
+    set보내는것(무엇);
     set오류(null);
     void 일들
       .reduce<Promise<unknown>>((앞, 일) => 앞.then(일), Promise.resolve())
       .catch((err: unknown) => set오류(message(err, 언어)))
       .finally(() => {
-        set보내는중(false);
+        set보내는것(null);
         reload();
       });
   }
 
   const 고른다 = (c: AuthoringConflict, a: AuthoringConflictAction) => () => api.putAuthoringConflict(service, 요청번호, c.tcId, a);
+
+  const 줄단추글 = (c: AuthoringConflict, 무엇: string, 평소: string) => <기다림글자 중={보내는것 === `${무엇} ${c.tcId}`} 평소={평소} 기다림={t('저장하는 중')} />;
+  // 단추 이름에 케이스 번호가 들어 있어 기다리는 글도 이름에 같이 적는다 — 이름이 그대로면 화면 낭독기는 바뀐 것을 모른다
+  const 줄단추이름 = (c: AuthoringConflict, 무엇: string, 평소: string) => [c.tcId, 보내는것 === `${무엇} ${c.tcId}` ? t('저장하는 중') : 평소].join(' ');
 
   return (
     <section id="conflicts" tabIndex={-1} className="authoring-conflicts" aria-label={t('중복 케이스')}>
@@ -63,9 +69,9 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
             className="btn ghost"
             type="button"
             disabled={보내는중}
-            onClick={() => 보낸다(conflicts.filter((c) => c.input === null).map((c) => 고른다(c, 'KEEP')))}
+            onClick={() => 보낸다('all', conflicts.filter((c) => c.input === null).map((c) => 고른다(c, 'KEEP')))}
           >
-            {t('모두 유지')}
+            <기다림글자 중={보내는것 === 'all'} 평소={t('모두 유지')} 기다림={t('저장하는 중')} />
           </button>
         ) : null}
       </div>
@@ -136,24 +142,24 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
                 <td className="held-btns">
                   {!편집 ? null : (
                     <>
-                      <button className={c.input?.action === 'KEEP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'KEEP'} aria-label={`${c.tcId} ${t('둘 다 유지')}`} disabled={보내는중} onClick={() => 보낸다([고른다(c, 'KEEP')])}>
-                        {t('둘 다 유지')}
+                      <button className={c.input?.action === 'KEEP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'KEEP'} aria-label={줄단추이름(c, 'KEEP', t('둘 다 유지'))} disabled={보내는중} onClick={() => 보낸다(`KEEP ${c.tcId}`, [고른다(c, 'KEEP')])}>
+                        {줄단추글(c, 'KEEP', t('둘 다 유지'))}
                       </button>
                       {/* 프로시저 안 케이스를 빼면 흐름이 깨질 수 있는데 반영은 돌려 보지 않는다 — 서버도 400 으로 막는다 */}
                       {프로시저파일인가(c.file) ? null : (
-                        <button className={c.input?.action === 'DROP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'DROP'} aria-label={`${c.tcId} ${t('새 케이스 제외')}`} disabled={보내는중} onClick={() => 보낸다([고른다(c, 'DROP')])}>
-                          {t('새 케이스 제외')}
+                        <button className={c.input?.action === 'DROP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'DROP'} aria-label={줄단추이름(c, 'DROP', t('새 케이스 제외'))} disabled={보내는중} onClick={() => 보낸다(`DROP ${c.tcId}`, [고른다(c, 'DROP')])}>
+                          {줄단추글(c, 'DROP', t('새 케이스 제외'))}
                         </button>
                       )}
                       {c.input === null ? null : (
                         <button
                           className="btn ghost"
                           type="button"
-                          aria-label={`${c.tcId} ${t('복원')}`}
+                          aria-label={줄단추이름(c, 'UNDO', t('복원'))}
                           disabled={보내는중}
-                          onClick={() => 보낸다([() => api.deleteAuthoringConflict(service, 요청번호, c.tcId)])}
+                          onClick={() => 보낸다(`UNDO ${c.tcId}`, [() => api.deleteAuthoringConflict(service, 요청번호, c.tcId)])}
                         >
-                          {t('복원')}
+                          {줄단추글(c, 'UNDO', t('복원'))}
                         </button>
                       )}
                     </>

@@ -99,6 +99,11 @@ describe('게임 실패 자동 수정 — 도는 중 · 통과 못 하고 끝남
     expect(screen.getByRole('link', { name: '작성 요청 #8801' }).getAttribute('href')).toBe('#/authoring/8801');
   });
 
+  it('작성 요청 번호가 아직 없으면 줄표를 매달지 않는다', async () => {
+    await 카드그리기(중({ requestId: null }));
+    expect(document.querySelector('.fc-judged')?.textContent).toMatch(/^에이전트가 테스트를 수정하는 중이에요 \(/);
+  });
+
   it('사람 확인을 기다리면 까닭과 반영하러 가는 고리를 보인다', async () => {
     await 카드그리기(중({ state: 'WAIT_MERGE', needsPerson: true, personWhy: ['확인 문장이 줄었어요'], prUrl: 'https://github.com/o/r/pull/9' }));
     expect(document.querySelector('.fc-body')?.textContent).toContain('수정한 테스트를 사람이 반영해야 해요 — 확인 문장이 줄었어요 → PR #9');

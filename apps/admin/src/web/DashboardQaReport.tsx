@@ -13,16 +13,25 @@ export interface 승인볼앱 {
 }
 
 /** 애플리케이션마다 승인 전 리포트 수 — 목록 통로가 애플리케이션마다라 하나씩 묻는다. 목록의 「승인 전」 필터와 같은 수가 나온다 */
-function use승인전수(앱들: readonly 승인볼앱[]): { 앱: 승인볼앱; 수: number }[] | null {
-  const [수들, set수들] = useState<{ 앱: 승인볼앱; 수: number }[] | null>(null);
+function use승인전수(앱들: readonly 승인볼앱[]): { 앱: 승인볼앱; 수: number | null }[] | null {
+  const [수들, set수들] = useState<{ 앱: 승인볼앱; 수: number | null }[] | null>(null);
   const 열쇠 = 앱들.map((a) => a.prefix).join(',');
   useEffect(() => {
     let 살아있다 = true;
     set수들(null);
-    // 애플리케이션 하나가 실패해도 나머지 수는 보인다 — 실패한 것만 콘솔에 남긴다
-    void Promise.allSettled(앱들.map((앱) => qaReportApi.list(앱.prefix, { approved: false }).then((r) => ({ 앱, 수: r.total })))).then((결과들) => {
-      for (const x of 결과들) if (x.status === 'rejected') console.error('[dashboard] could not count QA reports awaiting approval', x.reason);
-      if (살아있다) set수들(결과들.flatMap((x) => (x.status === 'fulfilled' ? [x.value] : [])));
+    // 애플리케이션 하나가 실패해도 나머지 수는 보인다. 실패한 것은 0 이 아니라 null 이다 — 0 으로 세면 있는 리포트가 없다고 적힌다
+    void Promise.all(
+      앱들.map((앱) =>
+        qaReportApi.list(앱.prefix, { approved: false }).then(
+          (r) => ({ 앱, 수: r.total }),
+          (err: unknown) => {
+            console.error('[dashboard] could not count QA reports awaiting approval', err);
+            return { 앱, 수: null };
+          },
+        ),
+      ),
+    ).then((결과들) => {
+      if (살아있다) set수들(결과들);
     });
     return () => {
       살아있다 = false;
@@ -35,7 +44,8 @@ function use승인전수(앱들: readonly 승인볼앱[]): { 앱: 승인볼앱; 
 export function 승인전칸({ 차례, 앱들, 서비스열기 }: { 차례: number; 앱들: readonly 승인볼앱[]; 서비스열기: (serviceId: number) => void }) {
   const t = use말();
   const 수들 = use승인전수(앱들);
-  const 있는 = (수들 ?? []).filter((x) => x.수 !== 0);
+  const 있는 = (수들 ?? []).flatMap((x) => (x.수 === null || x.수 === 0 ? [] : [{ 앱: x.앱, 수: x.수 }]));
+  const 못읽은 = (수들 ?? []).filter((x) => x.수 === null).map((x) => x.앱.name);
   // 목록은 사이드바 애플리케이션 것이다 — 승인 전이 있는 첫 애플리케이션으로 맞춰 간다
   const 갈앱 = 있는[0]?.앱;
   // 화면 글자 검사가 `>` 뒤 글을 화면 문구로 읽는다 — 셈은 영문 이름으로 둔다
@@ -45,9 +55,16 @@ export function 승인전칸({ 차례, 앱들, 서비스열기 }: { 차례: numb
       차례={차례}
       그림="report"
       이름={t('QA 리포트 · 승인 전')}
-      값={수들 === null ? null : 수글(total)}
+      // 못 읽은 앱이 있는데 나머지가 0 이면 0 도 거짓이다 — 수를 비운다
+      값={수들 === null || (total === 0 && 못읽은.length !== 0) ? null : 수글(total)}
       단위={t('건')}
-      보조={수들 === null ? '' : 있는.length === 0 ? t('승인 전 리포트 없음') : 있는.map((x) => `${x.앱.name} ${String(x.수)}`).join(' · ')}
+      보조={
+        수들 === null
+          ? ''
+          : 있는.length === 0 && 못읽은.length === 0
+            ? t('승인 전 리포트 없음')
+            : [...있는.map((x) => `${x.앱.name} ${String(x.수)}`), ...(못읽은.length === 0 ? [] : [t('{앱들} 건수를 불러오지 못했습니다', { 앱들: 못읽은.join(', ') })])].join(' · ')
+      }
       링크={{ href: '#/qa-reports?approved=false', ...(갈앱 === undefined ? {} : { onClick: () => 서비스열기(갈앱.id) }) }}
     />
   );

@@ -510,4 +510,7 @@ export const 실행말: Record<string, string> = {
   'PS4 패드': 'PS4 pad',
   'Switch 패드': 'Switch pad',
   'Xbox 패드': 'Xbox pad',
+  // 항목 상세에서 못 읽은 줄 (WEB-F10-04)
+  '실행 정보를 불러오지 못해 회차 · 리포트 · 판정이 보이지 않습니다': 'Could not load the run, so the attempt, reports and verdict are hidden',
+  '관련 요구사항과 판정을 불러오지 못했습니다': 'Could not load the related requirements and verdict',
 };

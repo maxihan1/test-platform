@@ -53,4 +53,5 @@ export const Scout말: Record<string, string> = {
   '답이 2분을 넘어 중단했습니다': 'Stopped because the answer took over 2 minutes',
   '답을 만들지 못했습니다': 'Scout could not answer',
   '다시 질문': 'Ask again',
+  '대화를 불러오는 중입니다': 'Loading the conversation',
 };

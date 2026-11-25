@@ -97,7 +97,25 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
         ) : 목록.data === null ? (
           <Loading />
         ) : 줄들.length === 0 ? (
-          <div className="empty">{t('아직 성능 테스트 실행이 없습니다')}</div>
+          시나리오 === undefined && 판정 === '' ? (
+            <div className="empty">{t('아직 성능 테스트 실행이 없습니다')}</div>
+          ) : (
+            <div className="empty">
+              {t('조건에 맞는 실행이 없습니다')}
+              <small>{t('시나리오나 판정을 변경해 보세요')}</small>
+              <button
+                type="button"
+                className="btn"
+                style={{ marginTop: '14px' }}
+                onClick={() => {
+                  set시나리오(undefined);
+                  set판정('');
+                }}
+              >
+                {t('조건 초기화')}
+              </button>
+            </div>
+          )
         ) : (
           <div className="perf-panel">
             <div className="perf-table-box">

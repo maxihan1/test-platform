@@ -88,6 +88,18 @@ describe('중복 케이스 표', () => {
     expect(넣기).toHaveBeenCalledWith('PAY', 7, 'PAY-041', 'KEEP');
   });
 
+  it('기다리는 동안 누른 단추만 글자와 이름이 「저장하는 중」이 되고 나머지는 그대로 잠긴다', async () => {
+    넣기.mockReturnValueOnce(new Promise(() => undefined));
+    render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침, 요구겹침]} 편집 reload={reload} />);
+    fireEvent.click(screen.getByRole('button', { name: 'PAY-041 둘 다 유지' }));
+    const 누른것 = screen.getByRole('button', { name: 'PAY-041 저장하는 중' });
+    expect(누른것.textContent).toBe('저장하는 중');
+    expect(누른것).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'PAY-041 새 케이스 제외' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'PAY-043 둘 다 유지' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '모두 유지' })).toHaveProperty('disabled', true);
+  });
+
   it('새 케이스 제외를 누르면 DROP 으로 보낸다', async () => {
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: 'PAY-041 새 케이스 제외' }));

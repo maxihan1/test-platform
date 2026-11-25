@@ -2,7 +2,7 @@
 // 항목 상세 위쪽 줄 — 회차 · 이전/다음 실패 · 관련 요구 · 판정 (도메인/리포팅 §8.4 · 점검 3.2 · 3.4)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import { api, type FailureCase, type ItemStatus, type Platform, type RunItemDetail, type RunItemSummary } from './api.js';
 import { 항목실행줄, 실패길, 회차글 } from './ItemRunContext.js';
@@ -138,11 +138,26 @@ describe('항목실행줄', () => {
     expect(await vi.waitFor(() => screen.getByRole('button', { name: '리포트 생성' }))).toBeTruthy();
   });
 
-  it('실행을 못 읽으면 아무것도 그리지 않는다 — 항목 상세 본문은 따로 선다', async () => {
-    vi.spyOn(api, 'run').mockRejectedValue(new Error('x'));
-    const { container } = render(<항목실행줄 item={상세(실행항목들[2]!)} 판정하기={() => () => true} />);
+  it('실행을 못 읽으면 그 자리에 안내 한 줄을 세우고, 다시 불러오면 줄이 선다', async () => {
+    vi.spyOn(api, 'run').mockRejectedValueOnce(new Error('x')).mockResolvedValue(실행응답(실행항목들));
+    vi.spyOn(api, 'failures').mockResolvedValue({ items: [카드], page: 1, pageSize: 20, total: 1 });
+    render(<항목실행줄 item={상세(실행항목들[2]!)} 판정하기={() => () => true} />);
 
-    await vi.waitFor(() => expect(api.run).toHaveBeenCalled());
-    expect(container.textContent).toBe('');
+    expect(await screen.findByText(/실행 정보를 불러오지 못해/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '다시 불러오기' }));
+    expect(await screen.findByText('실패 3건 중 2번째')).toBeTruthy();
+    expect(screen.queryByText(/실행 정보를 불러오지 못해/)).toBeNull();
+  });
+
+  it('실패 카드를 못 읽으면 판정 줄 자리에 안내 한 줄을 세우고, 다시 불러오면 판정 줄이 선다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(api, 'run').mockResolvedValue(실행응답(실행항목들));
+    vi.spyOn(api, 'failures').mockRejectedValueOnce(new Error('x')).mockResolvedValue({ items: [카드], page: 1, pageSize: 20, total: 1 });
+    render(<항목실행줄 item={상세(실행항목들[2]!)} 판정하기={() => () => true} />);
+
+    expect(await screen.findByText('관련 요구사항과 판정을 불러오지 못했습니다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '다시 불러오기' }));
+    expect(await screen.findByText('로그인한다')).toBeTruthy();
+    expect(screen.queryByText('관련 요구사항과 판정을 불러오지 못했습니다')).toBeNull();
   });
 });

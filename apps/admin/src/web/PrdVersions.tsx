@@ -108,7 +108,7 @@ function 바뀐것({ service, 판, 앞판, 읽은, 바로 }: { service: string; 
     );
   }
   if (차이.error !== null) return <span className="prd-note bad">{차이.error}</span>;
-  if (차이.data === null) return <span className="prd-plain">…</span>;
+  if (차이.data === null) return <span className="prd-plain">{t('불러오는 중')}</span>;
 
   const 줄들 = 차이.data;
   const 셈 = (kind: 차이줄['kind']) => 줄들.filter((x) => x.kind === kind).length;

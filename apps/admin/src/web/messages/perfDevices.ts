@@ -96,4 +96,5 @@ export const 성능기기말: Record<string, string> = {
   '회차마다 약 {수}MB 증가': 'about {수}MB more each loop',
   '{수}회차 더 돌면 메모리 목표를 넘습니다': 'passes the memory target in {수} more loops',
   '디바이스별 요약': 'Summary per device',
+  '측정한 디바이스가 없습니다': 'No device was measured',
 };

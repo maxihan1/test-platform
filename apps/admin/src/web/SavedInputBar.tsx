@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { api, ApiError, type SavedInput } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { initialText, type Field } from './schema.js';
-import { message, when } from './ui.js';
+import { message, when, 기다림글자 } from './ui.js';
 
 type 값들 = Record<string, unknown>;
 
@@ -73,7 +73,7 @@ export function 값저장({
         <>
           <span className="hint">{t('팀 모두와 정기 실행에 쓰입니다')}</span>
           <button type="button" className="btn ghost" onClick={() => void 저장()} disabled={busy}>
-            {t('모두에게 저장')}
+            <기다림글자 중={busy} 평소={t('모두에게 저장')} 기다림={t('저장하는 중')} />
           </button>
         </>
       ) : 저장값있나 ? (

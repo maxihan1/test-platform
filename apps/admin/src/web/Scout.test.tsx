@@ -65,8 +65,11 @@ describe('Scout 채팅창 (도메인/챗봇 §8.18)', () => {
   it('처음 열면 그 프로젝트의 대화를 읽고 안내와 예시 넷을 보인다 — 빈 칸이면 보내기가 꺼진다', async () => {
     띄우기();
     expect(부른것).toEqual([]);
-    await 열기();
+    fireEvent.click(screen.getByRole('button', { name: 'Scout 열기' }));
+    // 대화를 읽는 동안 보내기가 잠긴다 — 그 까닭이 보인다
+    screen.getByText('대화를 불러오는 중입니다');
     await screen.findByText('데모마켓 시험 프로젝트에 대해 물어보세요');
+    expect(screen.queryByText('대화를 불러오는 중입니다')).toBeNull();
     expect(부른것[0]).toMatchObject({ method: 'GET', url: '/api/chat?projectId=7' });
     for (const 예 of ['오늘 실행 결과 요약', '최근 등록된 이슈', '회귀 실패만 보기', '어제 성능 테스트 결과']) screen.getByRole('button', { name: 예 });
     expect(screen.getByRole('button', { name: '보내기' })).toHaveProperty('disabled', true);

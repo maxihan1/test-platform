@@ -29,6 +29,7 @@ export const 성능실행말: Record<string, string> = {
   '실행 로그': 'Run log',
   '아직 기록이 없습니다': 'Nothing logged yet',
   '아직 받은 숫자가 없습니다': 'No numbers received yet',
+  '첫 측정값을 기다리는 중입니다. 오래 걸리면 실행 로그에서 오류를 확인해 주세요': 'Waiting for the first measurement. If it takes long, check the run log for errors',
   '실행을 중단할까요?': 'Stop this run?',
   '지금까지 모인 숫자는 남고 성능 목표 판정은 내지 않습니다': 'Numbers so far are kept and no verdict is given',
   '이미 종료된 실행입니다': 'This run has already finished',
@@ -80,4 +81,6 @@ export const 성능실행말: Record<string, string> = {
   // 성능 실행 기록 — 페이지 · 기기 측정 줄의 고리 (종류는 꼬리표가 말한다, WEB-F7-18)
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '시각을 선택해 주세요': 'Pick a time',
+  // 빈 화면 (WEB-F10-04)
+  '시나리오나 판정을 변경해 보세요': 'Try a different scenario or result',
 };

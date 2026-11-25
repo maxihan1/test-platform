@@ -11,7 +11,7 @@ import { 켜졌나, type 고른값 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { Modal } from './Modal.js';
-import { message } from './ui.js';
+import { message, 기다림글자 } from './ui.js';
 
 type 화면항목 = Extract<결정항목, { kind: 'SCREENS' }>;
 
@@ -42,7 +42,8 @@ export function 화면고르기({
   const t = use말();
   const 언어 = use언어();
   const [뺄것, set뺄것] = useState<{ url: string; name: string } | null>(null);
-  const [바쁨, set바쁨] = useState(false);
+  // 서버 답을 기다리는 화면의 주소 — 누른 줄의 단추만 글자가 바뀐다
+  const [바쁨, set바쁨] = useState<string | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   // 같은 화면은 한 줄, 로그인 상태는 그 아래 (2026-10-26 시작 질문)
   const 화면별 = new Map<string, { name: string; states: string[] }>();
@@ -58,7 +59,7 @@ export function 화면고르기({
     on고름(x.key, 새.size === 0 ? null : { pick: 'FIX', screens: [...화면별.keys()].filter((u) => 새.has(u)), ...(서버필요 ? { env: 고른?.env ?? 마지막서버(service, envs) } : {}) });
 
   async function 바꾸기(url: string, skip: boolean) {
-    set바쁨(true);
+    set바쁨(url);
     set오류(null);
     try {
       await decideApi.skipScreen(service, url, skip);
@@ -68,7 +69,7 @@ export function 화면고르기({
     } catch (err) {
       set오류(message(err, 언어));
     }
-    set바쁨(false);
+    set바쁨(null);
   }
 
   return (
@@ -142,8 +143,8 @@ export function 화면고르기({
                 <span className="prd-id">{s.url}</span>
               </span>
               {!바꿀수있나 ? null : (
-                <button className="btn ghost small" type="button" disabled={바쁨} onClick={() => void 바꾸기(s.url, false)}>
-                  {t('복원')}
+                <button className="btn ghost small" type="button" disabled={바쁨 !== null} onClick={() => void 바꾸기(s.url, false)}>
+                  <기다림글자 중={바쁨 === s.url} 평소={t('복원')} 기다림={t('복원하는 중')} />
                 </button>
               )}
             </div>
@@ -161,8 +162,8 @@ export function 화면고르기({
               <button className="btn ghost" type="button" onClick={() => set뺄것(null)}>
                 {t('취소')}
               </button>
-              <button className="btn" type="button" disabled={바쁨} onClick={() => void 바꾸기(뺄것.url, true)}>
-                {t('제외')}
+              <button className="btn" type="button" disabled={바쁨 !== null} onClick={() => void 바꾸기(뺄것.url, true)}>
+                <기다림글자 중={바쁨 === 뺄것.url} 평소={t('제외')} 기다림={t('제외하는 중')} />
               </button>
             </>
           }

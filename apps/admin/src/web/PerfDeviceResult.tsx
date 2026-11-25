@@ -13,14 +13,17 @@ import { PerfDeviceReplay } from './PerfDeviceReplay.js';
 import { 기기시작확인 } from './PerfStartConfirm.js';
 import { 값글자, 결과칸들, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작 } from './perfDeviceView.js';
 import { 갱신간격, 분석틈, 분초, 사유이름, 시각글, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
-import { Loading, message, useAsync, 올라가는값 } from './ui.js';
+import { Loading, message, useAsync, 기다림글자, 올라가는값 } from './ui.js';
+
+/** 기다리는 일 — 다시 실행 앞 건수 세기 · 다시 실행 · AI 분석 다시 만들기. 누른 단추만 글자가 바뀐다 */
+type 일 = 'count' | 'rerun' | 'ai';
 
 export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정 }: { run: 실행상세; service: ServiceRow; 다시읽기: () => Promise<boolean>; 쓰나: boolean; 새측정: () => void }) {
   const t = use말();
   const 언어 = use언어();
   const 설정 = 기기설정of(run);
   const 결과 = useAsync(() => perfApi.deviceResult(run.id), [run.id]);
-  const [하는중, set하는중] = useState(false);
+  const [하는중, set하는중] = useState<일 | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   /** 다시 실행 확인 창이 적을 자동 포함 건수. 창이 닫혀 있으면 null */
   const [묻는수, set묻는수] = useState<number | null>(null);
@@ -38,15 +41,15 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
     return () => clearInterval(타이머);
   }, [만드는중]);
 
-  async function 하기(일: () => Promise<void>) {
-    set하는중(true);
+  async function 하기(무엇: 일, 일: () => Promise<void>) {
+    set하는중(무엇);
     set오류(null);
     try {
       await 일();
     } catch (err) {
       set오류(message(err, 언어));
     } finally {
-      set하는중(false);
+      set하는중(null);
     }
   }
 
@@ -55,11 +58,11 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
 
   // 결과에는 고른 케이스만 있다 — 서버가 프로시저로 펼칠 것까지 세어 묻는다
   const 다시누름 = () =>
-    하기(async () => set묻는수(설정.drive === 'MANUAL' ? 0 : 자동포함(await 폰케이스들(service.prefix), 설정.caseIds).수));
+    하기('count', async () => set묻는수(설정.drive === 'MANUAL' ? 0 : 자동포함(await 폰케이스들(service.prefix), 설정.caseIds).수));
 
   // 같은 조건으로 새 측정 하나를 만들고 그 번호 화면으로 간다
   const 다시실행 = () =>
-    하기(async () => {
+    하기('rerun', async () => {
       const { runId } = await perfApi.measureDevices({
         serviceId: service.id,
         env: run.env,
@@ -77,7 +80,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
     });
 
   const AI다시 = () =>
-    하기(async () => {
+    하기('ai', async () => {
       await perfApi.analysis(run.id);
       await 다시읽기();
     });
@@ -106,8 +109,8 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
               <button type="button" className="btn ghost" onClick={새측정}>
                 {t('새 측정')}
               </button>
-              <button type="button" className="btn" disabled={하는중} onClick={() => void 다시누름()}>
-                {t('다시 실행')}
+              <button type="button" className="btn" disabled={하는중 !== null} onClick={() => void 다시누름()}>
+                <기다림글자 중={하는중 === 'count' || 하는중 === 'rerun'} 평소={t('다시 실행')} 기다림={하는중 === 'count' ? t('불러오는 중') : t('시작하는 중')} />
               </button>
             </div>
           ) : null
@@ -129,8 +132,8 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
             </ul>
           ) : 만드는중 || !쓰나 || run.status !== 'DONE' ? null : (
             <div>
-              <button type="button" className="btn ghost" disabled={하는중} onClick={() => void AI다시()}>
-                {t('다시 만들기')}
+              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => void AI다시()}>
+                <기다림글자 중={하는중 === 'ai'} 평소={t('다시 만들기')} 기다림={t('시작하는 중')} />
               </button>
             </div>
           )}
@@ -138,7 +141,9 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
 
         {받음 === null ? (
           결과.error !== null ? <p className="perf-err" role="alert">{결과.error}</p> : <Loading />
-        ) : 받음.devices.length === 0 ? null : (
+        ) : 받음.devices.length === 0 ? (
+          <div className="empty">{t('측정한 디바이스가 없습니다')}</div>
+        ) : (
           <>
             {/* 위 숫자 칸 줄 — 종류마다 보는 숫자가 다르다 (시안 11판 · WEB-F7-16) */}
             <section className="perf-panel num-tiles" aria-label={t('측정 요약')}>

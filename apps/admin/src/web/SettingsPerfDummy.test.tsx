@@ -77,6 +77,22 @@ describe('설정 › 더미 클라이언트', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('이 더미 클라이언트를 쓰는 시나리오가 있어 삭제할 수 없습니다');
   });
 
+  it('업로드하는 동안 업로드 단추만, 삭제하는 동안 그 줄의 삭제만 글자가 바뀐다', async () => {
+    그리기(true, [봇, { ...봇, id: 6, name: '로비 봇' }]);
+    vi.spyOn(perfApi, 'addDummyClient').mockRejectedValue(new Error('끊김'));
+    await 채우고올리기(new File(['PK'], 'bot.zip'));
+    expect(screen.getByRole('button', { name: '업로드 중' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '게임 봇 삭제' })).toHaveProperty('disabled', true);
+    expect(await screen.findByRole('button', { name: '업로드' })).toHaveProperty('disabled', false);
+
+    vi.spyOn(perfApi, 'removeDummyClient').mockReturnValue(new Promise(() => undefined));
+    fireEvent.click(screen.getByRole('button', { name: '게임 봇 삭제' }));
+    물음누름('삭제');
+    expect(await screen.findByRole('button', { name: '게임 봇 삭제하는 중' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '로비 봇 삭제' }).textContent).toBe('삭제');
+    expect(screen.getByRole('button', { name: '업로드' })).toHaveProperty('disabled', true);
+  });
+
   it('지우기는 그 번호로 부르고 목록을 다시 읽는다', async () => {
     const 목록 = 그리기();
     const 지우기 = vi.spyOn(perfApi, 'removeDummyClient').mockResolvedValue(undefined);

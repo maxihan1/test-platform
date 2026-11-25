@@ -21,8 +21,8 @@ import { 넘길까닭, 최대목표, type 넘길칸 } from './perfView.js';
 import { 처음값 } from './perfWizardInit.js';
 import { 조건붙인주소, 떠나기로했다, 떠나기상자, 주소고치기, 주소조건 } from './leaveGuard.js';
 import { 할수있나 } from './role.js';
-import { Failed, Loading, message, useAsync } from './ui.js';
-import { PerfWizardFoot, PerfWizardSteps, type 단계, type 단계줄 } from './PerfWizardSteps.js';
+import { Failed, Loading, message, useAsync, 기다림글자 } from './ui.js';
+import { PerfWizardFoot, PerfWizardSteps, type 누른곳, type 단계, type 단계줄 } from './PerfWizardSteps.js';
 import { use단계주소 } from './useWizardStep.js';
 
 export function PerfWizard({ id, 띠서비스, user }: { id: number | null; 띠서비스: ServiceRow | null; user: User }) {
@@ -72,7 +72,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   const [알림, set알림] = useState<{ 글: string; 오류: boolean } | null>(null);
   const [걸린칸, set걸린칸] = useState<넘길칸 | null>(null);
   const { 상자, 첫오류로 } = use첫오류();
-  const [하는중, set하는중] = useState(false);
+  const [하는중, set하는중] = useState<누른곳 | null>(null);
   const [묻나, set묻나] = useState(false);
   const agents = useAsync(() => perfApi.agents(service.projectId), [service.projectId]);
   const 더미들 = useAsync(() => perfApi.dummyClients(service.id), [service.id]);
@@ -136,9 +136,9 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   }
 
   /** 저장하고 시나리오 번호를 돌려준다. 실패하면 알림을 띄우고 null */
-  async function 저장(): Promise<number | null> {
+  async function 저장(어디: 누른곳): Promise<number | null> {
     if (막힘(1)) return null;
-    set하는중(true);
+    set하는중(어디);
     set알림(null);
     try {
       let id = 번호;
@@ -165,7 +165,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
       set알림({ 글: message(err, 언어), 오류: true });
       return null;
     } finally {
-      set하는중(false);
+      set하는중(null);
     }
   }
 
@@ -178,9 +178,9 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
   async function 실행() {
     set묻나(false);
-    const id = await 저장();
+    const id = await 저장('run');
     if (id === null) return;
-    set하는중(true);
+    set하는중('run');
     try {
       고른서버를적는다(service.prefix, 사.env);
       const { runId } = await perfApi.run({ scenarioId: id, env: 사.env, testType: 이.testType, basis: 이.basis, stages: 이.stages, targets: 삼.targets, agentIds: 사.agentIds, monitorIds: 사.monitorIds, ...(페이지칸 && 사.pageCheck ? { pageCheck: true } : {}) });
@@ -189,7 +189,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     } catch (err) {
       set알림({ 글: message(err, 언어), 오류: true });
     } finally {
-      set하는중(false);
+      set하는중(null);
     }
   }
 
@@ -236,8 +236,8 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
               </>
             ) : null}
             {쓰나 ? (
-              <button type="button" className="btn ghost" disabled={하는중} onClick={() => void 저장()}>
-                {t('임시 저장')}
+              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => void 저장('draft')}>
+                <기다림글자 중={하는중 === 'draft'} 평소={t('임시 저장')} 기다림={t('저장하는 중')} />
               </button>
             ) : null}
           </>
@@ -250,7 +250,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
         {지금 === 1 ? <PerfStepScenario 값={일} 고침={일고침} service={service} 새것={번호 === null} 쓰나={쓰나} 초안받음={set초안} 더미들={더미들.data?.clients ?? []} 더미오류={더미들.error === null ? null : message(더미들.error, 언어)} 틀림={틀림} /> : null}
         {지금 === 2 ? <PerfStepLoad 값={이} 고침={set이} serviceId={service.id} 쓰나={쓰나} 더미={더미} 틀림={틀림} /> : null}
-        {지금 === 3 ? <PerfStepTargets 값={삼} 고침={set삼} serviceId={service.id} 트랜잭션들={더미 ? [] : 일.transactions.map((tx) => tx.name)} 쓰나={쓰나} 저장하고번호={저장} /> : null}
+        {지금 === 3 ? <PerfStepTargets 값={삼} 고침={set삼} serviceId={service.id} 트랜잭션들={더미 ? [] : 일.transactions.map((tx) => tx.name)} 쓰나={쓰나} 저장하고번호={() => 저장('step')} /> : null}
         {지금 === 4 ? (
           <PerfStepRun
             값={사}
@@ -271,7 +271,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
             {알림.글}
           </p>
         )}
-        <PerfWizardFoot 지금={지금} 쓰나={쓰나} 하는중={하는중} on이전={() => set지금((지금 - 1) as 단계)} on다음={다음} on저장={() => void 저장()} on실행={실행누름} />
+        <PerfWizardFoot 지금={지금} 쓰나={쓰나} 하는중={하는중} on이전={() => set지금((지금 - 1) as 단계)} on다음={다음} on저장={() => void 저장('save')} on실행={실행누름} />
       </div>
     </>
   );
