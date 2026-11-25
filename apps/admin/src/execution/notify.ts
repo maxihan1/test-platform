@@ -121,10 +121,10 @@ export function 본문(run: NotifyRow, 실패: FailedCase[], publicUrl: string, 
     if (실패.length > 5) 줄.push(`  외 ${실패.length - 5}건`);
   }
 
-  // 요약 페이지를 새로 만들지 않는다. 결과 보기는 §8.3 그 화면의 주소다.
+  // 요약 페이지를 새로 만들지 않는다. 결과 보기는 §8.3 그 화면의 주소다. 화면은 # 뒤를 길로 읽는다 — # 이 빠지면 404 다.
   // 주소를 모르면 링크 줄을 아예 뺀다 — 틀린 주소를 보내는 것보다 없는 편이 낫다 (§9)
   if (publicUrl !== '') {
-    줄.push('', `결과 보기 ${publicUrl.replace(/\/$/, '')}/runs/${runId}`);
+    줄.push('', `결과 보기 ${publicUrl.replace(/\/$/, '')}/#/runs/${runId}`);
   }
 
   return 줄.join('\n');

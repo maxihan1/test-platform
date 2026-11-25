@@ -3,6 +3,7 @@
 import type { ItemStatus, TrialResult } from './api.js';
 import { t, type 언어 } from './i18n.js';
 import { 시간글자 } from './remainText.js';
+import { 막힌항목 } from './runFlow.js';
 import type { 디바이스칸, 쌓인단계 } from './useTrialQueue.js';
 
 export interface 도는단계줄 {
@@ -54,7 +55,10 @@ export function 결과단계줄들(결과: TrialResult, 제목들: string[] | nu
   return [...줄들, ...제목들.slice(끝).map((title, i) => ({ seq: 끝 + i + 1, title, status: null }))];
 }
 
-export type 알약종류 = 'run' | 'pass' | 'fail' | 'wait' | 'na';
+/** 앞 케이스에 막혀 못 간 줄인가 — 프로시저 시험 실행에서만 생긴다 */
+export const 시험막힘 = (r: TrialResult): boolean => 막힌항목({ status: r.status, error: r.error ?? null, blockedBy: r.blockedBy });
+
+export type 알약종류 = 'run' | 'pass' | 'fail' | 'wait' | 'blocked' | 'na';
 
 /**
  * 대기열 줄의 상태 알약 하나 — 디바이스 칸을 셈으로 묶는다(`통과 2` · `실패 1` · `진행 중` · `대기 2`).
@@ -68,7 +72,9 @@ export function 대기열알약(칸들: 디바이스칸[]): { 종류: 알약종�
   const 대기 = 수((칸) => 칸.줄.종류 === 'wait');
   if (대기 > 0) return { 종류: 'wait', 수: 대기 };
   const 통과 = 수((칸) => 칸.줄.종류 === 'done' && 칸.줄.결과.status === 'PASS');
-  return 통과 === 칸들.length ? { 종류: 'pass', 수: 통과 } : { 종류: 'na', 수: 칸들.length - 통과 };
+  if (통과 === 칸들.length) return { 종류: 'pass', 수: 통과 };
+  const 막힘 = 수((칸) => 칸.줄.종류 === 'done' && 시험막힘(칸.줄.결과));
+  return { 종류: 막힘 === 칸들.length - 통과 ? 'blocked' : 'na', 수: 칸들.length - 통과 };
 }
 
 /** 걸린 시간은 초 단위다 — `3초` · `1분 2초` (점검표 B15f). 반올림해 0 이면 0초가 아니라 「1초 미만」이다 */

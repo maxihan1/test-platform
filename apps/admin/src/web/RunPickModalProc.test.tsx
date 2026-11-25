@@ -136,5 +136,68 @@ describe('실행 창의 테스트 프로시저', () => {
     expect(시작.mock.calls[0]?.[0]).toBe('MTA-2');
     expect(screen.getByText('MTA-3')).toBeTruthy();
   });
+
+  it('시험 실행 결과에서 앞 케이스에 막힌 줄은 Blocked 와 선행 케이스이고 원문 「BLOCKED」는 없다 — 값 창으로 돌아가도 같다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    const 막힘 = (tcId: string) => ({ tcId, status: 'NA' as const, durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 'MTA-1' });
+    vi.spyOn(api, 'getTrial').mockResolvedValue({
+      status: 'DONE',
+      result: { status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' } },
+      results: [{ tcId: 'MTA-1', status: 'FAIL', durationMs: 1000, steps: [], error: { message: '게시글이 없다' } }, 막힘('MTA-2'), 막힘('MTA-3')],
+    } as Awaited<ReturnType<typeof api.getTrial>>);
+    그리기();
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
+    await screen.findByText('시험 실행 결과');
+
+    const 줄들 = [...document.querySelectorAll('.trial-res > li')];
+    expect(줄들.map((줄) => 줄.querySelector('.verdict')?.textContent)).toEqual(['Fail', 'Blocked', 'Blocked']);
+    expect(줄들.slice(1).map((줄) => 줄.querySelector('.why')?.textContent)).toEqual(['선행 케이스 MTA-1 실패', '선행 케이스 MTA-1 실패']);
+    expect(document.querySelector('.trial-sum')?.textContent).toContain('Not tested 2 (Blocked 2)');
+    expect(document.querySelector('.trial-res')?.textContent).not.toContain('BLOCKED');
+
+    fireEvent.click(screen.getByRole('button', { name: '← 준비로 돌아가기' }));
+    expect([...document.querySelectorAll('.prow .trial-badge')].map((칸) => 칸.textContent)).toEqual([expect.stringContaining('Fail'), expect.stringContaining('Blocked'), expect.stringContaining('Blocked')]);
+    expect(document.body.textContent).not.toContain('BLOCKED');
+  });
+
+  it('준비 절차를 돌다 깨진 Blocked 줄은 선행 케이스와 같이 자기 단계를 보이고, 막은 케이스가 시간 초과가 아닌 미실행이면 번호까지만 적는다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    const 단계 = { seq: 4, tcId: 'MTA-3', title: '글쓰기를 연다', status: 'FAIL' as const, durationMs: 1, assertions: [], error: { message: '단추를 찾지 못했습니다' } };
+    vi.spyOn(api, 'getTrial').mockResolvedValue({
+      status: 'DONE',
+      result: { status: 'NA', durationMs: 0, steps: [단계], error: { message: 'BLOCKED' } },
+      results: [
+        { tcId: 'MTA-1', status: 'NA', durationMs: 1000, steps: [], error: { message: '프로세스가 종료 코드 1로 끝났습니다' } },
+        { tcId: 'MTA-2', status: 'NA', durationMs: 0, steps: [], error: { message: 'BLOCKED' }, blockedBy: 'MTA-1' },
+        { tcId: 'MTA-3', status: 'NA', durationMs: 0, steps: [단계], error: { message: 'BLOCKED' }, blockedBy: 'MTA-1' },
+      ],
+    } as Awaited<ReturnType<typeof api.getTrial>>);
+    그리기();
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
+    await screen.findByText('시험 실행 결과');
+
+    const 글 = [...document.querySelectorAll('.trial-res > li .why')].map((칸) => 칸.textContent);
+    expect(글[1]).toBe('선행 케이스 MTA-1');
+    expect(글[2]).toContain('선행 케이스 MTA-1');
+    expect(글[2]).toContain('4단계 · 글쓰기를 연다');
+    expect(글[2]).toContain('단추를 찾지 못했습니다');
+    expect(document.querySelector('.trial-res')?.textContent).not.toContain('BLOCKED');
+  });
+
+  it('시험 실행 시작 확인의 케이스 줄 — 프로시저 하나면 건수만, 다른 것과 섞이면 「차례로 실행」, 프로시저가 없으면 「한 건씩 차례로」', () => {
+    const 글 = (케이스들: 담은줄[]) => {
+      그리기(케이스들);
+      fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+      const 줄 = screen.getByRole('dialog', { name: '시험 실행을 시작할까요?' }).querySelector('.start-what dd')?.textContent;
+      cleanup();
+      return 줄;
+    };
+    expect(글(프로시저)).toBe('3건');
+    expect(글([...프로시저, 케이스('MTA-8', null, null)])).toBe('4건 · 차례로 실행');
+    expect(글([...프로시저, 케이스('MTA-8', 'MTA-TP-022', 1)])).toBe('4건 · 차례로 실행');
+    expect(글([케이스('MTA-8', null, null), 케이스('MTA-9', null, null)])).toBe('2건 · 한 건씩 차례로');
+  });
 });
 

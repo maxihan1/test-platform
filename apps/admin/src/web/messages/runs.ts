@@ -25,6 +25,7 @@ export const 실행말: Record<string, string> = {
   '결과는 이 창에서만 보이고': 'Results show only in this window and',
   '실행 기록 · 리포트에 남지 않습니다': 'are not saved to run history or reports',
   '{수}건 · 한 건씩 차례로': '{수} · one at a time',
+  '{수}건 · 차례로 실행': '{수} · run in order',
   '반복 · 알림': 'Repeat · notify',
   '{수}회': '{수}×',
   'Slack 알림 켬': 'Slack on',

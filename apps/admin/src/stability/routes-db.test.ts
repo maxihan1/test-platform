@@ -237,7 +237,7 @@ describe.skipIf(연결 === undefined)('안정화 지표 통로', { timeout: 60_0
     const d = await 읽기(`/api/stability/errors/${String(오류.신규)}`);
     expect(d).toMatchObject({ id: 오류.신규, state: 'NEW', firstRunId: 실행.fn2, issue: null, btsLinked: true, runId: 실행.fn2 });
     expect(d.occurrences).toEqual([
-      { tcId: 'XSY-UI-001', name: 'XSY-UI-001 이름', status: 'PASS', seq: 3, crash: false, historyId: expect.any(Number), runId: 실행.ui2 },
+      { tcId: 'XSY-UI-001', name: 'XSY-UI-001 이름', status: 'PASS', blocked: false, seq: 3, crash: false, historyId: expect.any(Number), runId: 실행.ui2 },
     ]);
     expect(d.kpis).toEqual({ cases: 1, runCases: 2, passCases: 1, crashCases: 0, firstCrashTcId: null, hits: 2, previousHits: 0 });
     expect(d.samples).toHaveLength(1);
@@ -252,6 +252,19 @@ describe.skipIf(연결 === undefined)('안정화 지표 통로', { timeout: 60_0
     // 그 실행에 안 남은 종류 · 남의 애플리케이션 오류
     expect((await 부르기('xsy-reader', 'GET', `/api/stability/errors/${String(오류.신규)}?run=${String(실행.fn1)}`)).statusCode).toBe(404);
     expect((await 부르기('xsy-none', 'GET', `/api/stability/errors/${String(오류.신규)}`)).statusCode).toBe(403);
+  });
+
+  it('상세 — 앞 케이스에 막힌 항목은 발생 줄의 blocked 가 참이다', async () => {
+    const 막는다 = (status: string, error: string | null) =>
+      pool.query("UPDATE run_item SET status = $2, error = $3::jsonb WHERE run_id = $1 AND tc_id = 'XSY-UI-001'", [실행.ui2, status, error]);
+    try {
+      await 막는다('NA', '{"message":"BLOCKED"}');
+      expect((await 읽기(`/api/stability/errors/${String(오류.신규)}`)).occurrences).toMatchObject([{ tcId: 'XSY-UI-001', blocked: true }]);
+      await 막는다('NA', '{"message":"TIMEOUT"}');
+      expect((await 읽기(`/api/stability/errors/${String(오류.신규)}`)).occurrences).toMatchObject([{ tcId: 'XSY-UI-001', blocked: false }]);
+    } finally {
+      await 막는다('PASS', null);
+    }
   });
 
   it('해결 처리 — 실행 write 만 · 한 번만 · 가장 최근 실행의 「해결」에 바로 보인다', async () => {

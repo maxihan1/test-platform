@@ -114,11 +114,11 @@ describe('본문', () => {
   });
 
   it('바깥 주소를 알면 결과 화면 링크를 붙인다', () => {
-    expect(본문(실행, 실패하나, 'https://qa.example.com', 2111)).toContain('결과 보기 https://qa.example.com/runs/2111');
+    expect(본문(실행, 실패하나, 'https://qa.example.com', 2111)).toContain('결과 보기 https://qa.example.com/#/runs/2111');
   });
 
   it('주소 끝의 빗금은 두 번 들어가지 않는다', () => {
-    expect(본문(실행, [], 'https://qa.example.com/', 2111)).toContain('https://qa.example.com/runs/2111');
+    expect(본문(실행, [], 'https://qa.example.com/', 2111)).toContain('결과 보기 https://qa.example.com/#/runs/2111');
   });
 
   it('바깥 주소를 모르면 링크 줄을 아예 뺀다', () => {

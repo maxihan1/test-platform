@@ -10,6 +10,7 @@ import { 값연결글, 건너뜀번호, 멈춘사유글자, 미확정있나, 접
 import { 카드요약, 종류글 } from '../web/scenarioView.js';
 import { toFields, 값글자, 기기글, type EvidenceHeader, type EvidenceItem, type EvidenceStep } from './collect.js';
 import { 막힘사유, 시간초과글 } from './collectProc.js';
+import { 제한글풀기 } from './failureType.js';
 
 /** 프로시저 단계의 케이스 한 건 — 화면 결과 칸(web/ScenarioProcCases.tsx)과 같은 판정이다 */
 export interface E2E프로시저케이스 {
@@ -131,7 +132,7 @@ function 프로시저모양(p: ScenarioRunPart): E2E프로시저 | null {
       durationMs: c.durationMs ?? null,
       blocked: 막힘,
       blockedBy: c.blockedBy ?? null,
-      사유: 막힘 || 안돎 || c.status === 'PASS' || c.error === undefined ? null : 멈춘사유글자(c.error.message, 'ko'),
+      사유: 막힘 || 안돎 || c.status === 'PASS' || c.error === undefined ? null : 제한글풀기(멈춘사유글자(c.error.message, 'ko')),
     };
   };
   const 모양들 = 케이스들.map(하나);
@@ -171,7 +172,7 @@ function 단계(runId: number, p: ScenarioRunPart, 결과: 결과): E2E단계 {
     }),
     값연결: (케이스?.links ?? []).map((link) => 값연결글(link, p.bound, 'ko')),
     // 결과 화면이 보이는 문장이다 — 케이스 단계가 실패해도 적는다. 원문 스택은 안 싣는다
-    사유: !안돌았다 && p.status !== 'PASS' && p.error !== null && p.error.message !== '' ? 멈춘사유글자(p.error.message, 'ko') : null,
+    사유: !안돌았다 && p.status !== 'PASS' && p.error !== null && p.error.message !== '' ? 제한글풀기(멈춘사유글자(p.error.message, 'ko')) : null,
     프로시저: 프로시저모양(p),
   };
 }

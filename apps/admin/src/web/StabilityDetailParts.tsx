@@ -87,7 +87,7 @@ export function 발생케이스판({ 상세 }: { 상세: 오류상세 }) {
           ].join(' · ');
           return (
             <li key={c.tcId}>
-              <Verdict status={c.통과 ? 'PASS' : 'FAIL'} />
+              <Verdict status={c.status} blocked={c.blocked} />
               <a className="mono" href={케이스주소(c.tcId)}>
                 {c.tcId}
               </a>

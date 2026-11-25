@@ -133,6 +133,12 @@ describe('QA 리포트 HTML', () => {
     expect(html).toContain('진행 중인 실행 1개');
   });
 
+  it('계획 대비 차이의 디바이스 칸(Android 앱)은 줄을 바꾸지 않는다 — 폰 폭에서 세 줄로 꺾였다', () => {
+    const 것 = 재료();
+    것.리포트.summary.plan.cases = [{ kind: 'FN', planned: 2, ran: 1, notIncluded: [], notRun: [{ tcId: 'XQ-FN-009', name: '막힌 것', platform: 'android', cause: 'blocked', blockedBy: 'XQ-FN-001' }] }];
+    expect(renderQaReportHtml(것, 'HTML')).toContain('<td class="s">Android 앱</td>');
+  });
+
   it('사람이 적은 글은 가리고, 승인 전이면 옅은 「승인 전」 표시를 깐다', () => {
     expect(html).not.toContain('XQ <웹>');
     expect(html).toContain('XQ &lt;웹&gt;');

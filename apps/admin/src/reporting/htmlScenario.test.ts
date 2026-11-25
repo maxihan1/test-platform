@@ -177,6 +177,11 @@ describe('E2E 증적 모델', () => {
     expect(첫?.item?.notRunReason).toBe('제한 시간 초과');
     expect(둘?.사유).toBe('서버 재시작으로 중단');
   });
+
+  it('단계 제한 시간에 끊긴 글은 밀리초 원문 대신 결과 화면과 같은 문장이다', () => {
+    const 초과 = { ...결과, parts: [부품(1, { status: 'FAIL', error: { message: '단계 제한 시간 120000ms 를 넘었다' } })] };
+    expect(E2E모양(1, 초과, { serviceName: '', testsRepo: '' }).parts[0]?.사유).toBe('제한 시간 안에 완료되지 않았습니다');
+  });
 });
 
 describe('E2E 증적 엑셀', () => {
