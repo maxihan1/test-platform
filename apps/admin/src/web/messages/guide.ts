@@ -46,4 +46,6 @@ export const 가이드말: Record<string, string> = {
   '예: apk 설치 · 서버 주소 변경 · 키보드 설정': 'e.g. installing the apk · switching the server URL · keyboard settings',
   '예: 치트 명령 · 점검 시간 · 확률 확인 방법': 'e.g. cheat commands · maintenance hours · how to check odds',
   '예: 기본 주소 · 토큰 받는 법 · 호출 한도': 'e.g. base URL · getting a token · rate limits',
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '수정한 내용이 없어 저장할 수 없습니다': 'Nothing has been edited, so there is nothing to save',
 };

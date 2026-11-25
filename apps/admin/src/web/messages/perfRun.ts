@@ -74,9 +74,10 @@ export const 성능실행말: Record<string, string> = {
   켜기: 'Turn on',
   '{서버} · 부하 테스트 불가': '{서버} · cannot be load tested',
   '매일 이 시각에 이 시나리오를 저장된 설정 그대로 실행합니다': 'Runs this scenario every day at this time with the saved settings',
-  '시각과 대상 서버를 선택해 주세요': 'Pick a time and a target server',
 
   // PRD 추적표
   '성능 목표 {수}개': '{수} performance targets',
   // 성능 실행 기록 — 페이지 · 기기 측정 줄의 고리 (종류는 꼬리표가 말한다, WEB-F7-18)
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '시각을 선택해 주세요': 'Pick a time',
 };

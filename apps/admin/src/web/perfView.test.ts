@@ -65,16 +65,22 @@ it('95% 응답시간은 화면이 초로, 저장은 ms 로 한다', () => {
 });
 
 describe('다음 단계로 못 넘기는 까닭', () => {
-  const 값 = { name: '주문하기', txCount: 1, dummy: false, stages: [{ durationSec: 60, target: 10 }] };
+  const 값 = { name: '주문하기', txCount: 1, dummy: false, stages: [{ durationSec: 60, target: 10 }], env: 'qa', agentCount: 1 };
 
   it('이름이 비거나 트랜잭션이 없으면 1단계에서 막는다', () => {
-    expect(넘길까닭(1, { ...값, name: ' ' }, 'ko')).toBe('시나리오 이름을 적어 주세요');
-    expect(넘길까닭(1, { ...값, txCount: 0 }, 'ko')).toBe('트랜잭션이 하나도 없습니다. 가져오거나 추가해 주세요');
+    expect(넘길까닭(1, { ...값, name: ' ' }, 'ko')).toEqual({ 칸: 'name', 글: '시나리오 이름을 적어 주세요' });
+    expect(넘길까닭(1, { ...값, txCount: 0 }, 'ko')).toEqual({ 칸: 'tx', 글: '트랜잭션이 하나도 없습니다. 가져오거나 추가해 주세요' });
     expect(넘길까닭(1, 값, 'ko')).toBeNull();
   });
 
   it('가상 사용자가 0명이면 2단계에서 막는다', () => {
-    expect(넘길까닭(2, { ...값, stages: [{ durationSec: 60, target: 0 }] }, 'ko')).toBe('가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요');
+    expect(넘길까닭(2, { ...값, stages: [{ durationSec: 60, target: 0 }] }, 'ko')).toEqual({ 칸: 'vus', 글: '가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요' });
+  });
+
+  it('대상 서버나 에이전트가 없으면 4단계에서 막는다', () => {
+    expect(넘길까닭(4, { ...값, env: '' }, 'ko')).toEqual({ 칸: 'env', 글: '대상 서버를 선택해 주세요' });
+    expect(넘길까닭(4, { ...값, agentCount: 0 }, 'ko')).toEqual({ 칸: 'agents', 글: '부하 발생 에이전트를 선택해 주세요' });
+    expect(넘길까닭(4, 값, 'ko')).toBeNull();
   });
 });
 

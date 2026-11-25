@@ -97,7 +97,11 @@ describe('RunPickModal', () => {
     시작누름();
 
     expect(onRun).not.toHaveBeenCalled();
-    expect(줄().textContent).toContain('대상 서버를 선택하세요');
+    expect(screen.getByRole('alert').textContent).toContain('대상 서버를 선택하세요');
+    expect(document.activeElement).toBe(screen.getByLabelText('대상 서버'));
+    expect(줄().textContent).toBe('');
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stage' } });
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('값을 고치고 실행하면 그 값이 onRun 의 items 에 실린다', () => {
@@ -285,7 +289,8 @@ describe('RunPickModal 테스트 실행', () => {
     시작누름('시험 실행 시작');
 
     expect(시작).not.toHaveBeenCalled();
-    expect(줄().textContent).toBe('시험 실행할 대상 서버를 선택하세요.');
+    expect(screen.getByRole('alert').textContent).toBe('시험 실행할 대상 서버를 선택하세요.');
+    expect(document.activeElement).toBe(screen.getByLabelText('대상 서버'));
   });
 
   it('열 주소 칸이 없다 — 서버가 대상 서버로 주소를 찾는다', () => {

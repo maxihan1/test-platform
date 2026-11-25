@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ApiError, type EnvRow } from './api.js';
 import { compatApi, 자동케이스 } from './compatApi.js';
 import { CompatRunWindow } from './CompatRunWindow.js';
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { t as 번역, use말, use언어 } from './i18n.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { Modal } from './Modal.js';
@@ -20,11 +21,15 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
   const [하는중, set하는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const [runId, setRunId] = useState<number | null>(null);
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
   const [env, setEnv] = useState(() => 마지막서버(service, envs));
 
   if (runId !== null) return <CompatRunWindow runId={runId} service={service} 닫기={닫기} />;
 
   async function 시작() {
+    set눌렀나(true);
+    if (env === '') return 첫오류로();
     set하는중(true);
     set오류(null);
     try {
@@ -41,6 +46,7 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
   }
 
   const 상세 = 세트.data;
+  const 서버사유 = 눌렀나 && env === '' ? t('대상 서버를 선택해 주세요') : null;
   const 자동 = new Set(자동케이스(상세?.auto ?? []));
   const 케이스수 = 상세 === null ? 0 : 자동.size + 상세.addedCases.filter((c) => !자동.has(c)).length;
 
@@ -56,7 +62,7 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
           <button type="button" className="btn ghost" onClick={닫기}>
             {t('취소')}
           </button>
-          <button type="button" className="btn" disabled={상세 === null || env === '' || 하는중} onClick={() => void 시작()}>
+          <button type="button" className="btn" disabled={상세 === null || envs.length === 0 || 하는중} onClick={() => void 시작()}>
             {하는중 ? t('실행을 만드는 중') : t('실행')}
           </button>
         </>
@@ -67,14 +73,14 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
       ) : 상세 === null ? (
         <Loading />
       ) : (
-        <div className="cr-start">
+        <div className="cr-start" ref={상자}>
           <p className="cr-start-name">{상세.name}</p>
           <label className="cr-field">
             <span>{t('대상 서버')}</span>
             {envs.length === 0 ? (
               <span className="compat-faint">{t('설정에서 대상 서버를 먼저 넣습니다')}</span>
             ) : (
-              <select value={env} onChange={(e) => setEnv(e.target.value)}>
+              <select value={env} {...오류속성('cr-env-err', 서버사유)} onChange={(e) => setEnv(e.target.value)}>
                 <option value="">{t('선택하세요')}</option>
                 {envs.map((e) => (
                   <option key={e.env} value={e.env}>
@@ -84,6 +90,7 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
               </select>
             )}
           </label>
+          <칸오류 id="cr-env-err" 사유={서버사유} />
           <dl className="cr-facts">
             <dt>{t('디바이스')}</dt>
             <dd>{t('{수}대', { 수: 상세.devices.length })}</dd>

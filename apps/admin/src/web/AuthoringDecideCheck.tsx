@@ -1,10 +1,13 @@
 // 결정 목록 「요구사항 확인」 탭의 확인 필요 항목 — 확정 · 수정과 기획서끼리 다른 문구 고르기, 둘이 같이 쓰는 문장 칸 (도메인/작성 §3.6 「★ 결정 목록」 항목 표)
 // 적던 글(편집표)은 고른 값과 따로 둔다 — [저장]을 눌러야 고른 값이 되고 적용에 들어간다(2026-11-04 사용자 「저장 버튼이 있어야 진행할 때 바뀐 걸로 알지」)
 
+import { useId, useState } from 'react';
+
 import { 상한 } from '../prd/rules.js';
 import { 막힘줄, type 고름하기 } from './AuthoringDecideItems.js';
 import type { 결정항목 } from './decideApi.js';
 import { 넘치나, type 고른표 } from './decideView.js';
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import { use나이글 } from './prdWords.js';
 import { PRD항목주소 } from './route.js';
@@ -34,8 +37,18 @@ export function 문장칸({
 }) {
   const t = use말();
   const 넘침 = 넘치나(글);
+  const 사유id = useId();
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
+  const 막힘 = 글.trim() === '' ? t('문장을 적어 주세요') : 넘침 ? t('문장은 {상한}자까지 적을 수 있습니다', { 상한: 상한.요구문장 }) : null;
+  const 사유 = 눌렀나 ? 막힘 : null;
+  const 저장 = () => {
+    set눌렀나(막힘 !== null);
+    if (막힘 === null) on저장();
+    else 첫오류로();
+  };
   return (
-    <div className="decide-edit">
+    <div className="decide-edit" ref={상자}>
       <label className="decide-text">
         <span className="decide-text-name">{이름}</span>
         {기존 === undefined ? null : (
@@ -43,8 +56,9 @@ export function 문장칸({
             <span className="hint">{t('기존')}</span> {기존}
           </span>
         )}
-        <textarea rows={2} value={글} placeholder={안내} onChange={(e) => on글(e.target.value)} />
+        <textarea rows={2} value={글} placeholder={안내} {...오류속성(사유id, 사유)} onChange={(e) => on글(e.target.value)} />
       </label>
+      <칸오류 id={사유id} 사유={사유} />
       <div className="decide-edit-foot">
         <small className={넘침 ? 'decide-count over' : 'decide-count hint'}>
           {글.length} / {상한.요구문장}
@@ -54,7 +68,7 @@ export function 문장칸({
             {t('취소')}
           </button>
         )}
-        <button className="btn small" type="button" disabled={글.trim() === '' || 넘침} onClick={on저장}>
+        <button className="btn small" type="button" onClick={저장}>
           {t('저장')}
         </button>
       </div>

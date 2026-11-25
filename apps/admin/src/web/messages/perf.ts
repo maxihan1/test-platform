@@ -20,7 +20,6 @@ export const 성능말: Record<string, string> = {
   '{유형}, 최대 {수}{단위}': '{유형}, up to {수}{단위}',
   명: ' VUs',
   '애플리케이션을 먼저 선택해 주세요': 'Pick an application first',
-  '대상 서버와 부하 발생 에이전트를 선택해 주세요': 'Pick a target server and a load generator',
   '시나리오 이름을 적어 주세요': 'Enter a scenario name',
   '트랜잭션이 하나도 없습니다. 가져오거나 추가해 주세요': 'There are no transactions. Import or add one',
   '가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요': 'Virtual users are 0. Enter max virtual users',
@@ -169,7 +168,6 @@ export const 성능말: Record<string, string> = {
   '「{이름}」을 삭제하면 그 토큰도 끊겨 다시 연결하려면 재설치해야 합니다': 'Deleting "{이름}" revokes its token. Reinstall to add it back',
   '에이전트 추가': 'Add agent',
   '부하 발생은 부하를 보낼 기계에, 모니터링은 대상 서버에 설치합니다. 프로그램은 같습니다': 'Install load generators on machines that send load and monitoring on target servers. It is the same program',
-  '이름과 프로젝트를 정해 주세요': 'Enter a name and pick a project',
   '이름을 적어 주세요': 'Enter a name',
   추가: 'Add',
   '설치 명령': 'Install command',
@@ -193,7 +191,6 @@ export const 성능말: Record<string, string> = {
   '업로드한 날': 'Uploaded',
   'zip 파일': 'Zip file',
   업로드: 'Upload',
-  '이름과 실행 명령을 적어 주세요': 'Enter a name and a command',
   '업로드할 .zip 파일을 선택해 주세요': 'Pick a .zip file to upload',
   '더미 클라이언트를 선택해 주세요': 'Choose a dummy client',
   '파일은 200MB 까지입니다': 'Files can be up to 200 MB',
@@ -228,4 +225,8 @@ export const 성능말: Record<string, string> = {
   // AI 추천 확인 (WEB-F10-02)
   'AI 추천 목표로 변경할까요?': 'Replace with AI suggested targets?',
   '지금 있는 성능 목표 {수}개가 AI 추천 목표로 모두 변경됩니다': 'All {수} current targets are replaced by AI suggestions',
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '부하 발생 에이전트를 선택해 주세요': 'Pick a load generator',
+  '실행 명령을 적어 주세요': 'Enter a command',
+  '{이름} 값을 적어 주세요': 'Enter {이름}',
 };

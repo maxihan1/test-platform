@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
+import { use첫오류 } from './FieldError.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
@@ -16,12 +17,12 @@ import { PerfStepRun } from './PerfStepRun.js';
 import { PerfStepScenario, type 일단계값 } from './PerfStepScenario.js';
 import { PerfStepTargets } from './PerfStepTargets.js';
 import { 저장꼴 } from './PerfTxDetail.js';
-import { 넘길까닭, 최대목표 } from './perfView.js';
+import { 넘길까닭, 최대목표, type 넘길칸 } from './perfView.js';
 import { 처음값 } from './perfWizardInit.js';
 import { 조건붙인주소, 떠나기로했다, 떠나기상자, 주소고치기, 주소조건 } from './leaveGuard.js';
 import { 할수있나 } from './role.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
-import { PerfWizardSteps, type 단계, type 단계줄 } from './PerfWizardSteps.js';
+import { PerfWizardFoot, PerfWizardSteps, type 단계, type 단계줄 } from './PerfWizardSteps.js';
 import { use단계주소 } from './useWizardStep.js';
 
 export function PerfWizard({ id, 띠서비스, user }: { id: number | null; 띠서비스: ServiceRow | null; user: User }) {
@@ -69,6 +70,8 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   // 고칠 때는 처음부터 네 단계를 다 끝낸 것으로 본다 (§8.14 「끝낸 단계를 눌러 바로 간다」)
   const [끝낸, set끝낸] = useState<number>(시나리오 === null ? 0 : 4);
   const [알림, set알림] = useState<{ 글: string; 오류: boolean } | null>(null);
+  const [걸린칸, set걸린칸] = useState<넘길칸 | null>(null);
+  const { 상자, 첫오류로 } = use첫오류();
   const [하는중, set하는중] = useState(false);
   const [묻나, set묻나] = useState(false);
   const agents = useAsync(() => perfApi.agents(service.projectId), [service.projectId]);
@@ -76,7 +79,10 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   const 더미 = 일.방식 === 'DUMMY';
   // 더미 클라이언트 실행은 부하 중 페이지 측정을 못 한다 — 서버가 400 으로 거절한다
   const 페이지칸 = 웹 && !더미;
-  const 넘길재료 = { name: 일.name, txCount: 일.transactions.length, dummy: 더미, dummyPicked: 일.더미번호 !== null, stages: 이.stages };
+  const 넘길재료 = { name: 일.name, txCount: 일.transactions.length, dummy: 더미, dummyPicked: 일.더미번호 !== null, stages: 이.stages, env: 사.env, agentCount: 사.agentIds.length };
+  // 고친 칸의 사유는 바로 걷는다. 다음 칸의 사유는 다시 누를 때 뜬다
+  const 막은것 = 넘길까닭(지금, 넘길재료, 언어);
+  const 틀림 = 막은것?.칸 === 걸린칸 ? 막은것 : null;
   // 뒤로 가기 · 앞으로 가기 · 손으로 고친 주소도 다음 버튼과 같은 검사를 지난다 — 앞으로는 통과하는 데까지만 간다.
   // 처음 저장해 적은 번호(id=)도 이 마법사가 들고 있다 — 앞 단계 칸으로 뒤로 가도 같은 화면이라 쓴 값이 남고 다시 저장해도 둘이 안 생긴다
   const 스스로 = use단계주소(
@@ -118,12 +124,14 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   });
 
   /** 그 단계 칸이 덜 됐으면 거기로 보내고 참 */
-  function 막힘(단계: 1 | 2): boolean {
+  function 막힘(단계: 단계): boolean {
     const 까닭 = 넘길까닭(단계, 넘길재료, 언어);
     if (까닭 === null) return false;
     스스로(단계);
     set지금(단계);
-    set알림({ 글: 까닭, 오류: true });
+    set알림(null);
+    set걸린칸(까닭.칸);
+    첫오류로();
     return true;
   }
 
@@ -163,11 +171,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
   /** 칸 검사를 다 지난 뒤에 묻는다. 저장은 확인한 뒤다 — 취소하면 아무것도 안 남는다 */
   function 실행누름() {
-    if (사.env === '' || 사.agentIds.length === 0) {
-      set알림({ 글: t('대상 서버와 부하 발생 에이전트를 선택해 주세요'), 오류: true });
-      return;
-    }
-    if (막힘(1) || 막힘(2)) return;
+    if (막힘(4) || 막힘(1) || 막힘(2)) return;
     set알림(null);
     set묻나(true);
   }
@@ -190,12 +194,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   }
 
   function 다음() {
-    if (지금 === 4) return;
-    const 까닭 = 넘길까닭(지금, 넘길재료, 언어);
-    if (까닭 !== null) {
-      set알림({ 글: 까닭, 오류: true });
-      return;
-    }
+    if (지금 === 4 || 막힘(지금)) return;
     set알림(null);
     set끝낸(Math.max(끝낸, 지금));
     set지금((지금 + 1) as 단계);
@@ -246,11 +245,11 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
       />
       {!묻나 ? null : <PerfStartConfirm 종류="LOAD" 줄들={요약} 안내={t('시나리오를 저장하고 대상 서버에 부하가 발생합니다. 실행 화면에서 중단할 수 있습니다')} onClose={() => set묻나(false)} on시작={() => void 실행()} />}
       {정기창 && 번호 !== null ? <PerfSchedule scenarioId={번호} envs={service.envs} 지금={정기} 바뀜={set정기} 닫기={() => set정기창(false)} /> : null}
-      <div className="screen" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="screen" ref={상자} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <PerfWizardSteps 단계들={단계들} 지금={지금} 끝낸={끝낸} on고름={set지금} />
 
-        {지금 === 1 ? <PerfStepScenario 값={일} 고침={일고침} service={service} 새것={번호 === null} 쓰나={쓰나} 초안받음={set초안} 더미들={더미들.data?.clients ?? []} 더미오류={더미들.error === null ? null : message(더미들.error, 언어)} /> : null}
-        {지금 === 2 ? <PerfStepLoad 값={이} 고침={set이} serviceId={service.id} 쓰나={쓰나} 더미={더미} /> : null}
+        {지금 === 1 ? <PerfStepScenario 값={일} 고침={일고침} service={service} 새것={번호 === null} 쓰나={쓰나} 초안받음={set초안} 더미들={더미들.data?.clients ?? []} 더미오류={더미들.error === null ? null : message(더미들.error, 언어)} 틀림={틀림} /> : null}
+        {지금 === 2 ? <PerfStepLoad 값={이} 고침={set이} serviceId={service.id} 쓰나={쓰나} 더미={더미} 틀림={틀림} /> : null}
         {지금 === 3 ? <PerfStepTargets 값={삼} 고침={set삼} serviceId={service.id} 트랜잭션들={더미 ? [] : 일.transactions.map((tx) => tx.name)} 쓰나={쓰나} 저장하고번호={저장} /> : null}
         {지금 === 4 ? (
           <PerfStepRun
@@ -263,6 +262,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
             쓰나={쓰나}
             페이지칸={페이지칸}
             요약={요약}
+            틀림={틀림}
           />
         ) : null}
 
@@ -271,31 +271,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
             {알림.글}
           </p>
         )}
-        <div className="perf-foot">
-          {지금 === 1 ? (
-            <a className="btn ghost" href="#/perf/scenarios">
-              {t('목록으로')}
-            </a>
-          ) : (
-            <button type="button" className="btn ghost" onClick={() => set지금((지금 - 1) as 단계)}>
-              {t('이전')}
-            </button>
-          )}
-          {지금 < 4 ? (
-            <button type="button" className="btn" onClick={다음}>
-              {t('다음')}
-            </button>
-          ) : 쓰나 ? (
-            <div className="perf-row">
-              <button type="button" className="btn ghost" disabled={하는중} onClick={() => void 저장()}>
-                {t('저장')}
-              </button>
-              <button type="button" className="btn" disabled={하는중} onClick={실행누름}>
-                {t('실행')}
-              </button>
-            </div>
-          ) : null}
-        </div>
+        <PerfWizardFoot 지금={지금} 쓰나={쓰나} 하는중={하는중} on이전={() => set지금((지금 - 1) as 단계)} on다음={다음} on저장={() => void 저장()} on실행={실행누름} />
       </div>
     </>
   );

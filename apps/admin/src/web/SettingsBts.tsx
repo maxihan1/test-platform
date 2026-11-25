@@ -6,12 +6,13 @@ import { useEffect, useState } from 'react';
 import { api, ApiError, type SettingsProject, type SettingsServiceRow } from './api.js';
 import { btsApi, type BTS고를목록, type BTS설정결과, type BTS연결, type 해결단계 } from './btsApi.js';
 import { BTS이름 } from './btsName.js';
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { 배포한줄, 상태단계들, 상태매핑구획, 자동설정결과, 코드저장소구획, 해결단계들, type 저장소들 } from './SettingsBtsParts.js';
 import { 오류문장 } from './SettingsService.js';
 import { 구획 } from './SettingsServiceParts.js';
-import { Failed, Loading, useAsync } from './ui.js';
+import { Failed, Loading, useAsync, 기다림글자 } from './ui.js';
 
 // 이 화면에서만 나는 코드 — 서버 bts/routes.ts. 나머지는 설정 화면 공통 문장으로 간다
 const 연결오류: Record<string, string> = {
@@ -44,7 +45,9 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   const [저장소, set저장소] = useState<저장소들>(() => Object.fromEntries(앱들.map((앱) => [앱.id, 앱.codeRepos ?? []])));
   const [목록, set목록] = useState<BTS고를목록 | null>(null);
   const [목록오류, set목록오류] = useState<string | null>(null);
-  const [바쁨, set바쁨] = useState(false);
+  const [바쁨, set바쁨] = useState<'save' | 'unlink' | null>(null);
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
   const [오류, set오류] = useState<string | null>(null);
   const [결과, set결과] = useState<BTS설정결과[] | null>(null);
   const [배포원문, set배포원문] = useState<string | null>(null);
@@ -83,16 +86,10 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   const 빈단계 = 상태단계들.some(([단계]) => (상태[단계] ?? '').trim() === '') || 해결단계들.some(([단계]) => (해결[단계] ?? '').trim() === '');
 
   async function 저장하고설정() {
-    if (빈단계) {
-      set오류(t(연결오류.MAP_INCOMPLETE!, { bts: BTS이름 }));
-      return;
-    }
-    if (botUsername.trim() === '') {
-      set오류(t(이름없음));
-      return;
-    }
-    set바쁨(true);
     set오류(null);
+    set눌렀나(true);
+    if (빈단계 || baseUrl.trim() === '' || btsProject.trim() === '' || botUsername.trim() === '') return 첫오류로();
+    set바쁨('save');
     set결과(null);
     try {
       await btsApi.save(row.id, {
@@ -115,7 +112,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
     } catch (e) {
       set오류(문장(e));
     } finally {
-      set바쁨(false);
+      set바쁨(null);
     }
   }
 
@@ -131,16 +128,20 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
 
   async function 끊기() {
     set끊기묻기(false);
-    set바쁨(true);
+    set바쁨('unlink');
     try {
       await btsApi.remove(row.id);
       await 다시();
     } catch (e) {
       set오류(문장(e));
     } finally {
-      set바쁨(false);
+      set바쁨(null);
     }
   }
+
+  const 주소오류 = 눌렀나 && baseUrl.trim() === '' ? t('{bts} 주소를 적어 주세요', { bts: BTS이름 }) : null;
+  const 키오류 = 눌렀나 && btsProject.trim() === '' ? t('{bts} 프로젝트 키를 적어 주세요', { bts: BTS이름 }) : null;
+  const 이름오류 = 눌렀나 && botUsername.trim() === '' ? t(이름없음) : null;
 
   const 차례 = [
     { 이름: t('연결 정보 입력'), 됨: 지금.linked },
@@ -150,7 +151,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   ];
 
   return (
-    <div className="set-panel">
+    <div className="set-panel" ref={상자}>
       <h2 className="set-panel-h">
         {t('{프로젝트} › {bts} 연결', { 프로젝트: row.name, bts: BTS이름 })}
         {지금.linked ? <span className="tech-tag">{t('연결됨 · {키}', { 키: 지금.btsProject ?? '' })}</span> : null}
@@ -167,15 +168,18 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       <구획 제목={t('1 · 연결 정보')} 쓰임={t('저장하기 전에 {bts} 에 한 번 접속해 프로젝트 키가 맞는지 확인합니다', { bts: BTS이름 })}>
         <div className="field">
           <label htmlFor="bts-url">{t('{bts} 주소', { bts: BTS이름 })}</label>
-          <input id="bts-url" type="url" value={baseUrl} placeholder="https://bts.example.com" onChange={(e) => setBaseUrl(e.target.value)} />
+          <input id="bts-url" type="url" value={baseUrl} placeholder="https://bts.example.com" {...오류속성('bts-url-err', 주소오류)} onChange={(e) => setBaseUrl(e.target.value)} />
+          <칸오류 id="bts-url-err" 사유={주소오류} />
         </div>
         <div className="field">
           <label htmlFor="bts-key">{t('{bts} 프로젝트 키', { bts: BTS이름 })}</label>
-          <input id="bts-key" type="text" value={btsProject} maxLength={50} placeholder="DM" onChange={(e) => setBtsProject(e.target.value)} />
+          <input id="bts-key" type="text" value={btsProject} maxLength={50} placeholder="DM" {...오류속성('bts-key-err', 키오류)} onChange={(e) => setBtsProject(e.target.value)} />
+          <칸오류 id="bts-key-err" 사유={키오류} />
         </div>
         <div className="field">
           <label htmlFor="bts-bot">{t('「QA Hub AI」 계정 이름')}</label>
-          <input id="bts-bot" type="text" autoComplete="off" value={botUsername} maxLength={100} placeholder="qahub-ai" onChange={(e) => setBotUsername(e.target.value)} />
+          <input id="bts-bot" type="text" autoComplete="off" value={botUsername} maxLength={100} placeholder="qahub-ai" {...오류속성('bts-bot-err', 이름오류)} onChange={(e) => setBotUsername(e.target.value)} />
+          <칸오류 id="bts-bot-err" 사유={이름오류} />
         </div>
         <p className="hint">{t('Test Commander 가 실패한 테스트를 {bts} 이슈로 등록할 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 등록했는지 구분됩니다', { bts: BTS이름 })}</p>
       </구획>
@@ -186,6 +190,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
         목록={목록}
         불러오는중={불러오는중}
         목록오류={목록오류}
+        빈단계오류={눌렀나 && 빈단계 ? t(연결오류.MAP_INCOMPLETE!, { bts: BTS이름 }) : null}
         불러온다={() => void 불러온다()}
         상태바꿈={(단계, 값) => set상태((전) => ({ ...전, [단계]: 값 }))}
         해결바꿈={(단계, 값) => set해결((전) => ({ ...전, [단계]: 값 }))}
@@ -202,12 +207,12 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       )}
       <div className="set-foot">
         {지금.linked ? (
-          <button type="button" className="btn ghost danger" disabled={바쁨} onClick={() => set끊기묻기(true)}>
+          <button type="button" className="btn ghost danger" disabled={바쁨 !== null} onClick={() => set끊기묻기(true)}>
             {t('연결 해제')}
           </button>
         ) : null}
-        <button type="button" className="btn" disabled={바쁨 || baseUrl.trim() === '' || btsProject.trim() === ''} onClick={() => void 저장하고설정()}>
-          {t('저장하고 {bts} 자동 설정', { bts: BTS이름 })}
+        <button type="button" className="btn" disabled={바쁨 !== null} onClick={() => void 저장하고설정()}>
+          <기다림글자 중={바쁨 === 'save'} 평소={t('저장하고 {bts} 자동 설정', { bts: BTS이름 })} 기다림={t('저장하는 중')} />
         </button>
       </div>
 

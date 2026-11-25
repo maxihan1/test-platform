@@ -34,7 +34,6 @@ export function use여러건시험(옵션: {
   알림: (바꿈: (전: string | null) => string | null) => void;
 }) {
   const { 케이스들, 고친값, env, mobileOn, 알림 } = 옵션;
-  const t = use말();
   const 큐 = useTrialQueue();
   const [보기, set보기] = useState<창보기>('edit');
   const [확인, set확인] = useState<'trial' | 'formal' | null>(null);
@@ -77,10 +76,7 @@ export function use여러건시험(옵션: {
     중단묻기,
     시작시각,
     /** 값 창의 「시험 실행」 — 걸기 전에 시작 확인 창을 띄운다 */
-    누름: () => {
-      if (env === '') return 알림(() => t('시험 실행할 대상 서버를 선택하세요.'));
-      묻는다('trial');
-    },
+    누름: () => 묻는다('trial'),
     시작,
     /** 완료 창의 「Fail N건 다시 시험」 — 실패한 케이스 × 디바이스만 다시 돈다. 시작 확인 창을 거친다 */
     실패다시: (실패: { tcId: string; platform: Platform }[]) => {

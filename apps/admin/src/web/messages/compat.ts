@@ -187,4 +187,6 @@ export const 호환성말: Record<string, string> = {
   미점검: 'Unchecked',
   '{수}화면': '{수} screens',
   '실행 일시 · 실행자': 'Run at · Run by',
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '디바이스를 하나 이상 선택해 주세요': 'Choose at least one device',
 };

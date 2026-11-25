@@ -62,4 +62,9 @@ export const QA리포트말: Record<string, string> = {
   'QA 리포트를 승인할까요?': 'Approve this QA report?',
   '「{이름}」 버전 {버전} 을 지금 내용의 PDF 로 저장합니다. 승인은 취소할 수 없고 이 버전은 더 이상 수정할 수 없습니다':
     'Saves "{이름}" version {버전} as a PDF of its current content. Approval cannot be withdrawn and this version can no longer be edited',
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '시작일을 선택해 주세요': 'Choose a start date',
+  '종료일을 선택해 주세요': 'Choose an end date',
+  '기간은 92일까지 선택할 수 있습니다': 'You can choose up to 92 days',
+  '리스크 문장을 적어 주세요': 'Enter the risk text',
 };

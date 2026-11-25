@@ -138,6 +138,7 @@ describe('비밀번호 변경 화면', () => {
 
     const 칸 = screen.getByLabelText('새 비밀번호');
     expect(칸.getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(칸);
     const 사유 = document.getElementById(칸.getAttribute('aria-describedby') ?? '');
     expect(사유?.textContent).toBe('비밀번호는 8자 이상이어야 합니다');
     expect(screen.getByLabelText('현재 비밀번호').getAttribute('aria-invalid')).toBeNull();

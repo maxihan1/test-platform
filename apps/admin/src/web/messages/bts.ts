@@ -95,4 +95,7 @@ export const BTS말: Record<string, string> = {
     'Only an admin account signed in with Auth can set up {bts} automatically',
   '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 Test Commander 를 부를 수 없습니다':
     'This server has no public address (PLATFORM_PUBLIC_URL), so {bts} cannot call Test Commander',
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '{bts} 주소를 적어 주세요': 'Enter the {bts} URL',
+  '{bts} 프로젝트 키를 적어 주세요': 'Enter the {bts} project key',
 };

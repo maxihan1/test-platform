@@ -155,15 +155,24 @@ describe('PRD 관리 — 고치기', () => {
     await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
-    expect(screen.getByText('요구사항 문장을 적습니다')).toBeTruthy();
+    const 칸 = screen.getByLabelText('요구사항 문장');
+    expect(document.activeElement).toBe(칸);
+    expect(document.getElementById(칸.getAttribute('aria-describedby')!)?.textContent).toBe('요구사항 문장을 적습니다');
     expect(저장).not.toHaveBeenCalled();
+    fireEvent.change(칸, { target: { value: '고쳤다' } });
+    expect(screen.queryByText('요구사항 문장을 적습니다')).toBeNull();
   });
 
   it('출처를 더하고 빼며, 비운 원본 번호는 키째 빼고 보낸다', async () => {
     await 펴서고치기(/MKT-REQ-041/);
+    expect(screen.getByText('출처는 하나 이상 있어야 해서 하나뿐이면 제거할 수 없습니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '출처 추가' }));
+    expect(screen.queryByText('출처는 하나 이상 있어야 해서 하나뿐이면 제거할 수 없습니다')).toBeNull();
     const 이름칸 = screen.getAllByLabelText('자료 이름');
     expect(이름칸).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(document.activeElement).toBe(이름칸[1]);
+    expect(저장).not.toHaveBeenCalled();
     fireEvent.change(이름칸[1]!, { target: { value: '화면' } });
     fireEvent.change(screen.getAllByLabelText('원본 문장')[1]!, { target: { value: '10분 뒤에 다시 시도하세요' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));

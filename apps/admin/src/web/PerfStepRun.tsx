@@ -2,8 +2,10 @@
 // 「부하 중 페이지 로딩 측정」 칸은 웹 애플리케이션에만 선다(kind.ts 의 페이지성능)
 
 import type { EnvRow } from './api.js';
+import { 오류묶음, 오류속성, 칸오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import type { PerfAgent } from './perfApi.js';
+import { 틀린글, type 넘길막힘 } from './perfView.js';
 import { 실행상태 } from './SettingsPerfAgents.js';
 import { Failed, Loading, type Async } from './ui.js';
 
@@ -38,6 +40,7 @@ export function PerfStepRun({
   최대목표,
   쓰나,
   페이지칸,
+  틀림,
 }: {
   값: 사단계값;
   고침: (값: 사단계값) => void;
@@ -49,6 +52,8 @@ export function PerfStepRun({
   쓰나: boolean;
   /** 부하 중 페이지 로딩 측정 칸을 그릴지 — 웹 애플리케이션만 */
   페이지칸: boolean;
+  /** 「실행」을 막은 칸 — 그 칸 아래에 적는다 */
+  틀림: 넘길막힘 | null;
 }) {
   const t = use말();
   if (agents.error !== null) return <Failed error={agents.error} />;
@@ -82,7 +87,7 @@ export function PerfStepRun({
         <h2 id="perf-e">{t('실행 설정')}</h2>
         <label className="perf-field">
           {t('대상 서버')}
-          <select value={값.env} disabled={!쓰나} onChange={(e) => 고침({ ...값, env: e.target.value })}>
+          <select value={값.env} disabled={!쓰나} {...오류속성('perf-run-env', 틀린글(틀림, 'env'))} onChange={(e) => 고침({ ...값, env: e.target.value })}>
             <option value="">{t('선택')}</option>
             {envs.map((it) => (
               <option key={it.env} value={it.env}>
@@ -91,10 +96,12 @@ export function PerfStepRun({
             ))}
           </select>
         </label>
+        <칸오류 id="perf-run-env" 사유={틀린글(틀림, 'env')} />
         <span className="perf-faint">{t('실서비스 서버로는 부하를 걸 수 없습니다')}</span>
-        <div className="perf-field">
+        <div className="perf-field" {...오류묶음('perf-run-agents', 틀린글(틀림, 'agents'))}>
           {t('부하 발생 에이전트')}
           {부하.length === 0 ? <span className="perf-faint">{t('붙은 부하 발생 에이전트가 없습니다. 관리자가 설정 › 성능 에이전트에서 붙입니다')}</span> : 고르개(부하, 값.agentIds, 'agentIds')}
+          <칸오류 id="perf-run-agents" 사유={틀린글(틀림, 'agents')} />
           {값.agentIds.length > 0 && 감당 < 최대목표 ? (
             <span className="perf-err">{t('선택한 에이전트가 감당하는 가상 사용자는 {수}명입니다. 에이전트를 더 선택하거나 부하를 줄여 주세요', { 수: 감당.toLocaleString() })}</span>
           ) : null}

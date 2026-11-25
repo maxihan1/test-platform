@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import type { EnvRow } from './api.js';
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { 서울 } from './seoul.js';
 import { Modal } from './Modal.js';
@@ -16,6 +17,11 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
   const [서버, set서버] = useState(지금?.env ?? '');
   const [하는중, set하는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
+  const 시각빔 = !/^\d{2}:\d{2}$/.test(시각);
+  const 시각오류 = 눌렀나 && 시각빔 ? t('시각을 선택해 주세요') : null;
+  const 서버오류 = 눌렀나 && 서버 === '' ? t('대상 서버를 선택해 주세요') : null;
 
   async function 보내기(값: 정기실행 | null) {
     set하는중(true);
@@ -33,10 +39,8 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
   }
 
   function 켜기() {
-    if (!/^\d{2}:\d{2}$/.test(시각) || 서버 === '') {
-      set오류(t('시각과 대상 서버를 선택해 주세요'));
-      return;
-    }
+    set눌렀나(true);
+    if (시각빔 || 서버 === '') return 첫오류로();
     // 시간대는 한국으로 고정한다 — 「매일 03:00」이 어디서 열어도 한국 시간 03:00 이 되게
     void 보내기({ at: 시각, tz: 서울, env: 서버 });
   }
@@ -61,22 +65,28 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
         </>
       }
     >
-      <div className="perf-fields">
-        <label className="perf-field">
-          {t('시각')}
-          <input type="time" value={시각} onChange={(e) => set시각(e.target.value)} />
-        </label>
-        <label className="perf-field">
-          {t('대상 서버')}
-          <select value={서버} onChange={(e) => set서버(e.target.value)}>
-            <option value="">{t('선택')}</option>
-            {envs.map((it) => (
-              <option key={it.env} value={it.env} disabled={it.isProd === true}>
-                {it.isProd === true ? t('{서버} · 부하 테스트 불가', { 서버: it.env }) : it.env}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="perf-fields" ref={상자}>
+        <div className="perf-cell">
+          <label className="perf-field">
+            {t('시각')}
+            <input type="time" value={시각} {...오류속성('perf-at-err', 시각오류)} onChange={(e) => set시각(e.target.value)} />
+          </label>
+          <칸오류 id="perf-at-err" 사유={시각오류} />
+        </div>
+        <div className="perf-cell">
+          <label className="perf-field">
+            {t('대상 서버')}
+            <select value={서버} {...오류속성('perf-env-err', 서버오류)} onChange={(e) => set서버(e.target.value)}>
+              <option value="">{t('선택')}</option>
+              {envs.map((it) => (
+                <option key={it.env} value={it.env} disabled={it.isProd === true}>
+                  {it.isProd === true ? t('{서버} · 부하 테스트 불가', { 서버: it.env }) : it.env}
+                </option>
+              ))}
+            </select>
+          </label>
+          <칸오류 id="perf-env-err" 사유={서버오류} />
+        </div>
       </div>
       <p className="perf-faint">{t('매일 이 시각에 이 시나리오를 저장된 설정 그대로 실행합니다')}</p>
       {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}

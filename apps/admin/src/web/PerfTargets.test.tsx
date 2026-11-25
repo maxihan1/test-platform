@@ -9,6 +9,7 @@ import type { ServiceRow } from './api.js';
 import { perfApi, type Target } from './perfApi.js';
 import { PerfDeviceTargets } from './PerfDeviceTargets.js';
 import { 기본목표 } from './perfDeviceView.js';
+import { PerfStepLoad } from './PerfStepLoad.js';
 import { PerfStepScenario, type 일단계값 } from './PerfStepScenario.js';
 import { PerfStepTargets, type 삼단계값 } from './PerfStepTargets.js';
 import { 물음누름 } from './startConfirm.fixture.js';
@@ -73,9 +74,25 @@ it('트랜잭션 줄은 두 번 눌러야 지워진다', () => {
   const 값: 일단계값 = { name: '주문', 방식: 'TX', 더미번호: null, transactions: [{ name: '상품 목록', method: 'GET', url: '/api/products' }, { name: '주문', method: 'POST', url: '/api/orders' }], notes: {}, 가져온: null };
   const 고침 = vi.fn();
   const 앱 = { id: 7, prefix: 'ZPW', name: 'ZPW 웹', color: '#000', projectId: 3, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'write', authoring: 'read' } } as ServiceRow;
-  render(<PerfStepScenario 값={값} 고침={고침} service={앱} 새것={false} 쓰나 초안받음={vi.fn()} 더미들={[]} 더미오류={null} />);
+  render(<PerfStepScenario 값={값} 고침={고침} service={앱} 새것={false} 쓰나 초안받음={vi.fn()} 더미들={[]} 더미오류={null} 틀림={null} />);
   fireEvent.click(screen.getByRole('button', { name: '상품 목록 삭제' }));
   expect(고침).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '상품 목록 삭제 · 삭제 확인' }));
   expect(고침).toHaveBeenCalledWith({ ...값, transactions: [값.transactions[1]] });
+});
+
+it('AI 산정은 세 값이 덜 찼으면 적용하지 않고 빈 칸 아래에 적는다', async () => {
+  vi.spyOn(perfApi, 'suggest').mockResolvedValue({ jobId: 1 } as Awaited<ReturnType<typeof perfApi.suggest>>);
+  vi.spyOn(perfApi, 'job').mockResolvedValue({ status: 'DONE', output: { dailyVisitors: 6000, peakRatio: null, avgStayMin: 5, peakMinutes: 60, basis: [] } } as never);
+  const 고침 = vi.fn();
+  render(<PerfStepLoad 값={{ testType: 'LOAD', basis: 'VUS', 칸: { maxVus: 10, rampMin: 1, holdMin: 1 }, stages: [{ durationSec: 60, target: 10 }] }} 고침={고침} serviceId={7} 쓰나 더미={false} 틀림={null} />);
+  fireEvent.click(screen.getByRole('button', { name: '산정하기' }));
+  fireEvent.click(await screen.findByRole('button', { name: '적용' }));
+  expect(screen.getByRole('alert').textContent).toBe('피크 집중률 (%) 값을 적어 주세요');
+  const 칸 = screen.getByLabelText('피크 집중률 (%)');
+  expect(document.activeElement).toBe(칸);
+  expect(고침).not.toHaveBeenCalled();
+  fireEvent.change(칸, { target: { value: '10' } });
+  fireEvent.click(screen.getByRole('button', { name: '적용' }));
+  expect(고침).toHaveBeenCalledWith(expect.objectContaining({ 칸: expect.objectContaining({ maxVus: 50 }) }));
 });

@@ -5,6 +5,7 @@ import type { PrdBasis } from '@platform/kit';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { 상한, 직접근거 } from '../prd/rules.js';
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import type { PrdItemDraft } from './prdApi.js';
@@ -49,12 +50,19 @@ export function PrdItemForm({
   const [busy, setBusy] = useState(false);
   const [지우기확인, set지우기확인] = useState(false);
   const 새것 = 새요구;
+  const { 상자, 첫오류로 } = use첫오류<HTMLFormElement>();
   const 첫칸 = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (새것) 첫칸.current?.focus();
   }, [새것]);
   // 쓴 것이 있으면 떠나거나 · 서비스를 바꾸거나 · 줄을 접기 전에 묻는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const 바뀜 = JSON.stringify(x) !== JSON.stringify(처음);
+
+  const 보낼것 = 새것 ? { ...x, basis: 직접근거(x.text) } : x;
+  // 고친 칸의 사유는 바로 걷는다. 다음 칸의 사유는 다시 누를 때 뜬다
+  const 지금틀림 = 틀림 !== null && 고치기검사(보낼것) === 틀림 ? 틀림 : null;
+  const 길다 = 지금틀림 === 'long';
+  const 자리 = 지금틀림 === null ? null : 길다 ? (x.feature.length > 상한.기능묶음 ? 'feature' : x.text.length > 상한.요구문장 ? 'text' : 'basis') : 지금틀림 === 'feature' || 지금틀림 === 'text' ? 지금틀림 : 'basis';
 
   const 틀림말: Record<틀린칸, string> = {
     feature: t('기능 묶음을 적습니다'),
@@ -71,6 +79,13 @@ export function PrdItemForm({
     }),
   };
 
+  const 사유id = `${id}-err`;
+  const 사유 = 지금틀림 === null ? null : 틀림말[지금틀림];
+  const 칸속성 = (칸: 'feature' | 'text') => 오류속성(사유id, 자리 === 칸 ? 사유 : null);
+  const 근거속성 = (값: string, 칸: keyof PrdBasis) =>
+    오류속성(사유id, 자리 === 'basis' && (길다 ? 값.length > (칸 === 'quote' ? 상한.근거문장 : 상한.근거자리) : 지금틀림 === 칸 && 값.trim() === '') ? 사유 : null);
+  const 사유줄 = (칸: 'feature' | 'text' | 'basis') => <칸오류 id={사유id} 사유={자리 === 칸 ? 사유 : null} />;
+
   // 성공하면 이 칸이 닫혀 사라진다. 실패했을 때만 버튼을 다시 푼다
   async function 한다(일: () => Promise<boolean>) {
     setBusy(true);
@@ -85,26 +100,29 @@ export function PrdItemForm({
   return (
     <form
       className="prd-form"
+      ref={상자}
       onSubmit={(e) => {
         e.preventDefault();
-        const 보낼것 = 새것 ? { ...x, basis: 직접근거(x.text) } : x;
         const 칸 = 고치기검사(보낼것);
         set틀림(칸);
-        if (칸 === null) void 한다(() => on저장(다듬기(보낼것), set저장오류));
+        if (칸 !== null) 첫오류로();
+        else void 한다(() => on저장(다듬기(보낼것), set저장오류));
       }}
     >
       <div className="field">
         <label htmlFor={`${id}-f`}>{t('기능 묶음')}</label>
-        <input ref={첫칸} id={`${id}-f`} type="text" list={`${id}-fl`} value={x.feature} onChange={(e) => setX({ ...x, feature: e.target.value })} />
+        <input ref={첫칸} id={`${id}-f`} type="text" list={`${id}-fl`} value={x.feature} {...칸속성('feature')} onChange={(e) => setX({ ...x, feature: e.target.value })} />
         <datalist id={`${id}-fl`}>
           {기능들.map((f) => (
             <option key={f} value={f} />
           ))}
         </datalist>
+        {사유줄('feature')}
       </div>
       <div className="field">
         <label htmlFor={`${id}-t`}>{t('요구사항 문장')}</label>
-        <textarea id={`${id}-t`} rows={2} value={x.text} onChange={(e) => setX({ ...x, text: e.target.value })} />
+        <textarea id={`${id}-t`} rows={2} value={x.text} {...칸속성('text')} onChange={(e) => setX({ ...x, text: e.target.value })} />
+        {사유줄('text')}
       </div>
       <p className="hint prd-form-hint">{t('규칙 하나만 적습니다. 숫자 · 조건 낱말(이상 · 미만 · 까지)은 원문 그대로 둡니다')}</p>
       {새것 ? (
@@ -114,9 +132,9 @@ export function PrdItemForm({
           <legend>{t('출처')}</legend>
           {x.basis.map((b, i) => (
             <div className="prd-basis-row" key={i}>
-              <input type="text" aria-label={t('자료 이름')} placeholder={t('자료 이름')} value={b.from} onChange={(e) => 근거고침(i, 'from', e.target.value)} />
-              <input type="text" aria-label={t('원본 번호')} placeholder={t('원본 번호 · 화면 주소')} value={b.ref ?? ''} onChange={(e) => 근거고침(i, 'ref', e.target.value)} />
-              <input type="text" aria-label={t('원본 문장')} placeholder={t('원본 문장')} value={b.quote} onChange={(e) => 근거고침(i, 'quote', e.target.value)} />
+              <input type="text" aria-label={t('자료 이름')} placeholder={t('자료 이름')} value={b.from} {...근거속성(b.from, 'from')} onChange={(e) => 근거고침(i, 'from', e.target.value)} />
+              <input type="text" aria-label={t('원본 번호')} placeholder={t('원본 번호 · 화면 주소')} value={b.ref ?? ''} {...근거속성(b.ref ?? '', 'ref')} onChange={(e) => 근거고침(i, 'ref', e.target.value)} />
+              <input type="text" aria-label={t('원본 문장')} placeholder={t('원본 문장')} value={b.quote} {...근거속성(b.quote, 'quote')} onChange={(e) => 근거고침(i, 'quote', e.target.value)} />
               <button type="button" className="btn ghost small" disabled={x.basis.length === 1} onClick={() => setX({ ...x, basis: x.basis.filter((_, j) => j !== i) })}>
                 {t('제거')}
               </button>
@@ -127,6 +145,8 @@ export function PrdItemForm({
               {t('출처 추가')}
             </button>
           )}
+          {x.basis.length === 1 ? <p className="hint">{t('출처는 하나 이상 있어야 해서 하나뿐이면 제거할 수 없습니다')}</p> : null}
+          {사유줄('basis')}
         </fieldset>
       )}
       <div className="field">
@@ -136,7 +156,6 @@ export function PrdItemForm({
           <option value="CONFIRMED">{t('확정§상태')}</option>
         </select>
       </div>
-      {틀림 === null ? null : <p className="prd-note bad">{틀림말[틀림]}</p>}
       {저장오류 === null ? null : (
         <p role="alert" className="prd-note bad">
           {저장오류}

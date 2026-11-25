@@ -57,7 +57,8 @@ describe('설정 › 더미 클라이언트', () => {
     그리기();
     const 올리기 = vi.spyOn(perfApi, 'addDummyClient').mockResolvedValue({ id: 6 });
     fireEvent.click(await screen.findByRole('button', { name: '업로드' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('이름과 실행 명령을 적어 주세요');
+    expect(screen.getAllByRole('alert').map((x) => x.textContent)).toEqual(['이름을 적어 주세요', '실행 명령을 적어 주세요', '업로드할 .zip 파일을 선택해 주세요']);
+    expect(document.activeElement).toBe(screen.getByLabelText('더미 클라이언트 이름'));
     expect(올리기).not.toHaveBeenCalled();
   });
 

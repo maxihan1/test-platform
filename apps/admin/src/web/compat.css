@@ -185,6 +185,12 @@
   font-size: 13px;
 }
 
+/* 머리의 「실행」이 꺼진 까닭 — 단추 바로 아래 오른쪽 */
+.compat-why {
+  margin: 0;
+  text-align: right;
+}
+
 .compat-name-field {
   display: flex;
   flex-direction: column;

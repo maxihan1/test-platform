@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { 빠른기간, 짧은날 } from '../reporting/qaProjectReportShape.js';
 import type { ServiceRow } from './api.js';
+import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { 서울 } from './seoul.js';
 import { 다음이있나 } from './paging.js';
@@ -24,13 +25,20 @@ function 만들기창({ projectId, on닫기 }: { projectId: number; on닫기: ()
   const [직접, set직접] = useState(() => 빠른기간(지금, 'week'));
   const [중, set중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [눌렀나, set눌렀나] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류();
   const 기간 = 꼴 === 'custom' ? 직접 : 빠른기간(지금, 꼴);
+  const 빈날 = 기간.from === '' || 기간.to === '';
+  const 시작오류 = 눌렀나 && 기간.from === '' ? t('시작일을 선택해 주세요') : null;
+  const 끝오류 = 눌렀나 && 기간.to === '' ? t('종료일을 선택해 주세요') : null;
   const 고르개: { 값: 기간꼴; 이름: string }[] = [
     { 값: 'week', 이름: t('이번 주') },
     { 값: 'month', 이름: t('이번 달') },
     { 값: 'custom', 이름: t('직접 선택') },
   ];
   const 만들기 = async () => {
+    set눌렀나(true);
+    if (빈날) return 첫오류로();
     set중(true);
     set오류(null);
     try {
@@ -42,7 +50,7 @@ function 만들기창({ projectId, on닫기 }: { projectId: number; on닫기: ()
     }
   };
   return (
-    <div className="qar-make" role="group" aria-label={t('리포트 기간')}>
+    <div className="qar-make" ref={상자} role="group" aria-label={t('리포트 기간')}>
       <div className="chip-group">
         {고르개.map((g) => (
           <button key={g.값} type="button" className="chip" aria-pressed={꼴 === g.값} onClick={() => set꼴(g.값)}>
@@ -52,24 +60,30 @@ function 만들기창({ projectId, on닫기 }: { projectId: number; on닫기: ()
       </div>
       {꼴 === 'custom' ? (
         <div className="qar-dates">
-          <label>
-            <span className="filter-label">{t('시작일')}</span>
-            <input type="date" value={직접.from} max={지금} onChange={(e) => set직접((x) => ({ ...x, from: e.target.value }))} />
-          </label>
-          <label>
-            <span className="filter-label">{t('종료일')}</span>
-            <input type="date" value={직접.to} max={지금} onChange={(e) => set직접((x) => ({ ...x, to: e.target.value }))} />
-          </label>
+          <div>
+            <label>
+              <span className="filter-label">{t('시작일')}</span>
+              <input type="date" value={직접.from} max={지금} {...오류속성('qar-from-err', 시작오류)} onChange={(e) => set직접((x) => ({ ...x, from: e.target.value }))} />
+            </label>
+            <칸오류 id="qar-from-err" 사유={시작오류} />
+          </div>
+          <div>
+            <label>
+              <span className="filter-label">{t('종료일')}</span>
+              <input type="date" value={직접.to} max={지금} {...오류속성('qar-to-err', 끝오류)} onChange={(e) => set직접((x) => ({ ...x, to: e.target.value }))} />
+            </label>
+            <칸오류 id="qar-to-err" 사유={끝오류} />
+          </div>
         </div>
       ) : null}
       <p className="hint">
-        {t('{시작} ~ {끝} · 기간은 92일까지 선택할 수 있습니다', { 시작: 기간.from, 끝: 기간.to })}
+        {빈날 ? t('기간은 92일까지 선택할 수 있습니다') : t('{시작} ~ {끝} · 기간은 92일까지 선택할 수 있습니다', { 시작: 기간.from, 끝: 기간.to })}
       </p>
       <div className="qar-acts">
         <button type="button" className="btn ghost" onClick={on닫기} disabled={중}>
           {t('취소')}
         </button>
-        <button type="button" className="btn primary" onClick={() => void 만들기()} disabled={중 || 기간.from === '' || 기간.to === ''}>
+        <button type="button" className="btn primary" onClick={() => void 만들기()} disabled={중}>
           <기다림글자 중={중} 평소={t('만들기')} 기다림={t('만드는 중')} />
         </button>
       </div>

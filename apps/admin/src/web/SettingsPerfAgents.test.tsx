@@ -2,7 +2,7 @@
 // 설정 › 성능 에이전트 · 성능 시나리오 목록 검사 (도메인/성능 §8.14)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { perfApi, type PerfAgent } from './perfApi.js';
 import { PerfScenarioList } from './PerfScenarioList.js';
@@ -34,12 +34,32 @@ describe('설정 › 성능 에이전트', () => {
     fireEvent.click(await screen.findByLabelText('모니터링'));
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: 'db-1' } });
     fireEvent.click(screen.getByRole('button', { name: '추가' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('이름과 프로젝트를 정해 주세요');
+    expect((await screen.findByRole('alert')).textContent).toBe('프로젝트를 선택해 주세요');
+    expect(document.activeElement).toBe(screen.getByLabelText(/^프로젝트/));
 
     fireEvent.change(screen.getByLabelText(/^프로젝트/), { target: { value: '3' } });
     fireEvent.click(screen.getByRole('button', { name: '추가' }));
     expect(await screen.findByText('docker run -e AGENT_TOKEN=pga_x qahub-perf-agent')).toBeTruthy();
     expect(추가).toHaveBeenCalledWith('db-1', 'MONITOR', 3);
+  });
+
+  it('줄을 고치다 이름이 비거나 서버가 거절하면 그 줄에 까닭을 적는다', async () => {
+    vi.spyOn(perfApi, 'agents').mockResolvedValue({ agents: [에이전트({ id: 5, name: '사무실-2' })] });
+    const 고치기 = vi.spyOn(perfApi, 'editAgent').mockRejectedValue(new Error('거절'));
+    render(<SettingsPerfAgents projects={[]} />);
+    fireEvent.click(await screen.findByRole('button', { name: '사무실-2 편집' }));
+    const 칸 = screen.getAllByLabelText('이름').find((x) => x.closest('tr') !== null)!;
+    const 줄 = within(칸.closest('tr')!);
+    fireEvent.change(칸, { target: { value: ' ' } });
+    fireEvent.click(줄.getByRole('button', { name: '저장' }));
+    expect(줄.getByRole('alert').textContent).toBe('이름을 적어 주세요');
+    expect(document.activeElement).toBe(칸);
+    expect(고치기).not.toHaveBeenCalled();
+
+    fireEvent.change(칸, { target: { value: '사무실-3' } });
+    expect(줄.queryByRole('alert')).toBeNull();
+    fireEvent.click(줄.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(줄.getByRole('alert').textContent).not.toBe(''));
   });
 
   it('지우기는 확인을 받고 지운다', async () => {

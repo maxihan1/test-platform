@@ -161,6 +161,7 @@ describe('측정 시작', () => {
     await screen.findByLabelText(/ZQD-001/);
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
     expect((await screen.findByRole('alert')).textContent).toBe('측정하며 실행할 게임 케이스를 선택해 주세요');
+    expect(document.activeElement).toBe(screen.getByLabelText(/ZQD-001/));
     fireEvent.click(await screen.findByLabelText(/ZQD-001/));
     fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
@@ -179,6 +180,7 @@ describe('측정 시작', () => {
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'market' } });
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
     expect((await screen.findByRole('alert')).textContent).toBe('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요');
+    expect(document.activeElement).toBe(screen.getByLabelText('앱 패키지 이름'));
     expect(확인상자있나()).toBe(false);
     expect(만들기).not.toHaveBeenCalled();
   });

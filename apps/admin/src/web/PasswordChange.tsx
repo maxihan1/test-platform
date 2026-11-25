@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { 비밀번호최대, 비밀번호최소 } from '../auth/rules.js';
 
 import { api, ApiError, type User } from './api.js';
+import { use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
@@ -34,6 +35,7 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
   const [사유, set사유] = useState<Partial<Record<칸, string>>>({});
   const [failed, setFailed] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { 상자, 첫오류로 } = use첫오류<HTMLFormElement>();
 
   // 서버도 같은 규칙으로 다시 막는다. 화면이 먼저 보는 것은 칸 아래에 바로 알려 주려는 것이다
   function 살핀다(): Partial<Record<칸, string>> {
@@ -49,7 +51,7 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
     const 찾은것 = 살핀다();
     set사유(찾은것);
     setFailed(null);
-    if (Object.keys(찾은것).length > 0) return;
+    if (Object.keys(찾은것).length > 0) return 첫오류로();
     setBusy(true);
     try {
       await api.changePassword({ currentPassword: 값.current, newPassword: 값.next });
@@ -58,7 +60,10 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
     } catch (err) {
       const 어디 = err instanceof ApiError ? 서버사유[err.code] : undefined;
       if (어디 === undefined) setFailed(message(err, 언어));
-      else set사유({ [어디[0]]: t(어디[1]) });
+      else {
+        set사유({ [어디[0]]: t(어디[1]) });
+        첫오류로();
+      }
     } finally {
       setBusy(false);
     }
@@ -93,7 +98,7 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
 
   return (
     <div className="login">
-      <form className="login-box" onSubmit={(e) => void submit(e)} noValidate>
+      <form className="login-box" ref={상자} onSubmit={(e) => void submit(e)} noValidate>
         <div className="login-title">Test Commander</div>
         <h1 className="login-greet">{t('비밀번호 변경')}</h1>
         {강제 ? <p className="login-sub">{t('처음 받은 비밀번호를 변경해야 계속할 수 있습니다')}</p> : null}

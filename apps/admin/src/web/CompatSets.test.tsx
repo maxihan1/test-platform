@@ -90,7 +90,10 @@ describe('호환성 세트 목록', () => {
     expect(창.getByText('3건')).toBeTruthy();
     expect(창.getByText('테스트 약 18분 · AI 점검 완료까지 약 6분 추가')).toBeTruthy();
     const 실행 = 창.getByRole('button', { name: '실행' });
-    expect((실행 as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(실행);
+    expect(시작).not.toHaveBeenCalled();
+    expect(창.getByRole('alert').textContent).toBe('대상 서버를 선택해 주세요');
+    expect(document.activeElement).toBe(창.getByRole('combobox'));
     fireEvent.change(창.getByRole('combobox'), { target: { value: 'qa' } });
     fireEvent.click(실행);
     await waitFor(() => expect(시작).toHaveBeenCalledWith(3, 'qa'));

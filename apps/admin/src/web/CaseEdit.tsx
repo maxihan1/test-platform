@@ -10,6 +10,7 @@ import type { 고칠것 } from '../authoring/edit.js';
 
 import { api, type CaseRow } from './api.js';
 import { 고치기오류문장, 고칠칸들, 기대값들, 바꾼값, 저장값지울칸 } from './caseEditView.js';
+import { use첫오류 } from './FieldError.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { initialText } from './schema.js';
@@ -37,6 +38,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
     set포커스(null);
   }, [포커스]);
 
+  const { 상자, 첫오류로 } = use첫오류();
   const 바꾼 = 바꾼값(칸들, 글);
   // 바꾼 칸만 본다 — 손대지 않은 칸은 지금 코드 값이라 사유를 낼 까닭이 없다. 「반드시 채울 칸」도 안 본다(안 보낸 칸은 코드 그대로다)
   const 칸오류 = fieldErrors({ ...row.expectedSchema, required: [] }, 바꾼);
@@ -57,7 +59,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
   }
 
   function 기본값요청() {
-    if (Object.keys(칸오류).length > 0) return;
+    if (Object.keys(칸오류).length > 0) return 첫오류로();
     보낸다({
       tcId: row.tcId,
       ...(Object.keys(바꾼).length > 0 ? { expected: 기대값들(바꾼) } : {}),
@@ -65,7 +67,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
   }
 
   return (
-    <div className="dsec case-edit" role="group" aria-label={t('코드 기본값 변경 요청')}>
+    <div className="dsec case-edit" ref={상자} role="group" aria-label={t('코드 기본값 변경 요청')}>
       <div className="dlabel">{t('코드 기본값 변경 요청')}</div>
       <p className="hint">{t('케이스에 적힌 기대 결과입니다. 변경한 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다')}</p>
       {칸들.length === 0 ? (

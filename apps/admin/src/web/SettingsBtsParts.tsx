@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { SettingsServiceRow } from './api.js';
 import type { BTS고를목록, BTS설정결과, 상태단계, 해결단계 } from './btsApi.js';
 import { BTS이름 } from './btsName.js';
+import { 오류속성, 칸오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import { 구획 } from './SettingsServiceParts.js';
 
@@ -26,13 +27,17 @@ export const 해결단계들: [해결단계, string][] = [
   ['DUPLICATE', '중복'],
 ];
 
+const 단계사유id = 'bts-map-err';
+
 /** 목록을 불러왔으면 고르개, 못 불러왔으면 글 칸 — 상태는 키, 해결 사유는 이름을 저장한다. 저장해 둔 값이 목록에 없어도 고르개에 남긴다 */
-function 고르는칸({ id, 값, 고를것, 바꾼다, 빈이름 = '선택하세요' }: { id: string; 값: string; 고를것: { 값: string; 이름: string }[] | null; 바꾼다: (v: string) => void; 빈이름?: string }) {
+function 고르는칸({ id, 값, 고를것, 바꾼다, 빈이름 = '선택하세요', 오류 = null }: { id: string; 오류?: string | null; 값: string; 고를것: { 값: string; 이름: string }[] | null; 바꾼다: (v: string) => void; 빈이름?: string }) {
   const t = use말();
-  if (고를것 === null) return <input id={id} type="text" value={값} onChange={(e) => 바꾼다(e.target.value)} />;
+  // 걸린 칸이 여럿이라 사유는 구획 끝에 한 번 적고 칸마다 잇는다
+  const 속성 = 오류속성(단계사유id, 값.trim() === '' ? 오류 : null);
+  if (고를것 === null) return <input id={id} type="text" value={값} {...속성} onChange={(e) => 바꾼다(e.target.value)} />;
   const 있나 = 값 === '' || 고를것.some((it) => it.값 === 값);
   return (
-    <select id={id} value={값} onChange={(e) => 바꾼다(e.target.value)}>
+    <select id={id} value={값} {...속성} onChange={(e) => 바꾼다(e.target.value)}>
       <option value="">{t(빈이름)}</option>
       {있나 ? null : <option value={값}>{값}</option>}
       {고를것.map((it) => (
@@ -50,6 +55,8 @@ export function 상태매핑구획(p: {
   목록: BTS고를목록 | null;
   불러오는중: boolean;
   목록오류: string | null;
+  /** 저장을 눌렀는데 빈 단계가 있을 때의 사유 */
+  빈단계오류: string | null;
   불러온다: () => void;
   상태바꿈: (단계: 상태단계, 값: string) => void;
   해결바꿈: (단계: 해결단계, 값: string) => void;
@@ -76,7 +83,7 @@ export function 상태매핑구획(p: {
         {상태단계들.map(([단계, 이름]) => (
           <div key={단계} className="field">
             <label htmlFor={`bts-s-${단계}`}>{t(이름)}</label>
-            <고르는칸 id={`bts-s-${단계}`} 값={p.상태[단계] ?? ''} 고를것={상태목록} 바꾼다={(v) => p.상태바꿈(단계, v)} />
+            <고르는칸 id={`bts-s-${단계}`} 값={p.상태[단계] ?? ''} 오류={p.빈단계오류} 고를것={상태목록} 바꾼다={(v) => p.상태바꿈(단계, v)} />
           </div>
         ))}
         {/* 테스트 수정만 비워도 된다 — 사람이 워크플로에 상태를 만들어야 쓰는 바퀴라서다 (도메인/BTS 「짝지을 이름」 · BTS-F10-03) */}
@@ -93,10 +100,11 @@ export function 상태매핑구획(p: {
         {해결단계들.map(([단계, 이름]) => (
           <div key={단계} className="field">
             <label htmlFor={`bts-r-${단계}`}>{t(이름)}</label>
-            <고르는칸 id={`bts-r-${단계}`} 값={p.해결[단계] ?? ''} 고를것={해결목록} 바꾼다={(v) => p.해결바꿈(단계, v)} />
+            <고르는칸 id={`bts-r-${단계}`} 값={p.해결[단계] ?? ''} 오류={p.빈단계오류} 고를것={해결목록} 바꾼다={(v) => p.해결바꿈(단계, v)} />
           </div>
         ))}
       </div>
+      <칸오류 id={단계사유id} 사유={p.빈단계오류} />
     </구획>
   );
 }

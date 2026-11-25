@@ -1,4 +1,4 @@
-// 성능 시나리오 마법사의 위 단계 표시 — 끝낸 단계를 눌러 바로 간다 (도메인/성능 §8.14)
+// 성능 시나리오 마법사의 위 단계 표시와 바닥 단추 — 끝낸 단계를 눌러 바로 간다 (도메인/성능 §8.14)
 
 import { use말 } from './i18n.js';
 
@@ -40,5 +40,36 @@ export function PerfWizardSteps({ 단계들, 지금, 끝낸, on고름 }: { 단�
         );
       })}
     </ol>
+  );
+}
+
+export function PerfWizardFoot({ 지금, 쓰나, 하는중, on이전, on다음, on저장, on실행 }: { 지금: 단계; 쓰나: boolean; 하는중: boolean; on이전: () => void; on다음: () => void; on저장: () => void; on실행: () => void }) {
+  const t = use말();
+  return (
+    <div className="perf-foot">
+      {지금 === 1 ? (
+        <a className="btn ghost" href="#/perf/scenarios">
+          {t('목록으로')}
+        </a>
+      ) : (
+        <button type="button" className="btn ghost" onClick={on이전}>
+          {t('이전')}
+        </button>
+      )}
+      {지금 < 4 ? (
+        <button type="button" className="btn" onClick={on다음}>
+          {t('다음')}
+        </button>
+      ) : 쓰나 ? (
+        <div className="perf-row">
+          <button type="button" className="btn ghost" disabled={하는중} onClick={on저장}>
+            {t('저장')}
+          </button>
+          <button type="button" className="btn" disabled={하는중} onClick={on실행}>
+            {t('실행')}
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }

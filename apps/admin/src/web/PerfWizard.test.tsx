@@ -134,7 +134,12 @@ describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
 
     다음();
     expect((await screen.findByRole('alert')).textContent).toContain('시나리오 이름을 적어 주세요');
+    expect(document.activeElement).toBe(screen.getByLabelText('시나리오 이름'));
     fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '주문하기' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    다음();
+    expect(screen.getByRole('alert').textContent).toBe('트랜잭션이 하나도 없습니다. 가져오거나 추가해 주세요');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '트랜잭션 추가' }));
     fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
     fireEvent.change(screen.getByLabelText('주소'), { target: { value: '/api/products' } });
     다음();
@@ -181,7 +186,8 @@ describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
     다음();
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
     expect(확인상자있나()).toBe(false);
-    expect((await screen.findByRole('alert')).textContent).toBe('대상 서버와 부하 발생 에이전트를 선택해 주세요');
+    expect((await screen.findByRole('alert')).textContent).toBe('부하 발생 에이전트를 선택해 주세요');
+    expect(document.activeElement).toBe(screen.getByLabelText(/기본 에이전트/));
 
     fireEvent.click(await screen.findByLabelText(/기본 에이전트/));
     fireEvent.change(screen.getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
@@ -263,6 +269,7 @@ it('2단계 목표가 0 인 시나리오는 4단계로 건너와도 묻지 않�
   fireEvent.click(screen.getByRole('button', { name: '실행' }));
   expect(확인상자있나()).toBe(false);
   expect(screen.getByRole('alert').textContent).toBe('가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요');
+  expect(document.activeElement).toBe(screen.getByLabelText('최대 가상 사용자'));
   expect(저장).not.toHaveBeenCalled();
   화면.unmount();
 

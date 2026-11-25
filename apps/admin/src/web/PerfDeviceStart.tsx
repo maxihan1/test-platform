@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { CaseRow, ServiceRow } from './api.js';
+import { 오류묶음, 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
@@ -12,6 +13,7 @@ import { 떠나기로했다, 떠나기상자, 버리기전 } from './leaveGuard.
 import { perfApi } from './perfApi.js';
 import type { 고를기기, 기기목표, 기기설정, 조작, 측정지표 } from './perfDeviceApi.js';
 import { 자동포함, 폰케이스들 } from './perfDeviceCases.js';
+import { PerfDeviceMetrics } from './PerfDeviceMetrics.js';
 import { PerfDevicePick, 기기키 } from './PerfDevicePick.js';
 import { PerfDeviceTargets } from './PerfDeviceTargets.js';
 import { 기본목표, 실행열기, 케이스조작, 측정항목 } from './perfDeviceView.js';
@@ -21,6 +23,9 @@ import { message } from './ui.js';
 /** 서버와 같은 꼴 — 점으로 이은 앱 이름(`com.demo.market`) */
 const 앱이름 = /^[A-Za-z]\w*(\.[A-Za-z]\w*)+$/;
 const 케이스상한 = 20;
+
+/** 「측정 시작」을 막는 칸 */
+type 시작칸 = 'env' | 'package' | 'cases' | 'devices' | 'metrics';
 
 export function PerfDeviceStart({
   service,
@@ -56,6 +61,8 @@ export function PerfDeviceStart({
   const [하는중, set하는중] = useState(false);
   const [알림, set알림] = useState<string | null>(null);
   const [묻나, set묻나] = useState(false);
+  const [걸린칸, set걸린칸] = useState<시작칸 | null>(null);
+  const { 상자, 첫오류로 } = use첫오류();
   const [케이스오류, set케이스오류] = useState<string | null>(null);
 
   // 연 때와 달라졌으면 떠나기 전에 묻는다. 측정을 건 뒤에는 묻지 않는다
@@ -97,22 +104,27 @@ export function PerfDeviceStart({
   });
   const 골라보냄 = 쓸기기.map((d) => ({ serial: d.serial, where: d.where }));
 
-  function 막는까닭(): string | null {
-    if (env === '') return t('대상 서버를 선택해 주세요');
-    if (!앱이름.test(앱)) return t('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요');
+  function 막는까닭(): { 칸: 시작칸; 글: string } | null {
+    if (env === '') return { 칸: 'env', 글: t('대상 서버를 선택해 주세요') };
+    if (!앱이름.test(앱)) return { 칸: 'package', 글: t('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요') };
     // 목록을 못 읽었으면 무엇이 자동 포함되는지 몰라 확인 창이 덜 적는다
-    if (케이스로 && 케이스들 === null) return t('케이스 목록을 읽는 중입니다');
-    if (케이스로 && 케이스오류 !== null) return 케이스오류;
-    if (케이스로 && 고른케이스.length === 0) return 게임 ? t('측정하며 실행할 게임 케이스를 선택해 주세요') : t('측정하며 실행할 Android 앱 케이스를 선택해 주세요');
-    if (골라보냄.length === 0) return t('측정할 디바이스를 선택해 주세요');
-    if (항목.length === 0) return t('측정 항목을 하나 이상 선택해 주세요');
+    if (케이스로 && 케이스들 === null) return { 칸: 'cases', 글: t('케이스 목록을 읽는 중입니다') };
+    if (케이스로 && 케이스오류 !== null) return { 칸: 'cases', 글: 케이스오류 };
+    if (케이스로 && 고른케이스.length === 0) return { 칸: 'cases', 글: 게임 ? t('측정하며 실행할 게임 케이스를 선택해 주세요') : t('측정하며 실행할 Android 앱 케이스를 선택해 주세요') };
+    if (골라보냄.length === 0) return { 칸: 'devices', 글: t('측정할 디바이스를 선택해 주세요') };
+    if (항목.length === 0) return { 칸: 'metrics', 글: t('측정 항목을 하나 이상 선택해 주세요') };
     return null;
   }
 
+  // 고친 칸의 사유는 바로 걷는다. 다음 칸의 사유는 다시 누를 때 뜬다
+  const 막은것 = 막는까닭();
+  const 틀린 = (칸: 시작칸) => (걸린칸 === 칸 && 막은것?.칸 === 칸 ? 막은것.글 : null);
+
   function 시작누름() {
-    const 까닭 = 막는까닭();
-    set알림(까닭);
-    set묻나(까닭 === null);
+    set알림(null);
+    set걸린칸(막은것?.칸 ?? null);
+    if (막은것 === null) set묻나(true);
+    else 첫오류로();
   }
 
   async function 시작() {
@@ -157,7 +169,7 @@ export function PerfDeviceStart({
     <>
       <떠나기상자 막나={지금값 !== 처음값} 버리기도 />
       <Head 위치={t('성능 테스트')} 제목={t(기기성능이름(service.kind))} 부제={t('새 측정')} />
-      <div className="screen perf-run">
+      <div className="screen perf-run" ref={상자}>
         <section className="perf-panel" aria-labelledby="pd-m">
           <h2 id="pd-m">{t('조작 방식')}</h2>
           <div className="pd-kinds" role="radiogroup" aria-label={t('조작 방식')}>
@@ -171,21 +183,27 @@ export function PerfDeviceStart({
         <section className="perf-panel" aria-labelledby="pd-s">
           <h2 id="pd-s">{케이스로 ? t('케이스와 빌드') : t('측정 시간과 빌드')}</h2>
           <div className="perf-fields">
-            <label className="perf-field">
-              {t('대상 서버')}
-              <select value={env} disabled={!쓰나} onChange={(e) => setEnv(e.target.value)}>
-                <option value="">{t('선택')}</option>
-                {service.envs.map((it) => (
-                  <option key={it.env} value={it.env}>
-                    {it.env}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="perf-field">
-              {t('앱 패키지 이름')}
-              <input className="mono" value={앱} placeholder="com.demo.market" disabled={!쓰나} onChange={(e) => set앱(e.target.value.trim())} />
-            </label>
+            <div className="perf-cell">
+              <label className="perf-field">
+                {t('대상 서버')}
+                <select value={env} disabled={!쓰나} {...오류속성('pd-env-err', 틀린('env'))} onChange={(e) => setEnv(e.target.value)}>
+                  <option value="">{t('선택')}</option>
+                  {service.envs.map((it) => (
+                    <option key={it.env} value={it.env}>
+                      {it.env}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <칸오류 id="pd-env-err" 사유={틀린('env')} />
+            </div>
+            <div className="perf-cell">
+              <label className="perf-field">
+                {t('앱 패키지 이름')}
+                <input className="mono" value={앱} placeholder="com.demo.market" disabled={!쓰나} {...오류속성('pd-pkg-err', 틀린('package'))} onChange={(e) => set앱(e.target.value.trim())} />
+              </label>
+              <칸오류 id="pd-pkg-err" 사유={틀린('package')} />
+            </div>
             {케이스로 ? (
               <label className="perf-field">
                 {t('반복')}
@@ -206,7 +224,7 @@ export function PerfDeviceStart({
             ) : 케이스들.length === 0 ? (
               <span className="perf-faint">{게임 ? t('아직 게임 케이스가 없습니다') : t('아직 Android 앱 케이스가 없습니다')}</span>
             ) : (
-              <fieldset className="pd-cases">
+              <fieldset className="pd-cases" {...오류묶음('pd-cases-err', 틀린('cases'))}>
                 <legend className="perf-faint">{t('실행할 케이스 ({수}/{상한})', { 수: 고른케이스.length, 상한: 케이스상한 })}</legend>
                 {!자동포함된.있나 ? null : (
                   <div className="mnote proc-note">
@@ -235,40 +253,13 @@ export function PerfDeviceStart({
           ) : (
             <span className="perf-faint">{t('직접 플레이는 반복 없이 한 번 잽니다. 정한 시간이 지나면 끝납니다')}</span>
           )}
+          <칸오류 id="pd-cases-err" 사유={틀린('cases')} />
         </section>
 
-        <PerfDevicePick serviceId={service.id} 기기들={기기들} 고른={쓸기기.map(기기키)} 고침={set고른기기} 팜만={케이스로} 쓰나={쓰나} />
+        <PerfDevicePick serviceId={service.id} 기기들={기기들} 고른={쓸기기.map(기기키)} 고침={set고른기기} 팜만={케이스로} 쓰나={쓰나} 사유={틀린('devices')} />
         <PerfDeviceTargets 목표들={목표들} 고침={set목표들} 쓰나={쓰나} />
 
-        <section className="perf-panel" aria-labelledby="pd-k">
-          <h2 id="pd-k">{t('측정 항목')}</h2>
-          <div className="pd-checks">
-            {측정항목.map(([m, 이름]) => (
-              <label key={m}>
-                <input type="checkbox" checked={항목.includes(m)} disabled={!쓰나} onChange={() => set항목(항목.includes(m) ? 항목.filter((x) => x !== m) : [...항목, m])} />
-                {t(이름)}
-              </label>
-            ))}
-          </div>
-          <div className="perf-row">
-            <label className="perf-field">
-              {t('수집 간격')}
-              <select value={간격} disabled={!쓰나} onChange={(e) => set간격(Number(e.target.value) as 1 | 2 | 5)}>
-                {[1, 2, 5].map((초) => (
-                  <option key={초} value={초}>
-                    {t('{수}초', { 수: 초 })}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="perf-row">
-              <input type="checkbox" checked={녹화} disabled={!쓰나} onChange={() => set녹화(!녹화)} />
-              {t('화면 녹화')}
-              <span className="perf-faint">{t('FPS가 떨어진 장면을 녹화 화면으로 확인')}</span>
-            </label>
-          </div>
-          <span className="perf-faint">{t('앱 실행 시간은 측정을 시작할 때 디바이스마다 한 번 잽니다')}</span>
-        </section>
+        <PerfDeviceMetrics 항목={항목} on항목={set항목} 간격={간격} on간격={set간격} 녹화={녹화} on녹화={set녹화} 쓰나={쓰나} 사유={틀린('metrics')} />
 
         {알림 === null ? null : (
           <p className="perf-err" role="alert">

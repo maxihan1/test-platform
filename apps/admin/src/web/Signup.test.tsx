@@ -102,6 +102,7 @@ describe('회원가입 화면', () => {
 
     const 칸 = screen.getByLabelText('아이디');
     expect(칸.getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(칸);
     const 사유 = document.getElementById(칸.getAttribute('aria-describedby') ?? '');
     expect(사유?.textContent).toBe('영문 소문자·숫자·. _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다');
     expect(screen.getByLabelText('이름').getAttribute('aria-invalid')).toBeNull();

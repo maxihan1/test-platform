@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { 오류묶음, 칸오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import { perfApi } from './perfApi.js';
 import type { 고를기기, 기기자리, 기기추천 } from './perfDeviceApi.js';
@@ -19,6 +20,7 @@ export function PerfDevicePick({
   고침,
   팜만,
   쓰나,
+  사유,
 }: {
   serviceId: number;
   기기들: 고를기기[] | null;
@@ -28,6 +30,8 @@ export function PerfDevicePick({
   /** Appium · 게임 케이스는 팜 폰만 잰다 — 내 컴퓨터 러너 폰은 고를 수 없다 */
   팜만: boolean;
   쓰나: boolean;
+  /** 「측정 시작」을 이 칸이 막았을 때의 까닭 */
+  사유: string | null;
 }) {
   const t = use말();
   const [추천, set추천] = useState<기기추천 | null>(null);
@@ -67,7 +71,7 @@ export function PerfDevicePick({
       ) : 기기들.length === 0 ? (
         <span className="perf-faint">{t('선택할 수 있는 디바이스가 없습니다. Device VISION 이나 내 컴퓨터 테스트 실행기가 켜져 있는지 확인해 주세요')}</span>
       ) : (
-        <div className="perf-table-box">
+        <div className="perf-table-box" {...오류묶음('pd-devices-err', 사유)}>
           <table className="perf-table" aria-label={t('측정 디바이스')}>
             <thead>
               <tr>
@@ -107,6 +111,7 @@ export function PerfDevicePick({
           </table>
         </div>
       )}
+      <칸오류 id="pd-devices-err" 사유={사유} />
       <span className="perf-faint">{t('한 번에 {수}대까지 나란히 잽니다', { 수: 기기상한 })}</span>
     </section>
   );

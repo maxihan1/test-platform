@@ -3,6 +3,7 @@
 import { useId } from 'react';
 
 import type { ServiceRow, 모바일위치 } from './api.js';
+import { 오류속성, 칸오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import { 고른서버를적는다 } from './layout.js';
 import { 기기호출 } from './perfDeviceApi.js';
@@ -13,6 +14,7 @@ export function 머리줄({
   디바이스,
   service,
   env,
+  서버사유,
   on서버,
   mobileOn,
   on모바일,
@@ -20,6 +22,8 @@ export function 머리줄({
   디바이스: ReturnType<typeof use디바이스고르기>;
   service: ServiceRow | null;
   env: string;
+  /** 대상 서버를 안 고르고 눌렀을 때의 까닭 */
+  서버사유: string | null;
   on서버: (env: string) => void;
   mobileOn: 모바일위치;
   on모바일: (값: 모바일위치) => void;
@@ -35,7 +39,7 @@ export function 머리줄({
       )}
       <span className="mhead-env">
         <label htmlFor="pick-env">{t('대상 서버')}</label>
-        <select id="pick-env" value={env} onChange={(e) => { on서버(e.target.value); if (service !== null) 고른서버를적는다(service.prefix, e.target.value); }}>
+        <select id="pick-env" value={env} {...오류속성('pick-env-err', 서버사유)} onChange={(e) => { on서버(e.target.value); if (service !== null) 고른서버를적는다(service.prefix, e.target.value); }}>
           {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
           <option value="">{t('선택하세요')}</option>
           {(service?.envs ?? []).map((it) => (
@@ -47,6 +51,7 @@ export function 머리줄({
         {/* 고른 뒤 「어디로 쏘는지」를 확인할 자리가 있어야 한다 (SPEC §8.2) */}
         {주소 === null ? null : <span className="addr">{주소}</span>}
       </span>
+      <칸오류 id="pick-env-err" 사유={서버사유} />
       {service !== null && service.envs.length === 0 ? (
         <span className="err">{t('이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
       ) : null}

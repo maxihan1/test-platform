@@ -321,4 +321,7 @@ export const 작성말: Record<string, string> = {
   'CI 가 Windows 빌드(zip)를 업로드하면 작성할 수 있습니다': 'You can author once CI uploads a Windows build (zip)',
   '작성 AI 가 Windows PC 에 빌드 {빌드} 를 설치해 화면을 읽습니다': 'The authoring AI installs build {빌드} on a Windows PC and reads its screens',
   '없음 — 키보드만': 'None — keyboard only',
+  // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
+  '적은 내용이 있어 건너뛸 수 없습니다. 저장하거나 칸을 비워 주세요': 'You have typed something, so you cannot skip. Save it or clear everything',
+  '적은 내용이 없어 저장할 수 없습니다. 건너뛸 수 있습니다': 'Nothing typed, so there is nothing to save. You can skip this step',
 };
