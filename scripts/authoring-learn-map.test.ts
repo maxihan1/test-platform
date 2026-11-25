@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 지도읽기 } from './authoring-game-find.js';
 import { type 시험감, 답더하기, 맞나, 시험감고르기, 시험답읽기, 시험줄, 실행 as 시험실행, 채점하기 } from './authoring-learn-exam.js';
-import { 배울것고르기, 배울것없나, 배울종류, 빠진게임글, 사람줄 } from './authoring-learn-map.js';
+import { 배울것고르기, 배울것없나, 배울종류, 빈칸들, 빠진게임글, 사람줄, 칸틀 } from './authoring-learn-map.js';
 import { 합치기, 실행 as 적기실행 } from './authoring-learn-note.js';
 
 type 줄재료 = [kind: string, key: string, name: string, learned?: object, 앞?: string];
@@ -16,7 +16,8 @@ const 지도글 = (줄들: 줄재료[]): string => {
   return ['# 게임 지도 — 요소', '', ...종류.flatMap((k) => [`## ${k} (${k}) — ${줄들.filter((x) => x[0] === k).length}개`, ...줄들.filter((x) => x[0] === k).map(([, key, name, l, 앞 = '']) => `- ${key} · ${name}${앞}${l === undefined ? '' : ` · 배움 ${JSON.stringify(l)}`}`), ''])].join('\n');
 };
 const 지도 = (줄들: 줄재료[]) => 지도읽기(지도글(줄들));
-const 다배움: 줄재료[] = 배울종류.map((k) => [k, `${k.toLowerCase()}:하나`, '하나', { text: '안다', belief: 'CONFIRMED', seen: 2, build: '59', data: 1 }]);
+const 찬칸 = (k: string) => ({ 칸: Object.fromEntries((칸틀[k] ?? []).map((c) => [c, '쟀다'])) });
+const 다배움: 줄재료[] = [...배울종류, 'WORLD'].map((k) => [k, `${k.toLowerCase()}:하나`, '하나', { text: '안다', belief: 'CONFIRMED', seen: 2, build: '59', data: 찬칸(k) }]);
 const 볼 = { 빌드: '59', 오늘: '2026-11-25', 게임글: null };
 
 let 자료 = '';
@@ -70,8 +71,30 @@ describe('배울것고르기', () => {
       ['RULE', 'rule:마', '마', { text: 'ㄱ', belief: 'CONFIRMED', build: '58' }, ' · 근거 CG-REQ-005'],
     ];
     const b = 배울것고르기(지도(줄들), { ...볼, 번호들: ['CG-REQ-001', 'CG-REQ-002', 'CG-REQ-003', 'CG-REQ-004', 'CG-REQ-005', 'CG-REQ-006'] });
-    expect(b).toEqual({ 빈종류: [], 궁금: [], 빌드다름: [], 게임글: [], 번호: ['CG-REQ-002', 'CG-REQ-003', 'CG-REQ-004', 'CG-REQ-005', 'CG-REQ-006'] });
+    expect(b).toEqual({ 칸: [], 빈종류: [], 궁금: [], 빌드다름: [], 게임글: [], 번호: ['CG-REQ-002', 'CG-REQ-003', 'CG-REQ-004', 'CG-REQ-005', 'CG-REQ-006'] });
     expect(배울것없나(배울것고르기(지도(줄들), { ...볼, 번호들: [] }))).toBe(true);
+  });
+});
+
+describe('빈칸들 — 무엇을 재야 하나', () => {
+  const 줄 = (kind: string, key: string, data: unknown, belief = 'SEEN'): 줄재료 => [kind, key, key, { text: 'ㄱ', belief, data }];
+  it('조작 · 움직이는 것은 줄마다, 맵은 칸을 단 줄마다 안 찬 칸을 댄다 — 모름은 안 찬 것, 없음 · 막힘은 까닭과 함께 찬 것이다', () => {
+    const m = 지도([
+      줄('INPUT', 'input:공격', { 칸: { 어디서: '아무 데나', 닿는곳: '모름', 바뀌는것: '악마 체력 36→24', 간격: 0.4 } }),
+      줄('INPUT', 'input:쪽 넘기기', { 칸: '아님 — 가이드 창에서만 쓴다' }),
+      줄('INPUT', 'input:폭탄', { 쿨타임: 3 }),
+      줄('BEHAVIOR', 'behavior:유령', { 칸: { 오브젝트: 'B3_MonsterGhost_Wave1(Clone)', 길: '두 길', 빠르기: 2.1, 하는일: '기지를 친다', 없어질때: '막힘 — 한 마리도 못 잡았다' } }),
+      줄('WORLD', 'world:길 띠', { 본것: 24 }),
+      줄('WORLD', 'world:첫 맵', { 칸: { 나오는곳: ['왼쪽 아래', '오른쪽 아래'], 가는곳: '세계수', 막힌곳: {}, 쓸자리: '없음 — 아무 데나', 지킬것: '세계수' } }),
+    ]);
+    expect(빈칸들(m)).toEqual(['input:공격 — 닿는곳 · 안될때', 'input:폭탄 — 칸 없음', 'world:첫 맵 — 막힌곳']);
+  });
+
+  it('맵 줄이 없거나 조작 줄에 칸이 하나도 없으면 그것부터다 — 없는 게임은 없음 줄로 닫고, 뒤집힌 줄은 안 본다', () => {
+    expect(빈칸들(지도([]))).toEqual([expect.stringContaining('WORLD')]);
+    expect(빈칸들(지도([줄('INPUT', 'input:창', { 칸: '아님 — 메뉴' }), 줄('WORLD', 'world:없음', {})]))).toEqual([expect.stringContaining('INPUT')]);
+    expect(빈칸들(지도([줄('INPUT', 'input:없음', {}), 줄('BEHAVIOR', 'behavior:옛것', {}, 'OVERTURNED'), 줄('WORLD', 'world:없음', {})]))).toEqual([]);
+    expect(배울것고르기(지도([]), 볼).칸).toHaveLength(1);
   });
 });
 
