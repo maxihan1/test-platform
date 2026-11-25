@@ -251,6 +251,17 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(줄?.textContent).toContain('Blocked');
   });
 
+  it('완료 창의 Not tested 칩은 그 안의 Blocked 수를 괄호로 달고 0 이면 안 단다 (RUN 21232)', () => {
+    const 칩 = (blocked: number) => {
+      render(<RunProgressModal data={실행('FINISHED', [항목(12, 분(12), 'FAIL')], { total: 14, pass: 0, fail: 1, na: 13, blocked, running: 0 })} 진행목록={[]} onClose={() => {}} />);
+      const 글 = document.querySelector('.rl-pills')?.lastElementChild?.textContent;
+      cleanup();
+      return 글;
+    };
+    expect(칩(12)).toBe('Not tested 13 (Blocked 12)');
+    expect(칩(0)).toBe('Not tested 13');
+  });
+
   it('사람이 멈춘 실행은 끝났다고 적지 않는다', () => {
     render(<RunProgressModal data={{ ...끝난실행, status: 'ABORTED' }} 진행목록={[]} onClose={() => {}} />);
 

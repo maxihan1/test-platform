@@ -8,7 +8,7 @@ import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { RunDoneItems } from './RunDoneItems.js';
 import { 기록띠, 화면카드들 } from './RunLiveCards.js';
-import { 진행왼쪽, 셈알약 } from './RunLiveLeft.js';
+import { 막힌덧, 진행왼쪽, 셈알약 } from './RunLiveLeft.js';
 import { type RunDetail, 진행상황 } from './runProgress.js';
 import { 도는중, 준비실패 } from './runState.js';
 import { 걸린글 } from './trialView.js';
@@ -44,7 +44,7 @@ function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void 
       <div className="rl-pills">
         <셈알약 종류="pass" 이름={t말('Pass')} 수={data.counts.pass} />
         <셈알약 종류="fail" 이름={t말('Fail')} 수={data.counts.fail} />
-        <셈알약 종류="na" 이름={t말('Not tested')} 수={data.counts.na} />
+        <셈알약 종류="na" 이름={t말('Not tested')} 수={data.counts.na} 덧={막힌덧(data.counts)} />
       </div>
       {그중미확정글(data.counts, 언어) === '' ? null : <p className="hint">{그중미확정글(data.counts, 언어)}</p>}
       <RunDoneItems runId={data.runId} items={data.items} onClose={onClose} />
