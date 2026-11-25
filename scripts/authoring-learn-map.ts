@@ -8,19 +8,7 @@ export type 지도 = ReturnType<typeof 지도읽기>;
 /** 비어 있으면 배울 것인 기본 종류 — 기획서에서 온 다섯, 남은 것이 곧 할 일인 궁금한 것, 없어야 좋은 이상한 것, 종류 정의는 뺀다 */
 export const 배울종류: readonly string[] = Object.keys(요소종류).filter((k) => !기획서종류.has(k) && k !== 'ASK' && k !== 'ODD' && k !== 'KIND');
 
-/**
- * 종류마다 재서 채울 칸 — 게임이 달라도 같다(2026-11-25 사용자 「무엇을 배워야 하는지 에이전트가 알아야 한다」).
- * 종류에 줄이 하나라도 있으면 배운 것으로 치던 앞 판은 글만 옮겨 적고 공격이 어디까지 닿는지 · 적이 어디서 나오는지 모른 채 판을 되풀이했다
- */
-export const 칸틀: Readonly<Record<string, readonly string[]>> = {
-  WORLD: ['나오는곳', '가는곳', '막힌곳', '쓸자리', '지킬것'],
-  BEHAVIOR: ['오브젝트', '길', '빠르기', '하는일', '없어질때'],
-  INPUT: ['어디서', '닿는곳', '바뀌는것', '간격', '안될때'],
-};
-
 export interface 배울것 {
-  /** 아직 안 잰 칸 — 이것부터 */
-  칸: string[];
   빈종류: string[];
   궁금: string[];
   빌드다름: string[];
@@ -57,28 +45,6 @@ export function 빠진게임글(글: string | null, 지금: 지도): string[] {
   return 문장들.filter((s) => !담긴.some((t) => (s.length < 짧은줄 ? t === s : t.includes(s))));
 }
 
-// 까닭 없는 「없음」 · 「막힘」은 안 잰 것과 가를 수 없다
-const 찼나 = (v: unknown): boolean => (typeof v === 'string' ? v.trim() !== '' && !/^모름/.test(v.trim()) && !/^(?:없음|막힘)[\s\p{P}]*$/u.test(v.trim()) : v !== undefined && v !== null && (typeof v !== 'object' || Object.keys(v).length > 0));
-const 안쓰나 = (v: unknown): boolean => typeof v === 'string' && /^아님[\s\p{P}]+[^\s\p{P}]/u.test(v.trim());
-
-/** 안 찬 칸 — 조작 · 움직이는 것은 줄마다(판에서 안 쓰거나 다른 줄에 적은 것은 `칸: "아님 — 까닭"`), 맵은 칸을 단 줄만 본다. 종류를 돌아가며 준다 — 앞에서 잘려도 맵과 적이 남게 */
-export function 빈칸들(지금: 지도): string[] {
-  const 종류마다 = Object.entries(칸틀).map(([종류, 틀]) => {
-    const 모두 = 지금.줄들.filter((x) => x.kind === 종류 && x.learned !== null);
-    const 배운 = 모두.filter((x) => x.learned!.belief !== 'OVERTURNED' && !x.key.endsWith(':없음'));
-    const 칸 = (x: 지도줄): unknown => 객체(x.learned!.data).칸;
-    const 칸있는 = 배운.filter((x) => Object.keys(객체(칸(x))).length > 0);
-    // 줄이 하나도 없는 조작 · 적 행동은 빈 종류가 이미 말한다
-    const 없음 = 칸있는.length === 0 && !모두.some((x) => x.key.endsWith(':없음')) && (모두.length > 0 || 종류 === 'WORLD') ? [`${종류} — 판에서 쓰는 것을 줄마다 칸으로 적은 것이 하나도 없음`] : [];
-    return [...없음, ...배운.flatMap((x) => {
-      if (!칸있는.includes(x)) return 종류 === 'WORLD' || 안쓰나(칸(x)) ? [] : [`${x.key} — 칸 없음`];
-      const 빈 = 틀.filter((k) => !찼나(객체(칸(x))[k]));
-      return 빈.length === 0 ? [] : [`${x.key} — ${빈.join(' · ')}`];
-    })];
-  });
-  return Array.from({ length: Math.max(0, ...종류마다.map((x) => x.length)) }, (_, i) => 종류마다.flatMap((x) => x.slice(i, i + 1))).flat();
-}
-
 /** 번호를 주면(이어 작성 · 반영) 그 요구에 닿는 줄만 본다 — 전체를 다시 배우지 않는다 */
 export function 배울것고르기(지금: 지도, 것: { 빌드?: string; 오늘: string; 게임글: string | null; 번호들?: readonly string[] }): 배울것 {
   if (것.번호들 !== undefined) {
@@ -87,10 +53,9 @@ export function 배울것고르기(지금: 지도, 것: { 빌드?: string; 오�
       const 배움 = 들.filter((x) => x.learned !== null);
       return 배움.length === 0 || 들.some((x) => 바뀜(x)?.split(', ').includes(n) === true) || 배움.some((x) => (x.learned!.belief !== 'CONFIRMED' && x.learned!.belief !== 'GAME_TEXT') || 빌드다른가(x, 것.빌드));
     });
-    return { 칸: [], 빈종류: [], 궁금: [], 빌드다름: [], 게임글: [], 번호 };
+    return { 빈종류: [], 궁금: [], 빌드다름: [], 게임글: [], 번호 };
   }
   return {
-    칸: 빈칸들(지금),
     빈종류: 배울종류.filter((k) => !지금.줄들.some((x) => x.kind === k && x.learned !== null)),
     궁금: 지금.줄들.filter((x) => 열린궁금(x, 것.오늘, 것.빌드)).map((x) => x.key),
     빌드다름: 지금.줄들.filter((x) => x.kind !== 'ASK' && x.kind !== 'KIND' && x.learned !== null && x.learned.belief !== 'OVERTURNED' && 빌드다른가(x, 것.빌드)).map((x) => x.key),
