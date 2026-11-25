@@ -68,6 +68,7 @@ const 면제 = new Map([
   ['scripts/authoring-proc-run.test.ts', '가짜 npx 가 임시 폴더에 남긴 부른 기록만 읽는다 (2026-11-24 TP-F5-26 — PR #981 에서 더함)'],
   ['scripts/authoring-learn-helpers.test.ts', '테스트가 만든 임시 작업 바탕(조작 도우미)만 읽고 쓴다 (2026-11-25 PR #1009)'],
   ['scripts/authoring-apply-proc.test.ts', '테스트가 만든 임시 자료 폴더(반영 계획 · 원장 사본)만 읽는다 (2026-11-25 PR #981)'],
+  ['scripts/authoring-game-play-spawns.test.ts', '테스트가 만든 임시 자료 폴더의 판 기록 · 지도 파일만 읽는다 (2026-11-26 PR #1010)'],
 ]);
 
 function 테스트파일들(폴더) {
