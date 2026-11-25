@@ -11,6 +11,7 @@ import type { 등급 } from './role.js';
 import { TempPassword, type 임시 } from './SettingsPassword.js';
 import { PermissionPicker, PermissionSummary, 배정이틀렸나 } from './SettingsPermissions.js';
 import { 오류문장 } from './SettingsService.js';
+import { UserActions } from './SettingsUserActions.js';
 import { 계정못보내는이유, 마지막운영계정인가, type 프로젝트줄 } from './settingsView.js';
 
 export function UserSection({
@@ -183,8 +184,6 @@ function UserForm({
   const [dashboard, setDashboard] = useState<'none' | 'read'>(row?.dashboard ?? 'read');
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  // 되돌릴 수 없는 일이라 두 걸음으로 받는다. 저장 버튼 바로 옆이라 잘못 누르기 쉽다
-  const [비번확인, set비번확인] = useState(false);
 
   // 맞으면 등급을 낮추거나 내리는 길을 아예 안 그린다 (SPEC §3.5 · §7)
   const 마지막운영 = row !== undefined && 마지막운영계정인가(rows, row.username);
@@ -251,45 +250,7 @@ function UserForm({
 
       <div className="set-foot">
         {새것 ? null : (
-          <>
-            {/* 자기 것을 재발급하면 세션 도장이 바뀌어 임시 비밀번호를 옮겨 적기 전에 로그아웃된다 */}
-            {나다 ? (
-              <span className="hint set-left">{t('자기 비밀번호는 맨 위 오른쪽 이름을 눌러 나오는 「비밀번호 변경」에서 변경합니다')}</span>
-            ) : (
-              // 되돌릴 수 없다. 왼쪽 끝으로 떼어 놓고 두 걸음으로 받는다
-              <button
-                className={`btn ghost set-left${비번확인 ? ' set-warn' : ''}`}
-                disabled={보내는중}
-                onClick={() => {
-                  if (!비번확인) {
-                    set비번확인(true);
-                    return;
-                  }
-                  set비번확인(false);
-                  void 한다(async () => {
-                    const { tempPassword } = await api.resetPassword(row.username);
-                    onPassword?.(tempPassword);
-                  });
-                }}
-              >
-                {비번확인 ? t('한 번 더 누르면 지금 비밀번호가 무효가 됩니다') : t('비밀번호 재발급')}
-              </button>
-            )}
-            {마지막운영 ? null : (
-              <button
-                className="btn ghost"
-                disabled={보내는중}
-                onClick={() => {
-                  void 한다(async () => {
-                    await api.updateUser(row.username, { isActive: !row.isActive });
-                    onDone?.();
-                  });
-                }}
-              >
-                {row.isActive ? t('비활성으로 내리기') : t('다시 활성으로')}
-              </button>
-            )}
-          </>
+          <UserActions row={row} 나다={나다} 마지막운영={마지막운영} 보내는중={보내는중} 한다={(일) => void 한다(일)} onDone={onDone} onPassword={onPassword} />
         )}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
         {/* 셋 다 안 씀인 묶음은 서버가 400 으로 돌려보낸다. 이유는 그 묶음 옆에 이미 적혀 있다 */}

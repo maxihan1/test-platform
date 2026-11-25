@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { ApiError } from './api.js';
 import { perfApi, type 더미클라이언트 } from './perfApi.js';
 import { SettingsPerfDummy } from './SettingsPerfDummy.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -71,6 +72,7 @@ describe('설정 › 더미 클라이언트', () => {
     그리기();
     vi.spyOn(perfApi, 'removeDummyClient').mockRejectedValue(new ApiError(409, 'IN_USE', '', []));
     fireEvent.click(await screen.findByRole('button', { name: '게임 봇 삭제' }));
+    물음누름('삭제');
     expect((await screen.findByRole('alert')).textContent).toBe('이 더미 클라이언트를 쓰는 시나리오가 있어 삭제할 수 없습니다');
   });
 
@@ -78,6 +80,11 @@ describe('설정 › 더미 클라이언트', () => {
     const 목록 = 그리기();
     const 지우기 = vi.spyOn(perfApi, 'removeDummyClient').mockResolvedValue(undefined);
     fireEvent.click(await screen.findByRole('button', { name: '게임 봇 삭제' }));
+    물음누름('취소');
+    expect(지우기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '게임 봇 삭제' }));
+    expect(screen.getByText('「게임 봇」 파일이 삭제됩니다. 다시 쓰려면 zip 파일을 다시 업로드해야 합니다')).toBeTruthy();
+    물음누름('삭제');
     await waitFor(() => expect(지우기).toHaveBeenCalledWith(5));
     await waitFor(() => expect(목록).toHaveBeenCalledTimes(2));
   });

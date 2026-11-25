@@ -7,6 +7,7 @@ import { ApiError } from './api.js';
 import { AuthoringDecide } from './AuthoringDecide.js';
 import { 요약 } from './authoringSummary.fixture.js';
 import type { 결정목록, 결정항목, 보낼고름 } from './decideApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 보낸: { prdVersion: number; picks: 보낼고름[] }[] = [];
 const 진행답: { 값: Promise<{ steps: { step: 1 | 2 | 3 | 4 | 5 | 6 | 7; key: string | null; requestId: number | null; version: number | null }[] }> | null } = { 값: null };
@@ -100,6 +101,21 @@ describe('결정 목록', () => {
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
     expect(screen.getByText('아직 선택한 것이 없습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '나중에' })).toBeNull();
+  });
+
+  it('반려가 섞였을 때만 적용 전에 묻고, 취소하면 보내지 않는다', async () => {
+    진행답.값 = Promise.resolve({ steps: [{ step: 3, key: 반영.key, requestId: null, version: null }] });
+    render(<AuthoringDecide service="DMW" 목록={목록([반영])} envs={[]} 다시읽기={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: '반려' }));
+    fireEvent.click(적용());
+    expect(screen.getByText('반려 1건은 복구할 수 없습니다')).toBeTruthy();
+    expect(within(screen.getByRole('dialog')).getByText('#10 작성 결과를 삭제합니다')).toBeTruthy();
+    물음누름('취소');
+    expect(보낸).toEqual([]);
+    fireEvent.click(적용());
+    물음누름('1건 적용');
+    expect(await screen.findByText('적용을 시작했습니다')).toBeTruthy();
+    expect(보낸).toHaveLength(1);
   });
 
   it('적용은 지금 탭에서 고른 것만 보내고, 다른 탭에서 고른 것은 남는다', async () => {
@@ -236,7 +252,7 @@ describe('결정 목록', () => {
     expect(screen.getByText('아직 선택한 것이 없습니다')).toBeTruthy();
   });
 
-  it('테스트가 확인하지 않은 화면은 체크한 것만 보내고, [제외]는 확인 창을 거쳐 곧바로 빼고, 제외한 화면은 [되돌리기]로 돌린다', async () => {
+  it('테스트가 확인하지 않은 화면은 체크한 것만 보내고, [제외]는 확인 창을 거쳐 곧바로 빼고, 제외한 화면은 [복원]으로 돌린다', async () => {
     진행답.값 = Promise.resolve({ steps: [{ step: 5, key: 'screens:ab', requestId: 9, version: null }] });
     const 다시읽기 = vi.fn();
     const 화면: 결정항목 = {
@@ -258,7 +274,7 @@ describe('결정 목록', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
 
     fireEvent.click(screen.getByText('제외한 화면 1개'));
-    fireEvent.click(screen.getByRole('button', { name: '실행 취소' }));
+    fireEvent.click(screen.getByRole('button', { name: '복원' }));
     await waitFor(() => expect(제외한).toEqual([['/orders', true], ['/reviews/new', false]]));
 
     fireEvent.click(적용());

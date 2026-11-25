@@ -108,9 +108,9 @@ describe('중복 케이스 표', () => {
     expect(screen.getByText('번호가 겹쳐 반영할 때 새 번호를 받습니다')).toBeTruthy();
   });
 
-  it('고른 줄에만 되돌리기가 있고 DELETE 를 보낸다', async () => {
+  it('고른 줄에만 복원이 있고 DELETE 를 보낸다', async () => {
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침, 요구겹침]} 편집 reload={reload} />);
-    const 되돌리기 = screen.getAllByRole('button', { name: /실행 취소/ });
+    const 되돌리기 = screen.getAllByRole('button', { name: /복원/ });
     expect(되돌리기).toHaveLength(1);
     fireEvent.click(되돌리기[0] as HTMLElement);
     await vi.waitFor(() => expect(지우기).toHaveBeenCalledWith('PAY', 7, 'PAY-043'));

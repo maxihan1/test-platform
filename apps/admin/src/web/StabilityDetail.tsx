@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { ApiError } from './api.js';
 import { BTS이름 } from './btsName.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { use휴대폰 } from './phone.js';
 import { stabilityApi, type 오류상세 } from './stabilityApi.js';
@@ -24,9 +25,11 @@ const 이미됨 = (err: unknown) => err instanceof ApiError && (err.code === 'AL
 function 행동({ 상세, 쓰나, 다시읽기, t }: { 상세: 오류상세; 쓰나: boolean; 다시읽기: () => Promise<boolean>; t: 말 }) {
   const 언어 = use언어();
   const [바쁨, set바쁨] = useState(false);
+  const [묻는것, set묻는것] = useState<'resolve' | 'issue' | null>(null);
   const [오류, set오류] = useState<string | null>(null);
 
   async function 누름(일: () => Promise<unknown>) {
+    set묻는것(null);
     set바쁨(true);
     set오류(null);
     try {
@@ -43,7 +46,7 @@ function 행동({ 상세, 쓰나, 다시읽기, t }: { 상세: 오류상세; 쓰
     상세.resolvedAt !== null ? (
       <span className="stab-done">{t('해결 · {날} 처리', { 날: 작성시각(상세.resolvedAt, undefined).날 })}</span>
     ) : 쓰나 ? (
-      <button type="button" className="btn ghost" disabled={바쁨} onClick={() => void 누름(() => stabilityApi.resolve(상세.id))}>
+      <button type="button" className="btn ghost" disabled={바쁨} onClick={() => set묻는것('resolve')}>
         {t('해결 처리')}
       </button>
     ) : null;
@@ -59,27 +62,41 @@ function 행동({ 상세, 쓰나, 다시읽기, t }: { 상세: 오류상세; 쓰
     ) : issue?.state === 'PENDING' ? (
       <span className="stab-done">{t('등록 중')}</span>
     ) : 쓰나 && 상세.btsLinked ? (
-      <button type="button" className="btn" disabled={바쁨} onClick={() => void 누름(() => stabilityApi.issue(상세.id))}>
+      <button type="button" className="btn" disabled={바쁨} onClick={() => set묻는것('issue')}>
         {t('{bts} 등록', { bts: BTS이름 })}
       </button>
     ) : null;
   if (해결칸 === null && 등록칸 === null) return null;
   return (
-    <div className="stab-act-wrap">
-      <div className="stab-act">
-        {해결칸}
-        {등록칸}
-      </div>
-      {/* 마지막 등록이 포기됐으면 까닭을 보이고 다시 누를 수 있다 (BTS §3.12 「버그 바퀴」) */}
-      {issue !== null && 'state' in issue && issue.state === 'GAVE_UP' ? (
-        <p className="stab-faint">{t('{bts} 등록 실패 · {까닭}', { bts: BTS이름, 까닭: issue.reason ?? '' })}</p>
-      ) : null}
-      {오류 === null ? null : (
-        <p className="note" role="alert">
-          {오류}
-        </p>
+    <>
+      {/* 휴대폰은 아래 줄이 화면에 고정(z 25)이라 그 안에 열면 상자가 아래 탭 밑에 깔린다 */}
+      {묻는것 === null ? null : (
+        <확인창
+          제목={묻는것 === 'resolve' ? t('이 오류를 해결 처리할까요?') : t('{bts} 에 이슈를 등록할까요?', { bts: BTS이름 })}
+          확인={묻는것 === 'resolve' ? t('해결 처리') : t('{bts} 등록', { bts: BTS이름 })}
+          onClose={() => set묻는것(null)}
+          on확인={() => void 누름(() => (묻는것 === 'resolve' ? stabilityApi.resolve(상세.id) : stabilityApi.issue(상세.id)))}
+        >
+          <p className="mono">{상세.title}</p>
+          <p>{묻는것 === 'resolve' ? t('해결 처리는 취소할 수 없습니다. 다음 실행에서 다시 나오면 재발로 표시됩니다') : t('등록한 이슈는 여기서 취소할 수 없습니다. {bts} 에서 처리합니다', { bts: BTS이름 })}</p>
+        </확인창>
       )}
-    </div>
+      <div className="stab-act-wrap">
+        <div className="stab-act">
+          {해결칸}
+          {등록칸}
+        </div>
+        {/* 마지막 등록이 포기됐으면 까닭을 보이고 다시 누를 수 있다 (BTS §3.12 「버그 바퀴」) */}
+        {issue !== null && 'state' in issue && issue.state === 'GAVE_UP' ? (
+          <p className="stab-faint">{t('{bts} 등록 실패 · {까닭}', { bts: BTS이름, 까닭: issue.reason ?? '' })}</p>
+        ) : null}
+        {오류 === null ? null : (
+          <p className="note" role="alert">
+            {오류}
+          </p>
+        )}
+      </div>
+    </>
   );
 }
 

@@ -58,4 +58,8 @@ export const QA리포트말: Record<string, string> = {
   'QA 리포트 · 승인 전': 'QA reports · Not approved',
   '승인 전 리포트 없음': 'No reports awaiting approval',
   건: 'reports',
+  // 승인 확인 (WEB-F10-02)
+  'QA 리포트를 승인할까요?': 'Approve this QA report?',
+  '「{이름}」 버전 {버전} 을 지금 내용의 PDF 로 저장합니다. 승인은 취소할 수 없고 이 버전은 더 이상 수정할 수 없습니다':
+    'Saves "{이름}" version {버전} as a PDF of its current content. Approval cannot be withdrawn and this version can no longer be edited',
 };

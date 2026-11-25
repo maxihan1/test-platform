@@ -161,4 +161,8 @@ export const 작성할일말: Record<string, string> = {
   '{번호} 외 {수}건 {무엇}': '{번호} and {수} more {무엇}',
   '{번호} 외 {수}건 테스트 수정': '{번호} and {수} more test fixes',
   '{번호} 테스트 수정': '{번호} test fix',
+  // 반영 확인 (WEB-F10-02)
+  '테스트를 반영할까요?': 'Merge these tests?',
+  '#{번호} 테스트를 케이스 목록에 반영합니다. 반영한 뒤에는 취소할 수 없습니다': 'Merges #{번호} into the case list. Merging cannot be undone',
+  '대상 서버 {서버} 에서 값을 채운 케이스를 먼저 실행합니다': 'Cases with filled-in values run first on {서버}',
 };

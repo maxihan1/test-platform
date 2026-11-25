@@ -2,7 +2,7 @@
 // 설정 > 계정 서랍 검사 — 줄을 바꿔 열 때 남은 상태 · 한 번만 보이는 상자 자리 · 아이디 `new` 계정 (WEB-F5-06)
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type UserRow } from './api.js';
 import { UserSection } from './SettingsUser.js';
@@ -67,6 +67,24 @@ describe('계정 서랍', () => {
     줄열기('park');
     expect(within(서랍()).queryByRole('alert')).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('lee');
+  });
+
+  it('비활성으로 내리기는 확인 줄을 거치고, 그만두면 보내지 않는다. 다시 활성은 바로 보낸다', async () => {
+    const 보냄 = vi.spyOn(api, 'updateUser').mockResolvedValue(undefined as unknown as Awaited<ReturnType<typeof api.updateUser>>);
+    그리기([계정('kim'), 계정('lee'), 계정('park', { isActive: false })]);
+
+    줄열기('lee');
+    fireEvent.click(screen.getByRole('button', { name: '비활성으로 내리기' }));
+    expect(screen.getByText(/이 계정은 바로 로그인할 수 없습니다/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '그만두기' }));
+    expect(보냄).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '비활성으로 내리기' }));
+    fireEvent.click(screen.getByRole('button', { name: '비활성으로 내린다' }));
+    await waitFor(() => expect(보냄).toHaveBeenCalledWith('lee', { isActive: false }));
+
+    줄열기('park');
+    fireEvent.click(await screen.findByRole('button', { name: '다시 활성으로' }));
+    await waitFor(() => expect(보냄).toHaveBeenCalledWith('park', { isActive: true }));
   });
 
   it('아이디가 new 인 계정이 있어도 「+」는 새 계정 폼을 연다', () => {

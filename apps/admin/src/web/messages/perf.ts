@@ -225,4 +225,7 @@ export const 성능말: Record<string, string> = {
   '측정 시간': 'Duration',
   '자동 포함 {수}건': '{수} added automatically',
   '이 화면에서 중단할 수 있습니다': 'You can stop it on this screen',
+  // AI 추천 확인 (WEB-F10-02)
+  'AI 추천 목표로 변경할까요?': 'Replace with AI suggested targets?',
+  '지금 있는 성능 목표 {수}개가 AI 추천 목표로 모두 변경됩니다': 'All {수} current targets are replaced by AI suggestions',
 };

@@ -50,7 +50,7 @@ export function 비밀칸(p: {
           </div>
         ) : (
           <div className="set-hook">
-            <input id={p.id} type="password" value={p.값} placeholder={p.placeholder}
+            <input id={p.id} type="password" autoComplete="new-password" value={p.값} placeholder={p.placeholder}
               onChange={(e) => p.바꾼다(e.target.value)} />
             {/* 되돌아갈 길이 없으면, 마음을 바꿔 그냥 저장했을 때 빈 글자가 가서 값이 지워진다 */}
             <button className="btn ghost" aria-label={t('{이름} 변경 취소', { 이름: p.이름 })} onClick={() => p.바꾼다(null)}>

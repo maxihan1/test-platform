@@ -1,5 +1,6 @@
 // 기기 성능 측정 시작의 「성능 목표」 표 — 지표 · 목표 · 근거 · 삭제. 부등호는 지표에 매여 있어 고르지 않는다 (도메인/성능 §7 「기기 성능 목표 한 줄」)
 
+import { 두번삭제 } from './ConfirmBox.js';
 import { use말 } from './i18n.js';
 import type { 기기목표, 기기지표 } from './perfDeviceApi.js';
 import { 지표차례, 지표표 } from './perfDeviceView.js';
@@ -76,11 +77,7 @@ export function PerfDeviceTargets({ 목표들, 고침, 쓰나 }: { 목표들: �
                     <span className={목표.source === 'MANUAL' ? 'perf-tag' : 'perf-ai'}>{t(근거글자[목표.source])}</span>
                   </td>
                   <td>
-                    {쓰나 ? (
-                      <button type="button" className="btn ghost small" aria-label={t('{이름} 목표 삭제', { 이름 })} onClick={() => 고침(목표들.filter((_, j) => j !== i))}>
-                        {t('삭제')}
-                      </button>
-                    ) : null}
+                    {쓰나 ? <두번삭제 라벨={t('{이름} 목표 삭제', { 이름 })} on삭제={() => 고침(목표들.filter((_, j) => j !== i))} /> : null}
                   </td>
                 </tr>
               );

@@ -7,6 +7,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import type { ServiceRow } from './api.js';
 import { Sched } from './Sched.js';
 import { schedApi, type 세트, type 회차 } from './schedApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 앱: ServiceRow = {
   id: 7,
@@ -216,6 +217,37 @@ describe('정기 실행 화면', () => {
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나={false} />);
     await screen.findByRole('button', { name: /결제 회귀/u, pressed: false });
     expect(screen.queryByRole('button', { name: '끄기' })).toBeNull();
+  });
+
+  it('오늘 대기 회차가 있으면 끄기 전에 묻고, 취소하면 끄지 않는다. 남의 세트 회차 · 시작한 회차는 세지 않는다', async () => {
+    const 대기 = 회차하나({ id: 12, plannedOn: '2026-11-13', plannedAt: '2026-11-12T17:00:00Z', startedAt: null, finishedAt: null, state: 'QUEUED', verdict: 'NONE', runs: [] });
+    차리기([세트하나(), 세트하나({ id: 2, name: '웹 전체 회귀' })], [대기, { ...대기, id: 13, setId: 2, state: 'RUNNING' }]);
+    const 끄기 = vi.spyOn(schedApi, 'setOn').mockResolvedValue({});
+    render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+    const [첫째, 둘째] = await screen.findAllByRole('button', { name: '끄기' });
+    fireEvent.click(첫째!);
+    expect(await screen.findByText('끄면 대기 중인 실행이 빠지고 다시 켜도 복원되지 않습니다')).toBeTruthy();
+    expect(schedApi.calendar).toHaveBeenLastCalledWith(10, '2026-09-14', '2026-11-13');
+    물음누름('취소');
+    expect(끄기).not.toHaveBeenCalled();
+    fireEvent.click(첫째!);
+    await screen.findByRole('dialog');
+    물음누름('끄기');
+    await waitFor(() => expect(끄기).toHaveBeenCalledWith(1, false));
+    fireEvent.click(둘째!);
+    await waitFor(() => expect(끄기).toHaveBeenCalledWith(2, false));
+  });
+
+  it('대기 회차를 못 읽으면 끄기를 막지 않고 묻는다', async () => {
+    차리기([세트하나()]);
+    const 끄기 = vi.spyOn(schedApi, 'setOn').mockResolvedValue({});
+    render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+    const 단추 = await screen.findByRole('button', { name: '끄기' });
+    vi.spyOn(schedApi, 'calendar').mockRejectedValue(new Error('끊김'));
+    fireEvent.click(단추);
+    await screen.findByRole('dialog');
+    물음누름('끄기');
+    await waitFor(() => expect(끄기).toHaveBeenCalledWith(1, false));
   });
 
   it('세트가 없으면 달력 자리에 안내만 둔다', async () => {

@@ -1,13 +1,14 @@
 // 성능 테스트 › 기기 성능 › 새 측정 — 조작 방식 · 케이스와 반복 · 빌드 · 측정 기기 · 성능 목표 · 측정 항목 · 「측정 시작」 (도메인/성능 §8.14 · 시안 Dev-Start)
 // 앞 측정이 있으면 그 조건을 채워 연다. 게임 애플리케이션은 Appium 케이스 자리에 게임 케이스가 선다 — 게임 화면은 Appium 이 버튼을 못 찾는다
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { CaseRow, ServiceRow } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
+import { 떠나기로했다, 떠나기상자, 버리기전 } from './leaveGuard.js';
 import { perfApi } from './perfApi.js';
 import type { 고를기기, 기기목표, 기기설정, 조작, 측정지표 } from './perfDeviceApi.js';
 import { 자동포함, 폰케이스들 } from './perfDeviceCases.js';
@@ -57,8 +58,14 @@ export function PerfDeviceStart({
   const [묻나, set묻나] = useState(false);
   const [케이스오류, set케이스오류] = useState<string | null>(null);
 
+  // 연 때와 달라졌으면 떠나기 전에 묻는다. 측정을 건 뒤에는 묻지 않는다
+  const 지금값 = JSON.stringify([조작, 고른케이스, 반복, 분, env, 앱, 고른기기, 목표들, 항목, 간격, 녹화]);
+  const [처음값] = useState(지금값);
+  // 답을 기다리는 동안 다른 화면으로 떠났으면 끌고 오지 않는다 — 그 화면이 쓰던 것을 묻지 않고 버리게 된다
+  const 서있나 = useRef(true);
   useEffect(() => {
     let 살음 = true;
+    서있나.current = true;
     perfApi.devices(service.id).then(
       (r) => 살음 && set기기들(r.devices),
       (err: unknown) => {
@@ -77,6 +84,7 @@ export function PerfDeviceStart({
     );
     return () => {
       살음 = false;
+      서있나.current = false;
     };
   }, []);
 
@@ -125,6 +133,8 @@ export function PerfDeviceStart({
         record: 녹화,
       });
       고른서버를적는다(service.prefix, env);
+      if (!서있나.current) return;
+      떠나기로했다();
       실행열기(runId);
     } catch (err) {
       set알림(message(err, 언어));
@@ -145,6 +155,7 @@ export function PerfDeviceStart({
 
   return (
     <>
+      <떠나기상자 막나={지금값 !== 처음값} 버리기도 />
       <Head 위치={t('성능 테스트')} 제목={t(기기성능이름(service.kind))} 부제={t('새 측정')} />
       <div className="screen perf-run">
         <section className="perf-panel" aria-labelledby="pd-m">
@@ -266,7 +277,7 @@ export function PerfDeviceStart({
         )}
         <div className="perf-row">
           {취소 === null ? null : (
-            <button type="button" className="btn ghost" onClick={취소}>
+            <button type="button" className="btn ghost" onClick={() => 버리기전(취소)}>
               {t('취소')}
             </button>
           )}

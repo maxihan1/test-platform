@@ -264,7 +264,6 @@ export const 작성말: Record<string, string> = {
   테스트: 'Tests',
   // 보류 케이스 (도메인/작성 §3.6 「★ 보류 케이스」 · 시안 A)
   접기: 'Collapse',
-  '실행 취소': 'Undo',
   '넣을 값': 'Input',
   '기대 결과': 'Expected result',
   숫자: 'Number',

@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { api, type SettingsServiceRow } from './api.js';
 import { ProjectPanel } from './SettingsProject.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -91,9 +92,27 @@ describe('프로젝트 고치기', () => {
     render(<ProjectPanel row={프로젝트들[0]!} projects={프로젝트들} services={서비스들} onDone={끝} />);
 
     fireEvent.change(document.getElementById('pf-move-2')!, { target: { value: '2' } });
+    expect(screen.getByText('「백오피스 어드민」을 「사내 포털」 프로젝트로 옮깁니다. 볼 수 있는 사람이 「사내 포털」 권한대로 변경됩니다')).toBeTruthy();
+    expect(screen.queryByText(/마지막 애플리케이션이라/)).toBeNull();
+    물음누름('취소');
+    expect(옮김).not.toHaveBeenCalled();
+    expect((document.getElementById('pf-move-2') as HTMLSelectElement).value).toBe('1');
 
+    fireEvent.change(document.getElementById('pf-move-2')!, { target: { value: '2' } });
+    물음누름('옮기기');
     await waitFor(() => expect(끝).toHaveBeenCalled());
     expect(옮김).toHaveBeenCalledWith(2, { projectId: 2 });
+  });
+
+  it('마지막 하나를 옮기면 프로젝트와 함께 사라지는 것을 적는다 — 꺼진 애플리케이션이 남았으면 마지막이 아니다', () => {
+    vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    const { rerender } = render(<ProjectPanel row={프로젝트들[1]!} projects={프로젝트들} services={서비스들} onDone={() => {}} />);
+    fireEvent.change(document.getElementById('pf-move-3')!, { target: { value: '1' } });
+    expect(screen.getByText('마지막 애플리케이션이라 「사내 포털」 프로젝트가 삭제됩니다. 아래 항목도 같이 삭제되고 복구할 수 없습니다')).toBeTruthy();
+    expect(screen.getByText(/권한 배정 · 정기 실행 세트 · Issue Bunker 연결과 기록 · 프로젝트 노트 · Scout 대화/)).toBeTruthy();
+
+    rerender(<ProjectPanel row={프로젝트들[1]!} projects={프로젝트들} services={[...서비스들, { ...앱(5, 'HRO', '옛 포털', 2), isActive: false }]} onDone={() => {}} />);
+    expect(screen.queryByText(/마지막 애플리케이션이라/)).toBeNull();
   });
 
   it('애플리케이션이 없는 새 프로젝트는 그렇다고 적는다', () => {

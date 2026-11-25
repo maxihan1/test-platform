@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { ApiError, type User } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { Head } from './Head.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { qaReportApi, 리포트이름, 리포트파일주소, type 리포트응답, type 리포트형식 } from './qaReportApi.js';
@@ -85,6 +86,7 @@ function 승인칸({ r, 나, 관리자, on바뀜 }: { r: 리포트응답; 나: s
   const [중, set중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const [복사함, set복사함] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const a = r.approval;
 
   if (a !== null) {
@@ -114,6 +116,7 @@ function 승인칸({ r, 나, 관리자, on바뀜 }: { r: 리포트응답; 나: s
   if (!관리자) return null;
   const 까닭 = 승인못하는까닭(r, 나);
   const 승인 = async () => {
+    set묻나(false);
     set중(true);
     set오류(null);
     try {
@@ -131,10 +134,15 @@ function 승인칸({ r, 나, 관리자, on바뀜 }: { r: 리포트응답; 나: s
     <div className="qar-sign">
       <p>{t('승인은 이 리포트의 시험 범위와 결과를 확인했다는 뜻입니다')}</p>
       <div className="qar-acts">
-        <button type="button" className="btn primary" disabled={까닭 !== null || 중} onClick={() => void 승인()}>
+        <button type="button" className="btn primary" disabled={까닭 !== null || 중} onClick={() => set묻나(true)}>
           <기다림글자 중={중} 평소={t('승인')} 기다림={t('승인하는 중')} />
         </button>
       </div>
+      {!묻나 ? null : (
+        <확인창 제목={t('QA 리포트를 승인할까요?')} 확인={t('승인')} onClose={() => set묻나(false)} on확인={() => void 승인()}>
+          <p>{t('「{이름}」 버전 {버전} 을 지금 내용의 PDF 로 저장합니다. 승인은 취소할 수 없고 이 버전은 더 이상 수정할 수 없습니다', { 이름: 리포트이름(r, t), 버전: r.version })}</p>
+        </확인창>
+      )}
       {까닭 === null ? null : <p className="hint">{t(까닭)}</p>}
       {오류 === null ? null : (
         <p className="qar-error" role="alert">

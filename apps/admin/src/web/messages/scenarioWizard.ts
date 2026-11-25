@@ -140,4 +140,5 @@ export const 시나리오마법사말: Record<string, string> = {
   '다시 실행': 'Run again',
   'Android 앱 애플리케이션은 디바이스 한 대에서 실행합니다. 단계 사이에 앱을 다시 켜지 않고, 앞 단계가 완료된 화면에서 이어 갑니다':
     'Android app applications run on one phone. The app is not restarted between steps; each step continues from the screen the previous one ended on',
+  '{번호}번 {이름} 값 연결 삭제': 'Delete value link of step {번호} {이름}',
 };

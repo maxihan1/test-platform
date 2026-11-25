@@ -158,4 +158,7 @@ export const 결정말: Record<string, string> = {
   '설명 안 되는 줄': 'Unexplained lines',
   '실행 결과 보기': 'View run result',
   '{번호} 설명 안 되는 줄을 결함으로 기록합니다': 'Record the {번호} unexplained lines as a defect',
+  // 반려가 섞인 적용 확인 (WEB-F10-02)
+  '{수}건을 적용할까요?': 'Apply {수}?',
+  '반려 {수}건은 복구할 수 없습니다': '{수} rejected cannot be restored',
 };

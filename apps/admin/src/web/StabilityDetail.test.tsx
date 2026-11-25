@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { ApiError } from './api.js';
 import { StabilityDetail } from './StabilityDetail.js';
 import { stabilityApi, type 오류상세 } from './stabilityApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 상세 = (덮: Partial<오류상세> = {}): 오류상세 => ({
   id: 5,
@@ -120,6 +121,11 @@ describe('안정화 지표 오류 상세', () => {
     const 보내기 = vi.spyOn(stabilityApi, 'resolve').mockResolvedValue(undefined);
     부르기.mockResolvedValue(상세({ resolvedAt: '2026-11-12T05:00:00Z' }));
     fireEvent.click(screen.getByRole('button', { name: '해결 처리' }));
+    물음누름('취소');
+    expect(보내기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '해결 처리' }));
+    expect(screen.getByText('해결 처리는 취소할 수 없습니다. 다음 실행에서 다시 나오면 재발로 표시됩니다')).toBeTruthy();
+    물음누름('해결 처리');
     await waitFor(() => expect(screen.getByText(/^해결 · 11-12 처리$/)).toBeTruthy());
     expect(보내기).toHaveBeenCalledWith(5);
     expect(screen.queryByRole('button', { name: '해결 처리' })).toBeNull();
@@ -127,9 +133,11 @@ describe('안정화 지표 오류 상세', () => {
 
   it('Issue Bunker 등록 — 이미 올렸으면(409) 알리지 않고 다시 읽어 키 링크를 보인다', async () => {
     const 부르기 = await 그리기();
-    vi.spyOn(stabilityApi, 'issue').mockRejectedValue(new ApiError(409, 'ALREADY_REGISTERED', ''));
+    const 보내기 = vi.spyOn(stabilityApi, 'issue').mockRejectedValue(new ApiError(409, 'ALREADY_REGISTERED', ''));
     부르기.mockResolvedValue(상세({ issue: { key: 'ARG-12', url: 'https://bunker.example/issues/ARG-12' } }));
     fireEvent.click(screen.getByRole('button', { name: 'Issue Bunker 등록' }));
+    expect(보내기).not.toHaveBeenCalled();
+    물음누름('Issue Bunker 등록');
     expect(await screen.findByRole('link', { name: 'ARG-12 ↗' })).toHaveProperty('href', 'https://bunker.example/issues/ARG-12');
     expect(screen.queryByRole('alert')).toBeNull();
   });

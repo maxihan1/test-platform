@@ -11,6 +11,7 @@ import { 사람, 서비스, 재료 } from './ScenarioBuild.fixture.js';
 import { scenarioApi, type FlowJob } from './scenarioApi.js';
 import { ScenarioWizard } from './ScenarioWizard.js';
 import { 묻는간격 } from './usePerfJob.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 줄 = (tcId: string, axis: '정상' | '경계' = '정상'): CaseRow => ({
   tcId,
@@ -263,7 +264,12 @@ describe('ScenarioWizard 단계', () => {
     fireEvent.click(screen.getByRole('button', { name: '2번 위로' }));
     expect(within(순서).getAllByRole('listitem').map((li) => li.querySelector('b')?.textContent)).toEqual(['ZSB-002 케이스', 'ZSB-001 케이스']);
     fireEvent.click(screen.getByRole('button', { name: '1번 삭제' }));
-    expect(within(순서).getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByText('이 단계의 설정도 같이 사라집니다')).toBeTruthy();
+    물음누름('취소');
+    expect(within(순서).getAllByRole('listitem')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: '1번 삭제' }));
+    물음누름('삭제');
+    expect(within(순서).getAllByRole('listitem').map((li) => li.querySelector('b')?.textContent)).toEqual(['ZSB-001 케이스']);
   });
 
   it('케이스 찾기는 경계 · 예외 케이스도 찾고, 다른 단계는 줄 아래에 설정 칸을 편다', async () => {
