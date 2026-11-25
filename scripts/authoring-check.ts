@@ -9,7 +9,8 @@ import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
-import { 게임검사 } from './authoring-check-game.js';
+import { 게임검사, 게임자료환경 } from './authoring-check-game.js';
+import { 안해본보류 } from './authoring-check-game-held.js';
 import { type 케이스문장, 맞춰보기, 묶은확인들, 케이스문장들읽기 } from './authoring-check-match.js';
 import { 보류경고 } from './authoring-held-kinds.js';
 import { 비밀자리들, 파일모으기 } from './authoring-secret-spots.js';
@@ -137,6 +138,11 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 처음 = 볼 === undefined || 문장들.every((c) => 볼.has(c.tcId));
     const 게임 = 게임검사(트리, 바뀐 !== null && !('까닭' in 바뀐) ? 바뀐.filter((f) => f.startsWith(`tests/${폴더}/`)) : 폴더경로들(트리, 폴더), env, 처음 ? 폴더 : undefined);
     if (게임 !== null) 결과들.push(게임);
+    const 자료 = env[게임자료환경];
+    if (자료 && existsSync(join(트리, 표))) {
+      const 안함 = 안해본보류(readFileSync(join(트리, 표), 'utf8'), 자료, 볼);
+      결과들.push({ 이름: '게임 규칙 보류에 해 본 기록', ok: 안함.length === 0, 줄들: 안함 });
+    }
     결과들.push(...절결과(트리, 표, 폴더, 바뀐, env));
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);
     결과들.push(비밀검사([`tests/${폴더}`, 표, ...(existsSync(join(트리, 가이드)) ? [가이드] : []), ...더]));
