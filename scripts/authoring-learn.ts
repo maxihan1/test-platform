@@ -92,6 +92,8 @@ export async function 학습하기(o: 학습손): Promise<학습결과> {
   };
   if (o.못함 !== null) return 건너뛴다(o.못함, true);
   const 빌드 = await o.빌드();
+  // 케이스를 쓰는 세션의 명령(authoring-learn-prd · authoring-game-wins)이 빌드가 바뀐 줄 · 기록을 가른다
+  if (빌드 !== undefined) 새로쓰기(join(o.자료, 게임자리.빌드), 빌드);
   const 볼것 = (): 배울것 | null => {
     const 지도 = 지금지도(o.자료);
     return 지도 === null ? null : 배울것고르기(지도, { ...(빌드 === undefined ? {} : { 빌드 }), 오늘: 오늘글(지금()), 게임글: 안전히읽기(o.자료, 게임자리.게임글, 요소상한), ...(o.번호들 === undefined ? {} : { 번호들: o.번호들 }) });

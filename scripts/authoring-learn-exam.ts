@@ -13,7 +13,7 @@ import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 const 시험종류 = ['GOAL', 'RULE', 'CALC', 'MATCH', 'BEHAVIOR', 'STAGE', 'TIME', 'GROWTH', 'BOUND', 'MOVE', 'FLOW', 'STATE', 'INPUT', 'SAVE', 'MULTI'];
 const 시험감수 = 8;
 /** 값이 늘 같지 않은 꼴 — 한 번 빗나갔다고 내리지 않는다 */
-const 랜덤꼴 = new Set(['RANGE', 'RATE', 'LIST', 'DEPENDS']);
+export const 랜덤꼴: ReadonlySet<string> = new Set(['RANGE', 'RATE', 'LIST', 'DEPENDS']);
 const 랜덤틀림최소 = 3;
 
 export interface 시험감 {

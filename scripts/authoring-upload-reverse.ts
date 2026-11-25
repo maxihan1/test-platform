@@ -7,10 +7,11 @@ import { join } from 'node:path';
 import type { 사본 } from './authoring-copy.js';
 import { 바뀐틀들 } from './authoring-covered.js';
 import { 게임모두덮음, 게임바뀐창 } from './authoring-game.js';
+import { 안옮긴열쇠 } from './authoring-learn-prd.js';
 import { 크롤모두덮음, 크롤목록 } from './authoring-screens-keep-io.js';
 
-/** 화면만인데 자식이 아무것도 안 썼을 때 — 찾은 화면이 전부 테스트가 이미 확인한 화면이면 그 장수. 웹 · 앱은 크롤 목록, 게임은 훑기 폴더의 창으로 센다 (작성 §3.6 「앱 · 게임 역방향」) */
-export const 화면만다덮음 = (자료: string, 게임: boolean): number | null => (게임 ? 게임모두덮음 : 크롤모두덮음)(자료);
+/** 화면만인데 자식이 아무것도 안 썼을 때 — 찾은 화면이 전부 테스트가 이미 확인한 화면이면 그 장수. 웹 · 앱은 크롤 목록, 게임은 훑기 폴더의 창으로 센다 (작성 §3.6 「앱 · 게임 역방향」). 게임은 PRD 로 안 옮긴 배운 줄이 남았으면 쓸 것이 있다 (도메인/게임 §3.10 「배운 것을 PRD · 테스트로」) */
+export const 화면만다덮음 = (자료: string, 게임: boolean): number | null => (!게임 ? 크롤모두덮음(자료) : 안옮긴열쇠(자료).length > 0 ? null : 게임모두덮음(자료));
 
 /** 저장본과 달라진 화면의 같은 틀 — PR 머리 「바뀐 화면」 줄의 재료. 웹 · 앱은 크롤 목록, 게임은 견주기 명령의 표시로 본다. 훑은 목록이 없으면 null (작성 §3.6 「앱 · 게임 역방향」 11) */
 export function 바뀐틀읽기(자료: string, 게임: boolean): Set<string> | null {
