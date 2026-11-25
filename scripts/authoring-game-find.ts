@@ -167,9 +167,12 @@ function 기획서값(x: 지도줄): unknown {
   return undefined;
 }
 
+/** 요구가 될 수 없는 종류 — 묶음 머리 · 이기는 법 · 진 까닭 · 재는 법 · 시험 기록 · 궁금한 것 · 이상한 것 · 종류 정의 */
+export const 안옮길종류: ReadonlySet<string> = new Set(['SYSTEM', 'PLAY', 'FAIL', 'PROBE', 'TRIAL', 'ASK', 'ODD', 'KIND']);
+
 const 객체인가 = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** 고칠 줄 — 기획서가 바뀜 · 근거 없음 · 값 다름 · 빌드 다름(재확인) · 지도에 없는 관련 열쇠 · 줄이 셋 밑인 만든 종류 */
+/** 고칠 줄 — 기획서가 바뀜 · 근거 없음 · 올릴 것(두 번 봤는데 덜 봄) · 값 다름 · 빌드 다름(재확인) · 지도에 없는 관련 열쇠 · 줄이 셋 밑인 만든 종류 */
 export function 점검(지도: ReturnType<typeof 지도읽기>, 빌드?: string): string[] {
   const 열쇠들 = new Set(지도.줄들.map((x) => x.key));
   const 짚음: string[] = [];
@@ -184,6 +187,9 @@ export function 점검(지도: ReturnType<typeof 지도읽기>, 빌드?: string)
       if (빠짐.length > 0) 짚음.push(`근거 없음: ${x.key} — ${믿음[l.belief]}인데 ${빠짐.join(' · ')} 없음`);
       else if (l.belief === 'CONFIRMED' && l.seen! < 2) 짚음.push(`근거 없음: ${x.key} — 확인인데 한 번 봄`);
     }
+    // 두 번 이상 쟀는데 「덜 봄」에 멈춘 줄은 PRD 로 못 간다 — 네 번째 실측에서 23줄이었다(2026-11-25 GAME-F6-05)
+    if (l.belief === 'SEEN' && !안옮길종류.has(x.kind) && (l.seen ?? 0) >= 2 && l.data !== undefined && l.build !== undefined && (l.shape === undefined || l.shape === 'FIXED') && !(l.marks ?? []).some((m) => m === 'CHEAT' || m === 'HUMAN'))
+      짚음.push(`올릴 것: ${x.key} — ${l.seen}번 봤는데 덜 봄. 조건을 바꿔 원래 속도로 한 번 더 재고 맞으면 확인으로`);
     if (빌드 !== undefined && l.build !== undefined && l.build !== 빌드) 짚음.push(`빌드 다름: ${x.key} — ${l.build} 에서 봄, 지금 ${빌드} · 재확인`);
     const 기획 = 기획서값(x);
     const 잰 = l.data;
