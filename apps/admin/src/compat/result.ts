@@ -108,6 +108,7 @@ function 칸(재: 결과재료, 상태: 상태줄, key: string, 화면: 저장�
   // 여러 케이스가 지나면 limit → failed → missing 차례로 앞엣것 하나다
   const 점검 = (['limit', 'failed', 'missing'] as const).find((v) => 지난케이스.some((c) => c.checkState === v));
   if (점검 !== undefined) return { value: 'UNCHECKED', reason: 점검까닭[점검]! };
+  // 걸린 케이스의 화면은 걸린 때보다 앞 단계의 것도 이 까닭이다 — 걸린 단계는 남기지 않는다
   const 한도 = 재.케이스들.find((k) => k.checkCap !== null && 지난케이스.some((c) => c.id === k.id || (c.execId !== null && c.execId === k.execId && c.id > k.id)));
   if (한도 !== undefined) return { value: 'UNCHECKED', reason: `AI 점검 화면 수 한도(${String(한도.checkCap)}장) 초과` };
   return { value: 'UNCHECKED', reason: '찍힌 화면이 없습니다' };

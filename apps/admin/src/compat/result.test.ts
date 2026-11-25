@@ -62,12 +62,13 @@ describe('결과셈', () => {
         케이스(11, 1, 'A-1', { execId: 7 }), 케이스(12, 1, 'A-2', { execId: 7, checkCap: 400 }), 케이스(13, 1, 'A-3', { execId: 7 }), 케이스(14, 1, 'A-4', { execId: 8 }),
         케이스(21, 2, 'A-5', { checkCap: 400 }),
       ],
-      지나는: new Map([['A-1', ['/a']], ['A-2', ['/b', '/ok']], ['A-3', ['/c']], ['A-4', ['/d']], ['A-5', ['/e']]]),
+      지나는: new Map([['A-1', ['/a', '/a2']], ['A-2', ['/b', '/ok']], ['A-3', ['/c', '/a2']], ['A-4', ['/d']], ['A-5', ['/e']]]),
       화면들: [{ id: 1, caseRunId: 12, seq: 1, key: '/ok', step: 1, status: 'done', before: 'element/click', issues: [] }],
     }));
     const 까닭 = Object.fromEntries(r.rows.map((x) => [x.key, x.cells[0]?.reason]));
     const 한도 = 'AI 점검 화면 수 한도(400장) 초과';
-    expect(까닭).toEqual({ '/a': '찍힌 화면이 없습니다', '/b': 한도, '/c': 한도, '/d': '찍힌 화면이 없습니다', '/e': 한도 });
+    // '/a2' 는 앞 케이스도 지나지만 걸린 뒤 케이스가 하나라도 지나면 한도 까닭이다
+    expect(까닭).toEqual({ '/a': '찍힌 화면이 없습니다', '/a2': 한도, '/b': 한도, '/c': 한도, '/d': '찍힌 화면이 없습니다', '/e': 한도 });
     expect(r.devices.map((d) => d.capped)).toEqual([[{ tcId: 'A-2', max: 400 }], [{ tcId: 'A-5', max: 400 }]]);
   });
 

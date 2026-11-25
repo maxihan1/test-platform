@@ -136,6 +136,7 @@ describe('한도케이스', () => {
     const 점검 = { status: 'done' as const, capped: { max: 400, at: '2026-11-25T01:00:12.000Z' }, screens: [] };
     expect(한도케이스(점검, ['A-1', 'A-2', 'A-3'], Date.parse('2026-11-25T01:00:30.000Z'), 단계들)).toEqual({ tcId: 'A-2', max: 400 });
     expect(한도케이스(점검, ['A-1', 'A-2'], 0, [])).toEqual({ tcId: 'A-1', max: 400 });
+    expect(한도케이스(점검, ['A-1', 'A-3'], Date.parse('2026-11-25T01:00:30.000Z'), 단계들)).toEqual({ tcId: 'A-1', max: 400 });
     expect(한도케이스({ status: 'done', screens: [] }, ['A-1'], 0, 단계들)).toBeNull();
   });
 });

@@ -169,7 +169,9 @@ export interface 케이스단계 extends 단계시간 {
 export function 한도케이스(점검: 점검파일, 케이스들: readonly string[], 끝: number, 단계들: readonly 케이스단계[]): { tcId: string; max: number } | null {
   if (점검.capped === undefined) return null;
   const step = 단계찾기(Date.parse(점검.capped.at), 끝, 단계들);
-  const tcId = 단계들.find((x) => x.seq === step)?.tcId ?? 케이스들[0];
+  const 든 = 단계들.find((x) => x.seq === step)?.tcId;
+  // 실행에 안 든 케이스(지운 케이스)의 절차면 첫 케이스다 — 프로시저화면줄들과 같은 고르기라야 표시가 사라지지 않는다
+  const tcId = 케이스들.find((x) => x === 든) ?? 케이스들[0];
   return tcId === undefined ? null : { tcId, max: 점검.capped.max };
 }
 
