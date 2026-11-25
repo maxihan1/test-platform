@@ -124,6 +124,7 @@ describe('조작 도우미 부르기', () => {
     };
     const r = await 돌린다(느린, (game) => (game as { keyDown(k: string): Promise<void> }).keyDown('W'), {}, 10_000, 끊기.signal);
     expect(r.오류).toBe('밖에서 명령을 끊었습니다');
+    expect(g.명령).toContain('key-down W');
     expect(g.명령.indexOf('input-reset')).toBeGreaterThan(g.명령.indexOf('key-down W'));
   });
 
