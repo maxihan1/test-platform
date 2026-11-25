@@ -137,6 +137,24 @@ describe('학습하기 — 세션을 잇는다', () => {
     expect(끔).toHaveBeenCalledTimes(1);
   });
 
+  it('배우는 세션 동안만 학습 표시를 둔다 — 시험 세션 · 끝난 뒤 · 앞 실행이 남긴 표시는 없다', async () => {
+    쓰기('game-learning.now', '앞 실행');
+    const 있나 = (): boolean => existsSync(join(자료, 'game-learning.now'));
+    const 본것: boolean[] = [];
+    const { o, 거리들 } = 손([() => void 본것.push(있나()), () => void 본것.push(있나()), () => void 본것.push(있나()), () => void 본것.push(있나())]);
+    await 학습하기(o);
+    expect(거리들.map((x) => x.시험 === true)).toEqual([false, false, true]);
+    expect(본것).toEqual([true, true, false]);
+    expect(있나()).toBe(false);
+    expect(readFileSync(join(자료, 'game-cases.start'), 'utf8')).toBe(String(시계));
+  });
+
+  it('배울 것이 없어 건너뛰어도 케이스 시작 표시를 남긴다', async () => {
+    쓰기('game-map.txt', 지도글(다배움));
+    await 학습하기(손([]).o);
+    expect(existsSync(join(자료, 'game-cases.start'))).toBe(true);
+  });
+
   it('물음이 떨어져도 2시간을 다 쓴다 — 시험 몫 15분을 남기고 배우고, 남은 시간은 시험이 쓴다', async () => {
     let n = 0;
     const { o, 거리들 } = 손([], { 한번: undefined as never });

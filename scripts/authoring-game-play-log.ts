@@ -1,9 +1,10 @@
-// 조작 도우미 기록 남기기 — 부를 때마다 값 · 로그 · 오류 · 화면 한 벌을 자료 폴더에 쓰고 출력용 줄로 줄인다 (authoring-game-play · -watch · -wins 가 같이 쓴다)
+// 조작 도우미 기록 남기기 — 부를 때마다 값 · 로그 · 오류 · 화면 · 새로 나온 것 한 벌을 자료 폴더에 쓰고 출력용 줄로 줄인다 (authoring-game-play · -watch · -wins 가 같이 쓴다)
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
 import { 게임자리 } from './authoring-game.js';
 import type { 조작결과 } from './authoring-game-play.js';
+import { 나온것줄, 펼친파일글 } from './authoring-game-play-spawns.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 폴더인가 } from './authoring-screens-keep-io.js';
 
@@ -26,7 +27,9 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
   }
   if (!폴더인가(폴더)) return null;
   const 이름 = `${지금.toISOString().replace(/\D/g, '').slice(0, 17)}-${함수}`;
-  const { 화면, 도중화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, ...글 } = r;
+  const { 화면, 도중화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, 나온것, ...남은 } = r;
+  // 펼친 글은 따로 읽기 좋은 파일로 — json 에는 어디서 무엇을 펼쳤나만
+  const 글 = 나온것 === undefined ? 남은 : { ...남은, 나온것: { ...나온것, 펼침: 나온것.펼침.map(({ 글: _글, ...x }) => x) } };
   try {
     let 날글: string;
     try {
@@ -37,6 +40,14 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
     // wx — 자식이 만든 링크를 따라 쓰지 않는다
     writeFileSync(join(폴더, `${이름}.json`), 비밀가리기(날글, 비밀들), { flag: 'wx' });
     if (화면 !== undefined) writeFileSync(join(폴더, `${이름}.jpg`), 화면, { flag: 'wx' });
+    if (나온것 !== undefined && 나온것.펼침.length > 0) {
+      // 이 파일이 안 써져도 도중 화면은 남긴다
+      try {
+        writeFileSync(join(폴더, 펼친파일이름(이름)), 비밀가리기(펼친파일글(나온것), 비밀들), { flag: 'wx' });
+      } catch (e) {
+        r.못한것.push(`${펼친파일이름(이름)} 남기기: ${까닭(e)}`);
+      }
+    }
     // 한 장이 안 써져도 나머지는 남긴다
     for (const 장 of 도중화면) {
       try {
@@ -54,6 +65,9 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
 
 export const 몇줄 = (머리: string, 줄들: readonly string[]): string[] =>
   줄들.length === 0 ? [] : [`${머리} ${줄들.length}줄`, ...줄들.slice(0, 찍을줄).map((x) => `  ${x.split('\n')[0]!.slice(0, 줄길이)}`), ...(줄들.length > 찍을줄 ? [`  … 나머지는 기록 파일에 있다`] : [])];
+
+/** 판 도중 새로 나와 펼친 것의 파일 이름 */
+export const 펼친파일이름 = (이름: string): string => `${이름}-새것.txt`;
 
 /** 도중 화면 파일 이름 — 초를 세 자리 정수로 채워 이름순이 곧 시간순이다 */
 export const 도중파일이름 = (이름: string, 초: number): string => `${이름}-${String(Math.round(초)).padStart(3, '0')}s.jpg`;
@@ -78,5 +92,13 @@ export function 멈춤줄(r: 조작결과): string[] {
   ];
 }
 
-/** 조작 함수를 부른 명령이 머리 줄 다음에 찍는 줄 — 도중 화면과 멈춤 */
-export const 덧줄 = (r: 조작결과, 기록: string | null): string[] => [...도중화면줄(r, 기록), ...멈춤줄(r)];
+/** 새로 나온 것 줄 — 처음 보인 초에 가장 가까운 도중 화면 파일을 붙인다 */
+function 새것줄(r: 조작결과, 기록: string | null): string[] {
+  if (r.나온것 === undefined) return [];
+  const 이름 = 기록 === null ? null : basename(기록);
+  const 화면이름 = 이름 === null || r.도중화면.length === 0 ? null : (초: number): string => 도중파일이름(이름, r.도중화면.reduce((a, b) => (Math.abs(b.초 - 초) < Math.abs(a.초 - 초) ? b : a)).초);
+  return 나온것줄(r.나온것, 화면이름, 기록 === null ? null : 펼친파일이름(기록));
+}
+
+/** 조작 함수를 부른 명령이 머리 줄 다음에 찍는 줄 — 도중 화면 · 새로 나온 것 · 멈춤 */
+export const 덧줄 = (r: 조작결과, 기록: string | null): string[] => [...도중화면줄(r, 기록), ...새것줄(r, 기록), ...멈춤줄(r)];

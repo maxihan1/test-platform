@@ -45,6 +45,19 @@ export function 상태읽기(자료: string): 학습상태 {
 }
 export const 상태쓰기 = (자료: string, 상태: 학습상태): void => 새로쓰기(join(자료, 게임자리.학습), JSON.stringify(상태));
 
+/** 배우는 세션(시험 아님) 동안만 학습 표시를 둔다 — 조작 도우미가 앞 판의 새로 나온 것을 적기 전에는 다음 판을 안 돌린다 */
+export async function 배우는중에<T>(자료: string, 일: () => Promise<T>, 지금: number): Promise<T> {
+  새로쓰기(join(자료, 게임자리.배우는중), String(지금));
+  try {
+    return await 일();
+  } finally {
+    배우는중지우기(자료);
+  }
+}
+export const 배우는중지우기 = (자료: string): void => rmSync(join(자료, 게임자리.배우는중), { force: true });
+/** 학습이 끝났다(건너뛰었어도) — 이 뒤에 남은 판 기록만 케이스 세션이 해 본 것이다 */
+export const 케이스시작적기 = (자료: string, 지금: number): void => 새로쓰기(join(자료, 게임자리.케이스시작), String(지금));
+
 /**
  * 적은 줄을 서버 지도에 올리고 지도 글을 다시 받는다. 다시 받기까지 되어야 적은 파일을 지운다 — 먼저 지우면 다음 세션의 지도에서 이번 줄이 사라진다.
  * 조작 맵에 적은 행도 같이 올린다. 못 올려도 다음 세션은 적은 파일을 얹어 본다

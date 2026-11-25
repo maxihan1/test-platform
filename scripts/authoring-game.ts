@@ -22,6 +22,10 @@ export const 게임자리 = {
   조작기록: 'game-play',
   // 멈춰 가며 하기 — 함수가 끝나 게임을 멈춘 표시(다음에 부를 때 풀 배율) (authoring-game-freeze)
   멈춤: 'game-freeze.json',
+  // 학습 세션(시험 아님)이 도는 동안만 있는 표시 — 조작 도우미가 앞 판의 새로 나온 것을 지도에 적기 전에는 다음 판을 안 돌린다 (authoring-learn · -game-play-spawns)
+  배우는중: 'game-learning.now',
+  // 학습을 마치고(건너뛰었어도) 케이스를 쓰는 세션으로 넘어간 때 — 게임 규칙 보류가 대는 판 기록이 이 뒤 것이어야 한다 (authoring-learn · -check-game-held)
+  케이스시작: 'game-cases.start',
   // 배운 줄 → 요구 번호 표(자식이 쓴다) · 지금 빌드 이름(에이전트가 쓴다) · 이긴 판 기록(authoring-game-wins) (도메인/게임 §3.10 「배운 것을 PRD · 테스트로」)
   옮김: 'game-prd.json', 빌드: 'game-build.txt', 이긴판: 'game-wins.json',
 } as const;
