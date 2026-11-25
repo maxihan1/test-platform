@@ -115,6 +115,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 찍기 = 간격ms === 0 ? null : 찍기시작(맨게임, 간격ms, 시작);
   // 10판 확인처럼 화면을 끈 판은 원래 속도만 본다 — 세기도 같이 끈다
   const 세기 = 간격ms === 0 ? null : 세기시작(맨게임, 간격ms, 시작, 지도글(덧?.자료));
+  await 세기?.준비;
   let 값: unknown;
   let 오류: string | undefined = 돌릴까 ? undefined : '멈춰 둔 게임을 못 풀어 함수를 부르지 않았다 — `npx control-cli -s=g timescale-set 1` 로 풀고 다시 부른다';
   let 시계: NodeJS.Timeout | undefined;
@@ -133,6 +134,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   }
   const 걸린ms = Date.now() - 시작;
   찍기?.그친다();
+  세기?.그친다();
   const 멈춤 = 덧?.멈춤 === true && 돌릴까 ? await 멈추기(맨게임, 덧.자료, 배율, 배율바꿈, 해본다) : null;
   막음 = true;
   for (const 끝 = Date.now() + 답기다림ms; 보내는중 > 0 && Date.now() < 끝; ) await 쉼(50);

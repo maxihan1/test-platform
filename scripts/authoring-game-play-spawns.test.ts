@@ -52,6 +52,10 @@ describe('판 도중 새로 나온 것', () => {
     expect(수).not.toHaveProperty('Body');
     expect(수).not.toHaveProperty('Arm');
     expect(하나.get('Boss')?.id).toBe('9');
+    const 처음것 = [...바탕, 것('/Enemies/Ghost(Clone)', '1'), 것('/Enemies/Ghost(Clone)/Fx')];
+    const 바뀐것 = [...바탕, 것('/Enemies/Ghost(Clone)', '2'), 것('/Enemies/Ghost(Clone)/Body')];
+    const 처음번호 = new Set(처음것.flatMap((f) => (f.id === undefined ? [] : [f.id])));
+    expect(세기(바뀐것, new Set(처음것.map((f) => f.path)), 처음번호).수).not.toHaveProperty('Body');
   });
 
   it('지도에 없는 새 종류만 처음 보일 때 한 번 펼치고, 지도에 있는 것 · 처음부터 있던 것 · 화면 그림은 펼치지 않는다', async () => {
@@ -94,9 +98,40 @@ describe('판 도중 새로 나온 것', () => {
     const 고리 = 세기시작(g.game, 10, Date.now(), '');
     await 쉼(60);
     const { 나온 } = await 고리.끝난다();
-    expect(나온!.장면바뀜.map((x) => x.장면)).toEqual(['Stage']);
+    expect(나온!.장면바뀜).toEqual([expect.objectContaining({ 장면: 'Stage', 다시잡음: true })]);
     expect(Object.keys(나온!.첫초)).toEqual(['Ghost']);
     expect(나온것줄(나온!, null, null)[0]).toMatch(/^장면이 바뀜 \d+초 Stage/);
+  });
+
+  it('새것을 센 뒤 장면이 바뀌면(결과 화면) 센 것을 지우지 않고 그 뒤는 세지 않는다', async () => {
+    const 판 = [...바탕, 것('/Boss', '9')];
+    const g = 가짜([바탕, 판, [것('/Result')]], ['Stage', 'Stage', 'Result']);
+    const 고리 = 세기시작(g.game, 10, Date.now(), '');
+    await 쉼(60);
+    const { 나온 } = await 고리.끝난다();
+    expect(Object.keys(나온!.첫초)).toEqual(['Boss']);
+    expect(나온!.장면바뀜).toEqual([expect.objectContaining({ 장면: 'Result', 다시잡음: false })]);
+    const 줄 = 나온것줄(나온!, null, null);
+    expect(줄[0]).toMatch(/앞 장면에서 새것을 셌으니 그 뒤는 세지 않았다$/);
+    expect(줄.some((x) => x.includes(' Boss — '))).toBe(true);
+  });
+
+  it('그친다 — 펼치던 중이면 다음 명령에서 멈추고 실패로 세지 않으며, 끝 수만 한 번 더 센다. 준비는 처음 목록을 센 뒤 풀린다', async () => {
+    const g = 가짜([바탕, [...바탕, 것('/Boss', '9')]]);
+    let 풀어 = (): void => {};
+    const 막힌 = { ...g.game, members: () => new Promise((r) => (풀어 = () => r({ fields: [], properties: [], methods: [] }))) } as unknown as Game;
+    const 고리 = 세기시작(막힌, 10, Date.now(), '');
+    await 고리.준비;
+    expect(g.부름()).toBe(1);
+    await 쉼(40);
+    고리.그친다();
+    const 뒤 = g.부름();
+    풀어();
+    const { 나온, 못함 } = await 고리.끝난다();
+    expect(못함).toBeNull();
+    expect(g.부름()).toBe(뒤 + 1);
+    expect(나온!.펼침).toEqual([]);
+    expect(나온!.안펼침).toEqual(['Boss']);
   });
 
   it('바뀐 것이 없으면 한 줄로 말하고, 세 번 이어 못 세면 그치고 한 줄만 남긴다', async () => {

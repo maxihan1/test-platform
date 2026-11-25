@@ -40,7 +40,14 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
     // wx — 자식이 만든 링크를 따라 쓰지 않는다
     writeFileSync(join(폴더, `${이름}.json`), 비밀가리기(날글, 비밀들), { flag: 'wx' });
     if (화면 !== undefined) writeFileSync(join(폴더, `${이름}.jpg`), 화면, { flag: 'wx' });
-    if (나온것 !== undefined && 나온것.펼침.length > 0) writeFileSync(join(폴더, 펼친파일이름(이름)), 비밀가리기(펼친파일글(나온것), 비밀들), { flag: 'wx' });
+    if (나온것 !== undefined && 나온것.펼침.length > 0) {
+      // 이 파일이 안 써져도 도중 화면은 남긴다
+      try {
+        writeFileSync(join(폴더, 펼친파일이름(이름)), 비밀가리기(펼친파일글(나온것), 비밀들), { flag: 'wx' });
+      } catch (e) {
+        r.못한것.push(`${펼친파일이름(이름)} 남기기: ${까닭(e)}`);
+      }
+    }
     // 한 장이 안 써져도 나머지는 남긴다
     for (const 장 of 도중화면) {
       try {
