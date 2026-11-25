@@ -21,6 +21,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts)의 자식 세션이
 | `tpx-author/references/game.md` | 게임 화면 절을 읽을 때 · 역방향이면 `reverse.md` §2~§3.5 대신 §7 · 탐색 플레이 절이 있으면 §8 |
 | `tpx-cases/references/game.md` | 게임 화면 절이 있을 때 표를 쓰기 전 |
 | `tpx-cases/references/game-scenario.md` | `game.md` 와 같이 — 플레이 값 · 목표 흐름(퀘스트 · 레벨 업 · 클리어) 규칙의 미션 목록 · 게임 시나리오 |
+| `tpx-cases/references/game-control.md` | 걷기 · 싸우기처럼 움직임이 이어지는 조작을 해 보거나 쓸 때 — 탐색 플레이 · 미션 · 조작 도우미 |
 | `tpx-cases/references/4-selector-common.md` | 공통 절차 4 에서 `4-selector.md` 대신 |
 | `tpx-cases/references/5-stable-game.md` | `5-stable.md` 를 열 때 이어서 — 기다림 |
 | `tpx-cases/references/test-design-game.md` | `test-design.md` 를 열 때 이어서 — 게임 관점 칸 |
