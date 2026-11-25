@@ -138,10 +138,24 @@ describe('측정', () => {
     expect(document.activeElement?.textContent).toBe('취소');
     fireEvent.click(within(상자).getByRole('button', { name: '측정 중단' }));
     await waitFor(() => expect(멈춤).toHaveBeenCalledWith(30));
-    expect((await screen.findByRole('alert')).textContent).toBe('측정을 중단했습니다 — 사람이 중단');
+    expect(await screen.findByText('측정을 중단했습니다')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByRole('button', { name: '측정 중단' })).toBeNull();
     expect(screen.getByRole('table', { name: '페이지별 측정 결과' })).toBeTruthy();
     expect(읽기).toHaveBeenCalledTimes(1);
+  });
+
+  it('재는 중에 연 화면에서 중단하면 앞 측정의 결과를 연다. 사람이 중단한 것이 아니면 까닭을 오류로 적는다', async () => {
+    let 상태: 실행상세['status'] = 'RUNNING';
+    vi.spyOn(perfApi, 'pagesRuns').mockImplementation(() => Promise.resolve({ runs: [줄({ id: 21 }), 줄({ id: 30, status: 상태 })] }));
+    vi.spyOn(perfApi, 'runOf').mockImplementation((id) => Promise.resolve(id === 30 ? 상세({ id: 30, status: 상태, stopReason: 상태 === 'STOPPED' ? 'AGENT_LOST' : null }) : 상세()));
+    vi.spyOn(perfApi, 'pages').mockImplementation((id) => Promise.resolve(id === 30 ? { pages: [], compare: null } : 결과));
+    render(<PerfPages service={앱} 쓰나 />);
+    await screen.findByRole('button', { name: '측정 중단' });
+    expect(screen.queryByRole('table')).toBeNull();
+    상태 = 'STOPPED';
+    expect(await screen.findByRole('table', { name: '페이지별 측정 결과' })).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toBe('측정이 중단되었습니다 — 부하 발생 에이전트 연결 끊김');
   });
 
   it('이미 끝난 측정이라 멈추지 못하면 까닭을 상자 안에 보인다', async () => {

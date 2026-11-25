@@ -9,7 +9,7 @@ import { 떠나기막기, 떠나기상자, 주소덮기 } from './leaveGuard.js'
 import { 판정을만든다 } from './role.js';
 import { 단계칸, type 케이스줄들 } from './ScenarioWizardSteps.js';
 import { AI칸, 시작칸, type 시작방법 } from './ScenarioWizardStart.js';
-import { 단계띠, 단계이름, 단계제목, type 마법사단계 } from './ScenarioWizardHelp.js';
+import { 단계띠, 단계이름, 단계제목, 마법사머리, type 마법사단계 } from './ScenarioWizardHelp.js';
 import { 마법사시작확인, 저장칸 } from './ScenarioWizardSave.js';
 import { 시험칸 } from './ScenarioWizardTrial.js';
 import { 값연결칸 } from './ScenarioWizardValues.js';
@@ -94,6 +94,8 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
     set지금(i);
     set방향(쪽);
     set이유(null);
+    // 뒤로 가기로 단계가 바뀌면 묻던 창을 거둔다
+    끝.확인닫기();
   };
   const 막는상황 = { 방법, 추천만드는중: 흐름.도나, 고른후보, 단계수: 단계들.length, 값막힘: 값.막힘, 시험중: 시험.단계 === 'running' };
   // 뒤로 가기 · 앞으로 가기 · 손으로 고친 주소도 다음 버튼과 같은 검사를 지난다 — 앞으로는 통과하는 데까지만 간다
@@ -175,17 +177,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
       <단계띠 목록={목록} 지금={지금} 재료={흐름.결과?.material ?? null} on돌아감={(i) => 간다(i, 'back')} />
 
       <div ref={큰틀} className="wz-main">
-        <div className="wz-top">
-          <span>
-            {t('E2E 테스트')} › {t('새 시나리오')}
-          </span>
-          <button type="button" className="btn ghost" onClick={조립화면으로}>
-            {t('조립 화면으로')}
-          </button>
-          <a className="btn ghost scw-exit" href={나가는곳}>
-            {t('나가기')}
-          </a>
-        </div>
+        <마법사머리 on조립화면={조립화면으로} 나가는곳={나가는곳} />
         {/* 단계마다 열쇠가 달라 새로 그려진다 — 그때 넘긴 쪽에서 미끄러져 들어온다 */}
         <div key={st} ref={본문} className={방향 === null ? 'wz-step' : `wz-step ${방향}`}>
           <p className="scw-count">

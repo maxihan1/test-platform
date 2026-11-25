@@ -1,16 +1,16 @@
 // 성능 테스트 › 기기 성능 › 새 측정 — 조작 방식 · 케이스와 반복 · 빌드 · 측정 기기 · 성능 목표 · 측정 항목 · 「측정 시작」 (도메인/성능 §8.14 · 시안 Dev-Start)
 // 앞 측정이 있으면 그 조건을 채워 연다. 게임 애플리케이션은 Appium 케이스 자리에 게임 케이스가 선다 — 게임 화면은 Appium 이 버튼을 못 찾는다
 
-import { 게임시나리오인가 } from '@platform/kit/protocol';
 import { useEffect, useState } from 'react';
 
-import { api, type CaseRow, type ServiceRow } from './api.js';
+import type { CaseRow, ServiceRow } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { perfApi } from './perfApi.js';
 import type { 고를기기, 기기목표, 기기설정, 조작, 측정지표 } from './perfDeviceApi.js';
+import { 자동포함, 폰케이스들 } from './perfDeviceCases.js';
 import { PerfDevicePick, 기기키 } from './PerfDevicePick.js';
 import { PerfDeviceTargets } from './PerfDeviceTargets.js';
 import { 기본목표, 실행열기, 케이스조작, 측정항목 } from './perfDeviceView.js';
@@ -67,34 +67,21 @@ export function PerfDeviceStart({
         set알림(message(err, 언어));
       },
     );
-    // 폰 케이스만 고른다(게임 케이스도 android 다) — 서버도 아니면 거절한다. 목록은 쪽마다 50건이라 끝까지 받는다
-    void (async () => {
-      try {
-        const 모음: CaseRow[] = [];
-        for (let page = 1; ; page += 1) {
-          const 쪽 = await api.cases({ service: service.prefix, platform: 'android', page });
-          모음.push(...쪽.items);
-          if (쪽.items.length === 0 || 모음.length >= 쪽.total) break;
-        }
-        // 게임 시나리오(-GS-)는 기기 성능에 안 쓴다 — 서버도 거절한다 (공통/3-공유계약 「게임 시나리오 도구」)
-        if (살음) set케이스들(모음.filter((c) => !게임시나리오인가(c.tcId)));
-      } catch (err) {
+    폰케이스들(service.prefix).then(
+      (모음) => 살음 && set케이스들(모음),
+      (err: unknown) => {
         if (!살음) return;
         set케이스들([]);
         set케이스오류(message(err, 언어));
-      }
-    })();
+      },
+    );
     return () => {
       살음 = false;
     };
   }, []);
 
   const 케이스로 = 조작 !== 'MANUAL';
-  // 고른 케이스가 든 테스트 프로시저는 케이스 전부가 돈다 — 서버가 펼치는 것을 화면이 먼저 보인다. 상한은 고른 케이스만 센다 (도메인/성능 §3.9 「기기 성능」)
-  const 활성 = (c: CaseRow) => c.procId != null && c.isActive !== false;
-  const 고른프로시저 = new Set((케이스들 ?? []).filter((c) => 고른케이스.includes(c.tcId) && 활성(c)).map((c) => c.procId));
-  const 자동인가 = (c: CaseRow) => !고른케이스.includes(c.tcId) && 활성(c) && 고른프로시저.has(c.procId);
-  const 자동수 = (케이스들 ?? []).filter(자동인가).length;
+  const 자동포함된 = 자동포함(케이스들 ?? [], 고른케이스);
   // 앞 측정 · 추천에서 온 기기가 지금 쓰는 중이거나 이 조작으로 못 쓰면 고른 것에서 뺀다 — 상한 5대에도 안 센다
   const 쓸기기 = 고른기기.flatMap((키) => {
     const d = 기기들?.find((x) => 기기키(x) === 키);
@@ -105,6 +92,9 @@ export function PerfDeviceStart({
   function 막는까닭(): string | null {
     if (env === '') return t('대상 서버를 선택해 주세요');
     if (!앱이름.test(앱)) return t('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요');
+    // 목록을 못 읽었으면 무엇이 자동 포함되는지 몰라 확인 창이 덜 적는다
+    if (케이스로 && 케이스들 === null) return t('케이스 목록을 읽는 중입니다');
+    if (케이스로 && 케이스오류 !== null) return 케이스오류;
     if (케이스로 && 고른케이스.length === 0) return 게임 ? t('측정하며 실행할 게임 케이스를 선택해 주세요') : t('측정하며 실행할 Android 앱 케이스를 선택해 주세요');
     if (골라보냄.length === 0) return t('측정할 디바이스를 선택해 주세요');
     if (항목.length === 0) return t('측정 항목을 하나 이상 선택해 주세요');
@@ -207,15 +197,15 @@ export function PerfDeviceStart({
             ) : (
               <fieldset className="pd-cases">
                 <legend className="perf-faint">{t('실행할 케이스 ({수}/{상한})', { 수: 고른케이스.length, 상한: 케이스상한 })}</legend>
-                {고른프로시저.size === 0 ? null : (
+                {!자동포함된.있나 ? null : (
                   <div className="mnote proc-note">
                     <b>{t('테스트 프로시저는 케이스 전체를 실행합니다')}</b>
-                    {자동수 === 0 ? null : <> · {t('선택 {선택}건 · 자동 포함 {자동}건', { 선택: 고른케이스.length, 자동: 자동수 })}</>}
+                    {자동포함된.수 === 0 ? null : <> · {t('선택 {선택}건 · 자동 포함 {자동}건', { 선택: 고른케이스.length, 자동: 자동포함된.수 })}</>}
                   </div>
                 )}
                 {케이스들.map((c) => {
                   const 골랐나 = 고른케이스.includes(c.tcId);
-                  const 자동 = 자동인가(c);
+                  const 자동 = 자동포함된.인가(c);
                   return (
                     <label key={c.tcId} className={자동 ? 'pd-auto' : undefined}>
                       <input
@@ -289,7 +279,7 @@ export function PerfDeviceStart({
       </div>
       {!묻나 ? null : (
         <기기시작확인
-          값={{ drive: 조작, caseIds: 고른케이스, durationSec: 분 * 60, repeat: 반복, package: 앱, 자동수: 케이스로 ? 자동수 : 0, 디바이스들: 쓸기기.map((d) => d.model), env }}
+          값={{ drive: 조작, caseIds: 고른케이스, durationSec: 분 * 60, repeat: 반복, package: 앱, 자동수: 케이스로 ? 자동포함된.수 : 0, 디바이스들: 쓸기기.map((d) => d.model), env }}
           onClose={() => set묻나(false)}
           on시작={() => void 시작()}
         />

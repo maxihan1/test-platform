@@ -245,6 +245,36 @@ it('E2E 녹화를 맡기면 AI 가 만든 트랜잭션과 녹화 셈이 표에 �
   expect(만들기.mock.calls[0]![3]).toBe(90);
 });
 
+it('2단계 목표가 0 인 시나리오는 4단계로 건너와도 묻지 않고 그 단계로 보낸다. 뒤로 가기로 단계가 바뀌면 묻던 창을 거둔다', async () => {
+  const 시나리오 = (target: number): PerfScenario => ({
+    id: 42,
+    serviceId: 7,
+    name: '주문하기',
+    version: 3,
+    accountsRows: 0,
+    schedule: null,
+    versions: [],
+    body: { transactions: [{ name: '상품 목록', method: 'GET', url: '/api/products' }], load: { basis: 'VUS', testType: 'LOAD', stages: [{ durationSec: 60, target }] }, run: { env: 'qa', agentIds: [11] } },
+  });
+  const 읽기 = vi.spyOn(perfApi, 'scenario').mockResolvedValue(시나리오(0));
+  const 저장 = vi.spyOn(perfApi, 'save').mockResolvedValue({ version: 4 });
+  const 화면 = await 그리기(42);
+  fireEvent.click(screen.getByText('실행', { selector: '.perf-steps span' }));
+  fireEvent.click(screen.getByRole('button', { name: '실행' }));
+  expect(확인상자있나()).toBe(false);
+  expect(screen.getByRole('alert').textContent).toBe('가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요');
+  expect(저장).not.toHaveBeenCalled();
+  화면.unmount();
+
+  읽기.mockResolvedValue(시나리오(30));
+  await 그리기(42);
+  fireEvent.click(screen.getByText('실행', { selector: '.perf-steps span' }));
+  fireEvent.click(screen.getByRole('button', { name: '실행' }));
+  expect(확인상자있나()).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: '이전' }));
+  expect(확인상자있나()).toBe(false);
+});
+
 it('고칠 때는 네 단계를 다 끝낸 것으로 보고 바로 간다', async () => {
   const 시나리오: PerfScenario = {
     id: 42,

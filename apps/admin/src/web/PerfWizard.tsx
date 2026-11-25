@@ -21,9 +21,8 @@ import { 처음값 } from './perfWizardInit.js';
 import { 조건붙인주소, 떠나기로했다, 떠나기상자, 주소고치기, 주소조건 } from './leaveGuard.js';
 import { 할수있나 } from './role.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
+import { PerfWizardSteps, type 단계, type 단계줄 } from './PerfWizardSteps.js';
 import { use단계주소 } from './useWizardStep.js';
-
-type 단계 = 1 | 2 | 3 | 4;
 
 export function PerfWizard({ id, 띠서비스, user }: { id: number | null; 띠서비스: ServiceRow | null; user: User }) {
   const t = use말();
@@ -96,6 +95,8 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     1,
     ['id'],
   );
+  // 뒤로 가기로 단계가 바뀌면 묻던 창을 거둔다 — 4단계가 아닌 자리에서 실행이 걸리지 않게
+  useEffect(() => set묻나(false), [지금]);
   // 더미 클라이언트는 동시 사용자 기준으로만 돈다 — TPS 로 잡아 둔 채 넘어오면 VUS 로 되돌린다
   // 저장한 번호를 주소에 적어 둔다 — 새로고침하면 저장한 시나리오를 이어 연다. 경로는 그대로 `new` 라 화면이 다시 뜨지 않는다
   useEffect(() => {
@@ -116,19 +117,19 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     run: { env: 사.env, agentIds: 사.agentIds, monitorIds: 사.monitorIds, ...이.칸, degradeAlert: 삼.degradeAlert, pageCheck: 페이지칸 && 사.pageCheck },
   });
 
-  /** 1단계가 비어 저장할 수 없으면 거기로 보내고 참 */
-  function 저장막힘(): boolean {
-    const 까닭 = 넘길까닭(1, 넘길재료, 언어);
+  /** 그 단계 칸이 덜 됐으면 거기로 보내고 참 */
+  function 막힘(단계: 1 | 2): boolean {
+    const 까닭 = 넘길까닭(단계, 넘길재료, 언어);
     if (까닭 === null) return false;
-    스스로(1);
-    set지금(1);
+    스스로(단계);
+    set지금(단계);
     set알림({ 글: 까닭, 오류: true });
     return true;
   }
 
   /** 저장하고 시나리오 번호를 돌려준다. 실패하면 알림을 띄우고 null */
   async function 저장(): Promise<number | null> {
-    if (저장막힘()) return null;
+    if (막힘(1)) return null;
     set하는중(true);
     set알림(null);
     try {
@@ -166,7 +167,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
       set알림({ 글: t('대상 서버와 부하 발생 에이전트를 선택해 주세요'), 오류: true });
       return;
     }
-    if (저장막힘()) return;
+    if (막힘(1) || 막힘(2)) return;
     set알림(null);
     set묻나(true);
   }
@@ -202,7 +203,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
   const 최대 = 최대목표(이.stages);
   const 단위 = 이.basis === 'TPS' ? t('TPS') : t('명');
-  const 단계들: { 번호: 단계; 이름: string; 요약?: string }[] = [
+  const 단계들: 단계줄[] = [
     { 번호: 1, 이름: t('시나리오'), 요약: 더미 ? t('더미 클라이언트') : t('트랜잭션 {수}개', { 수: 일.transactions.length }) },
     { 번호: 2, 이름: t('부하 설정'), 요약: t('{유형}, 최대 {수}{단위}', { 유형: t(유형글자[이.testType].이름), 수: 최대.toLocaleString(), 단위 }) },
     { 번호: 3, 이름: t('성능 목표'), 요약: t('{수}개', { 수: 삼.targets.length }) },
@@ -246,33 +247,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
       {!묻나 ? null : <PerfStartConfirm 종류="LOAD" 줄들={요약} 안내={t('시나리오를 저장하고 대상 서버에 부하가 발생합니다. 실행 화면에서 중단할 수 있습니다')} onClose={() => set묻나(false)} on시작={() => void 실행()} />}
       {정기창 && 번호 !== null ? <PerfSchedule scenarioId={번호} envs={service.envs} 지금={정기} 바뀜={set정기} 닫기={() => set정기창(false)} /> : null}
       <div className="screen" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <ol className="perf-steps" aria-label={t('시나리오 만들기 단계')}>
-          {단계들.map((d) => {
-            const 끝났나 = d.번호 <= 끝낸;
-            return (
-              <li key={d.번호}>
-                <button
-                  type="button"
-                  className={끝났나 && d.번호 !== 지금 ? 'done' : undefined}
-                  aria-current={d.번호 === 지금 ? 'step' : undefined}
-                  disabled={d.번호 !== 지금 && d.번호 > 끝낸 + 1}
-                  onClick={() => set지금(d.번호)}
-                >
-                  <span className="perf-dot">{d.번호}</span>
-                  <span>
-                    {d.이름}
-                    {끝났나 && d.요약 !== undefined ? (
-                      <>
-                        <br />
-                        <span className="perf-faint">{d.요약}</span>
-                      </>
-                    ) : null}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+        <PerfWizardSteps 단계들={단계들} 지금={지금} 끝낸={끝낸} on고름={set지금} />
 
         {지금 === 1 ? <PerfStepScenario 값={일} 고침={일고침} service={service} 새것={번호 === null} 쓰나={쓰나} 초안받음={set초안} 더미들={더미들.data?.clients ?? []} 더미오류={더미들.error === null ? null : message(더미들.error, 언어)} /> : null}
         {지금 === 2 ? <PerfStepLoad 값={이} 고침={set이} serviceId={service.id} 쓰나={쓰나} 더미={더미} /> : null}

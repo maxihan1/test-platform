@@ -69,5 +69,5 @@ export const 성능페이지말: Record<string, string> = {
   '측정을 중단할까요?': 'Stop measuring?',
   '이번 측정 결과는 남지 않습니다': 'This measurement leaves no result',
   '측정을 중단했습니다': 'Measuring stopped',
-  '측정을 중단했습니다 — {까닭}': 'Measuring stopped — {까닭}',
+  '측정이 중단되었습니다 — {까닭}': 'Measuring was stopped — {까닭}',
 };

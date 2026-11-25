@@ -52,6 +52,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
   const [망, set망] = useState<페이지망>('NONE');
   const [창, set창] = useState(false);
   const [묻나, set묻나] = useState(false);
+  const [중단글, set중단글] = useState<string | null>(null);
   const [하는중, set하는중] = useState(false);
   const [측정중, set측정중] = useState<number | null>(null);
   const [알림, set알림] = useState<string | null>(null);
@@ -127,8 +128,15 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
             const 까닭 = (await perfApi.events(측정중)).events.filter((줄) => /warn/i.test(줄.level)).at(-1)?.message;
             if (살음) set알림(까닭 === undefined ? t('측정이 오류로 종료되었습니다') : t('측정이 오류로 종료되었습니다 — {까닭}', { 까닭 }));
           } else if (상세.status === 'STOPPED') {
-            // 중단한 측정은 서버가 숫자를 남기지 않는다 — 보던 결과를 그대로 둔다
-            set알림(상세.stopReason === null ? t('측정을 중단했습니다') : t('측정을 중단했습니다 — {까닭}', { 까닭: 사유이름(상세.stopReason, t, 'PAGE') }));
+            // 사람이 중단한 것은 오류가 아니다
+            if (상세.stopReason === null || 상세.stopReason === 'USER') set중단글(t('측정을 중단했습니다'));
+            else set알림(t('측정이 중단되었습니다 — {까닭}', { 까닭: 사유이름(상세.stopReason, t, 'PAGE') }));
+            // 중단한 측정은 서버가 숫자를 남기지 않아 보던 결과를 그대로 둔다. 재는 중에 연 화면은 그 실행을 들고 있어 앞 결과를 다시 찾는다
+            if (읽은 === null || 읽은.run.id === 측정중) {
+              const 앞 = 가장최근번호((await perfApi.pagesRuns(service.id)).runs);
+              const 받음 = 앞 === null || 앞 === 측정중 ? null : await 읽기(앞);
+              if (살음 && 받음 !== null) 보이기(받음);
+            }
           } else {
             const 받음 = await 읽기(측정중);
             if (살음) 보이기(받음);
@@ -148,6 +156,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
   }, [측정중]);
 
   function 측정누름() {
+    set중단글(null);
     set알림(env === '' ? t('대상 서버를 선택해 주세요') : null);
     set묻나(env !== '');
   }
@@ -206,6 +215,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
             {알림}
           </p>
         )}
+        {중단글 === null ? null : <p role="status">{중단글}</p>}
         <section className="perf-panel" aria-label={t('측정 조건')}>
           <div className="perf-fields">
             <label className="perf-field">

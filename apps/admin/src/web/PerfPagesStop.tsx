@@ -14,6 +14,16 @@ export function PerfPagesStop({ runId }: { runId: number }) {
   const [멈추는중, set멈추는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
 
+  function 열기() {
+    set오류(null);
+    set묻나(true);
+  }
+
+  // 보내는 동안 닫히면 실패한 까닭이 안 보인다
+  const 닫기 = () => {
+    if (!멈추는중) set묻나(false);
+  };
+
   async function 멈추기() {
     set멈추는중(true);
     set오류(null);
@@ -29,16 +39,16 @@ export function PerfPagesStop({ runId }: { runId: number }) {
 
   return (
     <>
-      <button type="button" className="btn ghost perf-stop" disabled={멈추는중} onClick={() => set묻나(true)}>
+      <button type="button" className="btn ghost perf-stop" disabled={멈추는중} onClick={열기}>
         {멈추는중 ? t('중단하는 중') : t('측정 중단')}
       </button>
       {!묻나 ? null : (
         <Modal
           제목={t('측정을 중단할까요?')}
-          onClose={() => set묻나(false)}
+          onClose={닫기}
           버튼={
             <>
-              <button type="button" className="btn ghost" onClick={() => set묻나(false)} data-first>
+              <button type="button" className="btn ghost" disabled={멈추는중} onClick={닫기} data-first>
                 {t('취소')}
               </button>
               <button type="button" className="btn" disabled={멈추는중} onClick={() => void 멈추기()}>
