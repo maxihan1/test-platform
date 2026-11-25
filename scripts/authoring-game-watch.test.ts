@@ -1,11 +1,12 @@
 // 지켜보기 검사 — 이름마다 생긴 것 · 나온 자리 · 길 · 사라진 것 · 바뀐 값 묶기, 화면 그림 빼기, 조작 도우미와 같이 보기 (도메인/게임 §3.10 「지켜보기」)
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { Command, Link } from 'control-cli';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { 게임자료환경 } from './authoring-check-game.js';
 import { 인자읽기, 실행 } from './authoring-game-watch.js';
 import { type 자리, type 표본, 요약, 이름만, 자리묶기, 화면그림인가 } from './authoring-game-watch-report.js';
 
@@ -70,7 +71,10 @@ describe('요약', () => {
 
 describe('인자읽기', () => {
   it('초 · 곁 · 칸 · 같이 돌릴 함수', () => {
-    expect(인자읽기(['--sec', '20', '--near', '/P', '--get', 'Ghost(Clone):HP.HP.Value', '--do', 'g', 'play', '걷기', '[1]', '--max', '5'])).toEqual({ 초: 20, 곁: '/P', 칸: { 'Ghost(Clone)': ['HP.HP.Value'] }, 안에든것: false, 할일: ['g', 'play', '걷기', '[1]', '--max', '5'] });
+    expect(인자읽기(['--sec', '20', '--near', '/P', '--get', 'Ghost(Clone):HP.HP.Value', '--do', 'g', 'play', '걷기', '[1]', '--max', '5'])).toEqual({ 초: 20, 곁: '/P', 칸: { 'Ghost(Clone)': ['HP.HP.Value'] }, 안에든것: false, 할일: ['g', 'play', '걷기', '[1]', '--max', '5'], 화면초: 5 });
+    expect(인자읽기(['--shots', '0'])).toMatchObject({ 화면초: 0 });
+    expect(인자읽기(['--shots', '3', '--do', 'g', 'play', '걷기', '--shots', '2', '--freeze'])).toMatchObject({ 화면초: 3, 할일: ['g', 'play', '걷기', '--shots', '2', '--freeze'] });
+    expect([인자읽기(['--shots', '-1']), 인자읽기(['--shots', '가']), 인자읽기(['--shots', '301'])]).toEqual([null, null, null]);
     expect(인자읽기(['--nested', '--sec', '9'])).toMatchObject({ 초: 9, 안에든것: true });
     expect([인자읽기(['--sec', '0']), 인자읽기(['--sec', '999']), 인자읽기(['--get', 'Ghost']), 인자읽기(['--do', 'g']), 인자읽기(['--what', '1'])]).toEqual([null, null, null, null, null]);
   });
@@ -132,6 +136,33 @@ describe('실행', () => {
     expect(글).toContain('새로 1');
     expect(글).toContain('Ghost 은 한 번도 안 보였다');
   });
+
+  it('도중 화면 — 가만히 볼 때도 --do 일 때도 --shots 로 남기고, 0 이면 끈다. 정리 알림은 맨 끝', async () => {
+    const t = 트리();
+    mkdirSync(join(t, 'data'));
+    writeFileSync(join(t, 'data', 'game-learn.wrap'), '정리하라');
+    const 찍힘 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const 환경 = { [게임자료환경]: join(t, 'data') };
+    writeFileSync(join(t, 'tests', 'g', 'helpers', 'slow.helper.ts'), 'export const 느림 = () => new Promise((끝) => setTimeout(() => 끝(1), 1300));\n');
+    const 켠 = ['--do', 'g', 'slow', '느림', '[]', '--shots', '1', '--max', '20'];
+    expect(await 실행(켠, t, 환경, 가짜([]))).toBe(0);
+    const 글 = 찍힘.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(글).toMatch(/도중 화면 \d+장\(1초 간격/);
+    expect(String(찍힘.mock.calls.at(-1)?.[0])).toBe('※ 정리하라');
+    expect(readdirSync(join(t, 'data', 'game-play')).some((x) => x.endsWith('s.jpg'))).toBe(true);
+    찍힘.mockClear();
+    // --do 앞에 준 간격도 먹는다 — 뒤에 안 주면 앞 값을 쓴다
+    expect(await 실행(['--shots', '1', '--do', 'g', 'slow', '느림', '[]', '--max', '20'], t, 환경, 가짜([]))).toBe(0);
+    expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/도중 화면 \d+장\(1초 간격/);
+    찍힘.mockClear();
+    const 명령: string[] = [];
+    expect(await 실행(['--shots', '0', '--do', 'g', 'play', '공격', '[]', '--shots', '0'], t, 환경, 가짜(명령))).toBe(0);
+    expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).not.toContain('도중 화면');
+    expect(명령.filter((x) => x === 'screenshot')).toHaveLength(1);
+    찍힘.mockClear();
+    expect(await 실행(['--sec', '2', '--shots', '1'], t, 환경, 가짜([]))).toBe(0);
+    expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/도중 화면 \d+장\(1초 간격/);
+  }, 20_000);
 
   it('잡은 디바이스가 없으면 2', async () => {
     const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});

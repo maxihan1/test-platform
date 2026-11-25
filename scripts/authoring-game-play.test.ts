@@ -7,7 +7,10 @@ import type { Command, Link } from 'control-cli';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 게임자료환경 } from './authoring-check-game.js';
-import { 돌린다, 실행, 조작도우미자리 } from './authoring-game-play.js';
+import { 깃발읽기, 조작도우미자리 } from './authoring-game-play-call.js';
+import { 기록남기기, 도중파일이름 } from './authoring-game-play-log.js';
+import { 간격정하기, 상한장, 찍기시작 } from './authoring-game-play-shots.js';
+import { 돌린다, 실행 } from './authoring-game-play.js';
 
 const 도우미 = `
 export async function 걷기(game, 키) {
@@ -151,6 +154,103 @@ describe('조작 도우미 부르기', () => {
     writeFileSync(join(깨짐, 'tests', 'g', 'helpers', 'bad.helper.ts'), 'throw new Error("읽다 깨짐");');
     expect(await 실행(['g', 'bad', '걷기'], 깨짐, {}, g.길)).toBe(2);
     expect(g.명령).toEqual([]);
+  });
+
+  it('도중 화면 — 간격을 주면 도는 동안 여러 장 찍고, 안 주면 한 장도 안 찍고 명령도 더 안 보낸다', async () => {
+    // 간격의 스무 배를 돈다 — 다른 테스트 파일과 같이 돌아 타이머가 밀려도 두 장은 넘게 찍힌다
+    const 함수 = (game: unknown) => new Promise((끝) => setTimeout(끝, 400)).then(() => ({ 이름: typeof game }));
+    const 켠 = 가짜();
+    const r = await 돌린다(켠.길, 함수, {}, 800, undefined, { 도중화면ms: 20 });
+    expect(r.도중화면.length).toBeGreaterThan(2);
+    expect(r.도중화면[0]!.초).toBeGreaterThanOrEqual(0.02);
+    expect(r.도중화면[0]!.그림.toString()).toBe('그림');
+    expect(r.도중간격ms).toBe(20);
+    expect(켠.명령.at(-1)).toBe('screenshot');
+    const 안 = 가짜();
+    const 기본 = await 돌린다(안.길, 함수, {}, 600);
+    expect(기본.도중화면).toEqual([]);
+    const 빈덧 = 가짜();
+    await 돌린다(빈덧.길, 함수, {}, 600, undefined, { 도중화면ms: 0 });
+    expect(빈덧.명령).toEqual(안.명령);
+    expect(안.명령.filter((x) => x === 'screenshot')).toHaveLength(1);
+  });
+
+  it('도중 화면을 못 찍어도 함수는 끝까지 돌고 못한것에 한 줄만, 세 번 이어 실패하면 그친다', async () => {
+    const g = 가짜();
+    let 부름 = 0;
+    const 깨진: Link = async (c) => {
+      if ((c as unknown as { cmd: string }).cmd === 'screenshot') {
+        부름 += 1;
+        if (부름 <= 3) throw new Error('찍기 거절');
+      }
+      return g.길(c);
+    };
+    const r = await 돌린다(깨진, () => new Promise((끝) => setTimeout(() => 끝('다 돎'), 200)), {}, 2_000, undefined, { 도중화면ms: 10 });
+    expect(r.값).toBe('다 돎');
+    expect(r.오류).toBeUndefined();
+    expect(r.도중화면).toEqual([]);
+    expect(r.못한것.filter((x) => x.startsWith('도중 화면'))).toEqual(['도중 화면 3번 못 찍음: 찍기 거절']);
+    expect(부름).toBe(4);
+  });
+
+  it('도중 화면은 40장까지 — 간격은 한도 안에 40장이 다 들어가게 넓힌다', async () => {
+    let 찍음 = 0;
+    const 고리 = 찍기시작({ screenshot: async () => (찍음 += 1, Buffer.from('x')) }, 1, Date.now());
+    await new Promise((끝) => setTimeout(끝, 300));
+    expect(await 고리.끝난다()).toBeNull();
+    expect(고리.장들).toHaveLength(상한장);
+    expect(상한장).toBe(40);
+    expect(찍음).toBe(40);
+    expect([간격정하기(5_000, 90_000), 간격정하기(5_000, 420_000), 간격정하기(5_000, 100_000)]).toEqual([5_000, 10_500, 5_000]);
+  });
+
+  it('깃발 읽기 — --max · --shots · --freeze 를 떼고 틀린 값은 null', () => {
+    expect(깃발읽기(['g', 'play', '걷기'])).toEqual({ 남음: ['g', 'play', '걷기'], 초: 90, 멈춤: false });
+    expect(깃발읽기(['g', '--freeze', 'play', '--shots', '3', '걷기', '["W"]', '--max', '30'])).toEqual({ 남음: ['g', 'play', '걷기', '["W"]'], 초: 30, 화면초: 3, 멈춤: true });
+    expect(깃발읽기(['g', '--shots', '0'])).toMatchObject({ 화면초: 0 });
+    expect([깃발읽기(['--shots', '-1']), 깃발읽기(['--shots', '가나']), 깃발읽기(['--shots', '301']), 깃발읽기(['--shots']), 깃발읽기(['--max', '9999']), 깃발읽기(['--max'])]).toEqual([null, null, null, null, null, null]);
+  });
+
+  it('도중 화면 파일 이름은 초를 세 자리로 채운 정수이고, 한 장이 실패해도 나머지는 남긴다', async () => {
+    const t = 트리();
+    const g = 가짜();
+    const r = await 돌린다(g.길, () => 1, {}, 600, undefined, { 도중화면ms: 20 });
+    r.도중화면.splice(0, r.도중화면.length, { 초: 5.2, 그림: Buffer.from('a'), 걸린ms: 10 }, { 초: 5.4, 그림: Buffer.from('b'), 걸린ms: 10 }, { 초: 12, 그림: Buffer.from('c'), 걸린ms: 10 });
+    const 기록 = 기록남기기(join(t, 'data'), '걷기', [], r, [], new Date('2026-11-25T01:02:03.456Z'));
+    expect(기록).not.toBeNull();
+    const 이름 = '20261125010203456-걷기';
+    expect(도중파일이름(이름, 5.2)).toBe(`${이름}-005s.jpg`);
+    const 남은 = readdirSync(join(t, 'data', 'game-play')).sort();
+    expect(남은).toEqual([`${이름}-005s.jpg`, `${이름}-012s.jpg`, `${이름}.jpg`, `${이름}.json`]);
+    expect(r.못한것.filter((x) => x.includes('005s'))).toHaveLength(1);
+    expect(JSON.parse(readFileSync(join(t, 'data', 'game-play', `${이름}.json`), 'utf8'))).not.toHaveProperty('도중화면');
+  });
+
+  it('조작 도우미는 기본으로 도중 화면을 켠다 — 출력에 한 줄과 파일, --shots 0 이면 안 찍는다', async () => {
+    const t = 트리();
+    writeFileSync(join(t, 'tests', 'g', 'helpers', 'slow.helper.ts'), 'export const 느림 = () => new Promise((끝) => setTimeout(() => 끝(1), 1300));\n');
+    const g = 가짜();
+    const 찍힘 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['g', 'slow', '느림', '--shots', '1', '--max', '5'], t, { [게임자료환경]: join(t, 'data') }, g.길)).toBe(0);
+    expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/도중 화면 1장\(1초 간격 · 한 장 평균 [\d.]+초\) — \d+-느림-001s\.jpg/);
+    expect(readdirSync(join(t, 'data', 'game-play')).filter((x) => x.endsWith('s.jpg'))).toHaveLength(1);
+    찍힘.mockClear();
+    g.명령.length = 0;
+    await 실행(['g', 'slow', '느림', '--shots', '0'], t, {}, g.길);
+    expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).not.toContain('도중 화면');
+    expect(g.명령.filter((x) => x === 'screenshot')).toHaveLength(1);
+  });
+
+  it('자료 폴더에 정리 알림이 있으면 출력 맨 끝에 ※ 줄 — 오류로 끝나도 붙는다', async () => {
+    const t = 트리();
+    writeFileSync(join(t, 'data', 'game-learn.wrap'), '정리하라');
+    const g = 가짜();
+    const 찍힘 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['g', 'play', '걷기', '["W"]', '--shots', '0'], t, { [게임자료환경]: join(t, 'data') }, g.길)).toBe(0);
+    expect(String(찍힘.mock.calls.at(-1)?.[0])).toBe('※ 정리하라');
+    찍힘.mockClear();
+    expect(await 실행(['g', 'play', '던지기', '--shots', '0'], t, { [게임자료환경]: join(t, 'data') }, g.길)).toBe(1);
+    expect(String(찍힘.mock.calls.at(-1)?.[0])).toBe('※ 정리하라');
   });
 
   it('도우미 파일은 tests 안 일반 파일만 — 링크와 폴더 밖 이름은 안 된다', () => {

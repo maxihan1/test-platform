@@ -6,7 +6,9 @@ import { pathToFileURL } from 'node:url';
 import { gameLink } from '@platform/kit/game';
 import type { Link } from 'control-cli';
 
-import { type 조작결과, 기록남기기, 돌린다, 부를준비 } from './authoring-game-play.js';
+import { 부를준비 } from './authoring-game-play-call.js';
+import { 기록남기기 } from './authoring-game-play-log.js';
+import { type 조작결과, 돌린다 } from './authoring-game-play.js';
 import { type 판수, 다채웠나, 이긴판읽기, 이긴판적기, 채울판 } from './authoring-game-wins-log.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 
@@ -19,6 +21,10 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 것 = await 부를준비('authoring-game-wins', 머리, 인자, 트리, env);
   if (것 === null) return 2;
   const { 폴더, 파일, 이름, 넘길, 초, 비밀들, 자료 } = 것;
+  if (것.화면초 !== undefined || 것.멈춤) {
+    console.error(`${머리} --shots · --freeze 는 못 쓴다 — 10판 확인은 원래 속도 · 같은 조건으로만 돈다`);
+    return 2;
+  }
   if (!자료) {
     console.error(`${머리} 자료 폴더를 모른다 — 작성 에이전트의 자식만 부른다`);
     return 2;
@@ -48,11 +54,14 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       }
       let r: 조작결과;
       try {
-        r = await 돌린다(길 ?? (await gameLink(것.환경)), 것.함수, 것.환경, 초 * 1000, 끊기.signal);
+        r = await 돌린다(길 ?? (await gameLink(것.환경)), 것.함수, 것.환경, 초 * 1000, 끊기.signal, { 자료 });
       } catch (e) {
         return 못셈(`게임에 못 붙었다(${e instanceof Error ? e.message : String(e)})`);
       }
       const 기록 = 기록남기기(자료, 이름, 넘길, r, 비밀들);
+      // 「판이 안 흐른다」 같은 알림을 여기서도 보인다 — 안 보이면 멈춘 게임에서 진 판의 까닭이 묻힌다
+      for (const 말 of r.알림말) console.log(비밀가리기(`${머리} ${말}`, 비밀들));
+      if (r.멈춘채) return 못셈('멈춰 둔 게임을 못 풀었다 — 판이 안 흐른다');
       // 멈춘 화면(0배)에서 시작하는 것은 게임이 멈춘 것이다 — 그 밖의 배율은 원래 속도가 아니다
       if (r.배율바꿈 || (r.배율 !== null && r.배율 !== 0 && r.배율 !== 1)) return 못셈(`원래 속도가 아니다(${r.배율바꿈 ? '함수가 시간 배율을 바꿨다' : `배율 ${r.배율}`}) — \`npx control-cli -s=g timescale-set 1\` 뒤 다시 부른다`);
       // 작전 탓이 아닌 판 — 밖에서 끊음 · 입력을 못 놓음 · 명령의 답을 못 받고 못 이김(팜 거절 · 시간 초과). 답을 못 받고도 이긴 판은 이긴 것이다

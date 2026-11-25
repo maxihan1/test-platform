@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type 세션거리, type 학습손, 못뜬것은끊김, 학습번호들, 학습하기 } from './authoring-learn.js';
 import { 배움올리기, 학습끝줄 } from './authoring-learn-io.js';
-import { 배울종류, 칸틀 } from './authoring-learn-map.js';
+import { 배울종류 } from './authoring-learn-map.js';
 import { 학습프롬프트 } from './authoring-learn-prompt.js';
 import type { 돌린결과 } from './authoring-spawn.js';
 import { 컨텍스트크기 } from './authoring-usage.js';
@@ -18,7 +18,7 @@ const 결과 = (x: Partial<돌린결과> = {}): 돌린결과 => ({ 코드: 0, �
 const 규칙 = (key: string, x: object = {}) => ({ kind: 'RULE', key, name: '가', learned: { text: 'ㄱ', belief: 'CONFIRMED', seen: 2, build: '59', data: 1, ...x } });
 const 지도글 = (줄들: { kind: string; key: string; name: string; learned: object }[]) =>
   ['# 게임 지도', '', ...[...new Set(줄들.map((x) => x.kind))].flatMap((k) => [`## ${k} (${k}) — ${줄들.filter((x) => x.kind === k).length}개`, ...줄들.filter((x) => x.kind === k).map((x) => `- ${x.key} · ${x.name} · 배움 ${JSON.stringify(x.learned)}`)])].join('\n');
-const 다배움 = [...배울종류, 'WORLD'].map((k) => ({ ...규칙(`${k.toLowerCase()}:하나`, { data: { 칸: Object.fromEntries((칸틀[k] ?? []).map((c) => [c, '쟀다'])) } }), kind: k }));
+const 다배움 = 배울종류.map((k) => ({ ...규칙(`${k.toLowerCase()}:하나`), kind: k }));
 
 let 자료 = '';
 /** 서버 지도 — PUT 을 받으면 합치고 GET 이 글로 준다 */
@@ -329,6 +329,9 @@ describe('학습하기 — 시험', () => {
     expect(await 성적({ 끝: true, 기록: '새것.json' })).toContain('첫 판 끝까지 감');
     expect(await 성적({ 끝: true, 기록: '옛것.json' })).toContain('조작 기록 없음');
     expect(await 성적({ 끝: true, 기록: '..' })).toContain('조작 기록 없음');
+    // 같은 이름으로 남는 화면 파일은 기록이 아니다
+    쓰기('game-play/새것-005s.jpg', 'x');
+    expect(await 성적({ 끝: true, 기록: '새것-005s.jpg' })).toContain('조작 기록 없음');
     expect(await 성적({ 끝: false, 까닭: `${'가'.repeat(76)}pw-secret-1` }, ['pw-secret-1'])).not.toContain('pw-');
   });
 
@@ -365,6 +368,43 @@ describe('배움올리기', () => {
   });
 });
 
+describe('학습하기 — 쪽지', () => {
+  it('앞 세션이 지도에 남긴 쪽지를 다음 학습 세션에 넘긴다 — 시험 세션에는 안 준다', async () => {
+    const 쪽지줄 = { kind: 'PLAY', key: 'play:쪽지', name: '쪽지', learned: { text: '첫 맵 3판 다 짐. 다음에는 길 옆에 심어 본다', belief: 'GUESS' } };
+    const { o, 거리들 } = 손([() => 적기(규칙('rule:1'), 쪽지줄), () => 적기(규칙('rule:2')), () => undefined, () => undefined]);
+    await 학습하기(o);
+    expect(거리들[0]).not.toHaveProperty('쪽지');
+    expect(거리들[1]).toMatchObject({ 차례: 2, 쪽지: '첫 맵 3판 다 짐. 다음에는 길 옆에 심어 본다' });
+    expect(거리들.find((x) => x.시험 === true)).not.toHaveProperty('쪽지');
+  });
+
+  it('쪽지만 고쳐 쓴 세션은 한 줄도 안 배운 세션이다 — 배우는 세션을 더 띄우지 않고 시험으로 간다', async () => {
+    const 쪽지줄 = { kind: 'PLAY', key: 'play:쪽지', name: '쪽지', learned: { text: '아직 못 풀었다', belief: 'GUESS' } };
+    const { o, 거리들 } = 손([() => 적기(쪽지줄), () => undefined]);
+    await 학습하기(o);
+    expect(거리들.map((x) => x.시험 === true)).toEqual([false, true]);
+  });
+});
+
+describe('학습하기 — 멈춰 둔 판', () => {
+  it('앞 세션이 판을 멈춘 채 끝났으면 쥔 디바이스의 다음 세션에 알리고, 디바이스를 놓을 때 표시를 지운다', async () => {
+    const 멈춘다 = () => 쓰기('game-freeze.json', { 배율: 1, 때: new Date().toISOString() });
+    const { o, 거리들 } = 손([() => (적기(규칙('rule:1')), 멈춘다()), () => 적기(규칙('rule:2')), () => undefined, () => undefined]);
+    await 학습하기(o);
+    expect(거리들[0]).not.toHaveProperty('멈춤');
+    expect(거리들[1]).toMatchObject({ 차례: 2, 멈춤: true });
+    expect(거리들.find((x) => x.시험 === true)).toMatchObject({ 멈춤: true });
+    expect(existsSync(join(자료, 'game-freeze.json'))).toBe(false);
+  });
+
+  it('표시가 남아 있어도 디바이스를 안 쥐고 있으면 멈춘 판이 아니다 — 놓은 게임은 꺼졌다', async () => {
+    쓰기('game-freeze.json', { 배율: 1, 때: new Date().toISOString() });
+    const { o, 거리들 } = 손([() => 적기(규칙('rule:1')), () => undefined, () => undefined]);
+    await 학습하기(o);
+    expect(거리들[0]).not.toHaveProperty('멈춤');
+  });
+});
+
 describe('학습번호들', () => {
   it('반영은 다시 씀 · 새 항목, 이어 작성은 남은 번호, 그 밖은 전체다', () => {
     expect(학습번호들({ 반영: { 다시씀: [{ 번호: 'A' }], 새항목: ['B'] } })).toEqual(['A', 'B']);
@@ -375,7 +415,7 @@ describe('학습번호들', () => {
 
 describe('학습프롬프트', () => {
   const 재료 = { 서비스: 'CGP', 폴더: 'catsgo-pc', 자료: '/자료', 화면: { 못읽음: 'ㄱ', 게임: true as const, PC: { 패드: [] } }, 계획: [], 지금판: '/자료/prd-now.json', 항목수: 0, 가이드: null };
-  const 배울것 = { 칸: ['input:공격 — 닿는곳'], 빈종류: ['RULE'], 궁금: ['ask:1'], 빌드다름: [], 게임글: [], 번호: [] };
+  const 배울것 = { 빈종류: ['RULE'], 궁금: ['ask:1'], 빌드다름: [], 게임글: [], 번호: [] };
 
   it('학습 — 지침 · 남은 시간 · 빌드 · 배울 것을 주고 놓지 말라고 한다. 케이스 작성 스킬은 부르지 않는다', () => {
     const 글 = 학습프롬프트(재료, { 배울것, 남은분: 30, 빌드: '59', 놓음: true, 못올림: [], 부분: false, 차례: 1 });
@@ -383,7 +423,7 @@ describe('학습프롬프트', () => {
     expect(글).toContain('이 세션은 30분이다');
     expect(글).toContain('지금 빌드: 59');
     expect(글).toContain('빈 종류: RULE');
-    expect(글).toContain('아직 안 잰 칸 1 — 이것부터 잰다**: input:공격 — 닿는곳');
+    expect(글).not.toContain('안 잰 칸');
     expect(글).toContain('`release` 하지 마라');
     expect(글).toContain('[단계] 게임 배우기');
     expect(글).toContain('글로 된 자료가 없다');
@@ -395,6 +435,15 @@ describe('학습프롬프트', () => {
       expect(좁은글).toContain('위에 적은 것을 다 배웠을 때 끝낸다');
     }
     expect(글).not.toMatch(/^\/tpx-author/);
+  });
+
+  it('쪽지 — 앞 AI 가 남긴 말을 「배울 것」 맨 위에 생각일 뿐이라는 말과 함께 싣는다. 없으면 안 싣는다', () => {
+    const 글 = 학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: false, 못올림: [], 부분: false, 차례: 2, 쪽지: '첫 맵 3판 다 짐\n다음에는 길 옆에 심어 본다' });
+    expect(글).toContain('> 첫 맵 3판 다 짐\n> 다음에는 길 옆에 심어 본다');
+    expect(글).toContain('생각일 뿐이다');
+    expect(글.indexOf('앞 AI 가 남긴 쪽지')).toBeGreaterThan(글.indexOf('--- 배울 것 ---'));
+    expect(글.indexOf('앞 AI 가 남긴 쪽지')).toBeLessThan(글.indexOf('빈 종류'));
+    expect(학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], 부분: false, 차례: 1 })).not.toContain('남긴 쪽지');
   });
 
   it('이어진 세션 — 앞 세션의 대화가 없다고 알리고 쥔 디바이스를 다시 잡지 않게 하며 못 올린 것부터 고치게 한다', () => {
@@ -416,5 +465,19 @@ describe('학습프롬프트', () => {
     expect(글).toContain('[단계] 배운 것 시험');
     expect(글).not.toContain('/자료/prd-now.json');
     expect(글).not.toContain('guide.md');
+    // 시험 세션은 배우는 법을 안 읽는다 — 시험 지침만 연다. 멈춰 가며 하기도 안 권한다(원래 속도로 잰다)
+    expect(글).toContain('references/game-learn-exam.md');
+    expect(글).not.toContain('references/game-learn.md');
+    expect(글).not.toContain('--freeze');
+  });
+
+  it('볼 눈 — 학습 세션에 멈춰 가며 하기와 도중 화면을 알려 주고, 앞 세션이 멈춘 채 끝났으면 판이 멈춰 있다고 알린다', () => {
+    const 글 = 학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: false, 못올림: [], 부분: false, 차례: 2, 멈춤: true });
+    expect(글).toContain('`--freeze`');
+    expect(글).toContain('5초마다 화면이 남는다');
+    expect(글).toContain('판이 멈춰 있다');
+    expect(글).toContain('그 판을 이을지 새로 할지');
+    expect(학습프롬프트(재료, { 시험: true, 남은분: 30, 놓음: false, 멈춤: true })).toContain('시험의 첫 판은 처음부터 새로 한다');
+    expect(학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], 부분: false, 차례: 1 })).not.toContain('판이 멈춰 있다');
   });
 });

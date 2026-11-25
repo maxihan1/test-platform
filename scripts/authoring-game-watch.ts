@@ -1,5 +1,5 @@
 // 지켜보기 — 게임을 배우는 AI 가 판에 무엇이 있고 무엇이 생기고 움직이고 사라지고 바뀌나를 이름으로 어림하지 않고 통째로 받아 본다 (도메인/게임 §3.10 「지켜보기」)
-// 쓰는 법: npx tsx scripts/authoring-game-watch.ts [--sec 15] [--near <주소>] [--nested] [--get <이름>:<컴포넌트.칸>]… [--do <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초>]]
+// 쓰는 법: npx tsx scripts/authoring-game-watch.ts [--sec 15] [--near <주소>] [--nested] [--get <이름>:<컴포넌트.칸>]… [--shots <초>] [--do <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초>] [--shots <초>] [--freeze]]
 // --do 를 주면 그 조작 도우미를 돌리는 동안 본다 — 행동 앞뒤로 무엇이 바뀌었나. 잡은 디바이스에서 게임을 켜 둔 채 부른다
 
 import { pathToFileURL } from 'node:url';
@@ -9,7 +9,10 @@ import { Game, type Link } from 'control-cli';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
-import { type 조작결과, 기록남기기, 돌린다, 부를준비 } from './authoring-game-play.js';
+import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
+import { 기록남기기, 덧줄 } from './authoring-game-play-log.js';
+import { type 조작결과, 돌린다 } from './authoring-game-play.js';
+import { 정리알림 } from './authoring-game-find.js';
 import { 결과글 } from './authoring-game-state.js';
 import { type 자리, type 칸정보, type 표본, 요약, 이름만, 화면그림인가 } from './authoring-game-watch-report.js';
 import { 비밀가리기 } from './authoring-reverse.js';
@@ -186,10 +189,12 @@ export interface 인자들 {
   칸: Record<string, string[]>;
   안에든것: boolean;
   할일: string[] | null;
+  /** 도중 화면 간격(초) — 0 은 끔. `--do` 를 줄 때는 그 뒤 인자의 `--shots` 가 이긴다 */
+  화면초: number;
 }
 
 export function 인자읽기(인자: readonly string[]): 인자들 | null {
-  const r: 인자들 = { 초: 기본초, 곁: null, 칸: {}, 안에든것: false, 할일: null };
+  const r: 인자들 = { 초: 기본초, 곁: null, 칸: {}, 안에든것: false, 할일: null, 화면초: 기본화면초 };
   for (let i = 0; i < 인자.length; i += 2) {
     const [이름, 값] = [인자[i], 인자[i + 1]];
     if (이름 === '--nested') {
@@ -203,6 +208,10 @@ export function 인자읽기(인자: readonly string[]): 인자들 | null {
     }
     if (값 === undefined) return null;
     if (이름 === '--sec') r.초 = Number(값);
+    else if (이름 === '--shots') {
+      if (!/^\d+$/.test(값) || Number(값) > 최대초) return null;
+      r.화면초 = Number(값);
+    }
     else if (이름 === '--near') r.곁 = 값;
     else if (이름 === '--get') {
       const m = /^(.+):([\p{L}\p{N}_]+(?:\.[\p{L}\p{N}_]+)+)$/u.exec(값);
@@ -217,7 +226,7 @@ export function 인자읽기(인자: readonly string[]): 인자들 | null {
 export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env, 길?: Link): Promise<number> {
   const a = 인자읽기(인자);
   if (a === null) {
-    console.error(`쓰는 법: npx tsx scripts/authoring-game-watch.ts [--sec <초 — ${최대초}까지>] [--near <주소>] [--nested] [--get <이름>:<컴포넌트.칸>]… [--do <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초>]]`);
+    console.error(`쓰는 법: npx tsx scripts/authoring-game-watch.ts [--sec <초 — ${최대초}까지>] [--near <주소>] [--nested] [--get <이름>:<컴포넌트.칸>]… [--shots <초 — 0 은 끔>] [--do <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초>] [--shots <초>] [--freeze]]`);
     return 2;
   }
   const 폰 = 잡은폰(트리);
@@ -251,7 +260,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       보기 = 본다(new Game(연결), a, () => 그만, 본, 봤다);
       보기.then(봤다, 봤다);
     }), 쉼(거둠ms)]);
-    r = await 돌린다(연결, 것?.함수 ?? (() => 쉼(a.초 * 1000)), 환경, (것?.초 ?? a.초 + 5) * 1000, 끊기.signal);
+    r = await 돌린다(연결, 것?.함수 ?? (() => 쉼(a.초 * 1000)), 환경, (것?.초 ?? a.초 + 5) * 1000, 끊기.signal, { 도중화면ms: (것?.화면초 ?? a.화면초) * 1000, 멈춤: 것?.멈춤, 자료 });
     그만 = true;
     await Promise.race([보기, 쉼(거둠ms)]);
   } catch (e) {
@@ -267,12 +276,17 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 기록 = 기록남기기(자료, 이름, 것?.넘길 ?? [], { ...r, 값: { 지켜본것: 줄, ...(r.값 === undefined ? {} : { 함수값: r.값 }) } }, 비밀들);
   console.log(비밀가리기([
     `[지켜보기] ${본.표본들.length}번 봄 · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json${r.화면 === undefined ? '' : ' · 끝 화면 .jpg'}`}`,
+    ...덧줄(r, 기록),
     ...(r.오류 === undefined ? [] : [`함수 오류: ${r.오류}`]),
     ...줄.map((x) => x.slice(0, 900)),
     ...(Object.keys(본.뺀것).length === 0 ? [] : [`다른 복제본 안에 들어 있어 뺀 것(--nested 로 본다): ${Object.entries(본.뺀것).map(([이름, 수]) => `${이름}×${수}`).slice(0, 20).join(' · ')}`]),
     ...(본.못본.size === 0 ? [] : [`못 읽은 것: ${[...본.못본].slice(0, 8).join(' · ')}`]),
   ].join('\n'), 비밀들));
   if (것 !== null && r.오류 === undefined) console.log(결과글(r.값, 비밀들));
+  if (자료 !== undefined) {
+    const 알림 = 정리알림(자료);
+    if (알림.length > 0) console.log(알림.join('\n'));
+  }
   return r.오류 === undefined ? 0 : 1;
 }
 
