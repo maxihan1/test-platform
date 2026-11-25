@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import type { PrdItem } from '@platform/kit/types';
 
-import { 꼴, 믿음 } from '../apps/admin/src/prd/gameKinds.js';
+import { 꼴, 믿음, 요소종류 } from '../apps/admin/src/prd/gameKinds.js';
 import { 본문상한 } from '../apps/admin/src/prd/rules.js';
 import { 게임자리, 요소상한 } from './authoring-game.js';
 import { type 지도줄, 근거들, 배움떼기, 지금지도 } from './authoring-game-find.js';
@@ -19,7 +19,9 @@ const 안옮길종류 = new Set(['SYSTEM', 'PLAY', 'FAIL', 'PROBE', 'TRIAL', 'AS
 /** 2026-11-25 사용자가 정한 첫 값(계획 B-3) — 실측(GAME-F6-05)에서 고친다 */
 const 고정최소 = 2;
 const 랜덤최소 = 10;
-const 확률숫자 = /\d+(?:\.\d+)?\s*(?:%|퍼센트)|\d+(?:\.\d+)?\s*[~∼～〜]\s*\d+|\d+\s*분의\s*\d+/g;
+// 「1~3웨이브에서」는 잰 조건이다
+const 확률숫자 = /\d+(?:\.\d+)?\s*(?:%|퍼센트)|\d+(?:\.\d+)?\s*[~∼～〜]\s*\d+(?:\.\d+)?(?!\d|\.\d|\s*(?:웨이브|스테이지|라운드|단계|레벨|챕터|층|판|장))|\d+\s*분의\s*\d+/g;
+const 숫자들 = (글: string): string[] => [...글.matchAll(확률숫자)].map((m) => m[0].replace(/\s+/g, '').replace(/[∼～〜]/g, '~').replace('퍼센트', '%'));
 
 export type 가름 = { 갈래: '확인' | '판정' } | { 갈래: '지도'; 까닭: string };
 
@@ -35,11 +37,19 @@ const 글다름 = (x: 지도줄): string | null => {
   return 글인가(v) ? 한칸(v) : null;
 };
 
-/** 배운 줄 하나의 갈래. 요구가 될 수 없는 줄이면 null */
-export function 가르기(x: 지도줄, 빌드?: string): 가름 | null {
+/** 에이전트가 배운 값에 남긴 요구 번호 — 서버 근거와 달리 요구를 지워도 남는다(authoring-learn-io 번호달기) */
+const 남긴번호 = (x: 지도줄): string[] => [객체(x.learned?.data).요구].flat().filter(글인가);
+
+/** 배운 줄 하나의 갈래. 요구가 될 수 없는 줄이면 null. 있는번호 = 지금 표준 기획서의 번호(모르면 안 본다) */
+export function 가르기(x: 지도줄, 빌드?: string, 있는번호?: ReadonlySet<string>): 가름 | null {
   const l = x.learned;
   if (l === null || 안옮길종류.has(x.kind) || x.key.endsWith(':없음')) return null;
   const 지도에만 = (까닭: string): 가름 => ({ 갈래: '지도', 까닭 });
+  const 안옮긴까닭 = 객체(l.data).안옮김;
+  if (글인가(안옮긴까닭)) return 지도에만(`안 옮기기로 함 — ${안옮긴까닭}`);
+  // 사람이 뺀 요구를 다시 올리지 않는다
+  const 뺀 = 남긴번호(x);
+  if (있는번호 !== undefined && 뺀.length > 0 && 근거들(x).length === 0 && !뺀.some((n) => 있는번호.has(n))) return 지도에만(`PRD 에서 뺀 요구 ${뺀.join(' · ')}`);
   if (l.belief !== 'CONFIRMED' && l.belief !== 'GAME_TEXT') return 지도에만(믿음[l.belief ?? 'GUESS']);
   if (l.marks?.includes('CHEAT') === true) return 지도에만('치트로 봄');
   if (l.marks?.includes('HUMAN') === true) return 지도에만('사람이 바로잡음 — 서비스 가이드를 따른다');
@@ -56,8 +66,8 @@ export function 가르기(x: 지도줄, 빌드?: string): 가름 | null {
   return 게임글들(x).length === 0 ? 지도에만('게임 글과 다르다고 적었지만 게임 글 원문(data.글)이 없음') : { 갈래: '판정' };
 }
 
-/** 이미 PRD 에 이은 줄 — 요구 번호가 달렸거나 기획서 값이 있다 */
-const 이었나 = (x: 지도줄): boolean => 근거들(x).length > 0 || 배움떼기(x.line).앞.includes(' · 기획서 ');
+/** 이미 PRD 에 이은 줄 — 요구 번호가 달렸거나 기획서 값이 있다. 게임이 만든 종류는 서버가 근거를 안 받아 남긴 번호로 본다(뺀 요구는 가르기가 먼저 거른다) */
+const 이었나 = (x: 지도줄): boolean => 근거들(x).length > 0 || 배움떼기(x.line).앞.includes(' · 기획서 ') || (!Object.hasOwn(요소종류, x.kind) && 남긴번호(x).length > 0);
 
 export interface 옮김표 {
   옮김: Map<string, string[]>;
@@ -89,9 +99,9 @@ export function 옮김읽기(글: string | null): 옮김표 {
 }
 
 type 가른줄 = { 줄: 지도줄; 가름: 가름 };
-export const 가른줄들 = (지금: 지도, 빌드?: string): 가른줄[] =>
+export const 가른줄들 = (지금: 지도, 빌드?: string, 있는번호?: ReadonlySet<string>): 가른줄[] =>
   지금.줄들.flatMap((줄) => {
-    const 가름 = 가르기(줄, 빌드);
+    const 가름 = 가르기(줄, 빌드, 있는번호);
     return 가름 === null ? [] : [{ 줄, 가름 }];
   });
 
@@ -101,11 +111,16 @@ export const 빠진줄들 = (들: readonly 가른줄[], 표: 옮김표): 지도�
 
 const 화면뿐 = (i: Pick<옮긴항목, 'basis'>): boolean => i.basis.every((b) => b.from === '화면');
 
+/** 번호(받은 번호 · 임시 번호) → 항목. 이번 결과가 지금 판을 덮는다 */
+const 항목들 = (결과: readonly 옮긴항목[], 지금판: readonly PrdItem[]): Map<string, 옮긴항목> =>
+  new Map<string, 옮긴항목>([...지금판.map((i) => [i.reqId, i] as const), ...결과.flatMap((i) => [i.reqId, i.임시].flatMap((n) => (n === undefined ? [] : [[n, i] as const])))]);
+
 /** 옮김 표가 결과 항목과 맞나 — 틀린 까닭들 */
 export function 옮김검사(들: readonly 가른줄[], 표: 옮김표, 결과: readonly 옮긴항목[], 지금판: readonly PrdItem[]): string[] {
   const 틀림 = 표.틀림 === null ? [] : [표.틀림];
   const 이번 = new Map(결과.flatMap((i) => [i.reqId, i.임시].flatMap((n) => (n === undefined ? [] : [[n, i] as const]))));
-  const 모두 = new Map<string, 옮긴항목>([...지금판.map((i) => [i.reqId, i] as const), ...이번]);
+  const 있던 = new Set(지금판.map((i) => i.reqId));
+  const 모두 = 항목들(결과, 지금판);
   const 가른 = new Map(들.map((x) => [x.줄.key, x]));
   const 항목줄 = new Map<string, 가른줄[]>();
   for (const [열쇠, 번호들] of 표.옮김) {
@@ -129,8 +144,8 @@ export function 옮김검사(들: readonly 가른줄[], 표: 옮김표, 결과: 
     const 판정들 = 줄들.filter((x) => x.가름.갈래 === '판정');
     if (항목.status === 'NEEDS_CHECK') {
       if (판정들.length > 0 && 항목.observed === undefined) 틀림.push(`${번호} — 게임 글과 잰 값이 다른 줄(${판정들.map((x) => x.줄.key).join(' · ')})인데 observed 가 없다`);
-      // 다 달면 기획서도 없는데 전부 판정 요청 카드가 된다
-      if (이번.has(번호) && 화면뿐(항목) && 판정들.length === 0 && 항목.observed !== undefined) 틀림.push(`${번호} — observed 는 게임 글과 잰 값이 다를 때만 단다`);
+      // 다 달면 기획서도 없는데 전부 판정 요청 카드가 된다. 이미 있던 항목은 새 빌드에서 값이 바뀐 것일 수 있다
+      if (이번.has(번호) && !있던.has(번호) && 화면뿐(항목) && 판정들.length === 0 && 항목.observed !== undefined) 틀림.push(`${번호} — observed 는 게임 글과 잰 값이 다를 때만 단다`);
     }
     if (!이번.has(번호) || !화면뿐(항목)) continue;
     const 근거글 = 항목.basis.map((b) => 한칸(b.quote));
@@ -138,8 +153,8 @@ export function 옮김검사(들: readonly 가른줄[], 표: 옮김표, 결과: 
     const 랜덤줄 = 줄들.filter((x) => 랜덤꼴.has(x.줄.learned?.shape ?? ''));
     if (랜덤줄.length === 0) continue;
     // 게임 글이 말한 확률은 그 글의 값이다 — 본 비율 · 범위만 막는다
-    const 글들 = 랜덤줄.flatMap((x) => 게임글들(x.줄));
-    const 숫자 = [...항목.text.matchAll(확률숫자)].map((m) => m[0]).filter((s) => !글들.some((g) => g.includes(s)));
+    const 글숫자 = new Set(랜덤줄.flatMap((x) => 게임글들(x.줄).flatMap(숫자들)));
+    const 숫자 = 숫자들(항목.text).filter((s) => !글숫자.has(s));
     if (숫자.length > 0) 틀림.push(`${번호} — 랜덤 줄(${랜덤줄.map((x) => x.줄.key).join(' · ')})의 본 비율 · 범위를 문장에 적었다(${숫자.join(' · ')}). 문장은 「가끔 ~한다」로 쓰고 표본은 근거에 적는다`);
   }
   return 틀림;
@@ -149,12 +164,6 @@ export function 옮김검사(들: readonly 가른줄[], 표: 옮김표, 결과: 
 export const 지금빌드 = (자료: string): string | undefined => 안전히읽기(자료, 게임자리.빌드, 1_000)?.trim() || undefined;
 const 표읽기 = (자료: string): 옮김표 => 옮김읽기(안전히읽기(자료, 게임자리.옮김, 요소상한));
 
-/** 화면만 — 아직 안 옮긴 배운 줄의 열쇠. 지도를 못 읽으면 빈 목록(옮길 재료가 없다) */
-export function 안옮긴열쇠(자료: string): string[] {
-  const 지금 = 지금지도(자료);
-  return 지금 === null ? [] : 빠진줄들(가른줄들(지금, 지금빌드(자료)), 표읽기(자료)).map((x) => x.key);
-}
-
 const JSON읽기 = (글: string | null): unknown => {
   try {
     return JSON.parse(글 ?? 'null') as unknown;
@@ -162,17 +171,47 @@ const JSON읽기 = (글: string | null): unknown => {
     return null;
   }
 };
+/** 에이전트가 둔 지금 판의 항목 — 못 읽으면 null(뺀 요구를 안 가린다) */
+function 지금판항목(자료: string): PrdItem[] | null {
+  const 들 = 객체(JSON읽기(안전히읽기(자료, 'prd-current.json', 본문상한 * 2))).items;
+  return Array.isArray(들) ? (들 as PrdItem[]) : null;
+}
+/** 자식이 쓴 결과 항목 — 없거나 깨졌으면 빈 목록(번호가 없다고 짚인다) */
+function 결과항목(자료: string, 접두사: string): 옮긴항목[] {
+  const 옮긴 = 옮긴것읽기(JSON읽기(안전히읽기(join(자료, 'out'), 'prd.json', 본문상한)), 접두사);
+  return 'items' in 옮긴 ? 옮긴.items : [];
+}
+const 있는번호들 = (자료: string, 결과: readonly 옮긴항목[]): Set<string> | undefined => {
+  const 판 = 지금판항목(자료);
+  return 판 === null ? undefined : new Set([...판.map((i) => i.reqId), ...결과.flatMap((i) => (i.reqId === undefined ? [] : [i.reqId]))]);
+};
+
+/** 화면만이 아무것도 안 썼을 때 남은 쓸 것 — 표에 「옮김」으로 적었어도 결과 파일이 없으면 안 옮긴 것이다. 지도를 못 읽으면 빈 목록(옮길 재료가 없다) */
+export function 안옮긴열쇠(자료: string): string[] {
+  const 지금 = 지금지도(자료);
+  return 지금 === null ? [] : 빠진줄들(가른줄들(지금, 지금빌드(자료), 있는번호들(자료, [])), { ...표읽기(자료), 옮김: new Map() }).map((x) => x.key);
+}
 
 /** 자료 폴더를 읽어 다 본다 — 자식이 부르는 명령과 탐색 체크포인트가 같은 손을 쓴다. 지도가 없으면 null */
 export function 옮김보기(자료: string, 접두사: string): { 지금: 지도; 들: 가른줄[]; 빠짐: 지도줄[]; 틀림: string[] } | null {
   const 지금 = 지금지도(자료);
   if (지금 === null) return null;
-  const 들 = 가른줄들(지금, 지금빌드(자료));
+  const 결과 = 결과항목(자료, 접두사);
+  const 들 = 가른줄들(지금, 지금빌드(자료), 있는번호들(자료, 결과));
   const 표 = 표읽기(자료);
-  // 자식이 쓴 결과와 에이전트가 둔 지금 판 — 깨졌으면 빈 것으로 본다(번호가 없다고 짚인다)
-  const 옮긴 = 옮긴것읽기(JSON읽기(안전히읽기(join(자료, 'out'), 'prd.json', 본문상한)), 접두사);
-  const 지금판 = 객체(JSON읽기(안전히읽기(자료, 'prd-current.json', 본문상한 * 2))).items;
-  return { 지금, 들, 빠짐: 빠진줄들(들, 표), 틀림: 옮김검사(들, 표, 'items' in 옮긴 ? 옮긴.items : [], Array.isArray(지금판) ? (지금판 as PrdItem[]) : []) };
+  return { 지금, 들, 빠짐: 빠진줄들(들, 표), 틀림: 옮김검사(들, 표, 결과, 지금판항목(자료) ?? []) };
+}
+
+/** 배운 줄에 달 번호 — 옮김 표에서 표준 기획서에 있는 번호만, 지도에만 둘 줄을 화면 항목에 이은 것은 빼고 (authoring-learn-io 번호달기) */
+export function 이을번호(자료: string, 접두사: string, 지금: 지도, 표: 옮김표): Map<string, string[]> {
+  const 결과 = 결과항목(자료, 접두사);
+  const 모두 = 항목들(결과, 지금판항목(자료) ?? []);
+  const 가른 = new Map(가른줄들(지금, 지금빌드(자료), 있는번호들(자료, 결과)).map((x) => [x.줄.key, x.가름]));
+  return new Map([...표.옮김].map(([열쇠, 번호들]) => [열쇠, 번호들.filter((n) => {
+    const 항목 = 모두.get(n);
+    const 가름 = 가른.get(열쇠);
+    return 항목 !== undefined && 가름 !== undefined && !(가름.갈래 === '지도' && 화면뿐(항목));
+  })]));
 }
 
 /** 화면만 작성의 탐색 체크포인트가 더 보는 것 — 배운 줄이 빠짐없이 PRD 로 갔나. 비면 지났다 */

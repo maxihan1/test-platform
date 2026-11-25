@@ -8,7 +8,7 @@ import { 근거들, 바뀜, 적은줄들, 지금지도, 지도읽기 } from './a
 import { 게임자리, 글받기, 요소상한, 지도상한 } from './authoring-game.js';
 import { 부른다 } from './authoring-io.js';
 import { 글자들, 사람줄 } from './authoring-learn-map.js';
-import { 옮김읽기 } from './authoring-learn-prd.js';
+import { 옮김읽기, 이을번호 } from './authoring-learn-prd.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 
@@ -75,28 +75,38 @@ const 요구번호꼴 = /^[A-Z][A-Z0-9]*-REQ-\d{3}$/;
 
 /**
  * 표준 기획서를 올린 뒤(임시 번호가 받은 번호로 바뀐 뒤) 옮김 표의 번호를 배운 줄에 단다 — 안 달면 다음 반영이 이미 배운 요구를 30분 다시 배우고, 화면만이 같은 줄을 또 옮긴다.
+ * 번호와 안 옮긴 까닭을 배운 값(`요구` · `안옮김` 칸)에도 남긴다 — 사람이 요구를 지우면 서버가 근거를 떼어, 남은 것이 없으면 다음 화면만이 그 요구를 되살린다. 게임이 만든 종류는 서버가 근거를 안 받아 이 칸뿐이다.
  * 배운 것은 지도에서 읽은 그대로 같이 보낸다 — 빼고 보내면 서버가 기획서 값을 지운다. 「기획서가 바뀜」이 붙은 줄은 건드리지 않는다(근거를 실으면 그 표시가 비어 다음 세션이 옛 값을 못 고친다).
  * 못 달아도 작성은 간다 — PR 머리 줄에만 적는다
  */
-export async function 번호달기(통로: 화면통로, 자료: string): Promise<string[]> {
+export async function 번호달기(통로: 화면통로, 자료: string, 접두사: string, 화면만: boolean): Promise<string[]> {
   const 표 = 옮김읽기(안전히읽기(자료, 게임자리.옮김, 요소상한));
-  const 못달음 = (왜: string): string[] => [`배운 줄에 요구 번호: 못 닮 — ${왜}`];
+  const 못달음 = (왜: string): string[] => [`배운 줄에 요구 번호: 못 달았음 — ${왜}`];
   if (표.틀림 !== null) return 못달음(표.틀림);
-  if (표.옮김.size === 0) return [];
+  if (표.옮김.size + 표.안옮김.size === 0) return [];
   // 이번에 올린 요소(game-elements.json)의 근거까지 든 지도에 더한다 — 서버는 근거를 통째로 바꾼다
   const 왜 = await 글받기(통로, 자료, 'game-map', 게임자리.지도);
   const 글 = 왜 === null ? 안전히읽기(자료, 게임자리.지도, 지도상한) : null;
   if (글 === null) return 못달음(`지도를 다시 못 받았다${왜 === null ? '' : `(${왜})`}`);
-  const elements = 지도읽기(글).줄들.flatMap((x): { kind: string; key: string; name: string; learned: 배운것; reqIds?: string[] }[] => {
-    const 번호들 = (표.옮김.get(x.key) ?? []).filter((n) => 요구번호꼴.test(n));
+  const 지금 = 지도읽기(글);
+  const 이을 = 이을번호(자료, 접두사, 지금, 표);
+  const elements = 지금.줄들.flatMap((x): { kind: string; key: string; name: string; learned: 배운것; reqIds?: string[] }[] => {
+    const 번호들 = (이을.get(x.key) ?? []).filter((n) => 요구번호꼴.test(n));
+    // 대조 · 첫 작성의 까닭(기획서 밖 기능)을 남기면 화면만이 그 줄을 영영 안 옮긴다
+    const 까닭 = 화면만 ? 표.안옮김.get(x.key) : undefined;
+    if (x.learned === null || x.kind === 'KIND' || 바뀜(x) !== null || (번호들.length === 0 && 까닭 === undefined)) return [];
     const 있던 = 근거들(x);
     const reqIds = [...new Set([...있던, ...번호들])].slice(0, 50);
-    if (x.learned === null || x.kind === 'KIND' || 바뀜(x) !== null || reqIds.length === 있던.length) return [];
-    const 앞 = { kind: x.kind, key: x.key, name: x.name };
-    if (Object.hasOwn(요소종류, x.kind)) return [{ ...앞, learned: x.learned, reqIds }];
     const d = x.learned.data;
-    // 만든 종류 — 잰 값이 칸 묶음일 때만 적을 자리가 있다
-    return d === undefined || (typeof d === 'object' && d !== null && !Array.isArray(d)) ? [{ ...앞, learned: { ...x.learned, data: { ...(d as object | undefined), 요구: reqIds } } }] : [];
+    // 잰 값이 칸 묶음일 때만 남길 자리가 있다
+    const 칸 = d === undefined || (typeof d === 'object' && d !== null && !Array.isArray(d)) ? (d as { 요구?: unknown } | undefined) ?? {} : null;
+    const 남긴 = [칸?.요구].flat().filter((n): n is string => typeof n === 'string');
+    const 요구 = [...new Set([...남긴, ...번호들])];
+    const data = 칸 === null ? d : { ...칸, ...(번호들.length > 0 ? { 요구 } : {}), ...(까닭 === undefined ? {} : { 안옮김: 까닭.slice(0, 200) }) };
+    const learned = { ...x.learned, ...(data === undefined ? {} : { data }) };
+    const 근거더함 = Object.hasOwn(요소종류, x.kind) && reqIds.length > 있던.length;
+    if (!근거더함 && JSON.stringify(learned) === JSON.stringify(x.learned)) return [];
+    return [{ kind: x.kind, key: x.key, name: x.name, learned, ...(근거더함 ? { reqIds } : {}) }];
   });
   if (elements.length === 0) return [];
   try {

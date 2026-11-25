@@ -53,6 +53,9 @@ export interface 조작결과 {
   /** 부르기 앞의 시간 배율(못 읽으면 null)과 함수가 배율을 바꿨나 — 10판 확인(authoring-game-wins)은 원래 속도만 센다 */
   배율: number | null;
   배율바꿈: boolean;
+  /** 명령의 답을 못 받은 일 — 게임이 실패로 답한 것과 다르다(팜 거절 · 시간 초과 · 끊김) */
+  통신오류: string | null;
+  입력못놓음: boolean;
 }
 
 /**
@@ -64,6 +67,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   let 막음 = false;
   let 보내는중 = 0;
   let 배율바꿈 = false;
+  let 통신오류: string | null = null;
+  let 입력못놓음 = false;
   const 문: Link = async (cmd: Command) => {
     if (막음) return new Promise<never>(() => {});
     const c = cmd as unknown as Record<string, unknown>;
@@ -71,6 +76,9 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     보내는중 += 1;
     try {
       return await 길(cmd);
+    } catch (e) {
+      통신오류 ??= 까닭(e);
+      throw e;
     } finally {
       보내는중 -= 1;
     }
@@ -119,6 +127,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   try {
     await 맨게임.resetInput();
   } catch (e) {
+    입력못놓음 = true;
     오류 = `${오류 === undefined ? '' : `${오류} · `}입력을 못 놓았습니다(${까닭(e)}) — control-cli input-reset 으로 놓습니다`;
   }
   const { 배율 } = 앞;
@@ -142,6 +151,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     못한것,
     배율,
     배율바꿈,
+    통신오류,
+    입력못놓음,
   };
 }
 
@@ -157,7 +168,7 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
   }
   if (!폴더인가(폴더)) return null;
   const 이름 = `${지금.toISOString().replace(/\D/g, '').slice(0, 17)}-${함수}`;
-  const { 화면, 배율: _배율, 배율바꿈: _바꿈, ...글 } = r;
+  const { 화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, ...글 } = r;
   try {
     let 날글: string;
     try {

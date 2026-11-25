@@ -5,7 +5,7 @@ import { readdirSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 import type { 원장 } from './authoring-ledger.js';
-import { type 작전, 다채웠나, 이긴판읽기, 채울판 } from './authoring-game-wins-log.js';
+import { type 작전, 다채웠나, 안건드린작전, 이긴판읽기, 채울판 } from './authoring-game-wins-log.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 기준결정, 원장대조, tcId들 } from './authoring-ledger-check.js';
 import { 안전히읽기, 폴더인가 } from './authoring-screens-keep-io.js';
@@ -176,15 +176,16 @@ const 번호들 = (xs: readonly string[]): string => {
 };
 
 /** 작전이 적힌 미션 가운데 원래 속도로 10판을 다 못 이긴 것 — 막지 않고 보이기만 한다 */
-function 못채운글(입력: { 트리: string; 케이스폴더: string; 자료?: string; 기준표글?: string }, 미션들: readonly 미션[]): string {
+function 못채운글(입력: { 트리: string; 케이스폴더: string; 자료?: string; 기준표글?: string; 바뀐?: readonly string[] | null }, 미션들: readonly 미션[]): string {
   const { 자료 } = 입력;
   if (자료 === undefined) return '';
-  // 이긴 판 기록은 작성마다 새것이다 — 앞 작성이 이미 확인한 작전(기준 표와 같고 이번에 안 돌린 것)을 0판으로 세지 않는다
+  // 이긴 판 기록은 작성마다 새것이다 — 앞 작성의 작전(기준 표와 같고 이번에 안 돌리고 도우미도 안 고친 것)을 0판으로 세지 않는다. 바뀐 파일을 못 읽었으면 센다
   const 앞작전 = new Map((입력.기준표글 === undefined ? [] : (미션절읽기(입력.기준표글)?.items ?? [])).map((m) => [m.id, JSON.stringify(m.plan)]));
   const 작전들 = 미션들.flatMap((m) => {
     if (m.plan === undefined) return [];
-    const 판 = 이긴판읽기(자료, 입력.트리, basename(입력.케이스폴더), m.plan);
-    return 판.이김 + 판.짐 === 0 && 앞작전.get(m.id) === JSON.stringify(m.plan) ? [] : [{ id: m.id, 판 }];
+    const 폴더 = basename(입력.케이스폴더);
+    const 그대로 = 앞작전.get(m.id) === JSON.stringify(m.plan) && Array.isArray(입력.바뀐) && 안건드린작전(자료, 입력.트리, 폴더, m.plan, 입력.바뀐);
+    return 그대로 ? [] : [{ id: m.id, 판: 이긴판읽기(자료, 입력.트리, 폴더, m.plan) }];
   });
   const 못채움 = 작전들.filter((x) => !다채웠나(x.판));
   if (작전들.length === 0) return '';
@@ -196,7 +197,7 @@ function 못채운글(입력: { 트리: string; 케이스폴더: string; 자료?
  * 자식 뒤 — 케이스 목록 파일의 미션 절을 읽어 PR 본문 머리 줄을 돌려준다. 절이 없으면 줄도 없다.
  * 공식 빈칸 · 미션도 테스트도 없는 규칙은 번호까지 싣는다 — 앞 판의 「미션 승인」 탭 경고를 사람이 PR 에서 본다. 어떻게 끝나도 던지지 않는다
  */
-export function 미션줄(입력: { 트리: string; 서비스: string; 케이스폴더: string; 원장값: 원장 | { 없음: string }; 기준?: 기준결정; 비밀: readonly string[]; 자료?: string; 기준표글?: string }): string[] {
+export function 미션줄(입력: { 트리: string; 서비스: string; 케이스폴더: string; 원장값: 원장 | { 없음: string }; 기준?: 기준결정; 비밀: readonly string[]; 자료?: string; 기준표글?: string; 바뀐?: readonly string[] | null }): string[] {
   try {
     const 표글 = 안전히읽기(join(입력.트리, 'docs', 'cases'), `${입력.서비스}.md`, 글상한);
     const 읽음 = 표글 === null ? null : 미션절읽기(표글);

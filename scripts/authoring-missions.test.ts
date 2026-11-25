@@ -165,12 +165,17 @@ describe('미션줄', () => {
     expect(미션절읽기(작전표)?.items.map((m) => m.plan)).toEqual([{ 파일: 'play', 함수: '한판', 인자: ['쉬움'] }, { 파일: 'play', 함수: '한판', 인자: ['보통'] }]);
     const 자료 = join(트리, 'data');
     mkdirSync(자료);
-    const 줄 = (기준표글?: string) => 미션줄({ 트리, 서비스: 'ARG', 케이스폴더: join(트리, 'tests', 'arg'), 원장값: 원장값(), 비밀: [], 자료, 기준표글 })[0]!;
+    const 줄 = (기준표글?: string, 바뀐: string[] = []) => 미션줄({ 트리, 서비스: 'ARG', 케이스폴더: join(트리, 'tests', 'arg'), 원장값: 원장값(), 비밀: [], 자료, 기준표글, 바뀐 })[0]!;
+    mkdirSync(join(트리, 'tests', 'arg', 'helpers'));
+    writeFileSync(join(트리, 'tests', 'arg', 'helpers', 'play.helper.ts'), 'export const a = 1;\n');
     expect(줄()).toContain(' · 이기는 미션 2개 가운데 10판을 못 채운 것 2개(M01 0/10 · M02 0/10)');
     이긴판적기(자료, 트리, 'arg', { 파일: 'play', 함수: '한판', 인자: ['쉬움'] }, { 이김: 10, 짐: 0 });
     이긴판적기(자료, 트리, 'arg', { 파일: 'play', 함수: '한판', 인자: ['보통'] }, { 이김: 4, 짐: 1 });
     expect(줄()).toContain(' · 이기는 미션 2개 가운데 10판을 못 채운 것 1개(M02 짐)');
+    writeFileSync(join(트리, 'tests', 'arg', 'helpers', 'play.helper.ts'), 'export const a = 2;\n');
+    expect(줄(작전표)).toContain('못 채운 것 2개(M01 0/10 · M02 0/10)');
     rmSync(join(자료, 'game-wins.json'));
+    expect(줄(작전표, ['tests/arg/helpers/play.helper.ts'])).toContain('못 채운 것 2개');
     expect(줄(작전표)).not.toContain('이기는 미션');
     expect(부르기()[0]).not.toContain('이기는 미션');
     expect(미션절읽기(작전표.replace('play 한판 ["쉬움"]', '한판만'))?.못읽음[0]).toContain('M01 — 작전 줄이');

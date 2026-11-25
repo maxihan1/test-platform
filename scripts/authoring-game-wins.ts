@@ -14,8 +14,6 @@ const 머리 = '[10판]';
 /** 한 번 부름 — 셸 명령의 최대 한도(10분) 안이다. 한 판의 한도에 게임에 붙고 거두는 시간을 더해 들어갈 때만 다음 판을 시작한다 */
 const 부름ms = 9 * 60_000;
 const 붙고거두기ms = 60_000;
-/** 작전 탓이 아닌 멈춤 — 밖에서 끊었거나 팜이 디바이스를 풀었다. 판으로 안 센다 */
-const 환경탓 = /밖에서 명령을 끊었습니다|HTTP 4\d\d|HTTP 5\d\d|ECONN|fetch failed/;
 
 export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env, 길?: Link, 지금: () => number = Date.now): Promise<number> {
   const 것 = await 부를준비('authoring-game-wins', 머리, 인자, 트리, env);
@@ -57,14 +55,16 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       const 기록 = 기록남기기(자료, 이름, 넘길, r, 비밀들);
       // 멈춘 화면(0배)에서 시작하는 것은 게임이 멈춘 것이다 — 그 밖의 배율은 원래 속도가 아니다
       if (r.배율바꿈 || (r.배율 !== null && r.배율 !== 0 && r.배율 !== 1)) return 못셈(`원래 속도가 아니다(${r.배율바꿈 ? '함수가 시간 배율을 바꿨다' : `배율 ${r.배율}`}) — \`npx control-cli -s=g timescale-set 1\` 뒤 다시 부른다`);
-      if (r.오류 !== undefined && 환경탓.test(r.오류)) return 못셈(r.오류);
+      // 작전 탓이 아닌 판 — 밖에서 끊음 · 입력을 못 놓음 · 명령의 답을 못 받고 못 이김(팜 거절 · 시간 초과). 답을 못 받고도 이긴 판은 이긴 것이다
+      if (끊기.signal.aborted || r.입력못놓음) return 못셈(r.오류 ?? '밖에서 끊음');
+      if (r.통신오류 !== null && (r.값 as { 이김?: unknown } | null | undefined)?.이김 !== true) return 못셈(`명령의 답을 못 받았다(${r.통신오류})`);
       const 이김 = r.오류 === undefined ? (r.값 as { 이김?: unknown } | null | undefined)?.이김 : false;
       if (typeof 이김 !== 'boolean') return 못셈('함수가 { 이김: true | false } 를 돌려주지 않았다');
       판 = 이김 ? { ...판, 이김: 판.이김 + 1 } : { ...판, 짐: 판.짐 + 1 };
       이긴판적기(자료, 트리, 폴더, 작전, 판);
       console.log(비밀가리기(`${머리} ${판.이김 + 판.짐}판째 ${이김 ? '이김' : `짐${r.오류 === undefined ? '' : `(${r.오류})`}`} · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json`}`, 비밀들));
       if (!이김) {
-        console.log(`${끝말()} — 다 이긴 작전이 아니다. 시작 조건을 쉽게 맞춰도 안 되면 그 미션은 보류다`);
+        console.log(`${끝말()} — 다 이긴 작전이 아니다. 시작 조건을 쉽게 맞춰도 안 되면 그 미션은 쓰지 않는다`);
         return 1;
       }
     }

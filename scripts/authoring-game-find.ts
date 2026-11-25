@@ -52,12 +52,8 @@ export function 지도읽기(글: string): { 줄들: 지도줄[]; 이름: Map<st
   return { 줄들, 이름 };
 }
 
-/** 줄에 적힌 근거 요구 번호 — 배움 앞에서만 본다. 게임이 만든 종류는 서버가 근거를 안 받아 에이전트가 배운 값의 `요구` 칸에 적는다(authoring-learn-io 번호달기) */
-export const 근거들 = (x: 지도줄): string[] => {
-  if (Object.hasOwn(요소종류, x.kind)) return / · 근거 (.+?)(?= · |$)/.exec(배움떼기(x.line).앞)?.[1]?.split(', ') ?? [];
-  const 요구 = 객체인가(x.learned?.data) ? x.learned.data.요구 : undefined;
-  return Array.isArray(요구) ? 요구.filter((n): n is string => typeof n === 'string') : [];
-};
+/** 줄에 적힌 근거 요구 번호 — 배움 앞에서만 본다 */
+export const 근거들 = (x: 지도줄): string[] => / · 근거 (.+?)(?= · |$)/.exec(배움떼기(x.line).앞)?.[1]?.split(', ') ?? [];
 
 interface 적은줄 {
   kind: string;

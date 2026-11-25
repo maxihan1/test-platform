@@ -1,5 +1,5 @@
 // 배운 것을 PRD 로 옮기기 검사 — 세 갈래 · 랜덤 표본 · 옮김 표와 결과 항목 맞추기 · 빠진 줄 · 화면만 닫는 길 · 체크포인트 · 배운 줄에 요구 번호 달기 (도메인/게임 §3.10 「배운 것을 PRD · 테스트로」)
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 세션띄우기 } from './authoring-explore.js';
 import { 목록지문 } from './authoring-game-crawl.js';
-import { 근거들, 지도읽기 } from './authoring-game-find.js';
+import { 지도읽기 } from './authoring-game-find.js';
 import { 번호달기 } from './authoring-learn-io.js';
 import { 배울것고르기 } from './authoring-learn-map.js';
 import { 가른줄들, 가르기, 안옮긴열쇠, 옮김검사, 옮김읽기, 화면만못옮김, 실행 } from './authoring-learn-prd.js';
@@ -95,6 +95,8 @@ describe('옮김검사', () => {
     expect(옮김검사(줄들, 표({ 'rule:심기': ['CGP-NEW-001'] }), [항목({})], []).join('\n')).toMatch(/observed 가 없다[\s\S]*게임 글 「심으면 고기 5를 씁니다」 이 그대로 없다/);
     expect(옮김검사(줄들, 표({ 'rule:심기': ['CGP-NEW-001'] }), [항목({ observed, basis: [{ from: '화면', quote: '도움말: 심으면  고기 5를 씁니다' }] })], [])).toEqual([]);
     expect(옮김검사(줄들, 표({ 'rule:먹이': ['CGP-NEW-001'] }), [항목({ observed })], [])).toEqual(['CGP-NEW-001 — observed 는 게임 글과 잰 값이 다를 때만 단다']);
+    const 있던 = { ...항목({}), reqId: 'CGP-REQ-001' };
+    expect(옮김검사(줄들, 표({ 'rule:먹이': ['CGP-REQ-001'] }), [{ ...있던, observed }], [있던])).toEqual([]);
   });
 
   it('기획서가 적은 확정 항목과 다른 값은 observed 를 달라고 하지 않는다 — 테스트가 기획서 값으로 판정해 실패로 남는다', () => {
@@ -105,10 +107,14 @@ describe('옮김검사', () => {
     const 줄들 = 들([['CALC', 'calc:피해', 랜덤], ['CALC', 'calc:치명', { ...랜덤, shape: 'RATE', data: { 글: '20% 확률로 치명타' } }]]);
     const 본 = (열쇠: string, text: string) => 옮김검사(줄들, 표({ [열쇠]: ['CGP-NEW-001'] }), [항목({ text })], []);
     expect(본('calc:피해', '적의 피해는 때마다 다르다')).toEqual([]);
-    expect(본('calc:피해', '적의 피해는 3 ~ 8 이다')[0]).toContain('본 비율 · 범위를 문장에 적었다(3 ~ 8)');
+    expect(본('calc:피해', '적의 피해는 3 ~ 8 이다')[0]).toContain('본 비율 · 범위를 문장에 적었다(3~8)');
     expect(본('calc:치명', '20% 확률로 치명타가 난다')).toEqual([]);
     expect(본('calc:치명', '30% 확률로 치명타가 난다')[0]).toContain('30%');
     expect(본('calc:피해', '1-2 스테이지에서 피해가 때마다 다르다')).toEqual([]);
+    expect(본('calc:피해', '1~3웨이브에서 피해가 때마다 다르다')).toEqual([]);
+    expect(본('calc:피해', '1 ~ 13 웨이브에서 피해가 때마다 다르다')).toEqual([]);
+    expect(본('calc:치명', '20 % 확률로 치명타가 난다')).toEqual([]);
+    expect(본('calc:치명', '0% 가 아니고 2% 다')[0]).toContain('0% · 2%');
   });
 
   it('표 파일이 깨졌거나 꼴이 틀리면 그 까닭 하나다', () => {
@@ -127,10 +133,23 @@ describe('빠진 줄', () => {
     ]));
     쓰기('game-prd.json', { 안옮김: { 'rule:까닭': '창 항목이 이미 덮음' } });
     expect(안옮긴열쇠(자료)).toEqual(['rule:심기']);
+    쓰기('game-prd.json', { 옮김: { 'rule:심기': ['CGP-NEW-001'] }, 안옮김: { 'rule:까닭': '창 항목이 이미 덮음' } });
+    expect(안옮긴열쇠(자료)).toEqual(['rule:심기']);
+    expect(화면만못옮김(자료, 'CGP')[0]).toContain('없는 번호다');
+    쓰기('game-prd.json', { 안옮김: { 'rule:까닭': '창 항목이 이미 덮음' } });
     expect(화면만못옮김(자료, 'CGP')).toEqual(['배운 줄 1개를 PRD 로 안 옮겼다 — rule:심기']);
     결과쓰기([새항목()]);
     쓰기('game-prd.json', { 옮김: { 'rule:심기': ['CGP-NEW-001'] }, 안옮김: { 'rule:까닭': '창 항목이 이미 덮음' } });
     expect(화면만못옮김(자료, 'CGP')).toEqual([]);
+  });
+
+  it('사람이 PRD 에서 뺀 요구의 줄과 앞 작성이 안 옮기기로 한 줄은 다시 올리지 않는다', () => {
+    const 뺀 = { ...확인, data: { 요구: ['CGP-REQ-012'] } };
+    쓰기('game-map.txt', 지도글([['RULE', 'rule:창닫기', 뺀], ['WEATHER', 'weather:비', 뺀], ['RULE', 'rule:덮음', { ...확인, data: { 안옮김: '창 항목이 덮음' } }]]));
+    쓰기('prd-current.json', { version: 2, items: [] });
+    expect(안옮긴열쇠(자료)).toEqual([]);
+    쓰기('prd-current.json', { version: 2, items: [{ reqId: 'CGP-REQ-012', feature: 'a', text: 'b', basis: [{ from: '화면', quote: 'q' }], status: 'NEEDS_CHECK' }] });
+    expect(안옮긴열쇠(자료)).toEqual(['rule:창닫기']);
   });
 
   it('에이전트가 남긴 빌드와 다른 빌드에서 본 줄은 옮길 줄이 아니다', () => {
@@ -205,36 +224,48 @@ describe('번호달기', () => {
     return 보냄;
   };
 
-  it('배운 것을 그대로 싣고 번호를 더한다 — 「기획서가 바뀜」 줄 · 이미 단 줄 · 임시 번호는 안 건드린다', async () => {
+  const 판쓰기 = (...번호들: string[]) => 쓰기('prd-current.json', { version: 1, items: 번호들.map((reqId) => ({ reqId, feature: 'a', text: reqId, basis: [{ from: '화면', quote: 'q' }], status: 'NEEDS_CHECK' })) });
+  const 단것 = { ...확인, data: { 고기: -5, 요구: ['CGP-REQ-009'] } };
+
+  it('배운 것을 그대로 싣고 번호를 더한다 — 「기획서가 바뀜」 줄 · 임시 번호 · 기획서에 없는 번호 · 지도에만 둘 줄은 안 건드리고 안 옮긴 까닭을 남긴다', async () => {
+    판쓰기('CGP-REQ-001', 'CGP-REQ-003', 'CGP-REQ-009');
     const 보냄 = 서버(지도글([
       ['RULE', 'rule:심기', 확인, ' · 근거 CGP-REQ-001'], ['STATE', 'state:밤', 확인], ['RULE', 'rule:바뀜', 확인, ' · 근거 CGP-REQ-002 · 기획서가 바뀜(CGP-REQ-002) — 지금 판으로 다시 올린다'],
-      ['RULE', 'rule:단', 확인, ' · 근거 CGP-REQ-003'], ['RULE', 'rule:임시', 확인], ['DATA', 'item:검', undefined, ' · 근거 CGP-REQ-004'],
+      ['RULE', 'rule:단', 확인, ' · 근거 CGP-REQ-003'], ['RULE', 'rule:임시', 확인], ['RULE', 'rule:없는번호', 확인], ['RULE', 'rule:덜', { ...확인, belief: 'SEEN' }], ['DATA', 'item:검', undefined, ' · 근거 CGP-REQ-004'],
     ]));
-    쓰기('game-prd.json', { 옮김: { 'rule:심기': ['CGP-REQ-009'], 'state:밤': ['CGP-REQ-009'], 'rule:바뀜': ['CGP-REQ-009'], 'rule:단': ['CGP-REQ-003'], 'rule:임시': ['CGP-NEW-001'], 'item:검': ['CGP-REQ-009'] } });
-    expect(await 번호달기(통로, 자료)).toEqual([]);
+    쓰기('game-prd.json', { 옮김: { 'rule:심기': ['CGP-REQ-009'], 'state:밤': ['CGP-REQ-009'], 'rule:바뀜': ['CGP-REQ-009'], 'rule:단': ['CGP-REQ-003'], 'rule:임시': ['CGP-NEW-001'], 'rule:없는번호': ['CGP-REQ-999'], 'rule:덜': ['CGP-REQ-009'], 'item:검': ['CGP-REQ-009'] }, 안옮김: { 'rule:단': '창 항목이 덮음' } });
+    expect(await 번호달기(통로, 자료, 'CGP', true)).toEqual([]);
     expect(보냄).toEqual([{ elements: [
-      { kind: 'RULE', key: 'rule:심기', name: '심기', learned: 확인, reqIds: ['CGP-REQ-001', 'CGP-REQ-009'] },
-      { kind: 'STATE', key: 'state:밤', name: '밤', learned: 확인, reqIds: ['CGP-REQ-009'] },
+      { kind: 'RULE', key: 'rule:심기', name: '심기', learned: 단것, reqIds: ['CGP-REQ-001', 'CGP-REQ-009'] },
+      { kind: 'RULE', key: 'rule:단', name: '단', learned: { ...확인, data: { 고기: -5, 요구: ['CGP-REQ-003'], 안옮김: '창 항목이 덮음' } } },
+      { kind: 'STATE', key: 'state:밤', name: '밤', learned: 단것, reqIds: ['CGP-REQ-009'] },
     ] }]);
   });
 
-  it('게임이 만든 종류는 서버가 근거를 안 받아 배운 값의 요구 칸에 적고, 다음 반영이 그 번호로 찾는다', async () => {
+  it('게임이 만든 종류는 서버가 근거를 안 받아 배운 값의 요구 칸에만 적는다 — 이은 줄로 보되 요구가 바뀌면 다시 배운다', async () => {
+    판쓰기('CGP-REQ-009');
     const 보냄 = 서버(지도글([['WEATHER', 'weather:비', 확인], ['WEATHER', 'weather:수', { ...확인, data: 3 }]]));
     쓰기('game-prd.json', { 옮김: { 'weather:비': ['CGP-REQ-009'], 'weather:수': ['CGP-REQ-009'] } });
-    await 번호달기(통로, 자료);
-    const 단 = { ...확인, data: { 고기: -5, 요구: ['CGP-REQ-009'] } };
-    expect(보냄[0]!.elements).toEqual([{ kind: 'WEATHER', key: 'weather:비', name: '비', learned: 단 }]);
-    const 지도 = 지도읽기(지도글([['WEATHER', 'weather:비', 단]]));
-    expect(근거들(지도.줄들[0]!)).toEqual(['CGP-REQ-009']);
-    expect(배울것고르기(지도, { 빌드: '59', 오늘: '2026-11-25', 게임글: null, 번호들: ['CGP-REQ-009'] }).번호).toEqual([]);
+    await 번호달기(통로, 자료, 'CGP', true);
+    expect(보냄[0]!.elements).toEqual([{ kind: 'WEATHER', key: 'weather:비', name: '비', learned: 단것 }]);
+    const 지도 = 지도읽기(지도글([['WEATHER', 'weather:비', 단것]]));
+    expect(배울것고르기(지도, { 빌드: '59', 오늘: '2026-11-25', 게임글: null, 번호들: ['CGP-REQ-009'] }).번호).toEqual(['CGP-REQ-009']);
+  });
+
+  it('안 옮긴 까닭은 화면만 작성에서만 남긴다 — 대조가 적은 「기획서 밖 기능」이 화면만을 막지 않게', async () => {
+    판쓰기();
+    const 보냄 = 서버(지도글([['RULE', 'rule:심기', 확인]]));
+    쓰기('game-prd.json', { 안옮김: { 'rule:심기': '기획서 밖 기능' } });
+    expect(await 번호달기(통로, 자료, 'CGP', false)).toEqual([]);
+    expect(보냄).toEqual([]);
   });
 
   it('옮김 표가 없으면 서버를 안 부르고, 못 달면 PR 머리 줄에만 적는다', async () => {
     const 보냄 = 서버(지도글([['RULE', 'rule:심기', 확인]]), 400);
-    expect(await 번호달기(통로, 자료)).toEqual([]);
+    expect(await 번호달기(통로, 자료, 'CGP', true)).toEqual([]);
     expect(보냄).toEqual([]);
+    판쓰기('CGP-REQ-009');
     쓰기('game-prd.json', { 옮김: { 'rule:심기': ['CGP-REQ-009'] } });
-    expect(await 번호달기(통로, 자료)).toEqual(['배운 줄에 요구 번호: 못 닮 — 서버 400 elements.0.reqIds']);
-    expect(readFileSync(join(자료, 'game-map.txt'), 'utf8')).toContain('rule:심기');
+    expect(await 번호달기(통로, 자료, 'CGP', true)).toEqual(['배운 줄에 요구 번호: 못 달았음 — 서버 400 elements.0.reqIds']);
   });
 });

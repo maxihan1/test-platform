@@ -1,5 +1,5 @@
 // 10판 확인 검사 — 원래 속도로 다 이긴 작전만 · 졌으면 같은 작전을 다시 안 셈 · 나눠 불러 잇기 · 도우미를 고치면 처음부터 · 환경 탓은 안 셈 (도메인/게임 §3.10 「배운 것을 PRD · 테스트로」)
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -14,6 +14,7 @@ let 트리 = '';
 let 자료 = '';
 let 값들: unknown[] = [];
 let 배율 = 1;
+let 놓기막힘 = false;
 const 길 = (async (c: Command) => {
   const cmd = c as unknown as Record<string, unknown>;
   switch (cmd.cmd) {
@@ -29,13 +30,18 @@ const 길 = (async (c: Command) => {
     case 'errors': return { ok: true, last: 0, errors: [] };
     case 'events': return { ok: true, last: 0, events: [] };
     case 'screenshot': return { ok: true, jpg: Buffer.from('그림').toString('base64') };
+    case 'input-reset': if (놓기막힘) throw new Error('붙지 못했습니다'); return { ok: true };
     default: return { ok: true };
   }
 }) as unknown as Link;
 
 const 도우미 = `
 import { 덧 } from './lib.helper.js';
-export async function 한판(game) { return { 이김: (await game.get('/Game', 'Match.won')) === true, 덧 }; }
+export async function 한판(game) {
+  const v = await game.get('/Game', 'Match.won');
+  if (typeof v === 'string') throw new Error(v);
+  return { 이김: v === true, 덧 };
+}
 export async function 빈판() { return {}; }
 export async function 느린판(game) { await game.setTimeScale(0.25); return { 이김: true }; }
 `;
@@ -93,6 +99,15 @@ describe('10판 확인', () => {
     expect(판()).toEqual({ 이김: 0, 짐: 0 });
   });
 
+  it('이어받아 작업 폴더 이름이 바뀌어도 이긴 판이 남는다', async () => {
+    값들 = Array.from({ length: 10 }, () => true);
+    await 부르기();
+    const 새 = `${트리}-이어`;
+    renameSync(트리, 새);
+    expect(이긴판읽기(join(새, 'data'), 새, 'g', { 파일: 'play', 함수: '한판', 인자: ['쉬움'] })).toEqual({ 이김: 10, 짐: 0 });
+    트리 = 새;
+  });
+
   it('한 번 부름 안에 다음 판이 안 들어가면 3 — 다시 부르면 이긴 판을 잇는다', async () => {
     let 때 = 0;
     값들 = Array.from({ length: 10 }, () => true);
@@ -103,7 +118,16 @@ describe('10판 확인', () => {
   });
 
   it('팜이 거절하거나 원래 속도가 아니거나 이김을 안 돌려준 판은 세지 않고 2', async () => {
-    값들 = [true, new Error('게임 명령에 HTTP 409 로 답했습니다: 잡은 폰이 아닙니다')];
+    for (const 글 of ['게임 명령에 HTTP 409 로 답했습니다: 잡은 폰이 아닙니다', 'The operation was aborted due to timeout']) {
+      값들 = [new Error(글)];
+      expect(await 부르기()).toBe(2);
+    }
+    값들 = [true];
+    놓기막힘 = true;
+    expect(await 부르기()).toBe(2);
+    놓기막힘 = false;
+    expect(판()).toEqual({ 이김: 0, 짐: 0 });
+    값들 = [true, new Error('끊김')];
     expect(await 부르기()).toBe(2);
     expect(판()).toEqual({ 이김: 1, 짐: 0 });
     expect(await 부르기('빈판')).toBe(2);
@@ -116,7 +140,7 @@ describe('10판 확인', () => {
   });
 
   it('함수가 던지거나 한도를 넘기면 이긴 판이 아니다', async () => {
-    값들 = [true, new Error('적을 못 찾음')];
+    값들 = [true, '적을 못 찾음'];
     expect(await 부르기()).toBe(1);
     expect(판()).toEqual({ 이김: 1, 짐: 1 });
   });
