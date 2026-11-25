@@ -3,7 +3,7 @@
 
 import { 모양문장, type ItemStatus, type StepResult } from '@platform/kit';
 
-import { 원인을가른다, 색코드, 한줄로자른다, type 실패유형 } from './failureType.js';
+import { 시간초과문장, 원인을가른다, 색코드, 이유한줄, 한줄로자른다, type 실패유형 } from './failureType.js';
 
 export interface 항목실패 {
   type: 실패유형;
@@ -14,7 +14,7 @@ export interface 항목실패 {
 export const 유형문장: Record<실패유형, string> = {
   mismatch: '기대 결과와 다릅니다',
   notFound: '요소를 찾지 못했습니다',
-  timeout: '제한 시간 안에 완료되지 않았습니다',
+  timeout: 시간초과문장,
   environment: '대상 서버나 러너에 닿지 못했습니다',
   other: '원인을 가르지 못했습니다',
 };
@@ -59,7 +59,7 @@ export function 항목실패를가른다(항목: 항목재료, 가리기: (글: 
   const 오류에서 = 실패확인 === undefined && Boolean(항목.error?.message);
   const 재료 = 실패확인?.statement ?? (항목.error?.message || (모양실패 === undefined ? '' : 모양문장(모양실패)));
   const 가린글 = 가리기(재료.replace(색코드, ''));
-  const 한줄 = 한줄로자른다(가린글);
+  const 한줄 = 이유한줄(가린글);
   // 러너가 끊은 자리의 상태 글자(TIMEOUT 따위)와 오류의 영어 원문은 사람 말이 아니다 — 유형이 말하는 문장으로 바꾼다.
   // 사람이 쓴 확인 문장은 영어여도 그대로다 — 실패를 서로 가를 수 있게 (WEB-F9-14 끝 검사)
   if (한줄 !== '' && !러너글자.test(한줄) && !(오류에서 && !한글.test(한줄))) return { type: 원인, reason: 한줄 };
