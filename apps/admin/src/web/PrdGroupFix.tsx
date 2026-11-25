@@ -47,7 +47,7 @@ export function 묶음정리서랍({
       </div>
       <div className="prd-drawer-body">
         <p className="prd-warn">
-          <b>{t('이 묶음 이름은 목차 규칙에 맞지 않아요')}</b>
+          <b>{t('이 묶음 이름은 목차 규칙에 맞지 않습니다')}</b>
           <br />
           {까닭}
         </p>
@@ -70,7 +70,7 @@ export function 묶음정리서랍({
             <h3>
               <label htmlFor={`${id}-to`}>{t('옮길 묶음')}</label>
             </h3>
-            <p className="hint">{t('목차 규칙에 맞는 묶음 가운데서 선택해요')}</p>
+            <p className="hint">{t('목차 규칙에 맞는 묶음 중에서 선택합니다')}</p>
             <select id={`${id}-to`} value={to} onChange={(e) => setTo(e.target.value)}>
               {옮길곳들.map((h) => (
                 <option key={h} value={h}>

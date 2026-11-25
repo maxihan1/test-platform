@@ -138,7 +138,7 @@ export function 미점검구획({ data, 세트주소 }: { data: CompatRunResult;
         <span>
           {data.uncovered.length === 0
             ? t('모든 화면을 지나는 케이스가 있었습니다')
-            : `${data.uncovered.map((u) => u.name).join(' · ')} — ${t('이 화면을 지나는 TC 가 없어 실행 대상에서 빠졌습니다')}`}
+            : `${data.uncovered.map((u) => u.name).join(' · ')} — ${t('이 화면을 지나는 케이스가 없어 실행 대상에서 빠졌습니다')}`}
         </span>
         <a href={세트주소}>{t('세트 보기')}</a>
       </div>

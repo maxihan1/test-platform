@@ -119,7 +119,7 @@ describe('작성 Status 카드', () => {
       />,
     );
     expect(screen.getByText('중단')).toBeTruthy();
-    expect(screen.getByText(/시스템 · 시간초과/)).toBeTruthy();
+    expect(screen.getByText(/시스템 · 제한 시간 초과/)).toBeTruthy();
   });
 
   it('실패면 까닭을 카드 안에 보인다 — 옮길 수 없는 글은 그대로', () => {
@@ -130,7 +130,7 @@ describe('작성 Status 카드', () => {
   });
 
   it('에이전트의 반말 실패 글은 사람 말로 옮기고 원문은 접어 둔다 (⑫ 점검 12.7)', () => {
-    const 원문 = '대상 서버 「qa」 에 테스트 계정이 빠졌다 — 설정 > 애플리케이션에서 넣고 새 요청으로 넣어라';
+    const 원문 = '대상 서버 「qa」 에 테스트 계정이 빠졌다 — 설정 › 애플리케이션에서 넣고 새 요청으로 넣어라';
     render(<AuthoringStatusCard 요청={줄({ status: 'FAILED', error: 원문, progress: null })} 지금={지금} />);
     expect(screen.getByText('대상 서버 「qa」에 테스트 계정이 없습니다. 관리자에게 테스트 계정을 넣어 달라고 요청하세요')).toBeTruthy();
     expect(screen.getByText('원문 보기')).toBeTruthy();

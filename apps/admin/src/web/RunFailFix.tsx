@@ -18,7 +18,7 @@ export function RunFailFix({ fix }: { fix: 카드자동수정 }) {
       <p className="fc-judged">
         {fix.issueKey === null || fix.issueUrl === null ? (
           <>
-            {t('조작 실패를 에이전트가 자동 수정했어요')}
+            {t('조작 실패를 에이전트가 자동 수정했습니다')}
             {fix.requestId === null ? null : (
               <>
                 {' — '}
@@ -28,7 +28,7 @@ export function RunFailFix({ fix }: { fix: 카드자동수정 }) {
           </>
         ) : (
           <>
-            {t('테스트 수정 요청으로 자동 수정했어요')} — {fix.movedBy === null ? null : `${fix.movedBy} · `}
+            {t('테스트 수정 요청으로 자동 수정했습니다')} — {fix.movedBy === null ? null : `${fix.movedBy} · `}
             <a href={fix.issueUrl} target="_blank" rel="noreferrer">
               Issue Bunker {fix.issueKey}
             </a>
@@ -90,30 +90,30 @@ export function RunFailFixing({ fix }: { fix: 카드자동수정중 }) {
   let 글: React.ReactNode;
   switch (fix.state) {
     case 'FIXING':
-      글 = <>{t('에이전트가 테스트를 수정하는 중이에요')}{요청 === null ? null : <> — {요청}</>}</>;
+      글 = <>{t('에이전트가 테스트를 수정하는 중입니다')}{요청 === null ? null : <> — {요청}</>}</>;
       break;
     case 'WAIT_MERGE':
       글 = fix.needsPerson ? (
         <>
-          {t('수정한 테스트를 사람이 반영해야 해요')}
+          {t('수정한 테스트를 사람이 반영해야 합니다')}
           {fix.personWhy.length === 0 ? null : ` — ${fix.personWhy.join(' · ')}`}
           {이음(pr, <a href="#/authoring?todo=1">{t('테스트 작성 › 결정 필요에서 반영')}</a>)}
         </>
       ) : (
-        <>{t('수정한 테스트를 반영하는 중이에요')}{이음(pr)}</>
+        <>{t('수정한 테스트를 반영하는 중입니다')}{이음(pr)}</>
       );
       break;
     case 'RERUNNING':
-      글 = <>{t('수정한 테스트를 다시 실행하는 중이에요')}{이음(pr, 실행)}</>;
+      글 = <>{t('수정한 테스트를 다시 실행하는 중입니다')}{이음(pr, 실행)}</>;
       break;
     case 'FAILED':
-      글 = <>{t('수정했지만 다시 실행에서도 실패했어요')}{이음(pr, 실행)}</>;
+      글 = <>{t('수정했지만 다시 실행해도 실패했습니다')}{이음(pr, 실행)}</>;
       break;
     case 'FLAKY':
-      글 = t('다시 실행하니 통과해서 수정하지 않았어요');
+      글 = t('다시 실행하니 통과해서 수정하지 않았습니다');
       break;
     default:
-      글 = fix.reason === null ? t('그만뒀어요') : t('그만뒀어요 · {까닭}', { 까닭: fix.reason });
+      글 = fix.reason === null ? t('그만뒀습니다') : t('그만뒀습니다 · {까닭}', { 까닭: fix.reason });
   }
   return (
     <div className="fc-cause">

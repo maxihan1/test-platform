@@ -65,7 +65,7 @@ function 결과칸({ 칸, 이름 }: { 칸: RunItemSummary[] | undefined; 이름:
           <span className={요약.status === 'FAIL' ? 'verdict v-fail' : `vd vd-${요약.status === 'PASS' ? 'pass' : 'na'}`}>{요약.글}</span>
         )}
       </span>
-      <span className="rf-dur num">{요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}</span>
+      <span className="rf-dur num">{요약.회차수 > 1 ? t('평균 {시간}', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}</span>
     </>
   );
 }

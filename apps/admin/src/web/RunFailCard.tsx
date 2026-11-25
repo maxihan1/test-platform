@@ -179,7 +179,7 @@ function 통과줄({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
       ) : (
         <span className={`verdict ${요약.status === 'PASS' ? 'v-pass' : 요약.status === 'FAIL' ? 'v-fail' : 'v-na'}`}>{요약.글}</span>
       )}
-      <span>{요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}</span>
+      <span>{요약.회차수 > 1 ? t('평균 {시간}', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}</span>
       {처음.rerun == null ? null : <다시실행꼬리표 rerun={처음.rerun} status={처음.status} />}
     </ItemExpand>
   );

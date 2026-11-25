@@ -20,9 +20,9 @@ export const API문서말: Record<string, string> = {
   '{서버} 서버': '{서버} server',
 
   // 할 일 카드
-  '케이스가 안 거친 응답 {건수}개': '{건수} responses no case has hit',
-  '응답 코드 {전체}개 중 아직 통과한 케이스가 받지 못한 응답입니다': 'Responses, out of {전체} codes, that no passing case has received yet',
-  '모든 응답을 케이스가 거칩니다': 'Cases hit every response',
+  '케이스가 확인하지 않은 응답 {건수}개': '{건수} responses no case has hit',
+  '응답 코드 {전체}개 가운데 통과한 케이스가 아직 받지 못한 응답입니다': 'Responses, out of {전체} codes, that no passing case has received yet',
+  '모든 응답을 케이스가 확인합니다': 'Cases hit every response',
 
   // 버전 기록
   '변경된 API 없음': 'No API changed',
@@ -38,7 +38,7 @@ export const API문서말: Record<string, string> = {
   '찾는 API 가 없습니다': 'No matching API',
   '태그 없음': 'No tag',
   '{건수}개': '{건수}',
-  '안 거친 응답 {건수}개': '{건수} responses not hit',
+  '확인하지 않은 응답 {건수}개': '{건수} responses not hit',
   '{코드} 확인함': '{코드} checked',
   '{코드} 아직 안 받음': '{코드} not received yet',
   '응답 형식 없음': 'No response format',

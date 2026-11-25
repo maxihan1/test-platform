@@ -163,7 +163,7 @@ describe('알림 서랍', () => {
     const 제목들 = 서랍.getAllByRole('listitem').map((li) => li.querySelector('.nt-item-title')?.textContent);
     expect(제목들).toEqual(['RUN 1 실행이 완료되었습니다', '#2 작성 요청이 완료되었습니다', '#3 작성 요청이 실패했습니다']);
     expect(서랍.getByText('PRD 확인 필요 2건')).toBeTruthy();
-    expect(서랍.getByRole('link', { name: '결정 필요에서 확인' }).getAttribute('href')).toBe('#/authoring?todo=1');
+    expect(서랍.getByRole('link', { name: '결정 필요 목록에서 확인' }).getAttribute('href')).toBe('#/authoring?todo=1');
     expect(서랍.getByText('볼 수 있는 애플리케이션 전체 · 최근 7일')).toBeTruthy();
   });
 
@@ -184,12 +184,12 @@ describe('알림 서랍', () => {
     expect(screen.getByLabelText('안 읽은 알림 2건')).toBeTruthy();
   });
 
-  it('모두 읽음으로 누르면 배지가 사라지고 안 읽음 칩이 0 이 된다', async () => {
+  it('모두 읽음 처리를 누르면 배지가 사라지고 안 읽음 칩이 0 이 된다', async () => {
     const 서랍 = within(await 연다());
-    fireEvent.click(서랍.getByRole('button', { name: '모두 읽음으로' }));
+    fireEvent.click(서랍.getByRole('button', { name: '모두 읽음 처리' }));
     expect(document.querySelector('.nt-badge')).toBeNull();
     expect(서랍.getByRole('button', { name: '안 읽음 0' })).toBeTruthy();
-    expect(서랍.getByRole('button', { name: '모두 읽음으로' }).hasAttribute('disabled')).toBe(true);
+    expect(서랍.getByRole('button', { name: '모두 읽음 처리' }).hasAttribute('disabled')).toBe(true);
   });
 
   it('비었으면 최근 7일 동안 없다고 말한다', async () => {
@@ -228,7 +228,7 @@ describe('다른 애플리케이션의 작성 · PRD 고리', () => {
     await screen.findByLabelText('안 읽은 알림 1건');
     fireEvent.click(버튼());
     const 서랍 = within(screen.getByRole('complementary', { name: '알림' }));
-    fireEvent.click(서랍.getByRole('link', { name: '결정 필요에서 확인' }));
+    fireEvent.click(서랍.getByRole('link', { name: '결정 필요 목록에서 확인' }));
     expect(서비스바꿈).toHaveBeenCalledExactlyOnceWith('ORD');
   });
 

@@ -1,4 +1,4 @@
-// 설정 > 애플리케이션의 API 칸(종류 · API 문서 · API 인증) 글자의 영어 (API-F1-08). settings.ts 가 300줄에 닿지 않게 뗐다
+// 설정 › 애플리케이션의 API 칸(종류 · API 문서 · API 인증) 글자의 영어 (API-F1-08). settings.ts 가 300줄에 닿지 않게 뗐다
 
 export const 설정API말: Record<string, string> = {
   // 기본 정보 「종류」
@@ -37,7 +37,7 @@ export const 설정API말: Record<string, string> = {
   'API 인증에 비어 있는 칸이 있습니다. 입력하거나 그 인증을 삭제해 주세요':
     'An API auth has an empty field. Fill it in or delete that auth',
   'API 인증 비밀값을 입력해 주세요': 'Enter the API auth secret',
-  'API 인증 이름은 20자까지이고 한 대상 서버 안에서 겹치지 않아야 합니다 (서버마다 10개까지)':
+  'API 인증 이름은 20자까지이고 한 대상 서버 안에서 중복되지 않아야 합니다 (서버마다 10개까지)':
     'API auth names are up to 20 characters and unique per target server (up to 10 per server)',
   '토큰 주소는 / 나 http(s):// 로 시작해야 합니다': 'The token URL must start with / or http(s)://',
   '비밀값은 12자 이상 500자 이하로 입력해 주세요': 'Enter a client secret of 12 to 500 characters',
@@ -47,12 +47,12 @@ export const 설정API말: Record<string, string> = {
   '키 값': 'Key value',
   '대상 서버 {번호} 어드민 키 헤더 이름': 'Target server {번호} admin key header name',
   '대상 서버 {번호} 어드민 키 값': 'Target server {번호} admin key value',
-  '어드민 키는 서버 어드민 API 에 헤더로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 삭제됩니다':
+  '어드민 키는 서버 어드민 API 에 헤더로 실어 보냅니다. 케이스가 재화 지급처럼 서버 상태를 변경할 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 삭제됩니다':
     'The admin key is sent as a header to the server admin API. Cases use it to set up state such as granting currency. Only the last 4 characters are shown; clear both fields and save to remove it',
   '이대로 저장하면 이 서버의 어드민 키가 삭제됩니다': 'Saving now removes the admin key for this server',
   '어드민 키 헤더 이름을 입력해 주세요': 'Enter the admin key header name',
   '어드민 키 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다': 'The admin key header name uses letters, digits and - only, up to 100 characters',
-  '어드민 키 값은 12자 이상 500자 이하로 입력해 주세요. 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다': 'Enter an admin key value of 12 to 500 characters. Only one space is allowed, in the middle',
-  '새 어드민 키는 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다':
+  '어드민 키 값은 12자 이상 500자 이하로 입력해 주세요. 공백은 가운데 한 칸만 넣을 수 있습니다': 'Enter an admin key value of 12 to 500 characters. Only one space is allowed, in the middle',
+  '새 어드민 키라면 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다':
     'Enter a value for the new admin key. Changing the header name or the target server name or URL needs it again',
 };

@@ -75,7 +75,7 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
         <p className="trial-band">
           <b>{t('시험 실행')}</b> {t('결과는 이 창에서만 보이고 실행 기록에 남지 않습니다')}
           {/* Android 는 Appium 이라 늦추지 않는다 (러너 §5.2) */}
-          {도는중 && platform !== 'android' ? <span className="r">{t('동작마다 1초 천천히')}</span> : null}
+          {도는중 && platform !== 'android' ? <span className="r">{t('동작마다 1초씩 천천히 실행')}</span> : null}
         </p>
         {/* 묻기가 끊겨도 창은 남아 다시 묻는다 — 끊긴 까닭은 띠 아래 한 줄 */}
         {도는중 && 시험.오류문장 !== null ? <p className="err">{시험.오류문장}</p> : null}
@@ -105,7 +105,7 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
       {묻기 === null ? null : (
         <Modal
           // 닫기로 물으면 「닫으면 멈춘다」를 먼저 말한다 — E2E 시험은 닫으면 다시 볼 자리가 없다 (도메인/실행 §3.2 「E2E 시험 실행 창을 닫으면 시험을 멈춘다」)
-          제목={묻기 === 'close' ? t('닫으면 시험 실행을 멈춥니다') : t('시험 실행을 중단할까요?')}
+          제목={묻기 === 'close' ? t('닫으면 시험 실행을 중단합니다') : t('시험 실행을 중단할까요?')}
           onClose={() => set묻기(null)}
           버튼={
             <>

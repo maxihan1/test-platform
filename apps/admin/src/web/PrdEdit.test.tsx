@@ -62,7 +62,7 @@ describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () =>
 
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-041/ }));
     expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 나가기' }));
     expect(screen.queryByLabelText('요구사항 문장')).toBeNull();
     fireEvent.click(within(서랍()).getByRole('button', { name: '수정' }));
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -74,7 +74,7 @@ describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () =>
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '쓰다 만 글' } });
     fireEvent.click(within(서랍()).getByRole('button', { name: '상세 닫기' }));
     expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 나가기' }));
     expect(screen.queryByRole('complementary')).toBeNull();
   });
 
@@ -105,10 +105,10 @@ describe('PRD 관리 — 고치기', () => {
     await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '아이디는 영문 소문자·숫자 4~14자이다' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
-    const 고리 = await screen.findByRole('link', { name: '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →' });
+    const 고리 = await screen.findByRole('link', { name: '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있습니다 →' });
     expect(고리.getAttribute('href')).toBe('#/authoring?todo=1');
     expect(서랍().contains(고리)).toBe(true);
-    expect(screen.getAllByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toHaveLength(1);
+    expect(screen.getAllByRole('link', { name: /테스트를 다시 만들 수 있습니다/ })).toHaveLength(1);
   });
 
   it('상태만 바꾸거나 지우는 저장에는 고리가 안 뜬다', async () => {
@@ -117,13 +117,13 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await screen.findByText('저장했습니다 (버전 13)');
     await vi.waitFor(() => expect(screen.queryByLabelText('요구사항 문장')).toBeNull());
-    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있습니다/ })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: '수정' }));
     fireEvent.click(screen.getByRole('button', { name: '이 요구사항 삭제' }));
     fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(2));
-    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있습니다/ })).toBeNull();
   });
 
   it('저장이 실패하면 고리가 안 뜬다', async () => {
@@ -132,7 +132,7 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '고치다 만 글' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await screen.findByRole('alert');
-    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있습니다/ })).toBeNull();
   });
 
   it('고치던 줄을 다시 눌러 닫으면 먼저 묻고, 버리고 닫은 뒤 다시 열면 고치기 전 모습이다', async () => {
@@ -143,7 +143,7 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.click(screen.getByRole('button', { name: '머무르기' }));
     expect((screen.getByLabelText('요구사항 문장') as HTMLTextAreaElement).value).toBe('버릴 글');
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
-    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 나가기' }));
     expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
     expect(screen.queryByLabelText('요구사항 문장')).toBeNull();

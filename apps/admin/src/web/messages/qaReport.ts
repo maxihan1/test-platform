@@ -41,7 +41,7 @@ export const QA리포트말: Record<string, string> = {
   '진행 중인 실행이 완료되면 승인할 수 있습니다': 'You can approve once the running runs finish',
   'AI 가 남은 리스크를 작성하는 중입니다. 작성이 완료되면 승인할 수 있습니다': 'AI is still writing the remaining risks. You can approve once it finishes',
   '이미 승인된 리포트입니다': 'This report is already approved',
-  '더 새 버전이 있습니다. 마지막 버전에서 승인할 수 있습니다': 'A newer version exists. Approve the latest version instead',
+  '새 버전이 있습니다. 가장 최근 버전에서 승인할 수 있습니다': 'A newer version exists. Approve the latest version instead',
   '승인된 버전은 수정할 수 없습니다': 'An approved version cannot be edited',
   '남은 리스크 문장 수정': 'Edit remaining risks',
   '남은 리스크': 'Remaining risks',

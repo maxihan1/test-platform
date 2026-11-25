@@ -195,7 +195,7 @@ describe('실패 카드의 디바이스 머리 (실행 §8.3 · DESIGN.md 실행
       ],
     );
 
-    expect(await screen.findByText('0.48초 평균')).toBeDefined();
+    expect(await screen.findByText('평균 0.48초')).toBeDefined();
     expect(screen.queryByText('4.20초')).toBeNull();
   });
 

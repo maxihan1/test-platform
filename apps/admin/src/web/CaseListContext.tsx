@@ -30,7 +30,7 @@ export function 요구줄({ row, 요구보나, 요구쓰나 }: { row: CaseRow; �
         </a>
       )}
       <span className="case-req-text" title={첫.text ?? undefined}>
-        {첫.text ?? t('PRD 에 없는 번호예요')}
+        {첫.text ?? t('PRD 에 없는 번호입니다')}
       </span>
       {더 <= 0 ? null : <span className="case-req-more">{t('외 {건수}건', { 건수: 더 })}</span>}
     </span>

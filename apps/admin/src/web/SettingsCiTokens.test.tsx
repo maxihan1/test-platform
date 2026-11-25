@@ -87,14 +87,14 @@ describe('설정 › CI 토큰', () => {
     expect(옵션).toEqual(['qa', 'stage']);
   });
 
-  it('「끊기」 뒤 「끊는다」를 눌러야 끊고 목록을 다시 읽는다', async () => {
+  it('「끊기」 뒤 「끊기 확인」을 눌러야 끊고 목록을 다시 읽는다', async () => {
     const 읽기 = vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [토큰()], publicUrl: null });
     const 끊기 = vi.spyOn(api, 'revokeServiceToken').mockResolvedValue(undefined);
     render(<CI토큰구획 row={행()} />);
     fireEvent.click(await screen.findByRole('button', { name: 'github-main 끊기' }));
     expect(끊기).not.toHaveBeenCalled();
     expect(screen.getByText('이 토큰을 쓰는 CI 는 다음 빌드부터 업로드하지 못합니다')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '끊는다' }));
+    fireEvent.click(screen.getByRole('button', { name: '끊기 확인' }));
     await waitFor(() => expect(끊기).toHaveBeenCalledWith(9, 4));
     await waitFor(() => expect(읽기).toHaveBeenCalledTimes(2));
   });

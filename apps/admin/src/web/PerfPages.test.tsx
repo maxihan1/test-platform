@@ -85,7 +85,7 @@ describe('가장 최근 측정', () => {
     // 처음에는 실패한 페이지가 골라져 있다
     expect(await screen.findByRole('heading', { name: '상품 상세 로딩 워터폴' })).toBeTruthy();
     const 그림 = screen.getByRole('img');
-    expect(그림.getAttribute('aria-label')).toBe('HTML 문서 0.2초, JS 번들 0.5초, 대표 상품 이미지 1.6초이 차례로 걸려 LCP가 2.9초인 그림');
+    expect(그림.getAttribute('aria-label')).toBe('HTML 문서 0.2초, JS 번들 0.5초, 대표 상품 이미지 1.6초이 차례로 이어져 LCP가 2.9초인 그림');
     expect(within(그림).getByText('2.9초 (LCP 요소: img hero.jpg)')).toBeTruthy();
     // 가장 오래 걸린 막대만 띄운다 — 판정이 아니라서 실패 색은 쓰지 않는다
     expect(within(그림).getByText('1.6초').className).toContain('pp-hot-num');
@@ -127,7 +127,7 @@ describe('측정할 페이지', () => {
       output: { pages: [...페이지들.map((it) => ({ ...it, why: '주요 화면' }))], basis: ['화면 기록 3건'] },
     });
     render(<PerfPages service={앱} 쓰나 />);
-    expect(await screen.findByText('측정 대상: 화면 지도 기준 주요 페이지 3개')).toBeTruthy();
+    expect(await screen.findByText('측정 대상: 화면 목록 기준 주요 페이지 3개')).toBeTruthy();
     expect(추천).toHaveBeenCalledWith(7, 'qa');
     expect(screen.getByText('AI', { selector: '.perf-ai' })).toBeTruthy();
     expect(screen.getByText('아직 측정 결과가 없습니다. 측정을 누르면 페이지마다 속도를 잽니다')).toBeTruthy();

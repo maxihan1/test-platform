@@ -235,7 +235,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
 
-    expect(await screen.findByRole('dialog', { name: '시험 실행 · 1 / 2' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '시험 실행 · 2번 중 1번째' })).toBeTruthy();
     expect(document.querySelector('.trial-queue li.cur .id')?.textContent).toBe('ZRS-001');
   });
 
@@ -251,7 +251,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
 
-    expect(await screen.findByRole('dialog', { name: '시험 실행 · 2 / 2' }, { timeout: 5000 })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '시험 실행 · 2번 중 2번째' }, { timeout: 5000 })).toBeTruthy();
     expect(screen.getByText('가상 디바이스 · iPhone 14')).toBeTruthy();
     expect(document.querySelector('.trial-run')?.classList.contains('phone')).toBe(true);
     expect(시작.mock.calls.map(([, body]) => body.platform)).toEqual(['desktop', 'mobile']);

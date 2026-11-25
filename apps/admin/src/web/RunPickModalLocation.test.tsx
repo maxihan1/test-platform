@@ -148,7 +148,7 @@ describe('모바일 웹 고르개의 빈 폰 수 (도메인/실행 §8.16 ①)',
     vi.spyOn(기기호출, 'devices').mockResolvedValue({ devices: [폰('a', 'FARM', 'IDLE'), 폰('b', 'FARM', 'IDLE'), 폰('c', 'FARM', 'BUSY'), 폰('d', 'LOCAL', 'IDLE')] });
     그리기();
 
-    expect(await screen.findByText('빈 디바이스 2대')).toBeTruthy();
+    expect(await screen.findByText('사용 가능한 디바이스 2대')).toBeTruthy();
   });
 
   it('기기 목록을 못 읽으면 수 없이 적고 실제 기기는 그대로 고를 수 있다', async () => {

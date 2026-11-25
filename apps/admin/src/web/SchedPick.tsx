@@ -11,10 +11,10 @@ import { Failed, Loading, useAsync } from './ui.js';
 type 말 = ReturnType<typeof use말>;
 const 탭이름: Record<줄종류, string> = { FN: '기능 테스트', UI: 'UI 테스트', E2E: 'E2E 테스트', COMPAT: '호환성 테스트' };
 
-/** 기능 · UI 줄 이름 — 서버의 줄 이름(sched/check.ts 줄이름)과 같은 꼴을 화면 언어로 */
+/** 기능 · UI 줄 이름 — 서버의 줄 이름(sched/check.ts 줄이름 `기능 전체`)을 화면 말로. 실행명의 「기능 테스트 전체」와 같다(WORDS.md) */
 export function 줄글(x: 담은줄, t: 말): string {
   if (x.kind === 'E2E' || x.kind === 'COMPAT') return x.label;
-  if (x.tcIds === null) return t(x.kind === 'FN' ? '기능 전체' : 'UI 전체');
+  if (x.tcIds === null) return t(x.kind === 'FN' ? '기능 테스트 전체' : 'UI 테스트 전체');
   return x.tcIds.length === 1 ? x.tcIds[0]! : t('{번호} 외 {수}건', { 번호: x.tcIds[0]!, 수: x.tcIds.length - 1 });
 }
 

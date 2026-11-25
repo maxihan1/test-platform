@@ -90,7 +90,7 @@ export const 시나리오마법사말: Record<string, string> = {
   '빈 칸이 남은 값 연결이 있습니다. 적거나 삭제합니다': 'Some value links still have blank fields. Fill them in or delete them',
   '시험 실행이 완료되면 넘어갑니다': 'You can move on when the trial run finishes',
   '확인하지 않은 값 연결이 {수}곳 있습니다': '{수} value links are not checked yet',
-  '시험 없이 넘어가도 저장할 수 있습니다': 'You can save without a trial run',
+  '시험 실행 없이 넘어가도 저장할 수 있습니다': 'You can save without a trial run',
   '중단된 채로도 저장할 수 있습니다': 'You can save even though it stopped',
   '「{이름}」 시나리오를 저장했습니다 · v{버전}': 'Saved the “{이름}” scenario · v{버전}',
   '실행할 때마다 실행 기록과 리포트가 남습니다. 다음에 수정할 때는 조립 화면에서 바로 수정합니다': 'Every run leaves a run record and a report. Next time, edit it directly in the builder',
@@ -138,7 +138,7 @@ export const 시나리오마법사말: Record<string, string> = {
   '중단 · 쓰였는지는 결과에 남지 않습니다': 'Stopped · the result doesn’t record whether it was used',
   '대상 서버를 먼저 선택합니다': 'Pick a target server first',
   '다시 실행': 'Run again',
-  'Android 앱 애플리케이션은 디바이스 한 대에서 실행합니다. 단계 사이에 앱을 다시 켜지 않고, 앞 단계가 완료된 화면에서 이어 갑니다':
+  'Android 앱은 디바이스 한 대에서 실행합니다. 단계 사이에 앱을 다시 켜지 않고, 앞 단계가 완료된 화면에서 이어 갑니다':
     'Android app applications run on one phone. The app is not restarted between steps; each step continues from the screen the previous one ended on',
   '{번호}번 {이름} 값 연결 삭제': 'Delete value link of step {번호} {이름}',
 };

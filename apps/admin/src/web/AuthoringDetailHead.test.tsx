@@ -47,7 +47,7 @@ describe('작성 상세 머리와 애플리케이션 (⑫ 점검 12.14 · 12.16)
       summary: 요약({ what: { features: ['회원가입', '결제'] }, from: { assets: [{ name: '회원가입 기획서.docx', figma: false }, { name: '결제.pdf', figma: false }] } }),
     });
     render(<AuthoringDetail service="MKT" id={6120} 할수={() => true} 서비스번호={3} 배정번호들={[3]} on서비스번호={() => {}} />);
-    expect(await screen.findByRole('heading', { name: '기능 2개 테스트 · 회원가입 · 결제' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: '기능 2개의 테스트 · 회원가입 · 결제' })).toBeTruthy();
     expect(screen.getByText(/^#6120 · /)).toBeTruthy();
   });
 

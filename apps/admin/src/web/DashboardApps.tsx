@@ -117,7 +117,7 @@ export function 앱카드들({ 값, 서비스열기 }: { 값: 자료; 서비스�
       {남음 > 0 ? (
         <div className="dash-more">
           <button type="button" className="btn ghost" onClick={() => set보임(보임 + 카드묶음)}>
-            {t('더보기 ({수})', { 수: 남음 })}
+            {t('더 보기 ({수})', { 수: 남음 })}
           </button>
         </div>
       ) : null}

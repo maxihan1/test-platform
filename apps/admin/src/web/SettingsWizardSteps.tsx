@@ -55,7 +55,7 @@ const 제목들: Record<단계, readonly [string, string]> = {
   basic: ['이름과 번호를 정합니다', '화면에 보일 이름과 테스트 번호 앞에 붙을 약자를 적습니다'],
   envs: ['테스트할 서버 주소를 넣습니다', '실행할 때 이 목록에서 서버를 선택합니다. 지금 없으면 나중에 넣어도 됩니다'],
   apidoc: ['API 문서 위치를 적습니다', 'API 목록이 적힌 Swagger 문서를 어디서 받는지 알려 줍니다'],
-  extra: ['알림과 작성 도구를 연결합니다', '모두 선택입니다. 지금 건너뛰고 나중에 설정에서 넣어도 됩니다'],
+  extra: ['알림과 작성 도구를 연결합니다', '모두 선택 사항입니다. 지금 건너뛰고 나중에 설정에서 넣어도 됩니다'],
   confirm: ['이대로 만듭니다', '수정할 것이 있으면 줄 끝의 「수정」을 누릅니다'],
 };
 
@@ -168,7 +168,7 @@ export function 단계칸(p: {
             t('메뉴와 맨 위 드롭다운에 보이는 이름입니다'))}
           {칸('wz-dir', t('테스트 폴더'),
             <input id="wz-dir" type="text" autoComplete="off" value={값.testsDir} placeholder="pay" onChange={(e) => 고친다({ testsDir: e.target.value })} />,
-            t('자동화 스크립트를 모아 둘 폴더 이름입니다. 접두사를 적으면 미리 채워 둡니다'))}
+            t('케이스 파일을 모아 둘 폴더 이름입니다. 접두사를 적으면 미리 채워 둡니다'))}
           {칸('wz-repo', t('테스트 저장소'),
             <input id="wz-repo" type="text" autoComplete="off" value={값.testsRepo} placeholder="https://github.com/..." onChange={(e) => 고친다({ testsRepo: e.target.value })} />,
             t('AI 가 만든 테스트를 등록할 GitHub 저장소 주소입니다. 비워 두면 만든 테스트를 반영할 수 없습니다'))}

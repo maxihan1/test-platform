@@ -179,7 +179,7 @@ export function 커버리지구획({ 셈 }: { 셈: CompatPreview }) {
                 </span>
               ))}
             </div>
-            <p className="compat-faint">{t('해당 화면을 지나는 TC 를 작성하면 다음 실행부터 자동 포함됩니다')}</p>
+            <p className="compat-faint">{t('해당 화면을 지나는 케이스를 작성하면 다음 실행부터 자동 포함됩니다')}</p>
           </>
         )}
       </div>

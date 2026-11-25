@@ -5,7 +5,7 @@
 // 「케이스마다 이력을 따로 부르지 않는다」(§8.1)는 목록 몫이다 — 여기는 사람이 한 줄을 열 때 부르고, 받은 것(`상세기억`)은 목록이 든다.
 //
 // **입력 칸은 줄에서 여기로 옮겼다.** 값을 고치고 「이 값으로 실행」하거나 「모두에게 저장」한다.
-// 저장은 팀 모두와 정기 실행이 쓰는 값을 바꾸므로 누르기 전에 그 사실을 적는다 — 앞 판은 줄의 「저장」 뒤에 4초만 떴다(점검 7.6)
+// 저장은 팀 전체와 정기 실행이 쓰는 값을 바꾸므로 누르기 전에 그 사실을 적는다 — 앞 판은 줄의 「저장」 뒤에 4초만 떴다(점검 7.6)
 
 import { useEffect, useState } from 'react';
 
@@ -160,7 +160,7 @@ export function CaseDetail({
             {row.reqs!.map((r) => (
               <li key={`${r.reqId}:${r.axis}`}>
                 {r.text === null || !요구보나 ? <span className="case-req-id">{r.reqId}</span> : <a className="case-req-id" href={PRD항목주소(r.reqId)}>{r.reqId}</a>}{' '}
-                <span className="axis-tag">{t(r.axis)}</span> {r.text ?? t('PRD 에 없는 번호예요')}
+                <span className="axis-tag">{t(r.axis)}</span> {r.text ?? t('PRD 에 없는 번호입니다')}
               </li>
             ))}
           </ul>

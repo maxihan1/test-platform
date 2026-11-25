@@ -104,6 +104,13 @@ describe('정기 실행 화면', () => {
     expect(schedApi.calendar).toHaveBeenCalledWith(10, '2026-10-26', '2026-12-06');
   });
 
+  it('앞으로의 칸 창은 담은 줄을 마법사와 같은 말로 적는다', async () => {
+    차리기([세트하나({ items: [{ kind: 'FN', service: 'MKT', tcIds: null, label: '기능 전체' }] })]);
+    render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+    fireEvent.click((await screen.findAllByRole('button', { name: /결제 회귀\s*02:00 예정/u }))[0]!);
+    expect(await screen.findByText(/· 기능 테스트 전체$/u)).toBeTruthy();
+  });
+
   it('실행이 여럿인 칸은 창을 열어 실행 줄마다 그 실행으로 가는 링크를 단다', async () => {
     차리기([세트하나()], [회차하나()]);
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);

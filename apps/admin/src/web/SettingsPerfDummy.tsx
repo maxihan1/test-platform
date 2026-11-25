@@ -38,7 +38,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
 
   // 413 은 본문에 사유가 없을 수 있어 상태 코드로 가린다
   function 오류글(err: unknown): string {
-    if (err instanceof ApiError && err.status === 413) return t('파일은 200MB 까지입니다');
+    if (err instanceof ApiError && err.status === 413) return t('파일은 200MB까지 업로드할 수 있습니다');
     if (err instanceof ApiError && err.code === 'IN_USE') return t('이 더미 클라이언트를 쓰는 시나리오가 있어 삭제할 수 없습니다');
     return message(err, 언어);
   }
@@ -75,7 +75,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
   }
 
   // 서버 상한(§7)과 같은 값 — 다 보낸 뒤에야 413 을 받지 않게 미리 막는다
-  const 파일막힘 = 파일 === null ? t('업로드할 .zip 파일을 선택해 주세요') : 파일.size > 200 * 1024 * 1024 ? t('파일은 200MB 까지입니다') : null;
+  const 파일막힘 = 파일 === null ? t('업로드할 .zip 파일을 선택해 주세요') : 파일.size > 200 * 1024 * 1024 ? t('파일은 200MB까지 업로드할 수 있습니다') : null;
   const 이름오류 = 눌렀나 && 이름.trim() === '' ? t('이름을 적어 주세요') : null;
   const 명령오류 = 눌렀나 && 명령.trim() === '' ? t('실행 명령을 적어 주세요') : null;
   const 파일오류 = 눌렀나 ? 파일막힘 : null;

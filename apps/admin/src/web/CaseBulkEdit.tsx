@@ -131,10 +131,10 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
                 {t('케이스 파일을 삭제하는 PR 을 등록합니다. 반영하면 실행 대상에서 빠지고, 이 케이스를 쓰는 E2E 시나리오도 더 이상 실행되지 않습니다. 실행 기록은 남습니다.')}
               </p>
               {프로시저수 === 0 ? null : (
-                <p className="hint">{t('테스트 프로시저의 케이스 {수}건은 작성 요청으로 보냅니다. 프로시저에서 빼고 다시 실행한 뒤 PR 을 등록합니다', { 수: 프로시저수 })}</p>
+                <p className="hint">{t('테스트 프로시저의 케이스 {수}건은 작성 요청으로 보냅니다. 프로시저에서 제거하고 다시 실행한 뒤 PR 을 등록합니다', { 수: 프로시저수 })}</p>
               )}
               <ScenarioUsage service={service} tcIds={남은.map((row) => row.tcId)} 대신문장={false} />
-              {빠진수 === 0 ? null : <p className="hint">{t('비활성 {수}건은 뺐습니다', { 수: 빠진수 })}</p>}
+              {빠진수 === 0 ? null : <p className="hint">{t('비활성 {수}건은 제외했습니다', { 수: 빠진수 })}</p>}
               {넘침 ? <p className="error-text">{t('한 번에 {상한}건까지 요청할 수 있습니다. 선택한 것을 줄이세요', { 상한: 고치기상한 })}</p> : null}
               <ul className="edit-list">
                 {남은.map((row) => (

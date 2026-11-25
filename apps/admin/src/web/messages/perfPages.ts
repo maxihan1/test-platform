@@ -10,7 +10,7 @@ export const 성능페이지말: Record<string, string> = {
   '측정 조건': 'Measurement conditions',
   모바일: 'Mobile',
   '제한 없음': 'No limit',
-  '측정 대상: 화면 지도 기준 주요 페이지 {수}개': 'Pages to measure: {수} main pages from the screen map',
+  '측정 대상: 화면 목록 기준 주요 페이지 {수}개': 'Pages to measure: {수} main pages from the screen map',
   '측정 대상: 페이지 {수}개': 'Pages to measure: {수}',
   'AI 가 측정할 페이지를 선택하는 중입니다': 'AI is choosing the pages to measure',
   '페이지 선택': 'Choose pages',
@@ -45,7 +45,7 @@ export const 성능페이지말: Record<string, string> = {
   '{이름} 로딩 워터폴': '{이름} loading waterfall',
   '받은 리소스가 없습니다': 'No resources received',
   '{값} (LCP 요소: {요소})': '{값} (LCP element: {요소})',
-  '{목록}이 차례로 걸려 LCP가 {값}인 그림': 'Waterfall of {목록}, with LCP at {값}',
+  '{목록}이 차례로 이어져 LCP가 {값}인 그림': 'Waterfall of {목록}, with LCP at {값}',
 
   // 페이지 선택 창
   '측정할 페이지를 1개에서 {수}개까지 선택합니다': 'Choose 1 to {수} pages to measure',

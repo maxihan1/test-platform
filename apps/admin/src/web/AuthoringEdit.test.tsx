@@ -213,7 +213,7 @@ describe('케이스 고치기 상세', () => {
     답들.set(7, 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, stage: '검사하는 중', canStop: true, canDiscard: false }));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
-    expect(await screen.findByText(/소식이 한동안 없습니다/)).toBeTruthy();
+    expect(await screen.findByText(/진행 알림이 한동안 없습니다/)).toBeTruthy();
     expect(screen.queryByText(/끊겼습니다/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '작성 중단' }));
     const 상자 = within(screen.getByRole('dialog'));

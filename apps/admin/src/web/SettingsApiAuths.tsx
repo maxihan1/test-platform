@@ -62,7 +62,7 @@ export function API인증못보내는이유(
     const 이름들 = e.API인증들.map((r) => r.name.trim());
     return 이름들.length > 10 || new Set(이름들).size !== 이름들.length || 이름들.some((이름) => 이름.length > 20);
   });
-  if (이름틀림) return 말('API 인증 이름은 20자까지이고 한 대상 서버 안에서 겹치지 않아야 합니다 (서버마다 10개까지)', 언어);
+  if (이름틀림) return 말('API 인증 이름은 20자까지이고 한 대상 서버 안에서 중복되지 않아야 합니다 (서버마다 10개까지)', 언어);
   if (줄들.some(({ r }) => !((r.tokenUrl.startsWith('/') && !r.tokenUrl.startsWith('//')) || /^https?:\/\/\S+$/.test(r.tokenUrl)))) {
     return 말('토큰 주소는 / 나 http(s):// 로 시작해야 합니다', 언어);
   }

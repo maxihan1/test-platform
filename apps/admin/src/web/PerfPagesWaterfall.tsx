@@ -9,7 +9,7 @@ export function PerfPagesWaterfall({ 줄 }: { 줄: PageRow }) {
   const t = use말();
   const 막대들 = 워터폴막대(줄);
   const lcp = 초글자(줄.lcpMs, t);
-  const 읽어줄글 = t('{목록}이 차례로 걸려 LCP가 {값}인 그림', {
+  const 읽어줄글 = t('{목록}이 차례로 이어져 LCP가 {값}인 그림', {
     목록: 막대들.map((막대) => `${막대.이름} ${초글자(막대.durationMs, t)}`).join(', '),
     값: lcp,
   });

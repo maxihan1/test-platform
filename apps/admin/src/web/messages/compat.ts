@@ -41,7 +41,7 @@ export const 호환성말: Record<string, string> = {
   '전체 화면 목록이 없어 케이스가 아는 화면으로 집계합니다': 'No full screen list yet, so screens known to the cases are counted',
   '미커버 화면이 없습니다': 'No uncovered screens',
   '미커버 화면 {수} · 호환성 점검 불가': 'Uncovered screens {수} · Cannot be checked',
-  '해당 화면을 지나는 TC 를 작성하면 다음 실행부터 자동 포함됩니다': 'Write a test case that passes these screens and it is included automatically from the next run',
+  '해당 화면을 지나는 케이스를 작성하면 다음 실행부터 자동 포함됩니다': 'Write a test case that passes these screens and it is included automatically from the next run',
   '저장하면 예상 소요 시간을 계산합니다': 'The estimated time is calculated after you save',
   '케이스 {케이스} × 점검 상태 {상태} = {회}회 실행': '{케이스} cases × {상태} check states = {회} runs',
   '테스트 약 {분}분 · AI 점검 완료까지 약 {점검}분 추가': 'About {분} min of testing · about {점검} more min until the AI check finishes',
@@ -172,7 +172,7 @@ export const 호환성말: Record<string, string> = {
   '{케이스} 부터 AI 점검을 하지 못했습니다 · 연결 하나에 {수}장 한도': 'Not checked by AI from {케이스} on · limit of {수} shots per session',
   '참고 · 미커버 화면 {수}': 'Note · {수} uncovered screens',
   '모든 화면을 지나는 케이스가 있었습니다': 'Every screen had a case passing through it',
-  '이 화면을 지나는 TC 가 없어 실행 대상에서 빠졌습니다': 'Left out of the run because no test case passes through these screens',
+  '이 화면을 지나는 케이스가 없어 실행 대상에서 빠졌습니다': 'Left out of the run because no test case passes through these screens',
   '세트 보기': 'View set',
 
   // ⑤ 실행 기록 › 호환성 (COMPAT-F1-07)

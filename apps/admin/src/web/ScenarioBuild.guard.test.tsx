@@ -68,7 +68,7 @@ describe('ScenarioBuild 떠나기 확인', () => {
     await 해시가('#/runs');
     await screen.findByRole('dialog');
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+      fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 나가기' }));
     });
     expect(await screen.findByText('도착 화면')).toBeTruthy();
     expect(window.location.hash).toBe('#/runs');

@@ -32,7 +32,7 @@ describe('측정', () => {
     vi.spyOn(perfApi, 'runOf').mockImplementation(() => Promise.resolve(상세({ id: 30, status: 상태 })));
     const 읽기 = vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
     render(<PerfPages service={앱} 쓰나 />);
-    await screen.findByText('측정 대상: 화면 지도 기준 주요 페이지 3개');
+    await screen.findByText('측정 대상: 화면 목록 기준 주요 페이지 3개');
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByLabelText('모바일'));

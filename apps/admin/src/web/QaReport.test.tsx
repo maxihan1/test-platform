@@ -92,7 +92,7 @@ describe('QA 리포트 보기', () => {
 
     vi.spyOn(qaReportApi, 'get').mockResolvedValue(리포트({ versions: [{ id: 31, version: 1, approvedAt: null }, { id: 40, version: 2, approvedAt: null }] }));
     render(<QaReport id={31} user={사람()} />);
-    expect(await screen.findByText('더 새 버전이 있습니다. 마지막 버전에서 승인할 수 있습니다')).toBeTruthy();
+    expect(await screen.findByText('새 버전이 있습니다. 가장 최근 버전에서 승인할 수 있습니다')).toBeTruthy();
   });
 
   it('서버가 승인을 거절하면 리포트 화면의 말로 옮긴다', async () => {

@@ -58,8 +58,8 @@ describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를
 
     fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
     expect(고침).not.toHaveBeenCalled();
-    expect(screen.getByText(/애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '비활성화한다' }));
+    expect(screen.getByText(/^애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '비활성화 확인' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: false }));
     expect(onDone).toHaveBeenCalledWith('ZSS', false);
@@ -74,7 +74,7 @@ describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를
 
     expect(고침).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: '비활성화' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '비활성화한다' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '비활성화 확인' })).toBeNull();
   });
 
   it('다시 활성화는 확인 없이 바로 보낸다', async () => {

@@ -27,7 +27,7 @@ export function 저장값표시({ saved, className = 'hint' }: { saved: SavedInp
 
 /**
  * 상세 칸의 저장. 고친 칸이 있으면 「모두에게 저장」, 없으면 저장값이 누구 것인지.
- * 저장값은 팀 모두와 정기 실행이 쓴다 — **누르기 전에** 적는다. 앞 판은 목록 줄의 「저장」 뒤에 4초만 떴다(점검 7.6)
+ * 저장값은 팀 전체와 정기 실행이 쓴다 — **누르기 전에** 적는다. 앞 판은 목록 줄의 「저장」 뒤에 4초만 떴다(점검 7.6)
  */
 export function 값저장({
   tcId,
@@ -71,7 +71,7 @@ export function 값저장({
     <div className="saved-row">
       {버튼 ? (
         <>
-          <span className="hint">{t('팀 모두와 정기 실행에 쓰입니다')}</span>
+          <span className="hint">{t('팀 전체와 정기 실행에 쓰입니다')}</span>
           <button type="button" className="btn ghost" onClick={() => void 저장()} disabled={busy}>
             <기다림글자 중={busy} 평소={t('모두에게 저장')} 기다림={t('저장하는 중')} />
           </button>

@@ -1,4 +1,4 @@
-// 「API 문서」의 할 일 카드 — 케이스가 안 거친 응답. 바뀐 API 를 테스트에 반영하는 일은 테스트 작성의 「결정 필요」 한 곳에서 한다 (도메인/작성 §3.6 「★ 결정 목록」)
+// 「API 문서」의 할 일 카드 — 케이스가 확인하지 않은 응답. 바뀐 API 를 테스트에 반영하는 일은 테스트 작성의 「결정 필요」 한 곳에서 한다 (도메인/작성 §3.6 「★ 결정 목록」)
 
 import { useState } from 'react';
 
@@ -15,8 +15,8 @@ export function 안거친응답카드({ coverage }: { coverage: ApiCoverage }) {
   return (
     <section className="prd-card prd-untested" aria-labelledby="api-untested-title">
       <header>
-        <h2 id="api-untested-title">{t('케이스가 안 거친 응답 {건수}개', { 건수: 수 })}</h2>
-        <small>{t('응답 코드 {전체}개 중 아직 통과한 케이스가 받지 못한 응답입니다', { 전체: coverage.total })}</small>
+        <h2 id="api-untested-title">{t('케이스가 확인하지 않은 응답 {건수}개', { 건수: 수 })}</h2>
+        <small>{t('응답 코드 {전체}개 가운데 통과한 케이스가 아직 받지 못한 응답입니다', { 전체: coverage.total })}</small>
         {줄들.length === 0 ? null : (
           <button type="button" className="btn ghost small" aria-expanded={폈나} onClick={() => set폈나(!폈나)}>
             {폈나 ? t('접기') : t('펴기')}
@@ -24,7 +24,7 @@ export function 안거친응답카드({ coverage }: { coverage: ApiCoverage }) {
         )}
       </header>
       {줄들.length === 0 ? (
-        <p className="prd-card-empty">{t('모든 응답을 케이스가 거칩니다')}</p>
+        <p className="prd-card-empty">{t('모든 응답을 케이스가 확인합니다')}</p>
       ) : !폈나 ? null : (
         <ul className="prd-apis">
           {줄들.map((x) => (

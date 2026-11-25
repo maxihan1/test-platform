@@ -112,7 +112,7 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
                       {p.kind === 'case' ? [p.tcId, ...(줄정보?.screens ?? [])].join(' · ') : 카드요약(p, undefined, 언어)}
                     </span>
                     {줄정보?.proc === undefined ? null : (
-                      <span className="scw-to">{t('프로시저 {번호} · {수}건을 통째로 실행', { 번호: 줄정보.proc.id, 수: 줄정보.proc.count })}</span>
+                      <span className="scw-to">{t('프로시저 {번호} · {수}건 전체를 실행', { 번호: 줄정보.proc.id, 수: 줄정보.proc.count })}</span>
                     )}
                   </span>
                   <span className="scw-acts">

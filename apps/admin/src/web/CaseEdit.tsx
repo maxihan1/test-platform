@@ -137,7 +137,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
               </div>
             )}
             {지우려나 && row.procId != null ? (
-              <p className="hint">{t('테스트 프로시저의 케이스라 작성 요청으로 보냅니다. 프로시저에서 빼고 다시 실행한 뒤 PR 을 등록합니다')}</p>
+              <p className="hint">{t('테스트 프로시저의 케이스라 작성 요청으로 보냅니다. 프로시저에서 제거하고 다시 실행한 뒤 PR 을 등록합니다')}</p>
             ) : null}
             {지우려나 ? <ScenarioUsage service={service} tcIds={[row.tcId]} /> : null}
           </div>

@@ -157,7 +157,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
       ) : 읽음 === null || 차례 === null ? (
         <Loading />
       ) : 읽음.목록.length === 0 ? (
-        <p className="scn-set-note">{t('이 애플리케이션에는 단계로 쓸 기능 테스트 스크립트가 없습니다')}</p>
+        <p className="scn-set-note">{t('이 애플리케이션에는 단계로 쓸 기능 케이스가 없습니다')}</p>
       ) : (
         <>
           {추천.오류 !== null ? (
@@ -184,7 +184,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
           )}
           {차례.뺀수 === 0 ? null : (
             <p className="scn-set-note">
-              {t('{디바이스}에서 실행되지 않는 케이스 {수}건은 뺐습니다', { 디바이스: t(PLATFORM_LABEL[디바이스]), 수: 차례.뺀수 })}
+              {t('{디바이스}에서 실행되지 않는 케이스 {수}건은 제외했습니다', { 디바이스: t(PLATFORM_LABEL[디바이스]), 수: 차례.뺀수 })}
             </p>
           )}
           {PRD씀 ? (
@@ -223,7 +223,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
             <>
               <section className="scn-pal-group">
                 <h3 className="scn-set-sub">{t('업무 흐름 케이스')}</h3>
-                <p className="scn-set-note">{t('상태 전이 사용 또는 기법 표시 없음')}</p>
+                <p className="scn-set-note">{t('상태 전이 기법을 쓰거나 기법 표시가 없는 케이스입니다')}</p>
                 <ul className="scn-pal-list">{(묶음들[0]?.흐름 ?? []).map((c) => 줄(c))}</ul>
               </section>
               <section className="scn-pal-group">

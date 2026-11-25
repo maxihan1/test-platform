@@ -21,7 +21,7 @@ const 형식들: { 형식: 리포트형식; 이름: string }[] = [
 /** 화면이 미리 아는 막힘 — 서버가 잠금 안에서 다시 본다. AI 일은 응답에 상태가 없어 서버 거절로만 알린다 */
 function 승인못하는까닭(r: 리포트응답, 나: string): string | null {
   const 마지막 = Math.max(...r.versions.map((v) => v.version));
-  if (r.version < 마지막) return '더 새 버전이 있습니다. 마지막 버전에서 승인할 수 있습니다';
+  if (r.version < 마지막) return '새 버전이 있습니다. 가장 최근 버전에서 승인할 수 있습니다';
   if (r.performers.includes(나)) return '수행자는 승인할 수 없습니다';
   if (r.summary.overview.running > 0) return '진행 중인 실행이 완료되면 승인할 수 있습니다';
   return null;

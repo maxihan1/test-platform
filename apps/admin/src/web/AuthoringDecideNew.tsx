@@ -39,14 +39,14 @@ export function 새로만들기({
     const 다시 = 다시쓸API(x);
     질문 =
       다시 === null
-        ? t('API 문서가 버전 {앞} 에서 {뒤} 로 변경되었습니다. 변경된 API 의 테스트를 다시 만들까요?', { 앞: x.fromVersion, 뒤: x.toVersion })
-        : t('API 문서가 버전 {앞} 에서 {뒤} 로 변경되었습니다. 변경된 API {수}건의 테스트를 다시 만들까요?', { 앞: x.fromVersion, 뒤: x.toVersion, 수: 다시.length });
+        ? t('API 문서가 버전 {앞}에서 {뒤}로 변경되었습니다. 변경된 API 의 테스트를 다시 만들까요?', { 앞: x.fromVersion, 뒤: x.toVersion })
+        : t('API 문서가 버전 {앞}에서 {뒤}로 변경되었습니다. 변경된 API {수}건의 테스트를 다시 만들까요?', { 앞: x.fromVersion, 뒤: x.toVersion, 수: 다시.length });
     볼것 =
       x.operations === null ? null : (
         <ul className="decide-list">
           {x.operations.map((o) => (
             <li key={`${o.method} ${o.path}`}>
-              <span className="case-tag">{{ NEW: t('새 항목'), CHANGED: t('변경'), REMOVED: t('지움') }[o.change]}</span> <span className="prd-id">{o.method} {o.path}</span>
+              <span className="case-tag">{{ NEW: t('새 항목'), CHANGED: t('변경'), REMOVED: t('삭제됨') }[o.change]}</span> <span className="prd-id">{o.method} {o.path}</span>
               {o.breaking ? <span className="hint"> · {t('기존 테스트가 실패할 수 있음')}</span> : null}
             </li>
           ))}
@@ -116,7 +116,7 @@ function 바뀐요구들({ x }: { x: 항목of<'PRD_CHANGED'> }) {
   const 종류: [string, typeof x.changed][] = [
     [t('변경'), x.changed],
     [t('새 항목'), x.added],
-    [t('지움'), x.removed],
+    [t('삭제됨'), x.removed],
   ];
   return (
     <>

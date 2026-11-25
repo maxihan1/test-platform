@@ -51,7 +51,7 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
     <div className="decide-item">
       <div className="decide-qline">
         <span className="decide-q">
-          {x.rows.length === 0 ? t('배포된 기능 {수}건으로 변경된 요구사항이 없어요', { 수: x.issues.length }) : t('배포된 기능 {수}건으로 PRD 를 수정할까요?', { 수: x.issues.length })}
+          {x.rows.length === 0 ? t('배포된 기능 {수}건에서 변경된 요구사항이 없습니다', { 수: x.issues.length }) : t('배포된 기능 {수}건으로 PRD 를 수정할까요?', { 수: x.issues.length })}
         </span>
         {x.picks.length === 0 ? null : (
           <span className="chip-group decide-choices" role="group">
@@ -90,7 +90,7 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
             <br />
             <small className="hint">
               {r.basis}
-              {r.gone ? <> · {t('지금 기획서에 없는 요구사항이라 선택할 수 없어요')}</> : r.sure ? null : <> · {t('체크하지 않으면 「확인 필요」로 남아요')}</>}
+              {r.gone ? <> · {t('지금 기획서에 없는 요구사항이라 선택할 수 없습니다')}</> : r.sure ? null : <> · {t('체크하지 않으면 「확인 필요」로 남습니다')}</>}
             </small>
           </span>
         </label>
@@ -102,7 +102,7 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
               <b>{t('E2E 제안')}</b> {e.title} <small className="hint">· {e.services.join(' → ')}</small>
             </span>
           ))}
-          <small className="hint">{t('테스트를 다시 만든 뒤 E2E 메뉴에서 만들 수 있어요')}</small>
+          <small className="hint">{t('테스트를 다시 만든 뒤 E2E 메뉴에서 만들 수 있습니다')}</small>
         </div>
       )}
       {x.picks.length > 0 ? null : <막힘줄 까닭={x.blockedBy} open={[]} />}
@@ -124,7 +124,7 @@ function 못만든초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고
     <div className="decide-item">
       <div className="decide-qline">
         <span className="decide-q">
-          {x.state === 'FAILED' ? t('{키들} PRD 초안을 만들지 못했어요', { 키들 }) : t('{키들} PRD 초안 만들기가 중단됐어요', { 키들 })}
+          {x.state === 'FAILED' ? t('{키들} PRD 초안을 만들지 못했습니다', { 키들 }) : t('{키들} PRD 초안 만들기가 중단되었습니다', { 키들 })}
         </span>
         {x.picks.length === 0 ? null : (
           <span className="chip-group decide-choices" role="group">

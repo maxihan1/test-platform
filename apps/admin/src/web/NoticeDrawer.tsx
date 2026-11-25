@@ -60,7 +60,7 @@ export function NoticeDrawer({ recent, approvals, 읽음, 지금, onClose, on읽
       <div className="nt-drawer-head">
         <h2>{t('알림')}</h2>
         <button className="btn ghost" onClick={() => on읽음([...recent.map(읽음열쇠), ...approvals.map(승인열쇠)])} disabled={안읽음 === 0}>
-          {t('모두 읽음으로')}
+          {t('모두 읽음 처리')}
         </button>
         <button ref={닫기} className="nt-x" aria-label={t('닫기')} onClick={onClose}>
           ×
@@ -139,7 +139,7 @@ export function NoticeDrawer({ recent, approvals, 읽음, 지금, onClose, on읽
                         onClose();
                       }}
                     >
-                      {t('결정 필요에서 확인')}
+                      {t('결정 필요 목록에서 확인')}
                     </a>
                   </div>
                 )}

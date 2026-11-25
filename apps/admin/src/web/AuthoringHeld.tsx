@@ -173,7 +173,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
             <tr>
               <th>{t('케이스')}</th>
               <th>{t('확인 내용')}</th>
-              <th>{t('필요한 것')}</th>
+              <th>{t('입력이 필요한 것')}</th>
               <th>{t('상태')}</th>
               <th />
             </tr>

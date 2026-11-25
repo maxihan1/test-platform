@@ -29,6 +29,6 @@ export function 막는이유(st: 마법사단계, 상황: 막는상황): string 
 export function 안내글(st: 마법사단계, 상황: { 미확인: number; 시험단계: string; 시험멈춤: boolean }, t: ReturnType<typeof use말>): string | null {
   if (st === 'values' && 상황.미확인 > 0) return t('확인하지 않은 값 연결이 {수}곳 있습니다', { 수: 상황.미확인 });
   if (st !== 'trial') return null;
-  if (상황.시험단계 === 'idle' || 상황.시험단계 === 'failed') return t('시험 없이 넘어가도 저장할 수 있습니다');
+  if (상황.시험단계 === 'idle' || 상황.시험단계 === 'failed') return t('시험 실행 없이 넘어가도 저장할 수 있습니다');
   return 상황.시험단계 === 'done' && 상황.시험멈춤 ? t('중단된 채로도 저장할 수 있습니다') : null;
 }

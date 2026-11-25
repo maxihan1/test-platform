@@ -117,13 +117,13 @@ describe('작성 에이전트 토큰', () => {
 
     expect(screen.queryByText('토큰 있음')).not.toBeNull();
     fireEvent.click(screen.getByText('다시 발급'));
-    expect(screen.queryByText(/작성 에이전트가 지금 멈춥니다/)).not.toBeNull();
+    expect(screen.queryByText(/작성 에이전트가 지금 중단됩니다/)).not.toBeNull();
     fireEvent.click(screen.getByText('그만두기'));
-    expect(screen.queryByText(/작성 에이전트가 지금 멈춥니다/)).toBeNull();
+    expect(screen.queryByText(/작성 에이전트가 지금 중단됩니다/)).toBeNull();
     expect(발급).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText('다시 발급'));
-    fireEvent.click(screen.getByText('다시 발급한다'));
+    fireEvent.click(screen.getByText('다시 발급 확인'));
     const 상자 = await screen.findByRole('alert');
     expect(상자.textContent).toContain('agt-new');
   });
@@ -134,13 +134,13 @@ describe('작성 에이전트 토큰', () => {
     그리기([계정('agent', { isAuthoringAgent: true, hasAgentToken: true })], onDone);
 
     fireEvent.click(screen.getByText('토큰 취소'));
-    expect(screen.queryByText(/작성 에이전트가 지금 멈춥니다/)).not.toBeNull();
+    expect(screen.queryByText(/작성 에이전트가 지금 중단됩니다/)).not.toBeNull();
     fireEvent.click(screen.getByText('그만두기'));
     expect(취소).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText('토큰 취소'));
     await act(async () => {
-      fireEvent.click(screen.getByText('취소한다'));
+      fireEvent.click(screen.getByText('토큰 취소 확인'));
     });
     expect(취소).toHaveBeenCalledWith('agent');
     expect(onDone).toHaveBeenCalled();

@@ -24,7 +24,7 @@ export function AuthoringCases({
       <section className="authoring-panel" aria-label={t('만든 케이스')}>
         <h3>{t('만든 케이스')}</h3>
         <p className="hint">
-          {t('이 요청은 만든 케이스 목록을 남기지 않았습니다')} ·{' '}
+          {t('이 요청에는 만든 케이스 목록이 없습니다')} ·{' '}
           <a href={prUrl} target="_blank" rel="noreferrer">
             {t('PR 에서 보기')}
           </a>
@@ -62,7 +62,7 @@ export function AuthoringCases({
                   )}
                   <br />
                   {c.name}
-                  {뺀번호.has(c.tcId) ? <span className="hint"> · {t('반영 때 뺌')}</span> : null}
+                  {뺀번호.has(c.tcId) ? <span className="hint"> · {t('반영 때 제외')}</span> : null}
                 </td>
                 <td>
                   <span className={c.change === 'NEW' ? 'held-chip' : 'held-chip und'}>

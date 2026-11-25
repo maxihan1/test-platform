@@ -243,7 +243,7 @@ function 기존것({ tcId, 이름, 겹친요구 }: { tcId: string; 이름: strin
       {/* 카탈로그 단건에는 요구가 없다 — 겹침이 알려 준 같은 요구만 그 이름으로 적는다(이 케이스의 요구 전부가 아니다) */}
       {겹친요구.length === 0 ? null : (
         <p className="hint">
-          {t('겹친 요구사항')}{' '}
+          {t('중복 요구사항')}{' '}
           {겹친요구.map((r) => (
             <span key={r} className="mono side-same">
               {r}

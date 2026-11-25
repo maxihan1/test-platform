@@ -45,11 +45,11 @@ export const 작성말: Record<string, string> = {
   'PRD 기준': 'PRD based',
   'PRD · 피그마의 요구사항별로 케이스를 작성합니다': 'Reads the PRD files and Figma and writes cases per requirement',
   '화면 대조': 'Screen compare',
-  'PRD 없이 실제 화면을 탐색해 PRD 에 아직 없는 화면의 케이스를 작성합니다':
-    'Scans the live screens without a spec and writes cases for screens not yet in the PRD',
+  'PRD 없이 실제 화면을 탐색해 미검증 화면의 케이스를 작성합니다':
+    'Scans the live screens without a spec and writes cases for unverified screens',
   'PRD + 화면 대조': 'PRD + screen compare',
-  'PRD 에 있는 화면을 먼저 작성한 뒤 PRD 에 아직 없는 화면을 이어서 작성합니다':
-    'Writes the spec screens first and, once applied, continues with screens the spec does not cover',
+  'PRD 에 있는 화면을 먼저 작성한 뒤 미검증 화면을 이어서 작성합니다':
+    'Writes the spec screens first and, once applied, continues with unverified screens',
   'API 문서 · 자료 선택': 'What should the cases be written from?',
   'PRD · 디자인 첨부': 'Add the spec and designs',
   '여러 파일을 함께 첨부할 수 있습니다': 'Several files can go in as one set',
@@ -65,9 +65,9 @@ export const 작성말: Record<string, string> = {
   '가이드 없음': 'Written without a guide',
   '{가이드} 버전 {버전} 참고': 'Reads {가이드} version {버전} too',
   '피그마 {수}건': '{수} Figma links',
-  '엔드포인트별로 케이스를 작성해 검토 PR 로 등록합니다': 'Writes cases per API endpoint and opens a review PR',
-  'PRD 에 아직 없는 화면의 케이스를 작성합니다': 'Writes only screens not yet in the PRD',
-  '요구사항별로 케이스를 작성해 검토 PR 로 등록합니다': 'Writes cases per requirement and opens a review PR',
+  '엔드포인트별로 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per API endpoint and opens a review PR',
+  '미검증 화면의 케이스를 작성합니다': 'Writes cases for unverified screens',
+  '요구사항별로 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per requirement and opens a review PR',
   '시작 후 창을 닫아도 작성은 계속 진행됩니다': 'Writing continues even if you close this window after starting',
   '수정 중인 가이드를 저장하거나 취소하세요': 'Save or cancel the guide section you edited',
   '작성 방식을 선택하세요': 'Choose a method',
@@ -99,10 +99,10 @@ export const 작성말: Record<string, string> = {
   '요청한 사람만 자료를 업로드할 수 있습니다': 'Only the requester can upload attachments',
   // 피그마를 미리 열어 보기 (도메인/작성 §7 「자료」 「미리 열어 보기」)
   '피그마 토큰이 등록되지 않아 피그마 주소를 사용할 수 없습니다.': 'This application has no Figma token, so Figma links cannot be accepted.',
-  '설정 > 애플리케이션에서 피그마 토큰을 등록하세요': 'Add a Figma token in Settings > Applications',
+  '설정 › 애플리케이션에서 피그마 토큰을 등록하세요': 'Add a Figma token in Settings › Applications',
   '관리자에게 피그마 토큰 등록을 요청하세요': 'Ask an admin to add a Figma token',
   '피그마 토큰 인증에 실패했습니다. 토큰이 잘못됐거나 만료됐거나 읽기 권한이 없습니다.': 'Figma does not accept this application’s token. It is wrong, has expired, or lacks read permission.',
-  '설정 > 애플리케이션에서 피그마 토큰을 다시 등록하세요': 'Add a new Figma token in Settings > Applications',
+  '설정 › 애플리케이션에서 피그마 토큰을 다시 등록하세요': 'Add a new Figma token in Settings › Applications',
   '관리자에게 피그마 토큰 재등록을 요청하세요': 'Ask an admin to add a new Figma token',
   '피그마 파일을 열지 못했습니다. 파일이 없거나 토큰에 열람 권한이 없습니다 ({주소})':
     'Could not open the Figma file. It does not exist or this token cannot view it ({주소})',
@@ -152,7 +152,7 @@ export const 작성말: Record<string, string> = {
   '저장하고 PR 을 만드는 중': 'Saving and creating the PR',
   '대조 결과를 저장하는 중': 'Saving comparison results',
   '겹치는 케이스를 보는 중': 'Reviewing overlapping cases',
-  '채운 케이스를 3회 실행 중': 'Running the filled cases 3 times',
+  '입력값을 채운 케이스를 3회 실행 중': 'Running the filled cases 3 times',
   '보관한 작업 폴더가 없어 처음부터 하는 중': 'No saved work folder, starting from scratch',
   '원본에 차이를 표시하는 중': 'Marking differences on the original',
 
@@ -163,12 +163,12 @@ export const 작성말: Record<string, string> = {
   '지금은 없습니다. 작성이 완료되면 여기에 검토할 것이 생깁니다. 이 페이지를 닫아도 됩니다.':
     'Nothing for now. Things to review appear here when writing ends. You can close this page.',
   '아직 시작 전이라 누르면 바로 취소됩니다.': 'It has not started, so it is cancelled right away.',
-  '중단하면 30초 안에 멈춥니다. 만든 것은 남겨 두어 이어서 작성할 수 있습니다.':
+  '30초 안에 중단됩니다. 만든 것은 남겨 두어 이어서 작성할 수 있습니다.':
     'Stopping takes up to 30 seconds. What was made is kept so you can continue writing.',
   '테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.': 'The tests were merged. The new cases are in the case list.',
-  '올라간 PR 이 없습니다. 아래 만든 것을 확인하세요.': 'No PR was opened. Check the outputs below.',
+  '등록한 PR 이 없습니다. 아래 만든 것을 확인하세요.': 'No PR was opened. Check the outputs below.',
   '만든 케이스 검토': 'Review the new cases',
-  '검토용 PR 로 올라갔습니다. 읽어 보고 이상하면 PR에 댓글을 남기세요.':
+  '검토용 PR 로 등록했습니다. 읽어 보고 이상하면 PR 에 댓글을 남기세요.':
     'It was opened as a draft PR. Read it and leave a comment on the PR if something looks wrong.',
   '만든 케이스 보기 (PR)': 'View the new cases (PR)',
   '기획서와 다른 곳 {수}건 확인': 'Check {수} differences from the spec',
@@ -176,7 +176,7 @@ export const 작성말: Record<string, string> = {
   '테스트 반영하기': 'Merge the tests',
   '검토가 완료되면 PR 을 반영해 케이스 목록에 등록합니다.': 'After review, apply the PR to add the cases to the list.',
   '반영하는 중': 'Merging…',
-  '반영은 관리자만 할 수 있습니다.': 'Someone with admin rights merges it.',
+  '반영할 권한이 없습니다. 관리자에게 요청하세요.': 'You do not have permission to apply this. Ask an admin.',
   '같은 자료로 다시 작성': 'Write again with the same inputs',
   '원인을 먼저 수정한 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 실행합니다.':
     'Fix the cause first. This runs the same request again from the start with the same inputs.',
@@ -204,7 +204,7 @@ export const 작성말: Record<string, string> = {
   '{수}개': '{수}',
   시스템: 'System',
   '사용자가 중단': 'Stopped by user',
-  '시간초과': 'Timed out',
+  '제한 시간 초과': 'Timed out',
   '구독 한도': 'Subscription limit',
   '작성 재시작': 'Authoring restarted',
   '작성 응답 없음': 'Authoring not responding',
@@ -224,12 +224,12 @@ export const 작성말: Record<string, string> = {
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',
   '시작 주소': 'Start URL',
-  '등록된 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 등록하세요':
-    'This application has no target servers. Add one in Settings > Applications first',
-  '대상 서버에 테스트 계정이 없거나 실서비스 서버로 지정되어 있습니다. 설정 > 애플리케이션에서 확인하세요':
-    'This target server has no test account or is marked as production. Check Settings > Applications',
-  '대상 서버에 디바이스에서 실행할 앱(앱 파일 경로 또는 업로드한 빌드)이 없거나 실서비스 서버로 지정되어 있습니다. 설정 > 애플리케이션에서 확인하세요':
-    'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Check Settings > Applications',
+  '등록된 대상 서버가 없습니다. 설정 › 애플리케이션에서 먼저 등록하세요':
+    'This application has no target servers. Add one in Settings › Applications first',
+  '대상 서버에 테스트 계정이 없거나 실서비스 서버로 지정되어 있습니다. 설정 › 애플리케이션에서 확인하세요':
+    'This target server has no test account or is marked as production. Check Settings › Applications',
+  '대상 서버에 디바이스에서 실행할 앱(앱 파일 경로 또는 업로드한 빌드)이 없거나 실서비스 서버로 지정되어 있습니다. 설정 › 애플리케이션에서 확인하세요':
+    'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Check Settings › Applications',
   '대상 서버에 디바이스에서 실행할 앱(앱 파일 경로 또는 업로드한 빌드)이 없거나 실서비스 서버로 지정되어 있습니다. 관리자에게 확인을 요청하세요':
     'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Ask an admin to check',
   '시작 주소는 선택한 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
@@ -237,7 +237,7 @@ export const 작성말: Record<string, string> = {
   '대상 서버 주소에서 시작': 'Starts from the target server address',
   '앱 첫 화면에서 시작': "Starts from the app's first screen",
   '게임 첫 화면에서 시작': "Starts from the game's first screen",
-  '화면만 — 기획서 없이 미검증 화면만 작성합니다': 'Screen only — without a spec, writes only the screens not in the PRD',
+  '화면만 — 기획서 없이 미검증 화면만 작성합니다': 'Screen only — without a spec, writes only unverified screens',
   '원본 요청 #{번호}의 입력을 그대로 씁니다': 'Uses the inputs of the original request #{번호} as they are',
   '원본 요청 #{번호}의 자료': 'Input of the original request #{번호}',
   '입력 자료': 'Inputs',
@@ -275,8 +275,8 @@ export const 작성말: Record<string, string> = {
     'Applying writes your values into the cases, runs each filled case 3 times, and applies only if all pass.',
   '반영이 대기 중이거나 진행 중이라 지금은 값을 변경할 수 없습니다': 'A merge is queued or running, so values cannot be changed now',
   '넣은 값이 이 케이스의 칸과 맞지 않습니다': 'The values do not match this case’s fields',
-  '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 애플리케이션에서 넣으세요.':
-    'No target server has a test account. Add one in Settings > Applications.',
+  '테스트 계정을 넣은 대상 서버가 없습니다. 설정 › 애플리케이션에서 넣으세요.':
+    'No target server has a test account. Add one in Settings › Applications.',
   // PRD 요구사항 집계 (도메인/작성 §3.6 「★ 원장」) — Status 카드 한 줄
   'PRD 요구사항': 'PRD requirements',
   '제외 {수} (다음 작성 {다음})': 'excluded {수} (next authoring {다음})',
@@ -289,12 +289,12 @@ export const 작성말: Record<string, string> = {
   '남은 요구사항은 #{번호} 요청이 맡았습니다.': 'Request #{번호} took the remaining requirements.',
   '#{번호} 요청 보기': 'View request #{번호}',
   '#{번호}의 남은 요구사항': 'Follow-up of #{번호}',
-  '#{번호} 다음 · 기획서에 없는 화면': 'After #{번호} · screens not in the spec',
+  '#{번호} 다음 · 미검증 화면': 'After #{번호} · unverified screens',
   '반영한 실행 기준으로 다음 요청 {다음}개 · 누락 {빠짐}개가 남았습니다.':
     'As of the merged run, {다음} left for the next request · {빠짐} missing.',
   '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구사항은 작성을 시작할 때 다시 집계합니다.':
     'They are written as a new request, and you move to its new number. The remaining requirements are counted again when writing starts.',
-  '이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.': 'Only people who can request writing can start a follow-up.',
+  '이어 작성할 권한이 없습니다. 관리자에게 작성 쓰기 권한을 요청하세요.': 'You do not have permission to continue writing. Ask an admin for authoring write access.',
   'GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구사항을 이어 작성할 수 있습니다.':
     'Even if the PR was applied on GitHub, apply here to follow up on the remaining requirements.',
   // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)

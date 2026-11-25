@@ -113,7 +113,7 @@ export function ProjectPick({ user, 마지막, onPick, onLogout }: Props) {
               </label>
             ) : null}
           </div>
-          {보일것.length === 0 ? <p className="pp-empty">{t('찾은 것이 없습니다')}</p> : null}
+          {보일것.length === 0 ? <p className="pp-empty">{t('검색 결과가 없습니다')}</p> : null}
           <div className="pp-grid">
             {보일것.map(({ 프로젝트, 앱들 }) => (
               <button key={프로젝트.id} type="button" className="pp-card" onClick={() => onPick(프로젝트첫앱(프로젝트.id, user.services)!.prefix)}>

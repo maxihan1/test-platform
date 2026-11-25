@@ -9,7 +9,7 @@
   color: var(--fail-text);
 }
 
-/* 할 일 칸 — 지금은 보류 카드뿐이고, API 문서는 안 거친 응답 카드가 앉는다 */
+/* 할 일 칸 — 지금은 보류 카드뿐이고, API 문서는 확인하지 않은 응답 카드가 앉는다 */
 .prd-todo {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -48,7 +48,7 @@
   gap: 10px;
   align-items: center;
 }
-/* 「API 문서」의 「케이스가 안 거친 응답」 카드는 전체 목록 위에 홀로 선다. 목록은 안에서 스크롤한다 */
+/* 「API 문서」의 「케이스가 확인하지 않은 응답」 카드는 전체 목록 위에 홀로 선다. 목록은 안에서 스크롤한다 */
 .prd-untested {
   margin-bottom: 20px;
 }

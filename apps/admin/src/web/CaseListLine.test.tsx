@@ -104,7 +104,7 @@ describe('한 건 한 줄과 상세 서랍의 맥락', () => {
     const 칸 = await 서랍열기('ZCL-FN-003');
     expect(within(칸).queryByRole('link', { name: 'REQ-COM-006' })).toBeNull();
     expect(within(칸).getByText('REQ-COM-006')).toBeTruthy();
-    expect(within(칸).getByText(/PRD 에 없는 번호예요/)).toBeTruthy();
+    expect(within(칸).getByText(/PRD 에 없는 번호입니다/)).toBeTruthy();
   });
 
   it('작성 보기 권한이 없으면 서랍의 요구 번호가 글자뿐이다', async () => {

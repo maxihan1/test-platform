@@ -137,7 +137,7 @@ describe('고른 것으로 고치기 요청', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '삭제 요청' }));
     const 상자 = within(screen.getByRole('dialog'));
-    expect(상자.getByText(/비활성 1건은 뺐습니다/)).toBeTruthy();
+    expect(상자.getByText(/비활성 1건은 제외했습니다/)).toBeTruthy();
     fireEvent.click(상자.getByRole('button', { name: '삭제 요청 보내기' }));
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', delete: true }]));
   });

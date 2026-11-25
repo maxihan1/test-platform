@@ -71,7 +71,7 @@ describe('회원가입 화면', () => {
     const 보냄 = vi.spyOn(api, 'signup');
     채운다({ 아이디: 'Admin' });
 
-    expect(screen.getByText('영문 소문자·숫자·. _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다')).toBeTruthy();
+    expect(screen.getByText('영문 소문자 · 숫자 · . _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다')).toBeTruthy();
     expect(보냄).not.toHaveBeenCalled();
   });
 
@@ -104,7 +104,7 @@ describe('회원가입 화면', () => {
     expect(칸.getAttribute('aria-invalid')).toBe('true');
     expect(document.activeElement).toBe(칸);
     const 사유 = document.getElementById(칸.getAttribute('aria-describedby') ?? '');
-    expect(사유?.textContent).toBe('영문 소문자·숫자·. _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다');
+    expect(사유?.textContent).toBe('영문 소문자 · 숫자 · . _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다');
     expect(screen.getByLabelText('이름').getAttribute('aria-invalid')).toBeNull();
     expect(screen.getByLabelText('이름').getAttribute('aria-describedby')).toBeNull();
   });

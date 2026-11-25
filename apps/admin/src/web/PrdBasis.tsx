@@ -12,7 +12,7 @@ export function 근거목록({ basis }: { basis: PrdBasis[] }) {
   const 풀이: Record<string, string> = { [화면에서]: t('실제 화면에서 본 것'), [직접작성]: t('사람이 직접 적은 것') };
   return (
     <>
-      <p className="hint">{t('이 요구사항을 어디서 읽었는지입니다')}</p>
+      <p className="hint">{t('이 요구사항을 어디서 읽었는지 보여 줍니다')}</p>
       <dl className="prd-basis">
         {basis.map((b, i) => (
           <Fragment key={i}>

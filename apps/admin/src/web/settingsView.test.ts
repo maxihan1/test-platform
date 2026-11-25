@@ -203,7 +203,7 @@ describe('애플리케이션을 아직 못 보내는 이유 (SPEC §8.2 — 버�
     expect(서비스못보내는이유(역할(' 관리자 ', '판매자'), 'ko')).toBe(null);
     expect(서비스못보내는이유(역할('가'.repeat(41)), 'ko')).toContain('40자');
     expect(서비스못보내는이유(역할(...Array.from({ length: 21 }, (_, i) => `역할${String(i)}`)), 'ko')).toContain('20개');
-    expect(서비스못보내는이유(역할('관리자', '관리자 '), 'ko')).toContain('겹칩니다');
+    expect(서비스못보내는이유(역할('관리자', '관리자 '), 'ko')).toContain('중복됩니다');
     expect(서비스못보내는이유(역할('일반 회원'), 'en')).toContain('"Regular user"');
   });
 });
@@ -224,7 +224,7 @@ describe('계정을 아직 못 보내는 이유', () => {
   it('아이디 모양이 서버 규칙과 다르면 보내기 전에 서버와 같은 말로 알린다', () => {
     for (const 틀린것 of ['Admin', 'k', '-kim', 'kim lee', 'a'.repeat(33)]) {
       expect(계정못보내는이유({ username: 틀린것, displayName: '김철수', 새것: true }, 'ko'), 틀린것).toBe(
-        '아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다',
+        '아이디는 영문 소문자 · 숫자 · 마침표(.) · 밑줄(_) · 하이픈(-)으로 2~32자입니다',
       );
     }
   });

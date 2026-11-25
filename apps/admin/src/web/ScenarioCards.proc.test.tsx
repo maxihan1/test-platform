@@ -33,18 +33,18 @@ function 카드판(프로시저들: ReadonlyMap<string, 프로시저정보>) {
 }
 
 describe('프로시저 단계 카드', () => {
-  it('「프로시저 <번호> · N건을 통째로 실행」 한 줄과 케이스 목록이 서고 옛 꼴 카드는 그대로다', () => {
+  it('「프로시저 <번호> · N건 전체를 실행」 한 줄과 케이스 목록이 서고 옛 꼴 카드는 그대로다', () => {
     카드판(new Map([['ZSB-FN-002', 정보]]));
-    expect(screen.getByText('프로시저 ZSB-TP-001 · 3건을 통째로 실행')).toBeTruthy();
+    expect(screen.getByText('프로시저 ZSB-TP-001 · 3건 전체를 실행')).toBeTruthy();
     const 목록 = document.querySelectorAll('.scn-card-cases li');
     expect([...목록].map((li) => li.textContent)).toEqual(['1ZSB-FN-001로그인', '2ZSB-FN-002글쓰기', '3ZSB-FN-003로그아웃']);
     expect(document.querySelectorAll('.scn-card-cases')).toHaveLength(1);
-    expect(screen.getAllByText(/통째로 실행/)).toHaveLength(1);
+    expect(screen.getAllByText(/전체를 실행/)).toHaveLength(1);
   });
 
   it('프로시저 정보가 없으면 한 줄도 목록도 없다', () => {
     카드판(new Map());
-    expect(screen.queryByText(/통째로 실행/)).toBeNull();
+    expect(screen.queryByText(/전체를 실행/)).toBeNull();
     expect(document.querySelector('.scn-card-cases')).toBeNull();
   });
 });

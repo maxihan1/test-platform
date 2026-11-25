@@ -58,11 +58,11 @@ export const 껍데기말: Record<string, string> = {
   // 위치 판 오른쪽 칸 제목 · 펼친 왼쪽 줄 꼬리표
   '{프로젝트}의 애플리케이션': 'Applications in {프로젝트}',
   // 사이드바 찾기 칸 · 찾기 창 (ShellFind.tsx · 화면공통 §8 「껍데기」 찾기 칸)
-  '찾을 말': 'Search term',
+  '검색어': 'Search term',
   '메뉴 이름': 'Menu name',
   'TC ID · 케이스 이름 · 메뉴 이름': 'TC ID · case name · menu name',
-  '찾은 것': 'Results',
-  '찾은 것이 없습니다': 'Nothing found',
+  '검색 결과': 'Results',
+  '검색 결과가 없습니다': 'Nothing found',
   메뉴: 'Menu',
   // 왼쪽 줄 · 내 메뉴 (ShellRail.tsx · ShellMe.tsx)
   'Test Commander 홈': 'Test Commander home',
@@ -72,7 +72,7 @@ export const 껍데기말: Record<string, string> = {
   한국어: '한국어',
 
   // 기능 칸이 넷 다 none 인 사람 (화면공통 §8)
-  '권한을 받지 않았습니다. 관리자에게 요청하세요': 'You have no permissions yet. Ask an admin.',
+  '화면을 볼 권한이 없습니다. 관리자에게 요청하세요': 'You have no permissions yet. Ask an admin.',
   // 배정이 없는 사람
   '아직 배정받은 애플리케이션이 없습니다': 'No application assigned yet',
   '설정에서 자기 자신을 프로젝트에 배정하세요': 'Assign yourself to a project in Settings',
@@ -85,7 +85,7 @@ export const 껍데기말: Record<string, string> = {
   '결정 필요 {수}건': '{수} need a decision',
   '전체 메뉴': 'All menus',
   // 링크의 `service=` 가 못 보는 애플리케이션이면 띠를 그대로 두고 띄운다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
-  '링크의 애플리케이션은 볼 권한이 없어 지금 선택한 애플리케이션으로 엽니다': "You can't access the linked application, so it opened in your current one",
+  '링크에 있는 애플리케이션을 볼 권한이 없어 지금 선택한 애플리케이션으로 엽니다': "You can't access the linked application, so it opened in your current one",
   '{이름} 메뉴': '{이름} menu',
   // 휴대폰 고르기 바 — 단추가 같은 폭으로 나란해 「조건에 맞는 N건 모두 고름」을 줄였다 (CaseListPick.tsx)
   '모두 {수}건': 'All {수}',
@@ -107,9 +107,9 @@ export const 껍데기말: Record<string, string> = {
   '{번호} / {전체} 단계 {이름}': 'Step {번호} / {전체} {이름}',
   '케이스 파일 {수}개': '{수} case files',
   'PRD 확인 필요 {수}건': '{수} PRD items to check',
-  '결정 필요에서 확인': 'Check in Needs decision',
+  '결정 필요 목록에서 확인': 'Check in Needs decision',
   '외 {수}건 — 알림 열기': '{수} more — open notifications',
-  '모두 읽음으로': 'Mark all read',
+  '모두 읽음 처리': 'Mark all read',
   '안 읽음 {수}': 'Unread {수}',
   '볼 수 있는 애플리케이션 전체 · 최근 7일': 'All applications you can see · last 7 days',
   '최근 7일 동안 종료된 실행과 작성이 없습니다': 'No runs or authoring finished in the last 7 days',

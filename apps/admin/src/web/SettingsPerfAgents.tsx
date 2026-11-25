@@ -162,7 +162,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
             </>
           }
         >
-          <p>{t('「{이름}」을 삭제하면 그 토큰도 끊겨 다시 연결하려면 재설치해야 합니다', { 이름: 지울것.name })}</p>
+          <p>{t('「{이름}」을 삭제하면 그 토큰도 무효가 되어 다시 연결하려면 재설치해야 합니다', { 이름: 지울것.name })}</p>
           {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
         </Modal>
       )}
@@ -204,7 +204,7 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
     <div className="set-card" ref={상자}>
       <div className="set-card-h">
         <h3>{t('에이전트 추가')}</h3>
-        <p>{t('부하 발생은 부하를 보낼 기계에, 모니터링은 대상 서버에 설치합니다. 프로그램은 같습니다')}</p>
+        <p>{t('부하 발생은 부하를 보낼 컴퓨터에, 모니터링은 대상 서버에 설치합니다. 프로그램은 같습니다')}</p>
       </div>
       <div className="perf-fields">
         <div className="perf-field" role="radiogroup" aria-label={t('역할')}>
@@ -258,7 +258,7 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
               {복사함 ? t('복사함') : t('복사')}
             </button>
           </div>
-          <span className="perf-faint">{t('토큰은 지금 한 번만 보입니다. 설치할 기계에서 실행하면 목록에 나타납니다')}</span>
+          <span className="perf-faint">{t('토큰은 지금 한 번만 보입니다. 설치할 컴퓨터에서 실행하면 목록에 나타납니다')}</span>
         </div>
       )}
     </div>

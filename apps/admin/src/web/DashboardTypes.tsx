@@ -44,7 +44,7 @@ export function 실패유형칸({ 값, 이동 }: { 값: 자료; 이동?: 이동�
 
       {/* 멈춘 · Blocked 미실행뿐이면 「없습니다」를 띄우지 않는다 — 그 수 한 줄만 둔다 */}
       {전체 === 0 ? (
-        stopped > 0 || blocked > 0 ? null : <p className="dash-calm good">{t('최근 {일}일 Fail · Not tested 가 없습니다', { 일: 값.window.days })}</p>
+        stopped > 0 || blocked > 0 ? null : <p className="dash-calm good">{t('최근 {일}일 동안 Fail · Not tested 가 없습니다', { 일: 값.window.days })}</p>
       ) : (
         <>
           <div className="dash-ft">

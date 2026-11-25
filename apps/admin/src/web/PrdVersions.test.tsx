@@ -145,8 +145,8 @@ describe('PRD 관리 — 버전 기록', () => {
     fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
     const 줄 = (await screen.findAllByRole('row'))[1]!;
     expect(within(줄).getAllByRole('listitem').map((x) => x.textContent)).toEqual([
-      '추가MKT-REQ-401쿠폰은 한 번만 쓴다 · DM-12 에서 옴',
-      '삭제MKT-REQ-033DM-14, DM-15 에서 옴',
+      '추가MKT-REQ-401쿠폰은 한 번만 쓴다 · DM-12에서 온 변경',
+      '삭제MKT-REQ-033DM-14, DM-15에서 온 변경',
       '확인 필요로 지정MKT-REQ-034',
     ]);
   });

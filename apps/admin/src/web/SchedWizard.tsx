@@ -134,7 +134,7 @@ export function SchedWizard({
     [t('대상 서버'), 실행앱.map((p) => `${p} ${envs[p] ?? '—'}`).join(' · ')],
     [t('실행 주기'), [반복글({ days, onceOn }, t, 언어), v.at, `(${tz})`].join(' ')],
     [t('다음 실행'), 보일다음.map(짧은날).join(' · ') || '—'],
-    [t('알림'), v.items.some((x) => x.kind === 'FN' || x.kind === 'UI') ? t('기능 · UI 실행 결과 Slack 전송') : t('전송 안 함')],
+    [t('알림'), v.items.some((x) => x.kind === 'FN' || x.kind === 'UI') ? t('기능 테스트 · UI 테스트 실행 결과 Slack 전송') : t('전송 안 함')],
   ];
 
   const 버튼 = (

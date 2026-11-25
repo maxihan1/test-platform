@@ -108,14 +108,14 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('반영이 겹친 케이스 번호를 바꾼 뒤의 작성 상세 (리뷰 M6)', () => {
-  it('만든 케이스 · 차이 표 고리는 반영된 새 번호로, 뺀 케이스는 고리 없이 「반영 때 뺌」이다', async () => {
+  it('만든 케이스 · 차이 표 고리는 반영된 새 번호로, 뺀 케이스는 고리 없이 「반영 때 제외」이다', async () => {
     반영된요청({ 'MKT-FN-001': 'MKT-FN-014', 'MKT-FN-002': null });
     render(<AuthoringDetail service="MKT" id={7} 할수={운영} />);
 
     const 만든 = await screen.findByRole('table', { name: '만든 케이스' });
     const 고리들 = Array.from(만든.querySelectorAll('a.mono')).map((a) => a.getAttribute('href'));
     expect(고리들).toEqual(['#/cases/fn?q=MKT-FN-014&case=MKT-FN-014&service=MKT', '#/cases/fn?q=MKT-FN-003&case=MKT-FN-003&service=MKT']);
-    expect(만든.textContent).toContain('반영 때 뺌');
+    expect(만든.textContent).toContain('반영 때 제외');
 
     const 차이 = screen.getByRole('table', { name: '기획서와 화면의 차이' });
     expect(차이.querySelector('a.mono')?.getAttribute('href')).toBe('#/cases/fn?q=MKT-FN-014&case=MKT-FN-014&service=MKT');

@@ -58,7 +58,7 @@ export function ScenarioCards({
   const 구간 = 모킹구간(단계들);
   const 섞임 = 섞였나(단계들, 시작);
   let 직전앱: string | null = null;
-  // ✕ 한 번에 설정까지 사라지면 되돌릴 길이 「저장하지 않고 떠나기」뿐이라 한 번 묻는다 (점검 10.7)
+  // ✕ 한 번에 설정까지 사라지면 되돌릴 길이 「저장하지 않고 나가기」뿐이라 한 번 묻는다 (점검 10.7)
   const [뺄번호, set뺄번호] = useState<number | null>(null);
 
   useEffect(() => {
@@ -144,7 +144,7 @@ export function ScenarioCards({
                   <span className="scn-card-name">{이름}</span>
                   {요약 === '' ? null : <span className="scn-card-sum">{요약}</span>}
                   {프로시저 === undefined ? null : (
-                    <span className="scn-card-sum">{t('프로시저 {번호} · {수}건을 통째로 실행', { 번호: 프로시저.procId, 수: 프로시저.cases.length })}</span>
+                    <span className="scn-card-sum">{t('프로시저 {번호} · {수}건 전체를 실행', { 번호: 프로시저.procId, 수: 프로시저.cases.length })}</span>
                   )}
                 </button>
                 <span className="scn-card-chips">

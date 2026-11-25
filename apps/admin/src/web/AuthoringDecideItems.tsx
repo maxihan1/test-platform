@@ -122,7 +122,7 @@ export function 상세할일({ x }: { x: 항목of<'FIX'> }) {
   const 질문 = {
     APPLY_FAILED: t('#{번호} 반영이 실패했습니다', { 번호: x.rootId }),
     HELD: t('#{번호} 케이스 {수}건에 값이 필요합니다', { 번호: x.rootId, 수: x.count }),
-    CONFLICT: t('#{번호} 케이스 {수}건이 다른 요청과 겹칩니다', { 번호: x.rootId, 수: x.count }),
+    CONFLICT: t('#{번호} 케이스 {수}건이 다른 요청과 중복됩니다', { 번호: x.rootId, 수: x.count }),
   }[x.why];
   return (
     <div className="decide-item">
@@ -163,13 +163,13 @@ function 자동수정글({ fix }: { fix: 판정자동수정 }) {
   if (fix.state === 'FAILED')
     return (
       <>
-        {t('수정했지만 다시 실행에서도 실패했어요')}
+        {t('수정했지만 다시 실행해도 실패했습니다')}
         {pr}
         {실행}
       </>
     );
-  if (fix.state === 'FLAKY') return <>{t('다시 실행하니 통과해서 수정하지 않았어요')}</>;
-  return <>{fix.reason === null ? t('그만뒀어요') : t('그만뒀어요 · {까닭}', { 까닭: fix.reason })}</>;
+  if (fix.state === 'FLAKY') return <>{t('다시 실행하니 통과해서 수정하지 않았습니다')}</>;
+  return <>{fix.reason === null ? t('그만뒀습니다') : t('그만뒀습니다 · {까닭}', { 까닭: fix.reason })}</>;
 }
 
 export function 실패판정({ x, 고른, on고름 }: { x: 항목of<'FAIL'>; 고른: 고른값 | undefined; on고름: 고름하기 }) {

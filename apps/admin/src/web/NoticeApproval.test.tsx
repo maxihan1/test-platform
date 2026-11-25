@@ -68,9 +68,9 @@ describe('알림 서랍의 승인 전 QA 리포트', () => {
     expect(document.querySelector('.nt-badge')).toBeNull();
   });
 
-  it('모두 읽음으로에도 든다', async () => {
+  it('모두 읽음 처리에도 든다', async () => {
     const 서랍 = await 연다({ running: [], recent: [], approvals: [승인전(7), 승인전(8)] }, '안 읽은 알림 2건');
-    fireEvent.click(서랍.getByRole('button', { name: '모두 읽음으로' }));
+    fireEvent.click(서랍.getByRole('button', { name: '모두 읽음 처리' }));
     expect([...읽음들()].sort()).toEqual(['qa_report:7', 'qa_report:8']);
   });
 

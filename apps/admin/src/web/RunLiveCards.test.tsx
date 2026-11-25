@@ -70,7 +70,7 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     expect(카드.textContent).not.toContain('제한');
   });
 
-  it('경과는 항목 경과이고, 단계 제목을 알면 「3 / 5단계」다 (점검표 B13 · B11)', () => {
+  it('경과는 항목 경과이고, 단계 제목을 알면 「5단계 중 3번째」다 (점검표 B13 · B11)', () => {
     vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
     const 제목들 = ['홈을 연다', '장바구니를 연다', '수량을 3으로 바꾼다', '주문한다', '확인한다'];
     render(
@@ -82,10 +82,10 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     );
 
     const 카드 = 카드들()[0]!;
-    expect(카드.textContent).toContain('3 / 5단계 · 수량을 3으로 바꾼다');
+    expect(카드.textContent).toContain('5단계 중 3번째 · 수량을 3으로 바꾼다');
     expect(카드.textContent).toContain('41초 / 제한 30초');
     // 왼쪽 「진행 중」 줄도 같은 분모를 쓴다
-    expect(document.querySelector('.rl-items')?.textContent).toContain('3 / 5단계');
+    expect(document.querySelector('.rl-items')?.textContent).toContain('5단계 중 3번째');
   });
 
   it('단계가 도는데 장면 열쇠가 없으면(admin 이 다시 떴다) 「여는 중」이 아니라 보여 줄 화면이 없다고 적는다', () => {
@@ -171,14 +171,14 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     expect(틀비율(틀())).toBeCloseTo(2400 / 1080);
   });
 
-  it('PC 게임 항목은 가로 틀이고, PC 를 잡기 전 · 뒤 발 글이 「빈 Windows PC 를 기다리는 중」 · 「게임을 여는 중」이다 (도메인/게임 §3.10 「윈도우 PC」)', async () => {
+  it('PC 게임 항목은 가로 틀이고, PC 를 잡기 전 · 뒤 발 글이 「사용 가능한 Windows PC 를 기다리는 중」 · 「게임을 여는 중」이다 (도메인/게임 §3.10 「윈도우 PC」)', async () => {
     const 받기 = vi.spyOn(장면통로, '받기');
     const 영상받기 = vi.spyOn(PC화면통로, '받기').mockReturnValue(new Promise(() => {}));
     vi.stubGlobal('VideoDecoder', class {});
     const { rerender } = render(
       <RunProgressModal data={실행([항목(4, 'windows-ps5')])} 진행목록={[{ historyId: 4, timeoutMs: 300000, live: true }]} onClose={() => {}} />,
     );
-    expect(카드들()[0]!.querySelector('.lc-foot')?.textContent).toContain('빈 Windows PC 를 기다리는 중');
+    expect(카드들()[0]!.querySelector('.lc-foot')?.textContent).toContain('사용 가능한 Windows PC 를 기다리는 중');
     rerender(
       <RunProgressModal
         data={실행([항목(4, 'windows-ps5')])}

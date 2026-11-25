@@ -12,7 +12,7 @@ export const 작성할일말: Record<string, string> = {
   '케이스 등록': 'Cases registered',
   '화면에서 읽은 기획서': 'Spec read from the screens',
   '차이를 표시한 기획서': 'Spec with differences marked',
-  '다시 작성은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.': 'Only someone with authoring write rights can write it again.',
+  '다시 작성할 권한이 없습니다. 관리자에게 작성 쓰기 권한을 요청하세요.': 'You do not have permission to write it again. Ask an admin for authoring write access.',
   '대상 서버에 테스트 계정이 없거나 실서비스 서버로 지정되어 있습니다. 관리자에게 확인을 요청하세요':
     'This target server has no test account or is marked as production. Ask an admin to check it',
   '등록된 대상 서버가 없습니다. 관리자에게 등록을 요청하세요':
@@ -32,41 +32,41 @@ export const 작성할일말: Record<string, string> = {
   '검사 결과를 읽지 못해 반영을 중단했습니다. 다시 반영하세요': 'Could not read the check results, so applying stopped. Apply again',
   '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 관리자에게 피그마 토큰 등록을 요청하세요':
     'No Figma token, so the Figma files could not be read. Ask an admin to add a Figma token',
-  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 설정 > 애플리케이션에서 피그마 토큰을 등록하세요':
-    'No Figma token, so the Figma files could not be read. Add one in Settings > Applications',
+  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 설정 › 애플리케이션에서 피그마 토큰을 등록하세요':
+    'No Figma token, so the Figma files could not be read. Add one in Settings › Applications',
   '대상 서버 「{1}」은 실서비스 서버라 작성하지 않습니다. 다른 대상 서버로 새 요청을 넣으세요':
     'Target server "{1}" is production, so nothing is written. Send a new request with another target server',
   '대상 서버 「{1}」에 테스트 계정이 없습니다. 관리자에게 테스트 계정을 넣어 달라고 요청하세요':
     'Target server "{1}" has no test account. Ask an admin to add one',
-  '대상 서버 「{1}」에 테스트 계정이 없습니다. 설정 > 애플리케이션에서 넣은 뒤 새 요청을 넣으세요':
-    'Target server "{1}" has no test account. Add one in Settings > Applications, then send a new request',
+  '대상 서버 「{1}」에 테스트 계정이 없습니다. 설정 › 애플리케이션에서 넣은 뒤 새 요청을 넣으세요':
+    'Target server "{1}" has no test account. Add one in Settings › Applications, then send a new request',
   '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 관리자에게 확인을 요청하세요':
     'Target server "{1}" is missing or its address is invalid. Ask an admin to check it',
-  '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 설정 > 애플리케이션을 확인한 뒤 새 요청을 넣으세요':
-    'Target server "{1}" is missing or its address is invalid. Check Settings > Applications, then send a new request',
+  '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 설정 › 애플리케이션을 확인한 뒤 새 요청을 넣으세요':
+    'Target server "{1}" is missing or its address is invalid. Check Settings › Applications, then send a new request',
   '시작 주소가 대상 서버와 다릅니다. 새 요청으로 넣으세요': 'The start address does not match the target server. Send a new request',
   '{1}은 옛 워드(.doc) 파일이라 읽지 못했습니다. .docx 나 PDF 로 저장해 새 요청으로 넣으세요':
     '{1} is an old Word (.doc) file and could not be read. Save it as .docx or PDF and send a new request',
   '읽을 자료가 없습니다. 기획서나 피그마 주소를 넣어 새 요청을 넣으세요': 'There is nothing to read. Add a spec or a Figma link and send a new request',
   '만든 테스트가 없어 등록하지 않았습니다': 'No tests were made, so nothing was uploaded',
-  '남은 요구사항이 없습니다. 앞 요청들이 모두 케이스로 만들었거나 제외했습니다. 이 요청은 삭제해도 됩니다':
+  '남은 요구사항이 없습니다. 앞 요청에서 모든 요구사항을 케이스로 만들었거나 제외했습니다. 이 요청은 삭제해도 됩니다':
     'No requirements are left. Earlier requests covered or excluded them all. You can discard this request',
   '앞 요청의 요구사항 목록이 없어 남은 요구사항을 알 수 없습니다. 이 요청은 삭제해도 됩니다':
     'The earlier request has no requirement list, so what is left is unknown. You can discard this request',
   '반영할 것이 없습니다. 지금 버전의 요구사항이 이미 테스트에 들어 있습니다. 이 요청은 삭제해도 됩니다':
     'Nothing to apply. This version of the requirements is already in the tests. You can discard this request',
-  '기획서에 없는 화면이 없습니다. 이 요청은 삭제해도 됩니다': 'Every screen is in the spec. You can delete this request',
+  '미검증 화면이 없습니다. 이 요청은 삭제해도 됩니다': 'No unverified screens are left. You can delete this request',
   // ⑫-10 작성 상세 할 일 흐름 (2026-10-19 · 점검 12.2~12.6 · 12.10~12.13 · 12.15 · N16 · N17 · 낱말은 시작 질문에서 사용자가 고른 것)
   '계정이 없어 못 쓴 요구사항 {수}건': '{수} requirements not written for lack of an account',
-  '필요한 계정을 모두 넣었습니다. PRD 관리에서 이 요구사항만 이어 작성하세요': 'All needed accounts are in. Continue just these requirements from PRD management',
+  '필요한 계정을 모두 등록했습니다. PRD 관리에서 이 요구사항만 이어 작성하세요': 'All needed accounts are in. Continue just these requirements from PRD management',
   'PRD 관리로 가기': 'Go to PRD management',
-  '역할 계정이 없어 테스트를 못 쓴 요구사항입니다. 계정을 넣으면 이 요구사항만 이어 작성합니다': 'No test was written for these because a role account is missing. Add the account to continue just these requirements',
-  '{역할} 계정이 없어 테스트를 못 썼습니다. 계정을 넣으면 이 요구사항만 이어 작성합니다': 'No {역할} account, so no test was written. Add the account to continue just these requirements',
+  '역할 계정이 없어 테스트를 못 쓴 요구사항입니다. 계정을 등록하면 이 요구사항만 이어 작성합니다': 'No test was written for these because a role account is missing. Add the account to continue just these requirements',
+  '{역할} 계정이 없어 테스트를 못 썼습니다. 계정을 등록하면 이 요구사항만 이어 작성합니다': 'No {역할} account, so no test was written. Add the account to continue just these requirements',
   '설정에서 {역할} 계정 등록': 'Add the {역할} account in Settings',
   '관리자에게 계정 등록을 요청하세요': 'Ask an admin to add the account',
   '관리자에게 {역할} 계정 등록을 요청하세요': 'Ask an admin to add the {역할} account',
   '만든 케이스': 'Cases written',
-  '이 요청은 만든 케이스 목록을 남기지 않았습니다': 'This request did not record its case list',
+  '이 요청에는 만든 케이스 목록이 없습니다': 'This request did not record its case list',
   'PR 에서 보기': 'See it in the PR',
   '확인 내용': 'Checks',
   '신규': 'New',
@@ -126,7 +126,7 @@ export const 작성할일말: Record<string, string> = {
   '중복 케이스로 가기': 'Go to duplicate cases',
   '중복 케이스 {수}건을 아직 선택하지 않아 반영할 수 없습니다.': '{수} duplicate cases are not chosen yet, so this cannot be applied.',
   '입력이 필요한지 확인할 수 없음': 'Cannot tell whether input is needed',
-  '입력이 필요한 케이스로만 {수}': 'Only cases needing input {수}',
+  '입력이 필요한 케이스로만 만든 것 {수}건': 'Only cases needing input {수}',
   '누락된 요구사항': 'Missing requirements',
   '만든 {덮음}건 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다': 'Of {덮음} covered, functional tests cover {기능} · UI tests cover {UI} — a requirement covered by both counts on each side',
   '만든 {덮음}건 중 기능 케이스가 커버한 것 {기능} · UI 케이스가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다': 'Of {덮음} covered, functional cases cover {기능} · UI cases cover {UI} — a requirement covered by both counts on each side',
@@ -136,22 +136,22 @@ export const 작성할일말: Record<string, string> = {
   'PR 닫으러 가기': 'Go close the PR',
   '입력 필요 {수}': '{수} need input',
   '중복 {수}': '{수} duplicates',
-  '필요한 것': 'What is needed',
+  '입력이 필요한 것': 'What is needed',
   '만든 케이스 {수}건 보기': 'See {수} cases written',
-  '반영 때 뺌': 'Dropped when applying',
-  '겹친 요구사항': 'Shared requirements',
-  '이 애플리케이션에서 이 계정을 기다리는 요구사항': 'Requirements in this application waiting for this account',
+  '반영 때 제외': 'Dropped when applying',
+  '중복 요구사항': 'Shared requirements',
+  '이 애플리케이션에서 이 계정이 없어 작성하지 못한 요구사항': 'Requirements in this application waiting for this account',
   // 작성 목록 줄 내용 (2026-10-26 WEB-F6-06 · 시안 「목록 요청 내용」) — 종류 꼬리표 · 무슨 테스트 · 결과 · 시작한 곳
   '기획서로 작성': 'From the spec',
   'API 문서로 작성': 'From the API docs',
-  '기획서에 없는 화면': 'Screens not in the spec',
+  '미검증 화면': 'Unverified screens',
   '화면만 대조': 'Screens only',
   '남은 요구사항 이어 작성': 'Remaining requirements',
   '변경된 요구사항 다시 작성': 'Changed requirements',
   '변경된 API 다시 작성': 'Changed APIs',
   '결정 진행': 'Decisions',
   'Figma 디자인': 'Figma design',
-  '기능 {수}개 테스트 · {이름들}': 'Tests for {수} features · {이름들}',
+  '기능 {수}개의 테스트 · {이름들}': 'Tests for {수} features · {이름들}',
   '{이름들} 화면 테스트': 'Tests for {이름들} screens',
   '요구사항 {수}건 테스트 다시 작성': 'Rewrite tests for {수} requirements',
   '{조각} 테스트 수정': 'Fix tests for {조각}',

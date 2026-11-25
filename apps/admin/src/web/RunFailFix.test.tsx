@@ -49,7 +49,7 @@ describe('「수정 후 통과」 카드', () => {
     expect(칩).toMatch(/모바일\s*Fail\s*→\s*Pass/);
 
     const 한줄 = 카드.querySelector('.fc-body')?.textContent ?? '';
-    expect(한줄).toContain('테스트 수정 요청으로 자동 수정했어요 — QA 맥시 · Issue Bunker MQA-168 → PR #713 자동 반영 → RUN 21109 PC Pass · 모바일 Pass');
+    expect(한줄).toContain('테스트 수정 요청으로 자동 수정했습니다 — QA 맥시 · Issue Bunker MQA-168 → PR #713 자동 반영 → RUN 21109 PC Pass · 모바일 Pass');
     expect(screen.getByRole('link', { name: 'RUN 21109' }).getAttribute('href')).toBe('#/runs/21109');
     expect(screen.queryByRole('link', { name: 'Issue Bunker MQA-168 에서 확인 중' })).toBeNull();
   });
@@ -95,18 +95,18 @@ describe('게임 실패 자동 수정 — 도는 중 · 통과 못 하고 끝남
     await 카드그리기(중());
     expect(document.querySelector('.fc-card .fc-head .fix-tag')?.textContent).toBe('자동 수정 중');
     expect(이름표()).toEqual(['자동 수정']);
-    expect(document.querySelector('.fc-body')?.textContent).toContain('에이전트가 테스트를 수정하는 중이에요 — 작성 요청 #8801');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('에이전트가 테스트를 수정하는 중입니다 — 작성 요청 #8801');
     expect(screen.getByRole('link', { name: '작성 요청 #8801' }).getAttribute('href')).toBe('#/authoring/8801');
   });
 
   it('작성 요청 번호가 아직 없으면 줄표를 매달지 않는다', async () => {
     await 카드그리기(중({ requestId: null }));
-    expect(document.querySelector('.fc-judged')?.textContent).toMatch(/^에이전트가 테스트를 수정하는 중이에요 \(/);
+    expect(document.querySelector('.fc-judged')?.textContent).toMatch(/^에이전트가 테스트를 수정하는 중입니다 \(/);
   });
 
   it('사람 확인을 기다리면 까닭과 반영하러 가는 고리를 보인다', async () => {
     await 카드그리기(중({ state: 'WAIT_MERGE', needsPerson: true, personWhy: ['확인 문장이 줄었어요'], prUrl: 'https://github.com/o/r/pull/9' }));
-    expect(document.querySelector('.fc-body')?.textContent).toContain('수정한 테스트를 사람이 반영해야 해요 — 확인 문장이 줄었어요 → PR #9');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('수정한 테스트를 사람이 반영해야 합니다 — 확인 문장이 줄었어요 → PR #9');
     expect(screen.getByRole('link', { name: '테스트 작성 › 결정 필요에서 반영' }).getAttribute('href')).toBe('#/authoring?todo=1');
     expect(이름표()).toEqual(['자동 수정']);
   });
@@ -115,24 +115,24 @@ describe('게임 실패 자동 수정 — 도는 중 · 통과 못 하고 끝남
     await 카드그리기(중({ state: 'FAILED', prUrl: 'https://github.com/o/r/pull/10', rerunId: 21200, rerunPage: true }));
     expect(document.querySelector('.fc-card .fc-head .fix-tag')?.textContent).toBe('자동 수정 실패');
     expect(이름표()).toEqual(['자동 수정', '판정']);
-    expect(document.querySelector('.fc-body')?.textContent).toContain('수정했지만 다시 실행에서도 실패했어요 → PR #10 · RUN 21200');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('수정했지만 다시 실행해도 실패했습니다 → PR #10 · RUN 21200');
   });
 
   it('그만둔 줄도 머리는 「자동 수정 실패」 이다', async () => {
     await 카드그리기(중({ state: 'GAVE_UP', reason: '고칠 곳을 찾지 못했어요' }));
     expect(document.querySelector('.fc-card .fc-head .fix-tag')?.textContent).toBe('자동 수정 실패');
-    expect(document.querySelector('.fc-body')?.textContent).toContain('그만뒀어요 · 고칠 곳을 찾지 못했어요');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('그만뒀습니다 · 고칠 곳을 찾지 못했어요');
   });
 
   it('다시 실행 번호가 아직 없으면 PR 뒤에 구분점이 매달리지 않는다', async () => {
     await 카드그리기(중({ state: 'RERUNNING', prUrl: 'https://github.com/o/r/pull/12', rerunId: null }));
-    expect(document.querySelector('.fc-body')?.textContent).toContain('수정한 테스트를 다시 실행하는 중이에요 → PR #12 (');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('수정한 테스트를 다시 실행하는 중입니다 → PR #12 (');
   });
 
   it('다시 실행하니 통과한 줄은 꼬리표 없이 한 줄만 달고 판정 줄도 선다', async () => {
     await 카드그리기(중({ state: 'FLAKY' }));
     expect(document.querySelector('.fc-card .fc-head .fix-tag')).toBeNull();
     expect(이름표()).toEqual(['자동 수정', '판정']);
-    expect(document.querySelector('.fc-body')?.textContent).toContain('다시 실행하니 통과해서 수정하지 않았어요');
+    expect(document.querySelector('.fc-body')?.textContent).toContain('다시 실행하니 통과해서 수정하지 않았습니다');
   });
 });

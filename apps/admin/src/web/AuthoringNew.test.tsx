@@ -311,7 +311,7 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
     자료단계로(<AuthoringNew service="PAY" 운영자 피그마토큰={false} on넣었다={() => {}} />);
     파일을고른다('기획서.pdf');
     피그마를적는다('https://www.figma.com/design/A/');
-    expect(screen.getByText(/피그마 토큰이 등록되지 않아 피그마 주소를 사용할 수 없습니다\. 설정 > 애플리케이션에서 피그마 토큰을 등록하세요/)).toBeTruthy();
+    expect(screen.getByText(/피그마 토큰이 등록되지 않아 피그마 주소를 사용할 수 없습니다\. 설정 › 애플리케이션에서 피그마 토큰을 등록하세요/)).toBeTruthy();
     expect(다음버튼()).toHaveProperty('disabled', true);
     피그마를적는다('');
     expect(다음버튼()).toHaveProperty('disabled', false);
@@ -367,7 +367,7 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
     피그마를적는다('https://www.figma.com/design/A/');
     시작한다();
 
-    await screen.findByText(/설정 > 애플리케이션에서 피그마 토큰을 다시 등록하세요/);
+    await screen.findByText(/설정 › 애플리케이션에서 피그마 토큰을 다시 등록하세요/);
   });
 });
 

@@ -79,7 +79,7 @@ export function ScenarioApiExtras({ 아이디, 번호, 단계, 단계들, 앱들
           </select>
         )}
       </칸>
-      {선택지.length > 0 ? null : <p className="hint">{t('이 애플리케이션 대상 서버에 등록한 API 인증이 없습니다')}</p>}
+      {선택지.length > 0 ? null : <p className="hint">{t('이 애플리케이션의 대상 서버에 등록한 API 인증이 없습니다')}</p>}
 
       <div className="scn-set-block">
         <h4>{t('값 주입')}</h4>

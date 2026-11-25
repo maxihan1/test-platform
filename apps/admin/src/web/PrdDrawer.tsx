@@ -64,7 +64,7 @@ export function 요구서랍({
         {고치나 ? null : <p className="prd-big">{x.text}</p>}
         {안내 ? (
           <p className="prd-note">
-            <a href="#/authoring?todo=1">{t('테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →')}</a>
+            <a href="#/authoring?todo=1">{t('테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있습니다 →')}</a>
           </p>
         ) : null}
         {고치나 ? (

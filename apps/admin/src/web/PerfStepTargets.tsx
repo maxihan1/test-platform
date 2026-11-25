@@ -56,7 +56,7 @@ export function PerfStepTargets({
       <section className="perf-panel" aria-labelledby="perf-g">
         <div className="perf-row">
           <h2 id="perf-g">{t('성능 목표')}</h2>
-          <span className="perf-faint">{t('기획서 수치 우선, 없으면 AI 추천값. 값을 수정하면 출처가 「직접 입력」으로 변경됩니다')}</span>
+          <span className="perf-faint">{t('기획서 수치가 있으면 그것을 먼저 쓰고, 없으면 AI 추천값을 씁니다. 값을 수정하면 출처가 「직접 입력」으로 변경됩니다')}</span>
           {쓰나 ? (
             <div className="perf-acts">
               <button type="button" className="btn ghost small" disabled={일.도나} onClick={() => (값.targets.length > 0 ? set묻나(true) : void 추천())}>

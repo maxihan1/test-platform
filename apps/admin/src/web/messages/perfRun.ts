@@ -67,7 +67,7 @@ export const 성능실행말: Record<string, string> = {
   '소요 시간': 'Duration',
   '이전 실행 대비': 'Vs previous run',
   정기: 'Scheduled',
-  '번호를 누르면 실행 중이면 실행 중 화면, 종료되었으면 결과 화면이 열립니다': 'Open a number to see the live screen while running, or the result once finished',
+  '번호를 누르면 실행 중일 때는 실행 중 화면, 종료됐을 때는 결과 화면이 열립니다': 'Open a number to see the live screen while running, or the result once finished',
 
   // 정기 실행
   '매일 {시각} · {서버}': 'Daily {시각} · {서버}',
