@@ -67,4 +67,5 @@ export const QA리포트말: Record<string, string> = {
   '종료일을 선택해 주세요': 'Choose an end date',
   '기간은 92일까지 선택할 수 있습니다': 'You can choose up to 92 days',
   '리스크 문장을 적어 주세요': 'Enter the risk text',
+  '{앱들} 건수를 불러오지 못했습니다': 'Could not count {앱들}',
 };

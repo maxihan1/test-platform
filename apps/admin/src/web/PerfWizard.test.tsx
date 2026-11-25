@@ -175,6 +175,21 @@ describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/12'));
   });
 
+  it('저장을 기다리는 동안 누른 단추만 「저장하는 중」이 되고 실행 · 임시 저장은 글자 그대로 잠긴다', async () => {
+    vi.spyOn(perfApi, 'create').mockReturnValue(new Promise(() => undefined));
+    await 그리기();
+    fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '주문하기' } });
+    fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
+    fireEvent.change(screen.getByLabelText('주소'), { target: { value: '/api/products' } });
+    다음();
+    다음();
+    다음();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(await screen.findByRole('button', { name: '저장하는 중' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '실행' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '임시 저장' })).toHaveProperty('disabled', true);
+  });
+
   it('실행은 저장하기 전에 묻는다 — 취소하면 시나리오도 실행도 안 생긴다', async () => {
     const 만들기 = vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });
     const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 12 });

@@ -153,6 +153,15 @@ describe('성능 실행 기록 표', () => {
     expect(screen.queryByText(/번호를 누르면/)).toBeNull();
   });
 
+  it('필터 때문에 비었으면 실행이 없다고 하지 않고, 조건 초기화로 다시 보인다', async () => {
+    await 그리기([줄({ id: 12, verdict: 'FAIL' })]);
+    fireEvent.change(screen.getByLabelText('판정'), { target: { value: 'PASS' } });
+    expect(screen.getByText('조건에 맞는 실행이 없습니다')).toBeTruthy();
+    expect(screen.queryByText('아직 성능 테스트 실행이 없습니다')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
+    expect(await screen.findByRole('table', { name: '성능 실행 목록' })).toBeTruthy();
+  });
+
   describe('거르개는 주소에 남는다', () => {
     it('주소의 시나리오 · 판정으로 부르고 고르개가 그 값이다', async () => {
       window.location.hash = '#/perf/runs?scenario=6&verdict=FAIL';

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, type UserRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 오류문장 } from './SettingsService.js';
+import { 기다림글자 } from './ui.js';
 
 export interface 발급토큰 {
   username: string;
@@ -105,7 +106,7 @@ export function AgentToken({
                 </>
               ) : (
                 <button className="btn ghost" disabled={보내는중} onClick={() => void 발급()}>
-                  {t('발급')}
+                  <기다림글자 중={보내는중} 평소={t('발급')} 기다림={t('발급하는 중')} />
                 </button>
               )}
               {/* 「작성 에이전트가 왜 여기 나오나」를 사용자가 물었다(2026-10-20) — 무엇에 쓰는 토큰인지 한 줄로 말한다 */}
@@ -122,7 +123,7 @@ export function AgentToken({
                 disabled={보내는중}
                 onClick={() => void (확인 === 'reissue' ? 발급() : 취소())}
               >
-                {확인 === 'reissue' ? t('다시 발급한다') : t('취소한다')}
+                <기다림글자 중={보내는중} 평소={확인 === 'reissue' ? t('다시 발급한다') : t('취소한다')} 기다림={확인 === 'reissue' ? t('발급하는 중') : t('취소하는 중')} />
               </button>{' '}
               <button className="btn ghost" disabled={보내는중} onClick={() => set확인(null)}>
                 {t('그만두기')}

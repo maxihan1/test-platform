@@ -164,4 +164,7 @@ export const 결정말: Record<string, string> = {
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '문장을 적어 주세요': 'Enter the text',
   '문장은 {상한}자까지 적을 수 있습니다': 'The text can be up to {상한} characters long',
+  // 누른 뒤 반응 (WEB-F10-04)
+  '제외하는 중': 'Excluding',
+  '복원하는 중': 'Restoring',
 };

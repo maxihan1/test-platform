@@ -79,6 +79,13 @@ describe('작성 에이전트 토큰', () => {
     expect(상자.textContent).toContain('다시 볼 수 없습니다');
   });
 
+  it('발급을 기다리는 동안 단추가 「발급하는 중」이 된다', () => {
+    vi.spyOn(api, 'issueAgentToken').mockReturnValue(new Promise(() => undefined));
+    그리기([계정('agent', { isAuthoringAgent: true })]);
+    fireEvent.click(screen.getByText('발급'));
+    expect(screen.getByRole('button', { name: '발급하는 중' })).toHaveProperty('disabled', true);
+  });
+
   it('목록을 다시 읽고 편집이 닫혀도 토큰 상자는 남는다', async () => {
     vi.spyOn(api, 'issueAgentToken').mockResolvedValue({ agentToken: 'agt-123' });
     const onDone = vi.fn();
@@ -144,7 +151,7 @@ describe('작성 에이전트 토큰', () => {
     vi.spyOn(api, 'issueAgentToken').mockReturnValue(new Promise(() => {}));
     그리기([계정('agent', { isAuthoringAgent: true })]);
 
-    const 버튼 = screen.getByText('발급') as HTMLButtonElement;
+    const 버튼 = screen.getByRole('button', { name: '발급' }) as HTMLButtonElement;
     fireEvent.click(버튼);
 
     expect(버튼.disabled).toBe(true);

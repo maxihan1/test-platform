@@ -9,14 +9,15 @@ import { RunHead } from './PerfRunHead.js';
 import { PerfRunTrend } from './PerfRunTrend.js';
 import { PerfStartConfirm, 부하확인줄 } from './PerfStartConfirm.js';
 import { 갱신간격, 명글자, 목표글자, 목표대상, 분석틈, 분초, 사유이름, 측정글자, 틈간격, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
-import { message, 받을이름, 파일로저장 } from './ui.js';
+import { message, 기다림글자, 받을이름, 파일로저장 } from './ui.js';
 
 const 지표글자: Record<'P95' | 'ERROR_RATE' | 'TPS', string> = { P95: '95% 응답시간', ERROR_RATE: '에러율', TPS: 'TPS' };
 
 export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세; 다시읽기: () => Promise<boolean>; 쓰나: boolean }) {
   const t = use말();
   const 언어 = use언어();
-  const [하는중, set하는중] = useState(false);
+  /** 기다리는 일 — 누른 단추만 글자가 바뀐다 */
+  const [하는중, set하는중] = useState<'pdf' | 'rerun' | 'ai' | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   const [묻나, set묻나] = useState(false);
   const 종류 = 판정종류(run);
@@ -49,27 +50,27 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
     return () => clearInterval(타이머);
   }, [만드는중, 일번호]);
 
-  async function 하기(일: () => Promise<void>) {
-    set하는중(true);
+  async function 하기(무엇: 'pdf' | 'rerun' | 'ai', 일: () => Promise<void>) {
+    set하는중(무엇);
     set오류(null);
     try {
       await 일();
     } catch (err) {
       set오류(message(err, 언어));
     } finally {
-      set하는중(false);
+      set하는중(null);
     }
   }
 
   const PDF받기 = () =>
-    하기(async () => {
+    하기('pdf', async () => {
       const { 파일, 머리 } = await perfApi.pdf(run.id);
       파일로저장(파일, 받을이름(머리, `${run.code}.pdf`));
     });
 
   // 같은 설정으로 새 실행 하나를 시작하고 그 번호 화면으로 간다
   const 다시실행 = () =>
-    하기(async () => {
+    하기('rerun', async () => {
       if (run.scenarioId === null) return;
       const { runId } = await perfApi.run({
         scenarioId: run.scenarioId,
@@ -86,7 +87,7 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
     });
 
   const AI다시 = () =>
-    하기(async () => {
+    하기('ai', async () => {
       await perfApi.analysis(run.id);
       await 다시읽기();
     });
@@ -105,12 +106,12 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
         ]}
         행동={
           <div className="perf-row">
-            <button type="button" className="btn ghost" disabled={하는중} onClick={() => void PDF받기()}>
-              {t('PDF 다운로드')}
+            <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => void PDF받기()}>
+              <기다림글자 중={하는중 === 'pdf'} 평소={t('PDF 다운로드')} 기다림={t('만드는 중')} />
             </button>
             {쓰나 && run.scenarioId !== null ? (
-              <button type="button" className="btn" disabled={하는중} onClick={() => set묻나(true)}>
-                {t('다시 실행')}
+              <button type="button" className="btn" disabled={하는중 !== null} onClick={() => set묻나(true)}>
+                <기다림글자 중={하는중 === 'rerun'} 평소={t('다시 실행')} 기다림={t('시작하는 중')} />
               </button>
             ) : null}
           </div>
@@ -144,8 +145,8 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
             </ul>
           ) : 만드는중 || !쓰나 ? null : (
             <div>
-              <button type="button" className="btn ghost" disabled={하는중} onClick={() => void AI다시()}>
-                {t('다시 만들기')}
+              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => void AI다시()}>
+                <기다림글자 중={하는중 === 'ai'} 평소={t('다시 만들기')} 기다림={t('시작하는 중')} />
               </button>
             </div>
           )}

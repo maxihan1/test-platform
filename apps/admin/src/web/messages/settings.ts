@@ -304,4 +304,7 @@ export const 설정말: Record<string, string> = {
   '프로젝트 QA 리포트는 목록에서 사라집니다': 'Project QA reports disappear from the list',
   '더미 클라이언트를 삭제할까요?': 'Delete this dummy client?',
   '「{이름}」 파일이 삭제됩니다. 다시 쓰려면 zip 파일을 다시 업로드해야 합니다': 'The file of "{이름}" is deleted. Upload the zip again to use it',
+  // 누른 뒤 반응 (WEB-F10-04)
+  '발급하는 중': 'Issuing',
+  '취소하는 중': 'Revoking',
 };

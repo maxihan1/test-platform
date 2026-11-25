@@ -263,6 +263,30 @@ describe('결과', () => {
     expect(screen.getByRole('tab', { name: 'Galaxy A23' }).getAttribute('aria-selected')).toBe('true');
   });
 
+  it('다시 실행을 기다리는 동안 그 단추만 글자가 바뀐다 — 건수를 셀 때는 불러오는 중, 확인한 뒤는 시작하는 중', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({ ai: null, aiJob: { id: 3, status: 'FAILED' } }));
+    vi.spyOn(perfApi, 'deviceResult').mockResolvedValue(결과);
+    let 세기끝: (쪽: CasePage) => void = () => undefined;
+    vi.spyOn(api, 'cases').mockReturnValue(new Promise((풀기) => (세기끝 = 풀기)));
+    vi.spyOn(perfApi, 'measureDevices').mockReturnValue(new Promise(() => undefined));
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '다시 실행' }));
+    expect(await screen.findByRole('button', { name: '불러오는 중' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '다시 만들기' })).toHaveProperty('disabled', true);
+    세기끝(케이스쪽);
+    await waitFor(() => expect(확인상자있나()).toBe(true));
+    확인시작();
+    expect(await screen.findByRole('button', { name: '시작하는 중' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '다시 만들기' })).toBeTruthy();
+  });
+
+  it('측정한 디바이스가 하나도 없으면 빈 채로 두지 않고 그 말을 한다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세());
+    vi.spyOn(perfApi, 'deviceResult').mockResolvedValue({ ...결과, devices: [] });
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+    expect(await screen.findByText('측정한 디바이스가 없습니다')).toBeTruthy();
+  });
+
   it('장면을 누르면 그 초를 담은 녹화 조각으로 바꾼다', async () => {
     결과열기();
     render(<PerfDevices service={앱} run={40} 쓰나 />);

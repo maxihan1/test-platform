@@ -12,7 +12,8 @@ import { message } from './ui.js';
 export function PerfRunPageCheck({ runId }: { runId: number }) {
   const t = use말();
   const 언어 = use언어();
-  const [줄들, set줄들] = useState<PageRow[]>([]);
+  // 첫 답이 오기 전에는 null — 못 받은 것과 아직 숫자가 없는 것을 가른다
+  const [줄들, set줄들] = useState<PageRow[] | null>(null);
   const [단독, set단독] = useState<Compare | null>(null);
   const [오류, set오류] = useState<string | null>(null);
 
@@ -41,8 +42,12 @@ export function PerfRunPageCheck({ runId }: { runId: number }) {
     <section className="perf-panel" aria-labelledby="perf-w">
       <h2 id="perf-w">{t('페이지 로딩 (부하 중)')}</h2>
       {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
-      {줄들.length === 0 ? <span className="perf-faint">{t('아직 받은 숫자가 없습니다')}</span> : null}
-      {줄들.map((줄) => {
+      {줄들 === null ? (
+        오류 === null ? <span className="perf-faint">{t('불러오는 중')}</span> : null
+      ) : 줄들.length === 0 ? (
+        <span className="perf-faint">{t('첫 측정값을 기다리는 중입니다. 오래 걸리면 실행 로그에서 오류를 확인해 주세요')}</span>
+      ) : null}
+      {(줄들 ?? []).map((줄) => {
         const 초과 = 넘음.lcp(줄.lcpMs);
         const 혼자 = 비교값(단독, 줄.url);
         const 덧 = [초과 ? t('목표 2.5초 초과') : null, 혼자 === null ? null : t('단독 측정 {값}', { 값: 초글자(혼자, t) })].filter((글) => 글 !== null);

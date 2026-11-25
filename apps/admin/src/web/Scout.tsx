@@ -232,7 +232,12 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
               <p className="scout-error" role="alert">
                 {s.읽기오류}
               </p>
-            ) : s.질문들 === null ? null : 질문들.length === 0 ? (
+            ) : s.질문들 === null ? (
+              // 이 동안 보내기가 잠긴다 — 왜 못 보내는지 적는다
+              <p className="scout-wait" role="status">
+                {t('대화를 불러오는 중입니다')}
+              </p>
+            ) : 질문들.length === 0 ? (
               <div className="scout-hello">
                 <h3>{t('{프로젝트} 프로젝트에 대해 물어보세요', { 프로젝트: projectName })}</h3>
                 <p>{t('실행 결과 · 이슈 · PRD 를 확인해서 답해요. 아래 예시를 눌러도 돼요.')}</p>

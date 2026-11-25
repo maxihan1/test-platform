@@ -7,7 +7,7 @@ import { 확인창 } from './ConfirmBox.js';
 import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { perfApi } from './perfApi.js';
-import { message, useAsync, when } from './ui.js';
+import { message, useAsync, when, 기다림글자 } from './ui.js';
 
 interface 앱줄 {
   id: number;
@@ -27,7 +27,8 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
   // 올린 뒤 파일 칸을 비우려고 key 를 바꾼다 — 파일 input 은 값을 코드로 못 지운다
   const [판, set판] = useState(0);
   const [오류, set오류] = useState<string | null>(null);
-  const [하는중, set하는중] = useState(false);
+  /** 기다리는 일 — 업로드, 또는 삭제하는 줄의 번호. 누른 단추만 글자가 바뀐다 */
+  const [하는중, set하는중] = useState<'upload' | number | null>(null);
   const [눌렀나, set눌렀나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류();
   const [지울것, set지울것] = useState<{ id: number; name: string } | null>(null);
@@ -42,9 +43,9 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
     return message(err, 언어);
   }
 
-  async function 해보기(일: () => Promise<unknown>, 끝?: () => void) {
+  async function 해보기(무엇: 'upload' | number, 일: () => Promise<unknown>, 끝?: () => void) {
     set오류(null);
-    set하는중(true);
+    set하는중(무엇);
     try {
       await 일();
       끝?.();
@@ -52,7 +53,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
     } catch (err) {
       set오류(오류글(err));
     } finally {
-      set하는중(false);
+      set하는중(null);
     }
   }
 
@@ -61,6 +62,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
     set눌렀나(true);
     if (이름.trim() === '' || 명령.trim() === '' || 파일 === null || 파일막힘 !== null) return 첫오류로();
     void 해보기(
+      'upload',
       () => perfApi.addDummyClient(Number(앱), 이름.trim(), 명령.trim(), 파일),
       () => {
         set이름('');
@@ -119,8 +121,8 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
                   <td className="perf-faint">{when(c.createdAt, 언어)}</td>
                   {관리자 ? (
                     <td>
-                      <button type="button" className="btn ghost small" disabled={하는중} aria-label={t('{이름} 삭제', { 이름: c.name })} onClick={() => set지울것({ id: c.id, name: c.name })}>
-                        {t('삭제')}
+                      <button type="button" className="btn ghost small" disabled={하는중 !== null} aria-label={하는중 === c.id ? `${c.name} ${t('삭제하는 중')}` : t('{이름} 삭제', { 이름: c.name })} onClick={() => set지울것({ id: c.id, name: c.name })}>
+                        <기다림글자 중={하는중 === c.id} 평소={t('삭제')} 기다림={t('삭제하는 중')} />
                       </button>
                     </td>
                   ) : null}
@@ -154,8 +156,8 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
               </label>
               <칸오류 id="perf-dummy-zip" 사유={파일오류} />
             </div>
-            <button type="button" className="btn" disabled={하는중} onClick={올리기}>
-              {t('업로드')}
+            <button type="button" className="btn" disabled={하는중 !== null} onClick={올리기}>
+              <기다림글자 중={하는중 === 'upload'} 평소={t('업로드')} 기다림={t('업로드 중')} />
             </button>
           </div>
           <span className="perf-faint">
@@ -171,7 +173,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
           onClose={() => set지울것(null)}
           on확인={() => {
             set지울것(null);
-            void 해보기(() => perfApi.removeDummyClient(지울것.id));
+            void 해보기(지울것.id, () => perfApi.removeDummyClient(지울것.id));
           }}
         >
           <p>{t('「{이름}」 파일이 삭제됩니다. 다시 쓰려면 zip 파일을 다시 업로드해야 합니다', { 이름: 지울것.name })}</p>

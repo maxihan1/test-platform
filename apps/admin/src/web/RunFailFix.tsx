@@ -90,7 +90,7 @@ export function RunFailFixing({ fix }: { fix: 카드자동수정중 }) {
   let 글: React.ReactNode;
   switch (fix.state) {
     case 'FIXING':
-      글 = <>{t('에이전트가 테스트를 수정하는 중이에요')} — {요청}</>;
+      글 = <>{t('에이전트가 테스트를 수정하는 중이에요')}{요청 === null ? null : <> — {요청}</>}</>;
       break;
     case 'WAIT_MERGE':
       글 = fix.needsPerson ? (

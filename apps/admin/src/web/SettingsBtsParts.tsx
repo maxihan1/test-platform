@@ -8,6 +8,7 @@ import { BTS이름 } from './btsName.js';
 import { 오류속성, 칸오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import { 구획 } from './SettingsServiceParts.js';
+import { 기다림글자 } from './ui.js';
 
 // Issue Bunker 의 상태 이름과 같은 말을 쓴다 — 두 화면을 오가며 짝을 맞추는 사람이 이름을 옮겨 읽지 않게(2026-11-10 사용자)
 export const 상태단계들: [상태단계, string][] = [
@@ -68,7 +69,7 @@ export function 상태매핑구획(p: {
     <구획 제목={t('상태 매핑')} 쓰임={t('Test Commander 단계마다 {bts} 상태를 하나씩 선택합니다. 비어 있는 단계가 있으면 저장할 수 없습니다', { bts: BTS이름 })}>
       <div className="bts-load">
         <button type="button" className="btn ghost" disabled={p.불러오는중} onClick={p.불러온다}>
-          {p.목록 === null ? t('{bts} 에서 불러오기', { bts: BTS이름 }) : t('다시 불러오기')}
+          <기다림글자 중={p.불러오는중} 평소={p.목록 === null ? t('{bts} 에서 불러오기', { bts: BTS이름 }) : t('다시 불러오기')} 기다림={t('불러오는 중')} />
         </button>
         {p.목록오류 !== null ? (
           <span className="err">{p.목록오류}</span>

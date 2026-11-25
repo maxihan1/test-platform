@@ -36,10 +36,12 @@ export function 실패길(항목들: RunItemSummary[]): RunItemSummary[] {
 
 function use실패카드(runId: number, tcId: string, 찾을까: boolean) {
   const [카드, set카드] = useState<FailureCase | null>(null);
+  const [못읽음, set못읽음] = useState(false);
   const [다시, set다시] = useState(0);
   useEffect(() => {
     // 앞 항목의 카드가 새 항목 곁에 남으면 판정이 엉뚱한 케이스에 붙는다
     set카드(null);
+    set못읽음(false);
     if (!찾을까) return;
     let 살아있다 = true;
     카드찾기(runId, tcId).then(
@@ -47,15 +49,29 @@ function use실패카드(runId: number, tcId: string, 찾을까: boolean) {
         if (살아있다) set카드(찾음);
       },
       (err: unknown) => {
-        // 판정은 덤이다 — 못 찾아도 항목 상세는 선다. 원인은 콘솔에 남긴다
-        console.error('[item] loading the failure card failed; the verdict row is hidden', err);
+        // 판정은 덤이다 — 못 읽어도 항목 상세는 선다. 판정 줄 자리에 안내를 두고 원인은 콘솔에 남긴다
+        console.error('[item] loading the failure card failed; the verdict row is replaced by a notice', err);
+        if (살아있다) set못읽음(true);
       },
     );
     return () => {
       살아있다 = false;
     };
   }, [runId, tcId, 찾을까, 다시]);
-  return { 카드, 다시읽기: () => set다시((값) => 값 + 1) };
+  return { 카드, 못읽음, 다시읽기: () => set다시((값) => 값 + 1) };
+}
+
+/** 못 읽어 빠진 줄 자리의 안내 — 말없이 빠지면 판정할 자리가 원래 없는 것으로 읽힌다 */
+function 못읽은줄({ 글, 다시 }: { 글: string; 다시: () => void }) {
+  const t = use말();
+  return (
+    <p className="hint" role="status">
+      {글}{' '}
+      <button type="button" className="linklike" onClick={다시}>
+        {t('다시 불러오기')}
+      </button>
+    </p>
+  );
 }
 
 /** @param on실행 읽은 실행을 항목 상세에 넘긴다 — 프로시저 건수 · 막은 케이스의 판정 · 한 건 실행인지를 같은 응답에서 찾는다(실행을 두 번 읽지 않는다) */
@@ -77,9 +93,16 @@ export function 항목실행줄({ item, 판정하기, on실행 }: { item: RunIte
     return () => clearInterval(timer);
   }, [만드는문서있나, reload]);
   // 도는 실행은 카드 통로가 409 · 한 건 실행은 404 다 — 끝난 묶음 실행의 실패 항목만 찾는다
-  const { 카드, 다시읽기 } = use실패카드(item.runId, item.tcId, item.status === 'FAIL' && 데이터 !== null && 데이터.status !== 'RUNNING' && !한건인가(데이터));
+  const { 카드, 못읽음, 다시읽기 } = use실패카드(item.runId, item.tcId, item.status === 'FAIL' && 데이터 !== null && 데이터.status !== 'RUNNING' && !한건인가(데이터));
 
-  if (데이터 === null) return null;
+  if (데이터 === null) {
+    if (실행.error === null) return null;
+    return (
+      <div className="sec item-run">
+        <못읽은줄 글={t('실행 정보를 불러오지 못해 회차 · 리포트 · 판정이 보이지 않습니다')} 다시={() => void reload()} />
+      </div>
+    );
+  }
 
   const 회차 = 회차글(item, 데이터.items);
   const 길 = 실패길(데이터.items);
@@ -104,6 +127,7 @@ export function 항목실행줄({ item, 판정하기, on실행 }: { item: RunIte
         {한건인가(데이터) ? null : <증적만들기버튼들 칸={증적칸} />}
       </div>
       <증적알림과목록 칸={증적칸} 한줄로 />
+      {못읽음 ? <못읽은줄 글={t('관련 요구사항과 판정을 불러오지 못했습니다')} 다시={다시읽기} /> : null}
       {카드 === null ? null : (
         <>
           <관련요구줄 reqs={카드.reqs} 권한={권한} />
