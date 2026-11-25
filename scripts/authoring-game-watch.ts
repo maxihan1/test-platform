@@ -9,7 +9,9 @@ import { Game, type Link } from 'control-cli';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
-import { type 조작결과, 기록남기기, 돌린다, 부를준비 } from './authoring-game-play.js';
+import { 부를준비 } from './authoring-game-play-call.js';
+import { 기록남기기 } from './authoring-game-play-log.js';
+import { type 조작결과, 돌린다 } from './authoring-game-play.js';
 import { 결과글 } from './authoring-game-state.js';
 import { type 자리, type 칸정보, type 표본, 요약, 이름만, 화면그림인가 } from './authoring-game-watch-report.js';
 import { 비밀가리기 } from './authoring-reverse.js';

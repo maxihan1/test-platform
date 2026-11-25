@@ -7,7 +7,8 @@ import type { Command, Link } from 'control-cli';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 게임자료환경 } from './authoring-check-game.js';
-import { 돌린다, 실행, 조작도우미자리 } from './authoring-game-play.js';
+import { 조작도우미자리 } from './authoring-game-play-call.js';
+import { 돌린다, 실행 } from './authoring-game-play.js';
 
 const 도우미 = `
 export async function 걷기(game, 키) {

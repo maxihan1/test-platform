@@ -2,41 +2,18 @@
 // control-cli 는 명령마다 화면이 멎기를 기다렸다 찍어 움직임이 끊긴다. 이 명령은 묶음을 한 번에 돌리고, 어떻게 끝나든 눌러 둔 입력을 놓는다
 // 쓰는 법: npx tsx scripts/authoring-game-play.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초>] — game 은 케이스 몸통이 받는 것과 같은 드라이버다
 
-import { lstatSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { gameLink, openGame } from '@platform/kit/game';
 import { Game, type Command, type Link } from 'control-cli';
 
-import { 환경비밀번호들 } from './authoring-accounts.js';
-import { 게임자료환경 } from './authoring-check-game.js';
-import { 게임자리 } from './authoring-game.js';
+import { 부를준비 } from './authoring-game-play-call.js';
+import { 기록남기기, 몇줄 } from './authoring-game-play-log.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 비밀가리기 } from './authoring-reverse.js';
-import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
-import { 잡은폰 } from './authoring-run3-game.js';
-import { 폴더인가 } from './authoring-screens-keep-io.js';
 
-/** 자료 폴더 안 기록 자리 — 부를 때마다 값 · 로그 · 오류 · 화면 한 벌 */
-export const 조작기록자리 = 게임자리.조작기록;
-/** 셸 명령의 기본 한도(2분)에 게임에 붙는 시간과 거두는 시간을 남긴다 */
-const 기본초 = 90;
-/** 셸 명령의 최대 한도(10분)에 붙는 시간(켜지는 중이면 2분)과 거두는 시간을 남긴다 */
-const 최대초 = 420;
 /** 보낸 명령의 답을 기다리는 한도 — 팜이 명령 하나를 20초 안에 끊는다. 답 전에 거두면 늦게 닿은 누르기가 눌린 채 남는다 */
 const 답기다림ms = 20_000;
-const 찍을줄 = 20;
-const 줄길이 = 200;
-
-/** 도우미 파일 자리 — 일반 파일이고 실제 자리가 트리의 tests 안일 때만(상태 도우미 부르기와 같은 검사) */
-export function 조작도우미자리(트리: string, 폴더: string, 이름: string): string | null {
-  // 도우미 이름은 올릴 때 받는 꼴(공통/2 「파일 자리」)과 같다 — 돌려 볼 때만 되는 이름을 막는다
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(폴더) || !/^[a-z][a-z0-9-]{0,40}$/.test(이름)) return null;
-  const 자리 = join(트리, 'tests', 폴더, 'helpers', `${이름}.helper.ts`);
-  if (lstatSync(자리, { throwIfNoEntry: false })?.isFile() !== true) return null;
-  return realpathSync(자리) === join(realpathSync(join(트리, 'tests')), 폴더, 'helpers', `${이름}.helper.ts`) ? 자리 : null;
-}
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const 쉼 = (ms: number): Promise<void> => new Promise((깨운다) => setTimeout(깨운다, ms));
@@ -154,99 +131,6 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     통신오류,
     입력못놓음,
   };
-}
-
-/** 자료 폴더에 남긴다 — 지도에는 잰 값과 횟수만 올리고 원본은 여기 둔다. 자료 폴더가 없으면 null */
-export function 기록남기기(자료: string | undefined, 함수: string, 인자: unknown[], r: 조작결과, 비밀들: readonly string[], 지금 = new Date()): string | null {
-  if (!자료 || !폴더인가(자료)) return null;
-  const 폴더 = join(자료, 조작기록자리);
-  try {
-    mkdirSync(폴더, { recursive: true, mode: 0o755 });
-  } catch (e) {
-    r.못한것.push(`기록 남기기: ${까닭(e)}`);
-    return null;
-  }
-  if (!폴더인가(폴더)) return null;
-  const 이름 = `${지금.toISOString().replace(/\D/g, '').slice(0, 17)}-${함수}`;
-  const { 화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, ...글 } = r;
-  try {
-    let 날글: string;
-    try {
-      날글 = JSON.stringify({ 함수, 인자, ...글 }, null, 2);
-    } catch {
-      날글 = JSON.stringify({ 함수, 인자, ...글, 값: `(JSON 으로 못 바꾸는 값 — ${String(글.값)})` }, null, 2);
-    }
-    // wx — 자식이 만든 링크를 따라 쓰지 않는다
-    writeFileSync(join(폴더, `${이름}.json`), 비밀가리기(날글, 비밀들), { flag: 'wx' });
-    if (화면 !== undefined) writeFileSync(join(폴더, `${이름}.jpg`), 화면, { flag: 'wx' });
-    return join(폴더, 이름);
-  } catch (e) {
-    r.못한것.push(`기록 남기기: ${까닭(e)}`);
-    return null;
-  }
-}
-
-const 몇줄 = (머리: string, 줄들: readonly string[]): string[] =>
-  줄들.length === 0 ? [] : [`${머리} ${줄들.length}줄`, ...줄들.slice(0, 찍을줄).map((x) => `  ${x.split('\n')[0]!.slice(0, 줄길이)}`), ...(줄들.length > 찍을줄 ? [`  … 나머지는 기록 파일에 있다`] : [])];
-
-export interface 부를것 {
-  폴더: string;
-  파일: string;
-  이름: string;
-  자리: string;
-  넘길: unknown[];
-  초: number;
-  함수: (game: unknown) => unknown;
-  환경: Record<string, string | undefined>;
-  비밀들: string[];
-  자료: string | undefined;
-}
-
-/** 인자를 보고 함수를 찾는다 — 부를 수 없으면 까닭을 찍고 null */
-export async function 부를준비(명령: string, 머리: string, 인자: string[], 트리: string, env: NodeJS.ProcessEnv): Promise<부를것 | null> {
-  const 한도자리 = 인자.indexOf('--max');
-  const 초 = 한도자리 < 0 ? 기본초 : Number(인자[한도자리 + 1]);
-  const [폴더, 파일, 이름, 인자글, ...남음] = 한도자리 < 0 ? 인자 : [...인자.slice(0, 한도자리), ...인자.slice(한도자리 + 2)];
-  if (폴더 === undefined || 파일 === undefined || 이름 === undefined || 남음.length > 0 || !/^[\p{L}\p{N}_$]+$/u.test(이름) || !(초 > 0 && 초 <= 최대초)) {
-    console.error(`쓰는 법: npx tsx scripts/${명령}.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초 — ${최대초}까지>]`);
-    return null;
-  }
-  const 폰 = 잡은폰(트리);
-  if (폰 === null) {
-    console.error(`${머리} 잡은 디바이스가 없다 — \`npx control-cli hold --minutes 30\`(PC 게임은 \`--pc\`)으로 잡고 게임을 켠 뒤 다시 부른다`);
-    return null;
-  }
-  let 넘길: unknown[];
-  let 비밀들: string[];
-  try {
-    const 값 = JSON.parse(인자글 ?? '[]') as unknown;
-    if (!Array.isArray(값)) throw new Error('인자는 JSON 배열로 준다');
-    넘길 = 값;
-    비밀들 = 환경비밀번호들(env);
-  } catch (e) {
-    console.error(`${머리} ${까닭(e)}`);
-    return null;
-  }
-  const 자리 = 조작도우미자리(트리, 폴더, 파일);
-  if (자리 === null) {
-    console.error(`${머리} tests/${폴더}/helpers/${파일}.helper.ts 가 없다 — 먼저 쓴다(이름은 영문 소문자 · 숫자 · -)`);
-    return null;
-  }
-  let 모듈: Record<string, unknown>;
-  try {
-    모듈 = (await import(pathToFileURL(자리).href)) as Record<string, unknown>;
-  } catch (e) {
-    console.error(`${머리} 도우미 파일을 못 읽었다 — ${비밀가리기(까닭(e), 비밀들)}`);
-    return null;
-  }
-  const 함수 = 모듈[이름];
-  if (typeof 함수 !== 'function') {
-    console.error(`${머리} 「${이름}」 은 도우미 파일이 내보낸 함수가 아니다 — 있는 것: ${Object.keys(모듈).filter((k) => typeof 모듈[k] === 'function').join(' · ') || '없음'}`);
-    return null;
-  }
-  const 자료 = env[게임자료환경];
-  const 환경 = { ...env, ...게임환경(폰), PLATFORM_PAD: '', PLATFORM_GAME_POPUPS: 돌발팝업값(자료) };
-  return { 폴더, 파일, 이름, 자리, 넘길, 초, 함수: (game) => (함수 as (...a: unknown[]) => unknown)(game, ...넘길), 환경, 비밀들, 자료 };
 }
 
 /** 0 끝까지 돌았다 · 1 함수가 던졌거나 한도를 넘겼다 · 2 부를 수 없다 */

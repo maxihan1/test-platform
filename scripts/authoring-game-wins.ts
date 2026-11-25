@@ -6,7 +6,9 @@ import { pathToFileURL } from 'node:url';
 import { gameLink } from '@platform/kit/game';
 import type { Link } from 'control-cli';
 
-import { type 조작결과, 기록남기기, 돌린다, 부를준비 } from './authoring-game-play.js';
+import { 부를준비 } from './authoring-game-play-call.js';
+import { 기록남기기 } from './authoring-game-play-log.js';
+import { type 조작결과, 돌린다 } from './authoring-game-play.js';
 import { type 판수, 다채웠나, 이긴판읽기, 이긴판적기, 채울판 } from './authoring-game-wins-log.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 
