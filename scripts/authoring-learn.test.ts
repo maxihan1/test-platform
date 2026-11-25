@@ -386,6 +386,8 @@ describe('학습프롬프트', () => {
     expect(글).toContain('`release` 하지 마라');
     expect(글).toContain('[단계] 게임 배우기');
     expect(글).toContain('글로 된 자료가 없다');
+    expect(글).toContain('튜토리얼 끝까지');
+    expect(글).toContain('하나도 없을 때만 끝낸다');
     expect(글).not.toMatch(/^\/tpx-author/);
   });
 
