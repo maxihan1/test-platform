@@ -37,6 +37,8 @@ export interface 케이스줄 {
   execId: number | null;
   /** 앞 케이스에 막혀 못 돈 케이스(Blocked)만 — 막은 케이스 번호 */
   blockedBy: string | null;
+  /** 이 케이스가 도는 중에 연결 하나의 화면 수 상한에 걸렸으면 그 상한 — 여기부터 같은 실행 단위의 뒤 케이스까지 점검하지 못했다 */
+  checkCap: number | null;
 }
 
 export interface 저장화면 {
@@ -106,6 +108,8 @@ function 칸(재: 결과재료, 상태: 상태줄, key: string, 화면: 저장�
   // 여러 케이스가 지나면 limit → failed → missing 차례로 앞엣것 하나다
   const 점검 = (['limit', 'failed', 'missing'] as const).find((v) => 지난케이스.some((c) => c.checkState === v));
   if (점검 !== undefined) return { value: 'UNCHECKED', reason: 점검까닭[점검]! };
+  const 한도 = 재.케이스들.find((k) => k.checkCap !== null && 지난케이스.some((c) => c.id === k.id || (c.execId !== null && c.execId === k.execId && c.id > k.id)));
+  if (한도 !== undefined) return { value: 'UNCHECKED', reason: `AI 점검 화면 수 한도(${String(한도.checkCap)}장) 초과` };
   return { value: 'UNCHECKED', reason: '찍힌 화면이 없습니다' };
 }
 
@@ -153,6 +157,8 @@ export function 결과셈(재: 결과재료) {
         now: 도는 === undefined ? null : { tcId: 도는.tcId, name: 도는.name, startedAt: 도는.startedAt },
         checks: { done: 찍힘, total: 찍힘 + 남은 },
         skipReason: d.skipReason,
+        // 찍힌 화면과 같은 화면은 이상 없음으로 서서 미점검 칸만으로는 뒤를 못 봤다는 것이 안 보인다
+        capped: 케이스.flatMap((c) => (c.checkCap === null ? [] : [{ tcId: c.tcId, max: c.checkCap }])),
       };
     }),
     counts: {

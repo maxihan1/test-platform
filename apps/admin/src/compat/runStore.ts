@@ -141,15 +141,15 @@ export async function 케이스끝(
 
 /**
  * 점검 결과를 한 번만 쓴다 — 점검 중인 케이스만 받는다. 다시 켜기 정리가 먼저 missing 으로 닫았으면 버린다.
- * 그 상태의 케이스 점검이 다 끝났으면 상태도 DONE 으로 닫는다
+ * 그 상태의 케이스 점검이 다 끝났으면 상태도 DONE 으로 닫는다. 상한은 화면 수 상한에 걸린 때 돌던 케이스 줄에만 있다
  */
-export async function 점검저장(id: number, 상태: Exclude<점검상태, 'checking'> | 'missing', 줄들: readonly 화면줄[]): Promise<boolean> {
+export async function 점검저장(id: number, 상태: Exclude<점검상태, 'checking'> | 'missing', 줄들: readonly 화면줄[], 상한: number | null = null): Promise<boolean> {
   const c = await (await db()).connect();
   try {
     await c.query('BEGIN');
     const r = await c.query<{ run_id: string; seq: number }>(
-      `UPDATE compat_run_case SET check_state = $2 WHERE id = $1 AND check_state = 'checking' RETURNING run_id, seq`,
-      [id, 상태],
+      `UPDATE compat_run_case SET check_state = $2, check_cap = $3 WHERE id = $1 AND check_state = 'checking' RETURNING run_id, seq`,
+      [id, 상태, 상한],
     );
     const 줄 = r.rows[0];
     if (줄 === undefined) {

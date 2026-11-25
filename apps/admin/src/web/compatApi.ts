@@ -97,6 +97,8 @@ export interface CompatRunDevice {
   skipReason: string | null;
   now: { tcId: string; name: string; startedAt: string | null } | null;
   vision: string | null;
+  /** 연결 하나의 화면 수 상한에 걸린 케이스 — 여기부터 AI 점검을 하지 못했다. 안 걸렸으면 빈 목록 */
+  capped: { tcId: string; max: number }[];
 }
 
 export type 칸값 = 'OK' | 'PENDING' | 'CONFIRMED' | 'NOT_DEFECT' | 'UNCHECKED';

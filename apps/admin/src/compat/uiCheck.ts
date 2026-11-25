@@ -23,6 +23,8 @@ export interface 점검화면 {
 
 export interface 점검파일 {
   status: 점검상태;
+  /** 연결 하나의 화면 수 상한에 걸렸을 때만 — at 은 처음 버린 화면의 때다 (비전 안내서 10절) */
+  capped?: { max: number; at: string };
   screens: 점검화면[];
 }
 
@@ -55,7 +57,9 @@ export function 점검읽기(raw: unknown): 점검파일 | null {
   if (!객체(raw)) return null;
   const status = raw.status;
   if (status !== 'checking' && status !== 'done' && status !== 'failed' && status !== 'limit') return null;
-  return { status, screens: (Array.isArray(raw.screens) ? raw.screens : []).flatMap((s) => { const x = 화면하나(s); return x === null ? [] : [x]; }) };
+  const c = raw.capped;
+  const 걸림 = 객체(c) && Number.isInteger(c.max) && (c.max as number) > 0 && 글자(c.at) && !Number.isNaN(Date.parse(c.at));
+  return { status, ...(걸림 && { capped: { max: c.max as number, at: c.at as string } }), screens: (Array.isArray(raw.screens) ? raw.screens : []).flatMap((s) => { const x = 화면하나(s); return x === null ? [] : [x]; }) };
 }
 
 /** 그 케이스가 쓰는 화면 파일 하나 — key 는 화면 주소를 주소틀로 바꾼 것, 글은 파일 내용 */
@@ -159,6 +163,14 @@ export function 화면줄들(점검: 점검파일, tcId: string, 파일들: read
 /** 프로시저의 절차 하나 — 절차 번호는 프로시저 전체에서 이어지고 tcId 는 그 절차가 든 케이스다 */
 export interface 케이스단계 extends 단계시간 {
   tcId: string;
+}
+
+/** 화면 수 상한에 걸린 때 돌던 케이스 — 그 케이스의 남은 화면과 같은 연결의 뒤 케이스 화면은 점검하지 못했다. 안 걸렸으면 null */
+export function 한도케이스(점검: 점검파일, 케이스들: readonly string[], 끝: number, 단계들: readonly 케이스단계[]): { tcId: string; max: number } | null {
+  if (점검.capped === undefined) return null;
+  const step = 단계찾기(Date.parse(점검.capped.at), 끝, 단계들);
+  const tcId = 단계들.find((x) => x.seq === step)?.tcId ?? 케이스들[0];
+  return tcId === undefined ? null : { tcId, max: 점검.capped.max };
 }
 
 /**

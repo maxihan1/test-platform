@@ -31,6 +31,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 — 테스트 프로시�
   let 세트 = 0;
   let 프로시저됨 = true;
   let 점검못함 = false;
+  let 한도걸림 = false;
   const 보낸것: Record<string, unknown>[] = [];
   const 옛설정 = { ...설정 };
   const 옛환경 = { DEVICE_FARM_URL: process.env.DEVICE_FARM_URL, RUNNER_URL: process.env.RUNNER_URL, PLATFORM_ARTIFACTS_DIR: process.env.PLATFORM_ARTIFACTS_DIR, PLATFORM_TESTS_DIR: process.env.PLATFORM_TESTS_DIR, DEVICE_FARM_RUN_AS: process.env.DEVICE_FARM_RUN_AS };
@@ -70,7 +71,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 — 테스트 프로시�
         const 곳 = join(폴더, 'runs', String(body.runId), String(body.historyId), 'farm');
         await mkdir(곳, { recursive: true });
         await writeFile(join(곳, 'ui-check.json'), JSON.stringify(점검못함 ? { status: 'none' } : {
-          version: 1, status: 'done',
+          version: 1, status: 'done', ...(한도걸림 && { capped: { max: 400, at: 때(2_200) } }),
           screens: [
             { before: 'element/click', at: 때(100), status: 'done', locator: { using: 'id', value: 'com.x:id/cart_button' }, issues: [] },
             { before: 'element/click', at: 때(2_100), status: 'done', locator: { using: 'id', value: 'com.x:id/post_button' }, issues: [{ kind: 'overlap', box: [0, 0, 1, 1], note: '겹침' }] },
@@ -189,6 +190,23 @@ describe.skipIf(연결 === undefined)('호환성 실행 — 테스트 프로시�
     const 결과 = (await app.inject({ method: 'GET', url: `/api/compat-runs/${runId}` })).json<{ rows: { key: string; cells: { value: string; reason?: string }[] }[]; cards: { tcId: string }[] }>();
     expect(결과.rows.find((r) => r.key === 'app:.Main/draft')?.cells).toEqual([{ seq: 1, value: 'UNCHECKED', reason: 'XCV-FN-102 Blocked · 선행 케이스 XCV-FN-101 실패' }]);
     expect(결과.cards.map((c) => c.tcId)).toEqual(['XCV-FN-103']);
+  });
+
+  it('점검 파일에 상한 표시가 있으면 그때 돌던 케이스 줄에 남고 결과의 디바이스 줄에 실린다 — 없는 실행은 빈 목록이다', async () => {
+    const 실행 = async () => {
+      const { runId } = (await app.inject({ method: 'POST', url: `/api/compat-sets/${세트}/runs`, payload: { env: 'qa' } })).json<{ runId: number }>();
+      expect(await 끝나길(runId)).toBe('FINISHED');
+      const 줄 = await pool.query<{ check_cap: number | null }>('SELECT check_cap FROM compat_run_case WHERE run_id = $1 ORDER BY id', [runId]);
+      const 결과 = (await app.inject({ method: 'GET', url: `/api/compat-runs/${runId}` })).json<{ devices: { capped: unknown }[] }>();
+      return { 줄: 줄.rows.map((x) => x.check_cap), capped: 결과.devices.map((d) => d.capped) };
+    };
+    한도걸림 = true;
+    try {
+      expect(await 실행()).toEqual({ 줄: [null, null, 400], capped: [[{ tcId: 'XCV-FN-103', max: 400 }]] });
+    } finally {
+      한도걸림 = false;
+    }
+    expect(await 실행()).toEqual({ 줄: [null, null, null], capped: [[]] });
   });
 
   it('러너가 점검 없음을 남기면(비전 꺼짐 · 모르는 세션) 오류로 다루지 않고 바로 미점검으로 닫아 실행이 끝난다', async () => {

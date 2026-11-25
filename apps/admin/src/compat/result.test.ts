@@ -8,7 +8,7 @@ const 상태 = (seq: number, 덧: Partial<상태줄> = {}): 상태줄 => ({
   seq, serial: `S${seq}`, heldSerial: null, model: `M${seq}`, name: `폰${seq}`, os: '14', fold: null, state: 'DONE', skipReason: null, ...덧,
 });
 const 케이스 = (id: number, seq: number, tcId: string, 덧: Partial<케이스줄> = {}): 케이스줄 => ({
-  id, seq, tcId, name: `${tcId} 이름`, status: 'PASS', failedStep: null, checkState: 'done', started: true, startedAt: '2026-11-07T00:00:00.000Z', finished: true, 까닭: null, execId: null, blockedBy: null, ...덧,
+  id, seq, tcId, name: `${tcId} 이름`, status: 'PASS', failedStep: null, checkState: 'done', started: true, startedAt: '2026-11-07T00:00:00.000Z', finished: true, 까닭: null, execId: null, blockedBy: null, checkCap: null, ...덧,
 });
 const 재료 = (덧: Partial<결과재료>): 결과재료 => ({
   상태들: [], 케이스들: [], 화면들: [], 판정들: [], 지나는: new Map(), 화면수: new Map(), 이름: new Map(), ...덧,
@@ -53,6 +53,22 @@ describe('결과셈', () => {
     ]);
     expect(r.counts.unchecked).toBe(1);
     expect(r.counts.screens).toBe(0);
+  });
+
+  it('화면 수 상한에 걸리면 걸린 케이스와 같은 프로시저의 뒤 케이스만 그 까닭이고 앞 케이스 · 다른 프로시저는 아니다 — 찍힌 화면은 그대로 이상 없음이다', () => {
+    const r = 결과셈(재료({
+      상태들: [상태(1), 상태(2)],
+      케이스들: [
+        케이스(11, 1, 'A-1', { execId: 7 }), 케이스(12, 1, 'A-2', { execId: 7, checkCap: 400 }), 케이스(13, 1, 'A-3', { execId: 7 }), 케이스(14, 1, 'A-4', { execId: 8 }),
+        케이스(21, 2, 'A-5', { checkCap: 400 }),
+      ],
+      지나는: new Map([['A-1', ['/a']], ['A-2', ['/b', '/ok']], ['A-3', ['/c']], ['A-4', ['/d']], ['A-5', ['/e']]]),
+      화면들: [{ id: 1, caseRunId: 12, seq: 1, key: '/ok', step: 1, status: 'done', before: 'element/click', issues: [] }],
+    }));
+    const 까닭 = Object.fromEntries(r.rows.map((x) => [x.key, x.cells[0]?.reason]));
+    const 한도 = 'AI 점검 화면 수 한도(400장) 초과';
+    expect(까닭).toEqual({ '/a': '찍힌 화면이 없습니다', '/b': 한도, '/c': 한도, '/d': '찍힌 화면이 없습니다', '/e': 한도 });
+    expect(r.devices.map((d) => d.capped)).toEqual([[{ tcId: 'A-2', max: 400 }], [{ tcId: 'A-5', max: 400 }]]);
   });
 
   it('돌거나 점검 중인 상태의 칸은 아직 안 세고, 점검 중 장 수는 케이스 화면 수로 어림한다', () => {

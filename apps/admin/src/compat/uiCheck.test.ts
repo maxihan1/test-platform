@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type 화면파일, 단계찾기, 열쇠찾기, 점검읽기, 프로시저화면줄들, 화면줄들 } from './uiCheck.js';
+import { type 화면파일, 단계찾기, 한도케이스, 열쇠찾기, 점검읽기, 프로시저화면줄들, 화면줄들 } from './uiCheck.js';
 
 const 앱파일들: 화면파일[] = [
   { file: 'tests/dma/pages/cart.page.ts', key: 'app:.MainActivity/cart_list', 글: "this.driver.$('id=select_all'); this.driver.$('id=title')" },
@@ -28,6 +28,13 @@ describe('점검읽기', () => {
 
   it('상태가 모르는 값이면 null 이다', () => {
     expect(점검읽기({ status: 'weird', screens: [] })).toBeNull();
+  });
+
+  it('상한에 걸린 파일만 capped 가 있고, 꼴이 틀리면 없는 것으로 본다', () => {
+    const 파일 = (capped?: unknown) => 점검읽기({ version: 1, status: 'done', ...(capped !== undefined && { capped }), screens: [] });
+    expect(파일({ max: 400, at: '2026-11-25T01:10:45.000Z' })).toEqual({ status: 'done', capped: { max: 400, at: '2026-11-25T01:10:45.000Z' }, screens: [] });
+    expect(파일()).toEqual({ status: 'done', screens: [] });
+    for (const 틀린 of [null, true, { max: '400', at: '2026-11-25T01:10:45.000Z' }, { max: 400, at: '어제' }, { max: 0, at: '2026-11-25T01:10:45.000Z' }]) expect(파일(틀린)).toEqual({ status: 'done', screens: [] });
   });
 });
 
@@ -116,6 +123,20 @@ describe('화면줄들', () => {
       [{ seq: 1, durationMs: 2500 }, { seq: 2, durationMs: 1000 }],
     );
     expect(줄.map((x) => x.key)).toEqual(['app:.MainActivity/order', 'app:.MainActivity/order', 'unknown:DMA-UI-031#2']);
+  });
+});
+
+describe('한도케이스', () => {
+  it('처음 버린 화면의 때에 든 절차의 케이스다 — 절차가 없으면 첫 케이스', () => {
+    const 단계들 = [
+      { seq: 1, tcId: 'A-1', durationMs: 1_000, startedAt: '2026-11-25T01:00:00.000Z' },
+      { seq: 2, tcId: 'A-2', durationMs: 1_000, startedAt: '2026-11-25T01:00:10.000Z' },
+      { seq: 3, tcId: 'A-3', durationMs: 1_000, startedAt: '2026-11-25T01:00:20.000Z' },
+    ];
+    const 점검 = { status: 'done' as const, capped: { max: 400, at: '2026-11-25T01:00:12.000Z' }, screens: [] };
+    expect(한도케이스(점검, ['A-1', 'A-2', 'A-3'], Date.parse('2026-11-25T01:00:30.000Z'), 단계들)).toEqual({ tcId: 'A-2', max: 400 });
+    expect(한도케이스(점검, ['A-1', 'A-2'], 0, [])).toEqual({ tcId: 'A-1', max: 400 });
+    expect(한도케이스({ status: 'done', screens: [] }, ['A-1'], 0, 단계들)).toBeNull();
   });
 });
 
