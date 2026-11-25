@@ -2,13 +2,14 @@
 // 성능 테스트 › 페이지 성능 화면 검사 — 측정 요청 · 거절 · 오류 · 권한 (도메인/성능 §8.14)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { ApiError } from './api.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfPages } from './PerfPages.js';
 import { 결과, 상세, 앱, 줄, 페이지들 } from './perfPages.fixture.js';
 import { 묻는간격 } from './usePerfJob.js';
+import { 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 
 beforeEach(() => {
   묻는간격.ms = 20;
@@ -37,6 +38,7 @@ describe('측정', () => {
     fireEvent.click(screen.getByLabelText('모바일'));
     fireEvent.click(screen.getByLabelText('Slow 4G'));
     fireEvent.click(screen.getByRole('button', { name: '측정' }));
+    확인시작();
 
     await waitFor(() => expect(측정).toHaveBeenCalledWith({ serviceId: 7, env: 'qa', pages: 페이지들, device: 'mobile', network: 'SLOW_4G' }));
     expect(await screen.findByRole('button', { name: '측정 중' })).toBeTruthy();
@@ -58,6 +60,7 @@ describe('측정', () => {
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
+    확인시작();
     expect((await screen.findByRole('alert')).textContent).toBe('선택한 부하 발생 에이전트가 연결돼 있지 않습니다');
     expect(screen.getByRole('button', { name: '다시 측정' })).toBeTruthy();
   });
@@ -71,6 +74,7 @@ describe('측정', () => {
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
+    확인시작();
     expect((await screen.findByRole('alert')).textContent).toContain('로그인 화면 기록이 없어 /my 를 열 수 없습니다');
   });
 
@@ -89,7 +93,67 @@ describe('측정', () => {
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
+    확인시작();
     expect((await screen.findByRole('alert')).textContent).toBe('측정이 오류로 종료되었습니다 — 브라우저를 열지 못했습니다');
+  });
+
+  it('대상 서버를 고르기 전에는 묻지 않고, 고르면 조건을 적어 묻는다. 취소하면 측정하지 않는다', async () => {
+    vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [줄({})] });
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세());
+    vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
+    const 측정 = vi.spyOn(perfApi, 'measure').mockResolvedValue({ runId: 30 });
+    render(<PerfPages service={앱} 쓰나 />);
+    await screen.findByRole('table', { name: '페이지별 측정 결과' });
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
+    expect(확인상자있나()).toBe(false);
+    expect((await screen.findByRole('alert')).textContent).toBe('대상 서버를 선택해 주세요');
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
+    expect(확인줄들()).toEqual({ '측정 대상': '페이지 3개 · 페이지마다 3회', 디바이스: '모바일', 네트워크: 'Slow 4G', '대상 서버': 'qa' });
+    확인취소();
+    expect(측정).not.toHaveBeenCalled();
+  });
+
+  it('측정 중에만 「측정 중단」이 서고, 확인하면 그 실행을 멈춘 뒤 보던 결과를 그대로 둔다', async () => {
+    let 상태: 실행상세['status'] = 'RUNNING';
+    vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [줄({})] });
+    vi.spyOn(perfApi, 'runOf').mockImplementation((id) => Promise.resolve(id === 30 ? 상세({ id: 30, status: 상태, stopReason: 상태 === 'STOPPED' ? 'USER' : null }) : 상세()));
+    const 읽기 = vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
+    vi.spyOn(perfApi, 'measure').mockResolvedValue({ runId: 30 });
+    const 멈춤 = vi.spyOn(perfApi, 'stop').mockImplementation(() => {
+      상태 = 'STOPPED';
+      return Promise.resolve(undefined);
+    });
+    render(<PerfPages service={앱} 쓰나 />);
+    await screen.findByRole('table', { name: '페이지별 측정 결과' });
+    expect(screen.queryByRole('button', { name: '측정 중단' })).toBeNull();
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
+    확인시작();
+
+    fireEvent.click(await screen.findByRole('button', { name: '측정 중단' }));
+    const 상자 = screen.getByRole('dialog', { name: '측정을 중단할까요?' });
+    expect(document.activeElement?.textContent).toBe('취소');
+    fireEvent.click(within(상자).getByRole('button', { name: '측정 중단' }));
+    await waitFor(() => expect(멈춤).toHaveBeenCalledWith(30));
+    expect((await screen.findByRole('alert')).textContent).toBe('측정을 중단했습니다 — 사람이 중단');
+    expect(screen.queryByRole('button', { name: '측정 중단' })).toBeNull();
+    expect(screen.getByRole('table', { name: '페이지별 측정 결과' })).toBeTruthy();
+    expect(읽기).toHaveBeenCalledTimes(1);
+  });
+
+  it('이미 끝난 측정이라 멈추지 못하면 까닭을 상자 안에 보인다', async () => {
+    vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [줄({})] });
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({ status: 'RUNNING' }));
+    vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
+    vi.spyOn(perfApi, 'stop').mockRejectedValue(new ApiError(409, 'NOT_RUNNING', '', []));
+    render(<PerfPages service={앱} 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '측정 중단' }));
+    const 상자 = within(screen.getByRole('dialog', { name: '측정을 중단할까요?' }));
+    fireEvent.click(상자.getByRole('button', { name: '측정 중단' }));
+    expect((await 상자.findByRole('alert')).textContent).not.toBe('');
   });
 
   it('실행 쓰기 권한이 없으면 측정 · 조건 · 페이지 선택이 없다', async () => {

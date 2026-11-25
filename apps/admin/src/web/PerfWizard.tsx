@@ -7,15 +7,17 @@ import type { ServiceRow, User } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
-import { 고른서버를적는다, 마지막서버 } from './layout.js';
+import { 고른서버를적는다 } from './layout.js';
 import { perfApi, type PerfScenario, type ScenarioBody } from './perfApi.js';
 import { PerfSchedule } from './PerfSchedule.js';
-import { PerfStepLoad, 유형글자, type 이단계값 } from './PerfStepLoad.js';
-import { PerfStepRun, type 사단계값 } from './PerfStepRun.js';
+import { PerfStartConfirm, 부하확인줄 } from './PerfStartConfirm.js';
+import { PerfStepLoad, 유형글자 } from './PerfStepLoad.js';
+import { PerfStepRun } from './PerfStepRun.js';
 import { PerfStepScenario, type 일단계값 } from './PerfStepScenario.js';
-import { PerfStepTargets, type 삼단계값 } from './PerfStepTargets.js';
+import { PerfStepTargets } from './PerfStepTargets.js';
 import { 저장꼴 } from './PerfTxDetail.js';
-import { 구간만들기, 기본부하칸, 넘길까닭, 총초, 최대목표 } from './perfView.js';
+import { 넘길까닭, 최대목표 } from './perfView.js';
+import { 처음값 } from './perfWizardInit.js';
 import { 조건붙인주소, 떠나기로했다, 떠나기상자, 주소고치기, 주소조건 } from './leaveGuard.js';
 import { 할수있나 } from './role.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
@@ -41,20 +43,6 @@ export function PerfWizard({ id, 띠서비스, user }: { id: number | null; 띠�
   const service = 시나리오 === null ? 처음띠 : (user.services.find((it) => it.id === 시나리오.serviceId) ?? null);
   if (service === null) return <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div>;
   return <마법사 시나리오={시나리오} service={service} user={user} />;
-}
-
-function 처음값(s: PerfScenario | null, service: ServiceRow): { 일: 일단계값; 이: 이단계값; 삼: 삼단계값; 사: 사단계값 } {
-  const b: ScenarioBody = s?.body ?? {};
-  const r = b.run ?? {};
-  const 칸 = { maxVus: r.maxVus ?? 기본부하칸.maxVus, rampMin: r.rampMin ?? 기본부하칸.rampMin, holdMin: r.holdMin ?? 기본부하칸.holdMin, peakVus: r.peakVus };
-  const testType = b.load?.testType ?? 'LOAD';
-  const env = r.env !== undefined && service.envs.some((it) => it.env === r.env) ? r.env : 마지막서버(service.prefix, service.envs);
-  return {
-    일: { name: s?.name ?? '', 방식: b.dummyClient === undefined ? 'TX' : 'DUMMY', 더미번호: b.dummyClient ?? null, transactions: b.transactions ?? [], notes: {}, 가져온: null },
-    이: { testType, basis: b.load?.basis ?? 'VUS', 칸, stages: b.load?.stages ?? 구간만들기(testType, 칸) },
-    삼: { targets: b.targets ?? [], aiBasis: [], degradeAlert: r.degradeAlert ?? true },
-    사: { env, agentIds: r.agentIds ?? [], monitorIds: r.monitorIds ?? [], pageCheck: r.pageCheck ?? false },
-  };
 }
 
 function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario | null; service: ServiceRow; user: User }) {
@@ -83,6 +71,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   const [끝낸, set끝낸] = useState<number>(시나리오 === null ? 0 : 4);
   const [알림, set알림] = useState<{ 글: string; 오류: boolean } | null>(null);
   const [하는중, set하는중] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const agents = useAsync(() => perfApi.agents(service.projectId), [service.projectId]);
   const 더미들 = useAsync(() => perfApi.dummyClients(service.id), [service.id]);
   const 더미 = 일.방식 === 'DUMMY';
@@ -127,15 +116,19 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     run: { env: 사.env, agentIds: 사.agentIds, monitorIds: 사.monitorIds, ...이.칸, degradeAlert: 삼.degradeAlert, pageCheck: 페이지칸 && 사.pageCheck },
   });
 
+  /** 1단계가 비어 저장할 수 없으면 거기로 보내고 참 */
+  function 저장막힘(): boolean {
+    const 까닭 = 넘길까닭(1, 넘길재료, 언어);
+    if (까닭 === null) return false;
+    스스로(1);
+    set지금(1);
+    set알림({ 글: 까닭, 오류: true });
+    return true;
+  }
+
   /** 저장하고 시나리오 번호를 돌려준다. 실패하면 알림을 띄우고 null */
   async function 저장(): Promise<number | null> {
-    const 까닭 = 넘길까닭(1, { name: 일.name, txCount: 일.transactions.length, dummy: 더미, dummyPicked: 일.더미번호 !== null, stages: 이.stages }, 언어);
-    if (까닭 !== null) {
-      스스로(1);
-      set지금(1);
-      set알림({ 글: 까닭, 오류: true });
-      return null;
-    }
+    if (저장막힘()) return null;
     set하는중(true);
     set알림(null);
     try {
@@ -167,11 +160,19 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     }
   }
 
-  async function 실행() {
+  /** 칸 검사를 다 지난 뒤에 묻는다. 저장은 확인한 뒤다 — 취소하면 아무것도 안 남는다 */
+  function 실행누름() {
     if (사.env === '' || 사.agentIds.length === 0) {
       set알림({ 글: t('대상 서버와 부하 발생 에이전트를 선택해 주세요'), 오류: true });
       return;
     }
+    if (저장막힘()) return;
+    set알림(null);
+    set묻나(true);
+  }
+
+  async function 실행() {
+    set묻나(false);
     const id = await 저장();
     if (id === null) return;
     set하는중(true);
@@ -189,7 +190,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
   function 다음() {
     if (지금 === 4) return;
-    const 까닭 = 넘길까닭(지금, { name: 일.name, txCount: 일.transactions.length, dummy: 더미, dummyPicked: 일.더미번호 !== null, stages: 이.stages }, 언어);
+    const 까닭 = 넘길까닭(지금, 넘길재료, 언어);
     if (까닭 !== null) {
       set알림({ 글: 까닭, 오류: true });
       return;
@@ -200,7 +201,6 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   }
 
   const 최대 = 최대목표(이.stages);
-  const 분 = Math.ceil(총초(이.stages) / 60);
   const 단위 = 이.basis === 'TPS' ? t('TPS') : t('명');
   const 단계들: { 번호: 단계; 이름: string; 요약?: string }[] = [
     { 번호: 1, 이름: t('시나리오'), 요약: 더미 ? t('더미 클라이언트') : t('트랜잭션 {수}개', { 수: 일.transactions.length }) },
@@ -208,6 +208,15 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     { 번호: 3, 이름: t('성능 목표'), 요약: t('{수}개', { 수: 삼.targets.length }) },
     { 번호: 4, 이름: t('실행') },
   ];
+
+  const 요약 = 부하확인줄(t, {
+    시나리오: 더미 ? t('{이름} (더미 클라이언트)', { 이름: 일.name }) : t('{이름} (트랜잭션 {수}개)', { 이름: 일.name, 수: 일.transactions.length }),
+    유형: 이.testType,
+    stages: 이.stages,
+    단위,
+    목표수: 삼.targets.length,
+    env: 사.env,
+  });
 
   return (
     <>
@@ -234,6 +243,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
           </>
         }
       />
+      {!묻나 ? null : <PerfStartConfirm 종류="LOAD" 줄들={요약} 안내={t('시나리오를 저장하고 대상 서버에 부하가 발생합니다. 실행 화면에서 중단할 수 있습니다')} onClose={() => set묻나(false)} on시작={() => void 실행()} />}
       {정기창 && 번호 !== null ? <PerfSchedule scenarioId={번호} envs={service.envs} 지금={정기} 바뀜={set정기} 닫기={() => set정기창(false)} /> : null}
       <div className="screen" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <ol className="perf-steps" aria-label={t('시나리오 만들기 단계')}>
@@ -277,14 +287,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
             최대목표={최대}
             쓰나={쓰나}
             페이지칸={페이지칸}
-            요약={[
-              { 이름: t('시나리오'), 값: 더미 ? t('{이름} (더미 클라이언트)', { 이름: 일.name }) : t('{이름} (트랜잭션 {수}개)', { 이름: 일.name, 수: 일.transactions.length }) },
-              { 이름: t('테스트 유형'), 값: t(유형글자[이.testType].이름) },
-              { 이름: t('부하'), 값: t('최대 {수}{단위}, 전체 {분}분', { 수: 최대.toLocaleString(), 단위, 분 }) },
-              { 이름: t('성능 목표'), 값: t('{수}개', { 수: 삼.targets.length }) },
-              { 이름: t('대상 서버'), 값: 사.env === '' ? t('선택 안 함') : 사.env },
-              { 이름: t('예상 소요 시간'), 값: t('최대 {분}분', { 분: 분 + 1 }) },
-            ]}
+            요약={요약}
           />
         ) : null}
 
@@ -312,7 +315,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
               <button type="button" className="btn ghost" disabled={하는중} onClick={() => void 저장()}>
                 {t('저장')}
               </button>
-              <button type="button" className="btn" disabled={하는중} onClick={() => void 실행()}>
+              <button type="button" className="btn" disabled={하는중} onClick={실행누름}>
                 {t('실행')}
               </button>
             </div>

@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { api, type TrialResult } from './api.js';
 import { 그린다, 서비스, 케이스, 시작누름 } from './runPick.fixture.js';
 import { RunPickModal } from './RunPickModal.js';
+import { 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 import { 장면통로 } from './TrialLive.js';
 import { 둘째, 둘을연다, 시험시작, 실패, 차례대로, 통과 } from './trialRun.fixture.js';
 
@@ -29,6 +30,17 @@ describe('완료 창', () => {
     expect(screen.getByText('수량 칸을 찾지 못했습니다')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Fail 1건 다시 시험' }));
+    expect(확인줄들()).toMatchObject({ 케이스: '1건', '대상 서버': 'qa' });
+    확인취소();
+    expect(api.startTrial).toHaveBeenCalledTimes(2);
+
+    // 취소한 실패분이 남아 「다시 실행」에 섞이면 안 된다
+    fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
+    expect(확인줄들()['케이스']).toBe('2건');
+    확인취소();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fail 1건 다시 시험' }));
+    확인시작();
     await waitFor(() => expect(api.startTrial).toHaveBeenCalledTimes(3));
     expect(vi.mocked(api.startTrial).mock.calls[2]?.[0]).toBe('ZRS-002');
   });

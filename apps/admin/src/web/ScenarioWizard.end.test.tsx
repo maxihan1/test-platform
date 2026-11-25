@@ -10,6 +10,7 @@ import { scenarioApi, type CasePartMaterial, type LinkSuggestion } from './scena
 import { 결과주소 } from './ScenarioResultNext.js';
 import { 사람, 서비스, 흘리기 } from './ScenarioTrial.fixture.js';
 import { ScenarioWizard } from './ScenarioWizard.js';
+import { 확인상자, 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 import { 장면통로 } from './TrialLive.js';
 
 const 줄 = (tcId: string): CaseRow => ({
@@ -150,6 +151,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     });
+    await act(async () => 확인시작());
 
     expect(document.querySelector('.scw-trial-wrap > .trial-live')).not.toBeNull();
     expect(받기).toHaveBeenCalledWith('/api/scenario-trials/t-3/live');
@@ -177,6 +179,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     });
+    await act(async () => 확인시작());
     await 흘리기(2000);
     vi.useRealTimers();
 
@@ -215,6 +218,20 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     expect(screen.queryByRole('button', { name: '이전' })).toBeNull();
   });
 
+  it('시험 실행은 서버를 고른 뒤에만 묻고, 취소하면 시험을 걸지 않는다', async () => {
+    await 경로채우고시험으로();
+    const 시작 = vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-4' });
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    expect(확인상자있나()).toBe(false);
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stg' } });
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    expect(확인상자().getAttribute('aria-label')).toBe('시험 실행을 시작할까요?');
+    expect(확인줄들()).toEqual({ 시나리오: '새 시나리오 · 2단계', 디바이스: 'PC', '대상 서버': 'stg' });
+    확인취소();
+    expect(시작).not.toHaveBeenCalled();
+  });
+
   it('앞 단계로 돌아가 단계를 바꾸면 시험 결과를 버린다', async () => {
     localStorage.setItem('대상서버:ZSB', 'stg');
     await 경로채우고시험으로();
@@ -227,6 +244,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     });
+    await act(async () => 확인시작());
     await 흘리기(2000);
     vi.useRealTimers();
     expect(screen.getByText(/^끝까지 이어졌습니다/)).toBeTruthy();
@@ -247,10 +265,18 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('대상 서버를 먼저 선택합니다');
     expect(screen.queryByRole('button', { name: '시험 실행 중' })).toBeNull();
 
-    vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 32, version: 1 });
+    const 만들기 = vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 32, version: 1 });
     const 실행 = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 9 });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stg' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하고 실행' }));
+    expect(확인상자().getAttribute('aria-label')).toBe('정식 실행을 시작할까요?');
+    expect(확인줄들()).toEqual({ 시나리오: '첫 주문 · 2단계', 디바이스: 'PC', '대상 서버': 'stg' });
+    확인취소();
+    expect(만들기).not.toHaveBeenCalled();
+    expect(실행).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '저장하고 실행' }));
+    확인시작();
     await waitFor(() => expect(window.location.hash).toBe(결과주소(9, 'scenarios')));
     expect(실행).toHaveBeenCalledWith(32, 'stg', 'server');
   });

@@ -40,6 +40,12 @@ describe('use여러건시험 — 실패다시', () => {
     await act(async () => {
       result.current.실패다시([{ tcId: 'ZRS-002', platform: 'desktop' }]);
     });
+    expect(시작).not.toHaveBeenCalled();
+    expect(result.current.확인).toBe('trial');
+    expect(result.current.확인할것.map((c) => [c.tcId, c.platforms])).toEqual([['ZRS-001', ['desktop']], ['ZRS-002', ['desktop']], ['ZRS-003', ['desktop']]]);
+    await act(async () => {
+      result.current.시작();
+    });
 
     await vi.waitFor(() => expect(시작).toHaveBeenCalled());
     expect(시작.mock.calls.map(([tcId, body]) => [tcId, body.platform])).toEqual([['ZRS-002', 'desktop']]);

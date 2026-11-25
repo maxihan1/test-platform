@@ -32,6 +32,7 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
   const [시험글, set시험글] = useState<string | null>(null);
   const [서버열기, set서버열기] = useState(false);
   const [저장중, set저장중] = useState(false);
+  const [확인, set확인] = useState<'trial' | 'formal' | null>(null);
   const [저장됨, set저장됨] = useState<{ id: number; version: number; 이름: string } | null>(null);
   const 시험원본 = useScenarioTrial(시험열쇠(null));
   const 정식 = useScenarioRun({ id: null, 어디서: 'scenarios', on글: on까닭, on새주소: () => undefined });
@@ -49,10 +50,14 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
     고른서버를적는다(서비스, env);
   }
 
-  function 시험시작() {
+  /** 조립 화면과 같은 단추라 단추가 아니라 여기서 묻는다 — 막는 까닭을 지난 뒤다 */
+  function 시험누름() {
     const 사유 = 시험막는글(t, 서버, 보낼, null);
     set시험글(사유);
-    if (사유 !== null) return;
+    if (사유 === null) set확인('trial');
+  }
+
+  function 시험시작() {
     고른서버를적는다(서비스, 서버);
     set시험지문(JSON.stringify(보낼));
     void 시험원본.시작({ service: 서비스, env: 서버, platform: 디바이스, parts: 보낼 });
@@ -81,12 +86,19 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
     }
     on까닭(null);
     if (실행) {
-      await 정식.실행(서버, true, null, 만들기);
+      set확인('formal');
       return null;
     }
     const 결과 = await 만들기();
     if (결과 !== null) set저장됨({ ...결과, 이름: 이름.trim() });
     return null;
+  }
+
+  /** 확인 상자의 시작 단추. 정식 실행은 여기서 저장하고 건다 — 취소하면 시나리오도 안 남는다 */
+  function 확인시작() {
+    set확인(null);
+    if (확인 === 'trial') 시험시작();
+    else void 정식.실행(서버, true, null, 만들기);
   }
 
   return {
@@ -97,7 +109,10 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
     서버고름,
     // 고를 서버가 하나뿐이면 지난번 것이 아니라 그 하나라서 골라졌다 — 「지난번에 고른」이라 말하지 않는다
     미리: 고른서버 === null && 서버 !== '' && 가능.length > 1,
-    시험시작,
+    시험누름,
+    확인,
+    확인닫기: () => set확인(null),
+    확인시작,
     저장,
     저장중: 저장중 || 정식.실행중,
     저장됨,

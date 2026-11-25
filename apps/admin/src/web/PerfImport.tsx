@@ -7,8 +7,9 @@ import { apiDocApi } from './apiDocApi.js';
 import { use말 } from './i18n.js';
 import { 마지막서버 } from './layout.js';
 import { perfApi, type 초안결과 } from './perfApi.js';
+import { PerfStartConfirm } from './PerfStartConfirm.js';
 import { scenarioApi } from './scenarioApi.js';
-import { Failed, Loading, useAsync, 기다림글자 } from './ui.js';
+import { Failed, Loading, PLATFORM_LABEL, useAsync, 기다림글자 } from './ui.js';
 import { usePerfJob } from './usePerfJob.js';
 
 type 길 = 'RECORD' | 'SWAGGER' | 'FILE';
@@ -76,15 +77,21 @@ function 녹화칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 맡
   const [시나리오, set시나리오] = useState('');
   const [env, setEnv] = useState(() => 마지막서버(service.prefix, service.envs));
   const [까닭, set까닭] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
 
   if (목록.error !== null) return <Failed error={목록.error} />;
   if (목록.data === null) return <Loading />;
 
+  const 고른것 = 목록.data.items.find((it) => String(it.id) === 시나리오);
+
+  function 시작누름() {
+    const 빈칸 = 고른것 === undefined || env === '';
+    set까닭(빈칸 ? t('E2E 시나리오와 대상 서버를 선택해 주세요') : null);
+    set묻나(!빈칸);
+  }
+
   function 시작() {
-    if (시나리오 === '' || env === '') {
-      set까닭(t('E2E 시나리오와 대상 서버를 선택해 주세요'));
-      return;
-    }
+    set묻나(false);
     void 맡기기(() => perfApi.draft({ serviceId: service.id, from: 'RECORD', env, scenarioId: Number(시나리오) }));
   }
 
@@ -113,12 +120,25 @@ function 녹화칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 맡
             ))}
           </select>
         </label>
-        <button type="button" className="btn small" onClick={시작}>
+        <button type="button" className="btn small" onClick={시작누름}>
           {t('녹화 시작')}
         </button>
       </div>
       <span className="perf-faint">{t('서버 테스트 실행기가 시나리오를 한 번 실행하며 오간 요청을 남깁니다. 이 실행은 실행 기록에 남지 않습니다')}</span>
       {까닭 === null ? null : <p className="perf-err">{까닭}</p>}
+      {!묻나 || 고른것 === undefined ? null : (
+        <PerfStartConfirm
+          종류="RECORD"
+          줄들={[
+            { 이름: t('시나리오§이름'), 값: [`SC-${고른것.id} ${고른것.name}`, t('{수}단계', { 수: 고른것.partCount })].join(' · ') },
+            { 이름: t('디바이스'), 값: t(PLATFORM_LABEL[고른것.platform]) },
+            { 이름: t('대상 서버'), 값: env },
+          ]}
+          안내={t('시나리오를 대상 서버에서 한 번 실행합니다. 완료되면 현재 트랜잭션 목록이 녹화한 내용으로 변경됩니다')}
+          onClose={() => set묻나(false)}
+          on시작={시작}
+        />
+      )}
     </div>
   );
 }

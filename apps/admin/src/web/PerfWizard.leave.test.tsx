@@ -7,6 +7,7 @@ import type { ServiceRow, User } from './api.js';
 import { 주소로간다, 주소보기, 주소에선다 } from './keepState.fixture.js';
 import { perfApi, type PerfAgent } from './perfApi.js';
 import { PerfWizard } from './PerfWizard.js';
+import { 확인시작 } from './startConfirm.fixture.js';
 
 const 앱: ServiceRow = {
   id: 7,
@@ -82,6 +83,7 @@ describe('부하 마법사 떠나기 묻기', () => {
     fireEvent.click(await screen.findByLabelText(/기본 에이전트/));
     fireEvent.change(screen.getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    확인시작();
     await waitFor(() => expect(screen.getByTestId('hash').textContent).toBe('#/perf/runs/12'));
     expect(screen.queryByRole('dialog')).toBeNull();
   });

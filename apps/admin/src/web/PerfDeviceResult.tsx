@@ -9,6 +9,7 @@ import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfDeviceReplay } from './PerfDeviceReplay.js';
+import { 기기시작확인 } from './PerfStartConfirm.js';
 import { 값글자, 결과칸들, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작 } from './perfDeviceView.js';
 import { 갱신간격, 분석틈, 분초, 사유이름, 시각글, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { Loading, message, useAsync, 올라가는값 } from './ui.js';
@@ -20,6 +21,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
   const 결과 = useAsync(() => perfApi.deviceResult(run.id), [run.id]);
   const [하는중, set하는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
   const 종류 = 판정종류(run);
   // 끝까지 잰 실행에만 AI 분석이 선다. 끝난 직후 일이 서기 전 틈도 기다린다
   const 틈 = run.ai === null && run.aiJob === null && run.status === 'DONE' && run.finishedAt !== null && Date.now() - new Date(run.finishedAt).getTime() < 분석틈;
@@ -46,14 +48,16 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
     }
   }
 
+  // 게임 케이스 칸이 생기기 전(PERF-F1-11)에 게임을 Appium 으로 잰 결과 · 종류가 바뀐 애플리케이션도 지금 종류의 조작으로 다시 잰다
+  const 다시조작 = 설정.drive === 'MANUAL' ? 'MANUAL' : 케이스조작(service.kind);
+
   // 같은 조건으로 새 측정 하나를 만들고 그 번호 화면으로 간다
   const 다시실행 = () =>
     하기(async () => {
       const { runId } = await perfApi.measureDevices({
         serviceId: service.id,
         env: run.env,
-        // 게임 케이스 칸이 생기기 전(PERF-F1-11)에 게임을 Appium 으로 잰 결과 · 종류가 바뀐 애플리케이션도 지금 종류의 조작으로 다시 잰다
-        drive: 설정.drive === 'MANUAL' ? 'MANUAL' : 케이스조작(service.kind),
+        drive: 다시조작,
         ...(설정.drive === 'MANUAL' ? { durationSec: 설정.durationSec } : { caseIds: 설정.caseIds }),
         build: { package: 설정.package },
         devices: 설정.devices.map(({ serial, where }) => ({ serial, where })),
@@ -96,7 +100,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
               <button type="button" className="btn ghost" onClick={새측정}>
                 {t('새 측정')}
               </button>
-              <button type="button" className="btn" disabled={하는중} onClick={() => void 다시실행()}>
+              <button type="button" className="btn" disabled={하는중} onClick={() => set묻나(true)}>
                 {t('다시 실행')}
               </button>
             </div>
@@ -201,6 +205,16 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
           </>
         )}
       </div>
+      {!묻나 ? null : (
+        <기기시작확인
+          값={{ ...설정, drive: 다시조작, 자동수: 0, 디바이스들: 설정.devices.map((d) => d.model), env: run.env }}
+          onClose={() => set묻나(false)}
+          on시작={() => {
+            set묻나(false);
+            void 다시실행();
+          }}
+        />
+      )}
     </>
   );
 }

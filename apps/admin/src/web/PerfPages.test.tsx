@@ -9,6 +9,7 @@ import { perfApi } from './perfApi.js';
 import { PerfPages } from './PerfPages.js';
 import { 결과, 상세, 앱, 줄, 페이지들 } from './perfPages.fixture.js';
 import { 묻는간격 } from './usePerfJob.js';
+import { 확인시작 } from './startConfirm.fixture.js';
 
 beforeEach(() => {
   묻는간격.ms = 20;
@@ -160,6 +161,7 @@ describe('측정할 페이지', () => {
 
     expect(screen.getByText('측정 대상: 페이지 3개')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
+    확인시작();
     await waitFor(() => expect(측정).toHaveBeenCalled());
     expect(측정.mock.calls[0]![0].pages).toEqual([
       { url: '/products', name: '상품 목록', login: false },

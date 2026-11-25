@@ -8,6 +8,7 @@ import { ApiError, type ServiceRow, type User } from './api.js';
 import { perfApi, type PerfAgent, type PerfScenario, type 더미클라이언트 } from './perfApi.js';
 import { PerfWizard } from './PerfWizard.js';
 import { scenarioApi } from './scenarioApi.js';
+import { 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 
 const 앱 = (runs: 'read' | 'write' = 'write'): ServiceRow => ({
   id: 7,
@@ -150,6 +151,7 @@ describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
     fireEvent.change(screen.getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
     expect(screen.getByText('스트레스 테스트', { selector: 'dd' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    확인시작();
 
     await waitFor(() => expect(실행).toHaveBeenCalled());
     const [serviceId, name, body] = 만들기.mock.calls[0]!;
@@ -168,6 +170,28 @@ describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/12'));
   });
 
+  it('실행은 저장하기 전에 묻는다 — 취소하면 시나리오도 실행도 안 생긴다', async () => {
+    const 만들기 = vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });
+    const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 12 });
+    await 그리기();
+    fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '주문하기' } });
+    fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
+    다음();
+    다음();
+    다음();
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    expect(확인상자있나()).toBe(false);
+    expect((await screen.findByRole('alert')).textContent).toBe('대상 서버와 부하 발생 에이전트를 선택해 주세요');
+
+    fireEvent.click(await screen.findByLabelText(/기본 에이전트/));
+    fireEvent.change(screen.getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    expect(확인줄들()).toMatchObject({ 시나리오: '주문하기 (트랜잭션 1개)', '테스트 유형': '부하 테스트', '대상 서버': 'qa' });
+    확인취소();
+    expect(만들기).not.toHaveBeenCalled();
+    expect(실행).not.toHaveBeenCalled();
+  });
+
   it('서버가 거절하면 까닭을 그 자리에 보인다', async () => {
     vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });
     vi.spyOn(perfApi, 'run').mockRejectedValue(new ApiError(400, 'PROD_ENV_BLOCKED', '', []));
@@ -180,6 +204,7 @@ describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
     fireEvent.click(await screen.findByLabelText(/기본 에이전트/));
     fireEvent.change(screen.getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    확인시작();
     expect((await screen.findByRole('alert')).textContent).toContain('실서비스 서버로는 부하를 걸 수 없습니다');
   });
 });
@@ -203,6 +228,11 @@ it('E2E 녹화를 맡기면 AI 가 만든 트랜잭션과 녹화 셈이 표에 �
   fireEvent.change(await screen.findByLabelText(/^E2E 시나리오/), { target: { value: '5' } });
   fireEvent.change(screen.getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
   fireEvent.click(screen.getByRole('button', { name: '녹화 시작' }));
+  expect(확인줄들()).toEqual({ 시나리오: 'SC-5 주문 흐름 · 3단계', 디바이스: 'PC', '대상 서버': 'qa' });
+  확인취소();
+  expect(초안).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '녹화 시작' }));
+  확인시작();
 
   expect(await screen.findByText('녹화 요청 23건 중 API 1건 사용')).toBeTruthy();
   expect(초안).toHaveBeenCalledWith({ serviceId: 7, from: 'RECORD', env: 'qa', scenarioId: 5 });
@@ -271,6 +301,7 @@ describe('부하 중 페이지 로딩 측정', () => {
     expect(screen.getByText('가장 최근 페이지 성능 측정에서 쓴 페이지를 브라우저 2개가 30초마다 엽니다')).toBeTruthy();
     fireEvent.click(screen.getByLabelText('부하 중 페이지 로딩 측정'));
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    확인시작();
     await waitFor(() => expect(실행).toHaveBeenCalled());
     expect(실행.mock.calls[0]![0]).toMatchObject({ pageCheck: true });
   });
@@ -279,6 +310,7 @@ describe('부하 중 페이지 로딩 측정', () => {
     const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 12 });
     await 네번째까지(사람());
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    확인시작();
     await waitFor(() => expect(실행).toHaveBeenCalled());
     expect(실행.mock.calls[0]![0]).not.toHaveProperty('pageCheck');
   });

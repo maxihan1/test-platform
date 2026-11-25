@@ -3,10 +3,13 @@
 import type { ReactNode } from 'react';
 
 import type { Platform } from './api.js';
+import { 디바이스글 } from './e2eWindowView.js';
 import { use말, use언어 } from './i18n.js';
+import { ScenarioStartConfirm } from './ScenarioStartConfirm.js';
 import type { 마법사단계 } from './ScenarioWizardHelp.js';
 import { PLATFORM_LABEL, seconds } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
+import type { useWizardEnd } from './useWizardEnd.js';
 
 interface Props {
   이름: string;
@@ -24,6 +27,24 @@ interface Props {
   /** 저장하고 실행을 눌렀는데 대상 서버가 없을 때 여는 고르개. 안 열면 null */
   서버칸: { 서버들: { env: string; 없는곳: string[] }[]; 서버: string; on서버: (env: string) => void } | null;
   저장됨: { id: number; version: number; 이름: string } | null;
+}
+
+/** 시험 실행 · 저장하고 실행의 시작 확인 — 조립 화면과 같은 상자다. 마법사는 모바일 위치 고르개가 없어 서버 흉내다 */
+export function 마법사시작확인({ 끝, 이름, 단계수, 디바이스 }: { 끝: ReturnType<typeof useWizardEnd>; 이름: string; 단계수: number; 디바이스: Platform }) {
+  const t = use말();
+  if (끝.확인 === null) return null;
+  const 시험 = 끝.확인 === 'trial';
+  return (
+    <ScenarioStartConfirm
+      시나리오={이름.trim() === '' ? t('새 시나리오') : 이름.trim()}
+      단계수={단계수}
+      디바이스={시험 ? t(PLATFORM_LABEL[디바이스]) : 디바이스글(t, 디바이스, 'server')}
+      env={끝.서버}
+      시험={시험 ? { 늦춤: 디바이스 !== 'android' } : undefined}
+      onClose={끝.확인닫기}
+      on시작={끝.확인시작}
+    />
+  );
 }
 
 export function 저장칸(p: Props) {

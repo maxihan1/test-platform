@@ -14,6 +14,7 @@ import type { 고를기기, 기기목표, 기기설정, 조작, 측정지표 } f
 import { PerfDevicePick, 기기키 } from './PerfDevicePick.js';
 import { PerfDeviceTargets } from './PerfDeviceTargets.js';
 import { 기본목표, 실행열기, 케이스조작, 측정항목 } from './perfDeviceView.js';
+import { 기기시작확인 } from './PerfStartConfirm.js';
 import { message } from './ui.js';
 
 /** 서버와 같은 꼴 — 점으로 이은 앱 이름(`com.demo.market`) */
@@ -53,6 +54,7 @@ export function PerfDeviceStart({
   const [녹화, set녹화] = useState(앞?.record ?? true);
   const [하는중, set하는중] = useState(false);
   const [알림, set알림] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
   const [케이스오류, set케이스오류] = useState<string | null>(null);
 
   useEffect(() => {
@@ -109,11 +111,15 @@ export function PerfDeviceStart({
     return null;
   }
 
-  async function 시작() {
+  function 시작누름() {
     const 까닭 = 막는까닭();
-    if (까닭 !== null) return set알림(까닭);
+    set알림(까닭);
+    set묻나(까닭 === null);
+  }
+
+  async function 시작() {
+    set묻나(false);
     set하는중(true);
-    set알림(null);
     try {
       const { runId } = await perfApi.measureDevices({
         serviceId: service.id,
@@ -275,12 +281,19 @@ export function PerfDeviceStart({
             </button>
           )}
           {쓰나 ? (
-            <button type="button" className="btn pd-go" disabled={하는중} onClick={() => void 시작()}>
+            <button type="button" className="btn pd-go" disabled={하는중} onClick={시작누름}>
               {하는중 ? t('측정을 만드는 중') : t('측정 시작')}
             </button>
           ) : null}
         </div>
       </div>
+      {!묻나 ? null : (
+        <기기시작확인
+          값={{ drive: 조작, caseIds: 고른케이스, durationSec: 분 * 60, repeat: 반복, package: 앱, 자동수: 케이스로 ? 자동수 : 0, 디바이스들: 쓸기기.map((d) => d.model), env }}
+          onClose={() => set묻나(false)}
+          on시작={() => void 시작()}
+        />
+      )}
     </>
   );
 }
