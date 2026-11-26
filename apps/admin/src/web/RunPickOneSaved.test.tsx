@@ -6,6 +6,7 @@ import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/re
 
 import { api, ApiError, type ParamSetRow } from './api.js';
 import { 그린다, 읽기만, 저장값케이스, 케이스, 값케이스, 시작누름 } from './runPick.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -19,6 +20,10 @@ const 목록 = () => screen.getByLabelText('저장한 값') as HTMLSelectElement
 const 아이디 = () => (screen.getByLabelText('아이디') as HTMLInputElement).value;
 const 저장열기 = () => fireEvent.click(screen.getByRole('button', { name: '묶음으로 저장' }));
 const 저장누름 = () => fireEvent.click(screen.getByRole('button', { name: '저장' }));
+const 저장하고확인 = () => {
+  저장누름();
+  물음누름('묶음으로 저장');
+};
 
 const 회원묶음: ParamSetRow = {
   id: 7,
@@ -129,7 +134,7 @@ describe('「묶음으로 저장」', () => {
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'user2' } });
     저장열기();
     fireEvent.change(screen.getByLabelText('묶음 이름'), { target: { value: ' 회원 ' } });
-    저장누름();
+    저장하고확인();
 
     await waitFor(() => expect(screen.getByText("'회원'으로 저장했습니다.")).toBeTruthy());
     expect(묶음저장).toHaveBeenCalledWith('ZRS-001', { name: '회원', params: { userId: 'user2' }, expected: {} });
@@ -152,7 +157,7 @@ describe('「묶음으로 저장」', () => {
 
     저장열기();
     fireEvent.change(screen.getByLabelText('묶음 이름'), { target: { value: '회원' } });
-    저장누름();
+    저장하고확인();
 
     expect(await screen.findByText('아이디가 틀렸다')).toBeTruthy();
     expect(줄().textContent).toBe('입력값이 명세와 맞지 않습니다.');

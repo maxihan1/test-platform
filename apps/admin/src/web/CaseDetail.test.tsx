@@ -12,6 +12,7 @@ import { api, type CaseRow, type HistoryRow, type LastResult, type RunItemPage }
 import { CaseDetail } from './CaseDetail.js';
 import { 빈기억 } from './caseDetailView.js';
 import { keyOf, type LastMap } from './catalogView.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -464,6 +465,7 @@ describe('값 저장 — 누르기 전에 누구에게 닿는지 적는다 (점�
     그린다({ 글자: 고친글자, 저장된다: true, on저장됨 });
 
     fireEvent.click(screen.getByRole('button', { name: '모두에게 저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(on저장됨).toHaveBeenCalledTimes(1));
     expect(저장).toHaveBeenCalledWith('ZZD-001', { params: { card: '9999-0000' }, expected: { state: '결제 완료' } });

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthoringDecide } from './AuthoringDecide.js';
 import type { 결정목록, 결정항목, 보낼고름 } from './decideApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 보낸: 보낼고름[][] = [];
 
@@ -44,7 +45,9 @@ describe('설명 안 되는 줄', () => {
     expect(screen.getByText('준 피해 줄에 인원 보정 1.2 — {"값":14}')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '이슈 등록' }));
     expect(screen.getByText('ARG-GS-001 설명 안 되는 줄을 결함으로 기록합니다')).toBeTruthy();
-    fireEvent.click(적용());
+    const 적용칸 = 적용();
+    fireEvent.click(적용칸);
+    물음누름(적용칸.textContent ?? '');
     await waitFor(() => expect(보낸).toEqual([[{ key: 'note:21160:ARG-GS-001', pick: 'BUG' }]]));
   });
 
@@ -60,7 +63,9 @@ describe('설명 안 되는 줄', () => {
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(screen.getByText('→ 받은 피해는 방어력을 빼고 파티 인원 보정을 곱한다')).toBeTruthy();
     expect(screen.getByText(/ARG-REQ-013 문장 변경/)).toBeTruthy();
-    fireEvent.click(적용());
+    const 적용칸 = 적용();
+    fireEvent.click(적용칸);
+    물음누름(적용칸.textContent ?? '');
     await waitFor(() =>
       expect(보낸).toEqual([[{ key: 'note:21160:ARG-GS-001', pick: 'EDIT', text: '받은 피해는 방어력을 빼고 파티 인원 보정을 곱한다', option: 1 }]]),
     );

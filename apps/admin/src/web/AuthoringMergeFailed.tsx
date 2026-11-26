@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { api, type AuthoringRun } from './api.js';
 import { 실패글 } from './authoringFailText.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { message, 기다림글자 } from './ui.js';
 
@@ -52,6 +53,8 @@ export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영�
   const 언어 = use언어();
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  // 서버에 새 작성 요청을 만든다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻나, set묻나] = useState(false);
   if (실행?.kind !== 'MERGE' || 실행.status !== 'FAILED') return null;
 
   function 다시작성() {
@@ -72,7 +75,7 @@ export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영�
   const 주소 = 까닭 === 'CHECK' ? 검사주소(실행.error) : null;
   const 다시작성단추 =
     권한 && 원본 !== null ? (
-      <button className={까닭 === 'CLASH' ? 'btn' : 'btn ghost'} type="button" disabled={보내는중} onClick={다시작성}>
+      <button className={까닭 === 'CLASH' ? 'btn' : 'btn ghost'} type="button" disabled={보내는중} onClick={() => set묻나(true)}>
         <기다림글자 중={보내는중} 평소={t('같은 자료로 다시 작성')} 기다림={t('시작하는 중')} />
       </button>
     ) : null;
@@ -130,6 +133,19 @@ export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영�
         </>
       )}
       {오류 === null ? null : <p className="error-text">{오류}</p>}
+      {!묻나 || 원본 === null ? null : (
+        <확인창
+          제목={t('같은 자료로 다시 작성할까요?')}
+          확인={t('다시 작성 시작')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            다시작성();
+          }}
+        >
+          <p>{t('지금까지 반영된 케이스를 기준으로 처음부터 다시 만듭니다. 지금까지의 실행은 실행 기록에 남고, 시작한 작성은 목록에서 삭제할 수 있지만 쓴 시간은 복원할 수 없습니다')}</p>
+        </확인창>
+      )}
     </section>
   );
 }

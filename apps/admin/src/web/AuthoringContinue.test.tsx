@@ -8,6 +8,7 @@ import { AuthoringTodo } from './AuthoringTodo.js';
 import { ApiError } from './api.js';
 import { 언어함 } from './i18n.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 답들 = new Map<number, AuthoringRow>();
 const 보낸것: unknown[] = [];
@@ -93,6 +94,7 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
+    물음누름('작성 시작');
     await waitFor(() => expect(window.location.hash).toBe('#/authoring/5901'));
     expect(보낸것).toEqual([{ kind: 'AUTHOR', continueFrom: 5873 }]);
   });
@@ -138,6 +140,7 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
     만들기답 = () => Promise.reject(new ApiError(409, 'ALREADY_CONTINUED', ''));
     카드(줄({}));
     fireEvent.click(screen.getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
+    물음누름('작성 시작');
     await waitFor(() => expect(screen.getByText('이미 남은 요구사항을 넘겨받은 요청이 있습니다. 화면을 새로고침합니다')).toBeTruthy());
     expect(다시읽음).toHaveBeenCalled();
     expect(window.location.hash).toBe('#/authoring/5873');

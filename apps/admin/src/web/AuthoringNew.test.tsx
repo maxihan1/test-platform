@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from './api.js';
 import { AuthoringNew, 거절사유 } from './AuthoringNew.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 부름: { 무엇: string; 값: unknown }[] = [];
 let 만들기답: Promise<{ id: number }> = Promise.resolve({ id: 1 });
@@ -85,10 +86,11 @@ function 자료단계로(화면: ReactElement) {
   fireEvent.click(다음버튼());
 }
 
-/** 자료 단계에서 확인 단계로 넘어가 「테스트 작성 시작」을 누른다 */
+/** 자료 단계에서 확인 단계로 넘어가 「테스트 작성 시작」을 누르고 확인 창까지 지난다 */
 function 시작한다() {
   fireEvent.click(다음버튼());
   fireEvent.click(보내기());
+  물음누름('작성 시작');
 }
 
 describe('새 작성 요청 — 자료 목록', () => {

@@ -65,4 +65,10 @@ export const 고치기말: Record<string, string> = {
     'Applies the same changes again on top of the cases applied so far. Earlier runs stay in the run history.',
   '다시 적용할 권한이 없습니다. 관리자에게 작성 쓰기 권한을 요청하세요.': 'You do not have permission to re-apply. Ask an admin for authoring write access.',
   '한동안 응답이 없는 수정을 중단합니다. 중단한 뒤 다시 적용할 수 있습니다.': 'Stops the change that has been quiet for a while. You can re-apply it afterwards.',
+  '같은 수정 내용으로 다시 적용할까요?': 'Apply the same changes again?',
+  '다시 적용 시작': 'Re-apply',
+  '같은 수정 내용으로 작성 요청을 다시 만들어 처음부터 다시 작성합니다. 시작한 작성은 「삭제」로 목록에서 없앨 수 있지만 지금까지 쓴 시간은 복원할 수 없습니다': 'Creates a new authoring request with the same changes and rewrites from the start. You can remove the new request with Delete, but the time spent cannot be restored',
+  '코드 기본값 변경을 요청할까요?': 'Request the code default change?',
+  '변경 요청': 'Request the change',
+  '변경한 기대 결과 칸만 담아 작성 요청을 만들고 반영은 테스트 작성 화면에서 합니다. 잘못 보냈으면 그 화면에서 요청을 삭제하고 값을 수정해 다시 보낼 수 있습니다': 'Creates an authoring request with only the expected-value fields you changed; the merge happens on the test authoring screen. If you sent it by mistake, delete the request there, fix the values and send again',
 };

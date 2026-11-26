@@ -2,10 +2,13 @@
 // 자료 · 대조 · 커버리지 · 보류 · 작성 단계 막대가 없다. 이어서 작성 · 같은 자료로 다시 작성 대신 「다시 적용」이 있다.
 // AuthoringTodo 가 300줄에 닿아 고치기 갈래를 여기로 뗐다
 
+import { useState } from 'react';
+
 import { api, type AuthoringRow } from './api.js';
 import { 반영단계 } from './AuthoringMergeStep.js';
 import { 일 } from './authoringTodoParts.js';
 import type { 고칠줄 } from './authoringView.js';
+import { 확인창 } from './ConfirmBox.js';
 import type { 기대값 } from '../authoring/edit.js';
 import { use말 } from './i18n.js';
 import type { 판정 } from './role.js';
@@ -54,6 +57,8 @@ interface Props {
 export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄로, 중단버튼, 폐기버튼, 반영실패 }: Props) {
   const t = use말();
   const 권한 = 할수('작성요청');
+  // 다시 적용은 서버에 새 작성 요청을 만든다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻나, set묻나] = useState(false);
   // 다시 적용은 늘 뿌리(EDIT)로 간다 — 재실행의 원본도 뿌리다
   const 원본 = 요청.kind === 'EDIT' ? 요청.id : 요청.sourceId;
   const 다시적용 = (표: string, 설명: string) => (
@@ -63,7 +68,7 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
           className="btn"
           type="button"
           disabled={보내는중}
-          onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }))}
+          onClick={() => set묻나(true)}
         >
           <기다림글자 중={보내는중} 평소={t('다시 적용')} 기다림={t('시작하는 중')} />
         </button>
@@ -75,6 +80,20 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
       <일 표={표} 제목={t('삭제')} 설명={t('목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.')}>
         <div className="btns">{폐기버튼}</div>
       </일>
+    );
+  const 다시적용창 =
+    !묻나 || 원본 === null ? null : (
+      <확인창
+        제목={t('같은 수정 내용으로 다시 적용할까요?')}
+        확인={t('다시 적용 시작')}
+        onClose={() => set묻나(false)}
+        on확인={() => {
+          set묻나(false);
+          새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }));
+        }}
+      >
+        <p>{t('같은 수정 내용으로 작성 요청을 다시 만들어 처음부터 다시 작성합니다. 시작한 작성은 「삭제」로 목록에서 없앨 수 있지만 지금까지 쓴 시간은 복원할 수 없습니다')}</p>
+      </확인창>
     );
 
   if (요청.status === 'PENDING' || 요청.status === 'RUNNING') {
@@ -116,6 +135,7 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
 
   if (요청.status === 'DONE') {
     return (
+      <>
       <ol>
         {/* 에이전트는 PR 주소 없이 완료로 닫지 않는다 — 없으면 검토 항목만 안 그린다 */}
         {요청.prUrl === null ? null : (
@@ -131,14 +151,19 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
           : null}
         {폐기(반영실패 ? '4' : '3')}
       </ol>
+      {다시적용창}
+      </>
     );
   }
 
   // FAILED · STOPPED — 새 main 위에서 같은 고칠 내용으로 다시 고친다. 넘겨받을 작업 폴더가 없어 이어하기는 없다
   return (
+    <>
     <ol>
       {다시적용('A', t('지금까지 반영된 케이스를 기준으로 같은 내용으로 다시 수정합니다. 지금까지의 실행은 실행 기록에 남습니다.'))}
       {폐기('B')}
     </ol>
+    {다시적용창}
+    </>
   );
 }

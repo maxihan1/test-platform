@@ -6,6 +6,7 @@ import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 
 import { api, type FailureBts } from './api.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 import { RUN_ID, 그리기, 장치, 줄, 쪽, 케이스 } from './RunFailCard.fixture.js';
 
 afterEach(() => {
@@ -34,6 +35,10 @@ describe('BTS 등록 줄', () => {
 
     await screen.findByText('Issue Bunker 등록 실패 · 권한 없음 — QA Hub AI 열쇠를 확인하세요 (403)');
     fireEvent.click(screen.getByRole('button', { name: '다시 보내기' }));
+    물음누름('취소');
+    expect(보냄).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '다시 보내기' }));
+    물음누름('다시 보내기');
     await screen.findByText('Issue Bunker 에 보내는 중');
     expect(보냄).toHaveBeenCalledWith(RUN_ID, 'ZZI-0001', 'qa');
     expect(screen.queryByRole('button', { name: '다시 보내기' })).toBeNull();

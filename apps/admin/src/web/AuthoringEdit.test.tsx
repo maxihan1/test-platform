@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthoringRow, AuthoringRun } from './api.js';
 import { Authoring } from './Authoring.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 import { 요약 } from './authoringSummary.fixture.js';
 import type { 판정 } from './role.js';
 
@@ -159,6 +160,8 @@ describe('케이스 고치기 상세', () => {
     expect(할일.queryByText('같은 자료로 다시 작성')).toBeNull();
     expect(할일.queryByText('이어서 작성')).toBeNull();
     fireEvent.click(할일.getByRole('button', { name: '다시 적용' }));
+    expect(다시).not.toHaveBeenCalled();
+    물음누름('다시 적용 시작');
     await waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
   });
 
@@ -189,6 +192,7 @@ describe('케이스 고치기 상세', () => {
     const 할일 = within(await screen.findByRole('region', { name: '다음 단계' }));
     expect(할일.getByRole('button', { name: '테스트 반영하기' })).toBeTruthy();
     fireEvent.click(할일.getByRole('button', { name: '다시 적용' }));
+    물음누름('다시 적용 시작');
     await waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
   });
 

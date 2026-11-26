@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { 로그인역할 } from '../prd/rules.js';
 import type { EnvRow } from './api.js';
 import { 막힘줄, type 고름하기 } from './AuthoringDecideItems.js';
+import { 확인창 } from './ConfirmBox.js';
 import { decideApi, type 결정항목 } from './decideApi.js';
 import { 켜졌나, type 고른값 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
@@ -42,6 +43,7 @@ export function 화면고르기({
   const t = use말();
   const 언어 = use언어();
   const [뺄것, set뺄것] = useState<{ url: string; name: string } | null>(null);
+  const [되돌릴것, set되돌릴것] = useState<{ url: string; name: string } | null>(null);
   // 서버 답을 기다리는 화면의 주소 — 누른 줄의 단추만 글자가 바뀐다
   const [바쁨, set바쁨] = useState<string | null>(null);
   const [오류, set오류] = useState<string | null>(null);
@@ -65,6 +67,7 @@ export function 화면고르기({
       await decideApi.skipScreen(service, url, skip);
       if (skip && 체크.has(url)) 체크바꾸기(new Set([...체크].filter((u) => u !== url)));
       set뺄것(null);
+      set되돌릴것(null);
       on바뀜();
     } catch (err) {
       set오류(message(err, 언어));
@@ -143,7 +146,7 @@ export function 화면고르기({
                 <span className="prd-id">{s.url}</span>
               </span>
               {!바꿀수있나 ? null : (
-                <button className="btn ghost small" type="button" disabled={바쁨 !== null} onClick={() => void 바꾸기(s.url, false)}>
+                <button className="btn ghost small" type="button" disabled={바쁨 !== null} onClick={() => set되돌릴것({ url: s.url, name: s.name })}>
                   <기다림글자 중={바쁨 === s.url} 평소={t('복원')} 기다림={t('복원하는 중')} />
                 </button>
               )}
@@ -176,6 +179,16 @@ export function 화면고르기({
           </ul>
           {오류 === null ? null : <p className="error-text">{오류}</p>}
         </Modal>
+      )}
+      {되돌릴것 === null ? null : (
+        <확인창
+          제목={t('{이름} 화면을 다시 목록에 넣을까요?', { 이름: 되돌릴것.name === '' ? 되돌릴것.url : 되돌릴것.name })}
+          확인={t('복원')}
+          onClose={() => set되돌릴것(null)}
+          on확인={() => void 바꾸기(되돌릴것.url, false)}
+        >
+          <p>{t('제외를 풀어 그 화면을 테스트 업데이트 목록에 다시 넣습니다. 넣은 뒤에 다시 제외할 수 있습니다')}</p>
+        </확인창>
       )}
     </div>
   );

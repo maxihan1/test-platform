@@ -310,6 +310,7 @@ describe('작성 진척 · 중단 · 삭제', () => {
     await 첫읽기끝();
     const 앞 = 부른횟수;
     fireEvent.click(await screen.findByRole('button', { name: '같은 자료로 다시 작성' }));
+    물음누름('다시 작성 시작');
     await vi.waitFor(() => expect(부른횟수).toBeGreaterThan(앞));
     expect(window.location.hash).toBe('');
     expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 });
@@ -319,6 +320,7 @@ describe('작성 진척 · 중단 · 삭제', () => {
     답 = 줄({ kind: 'RERUN', sourceId: 3, status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     fireEvent.click(await screen.findByRole('button', { name: '같은 자료로 다시 작성' }));
+    물음누름('다시 작성 시작');
     await vi.waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 3 }));
   });
 
@@ -345,6 +347,7 @@ describe('작성 진척 · 중단 · 삭제', () => {
       const 버튼들 = Array.from(카드.querySelectorAll('button')).map((b) => b.textContent);
       expect(버튼들).toEqual(['이어서 작성', '같은 자료로 다시 작성', '삭제']);
       fireEvent.click(screen.getByRole('button', { name: '이어서 작성' }));
+      물음누름('작성 시작');
       await vi.waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7, resume: true }));
       expect(window.location.hash).toBe('');
     });
@@ -481,6 +484,7 @@ describe('작성 진척 · 중단 · 삭제', () => {
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '같은 자료로 다시 작성' }));
+    물음누름('다시 작성 시작');
     await vi.waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
   });
 

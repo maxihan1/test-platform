@@ -10,6 +10,7 @@ import { CaseDetail } from './CaseDetail.js';
 import { 빈기억 } from './caseDetailView.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -81,6 +82,8 @@ describe('코드 기본값 변경 요청', () => {
 
     fireEvent.change(자리().getByLabelText(/상품 수/), { target: { value: '3' } });
     fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
+    expect(보냄).not.toHaveBeenCalled();
+    물음누름('변경 요청');
 
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', expected: { count: 3 } }]));
     const 고리 = await screen.findByRole('link', { name: '작성 요청 41번' });
@@ -126,6 +129,7 @@ describe('코드 기본값 변경 요청', () => {
 
     fireEvent.change(자리().getByLabelText(/상품 수/), { target: { value: '3' } });
     fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
+    물음누름('변경 요청');
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', expected: { count: 3 } }]));
   });
 

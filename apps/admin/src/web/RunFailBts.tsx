@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { api, type FailureCase } from './api.js';
 import { BTS이름 } from './btsName.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
 import { message } from './ui.js';
@@ -22,6 +23,7 @@ export function RunFailBts({ c, runId, env, 권한 }: Props) {
   const [다시세움, set다시세움] = useState(false);
   const [바쁨, set바쁨] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
   // 카드 재료를 다시 읽어 새 값이 오면 그것이 이긴다
   useEffect(() => set다시세움(false), [c.bts]);
   const 칸 = c.bts;
@@ -47,7 +49,7 @@ export function RunFailBts({ c, runId, env, 권한 }: Props) {
         {상태 === 'SENDING' ? t('{bts} 에 보내는 중', { bts: BTS이름 }) : t('{bts} 등록 실패 · {까닭}', { bts: BTS이름, 까닭: 칸.reason ?? '' })}
       </p>
       {상태 !== 'GAVE_UP' || !권한('실행') ? null : (
-        <button type="button" className="btn small" disabled={바쁨} onClick={() => void 다시보내기()}>
+        <button type="button" className="btn small" disabled={바쁨} onClick={() => set묻나(true)}>
           {t('다시 보내기')}
         </button>
       )}
@@ -55,6 +57,19 @@ export function RunFailBts({ c, runId, env, 권한 }: Props) {
         <span className="note" role="alert">
           {오류}
         </span>
+      )}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('{이름} 케이스를 {bts}에 다시 보낼까요?', { 이름: c.tcName, bts: BTS이름 })}
+          확인={t('다시 보내기')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            void 다시보내기();
+          }}
+        >
+          <p>{t('이 실행에서 {bts}에 등록하지 못한 케이스를 다시 보냅니다. 보낸 뒤에는 복원할 수 없습니다', { bts: BTS이름 })}</p>
+        </확인창>
       )}
     </div>
   );

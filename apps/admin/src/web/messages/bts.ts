@@ -98,4 +98,6 @@ export const BTS말: Record<string, string> = {
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '{bts} 주소를 적어 주세요': 'Enter the {bts} URL',
   '{bts} 프로젝트 키를 적어 주세요': 'Enter the {bts} project key',
+  '{이름} 케이스를 {bts}에 다시 보낼까요?': 'Send {이름} to {bts} again?',
+  '이 실행에서 {bts}에 등록하지 못한 케이스를 다시 보냅니다. 보낸 뒤에는 복원할 수 없습니다': 'Sends the case this run could not file to {bts} again. It cannot be undone once sent',
 };

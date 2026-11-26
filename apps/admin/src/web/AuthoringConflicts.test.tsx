@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError, type AuthoringConflict, type AuthoringRow, type AuthoringRun } from './api.js';
 import { AuthoringConflicts } from './AuthoringConflicts.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 import { AuthoringMergeFailed } from './AuthoringMergeFailed.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
 import type { 판정 } from './role.js';
@@ -84,6 +85,8 @@ describe('중복 케이스 표', () => {
   it('둘 다 유지를 누르면 PUT 으로 보내고 다시 읽는다', async () => {
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: 'PAY-041 둘 다 유지' }));
+    expect(넣기).not.toHaveBeenCalled();
+    물음누름('둘 다 유지');
     await vi.waitFor(() => expect(reload).toHaveBeenCalled());
     expect(넣기).toHaveBeenCalledWith('PAY', 7, 'PAY-041', 'KEEP');
   });
@@ -92,6 +95,7 @@ describe('중복 케이스 표', () => {
     넣기.mockReturnValueOnce(new Promise(() => undefined));
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침, 요구겹침]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: 'PAY-041 둘 다 유지' }));
+    물음누름('둘 다 유지');
     const 누른것 = screen.getByRole('button', { name: 'PAY-041 저장하는 중' });
     expect(누른것.textContent).toBe('저장하는 중');
     expect(누른것).toHaveProperty('disabled', true);
@@ -103,6 +107,7 @@ describe('중복 케이스 표', () => {
   it('새 케이스 제외를 누르면 DROP 으로 보낸다', async () => {
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: 'PAY-041 새 케이스 제외' }));
+    물음누름('새 케이스 제외');
     await vi.waitFor(() => expect(넣기).toHaveBeenCalledWith('PAY', 7, 'PAY-041', 'DROP'));
   });
 
@@ -125,12 +130,16 @@ describe('중복 케이스 표', () => {
     const 되돌리기 = screen.getAllByRole('button', { name: /복원/ });
     expect(되돌리기).toHaveLength(1);
     fireEvent.click(되돌리기[0] as HTMLElement);
+    expect(지우기).not.toHaveBeenCalled();
+    물음누름('복원');
     await vi.waitFor(() => expect(지우기).toHaveBeenCalledWith('PAY', 7, 'PAY-043'));
   });
 
   it('모두 유지는 아직 안 고른 것만 차례로 보낸다', async () => {
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침, 요구겹침]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: '모두 유지' }));
+    expect(넣기).not.toHaveBeenCalled();
+    물음누름('모두 유지');
     await vi.waitFor(() => expect(reload).toHaveBeenCalled());
     expect(넣기).toHaveBeenCalledTimes(1);
     expect(넣기).toHaveBeenCalledWith('PAY', 7, 'PAY-041', 'KEEP');
@@ -141,6 +150,7 @@ describe('중복 케이스 표', () => {
     const 셋째 = { ...번호겹침, tcId: 'PAY-050' };
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침, 셋째]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: '모두 유지' }));
+    물음누름('모두 유지');
     expect(await screen.findByText(/중복 목록에 없는 케이스/)).toBeTruthy();
     expect(넣기).toHaveBeenCalledTimes(1);
     expect(reload).toHaveBeenCalled();
@@ -251,6 +261,8 @@ describe('반영 실패 안내', () => {
     render(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한 운영자={false} 겹침수={2} reload={reload} />);
     expect(screen.getByRole('link', { name: '검사 결과 보기' }).getAttribute('href')).toBe('https://github.com/o/r/actions/runs/12');
     fireEvent.click(screen.getByRole('button', { name: '같은 자료로 다시 작성' }));
+    expect(새요청).not.toHaveBeenCalled();
+    물음누름('다시 작성 시작');
     await vi.waitFor(() => expect(새요청).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
     expect(reload).toHaveBeenCalled();
   });

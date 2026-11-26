@@ -130,15 +130,19 @@ describe('보류 케이스 표', () => {
     expect(screen.getByText('숫자를 넣으세요')).toBeTruthy();
   });
 
-  it('케이스 제외는 확인 상자 없이 removed 를 보낸다', async () => {
+  it('케이스 제외는 확인 창을 거쳐 removed 를 보낸다', async () => {
     render(<AuthoringHeld service="MKT" 요청번호={7} held={[배너]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: '케이스 제외' }));
+    expect(넣기).not.toHaveBeenCalled();
+    물음누름('제외');
     await vi.waitFor(() => expect(넣기).toHaveBeenCalledWith('MKT', 7, 'MKT-033', { removed: true }));
   });
 
-  it('복원은 DELETE 를 부른다', async () => {
+  it('복원은 확인 창을 거쳐 DELETE 를 부른다', async () => {
     render(<AuthoringHeld service="MKT" 요청번호={7} held={[삭제글]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: '복원' }));
+    expect(지우기).not.toHaveBeenCalled();
+    물음누름('복원');
     await vi.waitFor(() => expect(지우기).toHaveBeenCalledWith('MKT', 7, 'MKT-035'));
   });
 

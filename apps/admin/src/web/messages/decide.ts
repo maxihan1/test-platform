@@ -159,7 +159,6 @@ export const 결정말: Record<string, string> = {
   '실행 결과 보기': 'View run result',
   '{번호} 설명 안 되는 줄을 결함으로 기록합니다': 'Record the {번호} unexplained lines as a defect',
   // 반려가 섞인 적용 확인 (WEB-F10-02)
-  '{수}건을 적용할까요?': 'Apply {수}?',
   '반려 {수}건은 복원할 수 없습니다': '{수} rejected cannot be restored',
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '문장을 적어 주세요': 'Enter the text',
@@ -167,4 +166,8 @@ export const 결정말: Record<string, string> = {
   // 누른 뒤 반응 (WEB-F10-04)
   '제외하는 중': 'Excluding',
   '복원하는 중': 'Restoring',
+  '선택한 {수}건을 적용할까요?': 'Apply the {수} selected?',
+  '선택한 결정을 차례로 적용합니다. 테스트 승인 · 이슈 등록 · PRD 수정 · 테스트 생성이 함께 일어나고, 반려는 적용한 뒤 복원할 수 없습니다': 'Applies the selected decisions in order. Test approvals, issue filing, PRD edits and test generation all happen together, and rejected items cannot be restored once applied',
+  '{이름} 화면을 다시 목록에 넣을까요?': 'Put the {이름} screen back on the list?',
+  '제외를 풀어 그 화면을 테스트 업데이트 목록에 다시 넣습니다. 넣은 뒤에 다시 제외할 수 있습니다': 'Removes the exclusion and puts the screen back on the test update list. You can exclude it again afterwards',
 };

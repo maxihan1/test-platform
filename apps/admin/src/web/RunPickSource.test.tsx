@@ -6,6 +6,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 
 import { api, ApiError, type CaseRow, type User } from './api.js';
 import { RunPickModal } from './RunPickModal.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 import { 사람, 서비스, 읽기만, 저장값케이스, 값케이스 } from './runPick.fixture.js';
 
 beforeEach(() => {
@@ -64,6 +65,7 @@ describe('출처 줄', () => {
     고친다('user2');
 
     fireEvent.click(단추('이 값 저장'));
+    물음누름('저장값으로 저장');
 
     await waitFor(() => expect(on다시읽기).toHaveBeenCalledWith('ZRS-001'));
     expect(저장).toHaveBeenCalledWith('ZRS-001', { params: { userId: 'user2' }, expected: {} });
@@ -101,6 +103,7 @@ describe('출처 줄', () => {
     고친다('a');
 
     fireEvent.click(단추('이 값 저장'));
+    물음누름('저장값으로 저장');
 
     expect(저장).not.toHaveBeenCalled();
     expect(screen.getByText('입력값이 명세와 맞지 않습니다.')).toBeTruthy();
@@ -114,6 +117,7 @@ describe('출처 줄', () => {
 
     expect(screen.getAllByRole('button', { name: '이 값 저장' })).toHaveLength(1);
     fireEvent.click(단추('이 값 저장'));
+    물음누름('저장값으로 저장');
 
     await waitFor(() => expect(on다시읽기).toHaveBeenCalledWith('ZRS-002'));
     expect(저장).toHaveBeenCalledTimes(1);
@@ -128,6 +132,7 @@ describe('저장한 뒤', () => {
     vi.spyOn(api, 'clearInput').mockResolvedValue(undefined);
     고친다('user2');
     fireEvent.click(단추('이 값 저장'));
+    물음누름('저장값으로 저장');
     await screen.findByText('저장값으로 저장했습니다.');
 
     fireEvent.click(단추('저장값 초기화'));
@@ -162,6 +167,7 @@ describe('저장한 뒤', () => {
     고친다('user2', 'ZRS-002');
 
     fireEvent.click(단추('이 값 저장'));
+    물음누름('저장값으로 저장');
 
     expect(await screen.findAllByText('아이디가 틀렸다')).toHaveLength(1);
     expect(screen.getAllByRole('button', { name: /펼치기 ▾$|^접기 ▴$/ })[1]?.getAttribute('aria-expanded')).toBe('true');
@@ -238,6 +244,7 @@ describe('저장 안 한 채 닫기', () => {
     vi.spyOn(api, 'saveInput').mockResolvedValue(null);
     고친다('user2');
     fireEvent.click(단추('이 값 저장'));
+    물음누름('저장값으로 저장');
     await screen.findByText('저장값으로 저장했습니다.');
 
     Esc();

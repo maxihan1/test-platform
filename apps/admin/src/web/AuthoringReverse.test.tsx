@@ -7,6 +7,7 @@ import { ApiError, type AuthoringRow, type EnvRow } from './api.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 // 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
 const 실행까지: 판정 = (무엇) => 무엇 !== '작성머지' && 무엇 !== '설정';
@@ -84,6 +85,7 @@ function 피그마를적는다(값: string) {
 function 시작한다() {
   다음();
   fireEvent.click(screen.getByRole('button', { name: '테스트 작성 시작' }));
+  물음누름('작성 시작');
 }
 
 describe('새 작성 마법사 — 실제 화면과 대조', () => {
@@ -131,6 +133,7 @@ describe('새 작성 마법사 — 실제 화면과 대조', () => {
     다음();
     expect(screen.getByText('미검증 화면의 케이스를 작성합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '테스트 작성 시작' }));
+    물음누름('작성 시작');
     await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
     expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
   });

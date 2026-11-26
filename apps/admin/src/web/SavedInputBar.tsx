@@ -4,6 +4,7 @@
 import { useState } from 'react';
 
 import { api, ApiError, type SavedInput } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { initialText, type Field } from './schema.js';
 import { message, when, 기다림글자 } from './ui.js';
@@ -48,6 +49,8 @@ export function 값저장({
   const 언어 = use언어();
   const [busy, setBusy] = useState(false);
   const [사유, set사유] = useState<string | null>(null);
+  // 서버에 남는 값을 바꾸고 그 값이 팀 전체에 쓰인다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻나, set묻나] = useState(false);
 
   async function 저장() {
     setBusy(true);
@@ -72,7 +75,7 @@ export function 값저장({
       {버튼 ? (
         <>
           <span className="hint">{t('팀 전체와 정기 실행에 쓰입니다')}</span>
-          <button type="button" className="btn ghost" onClick={() => void 저장()} disabled={busy}>
+          <button type="button" className="btn ghost" onClick={() => set묻나(true)} disabled={busy}>
             <기다림글자 중={busy} 평소={t('모두에게 저장')} 기다림={t('저장하는 중')} />
           </button>
         </>
@@ -83,6 +86,19 @@ export function 값저장({
         </span>
       ) : null}
       {사유 === null ? null : <div className="err">{사유}</div>}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('수정한 입력값을 팀 전체에 저장할까요?')}
+          확인={t('저장')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            void 저장();
+          }}
+        >
+          <p>{t('이 케이스의 입력값이 팀 전체와 정기 실행에 쓰입니다. 다시 수정해 저장할 수 있습니다')}</p>
+        </확인창>
+      )}
     </div>
   );
 }

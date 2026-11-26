@@ -2,7 +2,8 @@
 //
 // 위의 기대결과 칸(이번 실행 값 · 저장값)과 **이름을 가른다.** 거기는 다음 실행에 쓸 값이고 여기는 저장소의 코드다 —
 // 섞이면 이번 실행만 바꾸려던 값이 코드에 반영된다.
-// 삭제는 상자가 아니라 **이 자리에서 두 번** 누른다. 상세 칸 안이라 가로막는 상자를 띄우지 않는다 (DESIGN.md 「모달」)
+// 요청 보내기는 서버를 바꾸므로 확인 창으로 한 번 묻는다 (2026-11-26 사용자).
+// 삭제는 상자가 아니라 **이 자리에서 두 번** 누른다 — 눌러도 저장소가 그 자리에서 안 바뀌고 요청만 만들어지기 때문이다 (DESIGN.md 「모달」)
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -10,6 +11,7 @@ import type { 고칠것 } from '../authoring/edit.js';
 
 import { api, type CaseRow } from './api.js';
 import { 고치기오류문장, 고칠칸들, 기대값들, 바꾼값, 저장값지울칸 } from './caseEditView.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use첫오류 } from './FieldError.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
@@ -26,6 +28,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const [만든번호, set만든번호] = useState<number | null>(null);
+  const [묻나, set묻나] = useState(false);
   // 누른 버튼이 사라지는 자리마다 포커스를 옮긴다 — 안 옮기면 body 로 빠져 키보드로 다시 찾아 들어와야 한다.
   // 삭제 확인 줄에서는 취소로 간다: 더블클릭 · Enter 두 번의 두 번째 누름이 삭제로 새지 않게 (2026-10-01 화면 QA)
   const [포커스, set포커스] = useState<'cancel' | 'ask' | 'status' | null>(null);
@@ -58,8 +61,13 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
       .finally(() => set보내는중(false));
   }
 
-  function 기본값요청() {
+  // 칸이 틀렸으면 상자를 열기 전에 그 칸으로 간다 — 상자를 띄웠다 닫으면 무엇을 고칠지 다시 찾아야 한다
+  function 요청누름() {
     if (Object.keys(칸오류).length > 0) return 첫오류로();
+    set묻나(true);
+  }
+
+  function 기본값요청() {
     보낸다({
       tcId: row.tcId,
       ...(Object.keys(바꾼).length > 0 ? { expected: 기대값들(바꾼) } : {}),
@@ -95,7 +103,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
           {/* 바꿀 칸이 없는데 「요청 보내기」를 살려 두면 누를 수 없는 단추가 선다(점검 N8). 삭제 요청은 칸과 상관없이 남는다 */}
           {칸들.length === 0 ? null : (
             <div className="btns">
-              <button className="btn" type="button" disabled={!보낼것있나 || 보내는중} onClick={기본값요청}>
+              <button className="btn" type="button" disabled={!보낼것있나 || 보내는중} onClick={요청누름}>
                 {보내는중 ? t('보내는 중') : t('요청 보내기')}
               </button>
             </div>
@@ -144,6 +152,23 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
         </>
       )}
       {오류 === null ? null : <p className="error-text">{오류}</p>}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('코드 기본값 변경을 요청할까요?')}
+          확인={t('변경 요청')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            기본값요청();
+          }}
+        >
+          <p>
+            {t(
+              '변경한 기대 결과 칸만 담아 작성 요청을 만들고 반영은 테스트 작성 화면에서 합니다. 잘못 보냈으면 그 화면에서 요청을 삭제하고 값을 수정해 다시 보낼 수 있습니다',
+            )}
+          </p>
+        </확인창>
+      )}
     </div>
   );
 }
