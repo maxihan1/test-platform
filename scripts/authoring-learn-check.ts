@@ -10,8 +10,8 @@ export interface 볼값 { 이름: string; 주소: string; 칸?: string; 화면?:
 export type 비교 = '>=' | '<=' | '==' | '>' | '<';
 /** 잘되고 있으면 이 값이 이렇다 — 부터 · 까지는 다른 볼값이 그 수 이상 · 이하일 때만 본다(「1웨이브 끝까지 세계수 50 이상」) */
 export interface 기대 { 값: string; 비교: 비교; 기준: number; 부터?: { 값: string; 기준: number }; 까지?: { 값: string; 기준: number } }
-/** 곳 — 이 계획으로 해 보는 곳(STAGE 열쇠). 게임플레이는 판 수를 곳마다 센다 */
-export interface 계획 { 볼값: 볼값[]; 기대: 기대[]; 목표: { 값: string; 기준: number }; 곳?: string }
+/** 곳 — 이 계획으로 해 보는 곳(STAGE 열쇠). 게임플레이는 판 수를 곳마다 센다 · 쓸것 — 이 계획이 믿고 쓰는 지도 줄 열쇠(곳의 맵 종류는 `<곳>#<종류>`) */
+export interface 계획 { 볼값: 볼값[]; 기대: 기대[]; 목표: { 값: string; 기준: number }; 곳?: string; 쓸것?: string[] }
 
 /** 게임마다 하나 — 얼마나 나아갔나를 보여 주는 값(깬 맵 수 · 레벨 · 해금 수). 해 볼 때마다 이 이름으로 같이 읽는다 */
 export const 나아감열쇠 = 'goal:나아감';
@@ -70,7 +70,8 @@ export function 계획읽기(data: unknown): 계획 | string {
   const 목표 = 객체(d.목표);
   if (!있나(목표.값) || !수인가(목표.기준)) return 'data.목표 에 이번에 닿으려는 수를 { 값: <볼값 이름>, 기준: <수> } 로 적는다';
   if (d.곳 !== undefined && !글인가(d.곳)) return 'data.곳 에 이 계획으로 해 볼 곳(STAGE 줄 열쇠)을 적는다';
-  return { 볼값: 볼 as 볼값[], 기대: 기대들 as 기대[], 목표: { 값: 목표.값 as string, 기준: 목표.기준 as number }, ...(d.곳 === undefined ? {} : { 곳: d.곳 as string }) };
+  if (d.쓸것 !== undefined && (!Array.isArray(d.쓸것) || !d.쓸것.every(글인가))) return 'data.쓸것 은 이 계획이 믿고 쓰는 지도 줄 열쇠 목록이다(곳의 맵 종류는 「<곳 열쇠>#<종류>」)';
+  return { 볼값: 볼 as 볼값[], 기대: 기대들 as 기대[], 목표: { 값: 목표.값 as string, 기준: 목표.기준 as number }, ...(d.곳 === undefined ? {} : { 곳: d.곳 as string }), ...(d.쓸것 === undefined ? {} : { 쓸것: d.쓸것 as string[] }) };
 }
 
 const 견줌 = (a: number, 비: 비교, b: number): boolean => (비 === '>=' ? a >= b : 비 === '<=' ? a <= b : 비 === '>' ? a > b : 비 === '<' ? a < b : a === b);

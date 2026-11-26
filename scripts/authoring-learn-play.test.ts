@@ -6,9 +6,9 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { 지도읽기 } from './authoring-game-find.js';
-import type { 판기록 } from './authoring-learn-check.js';
+import { type 판기록, 계획읽기 } from './authoring-learn-check.js';
 import { 합치기 } from './authoring-learn-note.js';
-import { 결과읽기, 곳글, 곳셈, 남은깰곳, 놀이막기, 맵검사, 맵빈곳, 맵종류, 판결과, 판상한 } from './authoring-learn-play.js';
+import { 결과읽기, 곳글, 곳맵줄, 곳셈, 남은깰곳, 놀이막기, 맵검사, 맵빈곳, 맵종류, 판결과, 판상한 } from './authoring-learn-play.js';
 import { 남은배울것, 늚셈, 늚재기, 배움막기, 손막힘, 회고채우기 } from './authoring-learn-retro.js';
 
 let 자료 = '';
@@ -63,7 +63,7 @@ describe('맵 파악', () => {
 
 describe('게임플레이 — 곳마다 깰 때까지', () => {
   const 볼값 = [{ 이름: '웨이브', 주소: 'WaveText' }];
-  const 계획 = (key: string, 곳: string) => 줄('TRIAL', key, { 볼값, 기대: [{ 값: '웨이브', 비교: '>=', 기준: 1 }], 목표: { 값: '웨이브', 기준: 6 }, 곳 });
+  const 계획 = (key: string, 곳: string, 쓸것 = [`${곳}#걷기`]) => 줄('TRIAL', key, { 볼값, 기대: [{ 값: '웨이브', 비교: '>=', 기준: 1 }], 목표: { 값: '웨이브', 기준: 6 }, 곳, 쓸것 });
   const 깰곳 = (key: string, x: object = {}) => 줄('STAGE', key, { 상태: '가봄', 장면: 'BossRoom3', 맵: 다맵, 결과: { 주소: 'ResultText', 깸: '승 리', 짐: '패 배' }, ...x });
   const 판끝 = (이름: string, 계획열쇠: string, 결과글?: string): 판기록 => ({
     이름,
@@ -87,9 +87,25 @@ describe('게임플레이 — 곳마다 깰 때까지', () => {
     const 오십 = Array.from({ length: 판상한 }, (_, i) => 판끝(`2026112606${String(i).padStart(9, '0')}-판`, 'trial:넷째', '패 배'));
     expect(놀이막기({}, 지도줄 as never, [])).toContain('data.곳');
     expect(놀이막기({ 곳: 'stage:랭킹 창' }, 지도줄 as never, [])).toContain('깰 곳이 아니다');
-    expect(놀이막기({ 곳: 'stage:넷째 맵' }, 지도줄 as never, 오십.slice(1))).toBeNull();
-    expect(놀이막기({ 곳: 'stage:넷째 맵' }, 지도줄 as never, 오십)).toContain(`${판상한}판 해 보고도 못 깼다`);
-    expect(놀이막기({ 곳: 'stage:넷째 맵' }, [깰곳('stage:넷째 맵', { 상태: '못깸', 까닭: '3웨이브 보스를 못 막음' })] as never, [])).toContain('못깸으로 적었다');
+    const 넷째 = { 곳: 'stage:넷째 맵', 쓸것: ['stage:넷째 맵#걷기'] };
+    expect(놀이막기(넷째, 지도줄 as never, 오십.slice(1))).toBeNull();
+    expect(놀이막기(넷째, 지도줄 as never, 오십)).toContain(`${판상한}판 해 보고도 못 깼다`);
+    expect(놀이막기(넷째, [깰곳('stage:넷째 맵', { 상태: '못깸', 까닭: '3웨이브 보스를 못 막음' })] as never, [])).toContain('못깸으로 적었다');
+  });
+
+  it('게임플레이 계획은 그 곳 맵 정보를 하나 이상 쓸것으로 적어야 받고, 멈춤 보고에 그 곳 맵 정보를 붙인다', () => {
+    const 길목 = 줄('RULE', 'rule:넷째 맵 길목', { 곳: 'stage:넷째 맵', 자리: [12, 8] });
+    const 들 = [...지도줄, 길목, 줄('RULE', 'rule:고양이 오라', {})];
+    expect(놀이막기({ 곳: 'stage:넷째 맵' }, 들 as never, [])).toContain('stage:넷째 맵 의 맵 정보를 하나 이상 적는다(stage:넷째 맵#걷기 · rule:넷째 맵 길목)');
+    expect(놀이막기({ 곳: 'stage:넷째 맵', 쓸것: ['rule:고양이 오라'] }, 들 as never, [])).toContain('맵 정보를 하나 이상');
+    expect(놀이막기({ 곳: 'stage:넷째 맵', 쓸것: ['stage:넷째 맵#막힘'] }, 들 as never, [])).toContain('stage:넷째 맵#막힘 가 지도에 없다');
+    expect(놀이막기({ 곳: 'stage:넷째 맵', 쓸것: ['rule:고양이 오라', 'rule:넷째 맵 길목'] }, 들 as never, [])).toBeNull();
+    expect(계획읽기({ ...계획('trial:x', 'stage:넷째 맵').learned.data, 쓸것: 'rule:x' })).toContain('data.쓸것');
+    expect(곳맵줄(들 as never, 'stage:넷째 맵')).toEqual([
+      '그 곳(stage:넷째 맵)의 맵 정보 2 — 새 계획의 data.쓸것 에 믿고 쓸 것을 적는다',
+      `  stage:넷째 맵#걷기: ${JSON.stringify(바닥).slice(0, 100)}`,
+      '  rule:넷째 맵 길목: ㄱ',
+    ]);
   });
 
   it(`못깸은 ${판상한}판을 해 봐야 적는다 — 못 깨면 넘어가는 길로 쓰지 않는다`, () => {

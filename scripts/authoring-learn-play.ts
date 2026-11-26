@@ -98,13 +98,34 @@ export function 남은깰곳(줄들: readonly 줄[], 기록들: readonly 판기�
   return 남은.length === 0 ? [] : [`아직 못 깬 곳 ${남은.length}(${남은.slice(0, 5).map((x) => `${x.열쇠} ${x.판}판`).join(' · ')})`];
 }
 
+/** 곳의 맵 정보 — 그 곳 STAGE 의 맵 종류(`<곳>#<종류>`, 없음이 아닌 것)와 data.곳 이 그 곳인 줄(계획 · 회고 빼고) */
+export function 곳맵(줄들: readonly 줄[], 곳: string): { 열쇠: string; 글: string }[] {
+  const 맵 = 객체(칸(줄들.find((x) => x.key === 곳 && x.learned !== null)).맵);
+  return [
+    ...맵종류.filter((k) => 맵[k] !== undefined && !글인가(객체(맵[k]).없음)).map((k) => ({ 열쇠: `${곳}#${k}`, 글: JSON.stringify(맵[k]) })),
+    ...줄들.filter((x) => x.learned !== null && x.key !== 곳 && x.kind !== 'TRIAL' && x.kind !== 'PLAY' && 칸(x).곳 === 곳).map((x) => ({ 열쇠: x.key, 글: x.learned!.text })),
+  ];
+}
+
+/** 멈춤 보고에 붙이는 그 곳 맵 정보 — 열쇠와 글 앞 100자 */
+export function 곳맵줄(줄들: readonly 줄[], 곳: string): string[] {
+  const 들 = 곳맵(줄들, 곳);
+  return [`그 곳(${곳})의 맵 정보 ${들.length} — 새 계획의 data.쓸것 에 믿고 쓸 것을 적는다`, ...들.slice(0, 15).map((x) => `  ${x.열쇠}: ${x.글.replace(/\s+/g, ' ').slice(0, 100)}`)];
+}
+
 /** 게임플레이 단계에서 계획으로 해 보기 전에 본다 — 막을 까닭 글, 괜찮으면 null */
-export function 놀이막기(계획: { 곳?: string }, 줄들: readonly 줄[], 기록들: readonly 판기록[]): string | null {
+export function 놀이막기(계획: { 곳?: string; 쓸것?: readonly string[] }, 줄들: readonly 줄[], 기록들: readonly 판기록[]): string | null {
   if (계획.곳 === undefined) return '게임플레이에서는 계획에 data.곳(해 볼 STAGE 줄 열쇠)을 적는다 — 판 수 · 깸을 곳마다 센다';
   const 셈 = 곳셈(줄들, 기록들).find((x) => x.열쇠 === 계획.곳);
   if (셈 === undefined) return `${계획.곳} 는 깰 곳이 아니다 — 그 STAGE 줄에 data.결과 { 주소, 칸?, 깸, 짐 } 을 먼저 적는다`;
   if (셈.못깸 !== undefined) return `${계획.곳} 는 못깸으로 적었다 — 아직 못 깬 다른 곳을 해 본다`;
   if (셈.깸 === 0 && 셈.판 >= 판상한) return `${계획.곳} 를 ${셈.판}판 해 보고도 못 깼다 — 그 STAGE 줄에 data.상태 「못깸」과 data.까닭(왜 못 깼나)을 적고 다음 곳으로 간다`;
+  // 배우기에서 파악한 맵을 쓰게 — 한 칸씩 찍어 보며 놓을 자리를 찾던 것을 되풀이하지 않게(#16053)
+  const 맵 = new Set(곳맵(줄들, 계획.곳).map((x) => x.열쇠));
+  const 쓸것 = 계획.쓸것 ?? [];
+  const 없는 = 쓸것.filter((k) => !맵.has(k) && !줄들.some((x) => x.key === k && x.learned !== null));
+  if (없는.length > 0) return `data.쓸것 의 ${없는.join(' · ')} 가 지도에 없다`;
+  if (!쓸것.some((k) => 맵.has(k))) return `계획의 data.쓸것 에 ${계획.곳} 의 맵 정보를 하나 이상 적는다(${[...맵].slice(0, 8).join(' · ') || '그 곳 맵 정보가 없다 — data.맵 부터 채운다'})`;
   return null;
 }
 

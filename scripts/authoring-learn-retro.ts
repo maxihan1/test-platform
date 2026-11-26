@@ -121,7 +121,8 @@ export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<strin
   ];
 }
 
-export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[] }
+/** 곳 — 계획이 적은 곳. 판 중간 멈춤 보고에 그 곳 맵 정보를 붙인다 */
+export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[]; 곳?: string }
 
 /** 학습 세션(시험 아님) 동안만 있는 표시가 있나 */
 export const 배우는중인가 = (자료: string | undefined): boolean => 자료 !== undefined && lstatSync(join(자료, 게임자리.배우는중), { throwIfNoEntry: false })?.isFile() === true;
@@ -163,5 +164,5 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   // 결과를 오브젝트 값으로 읽는 곳이면 2초 기록에 같이 남긴다 — 판이 끝난 순간 깸 · 짐을 그 값으로 가른다
   const 결 = 계획.곳 === undefined ? null : 결과읽기(칸(찾기(계획.곳)));
   const 결과볼: 볼값[] = 결 === null || typeof 결 === 'string' || 결.칸 === undefined ? [] : [{ 이름: 결과이름, 주소: 결.주소, 칸: 결.칸 }];
-  return { 계획: 계획열쇠, 볼값: [...계획.볼값, 나, ...결과볼], 기대: 계획.기대 };
+  return { 계획: 계획열쇠, 볼값: [...계획.볼값, 나, ...결과볼], 기대: 계획.기대, ...(계획.곳 === undefined ? {} : { 곳: 계획.곳 }) };
 }

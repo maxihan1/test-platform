@@ -18,6 +18,7 @@ import { 값읽기시작 } from './authoring-game-play-values.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 정리알림, 지금지도 } from './authoring-game-find.js';
 import { type 값기록, type 끝글줄, type 볼값, 수로, 판기록들 } from './authoring-learn-check.js';
+import { 곳맵줄 } from './authoring-learn-play.js';
 import { type 해볼것, 계획없이초, 배우는중인가, 배움막기 } from './authoring-learn-retro.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 
@@ -240,7 +241,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     return 2;
   }
   // 학습 세션만 — 앞 회고 · 계획 · 손만 고친 되풀이 · 다섯 번 안 늚을 본다
-  const 막 = 배움막기(자료, 초, 것.계획, (자료 === undefined ? null : 지금지도(자료))?.줄들 ?? [], 자료 === undefined ? [] : 판기록들(자료));
+  const 지도줄 = (자료 === undefined ? null : 지금지도(자료))?.줄들 ?? [];
+  const 막 = 배움막기(자료, 초, 것.계획, 지도줄, 자료 === undefined ? [] : 판기록들(자료));
   if (막 !== null && '막음' in 막) {
     console.error(`[조작 도우미] ${막.막음}`);
     return 2;
@@ -265,6 +267,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 글 = [
     `[조작 도우미] ${이름} ${r.오류 === undefined ? '끝' : '멈춤'} · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json${r.화면 === undefined ? '' : ' · 끝 화면 .jpg'}`}`,
     ...덧줄(r, 기록),
+    ...(r.멈춤 === undefined || 막 === null || 막.곳 === undefined ? [] : 곳맵줄(지도줄, 막.곳)),
     ...(r.오류 === undefined ? [] : [`오류: ${r.오류}`]),
     ...몇줄('게임 로그', r.로그),
     ...몇줄('게임 오류', r.게임오류),
