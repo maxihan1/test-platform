@@ -23,12 +23,15 @@ export interface 학습상태 {
   시험?: string;
   /** 이번 작성이 올린 열쇠 — PR 머리의 사람이 볼 줄은 이 가운데서만 싣는다 */
   열쇠: string[];
+  /** 앱 배우기만 — 배우기를 마칠 때 남은 배운 줄 없는 화면(장치 ①). PR 머리에 싣는다 */
+  남은화면?: string[];
 }
 
-export function 상태읽기(자료: string): 학습상태 {
+/** 이름 — 앱 배우기는 같은 꼴을 다른 파일(app-learn.json)에 쓴다 */
+export function 상태읽기(자료: string, 이름: string = 게임자리.학습): 학습상태 {
   const 없음: 학습상태 = { 쓴ms: 0, 세션: 0, 끝: false, 열쇠: [] };
   try {
-    const 몸 = JSON.parse(안전히읽기(자료, 게임자리.학습, 1_000_000) ?? 'null') as Partial<학습상태> | null;
+    const 몸 = JSON.parse(안전히읽기(자료, 이름, 1_000_000) ?? 'null') as Partial<학습상태> | null;
     if (몸 === null) return 없음;
     const 수 = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
     return {
@@ -38,12 +41,13 @@ export function 상태읽기(자료: string): 학습상태 {
       ...(typeof 몸.안함 === 'string' ? { 안함: 몸.안함 } : {}),
       ...(typeof 몸.시험 === 'string' ? { 시험: 몸.시험 } : {}),
       열쇠: Array.isArray(몸.열쇠) ? 몸.열쇠.filter((k): k is string => typeof k === 'string') : [],
+      ...(Array.isArray(몸.남은화면) ? { 남은화면: 몸.남은화면.filter((k): k is string => typeof k === 'string') } : {}),
     };
   } catch {
     return 없음;
   }
 }
-export const 상태쓰기 = (자료: string, 상태: 학습상태): void => 새로쓰기(join(자료, 게임자리.학습), JSON.stringify(상태));
+export const 상태쓰기 = (자료: string, 상태: 학습상태, 이름: string = 게임자리.학습): void => 새로쓰기(join(자료, 이름), JSON.stringify(상태));
 
 /** 배우는 세션(시험 아님) 동안만 학습 표시를 둔다 — 조작 도우미가 앞 판의 새로 나온 것을 적기 전에는 다음 판을 안 돌린다 */
 export async function 배우는중에<T>(자료: string, 일: () => Promise<T>, 지금: number): Promise<T> {
