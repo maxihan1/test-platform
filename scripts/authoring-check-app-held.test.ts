@@ -38,8 +38,8 @@ describe('앱안해본보류', () => {
     expect(r).toEqual([expect.stringMatching(/^요구 MTA-REQ-003\(TC-MTA-003\)/), expect.stringMatching(/^요구 MTA-REQ-004/), expect.stringMatching(/^요구 MTA-REQ-005/)]);
   });
 
-  it('이번에 안 바뀐 줄은 해 본 것을 이미 적었으면 넘어간다', () => {
-    expect(앱안해본보류(표('보류 — 글이 안 뜬다(해 본 것: 20261126000000000-앞.json)'), 자료, new Set(['TC-MTA-009']))).toEqual([]);
+  it('바뀐 케이스를 주면 그 줄만 본다 — 이 검사 전에 쓴 보류 줄은 건드리지 않는다', () => {
+    expect(앱안해본보류(표('보류 — 글이 안 뜬다', '보류 — 알림이 안 온다'), 자료, new Set(['TC-MTA-002']))).toEqual([expect.stringMatching(/^요구 MTA-REQ-002/)]);
   });
 });
 

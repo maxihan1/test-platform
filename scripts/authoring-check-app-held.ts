@@ -11,15 +11,15 @@ export const 앱자료환경 = 'AUTHORING_APP_DIR';
 export const 진행불가기록수 = 3;
 
 /**
- * 해 본 기록을 안 댄 앱 보류 줄. 기록은 케이스 시작 표시 뒤의 해 본 기록이어야 한다. 볼(이번에 바뀐 케이스의 tcId)을 주면
- * 그 밖의 줄은 「해 본 것」을 이미 적은 줄만 넘어간다 — 케이스 파일은 그대로 두고 목록 줄만 보류로 바꾼 것도 본다
+ * 해 본 기록을 안 댄 앱 보류 줄. 기록은 케이스 시작 표시 뒤의 해 본 기록이어야 한다. 볼(이번에 바뀐 케이스의 tcId)을 주면 그 줄만 본다 —
+ * 이 검사 전에 쓴 앱 보류 줄은 「해 본 것」이 없어, 안 건드린 줄까지 보면 이어 작성이 상관없는 케이스를 다시 해 보게 된다
  */
 export function 앱안해본보류(표글: string, 자료: string, 볼?: ReadonlySet<string>): string[] {
   const 이번 = 이번기록들(자료, 앱맞대기자리.케이스시작);
   return 표읽기(표글, '요구사항').flatMap((줄) => {
     const tcId = 백틱벗기기(줄['tcId'] ?? '');
     const 까닭 = /보류 — (.+)$/.exec(줄['출처'] ?? '')?.[1];
-    if (까닭 === undefined || 환경까닭.test(까닭) || (볼 !== undefined && !볼.has(tcId) && /해 본 것:/.test(까닭))) return [];
+    if (까닭 === undefined || 환경까닭.test(까닭) || (볼 !== undefined && !볼.has(tcId))) return [];
     if (댄기록(까닭, 이번).length > 0) return [];
     return [`요구 ${줄['요구'] ?? '?'}(${tcId}) — 「${까닭}」 보류에 이번 케이스 세션의 해 본 기록이 없다. 폰에서 해 본 기록 명령(scripts/authoring-app-try.ts)으로 해 본 뒤 「(해 본 것: <app-try 기록 이름>.json · 무엇을 몇 번)」을 붙이거나 보류를 풀고 케이스를 쓴다`];
   });

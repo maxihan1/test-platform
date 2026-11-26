@@ -21,8 +21,11 @@ const 갈래들 = ['같음', '다름', '기획서에만'] as const;
 /** 해 본 기록 없이 진행 불가 · 보류가 되는 환경 까닭 — 닫힌 머리 목록이다. 「계정 레벨이 오르는 조건」 같은 앱 규칙이 빠지지 않게 머리로만 본다 */
 export const 환경까닭 = /^(?:폰을 못 잡음|앱 서버에 못 닿음|테스트 계정 없음|두 번째 계정 없음|일회용 계정 없음|다른 앱 결제|다른 앱 로그인)/;
 export const 기록꼴 = /\d{17}-[\p{L}\p{N}_-]{1,60}\.json/gu;
+// 까닭에서 뽑는 꼴과 같아야 센 기록을 댈 수 있다
+const 기록이름꼴 = /^\d{17}-[\p{L}\p{N}_-]{1,60}\.json$/u;
 
-export interface 맞대기항목 { 요구: string; 갈래: (typeof 갈래들)[number]; 배운줄: string[]; 해본것: string[] }
+/** 까닭 — 「기획서에만」을 해 볼 수 없는 환경(앱 서버에 못 닿음 등)일 때만 쓴다 */
+export interface 맞대기항목 { 요구: string; 갈래: (typeof 갈래들)[number]; 배운줄: string[]; 해본것: string[]; 까닭?: string }
 export interface 앱에만줄 { 배운줄: string; 요구?: string; 안옮김?: string }
 export interface 맞대기표 { 항목: 맞대기항목[]; 앱에만: 앱에만줄[] }
 /** 에이전트가 시작 표시에 적는 이번 범위 — 이어 작성 · 반영은 맡은 요구만, 화면만은 이번 결과 항목만 본다 */
@@ -51,10 +54,10 @@ export function 맞대기표읽기(글: string | null): 맞대기표 | string {
   if (!Array.isArray(몸?.항목) || (몸.앱에만 !== undefined && !Array.isArray(몸.앱에만))) return `${이름} 에 「항목」 배열이 없다`;
   const 항목: 맞대기항목[] = [];
   for (const [i, x] of (몸.항목 as Record<string, unknown>[]).entries()) {
-    if (!글인가(x?.요구) || !(갈래들 as readonly unknown[]).includes(x.갈래) || (x.배운줄 !== undefined && !글목록인가(x.배운줄)) || (x.해본것 !== undefined && !글목록인가(x.해본것))) {
+    if (!글인가(x?.요구) || !(갈래들 as readonly unknown[]).includes(x.갈래) || (x.배운줄 !== undefined && !글목록인가(x.배운줄)) || (x.해본것 !== undefined && !글목록인가(x.해본것)) || (x.까닭 !== undefined && !글인가(x.까닭))) {
       return `${이름} 항목 ${String(i + 1)} 의 꼴이 틀렸다 — 요구 · 갈래(「같음」 · 「다름」 · 「기획서에만」) · 배운줄(열쇠 배열) · 해본것(기록 이름 배열)`;
     }
-    항목.push({ 요구: x.요구, 갈래: x.갈래 as 맞대기항목['갈래'], 배운줄: (x.배운줄 as string[] | undefined) ?? [], 해본것: (x.해본것 as string[] | undefined) ?? [] });
+    항목.push({ 요구: x.요구, 갈래: x.갈래 as 맞대기항목['갈래'], 배운줄: (x.배운줄 as string[] | undefined) ?? [], 해본것: (x.해본것 as string[] | undefined) ?? [], ...(x.까닭 === undefined ? {} : { 까닭: x.까닭 as string }) });
   }
   const 앱에만: 앱에만줄[] = [];
   for (const [i, x] of ((몸.앱에만 ?? []) as Record<string, unknown>[]).entries()) {
@@ -69,6 +72,12 @@ export function 맞대기표읽기(글: string | null): 맞대기표 | string {
 /** 시작 표시 — 이미 있으면 그대로 둔다(이어받은 실행이 앞 세션의 해 본 기록을 잃지 않게). 범위는 기획서 맞대기 표시에만 적는다 */
 export function 시작적기(자료: string, 이름: string, 범위: 맞대기범위 = {}): void {
   if (!existsSync(join(자료, 이름))) 새로쓰기(join(자료, 이름), JSON.stringify(범위));
+}
+
+/** 에이전트가 세션을 띄우기 직전에 — 기획서 맞대기 표시는 늘, 케이스 표시는 케이스를 쓰는 세션(끝 갈래 · 한 세션뿐인 작성) 앞에 */
+export function 앱시작적기(자료: string, 탐색: { 까지: true } | { 끝: string } | undefined, 범위: 맞대기범위): void {
+  시작적기(자료, 앱맞대기자리.시작, 범위);
+  if (탐색 === undefined || '끝' in 탐색) 시작적기(자료, 앱맞대기자리.케이스시작);
 }
 
 export function 범위읽기(자료: string): 맞대기범위 {
@@ -91,7 +100,7 @@ export function 이번기록들(자료: string, 표시: string): Set<string> {
     return new Set();
   }
   return new Set(이름들.filter((x) => {
-    if (!/^\d{17}-.+\.json$/.test(x)) return false;
+    if (!기록이름꼴.test(x)) return false;
     const f = lstatSync(join(폴더, x), { throwIfNoEntry: false });
     return f?.isFile() === true && f.mtimeMs >= 뒤 && (JSON읽기(폴더, x, 1024 * 1024) as { 해봄?: unknown } | null)?.해봄 === true;
   }));
@@ -158,6 +167,7 @@ export function 맞대기검사(r: 맞대기재료): string[] {
       continue;
     }
     if (x.갈래 === '기획서에만') {
+      if (x.까닭 !== undefined && 환경까닭.test(x.까닭)) continue;
       const 댄 = x.해본것.filter((n) => r.이번.has(n));
       if (댄.length === 0) 틀림.push(`${자리} — 기획서 맞대기 시작 뒤의 해 본 기록을 안 댔다 — 폰에서 그 기능을 찾아 해 본 기록 명령으로 해 보고 그 이름을 「해본것」에 적는다${x.해본것.length > 0 ? `(댄 ${x.해본것.slice(0, 3).join(' · ')} 은 이번 기록이 아니거나 화면 읽기만 한 기록이다)` : ''}`);
       continue;
@@ -184,8 +194,9 @@ export function 맞대기검사(r: 맞대기재료): string[] {
 }
 
 /** 자료 폴더를 읽어 재료를 모은다 — 표가 없거나 틀리면 그 까닭 */
-export function 맞대기재료읽기(자료: string, 접두사: string): 맞대기재료 | string {
-  const 표 = 맞대기표읽기(안전히읽기(자료, 앱맞대기자리.표, 1_000_000));
+export function 맞대기재료읽기(자료: string, 접두사: string, 없으면빈표 = false): 맞대기재료 | string {
+  const 글 = 안전히읽기(자료, 앱맞대기자리.표, 1_000_000);
+  const 표 = 글 === null && 없으면빈표 && !existsSync(join(자료, 앱맞대기자리.표)) ? { 항목: [], 앱에만: [] } : 맞대기표읽기(글);
   if (typeof 표 === 'string') return 표;
   const 몸 = JSON읽기(join(자료, 'out'), 'prd.json', 본문상한);
   const 옮긴 = 몸 === null ? null : 옮긴것읽기(몸, 접두사);
@@ -206,7 +217,8 @@ export function 맞대기못지남(자료: string, 접두사: string): string[] 
 /** 화면만이 쓸 것이 하나도 없나 — 결과 파일이 없고 표에 넣을 확인 줄도 없다. 체크포인트로 막지 않고 「PRD 에 없는 화면 0」으로 닫는다 */
 export function 앱쓸것없나(자료: string, 접두사: string): boolean {
   if (existsSync(join(자료, 'out', 'prd.json'))) return false;
-  const r = 맞대기재료읽기(자료, 접두사);
+  // 쓸 것이 없으면 표도 안 쓴다 — 표가 없으면 빈 표로 센다
+  const r = 맞대기재료읽기(자료, 접두사, true);
   return typeof r !== 'string' && 빠진줄들(r).length === 0;
 }
 
