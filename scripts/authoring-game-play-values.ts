@@ -14,6 +14,8 @@ type 읽을게임 = Pick<Game, 'get' | 'text' | 'screenshot'>;
 
 export interface 값읽는고리 {
   그친다: () => void;
+  /** 지금까지 읽은 기록(사본 아님) — 판 중간 멈춤이 10초마다 본다 */
+  지금: () => 값기록;
   /** 돌던 읽기를 기다린 뒤 기록 · 어긋난 순간 사진 · 못 읽은 일 */
   끝난다: () => Promise<{ 기록: 값기록; 사진?: Buffer; 못함: string | null }>;
 }
@@ -93,6 +95,7 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
   };
   return {
     그친다,
+    지금: () => 기록,
     끝난다: async () => {
       그친다();
       let 시계: NodeJS.Timeout | undefined;

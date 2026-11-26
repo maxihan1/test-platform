@@ -13,6 +13,7 @@ import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
 import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
 import { type 나온것, 세기시작, 지도글 } from './authoring-game-play-spawns.js';
 import { 막는글, 안적은새것 } from './authoring-game-play-gate.js';
+import { type 멈춤보고, 멈춤보기시작 } from './authoring-game-play-stop.js';
 import { 값읽기시작 } from './authoring-game-play-values.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 정리알림, 지금지도 } from './authoring-game-find.js';
@@ -62,6 +63,9 @@ export interface 조작결과 {
   출발?: number | null;
   /** 부르기 직전 · 도중에 바뀐 · 끝난 순간의 장면 이름 — 맵 정보는 본 장면에만 적는다(authoring-learn-play 맵검사) */
   장면들?: string[];
+  /** 판 중간 멈춤 — 계획의 기대가 깨졌거나 처음 보는 오브젝트가 나와 함수를 끊고 게임을 멈췄다 */
+  멈춤?: 멈춤보고;
+  멈춤사진?: Buffer;
 }
 
 export interface 덧 {
@@ -139,6 +143,10 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 장면읽기 = (): Promise<string | null> => 맨게임.scenes().then((x) => (typeof x.active === 'string' ? x.active : null), () => null);
   const 첫장면 = await 장면읽기();
   const 읽기 = !돌릴까 || 덧?.볼 === undefined ? null : 값읽기시작(맨게임, 덧.볼.계획, 덧.볼.볼값, 덧.볼.기대, 시작);
+  // 계획으로 해 볼 때만 — 걸리면 넘음을 거절해 함수를 끊고 아래에서 멈춘다
+  let 판멈춤: (왜: string) => void = () => {};
+  let 멈춘까닭: string | null = null;
+  const 멈춰보기 = 읽기 === null ? null : 멈춤보기시작(맨게임, 시작, { 값: 읽기.지금, 나온: () => 세기?.지금() ?? null, 로그앞: 앞.로그 }, (왜) => ((멈춘까닭 = 왜), 판멈춤(왜)));
   let 값: unknown;
   let 오류: string | undefined = 돌릴까 ? undefined : '멈춰 둔 게임을 못 풀어 함수를 부르지 않았다 — `npx control-cli -s=g timescale-set 1` 로 풀고 다시 부른다';
   let 시계: NodeJS.Timeout | undefined;
@@ -146,6 +154,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     const 넘음 = new Promise<never>((_, 거절) => {
       시계 = setTimeout(() => 거절(new Error(`제한 시간 ${한도ms / 1000}초를 넘겼습니다 — 함수를 나누거나 --max 를 늘립니다`)), 한도ms);
       const 끊음 = (): void => 거절(new Error('밖에서 명령을 끊었습니다'));
+      판멈춤 = (왜) => 거절(new Error(`판 중간 멈춤 — ${왜}. 게임을 멈춰 뒀다(아래 멈춤 보고)`));
       if (끊김?.aborted === true) 끊음();
       else 끊김?.addEventListener('abort', 끊음, { once: true });
     });
@@ -159,7 +168,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   찍기?.그친다();
   세기?.그친다();
   읽기?.그친다();
-  const 멈춤 = 덧?.멈춤 === true && 돌릴까 ? await 멈추기(맨게임, 덧.자료, 배율, 배율바꿈, 해본다) : null;
+  멈춰보기?.그친다();
+  const 멈춤 = (덧?.멈춤 === true || 멈춘까닭 !== null) && 돌릴까 ? await 멈추기(맨게임, 덧?.자료, 배율, 배율바꿈, 해본다) : null;
   막음 = true;
   for (const 끝 = Date.now() + 답기다림ms; 보내는중 > 0 && Date.now() < 끝; ) await 쉼(50);
   try {
@@ -179,6 +189,8 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   if (typeof 셈?.못함 === 'string') 못한것.push(셈.못함);
   const 읽은 = await 읽기?.끝난다();
   if (typeof 읽은?.못함 === 'string') 못한것.push(읽은.못함);
+  const 멈춘 = await 멈춰보기?.끝난다();
+  if (typeof 멈춘?.못함 === 'string') 못한것.push(멈춘.못함);
   const 트리 = await 해본다('끝 화면 글 읽기', () => 맨게임.tree());
   // 옛 SDK · 가짜 게임은 트리 꼴이 다를 수 있다 — 못 읽으면 끝 글 없이 간다
   const 끝글 = !Array.isArray(트리?.tree) ? undefined : flatten(트리.tree).flatMap((e) => (e.node.text === undefined || e.node.text === '' ? [] : [{ 주소: e.address, 경로: e.path, 글: e.node.text }]));
@@ -211,6 +223,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     ...(끝글 === undefined ? {} : { 끝글 }),
     ...(출발 === undefined ? {} : { 출발 }),
     ...(장면들.length === 0 ? {} : { 장면들 }),
+    ...((멈춘?.멈춤 ?? null) === null ? {} : { 멈춤: 멈춘!.멈춤!, ...(멈춘!.사진 === undefined ? {} : { 멈춤사진: 멈춘!.사진 }) }),
   };
 }
 

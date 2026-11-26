@@ -105,6 +105,8 @@ export interface 세는고리 {
   준비: Promise<void>;
   /** 함수가 끝난 바로 뒤 — 돌던 세기 · 펼치기가 다음 명령에서 멈춘다(멈추기 · 입력 놓기와 겹치지 않게) */
   그친다: () => void;
+  /** 지금까지 센 것(사본 아님) — 처음 목록을 못 셌으면 null. 판 중간 멈춤이 본다 */
+  지금: () => 나온것 | null;
   /** 돌던 일을 기다린 뒤 끝 수를 한 번 더 센다(펼치지는 않는다). 돌려준 것은 사본이다. 못 센 일은 한 줄로 */
   끝난다: () => Promise<{ 나온: 나온것 | null; 못함: string | null }>;
 }
@@ -231,6 +233,7 @@ export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number
   return {
     준비: Promise.race([첫번, new Promise<void>((다음) => (준비시계 = setTimeout(다음, 준비한도ms)))]).finally(() => clearTimeout(준비시계)),
     그친다,
+    지금: () => (처음경로 === null ? null : 나온),
     끝난다: async () => {
       그친다();
       let 시계: NodeJS.Timeout | undefined;

@@ -7,7 +7,7 @@ import type { 배운것 } from '../apps/admin/src/prd/gameKinds.js';
 import { 게임자리 } from './authoring-game.js';
 import type { 지도줄 } from './authoring-game-find.js';
 import { 열린물음 } from './authoring-game-tree.js';
-import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계획읽기, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
+import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계획읽기, 기대글, 어긋난기대, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
 import { 상태읽기 } from './authoring-learn-io.js';
 import { 결과읽기, 맵빈곳, 맵종류, 놀이막기 } from './authoring-learn-play.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -139,6 +139,10 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   const 줄 = 찾기(계획열쇠);
   const 계획 = 줄?.kind === 'TRIAL' ? 계획읽기(칸(줄)) : `${계획열쇠} 는 지도의 계획(TRIAL) 줄이 아니다`;
   if (typeof 계획 === 'string') return { 막음: `계획을 못 읽었다 — ${계획}` };
+  // 멈춘 판을 이어 돌릴 때 — 멈춘 순간 값으로 이미 깨진 기대는 계획이 아니다(그대로 돌리면 다시 바로 멈춘다)
+  const 멈춘 = 기록들.at(-1)?.멈춤;
+  const 깨진 = 멈춘 === undefined ? null : 어긋난기대(계획.기대, 멈춘.값);
+  if (깨진 !== null) return { 막음: `새 계획의 기대 「${기대글(깨진)}」 가 멈춘 순간 값(${Object.entries(멈춘!.값).map(([k, v]) => `${k} ${v ?? '못 읽음'}`).join(' · ')})으로 이미 깨졌다 — 지금 판에서 지킬 수 있는 기대로 다시 적는다` };
   const 나 = 나아감자리(칸(찾기(나아감열쇠)));
   if (나 === null) return { 막음: `${나아감열쇠} 줄(GOAL · data { 주소, 칸? })이 없다 — 이 게임에서 얼마나 나아갔나를 보여 주는 값(깬 맵 수 · 레벨 · 해금 수) 하나를 먼저 정해 적는다` };
   const 손 = 손막힘(줄들);

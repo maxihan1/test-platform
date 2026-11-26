@@ -27,12 +27,14 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
   }
   if (!폴더인가(폴더)) return null;
   const 이름 = `${지금.toISOString().replace(/\D/g, '').slice(0, 17)}-${함수}`;
-  const { 화면, 도중화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, 나온것, 어긋난사진, 값기록, ...남은 } = r;
+  const { 화면, 도중화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, 나온것, 어긋난사진, 값기록, 멈춤사진, ...남은 } = r;
   // 펼친 글은 따로 읽기 좋은 파일로 — json 에는 어디서 무엇을 펼쳤나만
   const 펼침뺌 = 나온것 === undefined ? 남은 : { ...남은, 나온것: { ...나온것, 펼침: 나온것.펼침.map(({ 글: _글, ...x }) => x) } };
   // 어긋난 순간 사진 이름은 회고 줄이 기록에서 읽어 간다
   const 사진이름 = 어긋난사진 === undefined || 값기록 === undefined || 값기록.어긋남 === null ? undefined : 어긋남파일이름(이름);
-  const 글 = 값기록 === undefined ? 펼침뺌 : { ...펼침뺌, 값기록: 사진이름 === undefined ? 값기록 : { ...값기록, 어긋남: { ...값기록.어긋남!, 사진: 사진이름 } } };
+  const 멈춘사진 = 멈춤사진 === undefined || 남은.멈춤 === undefined ? undefined : 멈춤파일이름(이름);
+  const 멈춤붙임 = 멈춘사진 === undefined ? 펼침뺌 : { ...펼침뺌, 멈춤: { ...남은.멈춤!, 사진: 멈춘사진 } };
+  const 글 = 값기록 === undefined ? 멈춤붙임 : { ...멈춤붙임, 값기록: 사진이름 === undefined ? 값기록 : { ...값기록, 어긋남: { ...값기록.어긋남!, 사진: 사진이름 } } };
   try {
     let 날글: string;
     try {
@@ -43,11 +45,12 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
     // wx — 자식이 만든 링크를 따라 쓰지 않는다
     writeFileSync(join(폴더, `${이름}.json`), 비밀가리기(날글, 비밀들), { flag: 'wx' });
     if (화면 !== undefined) writeFileSync(join(폴더, `${이름}.jpg`), 화면, { flag: 'wx' });
-    if (사진이름 !== undefined) {
+    for (const [파일, 그림] of [[사진이름, 어긋난사진], [멈춘사진, 멈춤사진]] as const) {
+      if (파일 === undefined) continue;
       try {
-        writeFileSync(join(폴더, 사진이름), 어긋난사진!, { flag: 'wx' });
+        writeFileSync(join(폴더, 파일), 그림!, { flag: 'wx' });
       } catch (e) {
-        r.못한것.push(`${사진이름} 남기기: ${까닭(e)}`);
+        r.못한것.push(`${파일} 남기기: ${까닭(e)}`);
       }
     }
     if (나온것 !== undefined && 나온것.펼침.length > 0) {
@@ -78,6 +81,23 @@ export const 몇줄 = (머리: string, 줄들: readonly string[]): string[] =>
 
 /** 계획과 처음 어긋난 순간 사진의 파일 이름 */
 export const 어긋남파일이름 = (이름: string): string => `${이름}-어긋남.jpg`;
+/** 판 중간 멈춤 순간 사진의 파일 이름 */
+export const 멈춤파일이름 = (이름: string): string => `${이름}-멈춤.jpg`;
+
+/** 판 중간 멈춤 보고 — 그 순간 값 · 사진 · 20초 동안 바뀐 것 · 게임 로그 · 다음에 할 일 */
+function 판멈춤줄(r: 조작결과, 기록: string | null): string[] {
+  const m = r.멈춤;
+  if (m === undefined) return [];
+  const 이름 = 기록 === null ? null : basename(기록);
+  const 바뀐 = Object.entries(m.바뀐것).map(([k, [앞, 뒤]]) => `${k} ${앞}→${뒤}`);
+  return [
+    `판 중간 멈춤 ${m.초.toFixed(0)}초 — ${m.까닭}`,
+    `  그 순간 값: ${Object.entries(m.값).map(([k, v]) => `${k} ${v ?? '못 읽음'}`).join(' · ') || '없음'}${r.멈춤사진 === undefined || 이름 === null ? '' : ` · 사진 ${멈춤파일이름(이름)}`}`,
+    `  20초 동안 수가 바뀐 것: ${바뀐.join(' · ') || '없음'}`,
+    ...(m.로그.length === 0 ? ['  20초 동안 게임 로그: 없음'] : [`  20초 동안 게임 로그 ${m.로그.length}줄`, ...m.로그.slice(-10).map((x) => `    ${x.slice(0, 줄길이)}`)]),
+    `  게임은 멈춘 채다 — 회고 줄에 왜 그렇게 됐나 한 줄과 새 계획(data.다음)을 적고 그 계획으로 다시 부르면 풀려 이어서 돈다. 멈춘 순간 값으로 이미 깨진 기대는 안 받는다`,
+  ];
+}
 
 /** 계획으로 해 본 줄 — 목표 · 처음 어긋난 때 · 화면 글자와 다른 값 · 회고를 적으라는 말 */
 function 계획줄(r: 조작결과, 기록: string | null): string[] {
@@ -127,4 +147,4 @@ function 새것줄(r: 조작결과, 기록: string | null): string[] {
 }
 
 /** 조작 함수를 부른 명령이 머리 줄 다음에 찍는 줄 — 도중 화면 · 새로 나온 것 · 멈춤 */
-export const 덧줄 = (r: 조작결과, 기록: string | null): string[] => [...계획줄(r, 기록), ...도중화면줄(r, 기록), ...새것줄(r, 기록), ...멈춤줄(r)];
+export const 덧줄 = (r: 조작결과, 기록: string | null): string[] => [...계획줄(r, 기록), ...판멈춤줄(r, 기록), ...도중화면줄(r, 기록), ...새것줄(r, 기록), ...멈춤줄(r)];
