@@ -190,6 +190,9 @@ export const 등급표: Record<string, 표값> = {
   // 앱 조작 맵 올리기 · 읽기 — 작성 에이전트가 부른다. 맵은 화면에 보이지 않는다 (도메인/작성 §3.6 「★ 앱 탐색」)
   'PUT /api/authoring/requests/:id/app-route': 작성쓰기,
   'GET /api/authoring/requests/:id/app-route': 작성쓰기,
+  // 앱 배운 것 올리기 · 받기 — 작성 에이전트가 부른다. 배운 것은 화면에 보이지 않는다 (도메인/작성 §3.6 「★ 앱 배우기」)
+  'PUT /api/authoring/requests/:id/app-learned': 작성쓰기,
+  'GET /api/authoring/requests/:id/app-learned': 작성쓰기,
   // 서비스 가이드 — 주소에 authoring 이 없지만 작성 기능이다. 보기는 작성 read, 고치기는 작성 write (작성 §7 「서비스 가이드 통로」)
   'GET /api/guide': 작성읽기,
   'GET /api/guide/versions': 작성읽기,
@@ -387,6 +390,8 @@ export const 토큰통로 = new Set([
   'GET /api/authoring/requests/:id/game-route',
   'PUT /api/authoring/requests/:id/app-route',
   'GET /api/authoring/requests/:id/app-route',
+  'PUT /api/authoring/requests/:id/app-learned',
+  'GET /api/authoring/requests/:id/app-learned',
   'GET /api/authoring/requests/:id/guide',
   'GET /api/authoring/requests/:id/guide/files/:fileId',
   'GET /api/authoring/requests/:id/app-screen',
