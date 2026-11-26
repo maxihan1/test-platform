@@ -8,12 +8,14 @@ import type { 띄운결과 } from './authoring-explore.js';
 import { 게임자리, 요소상한 } from './authoring-game.js';
 import { 적은줄들, 지금지도 } from './authoring-game-find.js';
 import { 멈춤표시읽기, 멈춤표시지우기 } from './authoring-game-freeze.js';
+import { 안적은새것 } from './authoring-game-play-gate.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
 import { 배우는중에, 배우는중지우기, 배움올리기, 상태쓰기, 상태읽기, 케이스시작적기 } from './authoring-learn-io.js';
 import { 물음트리, 오늘글 } from './authoring-game-tree.js';
 import { type 배울것, 배울것고르기, 배울것없나, 쪽지글, 쪽지열쇠 } from './authoring-learn-map.js';
 import { 판기록들 } from './authoring-learn-check.js';
 import { 인수인계 } from './authoring-learn-handoff.js';
+import { 남은깰곳 } from './authoring-learn-play.js';
 import { 남은배울것 } from './authoring-learn-retro.js';
 import { type 세션거리, type 학습결과, type 학습손, 못뜬것은끊김, 이음글 } from './authoring-learn-tail.js';
 import { 끝낼상태 } from './authoring-progress.js';
@@ -179,14 +181,14 @@ async function 배우고(o: 학습손): Promise<학습결과> {
     return 줄.length === 0 ? {} : { 인수: 줄 };
   };
   const 배우기 = (b: 배울것, 틀림?: true, 이음?: string): Promise<세션끝> =>
-    배우는중에(o.자료, () => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? 트리() : { 틀림 }), ...인수(), ...쪽지(), ...멈춤() }), 틀림 === undefined ? 배움남은 : 시험제한, 이음), 지금());
+    배우는중에(o.자료, () => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(상태.단계 === undefined ? {} : { 단계: 상태.단계 }), ...(틀림 === undefined ? 트리() : { 틀림 }), ...인수(), ...쪽지(), ...멈춤() }), 틀림 === undefined ? 배움남은 : 시험제한, 이음), 지금());
   /** 계획으로 해 본 수 — 이어 돌린 세션이 해 본 것이 있나 본다 */
   const 해본수 = (): number => 판기록들(o.자료).filter((r) => r.값기록 !== undefined).length;
   const 끝내며 = (끝: 띄운결과): 학습결과 => ({ 끝: { ...끝, 돌린것: 못뜬것은끊김(끝.돌린것, 앞낸것) }, 앞낸것 });
 
   const 늘리기끄기 = o.늘리기();
   try {
-    // 끝은 에이전트가 정한다(2026-11-26 사용자) — 다 배웠거나(열린 물음 0 · 갈 곳마다 가 봄이나 못 가는 까닭) 다섯 번 해 보는 동안 안 늘었을 때.
+    // 끝은 에이전트가 정한다(2026-11-26 사용자) — 게임 배우기는 다 배웠거나(열린 물음 0 · 갈 곳마다 가 봄이나 못 가는 까닭 · 맵) 다섯 번 해 보는 동안 안 늘었을 때, 게임플레이는 깰 곳마다 깸이나 못깸일 때.
     // AI 가 그 전에 스스로 끝내면 같은 세션을 이어 돌린다. 컨텍스트 60% 에서 끊긴 세션은 새 세션이 인수인계로 잇는다
     let 이음: string | undefined;
     let 헛이음 = 0;
@@ -208,20 +210,28 @@ async function 배우고(o: 학습손): Promise<학습결과> {
         break;
       }
       if (!r.스스로) continue;
-      const 그만 = 안전히읽기(o.자료, 게임자리.그만, 1_000)?.trim();
-      if (그만 !== undefined && 그만 !== '') {
-        o.알린다(`게임 학습을 끝낸다 — ${그만}`);
-        break;
+      const 그만 = 안전히읽기(o.자료, 게임자리.그만, 1_000)?.trim() ?? '';
+      const 지도 = 지금지도(o.자료);
+      const 안적은 = 안적은새것(o.자료, false);
+      const 남은것 = 그만 !== '' || 지도 === null ? [] : 상태.단계 === undefined ? 남은배울것(지도, 오늘글(지금()), 빌드, 안적은 === null ? [] : [...안적은.이름들, ...안적은.처음]) : 남은깰곳(지도.줄들, 판기록들(o.자료));
+      if (지도 === null) break;
+      if (남은것.length === 0) {
+        o.알린다(`${상태.단계 ?? '게임 배우기'}를 끝낸다 — ${그만 || '남은 것이 없다'}${상태.단계 === undefined ? ' · 게임플레이로 넘어간다' : ''}`);
+        if (상태.단계 !== undefined) break;
+        // 배우기가 끝나면 시험이 아니라 게임플레이로 — 곳마다 깰 때까지 해 본다(2026-11-26 사용자). 다섯 번 안 늚은 배우기에서만 쓴다
+        상태.단계 = '게임플레이';
+        상태쓰기(o.자료, 상태);
+        rmSync(join(o.자료, 게임자리.그만), { force: true });
+        [헛이음, 빈손] = [0, 0];
+        continue;
       }
-      const 남은것 = 지금지도(o.자료) === null ? [] : 남은배울것(지금지도(o.자료)!, 오늘글(지금()), 빌드);
-      if (남은것.length === 0) break;
       헛이음 = 해본수() > 앞판 ? 0 : 헛이음 + 1;
       if (헛이음 >= 헛이음상한) {
         o.알린다(`게임 학습을 그친다 — 스스로 끝낸 세션을 ${헛이음상한}번 이어 돌렸는데 계획으로 해 본 것이 없다(남은 것: ${남은것.join(' · ')})`);
         break;
       }
       o.알린다(`AI 가 스스로 끝냈지만 아직 남았다 — 같은 세션을 이어 돌린다(${남은것.join(' · ')})`);
-      이음 = 이음글(남은것);
+      이음 = 이음글(남은것, 상태.단계 !== undefined);
     }
     if (!부분 && 상태.시험 === undefined) {
       const 틀린 = await 시험보기();

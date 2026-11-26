@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 기록남기기 } from './authoring-game-play-log.js';
 import { type 나온것, 나온것줄, 세기, 세기시작, 종류, 지도글, 지도에있나, 펼칠상한 } from './authoring-game-play-spawns.js';
-import { 안적은새것 } from './authoring-game-play-gate.js';
+import { 막는글, 안적은새것 } from './authoring-game-play-gate.js';
 import { 돌린다, 실행 } from './authoring-game-play.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 
@@ -65,7 +65,7 @@ describe('판 도중 새로 나온 것', () => {
     const 보스판 = [...바탕, 것('/Enemies/Ghost(Clone)', '7'), 것('/Boss', '9'), 것('/Boss/Arm'), 것('/Canvas/ClearPopup')];
     const 끝판 = [...바탕, 것('/Boss', '9')];
     const g = 가짜([바탕, 보스판, 보스판, 끝판]);
-    const 고리 = 세기시작(g.game, 10, Date.now(), '지도 줄: Ghost 는 기지로 간다');
+    const 고리 = 세기시작(g.game, 10, Date.now(), '지도 줄: Ghost 는 기지로 간다 · Main Camera · Stage · Tree · Enemies');
     await 쉼(60);
     const { 나온, 못함 } = await 고리.끝난다();
     expect(못함).toBeNull();
@@ -138,7 +138,7 @@ describe('판 도중 새로 나온 것', () => {
   });
 
   it('바뀐 것이 없으면 한 줄로 말하고, 세 번 이어 못 세면 그치고 한 줄만 남긴다', async () => {
-    const 같음 = 세기시작(가짜([바탕]).game, 10, Date.now(), '');
+    const 같음 = 세기시작(가짜([바탕]).game, 10, Date.now(), 'Main Camera · Stage · Tree · Enemies');
     await 쉼(30);
     expect(나온것줄((await 같음.끝난다()).나온!, null, null)).toEqual(['새로 나온 것 없음 — 0.01초마다 센 오브젝트 수가 처음과 같다']);
     let 부름 = 0;
@@ -174,7 +174,7 @@ describe('판 도중 새로 나온 것', () => {
     writeFileSync(join(d, 'game-map.txt'), '- rule:x · Slime 은 느리다 · BossSpawner 가 있다');
     expect(안적은새것(d)).toBeNull();
     writeFileSync(join(d, 'game-learning.now'), '1');
-    expect(안적은새것(d)).toEqual({ 기록: join(d, 'game-play', '20261126010000000-깨기'), 이름들: ['Boss'] });
+    expect(안적은새것(d)).toEqual({ 기록: join(d, 'game-play', '20261126010000000-깨기'), 이름들: ['Boss'], 처음: [] });
     const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
     let 명령 = 0;
     const 길 = (async () => (명령 += 1, { ok: true })) as never;
@@ -186,13 +186,32 @@ describe('판 도중 새로 나온 것', () => {
     expect([지도에있나('BossSpawner', 'Boss'), 지도에있나('보스 Boss 는', 'Boss'), 지도에있나('"name":"Boss"', 'Boss'), 지도에있나('a.b', 'a+b')]).toEqual([false, true, true, false]);
   });
 
+  it('장면 처음부터 있던 것 가운데 지도에 없는 것(화면 그림 빼고)도 남기고, 학습 세션이면 적기 전에는 다음 판을 안 돌린다', async () => {
+    const 메뉴 = [것('/MenuRoot'), 것('/NavMesh Surface')];
+    const g = 가짜([메뉴, 메뉴, 바탕, 바탕], ['Menu', 'Menu', 'Stage', 'Stage']);
+    const 고리 = 세기시작(g.game, 10, Date.now(), '- probe:메뉴 · MenuRoot 는 첫 화면 · Stage 바닥');
+    await 쉼(60);
+    const { 나온 } = await 고리.끝난다();
+    expect(나온!.처음지도에없음).toEqual(['NavMesh Surface', 'Main Camera', 'Tree', 'Enemies']);
+    expect(나온것줄(나온!, null, null).join('\n')).toContain('장면 처음부터 있던 것 가운데 지도에 없는 것 4종류 — 펼쳐 보고 지도에 적어야 다음 판이 돈다: NavMesh Surface · Main Camera · Tree · Enemies');
+    const d = mkdtempSync(join(tmpdir(), 'spawns-'));
+    자리들.push(d);
+    mkdirSync(join(d, 'game-play'));
+    writeFileSync(join(d, 'game-play', '20261126010000000-깨기.json'), JSON.stringify({ 함수: '깨기', 나온것: 나온 }));
+    writeFileSync(join(d, 'game-map.txt'), '- probe:카메라 · Main Camera 와 Tree 는 꾸밈');
+    expect(안적은새것(d)).toBeNull();
+    expect(안적은새것(d, false)).toEqual({ 기록: join(d, 'game-play', '20261126010000000-깨기'), 이름들: [], 처음: ['NavMesh Surface', 'Enemies'] });
+    writeFileSync(join(d, 'game-learning.now'), '1');
+    expect(막는글(안적은새것(d)!)).toContain('장면에 처음부터 있던 NavMesh Surface · Enemies 이(가) 지도에 없다');
+  });
+
   it('판 돌리기는 도중 화면을 켰을 때만 세고, 기록 json 에는 펼친 글 없이 · 펼친 글은 -새것.txt 로 남긴다', async () => {
     const 꺼짐 = await 돌린다((async () => ({ ok: true })) as never, () => 1, {}, 300);
     expect(꺼짐.나온것).toBeUndefined();
     const t = mkdtempSync(join(tmpdir(), 'spawns-'));
     자리들.push(t);
     mkdirSync(join(t, 'data'));
-    const 나온: 나온것 = { 간격ms: 5000, 처음: {}, 장면바뀜: [], 센때: [{ 초: 10, 수: { Boss: 1 } }], 첫초: { Boss: 10 }, 화면것: [], 지도에없음: ['Boss'], 펼침: [{ 종류: 'Boss', 초: 10, 주소: '//*[@id=9]', 글: ['# //*[@id=9]', '  값 Hp=300'] }], 안펼침: [] };
+    const 나온: 나온것 = { 간격ms: 5000, 처음: {}, 장면바뀜: [], 센때: [{ 초: 10, 수: { Boss: 1 } }], 첫초: { Boss: 10 }, 화면것: [], 지도에없음: ['Boss'], 처음지도에없음: [], 펼침: [{ 종류: 'Boss', 초: 10, 주소: '//*[@id=9]', 글: ['# //*[@id=9]', '  값 Hp=300'] }], 안펼침: [] };
     const r = { ...꺼짐, 나온것: 나온 };
     const 기록 = 기록남기기(join(t, 'data'), '깨기', [], r, [], new Date('2026-11-26T01:02:03.456Z'))!;
     const 남은 = readdirSync(join(t, 'data', 'game-play')).sort();
