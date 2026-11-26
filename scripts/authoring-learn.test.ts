@@ -567,6 +567,16 @@ describe('학습프롬프트', () => {
     expect(학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], 부분: false, 차례: 1 })).not.toContain('**물음 트리**');
   });
 
+  it('게임플레이 — 단계 표지를 바꾸고, 깰 곳 · 쓸것 · 50판을 알리고, 튜토리얼 차례는 안 준다', () => {
+    const 글 = 학습프롬프트(재료, { 배울것, 남은분: 0, 놓음: false, 못올림: [], 부분: false, 차례: 4, 단계: '게임플레이' });
+    expect(글).toContain('[단계] 게임플레이');
+    expect(글).not.toContain('[단계] 게임 배우기');
+    expect(글).toContain('`data.쓸것`(그 곳 맵 정보 하나 이상)');
+    expect(글).toContain('50판');
+    expect(글).toContain('깰 곳마다 깨거나 못깸으로 적을 때까지');
+    expect(글).not.toContain('튜토리얼 끝까지');
+  });
+
   it('반영 — 맡은 번호만', () => {
     const 글 = 학습프롬프트(재료, { 배울것: { ...배울것, 번호: ['CGP-REQ-001'] }, 남은분: 30, 놓음: true, 못올림: [], 부분: true, 차례: 1 });
     expect(글).toContain('고친 요구에 닿는 것만 배운다: CGP-REQ-001');
