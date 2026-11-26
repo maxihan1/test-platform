@@ -61,10 +61,11 @@ describe('장치 ① · 열린 물음', () => {
       줄('ASK', 'ask:닫힘', null, { text: '?', belief: 'GUESS', data: { 닫음: '풀었다' } }),
       줄('ASK', 'ask:막힘', null, { text: '?', belief: 'GUESS', build: '59', data: { 막힘: '사람만 안다' } }),
       줄('ASK', 'ask:옛막힘', null, { text: '?', belief: 'GUESS', build: '58', data: { 막힘: '사람만 안다' } }),
+      줄('ASK', 'ask:빌드없는막힘', null, { text: '?', belief: 'GUESS', data: { 막힘: '사람만 안다' } }),
       줄('RULE', 'rule:옛빌드', 'app:.A/x', { ...확인, build: '58' }),
       줄('RULE', 'rule:지금', 'app:.A/x'),
     ];
-    expect(열린물음(들, '59')).toEqual(['ask:열림', 'ask:옛막힘', 'rule:옛빌드']);
+    expect(열린물음(들, '59')).toEqual(['ask:열림', 'ask:옛막힘', 'ask:빌드없는막힘', 'rule:옛빌드']);
     expect(열린물음(들, undefined)).toEqual(['ask:열림']);
   });
 
@@ -93,6 +94,15 @@ describe('올리기', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'BAD_LEARNED', detail: 'rows.0.screen' }), { status: 400 })));
     expect((await 배운것올리기(통로, 자료, ['pw123'])).못올림).toEqual(['배운 줄에 테스트 계정 비밀번호가 들어 있다']);
     expect((await 배운것올리기(통로, 자료, [])).못올림[0]).toContain('400 rows.0.screen');
+    expect(readFileSync(join(자료, 'app-learned.json'), 'utf8')).toContain('rule:가');
+  });
+
+  it('올린 뒤 다시 받기가 실패해도 앞 글을 지우지 않는다', async () => {
+    쓰기('app-learned.txt', 글([줄('RULE', 'rule:앞', 'app:.A/x')]));
+    쓰기('app-learned.json', { rows: [줄('RULE', 'rule:가', 'app:.A/x')] });
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => (init?.method === 'PUT' ? new Response(null, { status: 204 }) : new Response('{}', { status: 500 }))));
+    expect((await 배운것올리기(통로, 자료, [])).못올림[0]).toContain('다시 못 받았다');
+    expect(readFileSync(join(자료, 'app-learned.txt'), 'utf8')).toContain('rule:앞');
     expect(readFileSync(join(자료, 'app-learned.json'), 'utf8')).toContain('rule:가');
   });
 });

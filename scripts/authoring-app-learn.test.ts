@@ -131,6 +131,21 @@ describe('앱 배우기', () => {
     expect(거리들[1]!.차례).toBe(2);
   });
 
+  it('빌드를 모르면 앞 실행이 남긴 빌드 파일을 지운다', async () => {
+    쓰기('app-learn-build.txt', '58');
+    const { o, 거리들 } = 손([() => (crawl('app:.A/가'), 적기(줄('RULE', 'rule:가', 'app:.A/가')))], { 빌드: async () => undefined });
+    await 앱학습하기(o);
+    expect(거리들).toHaveLength(1);
+    expect(() => readFileSync(join(자료, 'app-learn-build.txt'))).toThrow();
+  });
+
+  it('올리기가 계속 거절돼도 새로 적은 것이 없는 세션은 빈손으로 센다', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'BAD_LEARNED', detail: 'rows.0' }), { status: 400 })));
+    const { o, 거리들 } = 손([() => (crawl('app:.A/가', 'app:.A/나'), 적기(줄('RULE', 'rule:가', 'app:.A/가'))), () => undefined, () => undefined, () => undefined]);
+    await 앱학습하기(o);
+    expect(거리들).toHaveLength(3);
+  });
+
   it('2시간을 다 쓰면 그친다 — 이어받은 폴더는 쓴 시간을 잇는다', async () => {
     쓰기('app-learn.json', { 쓴ms: 115 * 분, 세션: 6, 끝: false, 열쇠: [] });
     const { o } = 손([]);
@@ -184,6 +199,8 @@ describe('프롬프트', () => {
     expect(다음).toContain('> 설정 화면 볼 것');
     const 부분 = 앱학습프롬프트({ 서비스: 'MTA', 폴더: 'mta', 자료: '/자료' }, { ...거리, 부분: { 열쇠: ['rule:가'], 화면: ['app:.A/가'] } });
     expect(부분).toContain('고친 요구에 닿는 줄만 다시 본다: rule:가');
+    expect(부분).toContain('일회용 회원');
+    expect(부분).toContain('계정을 비우고');
     expect(부분).not.toContain('authoring-app-crawl.ts');
   });
 });

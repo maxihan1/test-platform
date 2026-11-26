@@ -14,10 +14,12 @@ import { 새로쓰기 } from './authoring-screens-keep-io.js';
 const 출력상한 = 2_000;
 const 명령상한 = 50;
 const 한명령_ms = 5 * 60_000;
-// 화면 읽기만 하는 appium-cli 명령은 「본 기록」이다 — 누르기 · 적기 · 밀기 · 딥링크가 있어야 해 본 기록이다(장치 ② ③)
-const 해보는명령 = new Set(['tap', 'click', 'long-press', 'double-tap', 'swipe-in', 'drag', 'pinch-open', 'pinch-close', 'tap-xy', 'draw', 'fill', 'clear', 'swipe', 'press', 'type', 'back', 'deeplink', 'scroll-to', 'background', 'screen-off-on', 'reinstall']);
-// 서비스 도우미는 테스트 폴더의 파일을 tsx 로 부른다
-const 도우미꼴 = /^npx tsx tests\//;
+// 화면 읽기만 하는 appium-cli 명령은 「본 기록」이다 · 실패로 멈춰 안 돈 줄은 안 센다 — 누르기 · 적기 · 밀기 · 딥링크가 있어야 해 본 기록이다(장치 ② ③)
+const 해보는명령 = new Set(['tap', 'click', 'long-press', 'double-tap', 'swipe-in', 'drag', 'pinch-open', 'pinch-close', 'tap-xy', 'draw', 'fill', 'clear', 'swipe', 'press', 'type', 'back', 'deeplink', 'scroll-to']);
+// 서비스 도우미는 테스트 폴더의 파일을 tsx 로 부른다(`cd x && npx tsx ./tests/…` 꼴도)
+const 도우미꼴 = /(^|[\s;&|])npx\s+tsx\s+(\.\/)?tests\//;
+// 값을 띄어 쓰는 appium-cli 옵션 — 그 값을 명령으로 읽지 않게 건너뛴다
+const 값옵션 = new Set(['-s', '--session']);
 
 /** 줄 하나가 누르기 · 적기 · 밀기 · 딥링크 · 도우미 부르기인가 */
 export function 해보는줄인가(줄: string): boolean {
@@ -25,7 +27,11 @@ export function 해보는줄인가(줄: string): boolean {
   const 칸 = 줄.trim().split(/\s+/);
   const i = 칸.findIndex((x) => /(^|\/)appium-cli$/.test(x));
   if (i < 0) return false;
-  return 해보는명령.has(칸.slice(i + 1).find((x) => !x.startsWith('-')) ?? '');
+  for (let j = i + 1; j < 칸.length; j++) {
+    if (값옵션.has(칸[j]!)) j++;
+    else if (!칸[j]!.startsWith('-')) return 해보는명령.has(칸[j]!);
+  }
+  return false;
 }
 
 /** 17자리 시각(UTC 연월일시분초 밀리초) — 이름 차례가 시각 차례다 */
@@ -85,7 +91,8 @@ export function 실행(인자: string[], 손: 돌리개 = 쉘로, env: NodeJS.Pr
     console.error(`[해 본 기록] 명령은 1 ~ ${String(명령상한)}줄이다`);
     return 2;
   }
-  const 비밀 = 환경비밀번호들(env).filter((x) => x !== '');
+  // 긴 것부터 — 한 비밀번호가 다른 것을 품으면 짧은 것을 먼저 가려 긴 것의 뒷부분이 남는다
+  const 비밀 = 환경비밀번호들(env).filter((x) => x !== '').sort((a, b) => b.length - a.length);
   const 가리기 = (글: string): string => 비밀.reduce((g, s) => g.split(s).join(가림표), 글);
   const 시작 = 손.지금();
   const 앞화면 = 손.화면();
@@ -101,7 +108,7 @@ export function 실행(인자: string[], 손: 돌리개 = 쉘로, env: NodeJS.Pr
     }
   }
   const 기록: 해본기록 = {
-    이름, 시작: new Date(시작).toISOString(), 끝: new Date(손.지금()).toISOString(), 앞화면, 뒤화면: 손.화면(), 해봄: 줄들.some(해보는줄인가), 명령, ...(멈춤 === undefined ? {} : { 멈춤 }),
+    이름, 시작: new Date(시작).toISOString(), 끝: new Date(손.지금()).toISOString(), 앞화면, 뒤화면: 손.화면(), 해봄: 줄들.slice(0, 명령.length).some(해보는줄인가), 명령, ...(멈춤 === undefined ? {} : { 멈춤 }),
   };
   const 폴더 = join(자료, 앱배움자리.기록);
   mkdirSync(폴더, { recursive: true });

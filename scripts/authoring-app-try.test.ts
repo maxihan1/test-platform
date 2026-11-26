@@ -39,6 +39,8 @@ describe('해 보는 줄', () => {
     expect(해보는줄인가('npx appium-cli -s=probe snapshot')).toBe(false);
     expect(해보는줄인가('npx appium-cli -s=probe find --regex 로그인')).toBe(false);
     expect(해보는줄인가('cat /etc/hosts')).toBe(false);
+    expect(해보는줄인가('npx appium-cli -s probe tap e1')).toBe(true);
+    expect(해보는줄인가('cd x && npx tsx ./tests/demo/helpers/seed.ts')).toBe(true);
   });
 
   it('17자리 시각', () => {
@@ -57,18 +59,18 @@ describe('실행', () => {
     expect(몸.명령).toEqual([{ 줄: 'npx appium-cli -s=probe tap e1', 코드: 0, 출력: 'Ran: npx appium-cli -s=probe tap e1' }, { 줄: 'npx appium-cli -s=probe screenshot', 코드: 0, 출력: 'Ran: npx appium-cli -s=probe screenshot' }]);
   });
 
-  it('실패한 줄에서 멈추고 1 · 화면 읽기만 한 묶음은 해봄 false', () => {
+  it('실패한 줄에서 멈추고 1 — 멈춰 안 돈 누르기는 해 본 것으로 안 센다', () => {
     writeFileSync(명령파일, 'npx appium-cli -s=probe snapshot\nnpx appium-cli -s=probe tap e9\n');
     const h = 손({ 'npx appium-cli -s=probe snapshot': 1 });
     expect(실행([자료, '본것', 명령파일], h, {})).toBe(1);
     expect(h.돈).toHaveLength(1);
-    expect(기록().몸).toMatchObject({ 멈춤: 1, 해봄: true });
+    expect(기록().몸).toMatchObject({ 멈춤: 1, 해봄: false });
   });
 
   it('출력의 테스트 계정 비밀번호를 가린다', () => {
     writeFileSync(명령파일, 'npx appium-cli -s=probe fill e5 pw-1234\n');
-    실행([자료, '로그인', 명령파일], 손(), { PLATFORM_ACCOUNTS: JSON.stringify([{ loginPassword: 'pw-1234' }]) });
-    expect(JSON.stringify(기록().몸)).not.toContain('pw-1234');
+    실행([자료, '로그인', 명령파일], 손(), { PLATFORM_ACCOUNTS: JSON.stringify([{ loginPassword: 'pw' }, { loginPassword: 'pw-1234' }]) });
+    expect(JSON.stringify(기록().몸)).not.toContain('1234');
   });
 
   it('이름 · 명령 파일이 틀리면 2', () => {

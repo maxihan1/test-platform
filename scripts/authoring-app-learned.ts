@@ -112,7 +112,8 @@ const 있나 = (v: unknown): boolean => v !== undefined && v !== null && v !== '
  * 그리고 지금 빌드와 다른 빌드에서 본 확인 줄(다시 볼 것). 지금 빌드를 모르면 빌드로 가르지 않는다
  */
 export function 열린물음(줄들: readonly 앱배운줄[], 빌드: string | undefined): string[] {
-  const 다른빌드 = (x: 앱배운줄) => 빌드 !== undefined && x.learned.build !== undefined && x.learned.build !== 빌드;
+  // 빌드를 안 적은 막힘도 다른 빌드로 친다 — 아니면 빌드가 바뀌어도 영영 안 열린다
+  const 다른빌드 = (x: 앱배운줄) => 빌드 !== undefined && x.learned.build !== 빌드;
   return 줄들.filter((x) =>
     x.kind === 'ASK' ? !있나(칸(x).닫음) && (!있나(칸(x).막힘) || 다른빌드(x)) : x.learned.belief === 'CONFIRMED' && 다른빌드(x),
   ).map((x) => x.key);
@@ -134,11 +135,12 @@ export const 정리알림 = (자료: string): string[] => {
 
 /**
  * 자식을 띄우기 전에 배운 것 글을 받는다 — 모든 Android 앱 작성(테스트 수정 · 화면이 맞음도 읽기만 한다). 못 받으면 앞 실행이 남긴 것까지 지우고 배운 것 없이 간다(app-route.txt 와 같다).
+ * 세션 사이에 다시 받을 때(앞것둠)는 못 받아도 지우지 않는다 — 지우면 앞 세션들이 배운 줄이 이번 폴더에서 사라져 장치 ① · 쪽지 · 맡은 줄이 다 틀린다.
  * 토큰 거절(401 · 403)은 다시 던진다 — 줄 돌기가 그걸 보고 멈춘다. 못 받은 까닭 글
  */
-export async function 배운것받기(통로: 화면통로, 자료: string): Promise<string | null> {
+export async function 배운것받기(통로: 화면통로, 자료: string, 앞것둠 = false): Promise<string | null> {
   try {
-    rmSync(join(자료, 앱배움자리.글), { force: true, recursive: true });
+    if (!앞것둠) rmSync(join(자료, 앱배움자리.글), { force: true, recursive: true });
     const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${String(통로.번호)}/app-learned`);
     const 글 = (답.몸 as { text?: unknown } | null)?.text;
     if (답.status !== 200 || typeof 글 !== 'string') return `서버 ${String(답.status)}`;
@@ -165,8 +167,8 @@ export async function 배운것올리기(통로: 화면통로, 자료: string, �
   } catch (e) {
     return { 열쇠: [], 못올림: [`배운 줄을 못 올렸다 — ${거절말고(e)}`] };
   }
-  const 왜 = await 배운것받기(통로, 자료);
-  // 못 받았으면 지워진 글 대신 적은 파일이 남아 다음 세션이 그것을 얹어 본다
+  const 왜 = await 배운것받기(통로, 자료, true);
+  // 못 받았으면 앞 글에 적은 파일이 남아 다음 세션이 그것을 얹어 본다
   if (왜 === null) rmSync(join(자료, 앱배움자리.적은), { force: true });
   return { 열쇠: rows.map((r) => r.key), 못올림: 왜 === null ? [] : [`올린 뒤 배운 것 글을 다시 못 받았다 — ${왜}`] };
 }
