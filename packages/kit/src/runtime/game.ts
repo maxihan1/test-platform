@@ -15,6 +15,7 @@ type Env = Record<string, string | undefined>;
 /**
  * 몸통의 game. 꼴은 control-cli 의 Game 에서 고른 메서드(find · click · drag · type · text · get · waitFor · layout · errors · touchDown · touchUp)에 kit 의 waitForValue 를 더한 것이다 (정본은 공통/3-공유계약 「게임 테스트 타입」).
  * 고른 것만 낸다 — control-cli 0.7 부터 좌표를 받는 명령(findAt · swipe · 좌표 터치 · call)이 생겼는데 케이스는 좌표를 쓰지 않는다(도메인/게임 결정 4). 0.8 로 올려도 케이스가 쓰는 꼴은 그대로다
+ * findAll · components · members — 읽기만 한다. 같은 이름이 여럿 나온 오브젝트(웨이브의 적 10마리)를 하나씩 고르고, 칸 이름을 몰라도 컴포넌트 · 칸 목록을 펼쳐 값을 본다(도메인/게임 §3.10 「게임 정보 먼저 쌓기」 · 2026-11-27 사용자 「러너도 값을 다 볼 수 있도록」). 메서드 부르기(callMethod · callStatic)는 내지 않는다 — 판정 동작을 함수로 끝내지 않는다(결정 37)
  * waitForValue — 「값이 될 때까지」. SDK 에 기다리기 명령이 없어 get 을 waitFor 와 같은 간격 · 한도로 되풀이한다 (도메인/게임 §3.10 「케이스 꼴」 기다림)
  * touchDown · touchUp — 「손가락을 올려 둔 동안만 보이는 것」(말풍선). 길게 누르기(longPress)는 눌렀다 뗀 뒤에 답해 그 사이 뜬 것을 못 본다.
  * control-cli 의 touchDown 은 좌표도 받아서 Pick 으로 내지 않고 주소만 받는 꼴로 좁혀 낸다 (2026-11-17 Boss Room 말풍선 케이스 2건 보류)
@@ -23,7 +24,7 @@ type Env = Record<string, string | undefined>;
  * mouseMove · scroll — 가짜 마우스를 오브젝트 위로 옮기기 · 휠. 마우스를 올려야 뜨는 말풍선 · 휠 확대 · 오른쪽 클릭(옮긴 뒤 key('Mouse1'))을 PC 케이스가 쓴다. 주소만 받는다(결정 4)
  * restart — 케이스 도중 게임 껐다 켜기. PC 는 VISION, 폰은 Appium 이라 케이스 몸통이 driver 없이 같은 한 줄로 쓴다 (공통/3-공유계약 「게임 테스트 타입」 2026-11-22)
  */
-export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'waitFor' | 'layout' | 'errors' | 'touchUp' | 'keyUp'> & {
+export type GameDriver = Pick<Game, 'find' | 'findAll' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'components' | 'members' | 'waitFor' | 'layout' | 'errors' | 'touchUp' | 'keyUp'> & {
   touchDown(target: string, options?: Parameters<Game['touchDown']>[1]): Promise<number>;
   key(name: string, options?: { duration?: number }): Promise<void>;
   keyDown(keys: string): Promise<void>;
