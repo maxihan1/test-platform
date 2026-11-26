@@ -90,6 +90,7 @@ const 안보는곳: Record<string, string> = {
   'prd/gameKinds.ts': '게임 요소 종류 이름(`상태 바뀜`)이다 — 게임 지도 글에 실려 작성 에이전트가 읽고 케이스 설계 문서도 그 이름으로 적는다',
   'prd/gameRoute.ts': '작성 에이전트에게 주는 조작 맵 글이다',
   'prd/appRoute.ts': '작성 에이전트에게 주는 앱 조작 맵 글이다',
+  'prd/appLearned.ts': '작성 에이전트에게 주는 앱 배운 것 글이다',
   'catalog/check.ts': '케이스 파일 검사(`npm run check:tests`) 글 — 케이스를 쓰는 작성 에이전트와 개발자가 읽는다',
   'catalog/rules.ts': '케이스 파일 검사 규칙의 까닭 글',
   'catalog/cssLocator.ts': '케이스 파일 검사 글',

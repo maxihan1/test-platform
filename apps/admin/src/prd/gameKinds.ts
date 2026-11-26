@@ -47,6 +47,11 @@ export interface 배운것 {
 
 const 상한 = { 글: 1_000, 빌드: 100, 전체: 10_000, 횟수: 1_000_000, 관련: 50, 열쇠: 200 } as const;
 const 칸들 = new Set(['text', 'belief', 'seen', 'build', 'shape', 'marks', 'data', 'related']);
+// 앱 배운 것(도메인/작성 §3.6 「★ 앱 배우기」 「배운 것 — 종류와 칸」) — 꼴 · 표시는 게임 판 몫이고 앱 안 안내 글은 crawl 화면 기록에 있어 「게임 글」이 없다
+const 앱칸들 = new Set(['text', 'belief', 'seen', 'build', 'data', 'related']);
+const 앱믿음 = { GUESS: 믿음.GUESS, SEEN: 믿음.SEEN, CONFIRMED: 믿음.CONFIRMED, OVERTURNED: 믿음.OVERTURNED } as const;
+/** 앱 배운 줄이 「확인」이 되려면 조건을 바꿔 이만큼 봐야 한다 — 첫 값이다. 실측(APP-F5-06) 뒤 고친다 (작성 §3.6 「★ 앱 배우기」 「첫 값」) */
+export const 앱확인횟수 = 2;
 // JSON 글에서 이스케이프된 NUL · 짝 없는 surrogate(짝이 맞으면 이스케이프되지 않는다). 글자 그대로의 역슬래시(\\\\u0000)는 지나친다
 const 못담는글자 = /(?<!\\)(?:\\\\)*\\u(?:0000|d[89a-f][0-9a-f]{2})/;
 // 열쇠는 「item:sword_short」 「move:성향 선량→보라」 꼴 — 앞머리 뒤에 무엇이든 온다
@@ -55,17 +60,27 @@ export const 열쇠꼴 = /^[a-z_]+:\S/;
 const 글인가 = (v: unknown, 최대: number): v is string => typeof v === 'string' && v.trim() !== '' && v.length <= 최대;
 const 하나인가 = (v: unknown, 목록: object): boolean => typeof v === 'string' && Object.hasOwn(목록, v);
 
-/** learned 본문을 본다. 맞으면 null, 틀리면 그 칸 이름(전체가 틀렸으면 빈 글) */
-export function 배운것틀림(v: unknown, 종류: string): string | null {
+/**
+ * learned 본문을 본다. 맞으면 null, 틀리면 그 칸 이름(전체가 틀렸으면 빈 글).
+ * 앱 갈래(app_learned)는 칸 · 믿음이 더 좁고, 확인 줄은 잰 값 · 본 횟수 · 빌드가 있어야 한다 — 게임은 PRD 로 옮길 때만 본다(작성 §3.6 「★ 앱 배우기」 「막는 장치」 ④)
+ */
+export function 배운것틀림(v: unknown, 종류: string, 갈래: '게임' | '앱' = '게임'): string | null {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return '';
   const l = v as Record<string, unknown>;
+  const 앱 = 갈래 === '앱';
   // 모르는 칸을 버리면 AI 가 잘못 적은 이름(confidence 같은)이 조용히 사라진다
-  const 모름 = Object.keys(l).find((k) => !칸들.has(k));
+  const 모름 = Object.keys(l).find((k) => !(앱 ? 앱칸들 : 칸들).has(k));
   if (모름 !== undefined) return 모름.slice(0, 50);
   if (!글인가(l.text, 상한.글)) return 'text';
-  if (l.belief === undefined ? 종류 !== 'KIND' : !하나인가(l.belief, 믿음)) return 'belief';
+  if (l.belief === undefined ? 앱 || 종류 !== 'KIND' : !하나인가(l.belief, 앱 ? 앱믿음 : 믿음)) return 'belief';
   if (l.seen !== undefined && !(Number.isInteger(l.seen) && (l.seen as number) >= 0 && (l.seen as number) <= 상한.횟수)) return 'seen';
   if (l.build !== undefined && !글인가(l.build, 상한.빌드)) return 'build';
+  if (앱 && l.belief === 'CONFIRMED') {
+    if (l.seen === undefined || (l.seen as number) < 앱확인횟수) return 'seen';
+    if (l.build === undefined) return 'build';
+    // 빈 값은 잰 것이 아니다 — {} · [] · '' 로 확인을 달면 장치 ④ 가 뚫린다
+    if (l.data === undefined || l.data === null || l.data === '' || (typeof l.data === 'object' && Object.keys(l.data).length === 0)) return 'data';
+  }
   if (l.shape !== undefined && !하나인가(l.shape, 꼴)) return 'shape';
   if (l.marks !== undefined && !(Array.isArray(l.marks) && new Set(l.marks).size === l.marks.length && l.marks.every((m) => 하나인가(m, 표시)))) return 'marks';
   if (l.related !== undefined && !(Array.isArray(l.related) && l.related.length <= 상한.관련 && l.related.every((k) => 글인가(k, 상한.열쇠) && 열쇠꼴.test(k)))) return 'related';

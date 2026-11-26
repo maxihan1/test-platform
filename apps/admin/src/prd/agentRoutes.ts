@@ -1,4 +1,4 @@
-// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 · 조작 맵 · 앱 조작 맵 (도메인/작성 §7 「표준 기획서 통로」 · 「앱 조작 맵 통로」 · 도메인/게임 §7)
+// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 · 조작 맵 · 앱 조작 맵 · 앱 배운 것 (도메인/작성 §7 「표준 기획서 통로」 · 「앱 조작 맵 통로」 · 「앱 배운 것 통로」 · 도메인/게임 §7)
 // 서비스 경계는 문이 요청 번호로 봤다. 여기서는 맥 계정 · 집은 쪽 · 도는 중인지를 본다(authoring/agentRoutes.ts 와 같은 문턱)
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -10,6 +10,7 @@ import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 만든종류읽기, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
 import { 고침이팝업을올렸나, 맵글, 조작행검사, 조작행넣기 } from './gameRoute.js';
 import { 맵줄검사, 맵줄넣기, 앱맵글, 앱서비스인가 } from './appRoute.js';
+import { 배운것글, 배운줄검사, 배운줄넣기 } from './appLearned.js';
 import type { 앱요청 } from '../authoring/store.js';
 import { TCID } from '../catalog/rules.js';
 import { 누가, 판번호, 틀린판번호 } from './routes.js';
@@ -178,6 +179,24 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     if (행 === null) return reply;
     if (!(await 앱서비스인가(행.serviceId))) return reply.code(400).send(앱아님);
     return { text: await 앱맵글(행.serviceId) };
+  });
+
+  // 앱 배운 것 — Android 앱만. 배우기가 「이걸 하면 어떻게 되나」를 줄로 올리고 다음 작성의 찾기 명령이 글을 읽는다 (도메인/작성 §3.6 「★ 앱 배우기」)
+  app.put<경로 & { Body: unknown }>('/authoring/requests/:id/app-learned', { bodyLimit: 본문상한 }, async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 앱서비스인가(행.serviceId))) return reply.code(400).send(앱아님);
+    const 읽음 = 배운줄검사(req.body);
+    if ('error' in 읽음) return reply.code(400).send(읽음);
+    await 배운줄넣기(행.serviceId, 읽음.rows);
+    return reply.code(204).send();
+  });
+
+  app.get<경로>('/authoring/requests/:id/app-learned', async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 앱서비스인가(행.serviceId))) return reply.code(400).send(앱아님);
+    return { text: await 배운것글(행.serviceId) };
   });
 
   // seen 5,000개에 화면 크기 차이(화면 하나 최대 13KB)까지 실려 기본 1MiB 를 넘을 수 있다 (PRD-F10-07)

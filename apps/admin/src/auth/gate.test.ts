@@ -692,6 +692,7 @@ describe('등급 표', () => {
     ['GET /api/authoring/requests/:id/game-map', 'operator'],
     ['GET /api/authoring/requests/:id/game-route', 'operator'],
     ['GET /api/authoring/requests/:id/app-route', 'operator'],
+    ['GET /api/authoring/requests/:id/app-learned', 'operator'],
     // 성능 에이전트를 붙이고 고치고 지우는 일은 admin 이다 (도메인/성능 §3.9 결정 15)
     ['POST /api/perf/agents', 'admin'],
     ['PATCH /api/perf/agents/:id', 'admin'],
