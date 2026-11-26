@@ -136,7 +136,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 간격ms = !돌릴까 || 덧?.도중화면ms === undefined || 덧.도중화면ms <= 0 ? 0 : 간격정하기(덧.도중화면ms, 한도ms);
   const 찍기 = 간격ms === 0 ? null : 찍기시작(맨게임, 간격ms, 시작);
   // 10판 확인처럼 화면을 끈 판은 원래 속도만 본다 — 세기도 같이 끈다
-  const 세기 = 간격ms === 0 ? null : 세기시작(맨게임, 간격ms, 시작, 지도글(덧?.자료));
+  const 세기 = 간격ms === 0 ? null : 세기시작(맨게임, 간격ms, 시작, 지도글(덧?.자료), 덧?.자료);
   await 세기?.준비;
   const 출발자리 = 덧?.출발;
   const 출발 = 출발자리 === undefined ? undefined : 수로(await 해본다('나아감 읽기', () => (출발자리.칸 === undefined ? 맨게임.text(출발자리.주소) : 맨게임.get(출발자리.주소, 출발자리.칸))));

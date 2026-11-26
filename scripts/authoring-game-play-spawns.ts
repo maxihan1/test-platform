@@ -6,11 +6,11 @@ import { join } from 'node:path';
 import type { Found, Game } from 'control-cli';
 
 import { 게임자리 } from './authoring-game.js';
-import { 펼친다 } from './authoring-game-props.js';
-import { 이름만, 화면그림인가 } from './authoring-game-watch-report.js';
+import { 종류 } from './authoring-game-bundles.js';
+import { 새종류펼치기, 펼칠상한 } from './authoring-game-play-expand.js';
+import { 화면그림인가 } from './authoring-game-watch-report.js';
 
-/** 한 판에 펼치는 종류 — 판 도중 명령이 많으면 조작 함수의 입력이 밀린다 */
-export const 펼칠상한 = 10;
+export { 종류, 펼칠상한 };
 const 이어실패한도 = 3;
 /** 판이 끝난 뒤 돌던 세기 · 펼치기를 기다리는 한도 */
 const 끝기다림ms = 10_000;
@@ -45,15 +45,14 @@ export interface 나온것 {
   처음지도에없음: string[];
   펼침: 펼친기록[];
   안펼침: string[];
+  /** 앞 판에서 이미 값 파일을 남겨 이번에는 안 펼친 종류 */
+  이미펼침?: string[];
 }
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 /** 판이 끝나 세기를 그쳤다 — 돌던 펼치기가 판 뒤에 명령을 더 보내지 않게 다음 명령에서 멈춘다. 실패로 세지 않는다 */
 class 그침 extends Error {}
-
-/** 같은 종류로 묶는 이름 — `(Clone)` · ` (1)` · `[n]` 꼬리를 뗀다 */
-export const 종류 = (경로: string): string => 이름만(경로).replace(/\(Clone\)/g, '').replace(/\s*\(\d+\)$/, '').trim();
 
 /**
  * 맨 위 것만 센다 — 뿌리에 있거나 부모가 처음 목록에 있던 것. 새로 나온 것 안의 뼈 · 부품은 부모가 처음에 없어 빠진다.
@@ -112,7 +111,7 @@ export interface 세는고리 {
 }
 
 /** 바로 한 번(처음 목록) 세고 간격마다 다시 센다. 세기가 던져도 함수는 계속 돈다 — 세 번 이어 실패하면 그친다 */
-export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number, 지도: string): 세는고리 {
+export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number, 지도: string, 자료?: string): 세는고리 {
   const 나온: 나온것 = { 간격ms, 처음: {}, 장면바뀜: [], 센때: [], 첫초: {}, 화면것: [], 지도에없음: [], 처음지도에없음: [], 펼침: [], 안펼침: [] };
   let 처음경로: Set<string> | null = null;
   let 처음번호 = new Set<string>();
@@ -179,21 +178,7 @@ export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number
       }
       if (지도에있나(지도, k)) continue;
       나온.지도에없음.push(k);
-      if (!펼칠까 || 나온.펼침.length >= 펼칠상한) {
-        나온.안펼침.push(k);
-        continue;
-      }
-      const 주소 = f.id === undefined ? f.path : `//*[@id=${f.id}]`;
-      try {
-        const 글 = await 펼친다(지킨 as unknown as Game, 주소, 이름만(f.path));
-        나온.펼침.push({ 종류: k, 초, 주소, 글 });
-      } catch (e) {
-        if (e instanceof 그침) {
-          나온.안펼침.push(k);
-          throw e;
-        }
-        나온.펼침.push({ 종류: k, 초, 주소, 못함: 까닭(e) });
-      }
+      await 새종류펼치기({ 나온, 종류: k, 찾음: f, 초, 펼칠까, 게임: 지킨 as unknown as Game, 장면: 지금장면 ?? 장면, 그침인가: (e) => e instanceof 그침, ...(자료 === undefined ? {} : { 자료 }) });
     }
   };
   const 해본다 = async (펼칠까: boolean): Promise<void> => {
@@ -274,6 +259,7 @@ export function 나온것줄(나온: 나온것, 화면이름: ((초: number) => 
       ...(첫 === undefined ? [`가장 적을 때 ${적.수}개(${적.초.toFixed(0)}초)`] : []),
       `끝 ${수들.at(-1)!.수}개`,
       ...(나온.지도에없음.includes(k) ? ['지도에 없음'] : []),
+      ...(나온.이미펼침?.includes(k) ? ['값 파일 있음'] : []),
       ...(나온.펼침.some((x) => x.종류 === k && x.글 !== undefined) ? ['펼침'] : 나온.펼침.some((x) => x.종류 === k) ? ['펼치다 실패'] : 나온.안펼침.includes(k) ? ['안 펼침'] : []),
       ...(첫 === undefined || 화면이름 === null ? [] : [`가까운 화면 ${화면이름(첫)}`]),
     ];

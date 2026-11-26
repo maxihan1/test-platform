@@ -32,6 +32,8 @@ export const 게임자리 = {
   옮김: 'game-prd.json', 빌드: 'game-build.txt', 이긴판: 'game-wins.json',
   // 빌드 zip 에서 꺼낸 게임 데이터 · 데이터 묶음 칸 이름 · 어느 빌드에서 꺼냈나(authoring-game-build-data). 전략 계산 · 칸 이름 읽기용이고 지도에는 적지 않는다
   빌드데이터: 'game-build-data.json', 종류표: 'game-types.txt', 빌드열쇠: 'game-build-data.key',
+  // 판 도중 처음 나온 종류마다 펼쳐 읽은 값 파일 `game-props/<종류>.json`(출처 실행 중) — authoring-game-bundles
+  값파일: 'game-props',
 } as const;
 
 const 기록상한 = 200_000;

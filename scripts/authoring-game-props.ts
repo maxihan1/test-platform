@@ -8,8 +8,9 @@ import { Game, type Link } from 'control-cli';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
+import { type 종류표, 값파일쓰기, 묶음읽기, 묶음타입, 종류, 종류표읽기 } from './authoring-game-bundles.js';
 import { 정리알림 } from './authoring-game-find.js';
-import { 엔진것, 틀칸 } from './authoring-game-watch-report.js';
+import { 엔진것, 이름만, 틀칸 } from './authoring-game-watch-report.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
 import { 잡은폰 } from './authoring-run3-game.js';
@@ -77,7 +78,11 @@ export function 펼친글(주소: string, 이름: string, 들: readonly 펼친�
         const m = 묶음값.exec(f.value);
         if (m === null) (f.value.includes('.') ? 묶음 : 값).push(f.value.includes('.') ? `${이름표} → (${짧은(f.value)})` : `${이름표}=${f.value}`);
         // 자기 오브젝트의 다른 컴포넌트를 가리키는 칸은 이미 여기 펼쳐진다
-        else if (m[1] !== 이름) 묶음.push(`${이름표} → ${m[1]!} (${짧은(m[2]!)})`);
+        else if (m[1] !== 이름) {
+          묶음.push(`${이름표} → ${m[1]!} (${짧은(m[2]!)})`);
+          // 칸 이름 표(game-types.txt)로 읽은 묶음 안 값 — 하위 칸마다 `묶음.하위=값`
+          for (const [열쇠, v] of 읽은) if (열쇠.startsWith(`${c.name}.${f.name}.`)) 값.push(`${열쇠.slice(c.name.length + 1)}=${JSON.stringify(v)}`);
+        }
       }
     }
     const 함수 = [...new Set(c.methods.filter((m) => !물려준.has(m.name) && !틀이름.test(m.name)).map((m) => `${m.name}(${m.args.join(', ')})`))];
@@ -93,12 +98,22 @@ export function 펼친글(주소: string, 이름: string, 들: readonly 펼친�
   }
   return [
     ...줄.map(자름),
-    '값은 `get <주소> <컴포넌트.칸>` 으로 다시 읽는다(static 은 `static-get <컴포넌트>.<칸>` — get 은 「칸이 없습니다」라고 한다). 묶음 안은 칸 이름을 알아야 읽힌다(`get <주소> <컴포넌트.묶음.칸>`), 목록은 `.Count` · `.Length` 만.',
+    '값은 `get <주소> <컴포넌트.칸>` 으로 다시 읽는다(static 은 `static-get <컴포넌트>.<칸>` — get 은 「칸이 없습니다」라고 한다). 묶음 안은 칸 이름을 알아야 읽힌다(`get <주소> <컴포넌트.묶음.칸>`) — 칸 이름은 자료 폴더 game-types.txt 에 있고 그 표로 읽은 값은 위에 `묶음.칸=값` 으로 나온다. 목록은 `.Count` · `.Length` 만.',
   ];
 }
 
-/** 오브젝트 하나를 펼친 글 — 판 돌리기도 판 도중 새로 나온 것에 부른다. 이름은 자기 컴포넌트를 가리키는 칸을 거르는 데 쓴다 */
-export async function 펼친다(game: Game, 주소: string, 이름 = 주소.split('/').pop()!.replace(/\[\d+\]$/, '')): Promise<string[]> {
+export interface 펼침 {
+  글: string[];
+  /** `컴포넌트.칸` · `컴포넌트.묶음.하위칸` → 읽은 값 — 값 파일에 남긴다 */
+  값: Record<string, unknown>;
+  목록칸: string[];
+}
+
+/**
+ * 오브젝트 하나를 펼친다 — 판 돌리기도 판 도중 새로 나온 것에 부른다. 이름은 자기 컴포넌트를 가리키는 칸을 거르는 데 쓴다.
+ * 표(game-types.txt)가 있으면 묶음 칸도 칸 이름으로 한 번 더 읽는다
+ */
+export async function 펼쳐읽기(game: Game, 주소: string, 이름 = 주소.split('/').pop()!.replace(/\[\d+\]$/, ''), 표: 종류표 = new Map()): Promise<펼침> {
   const 컴포넌트 = await game.components(주소);
   const 들: 펼친것[] = [];
   const 게임것 = 컴포넌트.filter((x) => !엔진것.test(x.type));
@@ -111,7 +126,43 @@ export async function 펼친다(game: Game, 주소: string, 이름 = 주소.spli
       // 값이 아직 없는 네트워크 값이다 — 이름만 보인다
     }
   }
-  return 펼친글(주소, 이름, 들, 컴포넌트.filter((x) => 엔진것.test(x.type)).map((x) => x.name), 읽은);
+  const 목록칸: string[] = [];
+  for (const c of 들) {
+    for (const f of 볼칸들(c)) {
+      const 타입 = 네트워크값(f) || f.value === null || 목록꼴.test(f.type) ? null : 묶음타입(f.type, f.value, 표);
+      const m = typeof f.value === 'string' ? 묶음값.exec(f.value) : null;
+      if (타입 === null || m === null || m[1] === 이름) continue;
+      const r = await 묶음읽기(game, 주소, `${c.name}.${f.name}`, 타입, 표);
+      for (const [열쇠, v] of r.값) 읽은.set(열쇠, v);
+      목록칸.push(...r.목록칸);
+    }
+  }
+  const 값: Record<string, unknown> = {};
+  for (const c of 들) for (const f of 볼칸들(c)) if (!네트워크값(f) && f.value !== undefined && f.value !== null && !목록꼴.test(f.type)) 값[`${c.name}.${f.name}`] = f.value;
+  for (const [열쇠, v] of 읽은) 값[열쇠] = v;
+  return { 글: 펼친글(주소, 이름, 들, 컴포넌트.filter((x) => 엔진것.test(x.type)).map((x) => x.name), 읽은), 값, 목록칸 };
+}
+
+export const 펼친다 = async (game: Game, 주소: string, 이름?: string, 표?: 종류표): Promise<string[]> => (await 펼쳐읽기(game, 주소, 이름, 표)).글;
+
+/** 환경의 계정 비밀번호를 값 파일에서 가린다 — 환경 값이 틀려 못 읽으면 가릴 것이 없는 것으로 */
+function 비밀가리개(): (글: string) => string {
+  let 비밀들: string[] = [];
+  try {
+    비밀들 = 환경비밀번호들(process.env);
+  } catch {
+    // PLATFORM_ACCOUNTS 가 JSON 이 아니면 값 파일에 섞일 비밀번호도 모른다
+  }
+  return (글) => 비밀가리기(글, 비밀들);
+}
+
+/** 펼치고 값 파일 `game-props/<종류>.json` 로 남긴다 — 판 도중 자동 펼치기와 손으로 부른 펼치기가 같이 쓴다. 파일을 못 써도 펼친 글은 돌려준다 */
+export async function 펼쳐남기기(game: Game, 주소: string, 이름: string, 값파일정보: { 종류: string; 장면: string | null; 자료?: string }): Promise<string[]> {
+  const { 자료 } = 값파일정보;
+  const r = await 펼쳐읽기(game, 주소, 이름, 종류표읽기(자료));
+  if (자료 === undefined) return r.글;
+  const 못씀 = 값파일쓰기(자료, { 종류: 값파일정보.종류, 장면: 값파일정보.장면, 읽은때: new Date().toISOString(), 출처: '실행 중', 칸: r.값, 목록칸: r.목록칸 }, 비밀가리개());
+  return 못씀 === null ? r.글 : [...r.글, `값 파일을 못 썼다: ${못씀}`];
 }
 
 /** 0 펼쳤다 · 1 그 주소를 못 읽었다 · 2 부를 수 없다 */
@@ -138,7 +189,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   }
   let 글: string[];
   try {
-    글 = await 펼친다(game, 주소);
+    const 장면 = await game.scenes().then((x) => (typeof x.active === 'string' ? x.active : null), () => null);
+    글 = await 펼쳐남기기(game, 주소, 이름만(주소), { 종류: 종류(주소), 장면, ...(자료 === undefined ? {} : { 자료 }) });
   } catch (e) {
     console.error(`[펼치기] ${비밀가리기(까닭(e), 비밀들)}`);
     return 1;

@@ -84,14 +84,14 @@ describe('판 도중 새로 나온 것', () => {
   });
 
   it(`한 판에 ${펼칠상한}종류까지만 펼치고 나머지는 「안 펼침」으로 남긴다`, async () => {
-    const 많이 = [...바탕, ...Array.from({ length: 펼칠상한 + 2 }, (_, i) => 것(`/Mob${String.fromCharCode(65 + i)}`, String(100 + i)))];
+    const 많이 = [...바탕, ...Array.from({ length: 펼칠상한 + 2 }, (_, i) => 것(`/Mob${i}`, String(100 + i)))];
     const g = 가짜([바탕, 많이]);
     const 고리 = 세기시작(g.game, 10, Date.now(), '');
     await 쉼(40);
     const { 나온 } = await 고리.끝난다();
     expect(g.펼친).toHaveLength(펼칠상한);
-    expect(나온!.안펼침).toEqual(['MobK', 'MobL']);
-    expect(나온것줄(나온!, null, null).at(-1)).toContain('MobK · MobL');
+    expect(나온!.안펼침).toEqual([`Mob${펼칠상한}`, `Mob${펼칠상한 + 1}`]);
+    expect(나온것줄(나온!, null, null).at(-1)).toContain(`Mob${펼칠상한} · Mob${펼칠상한 + 1}`);
   });
 
   it('장면이 바뀌면 바뀐 장면의 첫 목록을 처음으로 다시 잡는다 — 메뉴에서 판으로 들어가도 판의 모든 것이 새것이 되지 않는다', async () => {
@@ -135,6 +135,38 @@ describe('판 도중 새로 나온 것', () => {
     expect(g.부름()).toBe(뒤 + 1);
     expect(나온!.펼침).toEqual([]);
     expect(나온!.안펼침).toEqual(['Boss']);
+  });
+
+  it('묶음 칸은 game-types.txt 의 칸 이름으로 읽어 값 파일로 남기고, 값 파일이 있는 종류는 다음 판에 다시 안 펼친다', async () => {
+    const d = mkdtempSync(join(tmpdir(), 'spawns-'));
+    자리들.push(d);
+    writeFileSync(join(d, 'game-types.txt'), 'MonsterTypeData MaxHP:int Damage:float ItemDropData:PPtr<$ItemDropData> Drops:vector\nItemDropData Weight:float\n');
+    const 읽음: string[] = [];
+    const 묶음게임 = (목록: Found[]): Game => ({
+      ...가짜([바탕, 목록]).game,
+      components: async () => [{ name: 'MonsterAI', type: 'Game.MonsterAI' }, { name: 'Transform', type: 'UnityEngine.Transform' }],
+      members: async () => ({ fields: [{ name: 'TypeData', type: 'MonsterTypeData', value: 'Ghost_Data (Game.Configuration.MonsterTypeData)' }, { name: 'Speed', type: 'Single', value: 3 }], properties: [], methods: [] }),
+      get: async (_주소: string, 칸: string) => {
+        읽음.push(칸);
+        return { 'MonsterAI.TypeData.MaxHP': 30, 'MonsterAI.TypeData.Damage': 4.5, 'MonsterAI.TypeData.ItemDropData.Weight': 0.25 }[칸];
+      },
+    }) as unknown as Game;
+    const 판 = [...바탕, 것('/Enemies/Ghost(Clone)', '7')];
+    const 첫 = 세기시작(묶음게임(판), 10, Date.now(), '', d);
+    await 쉼(60);
+    const { 나온: 첫판 } = await 첫.끝난다();
+    expect(읽음).toEqual(['MonsterAI.TypeData.MaxHP', 'MonsterAI.TypeData.Damage', 'MonsterAI.TypeData.ItemDropData.Weight']);
+    expect(첫판!.펼침[0]!.글!.join('\n')).toContain('TypeData.MaxHP=30');
+    const 파일 = JSON.parse(readFileSync(join(d, 'game-props', 'Ghost.json'), 'utf8')) as Record<string, unknown>;
+    expect(파일).toMatchObject({ 종류: 'Ghost', 장면: 'Stage', 출처: '실행 중', 목록칸: ['MonsterAI.TypeData.Drops'], 칸: { 'MonsterAI.Speed': 3, 'MonsterAI.TypeData.MaxHP': 30, 'MonsterAI.TypeData.Damage': 4.5, 'MonsterAI.TypeData.ItemDropData.Weight': 0.25 } });
+    expect(typeof 파일.읽은때).toBe('string');
+    const 둘째 = 세기시작(묶음게임(판), 10, Date.now(), '', d);
+    await 쉼(60);
+    const { 나온: 둘째판 } = await 둘째.끝난다();
+    expect(둘째판!.펼침).toEqual([]);
+    expect(둘째판!.이미펼침).toEqual(['Ghost']);
+    expect(나온것줄(둘째판!, null, null).join('\n')).toContain('값 파일 있음');
+    expect(읽음).toHaveLength(3);
   });
 
   it('바뀐 것이 없으면 한 줄로 말하고, 세 번 이어 못 세면 그치고 한 줄만 남긴다', async () => {
