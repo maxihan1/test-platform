@@ -30,6 +30,8 @@ export const 게임자리 = {
   케이스시작: 'game-cases.start',
   // 배운 줄 → 요구 번호 표(자식이 쓴다) · 지금 빌드 이름(에이전트가 쓴다) · 이긴 판 기록(authoring-game-wins) (도메인/게임 §3.10 「배운 것을 PRD · 테스트로」)
   옮김: 'game-prd.json', 빌드: 'game-build.txt', 이긴판: 'game-wins.json',
+  // 빌드 zip 에서 꺼낸 게임 데이터 · 데이터 묶음 칸 이름 · 어느 빌드에서 꺼냈나(authoring-game-build-data). 전략 계산 · 칸 이름 읽기용이고 지도에는 적지 않는다
+  빌드데이터: 'game-build-data.json', 종류표: 'game-types.txt', 빌드열쇠: 'game-build-data.key',
 } as const;
 
 const 기록상한 = 200_000;
