@@ -170,6 +170,14 @@ describe('앱체크포인트돌기', () => {
     expect(await 앱체크포인트돌기(통로, 자료, [], undefined)).toEqual({ 거절: '앱 탐색 체크포인트를 못 지났다 — 「글 상세」 — 결과가 없다(「길 있음」 · 「경로 확보」 · 「진행 불가」와 까닭)', 크롤줄: [] });
     expect(existsSync(join(자료, 'app-explore.done'))).toBe(false);
   });
+
+  it('기획서 맞대기를 거는 작성은 맞대기 표가 없거나 진행 불가가 해 본 기록을 안 대면 못 지난다', async () => {
+    쓰기('app-route.txt', 맵);
+    쓰기('app-explore.json', { 목표: [목표({ 기능: '알림', 화면: 알림, 결과: '진행 불가', 까닭: '알림이 안 온다' })], 계정비우기: '함' });
+    서버({ 'GET /app-route': { status: 200, 몸: { text: 맵 } } });
+    const 판 = await 앱체크포인트돌기(통로, 자료, [], undefined, { 접두사: 'MTA', 대조: false });
+    expect(판).toMatchObject({ 거절: expect.stringMatching(/「알림」 — 진행 불가 까닭에 이번 해 본 기록이 0개다.* \/ app-compare\.json 이 없거나/) });
+  });
 });
 
 describe('앱탐색절', () => {
