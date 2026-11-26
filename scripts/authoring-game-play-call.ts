@@ -38,6 +38,8 @@ export interface 부를것 {
   /** 도중 화면 간격(초) — 안 주면 undefined(명령마다 기본을 정한다), 0 은 끔 */
   화면초?: number;
   멈춤: boolean;
+  /** `--plan <계획 줄 열쇠>` — 학습 세션에서 계획으로 해 본다 */
+  계획?: string;
 }
 
 /** 도중 화면 기본 간격(초) — 조작 도우미 · 지켜보기가 같이 쓴다 */
@@ -50,14 +52,21 @@ export interface 깃발들 {
   초: number;
   화면초?: number;
   멈춤: boolean;
+  계획?: string;
 }
 
-/** `--max <초>` · `--shots <초>` · `--freeze` 를 뗀다 — 값이 틀리면 null. 같은 이름을 두 번 주면 마지막 값이다 */
+/** `--max <초>` · `--shots <초>` · `--freeze` · `--plan <열쇠>` 를 뗀다 — 값이 틀리면 null. 같은 이름을 두 번 주면 마지막 값이다 */
 export function 깃발읽기(인자: readonly string[]): 깃발들 | null {
   const r: 깃발들 = { 남음: [], 초: 기본초, 멈춤: false };
   for (let i = 0; i < 인자.length; i += 1) {
     const x = 인자[i]!;
     if (x === '--freeze') r.멈춤 = true;
+    else if (x === '--plan') {
+      const 값 = 인자[i + 1];
+      i += 1;
+      if (값 === undefined || 값.trim() === '') return null;
+      r.계획 = 값;
+    }
     else if (x === '--max' || x === '--shots') {
       const 값 = 인자[i + 1];
       i += 1;
@@ -75,7 +84,7 @@ export async function 부를준비(명령: string, 머리: string, 인자: strin
   const 깃발 = 깃발읽기(인자);
   const [폴더, 파일, 이름, 인자글, ...남음] = 깃발?.남음 ?? [];
   if (깃발 === null || 폴더 === undefined || 파일 === undefined || 이름 === undefined || 남음.length > 0 || !/^[\p{L}\p{N}_$]+$/u.test(이름)) {
-    console.error(`쓰는 법: npx tsx scripts/${명령}.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초 — ${최대초}까지>] [--shots <초 — ${최대화면초}까지 · 0 은 끔>] [--freeze]`);
+    console.error(`쓰는 법: npx tsx scripts/${명령}.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초 — ${최대초}까지>] [--shots <초 — ${최대화면초}까지 · 0 은 끔>] [--freeze] [--plan <계획 줄 열쇠>]`);
     return null;
   }
   const { 초 } = 깃발;
@@ -114,5 +123,5 @@ export async function 부를준비(명령: string, 머리: string, 인자: strin
   }
   const 자료 = env[게임자료환경];
   const 환경 = { ...env, ...게임환경(폰), PLATFORM_PAD: '', PLATFORM_GAME_POPUPS: 돌발팝업값(자료) };
-  return { 폴더, 파일, 이름, 자리, 넘길, 초, 함수: (game) => (함수 as (...a: unknown[]) => unknown)(game, ...넘길), 환경, 비밀들, 자료, ...(깃발.화면초 === undefined ? {} : { 화면초: 깃발.화면초 }), 멈춤: 깃발.멈춤 };
+  return { 폴더, 파일, 이름, 자리, 넘길, 초, 함수: (game) => (함수 as (...a: unknown[]) => unknown)(game, ...넘길), 환경, 비밀들, 자료, ...(깃발.화면초 === undefined ? {} : { 화면초: 깃발.화면초 }), 멈춤: 깃발.멈춤, ...(깃발.계획 === undefined ? {} : { 계획: 깃발.계획 }) };
 }

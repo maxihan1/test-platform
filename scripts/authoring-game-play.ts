@@ -5,7 +5,7 @@
 import { pathToFileURL } from 'node:url';
 
 import { gameLink, openGame } from '@platform/kit/game';
-import { Game, type Command, type Link } from 'control-cli';
+import { Game, flatten, type Command, type Link } from 'control-cli';
 
 import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
 import { 멈추기, 풀기 } from './authoring-game-play-freeze.js';
@@ -13,8 +13,11 @@ import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
 import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
 import { type 나온것, 세기시작, 지도글 } from './authoring-game-play-spawns.js';
 import { 막는글, 안적은새것 } from './authoring-game-play-gate.js';
+import { 값읽기시작 } from './authoring-game-play-values.js';
 import { 결과글 } from './authoring-game-state.js';
-import { 정리알림 } from './authoring-game-find.js';
+import { 정리알림, 지금지도 } from './authoring-game-find.js';
+import { type 값기록, type 끝글줄, type 볼값, 수로, 판기록들 } from './authoring-learn-check.js';
+import { type 해볼것, 배움막기 } from './authoring-learn-retro.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 
 /** 보낸 명령의 답을 기다리는 한도 — 팜이 명령 하나를 20초 안에 끊는다. 답 전에 거두면 늦게 닿은 누르기가 눌린 채 남는다 */
@@ -50,6 +53,13 @@ export interface 조작결과 {
   멈춘채: boolean;
   /** 판 도중 새로 나온 것 · 수가 바뀐 것 — 도중 화면을 켰을 때만 센다 */
   나온것?: 나온것;
+  /** 계획으로 해 봤을 때 — 2초마다 읽은 볼값과 처음 어긋난 때 · 그 순간 사진 */
+  값기록?: 값기록;
+  어긋난사진?: Buffer;
+  /** 함수가 끝난 순간 화면의 글자 — 「확인」 줄 검사가 읽는다 */
+  끝글?: 끝글줄[];
+  /** 함수를 부르기 직전의 나아감(덧.출발을 줬을 때) — 못 읽으면 null */
+  출발?: number | null;
 }
 
 export interface 덧 {
@@ -59,6 +69,10 @@ export interface 덧 {
   멈춤?: boolean;
   /** 멈춤 표시를 두는 자료 폴더 — 표시가 있으면 멈춤을 안 줘도 부르기 직전에 푼다 */
   자료?: string;
+  /** 계획으로 해 본다 — 볼값을 2초마다 읽는다 */
+  볼?: 해볼것;
+  /** 함수를 부르기 직전에 이 값(나아감)을 한 번 읽는다 — 10판 확인이 판마다 같은 출발점인지 본다 */
+  출발?: 볼값;
 }
 
 /**
@@ -117,6 +131,9 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   // 10판 확인처럼 화면을 끈 판은 원래 속도만 본다 — 세기도 같이 끈다
   const 세기 = 간격ms === 0 ? null : 세기시작(맨게임, 간격ms, 시작, 지도글(덧?.자료));
   await 세기?.준비;
+  const 출발자리 = 덧?.출발;
+  const 출발 = 출발자리 === undefined ? undefined : 수로(await 해본다('나아감 읽기', () => (출발자리.칸 === undefined ? 맨게임.text(출발자리.주소) : 맨게임.get(출발자리.주소, 출발자리.칸))));
+  const 읽기 = !돌릴까 || 덧?.볼 === undefined ? null : 값읽기시작(맨게임, 덧.볼.계획, 덧.볼.볼값, 덧.볼.기대, 시작);
   let 값: unknown;
   let 오류: string | undefined = 돌릴까 ? undefined : '멈춰 둔 게임을 못 풀어 함수를 부르지 않았다 — `npx control-cli -s=g timescale-set 1` 로 풀고 다시 부른다';
   let 시계: NodeJS.Timeout | undefined;
@@ -136,6 +153,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 걸린ms = Date.now() - 시작;
   찍기?.그친다();
   세기?.그친다();
+  읽기?.그친다();
   const 멈춤 = 덧?.멈춤 === true && 돌릴까 ? await 멈추기(맨게임, 덧.자료, 배율, 배율바꿈, 해본다) : null;
   막음 = true;
   for (const 끝 = Date.now() + 답기다림ms; 보내는중 > 0 && Date.now() < 끝; ) await 쉼(50);
@@ -154,6 +172,11 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   if (찍기못함 !== null && 찍기못함 !== undefined) 못한것.push(찍기못함);
   const 셈 = await 세기?.끝난다();
   if (typeof 셈?.못함 === 'string') 못한것.push(셈.못함);
+  const 읽은 = await 읽기?.끝난다();
+  if (typeof 읽은?.못함 === 'string') 못한것.push(읽은.못함);
+  const 트리 = await 해본다('끝 화면 글 읽기', () => 맨게임.tree());
+  // 옛 SDK · 가짜 게임은 트리 꼴이 다를 수 있다 — 못 읽으면 끝 글 없이 간다
+  const 끝글 = !Array.isArray(트리?.tree) ? undefined : flatten(트리.tree).flatMap((e) => (e.node.text === undefined || e.node.text === '' ? [] : [{ 주소: e.address, 경로: e.path, 글: e.node.text }]));
   const 화면 = await 해본다('화면 찍기', () => 맨게임.screenshot());
   process.off('unhandledRejection', 버려진);
   for (const [이름, 답] of [['게임 로그', 로그], ['게임 오류', 게임오류], ['알림', 알림]] as const) {
@@ -178,6 +201,9 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     알림말: [...풀림.알림말, ...(멈춤?.알림말 ?? [])],
     멈춘채: 풀림.멈춘채,
     ...(셈?.나온 ? { 나온것: 셈.나온 } : {}),
+    ...(읽은 === undefined ? {} : { 값기록: 읽은.기록, ...(읽은.사진 === undefined ? {} : { 어긋난사진: 읽은.사진 }) }),
+    ...(끝글 === undefined ? {} : { 끝글 }),
+    ...(출발 === undefined ? {} : { 출발 }),
   };
 }
 
@@ -191,6 +217,12 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     console.error(막는글(안적은));
     return 2;
   }
+  // 학습 세션만 — 앞 회고 · 계획 · 손만 고친 되풀이 · 다섯 번 안 늚을 본다
+  const 막 = 배움막기(자료, 초, 것.계획, (자료 === undefined ? null : 지금지도(자료))?.줄들 ?? [], 자료 === undefined ? [] : 판기록들(자료));
+  if (막 !== null && '막음' in 막) {
+    console.error(`[조작 도우미] ${막.막음}`);
+    return 2;
+  }
   let r: 조작결과;
   // 셸이 한도에서 끊으면 SIGTERM 이 온다 — 눌러 둔 입력을 놓고 끝낸다
   const 끊기 = new AbortController();
@@ -198,7 +230,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   process.once('SIGTERM', 끊음);
   process.once('SIGINT', 끊음);
   try {
-    r = await 돌린다(길 ?? (await gameLink(환경)), 것.함수, 환경, 초 * 1000, 끊기.signal, { 도중화면ms: (것.화면초 ?? 기본화면초) * 1000, 멈춤: 것.멈춤, 자료 });
+    r = await 돌린다(길 ?? (await gameLink(환경)), 것.함수, 환경, 초 * 1000, 끊기.signal, { 도중화면ms: (것.화면초 ?? 기본화면초) * 1000, 멈춤: 것.멈춤, 자료, ...(막 === null ? {} : { 볼: 막 }) });
   } catch (e) {
     console.error(`[조작 도우미] 게임에 못 붙었다 — ${비밀가리기(까닭(e), 비밀들)}`);
     return 2;
