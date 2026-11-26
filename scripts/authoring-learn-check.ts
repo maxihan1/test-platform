@@ -91,7 +91,7 @@ export function 판기록들(자료: string): 판기록[] {
   const 폴더 = join(자료, 게임자리.조작기록);
   let 이름들: string[];
   try {
-    이름들 = readdirSync(폴더).filter((x) => x.endsWith('.json') && 기록이름꼴.test(x.slice(0, -5))).sort();
+    이름들 = readdirSync(폴더).filter((x) => x.endsWith('.json') && 기록이름꼴.test(x.slice(0, -5)) && !/^\d{17}-지켜보기/.test(x)).sort();
   } catch {
     return [];
   }
@@ -110,13 +110,13 @@ export type 값자리 = { 주소: string; 칸?: string } | { 돌려준: string }
 
 export function 값찾기(기록: 판기록, 자리: 값자리): unknown {
   if ('돌려준' in 자리) return 자리.돌려준.split('.').reduce<unknown>((v, k) => 객체(v)[k], 기록.값);
+  // 칸이 없으면 화면 글자다 — 2초 기록(수로 바꾼 값 · 끝보다 최대 2초 앞)이 아니라 끝 화면 글자 그대로 본다
+  if (자리.칸 === undefined) return 기록.끝글?.find((e) => e.주소 === 자리.주소 || e.경로 === 자리.주소)?.글;
   const 기 = 기록.값기록;
   const 볼 = 기?.볼값.find((b) => b.주소 === 자리.주소 && b.칸 === 자리.칸);
-  if (기 !== undefined && 볼 !== undefined) {
-    for (let i = 기.때.length - 1; i >= 0; i -= 1) if ((기.때[i]!.값[볼.이름] ?? null) !== null) return 기.때[i]!.값[볼.이름];
-  }
-  if (자리.칸 !== undefined) return undefined;
-  return 기록.끝글?.find((e) => e.주소 === 자리.주소 || e.경로 === 자리.주소)?.글;
+  if (기 === undefined || 볼 === undefined) return undefined;
+  for (let i = 기.때.length - 1; i >= 0; i -= 1) if ((기.때[i]!.값[볼.이름] ?? null) !== null) return 기.때[i]!.값[볼.이름];
+  return undefined;
 }
 
 const 자리읽기 = (v: unknown): 값자리 | null => (글인가(객체(v).돌려준) ? { 돌려준: 객체(v).돌려준 as string } : 자리꼴(v) ? { 주소: v.주소, ...(v.칸 === undefined ? {} : { 칸: v.칸 }) } : null);

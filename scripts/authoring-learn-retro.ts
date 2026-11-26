@@ -38,7 +38,8 @@ export function 회고채우기(열쇠: string, learned: 배운것, 찾기: (열
   if (d.까닭 === '믿은것' && (!글인가(d.열쇠) || 찾기(d.열쇠) === undefined)) return 'data.열쇠 에 틀린 것으로 드러난 지도 줄 열쇠를 적는다(지도에 있어야 한다)';
   if (d.까닭 === '몰랐던것' && (!글인가(d.열쇠) || 찾기(d.열쇠)?.kind !== 'ASK')) return 'data.열쇠 에 새로 단 물음(ASK) 줄 열쇠를 적는다(이번에 같이 적어도 된다)';
   const 다음 = 글인가(d.다음) ? 찾기(d.다음) : undefined;
-  if (다음?.kind !== 'TRIAL' || typeof 계획읽기(칸(다음)) === 'string') return 'data.다음 에 다음에 해 볼 계획(TRIAL) 줄 열쇠를 적는다 — 그 줄에 볼값 · 기대 · 목표가 있어야 한다(이번에 같이 적어도 된다)';
+  // 목표에 닿아 끝내는 마지막 회고에 지어낸 계획을 쓰게 하지 않는다
+  if (!(d.까닭 === '됨' && d.다음 === undefined) && (다음?.kind !== 'TRIAL' || typeof 계획읽기(칸(다음)) === 'string')) return 'data.다음 에 다음에 해 볼 계획(TRIAL) 줄 열쇠를 적는다 — 그 줄에 볼값 · 기대 · 목표가 있어야 한다(이번에 같이 적어도 된다 · 까닭이 「됨」이면 안 적어도 된다)';
   const 계획 = 계획읽기(칸(찾기(기.계획)));
   const 목표 = typeof 계획 === 'string' ? null : { ...계획.목표, 닿은: 가장큰(기, 계획.목표.값) };
   return { ...learned, data: { ...d, 계획: 기.계획, ...(목표 === null ? {} : { 목표 }), 나아감: 가장큰(기, 나아감), 어긋남: 기.어긋남, ...(기.화면다름.length === 0 ? {} : { 화면다름: 기.화면다름 }) } };
@@ -74,18 +75,20 @@ export function 늚셈(줄들: readonly 줄[]): { 확인: number; 가봄: number
   };
 }
 
-/** 해 볼 때마다 부른다 — 앞 해 보기 때보다 셋 다 안 늘었으면 하나 더 센다. 센 수를 돌려준다 */
-export function 늚재기(자료: string, 줄들: readonly 줄[]): number {
+/** 해 볼 때마다 부른다 — 앞 해 보기 때보다 셋 다 안 늘었으면 하나 더 센다. 센 수를 돌려준다.
+ * 마지막 기록 — 계획으로 해 본 가장 새 기록 이름. 그 뒤로 해 본 판이 없으면(붙지 못해 기록이 안 남았으면) 다시 세지 않는다 */
+export function 늚재기(자료: string, 줄들: readonly 줄[], 마지막기록: string | null = null): number {
   const 지금 = 늚셈(줄들);
-  let 앞: { 셈?: ReturnType<typeof 늚셈>; 안늚?: number } = {};
+  let 앞: { 셈?: ReturnType<typeof 늚셈>; 안늚?: number; 기록?: string | null } = {};
   try {
     앞 = JSON.parse(안전히읽기(자료, 게임자리.늚, 10_000) ?? '{}') as typeof 앞;
   } catch {
     // 못 읽으면 처음부터 센다
   }
+  if (앞.셈 !== undefined && (앞.기록 ?? null) === 마지막기록) return 앞.안늚 ?? 0;
   const 늘었나 = 앞.셈 === undefined || 지금.확인 > 앞.셈.확인 || 지금.가봄 > 앞.셈.가봄 || (지금.나아감 ?? -Infinity) > (앞.셈.나아감 ?? -Infinity);
   const 안늚 = 늘었나 ? 0 : (앞.안늚 ?? 0) + 1;
-  새로쓰기(join(자료, 게임자리.늚), JSON.stringify({ 셈: 지금, 안늚 }));
+  새로쓰기(join(자료, 게임자리.늚), JSON.stringify({ 셈: 지금, 안늚, 기록: 마지막기록 }));
   return 안늚;
 }
 
@@ -103,12 +106,15 @@ export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<strin
 
 export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[] }
 
+/** 학습 세션(시험 아님) 동안만 있는 표시가 있나 */
+export const 배우는중인가 = (자료: string | undefined): boolean => 자료 !== undefined && lstatSync(join(자료, 게임자리.배우는중), { throwIfNoEntry: false })?.isFile() === true;
+
 /**
  * 학습 세션에서 조작 도우미를 부르기 전에 본다 — 막을 까닭 글, 계획으로 해 보면 그 계획, 짧은 재기면 null.
  * 학습 세션이 아니면(케이스를 쓰는 세션 · 시험) 막지 않는다
  */
 export function 배움막기(자료: string | undefined, 초: number, 계획열쇠: string | undefined, 줄들: readonly 지도줄[], 기록들: readonly 판기록[]): { 막음: string } | 해볼것 | null {
-  if (자료 === undefined || lstatSync(join(자료, 게임자리.배우는중), { throwIfNoEntry: false })?.isFile() !== true) return null;
+  if (자료 === undefined || !배우는중인가(자료)) return null;
   const 없는 = 회고없는판(기록들, 줄들);
   if (없는 !== null) return { 막음: `앞 해 보기(${없는}.json)의 회고 줄(${회고머리}${없는})이 지도에 없다 — 회고를 적은 뒤 다시 부른다(지침 「회고」)` };
   if (계획열쇠 === undefined) return 초 > 계획없이초 ? { 막음: `${계획없이초}초 넘게 해 보려면 --plan <계획(TRIAL) 줄 열쇠> 를 붙인다 — 잘되면 어떤 숫자인지 적은 계획이 있어야 회고에서 어디서 어긋났는지 찾는다` } : null;
@@ -122,7 +128,7 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   if (손 !== null && (손.계획들.includes(계획열쇠) || (글인가(칸(줄).어디서) && 손.어디서들.includes(칸(줄).어디서 as string)))) {
     return { 막음: `손만 고친 해 보기가 ${손상한}번 이어졌고 나아감이 안 늘었다 — 그 세 번이 쓴 계획(${손.계획들.join(' · ')})과 어디서(${손.어디서들.join(' · ') || '없음'})가 아닌 물음이나 곳으로 계획을 새로 적는다` };
   }
-  if (늚재기(자료, 줄들) >= 안늚상한) {
+  if (늚재기(자료, 줄들, [...기록들].reverse().find((r) => r.값기록 !== undefined)?.이름 ?? null) >= 안늚상한) {
     새로쓰기(join(자료, 게임자리.그만), `${안늚상한}번 해 보는 동안 확인 줄 · 가 본 곳 · 나아감이 안 늘었다`);
     return { 막음: `${안늚상한}번 해 보는 동안 지도가 안 늘었다 — 배우기를 끝낸다. 쪽지를 고쳐 쓰고 「학습 끝」 한 줄만 쓰고 끝낸다` };
   }

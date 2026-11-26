@@ -193,6 +193,13 @@ describe('학습하기 — 세션을 잇는다', () => {
     expect(끝.거리들).toMatchObject([{ 남은분: 0 }, { 시험: true, 남은분: 15 }, { 틀림: true, 남은분: 15 }]);
   });
 
+  it('컨텍스트로 끊긴 세션이 두 번 이어 한 줄도 못 올리면 그친다 — 계획 없이 헛돌며 디바이스를 쥐지 않게', async () => {
+    const { o, 거리들 } = 손([() => 교대, () => 교대, () => undefined]);
+    await 학습하기(o);
+    expect(거리들.map((x) => x.시험 === true)).toEqual([false, false, true]);
+    expect(vi.mocked(o.알린다).mock.calls.map((c) => c[0]).join('\n')).toContain('컨텍스트로 끊긴 세션이 2번 이어 한 줄도 못 배웠다');
+  });
+
   it('시험은 배우기가 끝난 뒤 한 번이다', async () => {
     const { o, 거리들 } = 손([() => 교대, 그만, () => undefined]);
     await 학습하기(o);

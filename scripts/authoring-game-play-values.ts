@@ -71,6 +71,8 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       }
       const 초 = (Date.now() - 시작) / 1000;
       const r = await 한번읽기(게임, 볼);
+      // 끝난다가 기록을 돌려준 뒤 늦게 끝난 읽기다 — 저장된 기록 · 마지막 화면 찍기와 엇갈리지 않게 버린다
+      if (!서있다) return;
       첫못함 ??= r.못함;
       이어 = Object.values(r.값).every((v) => v === null) ? 이어 + 1 : 0;
       기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }) });

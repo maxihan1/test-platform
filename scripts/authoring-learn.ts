@@ -56,6 +56,7 @@ async function 배우고(o: 학습손): Promise<학습결과> {
   알림지우기();
   // 「다섯 번 안 늚」은 이번 실행에서 다시 센다
   rmSync(join(o.자료, 게임자리.그만), { force: true });
+  rmSync(join(o.자료, 게임자리.늚), { force: true });
   // 앞 실행이 끊겨 남긴 표시가 케이스를 쓰는 세션의 판을 막지 않게
   배우는중지우기(o.자료);
   const 지금 = o.지금 ?? Date.now;
@@ -189,6 +190,7 @@ async function 배우고(o: 학습손): Promise<학습결과> {
     // AI 가 그 전에 스스로 끝내면 같은 세션을 이어 돌린다. 컨텍스트 60% 에서 끊긴 세션은 새 세션이 인수인계로 잇는다
     let 이음: string | undefined;
     let 헛이음 = 0;
+    let 빈손 = 0;
     for (let b: 배울것 | null = 처음; b !== null && 상태.시험 === undefined && (!부분 || (상태.세션 < 1 && !배울것없나(b) && 배움남은() >= 최소_ms)); b = 볼것()) {
       const 앞판 = 해본수();
       const r = await 배우기(b, undefined, 이음);
@@ -198,7 +200,14 @@ async function 배우고(o: 학습손): Promise<학습결과> {
         break;
       }
       이음 = undefined;
-      if (부분 || !r.스스로) continue;
+      if (부분) continue;
+      // 컨텍스트로 끊긴 세션이 한 줄도 못 올린 채 이어지면 계획 없이 헛돈다 — 다섯 번 안 늚은 계획으로 해 봐야 센다
+      빈손 = r.열쇠수 === 0 ? 빈손 + 1 : 0;
+      if (!r.스스로 && 빈손 >= 빈손상한) {
+        o.알린다(`게임 학습을 그친다 — 컨텍스트로 끊긴 세션이 ${빈손상한}번 이어 한 줄도 못 배웠다`);
+        break;
+      }
+      if (!r.스스로) continue;
       const 그만 = 안전히읽기(o.자료, 게임자리.그만, 1_000)?.trim();
       if (그만 !== undefined && 그만 !== '') {
         o.알린다(`게임 학습을 끝낸다 — ${그만}`);

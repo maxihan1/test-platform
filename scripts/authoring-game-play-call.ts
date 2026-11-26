@@ -40,6 +40,8 @@ export interface 부를것 {
   멈춤: boolean;
   /** `--plan <계획 줄 열쇠>` — 학습 세션에서 계획으로 해 본다 */
   계획?: string;
+  /** `--max` 를 줬나 — 안 줬으면 학습 세션의 계획 없는 부르기는 60초로 줄인다 */
+  초준: boolean;
 }
 
 /** 도중 화면 기본 간격(초) — 조작 도우미 · 지켜보기가 같이 쓴다 */
@@ -53,11 +55,12 @@ export interface 깃발들 {
   화면초?: number;
   멈춤: boolean;
   계획?: string;
+  초준: boolean;
 }
 
 /** `--max <초>` · `--shots <초>` · `--freeze` · `--plan <열쇠>` 를 뗀다 — 값이 틀리면 null. 같은 이름을 두 번 주면 마지막 값이다 */
 export function 깃발읽기(인자: readonly string[]): 깃발들 | null {
-  const r: 깃발들 = { 남음: [], 초: 기본초, 멈춤: false };
+  const r: 깃발들 = { 남음: [], 초: 기본초, 멈춤: false, 초준: false };
   for (let i = 0; i < 인자.length; i += 1) {
     const x = 인자[i]!;
     if (x === '--freeze') r.멈춤 = true;
@@ -71,7 +74,7 @@ export function 깃발읽기(인자: readonly string[]): 깃발들 | null {
       const 값 = 인자[i + 1];
       i += 1;
       // 도중 화면 파일 이름이 초 단위 정수라 소수 간격은 받지 않는다
-      if (x === '--max') r.초 = Number(값);
+      if (x === '--max') (r.초 = Number(값)), (r.초준 = true);
       else if (값 !== undefined && /^\d+$/.test(값) && Number(값) <= 최대화면초) r.화면초 = Number(값);
       else return null;
     } else r.남음.push(x);
@@ -123,5 +126,5 @@ export async function 부를준비(명령: string, 머리: string, 인자: strin
   }
   const 자료 = env[게임자료환경];
   const 환경 = { ...env, ...게임환경(폰), PLATFORM_PAD: '', PLATFORM_GAME_POPUPS: 돌발팝업값(자료) };
-  return { 폴더, 파일, 이름, 자리, 넘길, 초, 함수: (game) => (함수 as (...a: unknown[]) => unknown)(game, ...넘길), 환경, 비밀들, 자료, ...(깃발.화면초 === undefined ? {} : { 화면초: 깃발.화면초 }), 멈춤: 깃발.멈춤, ...(깃발.계획 === undefined ? {} : { 계획: 깃발.계획 }) };
+  return { 폴더, 파일, 이름, 자리, 넘길, 초, 함수: (game) => (함수 as (...a: unknown[]) => unknown)(game, ...넘길), 환경, 비밀들, 자료, ...(깃발.화면초 === undefined ? {} : { 화면초: 깃발.화면초 }), 멈춤: 깃발.멈춤, 초준: 깃발.초준, ...(깃발.계획 === undefined ? {} : { 계획: 깃발.계획 }) };
 }

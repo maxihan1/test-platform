@@ -23,8 +23,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 것 = await 부를준비('authoring-game-wins', 머리, 인자, 트리, env);
   if (것 === null) return 2;
   const { 폴더, 파일, 이름, 넘길, 초, 비밀들, 자료 } = 것;
-  if (것.화면초 !== undefined || 것.멈춤) {
-    console.error(`${머리} --shots · --freeze 는 못 쓴다 — 10판 확인은 원래 속도 · 같은 조건으로만 돈다`);
+  if (것.화면초 !== undefined || 것.멈춤 || 것.계획 !== undefined) {
+    console.error(`${머리} --shots · --freeze · --plan 은 못 쓴다 — 10판 확인은 원래 속도 · 같은 조건으로만 돈다`);
     return 2;
   }
   if (!자료) {

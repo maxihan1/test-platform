@@ -17,7 +17,7 @@ import { 값읽기시작 } from './authoring-game-play-values.js';
 import { 결과글 } from './authoring-game-state.js';
 import { 정리알림, 지금지도 } from './authoring-game-find.js';
 import { type 값기록, type 끝글줄, type 볼값, 수로, 판기록들 } from './authoring-learn-check.js';
-import { type 해볼것, 배움막기 } from './authoring-learn-retro.js';
+import { type 해볼것, 계획없이초, 배우는중인가, 배움막기 } from './authoring-learn-retro.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 
 /** 보낸 명령의 답을 기다리는 한도 — 팜이 명령 하나를 20초 안에 끊는다. 답 전에 거두면 늦게 닿은 누르기가 눌린 채 남는다 */
@@ -211,7 +211,9 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
 export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env, 길?: Link): Promise<number> {
   const 것 = await 부를준비('authoring-game-play', '[조작 도우미]', 인자, 트리, env);
   if (것 === null) return 2;
-  const { 이름, 넘길, 초, 환경, 비밀들, 자료 } = 것;
+  const { 이름, 넘길, 환경, 비밀들, 자료 } = 것;
+  // 학습 세션에서 계획 없이 --max 도 안 줬으면 짧은 재기다 — 기본 90초를 60초로 줄인다
+  const 초 = 배우는중인가(자료) && 것.계획 === undefined && !것.초준 ? Math.min(것.초, 계획없이초) : 것.초;
   const 안적은 = 안적은새것(자료);
   if (안적은 !== null) {
     console.error(막는글(안적은));
@@ -223,6 +225,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     console.error(`[조작 도우미] ${막.막음}`);
     return 2;
   }
+  if (막 === null && 것.계획 !== undefined) console.error('[조작 도우미] 학습 세션이 아니라 --plan 을 안 쓴다 — 볼값을 안 읽는다');
   let r: 조작결과;
   // 셸이 한도에서 끊으면 SIGTERM 이 온다 — 눌러 둔 입력을 놓고 끝낸다
   const 끊기 = new AbortController();

@@ -73,6 +73,8 @@ it('계획으로 해 보면 볼값 · 처음 어긋난 순간 사진 · 끝 화�
   expect(찍힘()).toContain(`회고 줄(play:${이름})이 지도에 없다`);
   writeFileSync(join(자료(), 'game-learned.json'), JSON.stringify({ elements: [{ kind: 'PLAY', key: `play:${이름}`, name: '회고', learned: { text: 'ㄱ', belief: 'SEEN', data: {} } }] }));
   expect(await 부르기('--max', '30')).toBe(0);
+  // --max 를 안 주면 학습 세션의 계획 없는 부르기는 60초짜리 짧은 재기다(기본 90초에 안 막힌다)
+  expect(await 부르기()).toBe(0);
   // 학습 세션이 아니면(케이스 · 시험) 막지 않고 값도 안 읽는다
   rmSync(join(자료(), 'game-learning.now'));
   expect(await 부르기('--max', '61', '--plan', 'trial:첫 맵')).toBe(0);

@@ -60,6 +60,7 @@ describe('지도 검증 — 「확인」 줄은 판 기록 전부에서 값을 �
     기록쓰기('20261126002000000-b', { 값기록: { ...값기록('trial:가', [{ 초: 0, 값: { 피: 5 } }, { 초: 2, 값: { 피: null } }]), 볼값: [{ 이름: '피', 주소: '/P', 칸: 'Hp.v' }] } });
     기록쓰기('20261126001000000-a', { 값기록: { ...값기록('trial:가', [{ 초: 0, 값: { 피: 5 } }]), 볼값: [{ 이름: '피', 주소: '/P', 칸: 'Hp.v' }] } });
     writeFileSync(join(자료, 'game-play', '20261126001000000-a-새것.txt'), 'x');
+    기록쓰기('20261126003000000-지켜보기-판', { 끝글: [] });
     const 들 = 판기록들(자료);
     expect(들.map((r) => r.이름)).toEqual(['20261126001000000-a', '20261126002000000-b']);
     expect(대봄검사({ 대봄: { 값: { 주소: '/P', 칸: 'Hp.v' }, 기대: [{ 값: 5 }] } }, 들)).toEqual([]);
@@ -117,6 +118,7 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     expect(회고({ 까닭: '모름', 다음: 'trial:첫 맵' })).toContain('data.까닭');
     expect(회고({ 까닭: '몰랐던것', 열쇠: 'trial:첫 맵', 다음: 'trial:첫 맵' })).toContain('ASK');
     expect(회고({ 까닭: '손' })).toContain('data.다음');
+    expect(회고({ 까닭: '됨' })).toMatchObject({ data: { 까닭: '됨' } });
     expect(회고채우기('play:20261126009999999-없음', { text: 'ㄱ', belief: 'SEEN', data: {} }, 찾기(들), 기록들)).toContain('값 기록이 없다');
     expect(회고없는판(기록들, 들 as never)).toBe(기록이름);
     expect(회고없는판(기록들, [...들, 줄('PLAY', `play:${기록이름}`, {})] as never)).toBeNull();
@@ -135,8 +137,12 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     expect(해볼).toMatchObject({ 계획: 'trial:첫 맵', 볼값: [{ 이름: '세계수' }, { 이름: '웨이브' }, { 이름: '나아감', 주소: 'ClearCount' }] });
     expect(배움막기(자료, 300, 'trial:첫 맵', 들, [{ 이름: 기록이름, 값기록: 값기록('trial:첫 맵', []) }])).toMatchObject({ 막음: expect.stringContaining(`play:${기록이름}`) });
     // 처음 한 번은 센 것이 없어 늘어난 것으로 친다 — 그 뒤 다섯 번 안 늘면 끝
-    for (let i = 0; i < 4; i += 1) expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).not.toHaveProperty('막음');
-    expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).toMatchObject({ 막음: expect.stringContaining('배우기를 끝낸다') });
+    // 해 본 판(값기록이 든 기록)이 새로 생길 때만 센다 — 붙지 못해 기록이 안 남은 부르기는 안 센다
+    const 판 = (n: number) => [{ 이름: `2026112600000000${n}-판`, 값기록: 값기록('trial:첫 맵', []) }];
+    const 회고 = (n: number) => [...들, { ...줄('PLAY', `play:2026112600000000${n}-판`, {}), name: 'ㄱ', line: '' }] as never as typeof 지도;
+    for (let i = 0; i < 4; i += 1) expect(배움막기(자료, 300, 'trial:첫 맵', 회고(i), 판(i))).not.toHaveProperty('막음');
+    expect(배움막기(자료, 300, 'trial:첫 맵', 회고(3), 판(3))).not.toHaveProperty('막음');
+    expect(배움막기(자료, 300, 'trial:첫 맵', 회고(4), 판(4))).toMatchObject({ 막음: expect.stringContaining('배우기를 끝낸다') });
     expect(readFileSync(join(자료, 'game-learn.done'), 'utf8')).toContain('안 늘었다');
   });
 
