@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { ApiError, type ServiceRow } from './api.js';
 import { qaReportApi, type 리포트줄 } from './qaReportApi.js';
 import { QaReports } from './QaReports.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 앱: ServiceRow = {
   id: 7,
@@ -190,6 +191,11 @@ describe('QA 리포트 › 프로젝트 탭', () => {
     fireEvent.click(screen.getByRole('button', { name: '직접 선택' }));
     fireEvent.change(screen.getByLabelText('시작일'), { target: { value: '2026-10-01' } });
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    expect(screen.getByRole('dialog', { name: '2026-10-01부터 2026-11-15까지 기간으로 프로젝트 QA 리포트를 만들까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
     await waitFor(() => expect(window.location.hash).toBe('#/qa-reports/project/9'));
     expect(만들기).toHaveBeenCalledWith(10, '2026-10-01', '2026-11-15', 'Asia/Seoul');
     vi.useRealTimers();
@@ -214,6 +220,7 @@ describe('QA 리포트 › 프로젝트 탭', () => {
     render(<QaReports service={앱} tab="project" 쓰나 />);
     fireEvent.click(await screen.findByRole('button', { name: '리포트 만들기' }));
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
     expect((await screen.findByRole('alert')).textContent).toContain('기간은 92일까지입니다');
     expect(screen.getByRole('button', { name: '만들기' })).toBeTruthy();
   });

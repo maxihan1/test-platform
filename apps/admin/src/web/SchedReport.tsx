@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { ApiError } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 서울 } from './seoul.js';
 import { Modal } from './Modal.js';
@@ -45,6 +46,7 @@ export function SchedReport({
   const [기간, set기간] = useState<리포트기간>(세트?.report ?? 'WEEK');
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
   const 값 = (덮: 덮을값) => setV((앞) => ({ ...앞, ...덮 }));
 
   const days = 보낼days(v);
@@ -94,13 +96,14 @@ export function SchedReport({
       <button className="btn ghost" type="button" disabled={보내는중} onClick={onClose}>
         {t('취소')}
       </button>
-      <button className="btn" type="button" disabled={막힘 !== null || 보내는중} onClick={() => void 저장()}>
+      <button className="btn" type="button" disabled={막힘 !== null || 보내는중} onClick={() => set묻나(true)}>
         <기다림글자 중={보내는중} 평소={t('저장')} 기다림={t('저장하는 중')} />
       </button>
     </>
   );
 
   return (
+    <>
     <Modal 제목={세트 === null ? t('리포트 일정') : t('리포트 일정 수정')} onClose={() => !보내는중 && onClose()} 바깥눌러닫기={false} 버튼={버튼}>
       <div className="wiz-new sched-wiz sched-rep">
         <label className="authoring-field">
@@ -127,6 +130,20 @@ export function SchedReport({
         {오류 === null ? null : <span className="error-text">{오류}</span>}
       </div>
     </Modal>
+    {!묻나 ? null : (
+      <확인창
+        제목={t('리포트 일정을 저장할까요?')}
+        확인={t('저장')}
+        onClose={() => set묻나(false)}
+        on확인={() => {
+          set묻나(false);
+          void 저장();
+        }}
+      >
+        <p>{t('이름과 담을 기간, 실행 주기로 리포트 일정을 저장하고 달력을 다음 실행 날짜로 옮깁니다. 저장한 뒤에 다시 수정할 수 있습니다')}</p>
+      </확인창>
+    )}
+    </>
   );
 }
 

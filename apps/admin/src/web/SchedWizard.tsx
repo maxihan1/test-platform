@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { ApiError, type ServiceRow } from './api.js';
 import { 단계머리 } from './AuthoringNewSteps.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 서울 } from './seoul.js';
 import { Modal } from './Modal.js';
@@ -49,6 +50,7 @@ export function SchedWizard({
   const [칸, set칸] = useState(0);
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
   // POST 는 됐는데 기준 정하기가 실패했으면 다시 누를 때 고치기로 간다 — 같은 세트를 둘 만들지 않게
   const [만든번호, set만든번호] = useState<number | null>(세트?.id ?? null);
   const 후보 = useAsync(() => schedApi.candidates(projectId), [projectId]);
@@ -144,7 +146,7 @@ export function SchedWizard({
         {칸 === 0 ? t('취소') : t('이전')}
       </button>
       {칸 === 4 ? (
-        <button className="btn" type="button" disabled={첫막힘 !== null || 보내는중} onClick={() => void 저장()}>
+        <button className="btn" type="button" disabled={첫막힘 !== null || 보내는중} onClick={() => set묻나(true)}>
           <기다림글자 중={보내는중} 평소={t('저장')} 기다림={t('저장하는 중')} />
         </button>
       ) : (
@@ -156,6 +158,7 @@ export function SchedWizard({
   );
 
   return (
+    <>
     <Modal 제목={세트 === null ? t('신규 세트') : t('세트 수정')} onClose={() => !보내는중 && onClose()} 바깥눌러닫기={false} 버튼={버튼}>
       <div className="wiz-new sched-wiz">
         {/* 단계 줄을 눌러 앞 단계로 간다 (§8.20) — 뒤 단계로는 「다음」만 */}
@@ -199,5 +202,19 @@ export function SchedWizard({
         {오류 === null ? null : <span className="error-text">{오류}</span>}
       </div>
     </Modal>
+    {!묻나 ? null : (
+      <확인창
+        제목={t('세트를 저장할까요?')}
+        확인={t('저장')}
+        onClose={() => set묻나(false)}
+        on확인={() => {
+          set묻나(false);
+          void 저장();
+        }}
+      >
+        <p>{t('5단계에서 확인한 내용으로 세트를 만들거나 수정하고, 「안정화 지표에 사용」을 켰으면 그 세트를 안정화 기준으로 정합니다. 저장한 뒤에 다시 수정할 수 있습니다')}</p>
+      </확인창>
+    )}
+    </>
   );
 }

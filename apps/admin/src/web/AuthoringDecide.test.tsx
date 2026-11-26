@@ -13,6 +13,7 @@ const 보낸: { prdVersion: number; picks: 보낼고름[] }[] = [];
 const 진행답: { 값: Promise<{ steps: { step: 1 | 2 | 3 | 4 | 5 | 6 | 7; key: string | null; requestId: number | null; version: number | null }[] }> | null } = { 값: null };
 
 const 제외한: [string, boolean][] = [];
+const 제외답: { 값: Promise<{ ok: true }> | null } = { 값: null };
 
 vi.mock('./decideApi.js', () => ({
   decideApi: {
@@ -22,7 +23,7 @@ vi.mock('./decideApi.js', () => ({
     },
     skipScreen: (_service: string, url: string, skip: boolean) => {
       제외한.push([url, skip]);
-      return Promise.resolve({ ok: true });
+      return 제외답.값 ?? Promise.resolve({ ok: true });
     },
   },
 }));
@@ -63,10 +64,16 @@ function 목록(items: 결정항목[], 덮을것: Partial<결정목록> = {}): �
 }
 const 탭 = (이름: RegExp) => fireEvent.click(screen.getByRole('tab', { name: 이름 }));
 const 적용 = () => screen.getByRole('button', { name: /^\d+건 적용$/ }) as HTMLButtonElement;
+// 적용은 이제 반려가 섞였는지와 상관없이 늘 확인 창을 거친다 (2026-11-26 사용자)
+const 적용하고 = (칸 = 적용()) => {
+  fireEvent.click(칸);
+  물음누름(칸.textContent ?? '');
+};
 
 beforeEach(() => {
   보낸.length = 0;
   제외한.length = 0;
+  제외답.값 = null;
   진행답.값 = null;
 });
 afterEach(cleanup);
@@ -103,7 +110,7 @@ describe('결정 목록', () => {
     expect(screen.queryByRole('button', { name: '나중에' })).toBeNull();
   });
 
-  it('반려가 섞였을 때만 적용 전에 묻고, 취소하면 보내지 않는다', async () => {
+  it('반려가 섞이면 상자 안에 목록과 되돌릴 수 없다는 말을 같이 적고, 취소하면 보내지 않는다', async () => {
     진행답.값 = Promise.resolve({ steps: [{ step: 3, key: 반영.key, requestId: null, version: null }] });
     render(<AuthoringDecide service="DMW" 목록={목록([반영])} envs={[]} 다시읽기={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '반려' }));
@@ -112,8 +119,7 @@ describe('결정 목록', () => {
     expect(within(screen.getByRole('dialog')).getByText('#10 작성 결과를 삭제합니다')).toBeTruthy();
     물음누름('취소');
     expect(보낸).toEqual([]);
-    fireEvent.click(적용());
-    물음누름('1건 적용');
+    적용하고();
     expect(await screen.findByText('적용을 시작했습니다')).toBeTruthy();
     expect(보낸).toHaveLength(1);
   });
@@ -131,7 +137,7 @@ describe('결정 목록', () => {
     expect(screen.getByText('PRD 를 새 버전으로 저장합니다(버전 4) — DMW-REQ-349 확정')).toBeTruthy();
     expect(screen.queryByText('#10 테스트를 승인해 케이스 목록에 등록합니다')).toBeNull();
 
-    fireEvent.click(적용());
+    적용하고();
     expect(await screen.findByText('적용을 시작했습니다')).toBeTruthy();
     expect(보낸).toEqual([{ prdVersion: 3, picks: [{ key: 'check:DMW-REQ-349', pick: 'SAME' }] }]);
     expect(다시읽기).toHaveBeenCalled();
@@ -282,11 +288,33 @@ describe('결정 목록', () => {
 
     fireEvent.click(screen.getByText('제외한 화면 1개'));
     fireEvent.click(screen.getByRole('button', { name: '복원' }));
+    expect(제외한).toHaveLength(1);
+    물음누름('복원');
     await waitFor(() => expect(제외한).toEqual([['/orders', true], ['/reviews/new', false]]));
 
-    fireEvent.click(적용());
+    적용하고();
     await screen.findByText('적용을 시작했습니다');
     expect(보낸).toEqual([{ prdVersion: 3, picks: [{ key: 'screens:ab', pick: 'FIX', screens: ['/coupons'], env: 'stg' }] }]);
+  });
+
+  it('[복원] 확인을 두 번 눌러도 한 번만 보내고, 실패하면 오류 줄이 상자 뒤에 숨지 않는다', async () => {
+    제외답.값 = Promise.reject(new Error('복원 실패'));
+    제외답.값.catch(() => {});
+    const 화면: 결정항목 = {
+      key: 'screens:ab', group: 3, kind: 'SCREENS', picks: ['FIX'], blockedBy: null, env: null,
+      screens: [{ state: '로그아웃', url: '/orders', name: '주문 내역' }],
+      skipped: [{ url: '/reviews/new', name: '리뷰 쓰기' }],
+    };
+    render(<AuthoringDecide service="DMW" 목록={목록([화면])} envs={[]} 다시읽기={() => {}} />);
+    fireEvent.click(screen.getByText('제외한 화면 1개'));
+    fireEvent.click(screen.getByRole('button', { name: '복원' }));
+    const 확인 = within(screen.getByRole('dialog')).getByRole('button', { name: '복원' });
+    fireEvent.click(확인);
+    fireEvent.click(확인);
+
+    expect(await screen.findByText('복원 실패')).toBeTruthy();
+    expect(제외한).toEqual([['/reviews/new', false]]);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('요구사항 확인은 명세 표 차례 — 화면 기준 → 기획서 간 불일치', () => {
@@ -316,7 +344,7 @@ describe('결정 목록', () => {
     expect(적용().textContent).toBe('1건 적용');
     fireEvent.click(within(칸.closest('.decide-edit') as HTMLElement).getByRole('button', { name: '저장' }));
     expect(적용().textContent).toBe('2건 적용');
-    fireEvent.click(적용());
+    적용하고();
     await waitFor(() => expect(보낸).toHaveLength(1));
     expect(보낸[0]!.picks).toEqual([
       { key: 'check:ARG-REQ-350', pick: 'EDIT', text: 'ARG-REQ-350 혼자면 피해 0.5배' },
@@ -340,7 +368,7 @@ describe('결정 목록', () => {
     const 다시읽기 = vi.fn();
     render(<AuthoringDecide service="DMW" 목록={목록([반영])} envs={[]} 다시읽기={다시읽기} />);
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
-    fireEvent.click(screen.getByRole('button', { name: '1건 적용' }));
+    적용하고();
     expect(await screen.findByText('그 사이 변경된 것이 있어 다시 불러왔습니다')).toBeTruthy();
     expect(다시읽기).toHaveBeenCalled();
     expect(screen.getByRole('button', { name: '승인' }).getAttribute('aria-pressed')).toBe('false');

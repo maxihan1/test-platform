@@ -9,6 +9,7 @@ import { ApiDocList as 전체API } from './ApiDocList.js';
 import { 안거친응답카드 } from './ApiDocCards.js';
 import { ApiDocVersions } from './ApiDocVersions.js';
 import { 받은곳 } from './apidocView.js';
+import { 확인창 } from './ConfirmBox.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
@@ -57,6 +58,8 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
   const [이력, set이력] = useState(버전 !== undefined);
   const [알림, set알림] = useState<{ ok: boolean; 글: string } | null>(null);
   const [받는중, set받는중] = useState<'fetch' | 'upload' | null>(null);
+  // 받기는 단추를 누른 때, 첨부는 파일을 고른 뒤 올리기 직전에 묻는다
+  const [묻나, set묻나] = useState<{ 어느: 'fetch' } | { 어느: 'upload'; 파일: File } | null>(null);
   const 파일칸 = useRef<HTMLInputElement>(null);
   // 보기는 작성 read, 받기 · 첨부는 작성 write (도메인/API §7). 서버가 다시 막는다
   const 쓰나 = 할수('작성요청');
@@ -111,7 +114,7 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
             ) : null}
             {/* 문서 경로 · 기준 서버가 설정에 없으면 받을 곳이 없다 — 버튼 대신 파일 첨부만 남는다 */}
             {쓰나 && docPath !== null && docEnv !== null ? (
-              <button className="btn ghost" disabled={받는중 !== null} onClick={() => void 넣기('fetch', () => apiDocApi.fetch(id))}>
+              <button className="btn ghost" disabled={받는중 !== null} onClick={() => set묻나({ 어느: 'fetch' })}>
                 <기다림글자 중={받는중 === 'fetch'} 평소={t('문서 가져오기')} 기다림={t('받는 중')} />
               </button>
             ) : null}
@@ -137,9 +140,35 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
         onChange={(e) => {
           const 파일 = e.target.files?.[0];
           e.target.value = '';
-          if (파일 !== undefined) void 넣기('upload', () => apiDocApi.upload(id, 파일));
+          if (파일 !== undefined) set묻나({ 어느: 'upload', 파일 });
         }}
       />
+      {묻나 === null ? null : 묻나.어느 === 'fetch' ? (
+        <확인창
+          제목={t('기준 서버에서 API 문서를 가져와 새 버전으로 저장할까요?')}
+          확인={t('가져오기')}
+          onClose={() => set묻나(null)}
+          on확인={() => {
+            set묻나(null);
+            void 넣기('fetch', () => apiDocApi.fetch(id));
+          }}
+        >
+          <p>{t('설정에 적힌 기준 서버에서 OpenAPI 3 문서를 받아 새 버전으로 저장합니다. 받은 내용이 지금 버전과 같으면 새 버전을 만들지 않고, 만든 버전은 복원할 수 없습니다')}</p>
+        </확인창>
+      ) : (
+        <확인창
+          제목={t('선택한 파일을 새 버전으로 저장할까요?')}
+          확인={t('업로드')}
+          onClose={() => set묻나(null)}
+          on확인={() => {
+            const { 파일 } = 묻나;
+            set묻나(null);
+            void 넣기('upload', () => apiDocApi.upload(id, 파일));
+          }}
+        >
+          <p>{t('선택한 OpenAPI 3 JSON 파일을 받아 새 버전으로 저장합니다. 만든 버전은 복원할 수 없습니다')}</p>
+        </확인창>
+      )}
       {알림 === null ? null : (
         <p role="status" className={알림.ok ? 'prd-note' : 'prd-note bad'}>
           {알림.글}

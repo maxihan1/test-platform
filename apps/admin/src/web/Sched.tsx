@@ -53,7 +53,7 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
   const [고른, set고른] = useState(null as number | null);
   const [열린, set열린] = useState(null as 칩 | null);
   const [오류, set오류] = useState(null as string | null);
-  const [끌것, set끌것] = useState(null as 세트 | null);
+  const [바꿀것, set바꿀것] = useState(null as 세트 | null);
   // 열린 마법사 — 세트가 null 이면 신규 (§8.20 「마법사」). 리포트 일정이면 마법사 대신 한 장 창이다 (§8.20 「리포트 일정」)
   const [마법사, set마법사] = useState(null as { 세트: 세트 | null; 리포트?: boolean } | null);
   const [저장말, set저장말] = useState(null as string | null);
@@ -105,16 +105,11 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
     if (c.상태 !== 'plan' && 실행.length === 1) window.location.hash = 실행주소(실행[0]!.kind, 실행[0]!.runId);
     else set열린(c);
   };
-  const 켜기 = async (세트: 세트, 물었나 = false) => {
+  // 끄기 · 켜기 모두 확인 창을 거친다 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  const 켜기 = async (세트: 세트) => {
     set오류(null);
-    set끌것(null);
+    set바꿀것(null);
     try {
-      // 끄면 대기 중인 회차가 날짜와 상관없이 다 빠지고 다시 켜도 안 돌아온다 — 있을 때만 묻는다. 보는 달력에 오늘이 없을 수 있어 따로 읽고, 못 읽으면 묻는다
-      if (세트.isOn && !물었나) {
-        const 오늘날 = 시간대로(new Date(), 세트.tz).날;
-        const 읽은 = await schedApi.calendar(service.projectId, 날더하기(오늘날, -60), 오늘날).catch(() => null);
-        if (읽은 === null || 읽은.occurrences.some((o) => o.setId === 세트.id && o.state === 'QUEUED')) return set끌것(세트);
-      }
       await schedApi.setOn(세트.id, !세트.isOn);
       await Promise.all([세트목록.reload(), 회차목록.reload()]);
     } catch (e) {
@@ -189,7 +184,7 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
         </p>
       )}
       <div className="sched-body">
-        <세트카드들 세트들={세트들} 고른={고른} 지금={지금} 쓰나={쓰나} on고르기={set고른} on날보기={날보기} on켜기={(s) => void 켜기(s)} on수정={(s) => set마법사({ 세트: s })} />
+        <세트카드들 세트들={세트들} 고른={고른} 지금={지금} 쓰나={쓰나} on고르기={set고른} on날보기={날보기} on켜기={set바꿀것} on수정={(s) => set마법사({ 세트: s })} />
         <div className="sched-main">
           <div className="sched-bar">
             <div className="sched-seg" role="group" aria-label={t('보기')}>
@@ -233,9 +228,13 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
           }
         />
       )}
-      {끌것 === null ? null : (
-        <확인창 제목={t('「{이름}」 세트를 끌까요?', { 이름: 끌것.name })} 확인={t('끄기')} onClose={() => set끌것(null)} on확인={() => void 켜기(끌것, true)}>
+      {바꿀것 === null ? null : 바꿀것.isOn ? (
+        <확인창 제목={t('「{이름}」 세트를 끌까요?', { 이름: 바꿀것.name })} 확인={t('끄기')} onClose={() => set바꿀것(null)} on확인={() => void 켜기(바꿀것)}>
           <p>{t('끄면 대기 중인 실행이 빠지고 다시 켜도 복원되지 않습니다')}</p>
+        </확인창>
+      ) : (
+        <확인창 제목={t('「{이름}」 세트를 켤까요?', { 이름: 바꿀것.name })} 확인={t('켜기')} onClose={() => set바꿀것(null)} on확인={() => void 켜기(바꿀것)}>
+          <p>{t('켜면 정해진 시각에 이 세트를 다시 자동으로 실행합니다')}</p>
         </확인창>
       )}
       {창}

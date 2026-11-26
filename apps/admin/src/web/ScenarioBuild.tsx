@@ -14,6 +14,7 @@ import { Loading, Failed, PLATFORM_LABEL } from './ui.js';
 import { 판정을만든다, 테스트만인가 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
 import { 디바이스고르개, 조립부제, 조립시작확인, 조립시험확인 } from './ScenarioBuildParts.js';
+import { 조립저장단추 } from './ScenarioBuildSave.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioRunWindow } from './ScenarioRunWindow.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
@@ -190,9 +191,7 @@ export function ScenarioBuild({
         />
       )}
       {!쓰나 ? null : (
-        <button type="button" className="btn ghost" disabled={초안.저장하는중 || 실행중} onClick={() => void 저장누름()}>
-          {초안.저장하는중 && !실행중 ? t('저장하는 중') : t('저장')}
-        </button>
+        <조립저장단추 이름={초안.이름} 잠금={초안.저장하는중 || 실행중} 하는중={초안.저장하는중 && !실행중} 검사={() => 초안.저장검사(칸오류번호 ?? 빈칸있는단계(초안.단계들))} on저장={() => void 저장누름()} />
       )}
       {!쓰나 ? null : (
         <button type="button" className="btn" disabled={초안.저장하는중 || 실행중} onClick={() => { if (정식.걸수있나(서버, 칸오류번호 ?? 빈칸있는단계(초안.단계들))) set시작확인(true); }}>

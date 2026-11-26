@@ -12,6 +12,7 @@ import { 떠나기막기 } from './leaveGuard.js';
 import { RunLocation } from './RunLocation.js';
 import { ServicePanel } from './SettingsService.js';
 import { 애플리케이션줄 } from './ShellRail.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   떠나기막기(null);
@@ -38,6 +39,7 @@ const 키있는줄 = { env: 'qa', baseUrl: 'https://qa.ashveil.dev', adminKey: {
 async function 고친본문() {
   const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
   fireEvent.click(screen.getByRole('button', { name: '저장' }));
+  물음누름('저장');
   await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
   return 고침.mock.calls[0]?.[1];
 }

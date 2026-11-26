@@ -7,6 +7,7 @@ import { Prd } from './Prd.js';
 import { 로그인실패, 아이디, 잠금, 판 } from './prd.fixture.js';
 import type { PrdItemDraft, PrdNow } from './prdApi.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const { 지금, 저장 } = vi.hoisted(() => ({
   지금: vi.fn((_s: string): Promise<PrdNow> => Promise.reject(new Error('판을 정하지 않았다'))),
@@ -51,6 +52,11 @@ describe('PRD 관리 — 목차의 정리 필요 묶음', () => {
     expect([...고르개.options].map((o) => o.value)).toEqual(['회원가입', '로그인']);
 
     fireEvent.click(within(서랍).getByRole('button', { name: '옮기기' }));
+    expect(screen.getByRole('dialog', { name: /요구사항 1건을 로그인 묶음으로 옮길까요\?/ })).toBeTruthy();
+    물음누름('취소');
+    expect(저장).not.toHaveBeenCalled();
+    fireEvent.click(within(서랍).getByRole('button', { name: '옮기기' }));
+    물음누름('옮기기');
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
     const [서비스, 기준, 보낸것] = 저장.mock.calls[0]!;
     expect([서비스, 기준]).toEqual(['MKT', 12]);

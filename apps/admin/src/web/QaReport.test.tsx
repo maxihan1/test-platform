@@ -125,6 +125,11 @@ describe('QA 리포트 보기', () => {
     expect(저장).not.toHaveBeenCalled();
     fireEvent.change(칸, { target: { value: '기능 리스크\n- 결제 금액 회귀 실패 2건 · DM-215' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: '남은 리스크 문장을 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(저장).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(저장).toHaveBeenCalledWith(31, '기능 리스크\n- 결제 금액 회귀 실패 2건 · DM-215'));
     cleanup();
 

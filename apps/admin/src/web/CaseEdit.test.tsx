@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // 케이스 상세의 「코드 기본값 바꾸기 요청」 (도메인/카탈로그 §8.1 · 도메인/작성 §3.6 「★ 케이스 고치기」).
-// 화면은 값과 동작만 보낸다 — 바꾼 칸만, 삭제는 두 번 눌러야 간다. 미확정이어도 확정 고르개는 없다
+// 화면은 값과 동작만 보낸다 — 바꾼 칸만, 삭제는 확인 창을 거쳐야 간다. 미확정이어도 확정 고르개는 없다
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -10,6 +10,7 @@ import { CaseDetail } from './CaseDetail.js';
 import { 빈기억 } from './caseDetailView.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -81,6 +82,8 @@ describe('코드 기본값 변경 요청', () => {
 
     fireEvent.change(자리().getByLabelText(/상품 수/), { target: { value: '3' } });
     fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
+    expect(보냄).not.toHaveBeenCalled();
+    물음누름('변경 요청');
 
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', expected: { count: 3 } }]));
     const 고리 = await screen.findByRole('link', { name: '작성 요청 41번' });
@@ -126,6 +129,7 @@ describe('코드 기본값 변경 요청', () => {
 
     fireEvent.change(자리().getByLabelText(/상품 수/), { target: { value: '3' } });
     fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
+    물음누름('변경 요청');
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', expected: { count: 3 } }]));
   });
 
@@ -149,51 +153,33 @@ describe('코드 기본값 변경 요청', () => {
     expect(within(접힘).getByRole('group', { name: '코드 기본값 변경 요청', hidden: true })).toBeTruthy();
   });
 
-  it('삭제는 두 번 눌러야 간다', async () => {
+  it('삭제 요청은 확인 창을 거친다 — 취소하면 보내지 않고 확인하면 보낸다', async () => {
     vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
     const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 43 });
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
 
     fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
+    expect(screen.getByRole('dialog', { name: 'XEW-001 케이스 삭제를 요청할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(보냄).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: '취소' }));
-    expect(screen.queryByRole('button', { name: '삭제 확인' })).toBeNull();
-
     fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    물음누름('삭제 요청');
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', delete: true }]));
     expect(await screen.findByRole('link', { name: '작성 요청 43번' })).toBeTruthy();
   });
 
-  it('프로시저 안 케이스면 삭제 확인 줄 아래에 작성 요청으로 보낸다고 알린다', () => {
+  it('프로시저 안 케이스면 삭제 확인 창에 작성 요청으로 보낸다고 알린다', () => {
     vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
     const { unmount } = render(<코드기본값고치기 row={케이스({ procId: 'XEW-TP-001' })} service="XEW" />);
     expect(screen.queryByText(/테스트 프로시저의 케이스라/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
-    expect(screen.getByText(/테스트 프로시저의 케이스라 작성 요청으로 보냅니다/)).toBeTruthy();
+    expect(within(screen.getByRole('dialog')).getByText(/테스트 프로시저의 케이스라 작성 요청으로 보냅니다/)).toBeTruthy();
     unmount();
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
     fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
     expect(screen.queryByText(/테스트 프로시저/)).toBeNull();
-  });
-
-  it('삭제 확인 줄은 취소가 앞자리이고 포커스도 취소에 있다 — 더블클릭 · Enter 두 번이 삭제로 새지 않는다', () => {
-    vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
-    const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 1 });
-    render(<코드기본값고치기 row={케이스()} service="XEW" />);
-
-    const 묻기 = screen.getByRole('button', { name: '케이스 삭제 요청' });
-    fireEvent.click(묻기);
-    const 취소 = screen.getByRole('button', { name: '취소' });
-    const 확인 = screen.getByRole('button', { name: '삭제 확인' });
-    expect(document.activeElement).toBe(취소);
-    expect(취소.compareDocumentPosition(확인) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(취소).not.toBe(묻기);
-
-    fireEvent.click(취소);
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: '케이스 삭제 요청' }));
-    expect(보냄).not.toHaveBeenCalled();
   });
 
   it('보낸 뒤 포커스는 결과 줄로 간다. 누른 버튼이 사라져도 길을 잃지 않는다', async () => {
@@ -202,7 +188,7 @@ describe('코드 기본값 변경 요청', () => {
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
 
     fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    물음누름('삭제 요청');
     await screen.findByRole('link', { name: '작성 요청 45번' });
     expect(document.activeElement).toBe(screen.getByRole('status'));
   });
@@ -213,7 +199,7 @@ describe('코드 기본값 변경 요청', () => {
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
 
     fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    물음누름('삭제 요청');
 
     expect(await screen.findByText(/#12/)).toBeTruthy();
   });

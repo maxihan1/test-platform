@@ -98,4 +98,13 @@ export const BTS말: Record<string, string> = {
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '{bts} 주소를 적어 주세요': 'Enter the {bts} URL',
   '{bts} 프로젝트 키를 적어 주세요': 'Enter the {bts} project key',
+  '{이름} 케이스를 {bts}에 다시 보낼까요?': 'Send {이름} to {bts} again?',
+  '이 실행에서 {bts}에 등록하지 못한 케이스를 다시 보냅니다. 보낸 뒤에는 복원할 수 없습니다': 'Sends the case this run could not file to {bts} again. It cannot be undone once sent',
+  '배포 알림 토큰을 발급할까요?': 'Issue a deploy notification token?',
+  'deploy.sh 에 넣을 배포 알림 토큰을 만들어 원문을 한 번만 보여 줍니다. 원문을 놓치면 다시 발급해야 하고, 옛 토큰은 복원할 수 없습니다':
+    'Creates the deploy notification token for deploy.sh and shows it only once. If you miss it, issue a new one. The old token cannot be restored',
+  '연결을 저장하고 {bts} 자동 설정을 만들까요?': 'Save the connection and set up {bts} automatically?',
+  '저장하고 자동 설정': 'Save and set up',
+  '연결 정보와 상태 매핑을 저장하고, 내 통합계정 권한으로 {bts} 에 웹훅 · 규칙 · 보드 칸 · 이슈 필드를 만듭니다. 이미 있는 항목은 만들지 않고 수정합니다':
+    'Saves the connection and status mapping, then creates the webhook, rules, board columns and issue fields in {bts} with your account. Existing items are updated, not duplicated',
 };

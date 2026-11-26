@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { api, type CasePage, type ServiceRow } from './api.js';
 import { Sched } from './Sched.js';
 import { schedApi, type 세트 } from './schedApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 앱 = (prefix: string, 덮: Partial<ServiceRow> = {}): ServiceRow => ({
   id: prefix === 'MKT' ? 7 : 8,
@@ -118,6 +119,11 @@ describe('정기 실행 세트 마법사', () => {
     expect(within(창()).getByText('11/14 · 11/15 · 11/16')).toBeTruthy();
     expect(within(창()).queryByRole('checkbox', { name: /안정화 지표에 사용/u })).toBeNull();
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: '세트를 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
+    fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() =>
       expect(만들기).toHaveBeenCalledWith({
         projectId: 10,
@@ -153,6 +159,7 @@ describe('정기 실행 세트 마법사', () => {
     다음();
     fireEvent.click(within(창()).getByRole('checkbox', { name: /안정화 지표에 사용/u }));
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(기준).toHaveBeenCalledWith(9, true));
     expect(만들기.mock.calls[0]![0].items).toEqual([{ kind: 'FN', service: 'MKT', tcIds: ['MKT-FN-001', 'MKT-FN-002'] }]);
   });
@@ -218,6 +225,7 @@ describe('정기 실행 세트 마법사', () => {
     expect(기준칸.checked).toBe(true);
     fireEvent.click(기준칸);
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(순서).toEqual(['기준 false', '고치기']));
     expect(고치기).toHaveBeenCalledWith(1, { name: '결제 회귀', at: '02:00', days: [0, 1, 2, 3, 4, 5, 6], items: [{ kind: 'FN', service: 'MKT', tcIds: null }], envs: [{ service: 'MKT', env: 'stg' }] });
   });
@@ -235,6 +243,7 @@ describe('정기 실행 세트 마법사', () => {
     다음();
     다음();
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
+    물음누름('저장');
     expect(await within(창()).findByText('같은 이름의 세트가 이미 있습니다')).toBeTruthy();
   });
 
@@ -259,6 +268,7 @@ describe('정기 실행 세트 마법사', () => {
     다음();
     expect(within(창()).queryByRole('checkbox', { name: /안정화 지표에 사용/u })).toBeNull();
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(기준).not.toHaveBeenCalled();
   });

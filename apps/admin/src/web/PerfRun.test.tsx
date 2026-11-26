@@ -9,7 +9,7 @@ import { perfApi, type 실행상세 } from './perfApi.js';
 import type { PageRow } from './perfPageApi.js';
 import { PerfRun } from './PerfRun.js';
 import { 갱신간격, 틈간격 } from './perfRunView.js';
-import { 확인상자, 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
+import { 물음누름, 확인상자, 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 
 const 된다 = () => () => true;
 const 안된다 = () => () => false;
@@ -332,12 +332,16 @@ describe('결과', () => {
     expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
   });
 
-  it('AI 분석이 실패했거나 없으면 다시 만들기가 있다. 실행 write 가 없으면 단추가 없다', async () => {
+  it('AI 분석이 실패했거나 없으면 다시 만들기가 있다. 확인 창을 거쳐 보낸다. 실행 write 가 없으면 단추가 없다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ ai: null, aiJob: { id: 3, status: 'FAILED' } }));
     const 분석 = vi.spyOn(perfApi, 'analysis').mockResolvedValue({ jobId: 4 });
     render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '다시 만들기' }));
+    물음누름('취소');
+    expect(분석).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '다시 만들기' }));
+    물음누름('다시 만들기');
     await waitFor(() => expect(분석).toHaveBeenCalledWith(12));
 
     cleanup();

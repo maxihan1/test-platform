@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError, type EnvRow } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 부름: { 무엇: string; 값: unknown }[] = [];
 let 목록답: () => Promise<unknown> = () => Promise.resolve({});
@@ -79,6 +80,7 @@ describe('새 작성 요청 — API 애플리케이션', () => {
     fireEvent.change(await screen.findByRole('combobox', { name: 'API 문서' }), { target: { value: '2' } });
     fireEvent.click(다음버튼());
     fireEvent.click(screen.getByRole('button', { name: '테스트 작성 시작' }));
+    물음누름('작성 시작');
 
     await waitFor(() => expect(넣었다).toBe(1));
     expect(부름[0]?.값).toEqual({ service: 'ALM', body: { kind: 'AUTHOR', figma: [], apiDoc: 2, env: 'stg' } });

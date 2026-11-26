@@ -262,4 +262,10 @@ export const 시나리오말: Record<string, string> = {
   '/ {전체} 단계': '/ {전체} steps',
   '경과 {시간}': 'Elapsed {시간}',
   '기다리는 중': 'Waiting',
+  // 확인 창 (2026-11-26 사용자)
+  '지금 단계와 값 연결을 저장해 새 버전을 남깁니다. 저장한 버전은 버전 기록에서 복원할 수 있습니다': 'Saves the current steps and value links as a new version. You can restore a saved version from the version history',
+  'v{버전} 버전으로 복원할까요?': 'Restore version v{버전}?',
+  '지금 단계를 v{버전} 의 단계 구성으로 복원하고 그 구성을 새 버전으로 저장합니다. 옛 버전이 남아 있어 다시 복원할 수 있습니다':
+    'Restores the steps of v{버전} and saves them as a new version. The old versions stay, so you can restore again',
+  '복원': 'Restore',
 };

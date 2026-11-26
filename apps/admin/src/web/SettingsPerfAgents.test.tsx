@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { perfApi, type PerfAgent } from './perfApi.js';
 import { PerfScenarioList } from './PerfScenarioList.js';
 import { SettingsPerfAgents } from './SettingsPerfAgents.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -39,6 +40,11 @@ describe('설정 › 성능 에이전트', () => {
 
     fireEvent.change(screen.getByLabelText(/^프로젝트/), { target: { value: '3' } });
     fireEvent.click(screen.getByRole('button', { name: '추가' }));
+    expect(screen.getByRole('dialog', { name: 'db-1 에이전트를 추가할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(추가).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '추가' }));
+    물음누름('추가');
     expect(await screen.findByText('docker run -e AGENT_TOKEN=pga_x qahub-perf-agent')).toBeTruthy();
     expect(추가).toHaveBeenCalledWith('db-1', 'MONITOR', 3);
   });
@@ -59,6 +65,12 @@ describe('설정 › 성능 에이전트', () => {
     fireEvent.change(칸, { target: { value: '사무실-3' } });
     expect(줄.queryByRole('alert')).toBeNull();
     fireEvent.click(줄.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: '사무실-2 에이전트 정보를 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(고치기).not.toHaveBeenCalled();
+    fireEvent.click(줄.getByRole('button', { name: '저장' }));
+    물음누름('저장');
+    expect(고치기).toHaveBeenCalledWith(5, { name: '사무실-3', maxVus: 1000 });
     await waitFor(() => expect(줄.getByRole('alert').textContent).not.toBe(''));
   });
 

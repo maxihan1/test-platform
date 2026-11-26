@@ -31,6 +31,7 @@ async function 채우고올리기(파일: File) {
   fireEvent.change(screen.getByLabelText('실행 명령'), { target: { value: './bot2' } });
   fireEvent.change(screen.getByLabelText('zip 파일'), { target: { files: [파일] } });
   fireEvent.click(screen.getByRole('button', { name: '업로드' }));
+  물음누름('업로드');
 }
 
 describe('설정 › 더미 클라이언트', () => {
@@ -51,6 +52,18 @@ describe('설정 › 더미 클라이언트', () => {
     await 채우고올리기(파일);
     await waitFor(() => expect(올리기).toHaveBeenCalledWith(8, '봇 2', './bot2', 파일));
     await waitFor(() => expect(목록).toHaveBeenCalledTimes(2));
+  });
+
+  it('업로드는 확인 창을 거치고 취소하면 보내지 않는다', async () => {
+    그리기();
+    const 올리기 = vi.spyOn(perfApi, 'addDummyClient').mockResolvedValue({ id: 6 });
+    fireEvent.change(await screen.findByLabelText('더미 클라이언트 이름'), { target: { value: '봇 2' } });
+    fireEvent.change(screen.getByLabelText('실행 명령'), { target: { value: './bot2' } });
+    fireEvent.change(screen.getByLabelText('zip 파일'), { target: { files: [new File(['PK'], 'bot.zip')] } });
+    fireEvent.click(screen.getByRole('button', { name: '업로드' }));
+    expect(screen.getByRole('dialog', { name: '봇 2 더미 클라이언트를 업로드할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(올리기).not.toHaveBeenCalled();
   });
 
   it('이름이나 파일이 비면 보내지 않고 알린다', async () => {

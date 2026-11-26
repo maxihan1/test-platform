@@ -5,6 +5,7 @@
 import { useState } from 'react';
 
 import { api, type CaseRow, type ParamSetRow, type SavedInput, type User } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { initialText, schemaToFields } from './schema.js';
@@ -62,6 +63,7 @@ export function 저장한값줄({
   const [저장칸, set저장칸] = useState(false);
   const [이름, set이름] = useState('');
   const [확인중, set확인중] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const [알림, set알림] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const 저장된다 = 할수있나(user, 케이스서비스(케이스.tcId), '입력값저장');
@@ -82,13 +84,8 @@ export function 저장한값줄({
     }
   }
 
-  async function 저장() {
+  async function 저장보냄() {
     const 묶음이름 = 이름.trim();
-    if (묶음이름 === '') {
-      // 버튼을 죽이지 않고 누르면 사유를 적는다 (도메인/실행 §8.2)
-      set알림(t('묶음 이름을 적으세요'));
-      return;
-    }
     set알림(null);
     setBusy(true);
     try {
@@ -104,11 +101,20 @@ export function 저장한값줄({
     }
   }
 
+  // 이름이 비면 서버를 부르지 않고 그 자리에서 사유만 적는다 — 상자를 열지 않는다 (도메인/실행 §8.2)
+  function 저장() {
+    if (이름.trim() === '') {
+      set알림(t('묶음 이름을 적으세요'));
+      return;
+    }
+    set알림(null);
+    set묻나(true);
+  }
+
   async function 지우기() {
     setBusy(true);
     try {
       await api.clearInput(케이스.tcId);
-      set확인중(false);
       on다시읽기();
     } catch (err) {
       on실패(err);
@@ -120,7 +126,8 @@ export function 저장한값줄({
   if (!목록있나 && !저장된다) return null;
 
   return (
-    <div className="one-values">
+    <>
+      <div className="one-values">
       <div className="one-row">
         {!목록있나 ? null : (
           <>
@@ -143,17 +150,8 @@ export function 저장한값줄({
             <button type="button" className="btn ghost" aria-expanded={저장칸} onClick={() => set저장칸((전) => !전)}>
               {t('묶음으로 저장')}
             </button>
-            {saved === undefined ? null : 확인중 ? (
-              <>
-                <button type="button" className="btn ghost" onClick={() => void 지우기()} disabled={busy}>
-                  {t('초기화 확인')}
-                </button>
-                <button type="button" className="btn ghost" onClick={() => set확인중(false)} disabled={busy}>
-                  {t('취소')}
-                </button>
-              </>
-            ) : (
-              <button type="button" className="btn ghost" onClick={() => set확인중(true)}>
+            {saved === undefined ? null : (
+              <button type="button" className="btn ghost" onClick={() => set확인중(true)} disabled={busy}>
                 {t('저장값 초기화')}
               </button>
             )}
@@ -181,5 +179,32 @@ export function 저장한값줄({
         </div>
       )}
     </div>
+    {!묻나 ? null : (
+      <확인창
+        제목={t("지금 입력값을 '{이름}' 묶음으로 저장할까요?", { 이름: 이름.trim() })}
+        확인={t('묶음으로 저장')}
+        onClose={() => set묻나(false)}
+        on확인={() => {
+          set묻나(false);
+          void 저장보냄();
+        }}
+      >
+        <p>{t('지금 칸에 있는 입력값과 기대 결과를 그 이름의 묶음으로 저장합니다. 저장한 묶음은 이 화면에서 삭제할 수 없어 복원할 수 없습니다')}</p>
+      </확인창>
+    )}
+    {!확인중 ? null : (
+      <확인창
+        제목={t('{이름} 케이스의 저장값을 초기화할까요?', { 이름: 케이스.tcId })}
+        확인={t('초기화')}
+        onClose={() => set확인중(false)}
+        on확인={() => {
+          set확인중(false);
+          void 지우기();
+        }}
+      >
+        <p>{t('팀이 함께 쓰는 이 케이스의 저장값을 초기화하고 다음 실행부터 코드 기본값을 씁니다. 복원할 수 없습니다')}</p>
+      </확인창>
+    )}
+    </>
   );
 }

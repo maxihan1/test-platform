@@ -59,16 +59,16 @@ export function PerfStepTargets({
           <span className="perf-faint">{t('기획서 수치가 있으면 그것을 먼저 쓰고, 없으면 AI 추천값을 씁니다. 값을 수정하면 출처가 「직접 입력」으로 변경됩니다')}</span>
           {쓰나 ? (
             <div className="perf-acts">
-              <button type="button" className="btn ghost small" disabled={일.도나} onClick={() => (값.targets.length > 0 ? set묻나(true) : void 추천())}>
+              <button type="button" className="btn ghost small" disabled={일.도나} onClick={() => set묻나(true)}>
                 <기다림글자 중={일.도나} 평소={t('AI 추천')} 기다림={t('찾는 중')} />
               </button>
             </div>
           ) : null}
         </div>
         {!묻나 ? null : (
-          // 저장보다 앞에서 묻는다 — 취소하면 시나리오도 저장하지 않는다
-          <확인창 제목={t('AI 추천 목표로 변경할까요?')} 확인={t('AI 추천')} onClose={() => set묻나(false)} on확인={() => void 추천()}>
-            <p>{t('지금 있는 성능 목표 {수}개가 AI 추천 목표로 모두 변경됩니다', { 수: 값.targets.length })}</p>
+          // 저장보다 앞에서 묻는다 — 취소하면 시나리오도 저장하지 않는다. 목표가 없어도 저장이 일어나서 늘 묻는다 (2026-11-26 사용자)
+          <확인창 제목={t('AI 추천 목표로 변경할까요?')} 확인={t('AI 추천으로 변경')} onClose={() => set묻나(false)} on확인={() => void 추천()}>
+            <p>{t('지금 있는 성능 목표를 모두 AI 추천값으로 변경합니다. 아직 저장하지 않은 시나리오는 추천 전에 먼저 저장합니다')}</p>
           </확인창>
         )}
         {일.오류 === null ? null : <p className="perf-err" role="alert">{일.오류}</p>}

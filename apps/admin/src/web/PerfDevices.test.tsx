@@ -10,7 +10,7 @@ import { perfApi } from './perfApi.js';
 import { PerfDevices } from './PerfDevices.js';
 import { 결과, 기기들, 상세, 설정, 앱 } from './perfDevices.fixture.js';
 import { 갱신간격 } from './perfRunView.js';
-import { 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
+import { 물음누름, 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 
 const 케이스쪽 = { items: [{ tcId: 'ZQD-001', name: '로그인', platforms: ['android'] }, { tcId: 'ZQD-002', name: '장바구니', platforms: ['android'] }] as CaseRow[], total: 2 } as CasePage;
 
@@ -278,6 +278,20 @@ describe('결과', () => {
     확인시작();
     expect(await screen.findByRole('button', { name: '시작하는 중' })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: '다시 만들기' })).toBeTruthy();
+  });
+
+  it('AI 분석 다시 만들기는 확인 창을 거친다 — 취소하면 보내지 않는다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({ ai: null, aiJob: { id: 3, status: 'FAILED' } }));
+    vi.spyOn(perfApi, 'deviceResult').mockResolvedValue(결과);
+    const 분석 = vi.spyOn(perfApi, 'analysis').mockResolvedValue({ jobId: 4 });
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '다시 만들기' }));
+    expect(screen.getByRole('dialog', { name: '이 실행의 AI 분석을 다시 만들까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(분석).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '다시 만들기' }));
+    물음누름('다시 만들기');
+    await waitFor(() => expect(분석).toHaveBeenCalledWith(40));
   });
 
   it('측정한 디바이스가 하나도 없으면 빈 채로 두지 않고 그 말을 한다', async () => {

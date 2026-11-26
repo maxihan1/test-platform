@@ -9,6 +9,7 @@ import { 고치기할일 } from './AuthoringEditParts.js';
 import { 다시작성원본, 시간판 } from './authoringStatus.js';
 import { 이어서작성, 일, 확인글 } from './authoringTodoParts.js';
 import { 줄보임 } from './authoringView.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
@@ -40,6 +41,8 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
   const [열린, set열린] = useState<확인>(null);
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  // 다시 작성은 서버에 새 작성 요청을 만든다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [다시작성묻나, set다시작성묻나] = useState(false);
 
   const 보 = 줄보임(요청, Date.now());
   // DONE·FAILED 로 끝난 뒤 남은 멈춤 요청은 무시한다 (도메인/작성 §7 — 서버가 지우지 않는다)
@@ -179,7 +182,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
             className={중단 ? 'btn ghost' : 'btn'}
             type="button"
             disabled={보내는중}
-            onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }))}
+            onClick={() => set다시작성묻나(true)}
           >
             <기다림글자 중={보내는중} 평소={t('같은 자료로 다시 작성')} 기다림={t('시작하는 중')} />
           </button>
@@ -213,6 +216,20 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
       {본문}
       {열린 === null && 오류 !== null ? <p className="error-text">{오류}</p> : null}
 
+      {!다시작성묻나 ? null : (
+        <확인창
+          제목={t('같은 자료로 다시 작성할까요?')}
+          확인={t('다시 작성 시작')}
+          onClose={() => set다시작성묻나(false)}
+          on확인={() => {
+            set다시작성묻나(false);
+            const 원본 = 다시작성원본(요청);
+            if (원본 !== null) 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }));
+          }}
+        >
+          <p>{t('넣었던 자료 그대로 같은 요청에서 처음부터 다시 실행합니다. 지금까지의 실행은 실행 기록에 남습니다')}</p>
+        </확인창>
+      )}
       {열린 === null ? null : (
         <Modal
           제목={열린 === 'stop' ? t('작성을 중단할까요?') : t('이 요청을 삭제할까요?')}

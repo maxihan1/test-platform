@@ -7,6 +7,7 @@ import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { api } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { 그린다, 다음, 단계들, 서버를더한다, 이름을채운다, 종류를고른다, 확인까지 } from './SettingsWizard.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   떠나기막기(null);
@@ -40,6 +41,7 @@ describe('종류마다 다른 칸', () => {
     expect(screen.queryByLabelText('탐색 제외 경로')).toBeNull();
     다음();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
     const 본문 = 만듦.mock.calls[0]?.[0];
@@ -62,6 +64,7 @@ describe('종류마다 다른 칸', () => {
     다음();
     다음();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
     const 본문 = 만듦.mock.calls[0]?.[0];
@@ -83,6 +86,7 @@ describe('종류마다 다른 칸', () => {
     다음();
     expect(screen.getByText('PC 게임')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
     expect(만듦.mock.calls[0]?.[0]).toMatchObject({ kind: 'GAME', gamePlatform: 'windows' });
@@ -100,6 +104,7 @@ describe('종류마다 다른 칸', () => {
     다음();
     다음();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
     expect(만듦.mock.calls[0]?.[0]).not.toHaveProperty('gamePlatform');
@@ -126,6 +131,7 @@ describe('확인 표', () => {
     그린다();
     확인까지();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     expect((screen.getByRole('button', { name: '종류 수정' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole('button', { name: '종류' }) as HTMLButtonElement).disabled).toBe(true);
@@ -137,6 +143,7 @@ describe('끝 화면', () => {
     vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
     확인까지();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
     await screen.findByText('결제 애플리케이션을 만들었습니다');
   }
 

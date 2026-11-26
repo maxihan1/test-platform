@@ -14,6 +14,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 
 import { api, type UserRow } from './api.js';
 import { UserSection } from './SettingsUser.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 import type { 프로젝트줄 } from './settingsView.js';
 
 // jsdom 에 없는 함수라 끼워 넣지 않으면 TempPassword 가 TypeError 로 죽는다.
@@ -83,10 +84,9 @@ describe('UserSection', () => {
     expect(screen.queryByRole('alert')).toBeNull();
 
     fireEvent.click(screen.getAllByText('편집')[1]!);
-    // 되돌릴 수 없는 일이라 두 걸음으로 받는다. 같은 버튼이 글자만 바뀐다
     const 다시만들기 = screen.getByText('비밀번호 재발급');
     fireEvent.click(다시만들기);
-    fireEvent.click(다시만들기);
+    물음누름('비밀번호 재발급');
 
     const 상자 = await screen.findByRole('alert');
     expect(상자.textContent).toContain('Tmp-a1b2c3');
@@ -114,6 +114,22 @@ describe('UserSection', () => {
 
     expect(screen.queryByText('비밀번호 재발급')).toBeNull();
     expect(screen.getByText(/비밀번호 변경/)).toBeTruthy();
+  });
+
+  it('비밀번호 재발급은 확인 창을 거친다 — 취소하면 서버를 안 부르고 확인하면 부른다', async () => {
+    const 재발급 = vi.spyOn(api, 'resetPassword').mockResolvedValue({ tempPassword: 'Tmp-a1b2c3' });
+    그리기();
+    fireEvent.click(screen.getAllByText('편집')[1]!);
+
+    fireEvent.click(screen.getByRole('button', { name: '비밀번호 재발급' }));
+    expect(screen.getByRole('dialog', { name: /계정의 비밀번호를 재발급할까요\?$/ })).toBeTruthy();
+    물음누름('취소');
+    expect(재발급).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '비밀번호 재발급' }));
+    물음누름('비밀번호 재발급');
+    expect(재발급).toHaveBeenCalledTimes(1);
+    expect((await screen.findByRole('alert')).textContent).toContain('Tmp-a1b2c3');
   });
 
   it('남의 줄에는 비밀번호 재발급이 있다', () => {
@@ -286,6 +302,11 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     고른다('데모마켓 실행', '쓰기');
     고른다('그래프(Grafana)', '안 씀');
     fireEvent.click(screen.getByText('계정 추가'));
+    expect(screen.getByRole('dialog', { name: '계정을 추가할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('계정 추가'));
+    물음누름('계정 추가');
 
     expect(만들기).toHaveBeenCalledWith({
       username: 'choi',
@@ -302,6 +323,9 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     fireEvent.click(screen.getAllByText('편집')[1]!);
     고른다('데모마켓 작성', '쓰기');
     fireEvent.click(screen.getByText('저장'));
+    expect(screen.getByRole('dialog', { name: '계정 정보를 저장할까요?' })).toBeTruthy();
+    expect(고치기).not.toHaveBeenCalled();
+    물음누름('저장');
 
     expect(고치기).toHaveBeenCalledWith('lee', {
       displayName: '이영희',

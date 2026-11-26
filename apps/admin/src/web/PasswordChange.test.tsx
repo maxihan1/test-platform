@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { api, ApiError, type User } from './api.js';
 import { PasswordChange } from './PasswordChange.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -117,6 +118,7 @@ describe('비밀번호 변경 화면', () => {
     vi.spyOn(api, 'changePassword').mockRejectedValue(new ApiError(400, 코드, ''));
     그리기();
     채운다({});
+    물음누름('비밀번호 변경');
 
     expect(await screen.findByText(문장)).toBeTruthy();
   });
@@ -127,9 +129,21 @@ describe('비밀번호 변경 화면', () => {
     const 끝 = vi.fn();
     그리기(true, 끝);
     채운다({});
+    물음누름('비밀번호 변경');
 
     await waitFor(() => expect(끝).toHaveBeenCalledWith(바꾼사람));
     expect(보냄).toHaveBeenCalledWith({ currentPassword: 'admin', newPassword: 'longpass1' });
+  });
+
+  it('칸이 맞으면 확인 창을 띄우고, 취소하면 보내지 않는다', () => {
+    const 보냄 = vi.spyOn(api, 'changePassword').mockResolvedValue(undefined);
+    그리기(true);
+    채운다({});
+
+    expect(screen.getByRole('dialog', { name: '비밀번호를 변경할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(보냄).not.toHaveBeenCalled();
   });
 
   it('사유가 붙은 칸은 틀렸다고 표시하고 사유 글을 가리킨다', () => {

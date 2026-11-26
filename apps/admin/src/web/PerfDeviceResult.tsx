@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import type { ServiceRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
@@ -27,6 +28,8 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
   const [오류, set오류] = useState<string | null>(null);
   /** 다시 실행 확인 창이 적을 자동 포함 건수. 창이 닫혀 있으면 null */
   const [묻는수, set묻는수] = useState<number | null>(null);
+  // AI 분석을 다시 만들면 서버에 새 일이 걸린다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [AI묻나, setAI묻나] = useState(false);
   const 종류 = 판정종류(run);
   // 끝까지 잰 실행에만 AI 분석이 선다. 끝난 직후 일이 서기 전 틈도 기다린다
   const 틈 = run.ai === null && run.aiJob === null && run.status === 'DONE' && run.finishedAt !== null && Date.now() - new Date(run.finishedAt).getTime() < 분석틈;
@@ -132,7 +135,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
             </ul>
           ) : 만드는중 || !쓰나 || run.status !== 'DONE' ? null : (
             <div>
-              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => void AI다시()}>
+              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => setAI묻나(true)}>
                 <기다림글자 중={하는중 === 'ai'} 평소={t('다시 만들기')} 기다림={t('시작하는 중')} />
               </button>
             </div>
@@ -225,6 +228,19 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
             void 다시실행();
           }}
         />
+      )}
+      {!AI묻나 ? null : (
+        <확인창
+          제목={t('이 실행의 AI 분석을 다시 만들까요?')}
+          확인={t('다시 만들기')}
+          onClose={() => setAI묻나(false)}
+          on확인={() => {
+            setAI묻나(false);
+            void AI다시();
+          }}
+        >
+          <p>{t('이 실행에 붙은 AI 분석을 다시 만듭니다. 결과가 마음에 들지 않으면 다시 만들 수 있습니다')}</p>
+        </확인창>
       )}
     </>
   );

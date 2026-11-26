@@ -28,8 +28,8 @@ export const 가이드말: Record<string, string> = {
   제거: 'Remove',
   '파일 첨부': 'Attach file',
   '{구획}에 파일 첨부': 'Attach a file to {구획}',
-  '제거 확인': 'Confirm remove',
-  '{이름} 제거 확인': 'Confirm removing {이름}',
+  '「{이름}」 파일을 제거할까요?': 'Remove the file “{이름}”?',
+  '가이드에서 이 파일을 제거합니다. 이전 버전에서는 열 수 있지만 복원할 수 없습니다': 'Removes this file from the guide. Earlier versions can still open it, but this cannot be undone',
   '{구획} 수정': 'Edit {구획}',
 
   // 버전 기록 — 「버전 기록」 글자는 PRD 표(messages/prd.ts)에 있다
@@ -48,4 +48,12 @@ export const 가이드말: Record<string, string> = {
   '예: 기본 주소 · 토큰 받는 법 · 호출 한도': 'e.g. base URL · getting a token · rate limits',
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '수정한 내용이 없어 저장할 수 없습니다': 'Nothing has been edited, so there is nothing to save',
+  // 구획 저장 · 첨부 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '{이름} 구획을 저장할까요?': 'Save the {이름} section?',
+  '수정한 글로 새 가이드 버전을 만들어 저장하고, 지금 버전은 버전 기록에 그대로 남습니다. 그 사이 다른 사람이 먼저 저장했으면 저장하지 않고 알려 줍니다':
+    'Saves your edits as a new guide version; the current one stays in the history. If someone else saved first, nothing is saved and you are told',
+  '{이름} 파일을 첨부할까요?': 'Attach {이름}?',
+  '첨부': 'Attach',
+  '선택한 파일을 그 구획에 붙여 가이드 새 버전을 만듭니다. 붙은 파일은 파일 줄의 「제거」로 다시 뺄 수 있습니다':
+    'Adds the file to this section as a new guide version. Use "Remove" on the file row to take it out again',
 };

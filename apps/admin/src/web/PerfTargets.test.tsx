@@ -32,21 +32,24 @@ describe('부하 성능 목표', () => {
     const 맡김 = vi.spyOn(perfApi, 'suggest').mockResolvedValue({ jobId: 1 } as Awaited<ReturnType<typeof perfApi.suggest>>);
     render(<목표칸 처음={[목표(2000), 목표(3000)]} 저장={저장} />);
     fireEvent.click(screen.getByRole('button', { name: 'AI 추천' }));
-    expect(screen.getByText('지금 있는 성능 목표 2개가 AI 추천 목표로 모두 변경됩니다')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'AI 추천 목표로 변경할까요?' })).toBeTruthy();
     물음누름('취소');
     expect(저장).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'AI 추천' }));
-    물음누름('AI 추천');
+    물음누름('AI 추천으로 변경');
     await waitFor(() => expect(맡김).toHaveBeenCalledWith(7, 'TARGETS', 3));
     expect(저장).toHaveBeenCalledTimes(1);
   });
 
-  it('적은 목표가 없으면 묻지 않고 바로 맡긴다', async () => {
+  it('적은 목표가 없어도 저장이 일어나서 묻는다 — 취소하면 저장하지 않는다', async () => {
     const 저장 = vi.fn().mockResolvedValue(null);
     render(<목표칸 처음={[]} 저장={저장} />);
     fireEvent.click(screen.getByRole('button', { name: 'AI 추천' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    물음누름('취소');
+    expect(저장).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'AI 추천' }));
+    물음누름('AI 추천으로 변경');
     await waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
   });
 

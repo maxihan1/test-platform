@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthoringNew } from './AuthoringNew.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 만든본문: unknown[] = [];
 
@@ -59,6 +60,7 @@ describe('새 작성 — PC 게임 지원 패드 (도메인/게임 §3.10 「윈
     확인까지();
     expect(screen.getByText('PS5 · Xbox')).toBeTruthy();
     fireEvent.click(시작단추());
+    물음누름('작성 시작');
 
     await waitFor(() => expect(만든본문).toHaveLength(1));
     expect(만든본문[0]).toMatchObject({ kind: 'AUTHOR', gamePads: ['ps5', 'xbox'] });
@@ -71,6 +73,7 @@ describe('새 작성 — PC 게임 지원 패드 (도메인/게임 §3.10 「윈
     확인까지();
     expect(screen.getByText('없음 — 키보드만')).toBeTruthy();
     fireEvent.click(시작단추());
+    물음누름('작성 시작');
 
     await waitFor(() => expect(만든본문).toHaveLength(1));
     expect(만든본문[0]).toMatchObject({ gamePads: [] });
@@ -89,6 +92,7 @@ describe('새 작성 — PC 게임 지원 패드 (도메인/게임 §3.10 「윈
     expect(screen.queryByText('지원 패드')).toBeNull();
     확인까지();
     fireEvent.click(시작단추());
+    물음누름('작성 시작');
 
     await waitFor(() => expect(만든본문).toHaveLength(1));
     expect(만든본문[0]).not.toHaveProperty('gamePads');

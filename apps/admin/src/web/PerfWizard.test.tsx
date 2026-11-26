@@ -8,7 +8,7 @@ import { ApiError, type ServiceRow, type User } from './api.js';
 import { perfApi, type PerfAgent, type PerfScenario, type 더미클라이언트 } from './perfApi.js';
 import { PerfWizard } from './PerfWizard.js';
 import { scenarioApi } from './scenarioApi.js';
-import { 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
+import { 물음누름, 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 
 const 앱 = (runs: 'read' | 'write' = 'write'): ServiceRow => ({
   id: 7,
@@ -85,6 +85,7 @@ describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
     다음();
     await screen.findByLabelText('최대 가상 사용자');
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await waitFor(() => expect(만들기).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/new?step=2&id=42'));
 
@@ -94,6 +95,8 @@ describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/new?id=42'));
 
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+
+    물음누름('임시 저장');
     await waitFor(() => expect(저장).toHaveBeenCalled());
     expect(만들기).toHaveBeenCalledTimes(1);
   });
@@ -121,6 +124,8 @@ describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
     const 칸 = (window.history.state as { navIndex?: number } | null)?.navIndex;
 
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+
+    물음누름('임시 저장');
     await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/new?step=2&id=42'));
     expect((window.history.state as { navIndex?: number } | null)?.navIndex).toBe(칸);
   });
@@ -185,9 +190,30 @@ describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
     다음();
     다음();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     expect(await screen.findByRole('button', { name: '저장하는 중' })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: '실행' })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: '임시 저장' })).toHaveProperty('disabled', true);
+  });
+
+  it('임시 저장 · 저장은 확인 창을 거친다 — 취소하면 시나리오를 만들지 않는다', async () => {
+    const 만들기 = vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });
+    await 그리기();
+    fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '주문하기' } });
+    fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
+    fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    expect(screen.getByRole('dialog', { name: '「주문하기」 시나리오를 임시 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    다음();
+    다음();
+    다음();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: '「주문하기」 시나리오를 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
+    await waitFor(() => expect(만들기).toHaveBeenCalledTimes(1));
   });
 
   it('실행은 저장하기 전에 묻는다 — 취소하면 시나리오도 실행도 안 생긴다', async () => {
@@ -262,6 +288,7 @@ it('E2E 녹화를 맡기면 AI 가 만든 트랜잭션과 녹화 셈이 표에 �
 
   fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '로그인 부하' } });
   fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+  물음누름('임시 저장');
   await waitFor(() => expect(만들기).toHaveBeenCalled());
   expect(만들기.mock.calls[0]![3]).toBe(90);
 });
@@ -322,6 +349,8 @@ it('고칠 때는 네 단계를 다 끝낸 것으로 보고 바로 간다', asyn
   expect(screen.getByText('직접 입력', { selector: '.perf-tag' })).toBeTruthy();
 
   fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+
+  물음누름('임시 저장');
   await waitFor(() => expect(저장).toHaveBeenCalled());
   expect(저장.mock.calls[0]![1].targets).toEqual([{ metric: 'ERROR_RATE', op: '<=', value: 2, source: 'MANUAL', reqId: undefined }]);
   expect(await screen.findByText('버전 4')).toBeTruthy();

@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { api, type CasePage } from './api.js';
 import { compatApi, type CompatDevice, type CompatPreview, type CompatSetDetail } from './compatApi.js';
 import { CompatSet } from './CompatSet.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 폰 = (serial: string, marketName: string, model: string, 더: Partial<CompatDevice> = {}): CompatDevice => ({
   serial,
@@ -98,6 +99,10 @@ describe('새 호환성 세트', () => {
     expect(screen.getByText('폴더블 1대는 꽂힌 상태 그대로 한 번 점검합니다')).toBeTruthy();
     fireEvent.change(screen.getByRole('textbox', { name: '세트 이름' }), { target: { value: ' 출시 전 점검 ' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(window.location.hash).toBe('#/compat/9?service=MKA'));
     expect(만들기).toHaveBeenCalledWith({ serviceId: 7, name: '출시 전 점검', onePerModel: true, devices: [{ serial: 's4' }, { serial: 's1' }], addedCases: [] });
   });
@@ -158,6 +163,7 @@ describe('저장한 호환성 세트', () => {
     await waitFor(() => expect(미리셈).toHaveBeenLastCalledWith(7, ['MKA-FN-050']));
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(고치기).toHaveBeenCalled());
     expect(고치기.mock.calls[0]![1]).toMatchObject({ addedCases: ['MKA-FN-050'], devices: [{ serial: 's1' }, { serial: 's4' }] });
   });

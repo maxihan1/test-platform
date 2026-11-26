@@ -186,7 +186,9 @@ export const 설정말: Record<string, string> = {
   '비밀번호 재발급': 'Reissue password',
   '자기 비밀번호는 맨 위 오른쪽 이름을 눌러 나오는 「비밀번호 변경」에서 변경합니다':
     'Change your own password with "Change password" in the menu under your name at the top right',
-  '한 번 더 누르면 지금 비밀번호가 무효가 됩니다': 'Press once more and the current password stops working',
+  '「{이름}」 계정의 비밀번호를 재발급할까요?': 'Reset the password of the account “{이름}”?',
+  '지금 비밀번호가 바로 무효가 되고 임시 비밀번호를 한 번만 보여 줍니다. 복원할 수 없습니다':
+    'The current password stops working right away and a temporary password is shown only once. This cannot be undone',
 
   // 임시 비밀번호 상자 — `<b>` 와 `<code>` 가 사이에 끼어 조각으로 나뉜다
   '의 임시 비밀번호는': "'s temporary password is",
@@ -204,11 +206,12 @@ export const 설정말: Record<string, string> = {
   '발급': 'Issue',
   '다시 발급': 'Reissue',
   '토큰 취소': 'Revoke token',
-  '작성 에이전트가 지금 중단됩니다.': 'The authoring agent stops now.',
-  '새 토큰을 다시 넣어야 합니다': 'The new token must be put in again',
-  '다시 발급할 때까지 작성이 중단됩니다': 'Authoring stays stopped until a token is issued again',
-  '다시 발급 확인': 'Confirm reissue',
-  '토큰 취소 확인': 'Confirm revoke',
+  '작성 에이전트 토큰을 다시 발급할까요?': 'Reissue the authoring agent token?',
+  '작성 에이전트 토큰을 취소할까요?': 'Revoke the authoring agent token?',
+  '작성 에이전트가 지금 중단됩니다. 새 토큰을 다시 넣어야 하고 지금 토큰은 복원할 수 없습니다':
+    'The authoring agent stops now. The new token must be put in again, and the current token cannot be restored',
+  '작성 에이전트가 지금 중단되고 다시 발급할 때까지 작성할 수 없습니다. 복원할 수 없습니다':
+    'The authoring agent stops now and cannot write tests until a token is issued again. This cannot be undone',
   '그만두기': 'Never mind',
   '의 작성 에이전트 토큰입니다. 선택해 복사하세요': "'s authoring agent token. Select it to copy",
   '서버는 .env 의 AUTHORING_AGENT_TOKEN 에, 맥은 처음 켤 때 묻는 칸에 넣습니다': 'On the server put it in AUTHORING_AGENT_TOKEN in .env; on a Mac paste it at the prompt on first start',
@@ -255,8 +258,6 @@ export const 설정말: Record<string, string> = {
   '기획서와 피그마로 케이스를 만들 때만 씁니다. 실행에는 영향을 주지 않습니다':
     'Only used when building test scripts from specs and Figma. Runs are not affected',
   '애플리케이션 비활성화': 'Deactivate application',
-  '애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다':
-    'It disappears from the application picker. Run history and cases are kept',
   '비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다':
     'Once deactivated, it disappears from the application picker. Run history and scripts are kept',
 
@@ -289,8 +290,6 @@ export const 설정말: Record<string, string> = {
   '나머지 {건수}개 화면은 PC 와 모바일이 같습니다': 'The other {건수} pages are the same on desktop and mobile',
   '다른 화면 {전체}장 가운데 앞 {건수}장만 보입니다': 'Showing the first {건수} of {전체} pages that differ',
   // 확인 (WEB-F10-02)
-  '비활성화 확인': 'Confirm deactivation',
-  '비활성으로 내리면 이 계정은 바로 로그인할 수 없습니다. 다시 활성화할 수 있습니다': 'This account can no longer sign in. You can activate it again',
   '애플리케이션을 옮길까요?': 'Move this application?',
   옮기기: 'Move',
   '「{이름}」을 「{프로젝트}」 프로젝트로 옮깁니다. 볼 수 있는 사람이 「{프로젝트}」 권한대로 변경됩니다':
@@ -304,5 +303,45 @@ export const 설정말: Record<string, string> = {
   '「{이름}」 파일이 삭제됩니다. 다시 쓰려면 zip 파일을 다시 업로드해야 합니다': 'The file of "{이름}" is deleted. Upload the zip again to use it',
   // 누른 뒤 반응 (WEB-F10-04)
   '발급하는 중': 'Issuing',
-  '취소하는 중': 'Revoking',
+  // 서버를 바꾸는 동작의 확인 창 (2026-11-26)
+  '작성 에이전트 토큰을 발급할까요?': 'Issue an authoring agent token?',
+  '이 계정의 작성 에이전트가 로그인에 쓸 토큰을 만들어 값을 한 번만 보여 줍니다. 값을 잃으면 다시 발급해야 합니다':
+    "Creates the token this account's authoring agent signs in with and shows it only once. If you lose it, issue a new one",
+  'API 서버 이름 {수}건을 저장할까요?': 'Save {수} API server name(s)?',
+  '케이스가 부른 서버에 붙인 이름을 저장합니다. 나중에 다시 저장할 수 있습니다': 'Saves the names given to the servers your cases called. You can save again later',
+  '{이름} 님의 가입 신청을 승인할까요?': 'Approve the sign-up request from {이름}?',
+  '{이름} 님의 가입 신청을 거절할까요?': 'Reject the sign-up request from {이름}?',
+  '정한 등급과 프로젝트 배정으로 계정이 바로 생깁니다. 등급과 배정은 이 화면에서 나중에 수정할 수 있습니다':
+    'The account is created right away with the role and projects you chose. You can change them here later',
+  '{이름} 에이전트 정보를 저장할까요?': 'Save the details of agent {이름}?',
+  '변경한 이름을 서버에 저장하고, 부하 발생 에이전트면 최대 가상 사용자도 함께 저장합니다. 값을 잘못 넣었으면 이 화면에서 다시 수정할 수 있습니다':
+    'Saves the new name, and the max virtual users for a load agent. If a value is wrong, you can edit it again here',
+  '{이름} 에이전트를 추가할까요?': 'Add agent {이름}?',
+  '정한 이름과 역할로 에이전트를 만들고 설치 명령과 토큰을 한 번만 보여 줍니다. 만든 에이전트는 이 화면에서 삭제할 수 있습니다':
+    'Creates the agent with this name and role and shows the install command and token only once. You can delete the agent here',
+  '{이름} 더미 클라이언트를 업로드할까요?': 'Upload dummy client {이름}?',
+  '선택한 애플리케이션에 zip 파일과 실행 명령을 업로드해 목록에 더합니다. 업로드한 것은 이 화면에서 삭제할 수 있습니다':
+    'Uploads the zip file and run command to the selected application and adds it to the list. You can delete it here',
+  '{이름} 프로젝트 정보를 저장할까요?': 'Save the details of project {이름}?',
+  '프로젝트 이름을 저장하고, 대표 애플리케이션을 변경했으면 그 값도 함께 저장합니다. 언제든 이 화면에서 다시 수정할 수 있습니다':
+    'Saves the project name, and the main application if you changed it. You can edit them here at any time',
+  '애플리케이션 설정을 저장할까요?': 'Save the application settings?',
+  '지금 화면의 값으로 애플리케이션 설정을 저장합니다. 다시 수정해 저장할 수 있습니다': 'Saves the application settings with the values on this page. You can edit and save again',
+  '애플리케이션을 비활성화할까요?': 'Deactivate this application?',
+  '애플리케이션을 다시 활성화할까요?': 'Reactivate this application?',
+  '애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관되고 다시 활성화할 수 있습니다':
+    'It disappears from the application picker. Run history and cases are kept, and you can reactivate it',
+  '애플리케이션 선택 목록에 다시 보입니다. 나중에 다시 비활성화할 수 있습니다': 'It shows up in the application picker again. You can deactivate it again later',
+  '「{이름}」 계정을 비활성으로 내릴까요?': 'Deactivate the account "{이름}"?',
+  '「{이름}」 계정을 다시 활성화할까요?': 'Reactivate the account "{이름}"?',
+  '이 계정은 바로 로그인할 수 없게 됩니다. 다시 활성화할 수 있습니다': 'This account can no longer sign in right away. You can reactivate it',
+  '이 계정은 바로 로그인할 수 있게 됩니다. 다시 비활성으로 내릴 수 있습니다': 'This account can sign in right away. You can deactivate it again',
+  '계정을 추가할까요?': 'Add this account?',
+  '계정 정보를 저장할까요?': 'Save the account details?',
+  '적은 값으로 계정을 만들고 시스템이 만든 임시 비밀번호를 한 번만 보여 줍니다. 만든 계정은 삭제할 수 없고 비활성으로만 내릴 수 있습니다':
+    'Creates the account with these values and shows the generated temporary password only once. Accounts cannot be deleted, only deactivated',
+  '이름 · 등급 · 대시보드 · 프로젝트 배정을 저장합니다. 다시 수정해 저장할 수 있습니다': 'Saves the name, role, dashboard and project access. You can edit and save again',
+  '애플리케이션을 만들까요?': 'Create this application?',
+  '적은 값으로 애플리케이션을 만들고 새 프로젝트를 선택했으면 프로젝트도 함께 만듭니다. 만든 애플리케이션은 삭제할 수 없고 비활성으로만 내릴 수 있습니다':
+    'Creates the application with these values, and the project too if you chose a new one. Applications cannot be deleted, only deactivated',
 };

@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { ApiError, type ServiceRow, type User } from './api.js';
 import { perfApi, type PerfScenario } from './perfApi.js';
 import { PerfWizard } from './PerfWizard.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 앱: ServiceRow = {
   id: 7,
@@ -79,6 +80,12 @@ describe('정기 실행', () => {
     fireEvent.change(within(창).getByLabelText('시각'), { target: { value: '03:00' } });
     fireEvent.change(within(창).getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
     fireEvent.click(within(창).getByRole('button', { name: '켜기' }));
+    expect(screen.getByRole('dialog', { name: '정기 실행을 켤까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(보내기).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: '정기 실행' })).toBeTruthy();
+    fireEvent.click(within(창).getByRole('button', { name: '켜기' }));
+    물음누름('켜기');
 
     await waitFor(() => expect(보내기).toHaveBeenCalledWith(42, { at: '03:00', tz: 'Asia/Seoul', env: 'qa' }));
     expect(await screen.findByText('매일 03:00 · qa')).toBeTruthy();
@@ -92,6 +99,10 @@ describe('정기 실행', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '정기 실행' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '끄기' }));
+    물음누름('취소');
+    expect(보내기).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '끄기' }));
+    물음누름('끄기');
     await waitFor(() => expect(보내기).toHaveBeenCalledWith(42, null));
     await waitFor(() => expect(screen.queryByText('매일 03:00 · qa')).toBeNull());
   });
@@ -101,6 +112,7 @@ describe('정기 실행', () => {
     await 그리기(사람('admin'), { at: '03:00', tz: 'Asia/Seoul', env: 'qa' });
     fireEvent.click(screen.getByRole('button', { name: '정기 실행' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '켜기' }));
+    물음누름('켜기');
     expect((await screen.findByRole('alert')).textContent).toContain('마법사 4단계를 저장해 주세요');
     expect(screen.getByRole('dialog')).toBeTruthy();
   });

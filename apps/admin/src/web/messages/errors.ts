@@ -163,4 +163,8 @@ export const 오류영어: Record<string, string> = {
     'Test data setup is invalid. The URL is http(s), the header name uses letters, digits and -, the value needs 12+ characters and the time limit is 10–600 seconds',
   '준비 헤더 값을 넣어야 합니다. 신규 준비 주소이거나 준비 주소 · 헤더 이름 · 대상 서버 이름을 변경하면 다시 넣어야 합니다': 'Enter the setup header value. A new setup URL, or a changed setup URL, header name or target server name, needs it again',
   '새 API 인증에는 비밀값을 넣어야 합니다': 'A new API auth needs a client secret',
+  // 리포트 생성 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '{이름} 리포트를 생성할까요?': 'Generate the {이름} report?',
+  '그 실행의 리포트를 만들어 서버에 저장하고, 다 만들어지면 목록에 더해 다운로드할 수 있게 합니다. 같은 형식을 다시 생성할 수 있고 앞서 만든 문서는 그대로 남습니다':
+    'Builds the evidence document for this run and stores it; once ready it joins the list for download. You can generate the same format again and earlier documents stay',
 };

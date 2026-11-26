@@ -9,6 +9,7 @@ import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { prdApi } from './prdApi.js';
 import { SettingsWizard } from './SettingsWizard.js';
 import { 그린다, 까닭, 다음, 단계들, 서버를더한다, 이름을채운다, 종류를고른다, 종류카드들, 확인까지 } from './SettingsWizard.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   떠나기막기(null);
@@ -67,6 +68,7 @@ describe('애플리케이션만 더하기', () => {
 
     expect(screen.getByText('이대로 만듭니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     expect(await screen.findByText('결제 서비스 애플리케이션을 만들었습니다')).toBeTruthy();
     expect(프로젝트만듦).not.toHaveBeenCalled();
@@ -121,11 +123,23 @@ describe('애플리케이션만 더하기', () => {
     expect(screen.getByText('애플리케이션을 넣을 프로젝트를 선택합니다')).toBeTruthy();
   });
 
+  it('만들기는 확인 창을 거치고 취소하면 서버를 부르지 않는다', () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
+    그린다();
+    확인까지();
+    fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    expect(screen.getByRole('dialog', { name: '애플리케이션을 만들까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(screen.queryByRole('dialog', { name: '애플리케이션을 만들까요?' })).toBeNull();
+    expect(만듦).not.toHaveBeenCalled();
+  });
+
   it('그사이 다른 사람이 접두사를 쓰면(409 PREFIX_TAKEN) 이름 · 번호 단계로 데려가 까닭을 말한다', async () => {
     vi.spyOn(api, 'createService').mockRejectedValue(new ApiError(409, 'PREFIX_TAKEN', 'taken'));
     그린다();
     확인까지();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     await waitFor(() => expect(screen.getByText('이름과 번호를 정합니다')).toBeTruthy());
     expect(까닭()).toBe('그 접두사는 이미 다른 애플리케이션이 쓰고 있습니다');
@@ -140,6 +154,7 @@ describe('애플리케이션만 더하기', () => {
     확인까지();
     const 길이 = window.history.length;
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     await waitFor(() => expect(screen.getByText('이름과 번호를 정합니다')).toBeTruthy());
     await waitFor(() => expect(window.location.hash).toBe('#/settings/new?step=2'));
@@ -169,6 +184,7 @@ describe('애플리케이션만 더하기', () => {
     expect(screen.getByText('이대로 만듭니다')).toBeTruthy();
     expect(screen.queryByText(/탐색 제외 경로 \d+줄/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
     await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
     expect(만듦.mock.calls[0]?.[0]).toMatchObject({ kind: 'APP', crawlExclude: [] });
   });
@@ -195,6 +211,7 @@ describe('프로젝트부터 만들기', () => {
     다음();
     다음();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
     expect(프로젝트만듦).toHaveBeenCalledWith('새 제품');
@@ -206,6 +223,7 @@ describe('프로젝트부터 만들기', () => {
     expect(screen.getByText('이미 만들었습니다')).toBeTruthy();
     expect(screen.getByText('프로젝트는 이미 만들었습니다. 애플리케이션만 만듭니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    물음누름('만들기');
 
     expect(await screen.findByText('쇼핑 앱 애플리케이션을 만들었습니다')).toBeTruthy();
     expect(screen.getByText(/「새 제품」 프로젝트도 함께 만들었습니다/)).toBeTruthy();

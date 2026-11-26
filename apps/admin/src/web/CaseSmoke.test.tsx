@@ -8,6 +8,7 @@ import { api, type CasePage, type CaseRow } from './api.js';
 import { CaseList } from './CaseList.js';
 import { 판조건, 판칩누르기 } from './CaseListFilterBar.fixture.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -61,11 +62,22 @@ async function 그리기(할수: 판정) {
 }
 
 describe('스모크 칩', () => {
-  it('고친 값이 없는 꺼진 줄의 칩을 누르면 켠다', async () => {
+  it('고친 값이 없는 꺼진 줄의 칩을 누르면 확인 창을 거쳐 켠다', async () => {
     const 고침 = vi.spyOn(api, 'setSmoke').mockResolvedValue(undefined);
     await 그리기(전부된다);
     fireEvent.click(screen.getByRole('button', { name: 'ZSK-001 스모크' }));
+    expect(고침).not.toHaveBeenCalled();
+    물음누름('스모크 켜기');
     await waitFor(() => expect(고침).toHaveBeenCalledWith('ZSK-001', true));
+  });
+
+  it('확인 창에서 취소하면 서버를 부르지 않는다', async () => {
+    const 고침 = vi.spyOn(api, 'setSmoke').mockResolvedValue(undefined);
+    await 그리기(전부된다);
+    fireEvent.click(screen.getByRole('button', { name: 'ZSK-001 스모크' }));
+    물음누름('취소');
+    expect(고침).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('직접 고친 줄을 누르면 코드 값으로 되돌리고, 칩에 「직접」이 보인다', async () => {
@@ -75,6 +87,7 @@ describe('스모크 칩', () => {
     expect(칩.textContent).toContain('· 직접');
     expect(screen.getByRole('button', { name: 'ZSK-003 스모크' }).textContent).not.toContain('직접');
     fireEvent.click(칩);
+    물음누름('AI 값 적용');
     await waitFor(() => expect(고침).toHaveBeenCalledWith('ZSK-002', null));
   });
 
@@ -82,6 +95,7 @@ describe('스모크 칩', () => {
     vi.spyOn(api, 'setSmoke').mockRejectedValue(new Error('저장하지 못했습니다'));
     await 그리기(전부된다);
     fireEvent.click(screen.getByRole('button', { name: 'ZSK-001 스모크' }));
+    물음누름('스모크 켜기');
     expect((await screen.findByRole('alert')).textContent).toContain('저장하지 못했습니다');
   });
 

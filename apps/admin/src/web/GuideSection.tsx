@@ -8,6 +8,7 @@ import type { GuideFile, GuideSection as 구획 } from '@platform/kit';
 
 // 고르개와 보내기 전 거르기(Guide.tsx 의 거절사유)가 같은 목록을 본다 — 자료 올리기와 같은 규칙 (도메인/작성 §7 「자료」)
 import { 가이드받는종류 } from './AuthoringNew.js';
+import { 확인창 } from './ConfirmBox.js';
 import { guideApi } from './guideApi.js';
 import { use말, use언어 } from './i18n.js';
 import { message, when } from './ui.js';
@@ -61,8 +62,8 @@ export function GuideSection({
   const 언어 = use언어();
   const 고르개 = useRef<HTMLInputElement>(null);
   const [연, set연] = useState<연글 | null>(null);
-  // 빼도 옛 버전에서 열리지만 되돌리기가 없다 — 눌렀을 때 그 자리에서 한 번 더 묻는다 (점검 9.2)
-  const [뺄파일, set뺄파일] = useState<number | null>(null);
+  // 빼도 옛 버전에서 열리지만 되돌리기가 없다 — 눌렀을 때 확인 창으로 한 번 더 묻는다 (점검 9.2 · 2026-11-26 사용자)
+  const [뺄파일, set뺄파일] = useState<GuideFile | null>(null);
   const 제목 = t(구획이름[section]);
   const 제목id = `guide-${section}`;
 
@@ -125,25 +126,8 @@ export function GuideSection({
                       {연?.id === file.id ? t('닫기') : t('열기')}
                     </button>
                   )}
-                  {on빼기 === undefined ? null : 뺄파일 === file.id ? (
-                    <>
-                      <button
-                        className="btn ghost small set-warn"
-                        disabled={busy}
-                        aria-label={t('{이름} 제거 확인', { 이름: file.name })}
-                        onClick={() => {
-                          set뺄파일(null);
-                          on빼기(file);
-                        }}
-                      >
-                        {t('제거 확인')}
-                      </button>
-                      <button className="btn ghost small" onClick={() => set뺄파일(null)}>
-                        {t('취소')}
-                      </button>
-                    </>
-                  ) : (
-                    <button className="btn ghost small" disabled={busy} aria-label={t('{이름} 제거', { 이름: file.name })} onClick={() => set뺄파일(file.id)}>
+                  {on빼기 === undefined ? null : (
+                    <button className="btn ghost small" disabled={busy} aria-label={t('{이름} 제거', { 이름: file.name })} onClick={() => set뺄파일(file)}>
                       {t('제거')}
                     </button>
                   )}
@@ -183,6 +167,19 @@ export function GuideSection({
           )}
           {아래 === undefined || 아래 === null ? null : <span className="guide-actions">{아래}</span>}
         </div>
+      )}
+      {뺄파일 === null || on빼기 === undefined ? null : (
+        <확인창
+          제목={t('「{이름}」 파일을 제거할까요?', { 이름: 뺄파일.name })}
+          확인={t('제거')}
+          onClose={() => set뺄파일(null)}
+          on확인={() => {
+            set뺄파일(null);
+            on빼기(뺄파일);
+          }}
+        >
+          <p>{t('가이드에서 이 파일을 제거합니다. 이전 버전에서는 열 수 있지만 복원할 수 없습니다')}</p>
+        </확인창>
       )}
     </section>
   );

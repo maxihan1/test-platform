@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { Settings } from './Settings.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 beforeEach(() => {
   vi.spyOn(api, 'settingsProjects').mockResolvedValue({ items: [{ id: 1, name: '데모마켓' }] });
@@ -60,6 +61,7 @@ async function 마법사로만든다() {
   fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
   for (let i = 0; i < 3; i += 1) fireEvent.click(screen.getByRole('button', { name: '다음' }));
   fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+  물음누름('만들기');
   await screen.findByText('새것 애플리케이션을 만들었습니다');
 }
 

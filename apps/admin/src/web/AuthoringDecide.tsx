@@ -209,7 +209,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
         )}
         <div className="decide-run">
           <small className="hint">{안저장 === 0 ? t('선택하지 않은 일은 이 목록에 남습니다') : t('저장하지 않은 수정 {수}건은 빠집니다', { 수: 안저장 })}</small>
-          <button className="btn" type="button" disabled={바쁨 || 보냄.length === 0} onClick={() => (반려.length > 0 ? set묻나(true) : void 적용하기())}>
+          <button className="btn" type="button" disabled={바쁨 || 보냄.length === 0} onClick={() => set묻나(true)}>
             <기다림글자 중={바쁨} 평소={t('{수}건 적용', { 수: 보냄.length })} 기다림={t('적용하는 중')} />
           </button>
         </div>
@@ -221,13 +221,18 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
       </footer>
       {/* 바닥 줄은 스크롤 칸에 붙어 있어(sticky) 그 안에 열면 상자가 다른 층 밑에 깔린다 */}
       {!묻나 ? null : (
-        <확인창 제목={t('{수}건을 적용할까요?', { 수: 보냄.length })} 확인={t('{수}건 적용', { 수: 보냄.length })} onClose={() => set묻나(false)} on확인={() => void 적용하기()}>
-          <ul className="decide-list">
-            {반려.map((줄) => (
-              <li key={줄.rootId}>{차례글(줄, t)}</li>
-            ))}
-          </ul>
-          <p>{t('반려 {수}건은 복원할 수 없습니다', { 수: 반려.length })}</p>
+        <확인창 제목={t('선택한 {수}건을 적용할까요?', { 수: 보냄.length })} 확인={t('{수}건 적용', { 수: 보냄.length })} onClose={() => set묻나(false)} on확인={() => void 적용하기()}>
+          <p>{t('선택한 결정을 차례로 적용합니다. 테스트 승인 · 이슈 등록 · PRD 수정 · 테스트 생성이 함께 일어나고, 반려는 적용한 뒤 복원할 수 없습니다')}</p>
+          {반려.length === 0 ? null : (
+            <>
+              <ul className="decide-list">
+                {반려.map((줄) => (
+                  <li key={줄.rootId}>{차례글(줄, t)}</li>
+                ))}
+              </ul>
+              <p>{t('반려 {수}건은 복원할 수 없습니다', { 수: 반려.length })}</p>
+            </>
+          )}
         </확인창>
       )}
     </section>

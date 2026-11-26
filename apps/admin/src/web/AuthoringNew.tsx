@@ -8,6 +8,7 @@ import { useState } from 'react';
 
 import { api, ApiError, type EnvRow, type 패드, type 앱종류 } from './api.js';
 import { ApiDocFields, useApiDocs } from './AuthoringNewApi.js';
+import { 가이드저장다음, 작성시작 } from './AuthoringNewConfirm.js';
 import { 빌드없음말, 패드칸, type PC게임 } from './AuthoringNewPads.js';
 import { 단계띠, 단계머리, 방법칸, 서버칸, 파일칸, 확인요약, 확인칸, type 단계, type 방법 } from './AuthoringNewSteps.js';
 import { 거절사유, 자료상한, 작성오류말, 피그마거절말, 가이드까닭 } from './authoringNewText.js';
@@ -17,7 +18,7 @@ import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import { Modal } from './Modal.js';
-import { Failed, Loading, message, 기다림글자 } from './ui.js';
+import { Failed, Loading, message } from './ui.js';
 
 export { 가이드받는종류, 거절사유, 받는종류 } from './authoringNewText.js';
 
@@ -221,14 +222,7 @@ export function AuthoringNew({
         <button className="btn ghost" type="button" disabled={가이드.busy || 가이드.바뀜 || 문서.대기} onClick={앞으로}>
           {t('건너뛰기')}
         </button>
-        <button
-          className="btn"
-          type="button"
-          disabled={!가이드.바뀜 || 가이드.busy || 문서.대기}
-          onClick={() => void 가이드.저장(구획들).then((ok) => ok && 앞으로())}
-        >
-          {t('저장 후 다음')}
-        </button>
+        <가이드저장다음 바뀜={가이드.바뀜} busy={가이드.busy} 대기={문서.대기} on저장={() => void 가이드.저장(구획들).then((ok) => ok && 앞으로())} />
       </>
     ) : (
       <>
@@ -237,9 +231,7 @@ export function AuthoringNew({
           {지금 === 0 ? t('취소') : t('이전')}
         </button>
         {단계 === 'confirm' ? (
-          <button className="btn" type="button" disabled={못보낸다 || 보내는중} onClick={() => void 보낸다()}>
-            <기다림글자 중={보내는중} 평소={t('테스트 작성 시작')} 기다림={t('시작하는 중')} />
-          </button>
+          <작성시작 못보낸다={못보낸다} 보내는중={보내는중} on보낸다={() => void 보낸다()} />
         ) : (
           <button className="btn" type="button" disabled={막힘 !== null} onClick={앞으로}>
             {t('다음')}

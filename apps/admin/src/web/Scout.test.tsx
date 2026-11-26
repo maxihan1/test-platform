@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 
 import { Scout } from './Scout.js';
 import type { 질문 } from './scoutView.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 class 가짜귀 {
   static CLOSED = 2;
@@ -214,12 +215,17 @@ describe('Scout 채팅창 (도메인/챗봇 §8.18)', () => {
     expect(부른것.filter((p) => p.method === 'GET')).toHaveLength(2);
   });
 
-  it('대화 초기화는 한 번 더 묻지 않고 지우고 처음 열기로 돌아간다', async () => {
+  it('대화 초기화는 확인 창을 거쳐 지우고 처음 열기로 돌아간다. 취소하면 지우지 않는다', async () => {
     대화.questions = [질문줄({ answer: '실패는 없어요.' })];
     띄우기();
     await 열기();
     await screen.findByText('실패는 없어요.');
     fireEvent.click(screen.getByRole('button', { name: '대화 초기화' }));
+    물음누름('취소');
+    expect(부른것.some((p) => p.method === 'DELETE')).toBe(false);
+    expect(screen.getByText('실패는 없어요.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '대화 초기화' }));
+    물음누름('초기화');
     await screen.findByText('데모마켓 시험 프로젝트에 대해 물어보세요');
     expect(부른것.at(-1)).toMatchObject({ method: 'DELETE', url: '/api/chat?projectId=7' });
   });

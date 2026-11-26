@@ -15,6 +15,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { api, type EvidenceRow } from './api.js';
 import { RunResult } from './RunResult.js';
 import { RUN_ID, 그리기, 실행, 실행까지, 증적 } from './RunResult.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다.
 // 언마운트가 곧 `setInterval` 정리다 — 안 걸면 2초 폴링이 검사를 붙잡는다
@@ -87,6 +88,12 @@ describe('실행 결과 화면의 리포트 메뉴 (SPEC §8.4)', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '리포트 생성' }));
     fireEvent.click(screen.getByRole('button', { name: '엑셀' }));
+    expect(screen.getByRole('dialog', { name: '엑셀 리포트를 생성할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
+    fireEvent.click(screen.getByRole('button', { name: '엑셀' }));
+    물음누름('리포트 생성');
 
     expect(만들기).toHaveBeenCalledWith(RUN_ID, 'XLSX');
     // 고르면 메뉴는 닫히고 단추가 만드는 중임을 알린다. 다시 열면 그 형식만 잠겨 있다 — 셋이 같이 잠기면 PDF 를 못 만든다

@@ -189,4 +189,17 @@ export const 호환성말: Record<string, string> = {
   '실행 일시 · 실행자': 'Run at · Run by',
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '디바이스를 하나 이상 선택해 주세요': 'Choose at least one device',
+  // 판정 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '{이름} 화면을 결함 확정으로 판정할까요?': 'Mark the {이름} screen as a confirmed defect?',
+  '{이름} 화면을 결함 아님으로 판정할까요?': 'Mark the {이름} screen as not a defect?',
+  '{이름} 화면을 미판정으로 변경할까요?': 'Set the {이름} screen back to unreviewed?',
+  '미판정으로 변경': 'Set to unreviewed',
+  '이 카드의 판정을 비우고 미판정으로 저장합니다': 'Clears the verdict on this card and saves it as unreviewed',
+  '이 카드를 결함 확정으로 저장하고 판정한 사람과 시각을 함께 남깁니다. 같은 단추를 다시 누르면 미판정으로 돌아갑니다':
+    'Saves this card as a confirmed defect with who judged it and when. Press the same button again to set it back to unreviewed',
+  '이 카드를 결함 아님으로 저장하고 판정한 사람과 시각을 함께 남깁니다. 같은 단추를 다시 누르면 미판정으로 돌아갑니다':
+    'Saves this card as not a defect with who judged it and when. Press the same button again to set it back to unreviewed',
+  '호환성 세트를 저장할까요?': 'Save the compatibility set?',
+  '세트 이름과 디바이스, 직접 추가한 케이스를 서버에 저장합니다. 새 세트면 저장한 뒤 세트 화면으로 옮기고, 다시 저장하면 수정한 값으로 저장합니다':
+    'Saves the set name, devices and added cases. A new set opens its own page after saving; saving again keeps the edited values',
 };

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ServiceGuide } from '@platform/kit';
 
 import { AuthoringNew } from './AuthoringNew.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const { 지금, 저장 } = vi.hoisted(() => ({
   지금: vi.fn<(service: string) => Promise<ServiceGuide>>(),
@@ -56,6 +57,7 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     fireEvent.change(await screen.findByRole('textbox', { name: '정책' }), { target: { value: '실카드는 쓰지 않습니다' } });
     fireEvent.click(버튼('저장 후 다음'));
+    물음누름('저장');
     await waitFor(() => expect(지금단계()).toBe('2 작성 방식'));
     expect(저장).toHaveBeenCalledWith('PAY', 0, { intro: '', policy: '실카드는 쓰지 않습니다', rules: '' });
   });

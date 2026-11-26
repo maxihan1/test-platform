@@ -218,4 +218,13 @@ export const 케이스말: Record<string, string> = {
   '수정 후에도 실패했습니다 · RUN {번호}': 'Still failed after the fix · RUN {번호}',
   '그만뒀습니다': 'Stopped',
   '그만뒀습니다 · {까닭}': 'Stopped · {까닭}',
+  '{아이디} 케이스의 스모크를 AI 가 정한 값으로 다시 적용할까요?': 'Reset the smoke flag on {아이디} to the value the AI chose?',
+  '손으로 수정한 스모크 표시를 삭제하고 AI 가 정한 값으로 변경합니다': 'Clears the hand-set smoke flag and goes back to the value the AI chose',
+  'AI 값 적용': 'Use the AI value',
+  '{아이디} 케이스의 스모크를 끌까요?': 'Turn off smoke for {아이디}?',
+  '이 케이스의 스모크 표시를 끄고 케이스 목록을 다시 읽습니다. 같은 단추를 다시 누르면 다시 켜집니다': 'Turns off the smoke flag on this case and reloads the case list. Pressing the same button again turns it back on',
+  '스모크 끄기': 'Turn smoke off',
+  '{아이디} 케이스의 스모크를 켤까요?': 'Turn on smoke for {아이디}?',
+  '이 케이스를 스모크 테스트로 표시하고 케이스 목록을 다시 읽습니다. 같은 단추를 다시 누르면 표시가 풀립니다': 'Marks this case as a smoke test and reloads the case list. Pressing the same button again clears the mark',
+  '스모크 켜기': 'Turn smoke on',
 };

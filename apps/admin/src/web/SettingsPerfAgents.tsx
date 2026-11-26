@@ -3,6 +3,7 @@
 
 import { useState, type ReactNode } from 'react';
 
+import { 확인창 } from './ConfirmBox.js';
 import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -24,6 +25,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
   const list = useAsync(() => perfApi.agents(), []);
   const [고칠, set고칠] = useState<{ id: number; name: string; maxVus: string } | null>(null);
   const [지울것, set지울것] = useState<PerfAgent | null>(null);
+  const [저장묻기, set저장묻기] = useState<PerfAgent | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   const [눌렀나, set눌렀나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류();
@@ -103,10 +105,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
                             onClick={() => {
                               set눌렀나(true);
                               if (이름빔) return 첫오류로();
-                              void 해보기(
-                                () => perfApi.editAgent(a.id, { name: 고칠.name.trim(), ...(a.mode === 'LOAD' && 고칠.maxVus !== '' && { maxVus: Number(고칠.maxVus) }) }),
-                                () => set고칠(null),
-                              );
+                              set저장묻기(a);
                             }}
                           >
                             {t('저장')}
@@ -147,6 +146,21 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
       </div>
       <에이전트추가 projects={projects} 붙음={() => void list.reload()} />
       {아래}
+      {/* 이름 · 최대 가상 사용자 저장도 서버를 바꾸므로 묻는다 (2026-11-26 사용자) */}
+      {저장묻기 === null || 고칠 === null ? null : (
+        <확인창
+          제목={t('{이름} 에이전트 정보를 저장할까요?', { 이름: 저장묻기.name })}
+          확인={t('저장')}
+          onClose={() => set저장묻기(null)}
+          on확인={() => {
+            const a = 저장묻기;
+            set저장묻기(null);
+            void 해보기(() => perfApi.editAgent(a.id, { name: 고칠.name.trim(), ...(a.mode === 'LOAD' && 고칠.maxVus !== '' && { maxVus: Number(고칠.maxVus) }) }), () => set고칠(null));
+          }}
+        >
+          <p>{t('변경한 이름을 서버에 저장하고, 부하 발생 에이전트면 최대 가상 사용자도 함께 저장합니다. 값을 잘못 넣었으면 이 화면에서 다시 수정할 수 있습니다')}</p>
+        </확인창>
+      )}
       {지울것 === null ? null : (
         <Modal
           제목={t('에이전트를 삭제할까요?')}
@@ -180,14 +194,21 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
   const [복사함, set복사함] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const [눌렀나, set눌렀나] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류();
   const 이름오류 = 눌렀나 && name.trim() === '' ? t('이름을 적어 주세요') : null;
   const 프로젝트오류 = 눌렀나 && projectId === '' ? t('프로젝트를 선택해 주세요') : null;
 
-  async function 추가() {
+  // 칸이 틀렸으면 상자를 열기 전에 그 칸으로 간다
+  function 추가누름() {
     set오류(null);
     set눌렀나(true);
     if (name.trim() === '' || (mode === 'MONITOR' && projectId === '')) return 첫오류로();
+    set묻나(true);
+  }
+
+  async function 추가() {
+    set묻나(false);
     try {
       const r = await perfApi.addAgent(name.trim(), mode, mode === 'MONITOR' ? Number(projectId) : undefined);
       set명령(r.installCommand);
@@ -240,10 +261,15 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
             <칸오류 id="perf-add-project" 사유={프로젝트오류} />
           </div>
         ) : null}
-        <button type="button" className="btn" onClick={() => void 추가()}>
+        <button type="button" className="btn" onClick={추가누름}>
           {t('추가')}
         </button>
       </div>
+      {!묻나 ? null : (
+        <확인창 제목={t('{이름} 에이전트를 추가할까요?', { 이름: name.trim() })} 확인={t('추가')} onClose={() => set묻나(false)} on확인={() => void 추가()}>
+          <p>{t('정한 이름과 역할로 에이전트를 만들고 설치 명령과 토큰을 한 번만 보여 줍니다. 만든 에이전트는 이 화면에서 삭제할 수 있습니다')}</p>
+        </확인창>
+      )}
       {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
       {명령 === null ? null : (
         <div className="perf-well">

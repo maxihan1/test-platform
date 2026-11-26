@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { User } from './api.js';
 import { QaProjectReport } from './QaProjectReport.js';
 import { qaReportApi, type 프로젝트리포트응답 } from './qaReportApi.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 사람 = (runs: 'read' | 'write'): User =>
   ({
@@ -61,6 +62,7 @@ describe('프로젝트 QA 리포트 보기', () => {
     expect((칸 as HTMLTextAreaElement).value).toBe('기능 리스크\n- 신규 · 결제 회귀');
     fireEvent.change(칸, { target: { value: '기능 리스크\n- 계속 · 결제 회귀' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(저장).toHaveBeenCalledWith(5, '기능 리스크\n- 계속 · 결제 회귀'));
     await waitFor(() => expect(읽기).toHaveBeenCalledTimes(2));
   });

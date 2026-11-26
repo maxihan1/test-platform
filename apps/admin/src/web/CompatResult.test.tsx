@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { compatApi } from './compatApi.js';
 import { CompatResult } from './CompatResult.js';
 import { 결과, 상태 } from './compatRun.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -51,10 +52,16 @@ describe('호환성 결과', () => {
     // 미판정 먼저 — 미판정 카드(첫 상태)가 앞이다
     const [미판정카드단추, 확정카드단추] = 묶음.getAllByRole('button', { name: '결함 확정' });
     fireEvent.click(미판정카드단추!);
+    물음누름('취소');
+    expect(판정).not.toHaveBeenCalled();
+    fireEvent.click(미판정카드단추!);
+    expect(screen.getByRole('dialog', { name: '장바구니 화면을 결함 확정으로 판정할까요?' })).toBeTruthy();
+    물음누름('결함 확정');
     await waitFor(() => expect(판정).toHaveBeenCalledWith(21107, '/cart', 1, 'CONFIRMED'));
     await waitFor(() => expect(읽기).toHaveBeenCalledTimes(2));
     expect(확정카드단추!.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(확정카드단추!);
+    물음누름('미판정으로 변경');
     await waitFor(() => expect(판정).toHaveBeenCalledWith(21107, '/cart', 2, null));
   });
 

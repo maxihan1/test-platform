@@ -83,4 +83,11 @@ export const 성능실행말: Record<string, string> = {
   '시각을 선택해 주세요': 'Pick a time',
   // 빈 화면 (WEB-F10-04)
   '시나리오나 판정을 변경해 보세요': 'Try a different scenario or result',
+  // 확인 창 (2026-11-26 사용자)
+  'AI 분석을 다시 만들까요?': 'Build the AI analysis again?',
+  '이 실행의 기록을 다시 읽어 AI 분석을 다시 만듭니다. 지금 요약은 새 요약으로 대체됩니다': 'Reads the records of this run again and builds a new AI analysis. The current summary is replaced',
+  '정기 실행을 켤까요?': 'Turn on scheduled runs?',
+  '정기 실행을 끌까요?': 'Turn off scheduled runs?',
+  '매일 정한 시각에 이 시나리오를 정한 대상 서버로 실행합니다. 켠 뒤에 끄면 그때부터 실행하지 않습니다': 'Runs this scenario on the chosen target server at the set time every day. Once turned off, it stops running from then on',
+  '이 시나리오의 정기 실행을 끕니다. 다시 켜기 전에는 실행하지 않습니다': 'Turns off scheduled runs of this scenario. It does not run until you turn it on again',
 };

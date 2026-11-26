@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import { api, ApiError } from './api.js';
 import { Signup } from './Signup.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -78,6 +79,7 @@ describe('회원가입 화면', () => {
   it('보내면 완료 문구와 로그인으로 가는 링크를 보여 준다', async () => {
     const 보냄 = vi.spyOn(api, 'signup').mockResolvedValue({ status: 'PENDING' });
     채운다({});
+    물음누름('가입 신청');
 
     expect(await screen.findByText('가입 신청을 보냈습니다. 관리자가 승인하면 로그인할 수 있습니다')).toBeTruthy();
     expect(보냄).toHaveBeenCalledWith({ username: 'minsu', displayName: '이민수', password: 'longpass1' });
@@ -87,8 +89,19 @@ describe('회원가입 화면', () => {
   it('아이디가 이미 있으면 그렇게 말한다', async () => {
     vi.spyOn(api, 'signup').mockRejectedValue(new ApiError(409, 'USERNAME_TAKEN', ''));
     채운다({});
+    물음누름('가입 신청');
 
     expect(await screen.findByText('이미 쓰는 아이디입니다')).toBeTruthy();
+  });
+
+  it('칸이 맞으면 확인 창을 띄우고, 취소하면 보내지 않는다', () => {
+    const 보냄 = vi.spyOn(api, 'signup').mockResolvedValue({ status: 'PENDING' });
+    채운다({});
+
+    expect(screen.getByRole('dialog', { name: '가입을 신청할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(보냄).not.toHaveBeenCalled();
   });
 
   it('로그인 화면으로 돌아가는 링크가 늘 있다', () => {

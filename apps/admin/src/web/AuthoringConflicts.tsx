@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react';
 
 import { 프로시저파일인가 } from '../authoring/procFile.js';
 import { api, type AuthoringConflict, type AuthoringConflictAction, type AuthoringConflictKind, type AuthoringMadeCase, type CaseRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 케이스주소 } from './route.js';
 import { message, useAsync, when, 기다림글자 } from './ui.js';
@@ -34,6 +35,8 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
   const 보내는중 = 보내는것 !== null;
   const [오류, set오류] = useState<string | null>(null);
   const [열린, set열린] = useState<string | null>(null);
+  // 서버에 남는 값을 바꾸는 누름이라 먼저 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻는것, set묻는것] = useState<{ 제목: string; 본문: string; 단추: string; 무엇: string; 일들: (() => Promise<unknown>)[] } | null>(null);
 
   if (conflicts.length === 0) return null;
   const 남은 = conflicts.filter((c) => c.input === null).length;
@@ -69,7 +72,15 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
             className="btn ghost"
             type="button"
             disabled={보내는중}
-            onClick={() => 보낸다('all', conflicts.filter((c) => c.input === null).map((c) => 고른다(c, 'KEEP')))}
+            onClick={() =>
+              set묻는것({
+                제목: t('남은 중복 케이스 {수}건을 모두 둘 다 유지로 정할까요?', { 수: 남은 }),
+                본문: t('아직 선택하지 않은 {수}건을 모두 둘 다 유지로 저장합니다. 번호가 중복된 케이스는 반영할 때 새 번호를 받고, 줄마다 복원해서 다시 정할 수 있습니다', { 수: 남은 }),
+                단추: t('모두 유지'),
+                무엇: 'all',
+                일들: conflicts.filter((c) => c.input === null).map((c) => 고른다(c, 'KEEP')),
+              })
+            }
           >
             <기다림글자 중={보내는것 === 'all'} 평소={t('모두 유지')} 기다림={t('저장하는 중')} />
           </button>
@@ -142,12 +153,12 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
                 <td className="held-btns">
                   {!편집 ? null : (
                     <>
-                      <button className={c.input?.action === 'KEEP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'KEEP'} aria-label={줄단추이름(c, 'KEEP', t('둘 다 유지'))} disabled={보내는중} onClick={() => 보낸다(`KEEP ${c.tcId}`, [고른다(c, 'KEEP')])}>
+                      <button className={c.input?.action === 'KEEP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'KEEP'} aria-label={줄단추이름(c, 'KEEP', t('둘 다 유지'))} disabled={보내는중} onClick={() => set묻는것({ 제목: t('{이름} 케이스를 둘 다 유지로 정할까요?', { 이름: c.name }), 본문: t('신규 케이스를 그대로 두고 이미 반영된 케이스와 함께 남깁니다. 복원해서 다시 정할 수 있습니다'), 단추: t('둘 다 유지'), 무엇: `KEEP ${c.tcId}`, 일들: [고른다(c, 'KEEP')] })}>
                         {줄단추글(c, 'KEEP', t('둘 다 유지'))}
                       </button>
                       {/* 프로시저 안 케이스를 빼면 흐름이 깨질 수 있는데 반영은 돌려 보지 않는다 — 서버도 400 으로 막는다 */}
                       {프로시저파일인가(c.file) ? null : (
-                        <button className={c.input?.action === 'DROP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'DROP'} aria-label={줄단추이름(c, 'DROP', t('새 케이스 제외'))} disabled={보내는중} onClick={() => 보낸다(`DROP ${c.tcId}`, [고른다(c, 'DROP')])}>
+                        <button className={c.input?.action === 'DROP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'DROP'} aria-label={줄단추이름(c, 'DROP', t('새 케이스 제외'))} disabled={보내는중} onClick={() => set묻는것({ 제목: t('신규 {이름} 케이스를 이번 반영에서 제외할까요?', { 이름: c.name }), 본문: t('이미 반영된 케이스는 그대로 두고 신규 케이스를 반영하지 않습니다. 복원해서 다시 정할 수 있습니다'), 단추: t('새 케이스 제외'), 무엇: `DROP ${c.tcId}`, 일들: [고른다(c, 'DROP')] })}>
                           {줄단추글(c, 'DROP', t('새 케이스 제외'))}
                         </button>
                       )}
@@ -157,7 +168,7 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
                           type="button"
                           aria-label={줄단추이름(c, 'UNDO', t('복원'))}
                           disabled={보내는중}
-                          onClick={() => 보낸다(`UNDO ${c.tcId}`, [() => api.deleteAuthoringConflict(service, 요청번호, c.tcId)])}
+                          onClick={() => set묻는것({ 제목: t('{이름} 케이스를 선택 전으로 복원할까요?', { 이름: c.name }), 본문: t('저장한 중복 결정을 삭제해 다시 선택할 수 있는 상태로 변경합니다. 다시 선택하면 다시 저장됩니다'), 단추: t('복원'), 무엇: `UNDO ${c.tcId}`, 일들: [() => api.deleteAuthoringConflict(service, 요청번호, c.tcId)] })}
                         >
                           {줄단추글(c, 'UNDO', t('복원'))}
                         </button>
@@ -178,6 +189,19 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
           </tbody>
         </table>
       </div>
+      {묻는것 === null ? null : (
+        <확인창
+          제목={묻는것.제목}
+          확인={묻는것.단추}
+          onClose={() => set묻는것(null)}
+          on확인={() => {
+            set묻는것(null);
+            보낸다(묻는것.무엇, 묻는것.일들);
+          }}
+        >
+          <p>{묻는것.본문}</p>
+        </확인창>
+      )}
     </section>
   );
 }

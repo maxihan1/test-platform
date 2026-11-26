@@ -15,6 +15,7 @@ import { 언어함 } from './i18n.js';
 import { 끝났다고알린다 } from './runWatchStore.js';
 import type { 판정 } from './role.js';
 import { 시작누름 } from './runPick.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 전부된다: 판정 = () => true;
 
@@ -1029,6 +1030,7 @@ describe('CaseList 상세 칸에서 저장값 저장', () => {
     expect(screen.getByText('팀 전체와 정기 실행에 쓰입니다')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: '모두에게 저장' }));
+    물음누름('저장');
     await waitFor(() => expect(저장).toHaveBeenCalledWith('ZPK-001', { params: { currency: 'USD' }, expected: {} }));
     await waitFor(() => expect(부른수).toBe(2));
     expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');

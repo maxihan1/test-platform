@@ -45,6 +45,11 @@ describe('프로젝트 고치기', () => {
 
     fireEvent.change(screen.getByLabelText('프로젝트 이름'), { target: { value: '데모몰' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: '데모마켓 프로젝트 정보를 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(고침).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(끝).toHaveBeenCalled());
     expect(고침).toHaveBeenCalledWith(1, { name: '데모몰' });
@@ -60,6 +65,7 @@ describe('프로젝트 고치기', () => {
     expect([...고르개.options].map((it) => it.textContent)).toEqual(['선택 안 함', '프론트 페이지 · DEMO', '백오피스 어드민 · DEMOA']);
     fireEvent.change(고르개, { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(끝).toHaveBeenCalled());
     expect(고침).toHaveBeenCalledWith(1, { name: '데모마켓', primaryServiceId: 2 });
@@ -73,6 +79,7 @@ describe('프로젝트 고치기', () => {
     expect(고르개.value).toBe('1');
     fireEvent.change(고르개, { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { name: '데모마켓', primaryServiceId: null }));
   });

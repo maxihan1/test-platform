@@ -9,6 +9,7 @@ import { api, ApiError, type SettingsServiceRow, type User, type UserRow } from 
 import type { 프로젝트줄 } from './settingsView.js';
 import { Settings } from './Settings.js';
 import { PendingSection } from './SettingsPending.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -87,6 +88,11 @@ describe('승인 대기 묶음', () => {
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
     fireEvent.click(screen.getByRole('checkbox', { name: /데모마켓/ }));
     fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
+    expect(screen.getByRole('dialog', { name: '이민수 님의 가입 신청을 승인할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(수락).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
+    물음누름('승인');
 
     await waitFor(() => expect(다시).toHaveBeenCalled());
     expect(수락).toHaveBeenCalledWith('minsu', {
@@ -96,27 +102,28 @@ describe('승인 대기 묶음', () => {
     });
   });
 
-  it('거절은 확인 줄을 거쳐 지운다', async () => {
+  it('거절은 확인 창을 거쳐 지운다', async () => {
     const 거절 = vi.spyOn(api, 'rejectUser').mockResolvedValue(undefined);
     const 다시 = vi.fn();
     묶음([운영자, 신청], 다시);
     fireEvent.click(screen.getByRole('button', { name: '거절' }));
 
-    expect(screen.getByText(/가입 신청을 삭제합니다. 복원할 수 없습니다/)).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: /님의 가입 신청을 거절할까요\?$/ })).toBeTruthy();
+    expect(screen.getByText('가입 신청을 삭제합니다. 복원할 수 없습니다')).toBeTruthy();
     expect(거절).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    물음누름('거절');
 
     await waitFor(() => expect(다시).toHaveBeenCalled());
     expect(거절).toHaveBeenCalledWith('minsu');
   });
 
-  it('확인 줄에서 그만두면 지우지 않는다', () => {
+  it('확인 창에서 취소하면 지우지 않는다', () => {
     const 거절 = vi.spyOn(api, 'rejectUser');
     묶음();
     fireEvent.click(screen.getByRole('button', { name: '거절' }));
-    fireEvent.click(screen.getByRole('button', { name: '그만두기' }));
+    물음누름('취소');
 
-    expect(screen.queryByText(/가입 신청을 삭제합니다/)).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(거절).not.toHaveBeenCalled();
   });
 
@@ -134,9 +141,10 @@ describe('승인 대기 묶음', () => {
     if (일 === 'approve') {
       fireEvent.click(screen.getByRole('button', { name: '승인' }));
       fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
+      물음누름('승인');
     } else {
       fireEvent.click(screen.getByRole('button', { name: '거절' }));
-      fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+      물음누름('거절');
     }
 
     expect(await screen.findByText('다른 관리자가 먼저 처리했습니다')).toBeTruthy();
@@ -145,12 +153,14 @@ describe('승인 대기 묶음', () => {
 });
 
 describe('두 번 누름과 빈 묶음', () => {
-  it('지운다를 두 번 눌러도 거절 요청은 한 번만 간다', () => {
+  it('거절을 확인한 뒤 다시 눌러도 거절 요청은 한 번만 간다', () => {
     const 거절 = vi.spyOn(api, 'rejectUser').mockReturnValue(new Promise(() => undefined));
     묶음();
     fireEvent.click(screen.getByRole('button', { name: '거절' }));
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    물음누름('거절');
+    fireEvent.click(screen.getByRole('button', { name: '거절' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
 
     expect(거절).toHaveBeenCalledTimes(1);
   });
@@ -160,6 +170,7 @@ describe('두 번 누름과 빈 묶음', () => {
     묶음();
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
     fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
+    물음누름('승인');
     fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
 
     expect(수락).toHaveBeenCalledTimes(1);
@@ -169,9 +180,9 @@ describe('두 번 누름과 빈 묶음', () => {
     vi.spyOn(api, 'rejectUser').mockReturnValue(new Promise(() => undefined));
     묶음();
     fireEvent.click(screen.getByRole('button', { name: '거절' }));
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    물음누름('거절');
 
-    expect((screen.getByRole('button', { name: '삭제 확인' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: '거절' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole('button', { name: '승인' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -179,7 +190,7 @@ describe('두 번 누름과 빈 묶음', () => {
     vi.spyOn(api, 'rejectUser').mockRejectedValue(new ApiError(409, 'APPROVED_USER', ''));
     const { container, rerender } = 묶음();
     fireEvent.click(screen.getByRole('button', { name: '거절' }));
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    물음누름('거절');
     await screen.findByText('다른 관리자가 먼저 처리했습니다');
 
     rerender(<PendingSection rows={[운영자]} projects={프로젝트들} onDone={() => undefined} />);

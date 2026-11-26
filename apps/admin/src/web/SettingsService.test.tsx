@@ -6,6 +6,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { api, ApiError, type SettingsServiceRow } from './api.js';
 import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { ServicePanel } from './SettingsService.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   떠나기막기(null);
@@ -51,39 +52,50 @@ describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를
     expect(구획('대상 서버')?.querySelector('[role="group"]')).not.toBeNull();
   });
 
-  it('비활성화는 저장과 따로 애플리케이션 비활성화 구획에서 한다', async () => {
+  it('비활성화는 저장과 따로 애플리케이션 비활성화 구획에서 확인 창을 거쳐 한다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     const onDone = vi.fn();
     render(<ServicePanel row={서비스} onDone={onDone} />);
 
     fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
     expect(고침).not.toHaveBeenCalled();
-    expect(screen.getByText(/^애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '비활성화 확인' }));
+    expect(screen.getByRole('dialog', { name: '애플리케이션을 비활성화할까요?' }).textContent).toContain('실행 기록과 케이스는 그대로 보관되고');
+    물음누름('비활성화');
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: false }));
     expect(onDone).toHaveBeenCalledWith('ZSS', false);
   });
 
-  it('비활성화 확인에서 그만두면 아무것도 보내지 않고 단추로 돌아온다', () => {
+  it('비활성화 창에서 취소하면 아무것도 보내지 않는다', () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={서비스} onDone={() => {}} />);
 
     fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
-    fireEvent.click(screen.getByRole('button', { name: '그만두기' }));
+    물음누름('취소');
 
     expect(고침).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: '비활성화' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '비활성화 확인' })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('다시 활성화는 확인 없이 바로 보낸다', async () => {
+  it('다시 활성화도 확인 창을 거쳐 보낸다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={{ ...서비스, isActive: false }} onDone={() => {}} />);
 
     fireEvent.click(screen.getByRole('button', { name: '다시 활성화' }));
+    expect(screen.getByRole('dialog', { name: '애플리케이션을 다시 활성화할까요?' })).toBeTruthy();
+    expect(고침).not.toHaveBeenCalled();
+    물음누름('다시 활성화');
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: true }));
+  });
+
+  it('저장도 확인 창을 거치고 취소하면 보내지 않는다', () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    그린다();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: '애플리케이션 설정을 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(고침).not.toHaveBeenCalled();
   });
 
   it('테스트 저장소 칸은 받은 값을 보이고 고친 값을 보낸다', async () => {
@@ -94,6 +106,7 @@ describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를
     expect(칸.value).toBe('https://github.com/example/tests');
     fireEvent.change(칸, { target: { value: 'https://github.com/example/other' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, expect.objectContaining({ testsRepo: 'https://github.com/example/other' })));
   });
@@ -164,6 +177,7 @@ describe('피그마 토큰 칸 (도메인/인증 §8.8)', () => {
     fireEvent.click(within(피그마칸()).getByRole('button', { name: '피그마 토큰 추가' }));
     fireEvent.change(screen.getByLabelText('피그마 토큰'), { target: { value: 'figd_abc' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]).toMatchObject({ figmaToken: 'figd_abc' });
@@ -174,6 +188,7 @@ describe('피그마 토큰 칸 (도메인/인증 §8.8)', () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={{ ...서비스, hasFigmaToken: true }} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]).not.toHaveProperty('figmaToken');
@@ -209,6 +224,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={계정있음} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     const 보낸줄 = 고침.mock.calls[0]?.[1]?.envs?.[0];
@@ -224,6 +240,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     fireEvent.click(within(줄).getByRole('button', { name: '대상 서버 1 비밀번호 변경' }));
     fireEvent.change(screen.getByLabelText('대상 서버 1 테스트 비밀번호'), { target: { value: 'pw-새것' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]?.envs?.[0]).toMatchObject({
@@ -236,6 +253,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     render(<ServicePanel row={계정있음} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 비밀번호 삭제' }));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]?.envs?.[0]).toMatchObject({ loginPassword: null });
@@ -249,6 +267,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://qa.example.com' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]?.envs?.[0]).toEqual({
@@ -286,6 +305,7 @@ describe('탐색 제외 경로 칸 (도메인/인증 §8.8 · 2026-10-04)', () =
 
     fireEvent.change(screen.getByLabelText('탐색 제외 경로'), { target: { value: '/daejeon\n /gyeongnam/ \n' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]).toMatchObject({ crawlExclude: ['/daejeon', '/gyeongnam'] });
@@ -304,6 +324,7 @@ describe('탐색 제외 경로 칸 (도메인/인증 §8.8 · 2026-10-04)', () =
     fireEvent.change(screen.getByLabelText('탐색 제외 경로'), { target: { value: 'daejeon' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.querySelector('.set-why')?.textContent).toContain('「daejeon」');
     expect(고침).not.toHaveBeenCalled();
   });
@@ -371,11 +392,13 @@ describe('프로시저 작성 칸 (도메인/실행 「프로시저 작성 스�
     render(<ServicePanel row={{ ...서비스, kind: 'APP' }} onDone={() => {}} />);
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]).not.toHaveProperty('procedureMode');
 
     fireEvent.click(screen.getByLabelText('테스트 프로시저로 작성'));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(2));
     expect(고침.mock.calls[1]?.[1]).toMatchObject({ procedureMode: true });
   });
@@ -387,6 +410,7 @@ describe('프로시저 작성 칸 (도메인/실행 「프로시저 작성 스�
 
     fireEvent.click(screen.getByLabelText('테스트 프로시저로 작성'));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]).toMatchObject({ procedureMode: false });
   });
@@ -397,6 +421,7 @@ describe('프로시저 작성 칸 (도메인/실행 「프로시저 작성 스�
 
     fireEvent.click(screen.getByLabelText('테스트 프로시저로 작성'));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     expect(await screen.findByText('테스트 프로시저로 작성한 케이스가 있어 끌 수 없습니다')).toBeTruthy();
   });
 });

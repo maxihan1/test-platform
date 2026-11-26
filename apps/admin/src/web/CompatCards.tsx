@@ -1,8 +1,11 @@
 // 호환성 결과 카드 — 한 화면의 의심 카드를 한 묶음으로 접고, 칸마다 결함 확정 · 결함 아님을 누른다 (도메인/호환성 §3.13 「결과 · 판정」 · §8.17 ④)
 
+import { useState } from 'react';
+
 import type { CompatCard, CompatRow, CompatRunDevice } from './compatApi.js';
 import { 묶음자리, 카드자리 } from './CompatResultParts.js';
 import { CompatShot } from './CompatShot.js';
+import { 확인창 } from './ConfirmBox.js';
 import { type 카드묶음, 의심글자, 찍은때 } from './compatRunView.js';
 import { use말, use언어 } from './i18n.js';
 import { when } from './ui.js';
@@ -72,6 +75,7 @@ export function CompatCards({
   on판정: (c: CompatCard, v: 판정) => void;
 }) {
   const t = use말();
+  const [물음, set물음] = useState<{ c: CompatCard; v: 판정; 이름: string } | null>(null);
   const 상태 = new Map(devices.map((d) => [d.seq, d]));
   if (묶음들.length === 0) return <p className="compat-faint cr-none">{t('보일 카드가 없습니다')}</p>;
   return (
@@ -106,7 +110,7 @@ export function CompatCards({
                       쓰나={쓰나}
                       누르는중={누르는중 === `${c.key}#${String(c.seq)}`}
                       첫째={m.cards.findIndex((x) => x.seq === c.seq) === n}
-                      on판정={(v) => on판정(c, v)}
+                      on판정={(v) => set물음({ c, v, 이름: m.name })}
                     />
                   ))}
                 </div>
@@ -116,6 +120,31 @@ export function CompatCards({
           </section>
         );
       })}
+      {물음 === null ? null : (
+        <확인창
+          제목={
+            물음.v === null
+              ? t('{이름} 화면을 미판정으로 변경할까요?', { 이름: 물음.이름 })
+              : 물음.v === 'CONFIRMED'
+                ? t('{이름} 화면을 결함 확정으로 판정할까요?', { 이름: 물음.이름 })
+                : t('{이름} 화면을 결함 아님으로 판정할까요?', { 이름: 물음.이름 })
+          }
+          확인={물음.v === null ? t('미판정으로 변경') : 물음.v === 'CONFIRMED' ? t('결함 확정') : t('결함 아님')}
+          onClose={() => set물음(null)}
+          on확인={() => {
+            set물음(null);
+            on판정(물음.c, 물음.v);
+          }}
+        >
+          <p>
+            {물음.v === null
+              ? t('이 카드의 판정을 비우고 미판정으로 저장합니다')
+              : 물음.v === 'CONFIRMED'
+                ? t('이 카드를 결함 확정으로 저장하고 판정한 사람과 시각을 함께 남깁니다. 같은 단추를 다시 누르면 미판정으로 돌아갑니다')
+                : t('이 카드를 결함 아님으로 저장하고 판정한 사람과 시각을 함께 남깁니다. 같은 단추를 다시 누르면 미판정으로 돌아갑니다')}
+          </p>
+        </확인창>
+      )}
     </>
   );
 }

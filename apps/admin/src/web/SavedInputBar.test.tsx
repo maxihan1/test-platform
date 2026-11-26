@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { api, ApiError, type JsonSchema, type SavedInput } from './api.js';
 import { 채운글자, type 줄글자 } from './caseValues.js';
 import { 값저장, 고쳤나 } from './SavedInputBar.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 import { schemaToFields, toValues } from './schema.js';
 
 afterEach(() => {
@@ -62,6 +63,8 @@ describe('케이스 상세 칸의 저장 (도메인/실행 §8.2 · ⑫ 점검 7
     const on저장됨 = 줄({ params: { userId: 'user2' }, expected: {} });
 
     fireEvent.click(screen.getByRole('button', { name: '모두에게 저장' }));
+    expect(저장).not.toHaveBeenCalled();
+    물음누름('저장');
 
     await waitFor(() => expect(on저장됨).toHaveBeenCalledTimes(1));
     expect(저장).toHaveBeenCalledWith('ZSV-001', { params: { userId: 'user2' }, expected: {} });
@@ -82,6 +85,7 @@ describe('케이스 상세 칸의 저장 (도메인/실행 §8.2 · ⑫ 점검 7
     const on저장됨 = 줄({ params: { userId: 'user2' }, expected: {} });
 
     fireEvent.click(screen.getByRole('button', { name: '모두에게 저장' }));
+    물음누름('저장');
 
     expect(await screen.findByText('아이디가 틀렸다')).toBeTruthy();
     expect(on저장됨).not.toHaveBeenCalled();

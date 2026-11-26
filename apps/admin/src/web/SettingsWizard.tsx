@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { 어드민키종류인가 } from '../settings/roles.js';
 
 import { api, ApiError, type SettingsProject, type SettingsServiceRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { t as 말, use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import { 어드민키못보내는이유 } from './SettingsAdminKey.js';
@@ -95,6 +96,7 @@ export function SettingsWizard(p: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [만든프로젝트, set만든프로젝트] = useState<number | null>(null);
   const [만든것, set만든것] = useState<{ id: number; prefix: string; name: string } | null>(null);
+  const [만들기묻기, set만들기묻기] = useState(false);
   const 본문 = useRef<HTMLDivElement>(null);
   const 틀 = useRef<HTMLDivElement>(null);
 
@@ -142,7 +144,8 @@ export function SettingsWizard(p: Props) {
   function 다음() {
     const 까닭 = 막는이유(st, 값, 새프로젝트, 쓰는것, 언어);
     if (까닭 !== null) return 막혔다(까닭);
-    if (st === 'confirm') return void 만든다();
+    // 확인 단계는 값을 다시 보여 줄 뿐이다 — 만들기 전에 따로 묻는다 (2026-11-26 사용자)
+    if (st === 'confirm') return set만들기묻기(true);
     간다(지금 + 1, 'fwd');
   }
 
@@ -268,6 +271,11 @@ export function SettingsWizard(p: Props) {
               <button type="button" className="btn" disabled={보내는중} onClick={다음}>
                 {st === 'confirm' ? <기다림글자 중={보내는중} 평소={t('만들기')} 기다림={t('만드는 중')} /> : t('다음')}
               </button>
+              {!만들기묻기 ? null : (
+                <확인창 제목={t('애플리케이션을 만들까요?')} 확인={t('만들기')} onClose={() => set만들기묻기(false)} on확인={() => { set만들기묻기(false); void 만든다(); }}>
+                  <p>{t('적은 값으로 애플리케이션을 만들고 새 프로젝트를 선택했으면 프로젝트도 함께 만듭니다. 만든 애플리케이션은 삭제할 수 없고 비활성으로만 내릴 수 있습니다')}</p>
+                </확인창>
+              )}
             </div>
           </div>
         )}

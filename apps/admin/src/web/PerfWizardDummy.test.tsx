@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { ServiceRow, User } from './api.js';
 import { perfApi, type PerfAgent, type PerfScenario, type 더미클라이언트 } from './perfApi.js';
 import { PerfWizard } from './PerfWizard.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 앱: ServiceRow = {
   id: 7,
@@ -55,6 +56,7 @@ describe('더미 클라이언트', () => {
     expect(screen.queryByRole('button', { name: '트랜잭션 추가' })).toBeNull();
     expect((screen.getByLabelText('더미 클라이언트') as HTMLSelectElement).value).toBe('5');
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     const body = 만들기.mock.calls[0]![2];
     expect(body.dummyClient).toBe(5);
@@ -109,6 +111,7 @@ describe('트랜잭션 종류', () => {
     fireEvent.change(screen.getByLabelText(/^기다릴 글자/), { target: { value: 'welcome' } });
     expect(screen.getByText(/10초 안에 그 글자가 든 메시지가 와야 통과/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![2].transactions).toEqual([
       expect.objectContaining({ type: 'WS', url: 'wss://game.example.com/ws', messages: ['hello', 'ping'], check: { contains: 'welcome' } }),
@@ -128,6 +131,7 @@ describe('트랜잭션 종류', () => {
     fireEvent.change(screen.getByLabelText(/^메서드/), { target: { value: 'shop.Cart/AddItem' } });
     fireEvent.change(screen.getByLabelText('메시지(JSON)'), { target: { value: '{"id":1}' } });
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await waitFor(() => expect(만들기).toHaveBeenCalledTimes(1));
     expect(만들기.mock.calls[0]![2].transactions![0]).toMatchObject({
       type: 'GRPC',
@@ -138,6 +142,7 @@ describe('트랜잭션 종류', () => {
     fireEvent.change(screen.getByLabelText('종류'), { target: { value: 'HTTP' } });
     await screen.findByLabelText('메서드');
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await waitFor(() => expect(저장).toHaveBeenCalled());
     const 줄 = 저장.mock.calls[0]![1].transactions![0]!;
     expect(줄.type).toBeUndefined();

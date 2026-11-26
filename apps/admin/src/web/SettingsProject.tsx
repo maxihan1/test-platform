@@ -30,6 +30,7 @@ export function ProjectPanel({
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [옮길것, set옮길것] = useState<{ 앱: SettingsServiceRow; 곳: SettingsProject } | null>(null);
+  const [저장묻기, set저장묻기] = useState(false);
   const 안의것 = services.filter((it) => it.projectId === row.id);
 
   async function 한다(일: () => Promise<unknown>) {
@@ -79,14 +80,28 @@ export function ProjectPanel({
           disabled={보내는중}
           onClick={() => {
             if (name.trim() === '') return;
-            // 대표는 바꿨을 때만 보낸다 — 이름만 고쳤는데 열 때 읽은 값을 보내면 그사이 다른 사람이 바꾼 대표를 덮는다
-            const 바뀐대표 = 대표 === (row.primaryServiceId ?? null) ? {} : { primaryServiceId: 대표 };
-            void 한다(() => api.updateProject(row.id, { name: name.trim(), ...바뀐대표 }));
+            set저장묻기(true);
           }}
         >
           {t('저장')}
         </button>
       </div>
+      {/* 이름 · 대표 저장도 서버를 바꾸므로 묻는다 (2026-11-26 사용자) */}
+      {!저장묻기 ? null : (
+        <확인창
+          제목={t('{이름} 프로젝트 정보를 저장할까요?', { 이름: row.name })}
+          확인={t('저장')}
+          onClose={() => set저장묻기(false)}
+          on확인={() => {
+            set저장묻기(false);
+            // 대표는 바꿨을 때만 보낸다 — 이름만 고쳤는데 열 때 읽은 값을 보내면 그사이 다른 사람이 바꾼 대표를 덮는다
+            const 바뀐대표 = 대표 === (row.primaryServiceId ?? null) ? {} : { primaryServiceId: 대표 };
+            void 한다(() => api.updateProject(row.id, { name: name.trim(), ...바뀐대표 }));
+          }}
+        >
+          <p>{t('프로젝트 이름을 저장하고, 대표 애플리케이션을 변경했으면 그 값도 함께 저장합니다. 언제든 이 화면에서 다시 수정할 수 있습니다')}</p>
+        </확인창>
+      )}
       {name.trim() === '' ? <div className="hint set-why">{t('이름을 입력해 주세요')}</div> : null}
 
       <구획 제목={t('애플리케이션 옮기기')} 쓰임={t('옮기면 그 애플리케이션은 옮겨 간 프로젝트의 권한을 따릅니다. 모두 옮기면 빈 프로젝트는 저절로 사라집니다')}>

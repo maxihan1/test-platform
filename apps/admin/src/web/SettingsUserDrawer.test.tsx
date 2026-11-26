@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { api, type UserRow } from './api.js';
 import { UserSection } from './SettingsUser.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = () => {};
@@ -41,16 +42,16 @@ const 줄열기 = (username: string) => fireEvent.click(screen.getByText(usernam
 const 서랍 = () => screen.getByRole('complementary');
 
 describe('계정 서랍', () => {
-  it('토큰 취소 확인 줄은 다른 계정으로 바꿔 열면 사라진다 — 남으면 바꿔 연 계정의 토큰이 취소된다', () => {
+  it('토큰 취소 확인 창은 다른 계정으로 바꿔 열면 사라진다 — 남으면 바꿔 연 계정의 토큰이 취소된다', () => {
     const 취소 = vi.spyOn(api, 'revokeAgentToken').mockResolvedValue(undefined);
     그리기([계정('agent', { isAuthoringAgent: true, hasAgentToken: true }), 계정('old', { hasAgentToken: true })]);
 
     줄열기('agent');
-    fireEvent.click(screen.getByText('토큰 취소'));
-    expect(screen.queryByText('토큰 취소 확인')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '토큰 취소' }));
+    expect(screen.queryByRole('dialog', { name: '작성 에이전트 토큰을 취소할까요?' })).not.toBeNull();
 
     줄열기('old');
-    expect(screen.queryByText('토큰 취소 확인')).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '작성 에이전트 토큰을 취소할까요?' })).toBeNull();
     expect(취소).not.toHaveBeenCalled();
   });
 
@@ -61,7 +62,7 @@ describe('계정 서랍', () => {
     줄열기('lee');
     const 다시만들기 = screen.getByText('비밀번호 재발급');
     fireEvent.click(다시만들기);
-    fireEvent.click(다시만들기);
+    물음누름('비밀번호 재발급');
     expect((await within(서랍()).findByRole('alert')).textContent).toContain('Tmp-a1b2c3');
 
     줄열기('park');
@@ -69,21 +70,23 @@ describe('계정 서랍', () => {
     expect(screen.getByRole('alert').textContent).toContain('lee');
   });
 
-  it('비활성으로 내리기는 확인 줄을 거치고, 그만두면 보내지 않는다. 다시 활성은 바로 보낸다', async () => {
+  it('비활성으로 내리기와 다시 활성화는 확인 창을 거치고, 취소하면 보내지 않는다', async () => {
     const 보냄 = vi.spyOn(api, 'updateUser').mockResolvedValue(undefined as unknown as Awaited<ReturnType<typeof api.updateUser>>);
     그리기([계정('kim'), 계정('lee'), 계정('park', { isActive: false })]);
 
     줄열기('lee');
     fireEvent.click(screen.getByRole('button', { name: '비활성으로 내리기' }));
-    expect(screen.getByText(/이 계정은 바로 로그인할 수 없습니다/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '그만두기' }));
+    expect(screen.getByRole('dialog', { name: '「lee」 계정을 비활성으로 내릴까요?' }).textContent).toContain('이 계정은 바로 로그인할 수 없게 됩니다');
+    물음누름('취소');
     expect(보냄).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '비활성으로 내리기' }));
-    fireEvent.click(screen.getByRole('button', { name: '비활성화 확인' }));
+    물음누름('비활성으로 내리기');
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('lee', { isActive: false }));
 
     줄열기('park');
     fireEvent.click(await screen.findByRole('button', { name: '다시 활성화' }));
+    expect(보냄).toHaveBeenCalledTimes(1);
+    물음누름('다시 활성화');
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('park', { isActive: true }));
   });
 

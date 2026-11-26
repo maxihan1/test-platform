@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react';
 
 import { api, ApiError, type AuthoringHeld as 보류줄, type AuthoringHeldField, type AuthoringHeldValue } from './api.js';
 import { 일 } from './authoringTodoParts.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어, type 언어, t as 번역 } from './i18n.js';
 import { message, when } from './ui.js';
 
@@ -121,6 +122,8 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
   const [열린, set열린] = useState<string | null>(null);
   const [초안들, set초안들] = useState<초안>({});
   const [알림, set알림] = useState<{ tcId: string; 글: string; 오류: boolean } | null>(null);
+  // 제외 · 복원은 서버에 남는 값을 바꾼다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻는것, set묻는것] = useState<{ 제목: string; 본문: string; 단추: string; tcId: string; 일감: () => Promise<unknown> } | null>(null);
 
   if (held.length === 0) return null;
 
@@ -209,7 +212,19 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                     </td>
                     <td className="held-btns">
                       {!편집 ? null : s === 'removed' ? (
-                        <button className="btn ghost" type="button" onClick={() => 보낸다(h.tcId, () => api.deleteAuthoringHeld(service, 요청번호, h.tcId), null)}>
+                        <button
+                          className="btn ghost"
+                          type="button"
+                          onClick={() =>
+                            set묻는것({
+                              제목: t('케이스 {이름}의 제외를 풀까요?', { 이름: h.name ?? h.tcId }),
+                              본문: t('제외를 풀면 넣어 둔 입력값이 삭제되고 케이스가 「입력 필요」 상태가 됩니다. 삭제한 입력값은 복원할 수 없습니다'),
+                              단추: t('복원'),
+                              tcId: h.tcId,
+                              일감: () => api.deleteAuthoringHeld(service, 요청번호, h.tcId),
+                            })
+                          }
+                        >
                           {t('복원')}
                         </button>
                       ) : (
@@ -222,7 +237,15 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                           <button
                             className="btn ghost"
                             type="button"
-                            onClick={() => 보낸다(h.tcId, () => api.putAuthoringHeld(service, 요청번호, h.tcId, { removed: true }), null)}
+                            onClick={() =>
+                              set묻는것({
+                                제목: t('케이스 {이름}을 반영에서 제외할까요?', { 이름: h.name ?? h.tcId }),
+                                본문: t('제외하면 그 케이스가 반영 대상에서 빠지고 결정 목록에 「제외함」으로 남습니다. 같은 줄의 「복원」을 누르면 다시 넣습니다'),
+                                단추: t('제외'),
+                                tcId: h.tcId,
+                                일감: () => api.putAuthoringHeld(service, 요청번호, h.tcId, { removed: true }),
+                              })
+                            }
                           >
                             {t('케이스 제외')}
                           </button>
@@ -258,6 +281,19 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
           </tbody>
         </table>
       </div>
+      {묻는것 === null ? null : (
+        <확인창
+          제목={묻는것.제목}
+          확인={묻는것.단추}
+          onClose={() => set묻는것(null)}
+          on확인={() => {
+            set묻는것(null);
+            보낸다(묻는것.tcId, 묻는것.일감, null);
+          }}
+        >
+          <p>{묻는것.본문}</p>
+        </확인창>
+      )}
     </section>
   );
 }

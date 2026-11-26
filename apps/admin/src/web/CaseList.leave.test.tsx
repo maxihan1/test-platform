@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { api, type CasePage, type CaseRow } from './api.js';
 import { CaseList } from './CaseList.js';
 import { 주소로간다, 주소보기, 주소에선다 } from './keepState.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 케이스: CaseRow = {
   tcId: 'ZPK-001',
@@ -66,6 +67,7 @@ describe('케이스 목록 떠나기 묻기', () => {
     vi.spyOn(api, 'saveInput').mockResolvedValue(null);
     fireEvent.change(await 열기(), { target: { value: 'USD' } });
     fireEvent.click(screen.getByRole('button', { name: '모두에게 저장' }));
+    물음누름('저장');
     await waitFor(() => expect(screen.queryByRole('button', { name: '모두에게 저장' })).toBeNull());
     await 주소로간다('#/runs');
     expect(screen.queryByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeNull();

@@ -33,6 +33,8 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
   const [서버열기, set서버열기] = useState(false);
   const [저장중, set저장중] = useState(false);
   const [확인, set확인] = useState<'trial' | 'formal' | null>(null);
+  // 저장만 해도 서버에 새 시나리오가 생긴다 — 칸 검사를 지난 뒤 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [저장묻나, set저장묻나] = useState(false);
   const [저장됨, set저장됨] = useState<{ id: number; version: number; 이름: string } | null>(null);
   const 시험원본 = useScenarioTrial(시험열쇠(null));
   const 정식 = useScenarioRun({ id: null, 어디서: 'scenarios', on글: on까닭, on새주소: () => undefined });
@@ -89,9 +91,14 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
       set확인('formal');
       return null;
     }
+    set저장묻나(true);
+    return null;
+  }
+
+  async function 저장확인() {
+    set저장묻나(false);
     const 결과 = await 만들기();
     if (결과 !== null) set저장됨({ ...결과, 이름: 이름.trim() });
-    return null;
   }
 
   /** 확인 상자의 시작 단추. 정식 실행은 여기서 저장하고 건다 — 취소하면 시나리오도 안 남는다 */
@@ -114,6 +121,9 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
     확인닫기: () => set확인(null),
     확인시작,
     저장,
+    저장묻나,
+    저장묻기닫기: () => set저장묻나(false),
+    저장확인,
     저장중: 저장중 || 정식.실행중,
     저장됨,
     서버열기: 서버열기 && 서버 === '',

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type ScenarioDetail } from './scenarioApi.js';
 import { 카드요약, 종류글, type 재료들 } from './scenarioView.js';
@@ -58,12 +59,19 @@ export function ScenarioVersions({
   const [펼침, set펼침] = useState<number | null>(null);
   const [글, set글] = useState<{ 뜻: 'status' | 'alert'; 말: string } | null>(null);
   const [도는중, set도는중] = useState(false);
+  // 복원하면 서버에 새 버전이 남는다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻는버전, set묻는버전] = useState<number | null>(null);
 
-  async function 되돌리기(버전: number) {
+  function 복원누름(버전: number) {
     if (바뀜) {
       set글({ 뜻: 'alert', 말: t('저장 안 된 변경이 있어 복원할 수 없습니다') });
       return;
     }
+    set묻는버전(버전);
+  }
+
+  async function 되돌리기(버전: number) {
+    set묻는버전(null);
     set도는중(true);
     set글({ 뜻: 'status', 말: t('복원하는 중입니다') });
     try {
@@ -110,7 +118,7 @@ export function ScenarioVersions({
                 <>
                   <옛버전단계들 id={id} 버전={v.version} 재료={재료} />
                   {!쓰나 ? null : (
-                    <button type="button" className="btn" disabled={도는중} onClick={() => void 되돌리기(v.version)}>
+                    <button type="button" className="btn" disabled={도는중} onClick={() => 복원누름(v.version)}>
                       {t('이 버전으로 복원')}
                     </button>
                   )}
@@ -120,6 +128,11 @@ export function ScenarioVersions({
           );
         })}
       </ul>
+      {묻는버전 === null ? null : (
+        <확인창 제목={t('v{버전} 버전으로 복원할까요?', { 버전: 묻는버전 })} 확인={t('복원')} onClose={() => set묻는버전(null)} on확인={() => void 되돌리기(묻는버전)}>
+          <p>{t('지금 단계를 v{버전} 의 단계 구성으로 복원하고 그 구성을 새 버전으로 저장합니다. 옛 버전이 남아 있어 다시 복원할 수 있습니다', { 버전: 묻는버전 })}</p>
+        </확인창>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import type { EnvRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { 서울 } from './seoul.js';
@@ -19,6 +20,8 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
   const [오류, set오류] = useState<string | null>(null);
   const [눌렀나, set눌렀나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류();
+  // 켜기 · 끄기는 서버의 정기 실행을 바꾼다 — 이 창 위에 작은 상자를 겹쳐 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻는것, set묻는것] = useState<'on' | 'off' | null>(null);
   const 시각빔 = !/^\d{2}:\d{2}$/.test(시각);
   const 시각오류 = 눌렀나 && 시각빔 ? t('시각을 선택해 주세요') : null;
   const 서버오류 = 눌렀나 && 서버 === '' ? t('대상 서버를 선택해 주세요') : null;
@@ -41,8 +44,13 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
   function 켜기() {
     set눌렀나(true);
     if (시각빔 || 서버 === '') return 첫오류로();
+    set묻는것('on');
+  }
+
+  function 확인함() {
+    set묻는것(null);
     // 시간대는 한국으로 고정한다 — 「매일 03:00」이 어디서 열어도 한국 시간 03:00 이 되게
-    void 보내기({ at: 시각, tz: 서울, env: 서버 });
+    void 보내기(묻는것 === 'on' ? { at: 시각, tz: 서울, env: 서버 } : null);
   }
 
   return (
@@ -55,7 +63,7 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
             {t('취소')}
           </button>
           {지금 === null ? null : (
-            <button type="button" className="btn ghost" disabled={하는중} onClick={() => void 보내기(null)}>
+            <button type="button" className="btn ghost" disabled={하는중} onClick={() => set묻는것('off')}>
               {t('끄기')}
             </button>
           )}
@@ -90,6 +98,16 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
       </div>
       <p className="perf-faint">{t('매일 이 시각에 이 시나리오를 저장된 설정 그대로 실행합니다')}</p>
       {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
+      {묻는것 === null ? null : (
+        <확인창
+          제목={묻는것 === 'on' ? t('정기 실행을 켤까요?') : t('정기 실행을 끌까요?')}
+          확인={묻는것 === 'on' ? t('켜기') : t('끄기')}
+          onClose={() => set묻는것(null)}
+          on확인={확인함}
+        >
+          <p>{묻는것 === 'on' ? t('매일 정한 시각에 이 시나리오를 정한 대상 서버로 실행합니다. 켠 뒤에 끄면 그때부터 실행하지 않습니다') : t('이 시나리오의 정기 실행을 끕니다. 다시 켜기 전에는 실행하지 않습니다')}</p>
+        </확인창>
+      )}
     </Modal>
   );
 }

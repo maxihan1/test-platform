@@ -10,7 +10,7 @@ import { 판정을만든다 } from './role.js';
 import { 단계칸, type 케이스줄들 } from './ScenarioWizardSteps.js';
 import { AI칸, 시작칸, type 시작방법 } from './ScenarioWizardStart.js';
 import { 단계띠, 단계이름, 단계제목, 마법사머리, type 마법사단계 } from './ScenarioWizardHelp.js';
-import { 마법사시작확인, 저장칸 } from './ScenarioWizardSave.js';
+import { 마법사시작확인, 마법사저장확인, 저장칸 } from './ScenarioWizardSave.js';
 import { 시험칸 } from './ScenarioWizardTrial.js';
 import { 값연결칸 } from './ScenarioWizardValues.js';
 import { 시나리오칩들, 종류글, 폰단계있나, 후보단계들 } from './scenarioView.js';
@@ -291,6 +291,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
         </div>
       </div>
       <마법사시작확인 끝={끝} 이름={쓸이름} 단계수={보낼.length} 디바이스={디바이스} />
+      <마법사저장확인 끝={끝} 이름={쓸이름} />
       <떠나기상자 막나={막나} />
     </div>
   );

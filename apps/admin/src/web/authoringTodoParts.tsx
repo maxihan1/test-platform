@@ -1,7 +1,10 @@
 // 작성 요청 「다음 단계」 카드의 항목들 — 번호 붙은 한 가지 일 · 이어서 작성 · 남은 요구로 이어 작성
 // (도메인/작성 §7 「이어하기」 · §3.6 「★ 원장」 「남은 요구로 이어 작성」 · DESIGN.md 「작성 상태」)
 
+import { useState } from 'react';
+
 import { api, type AuthoringCoverage, type AuthoringRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 서울 } from './seoul.js';
 import { 기다림글자 } from './ui.js';
@@ -70,6 +73,8 @@ export function 이어서작성({
   const t = use말();
   const 언어 = use언어();
   const 수 = 요청.progress?.caseFiles ?? 0;
+  // 서버에 새 작성 요청을 만든다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻나, set묻나] = useState(false);
 
   if (요청.canResume !== true) {
     return (
@@ -92,16 +97,24 @@ export function 이어서작성({
   return (
     <일 표="A" 제목={t('이어서 작성')} 설명={[앞, 기한].filter((글) => 글 !== '').join(' ')}>
       {권한 ? (
-        <button
-          className="btn"
-          type="button"
-          disabled={보내는중}
-          onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 요청.id, resume: true }))}
-        >
+        <button className="btn" type="button" disabled={보내는중} onClick={() => set묻나(true)}>
           <기다림글자 중={보내는중} 평소={t('이어서 작성')} 기다림={t('시작하는 중')} />
         </button>
       ) : (
         <p className="hint">{t('다시 작성할 권한이 없습니다. 관리자에게 작성 쓰기 권한을 요청하세요.')}</p>
+      )}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('이어서 작성할까요?')}
+          확인={t('작성 시작')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 요청.id, resume: true }));
+          }}
+        >
+          <p>{t('중단된 자리부터 남은 작업을 계속하는 새 요청을 만듭니다. 중단 전까지 만든 테스트와 실행 기록은 그대로 남습니다')}</p>
+        </확인창>
       )}
     </일>
   );
@@ -133,6 +146,8 @@ export function 남은요구이어작성({
 }) {
   const t = use말();
   const 제목 = t('남은 요구사항으로 이어 작성');
+  // 서버에 새 작성 요청을 만든다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻나, set묻나] = useState(false);
   if (typeof 요청.continuedBy === 'number') {
     const 번호 = 요청.continuedBy;
     return (
@@ -152,11 +167,24 @@ export function 남은요구이어작성({
   return (
     <일 표="A" 제목={제목} 설명={설명}>
       {권한 ? (
-        <button className="btn" type="button" disabled={보내는중} onClick={() => 새번호로(뿌리)}>
+        <button className="btn" type="button" disabled={보내는중} onClick={() => set묻나(true)}>
           <기다림글자 중={보내는중} 평소={제목} 기다림={t('시작하는 중')} />
         </button>
       ) : (
         <p className="hint">{t('이어 작성할 권한이 없습니다. 관리자에게 작성 쓰기 권한을 요청하세요.')}</p>
+      )}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('남은 요구사항으로 이어서 작성할까요?')}
+          확인={t('작성 시작')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            새번호로(뿌리);
+          }}
+        >
+          <p>{t('반영한 실행을 기준으로 남은 요구사항을 새 요청으로 만들어 새 번호로 넘어갑니다. 지금 요청은 목록에 그대로 남습니다')}</p>
+        </확인창>
       )}
     </일>
   );

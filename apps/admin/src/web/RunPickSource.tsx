@@ -4,6 +4,7 @@
 import { useRef, useState } from 'react';
 
 import { api, type CaseRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { when } from './ui.js';
 import type { useRunPickValues, 출처상태 } from './useRunPickValues.js';
@@ -71,6 +72,8 @@ export function 출처줄({
 }) {
   const t = use말();
   const 언어 = use언어();
+  // 서버에 남는 값을 바꾸고 그 값이 팀 전체에 쓰인다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻나, set묻나] = useState(false);
   const saved = 케이스.savedInput ?? undefined;
 
   if (상태 === 'savedNow') {
@@ -91,20 +94,35 @@ export function 출처줄({
   }
   // 저장값은 팀 전체와 정기 실행에 바로 쓰여 저절로 저장하지 않는다 — 고친 값은 사람이 고를 때까지 이번 실행에만 간다
   return (
-    <p className="prow-src changed">
-      <span>{saved === undefined ? t('코드 기본값과 다릅니다 · 이번 실행에만 씁니다') : t('저장값과 다릅니다 · 이번 실행에만 씁니다')}</span>
-      {!저장된다 ? null : (
-        <>
-          <button type="button" className="btn small" onClick={on저장} disabled={저장중}>
-            {t('이 값 저장')}
-          </button>
-          {/* 누르기 전에 팀 값이 바뀐다는 것을 알아야 한다 — 상세 칸 「모두에게 저장」과 같다 (도메인/실행 §8.2 · 점검 7.6) */}
-          <span className="hint">{t('팀 전체와 정기 실행에 쓰입니다')}</span>
-        </>
+    <>
+      <p className="prow-src changed">
+        <span>{saved === undefined ? t('코드 기본값과 다릅니다 · 이번 실행에만 씁니다') : t('저장값과 다릅니다 · 이번 실행에만 씁니다')}</span>
+        {!저장된다 ? null : (
+          <>
+            <button type="button" className="btn small" onClick={() => set묻나(true)} disabled={저장중}>
+              {t('이 값 저장')}
+            </button>
+            {/* 누르기 전에 팀 값이 바뀐다는 것을 알아야 한다 — 상세 칸 「모두에게 저장」과 같다 (도메인/실행 §8.2 · 점검 7.6) */}
+            <span className="hint">{t('팀 전체와 정기 실행에 쓰입니다')}</span>
+          </>
+        )}
+        <button type="button" className="btn small ghost" onClick={on되돌리기} disabled={저장중}>
+          {t('복원')}
+        </button>
+      </p>
+      {!묻나 ? null : (
+        <확인창
+          제목={t('수정한 입력값을 케이스 {이름}의 저장값으로 저장할까요?', { 이름: 케이스.tcId })}
+          확인={t('저장값으로 저장')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            on저장();
+          }}
+        >
+          <p>{t('이 케이스를 실행하는 모든 사람과 정기 실행이 이 값을 씁니다. 다른 값으로 다시 저장할 수 있습니다')}</p>
+        </확인창>
       )}
-      <button type="button" className="btn small ghost" onClick={on되돌리기} disabled={저장중}>
-        {t('복원')}
-      </button>
-    </p>
+    </>
   );
 }

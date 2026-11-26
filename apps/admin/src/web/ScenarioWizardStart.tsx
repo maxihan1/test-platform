@@ -1,8 +1,9 @@
 // E2E 마법사 본문 「시작 방법」(카드 둘 · 애플리케이션 · 디바이스)과 「AI 추천」(확인하고 싶은 흐름 · 기다림 · 후보 카드) (도메인/시나리오 §8.11 「마법사」)
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import type { Platform } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말 } from './i18n.js';
 import { 시나리오칩들, type 앱줄 } from './scenarioView.js';
 import { 체크그림 } from './SettingsWizardSteps.js';
@@ -143,6 +144,8 @@ export function AI칸(p: {
   on직접: () => void;
 }) {
   const t = use말();
+  // 다시 추천받으면 서버에 AI 일이 새로 걸린다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [묻나, set묻나] = useState(false);
   const { 흐름 } = p;
   const 결과 = 흐름.결과;
   const 후보들 = 결과?.status === 'DONE' ? 결과.candidates : null;
@@ -155,10 +158,23 @@ export function AI칸(p: {
     <>
       {/* 도는 중에도 글을 바꿨으면 누른다 — 새 일이 선다. 같은 글이면 도는 일과 같아 누를 까닭이 없다 (§7 flow-suggestions) */}
       <흐름칸 바람={p.바람} on바람={p.on바람}>
-        <button type="button" className="btn ghost" disabled={흐름.도나 && p.바람.trim() === 흐름.맡긴글} onClick={p.on다시}>
+        <button type="button" className="btn ghost" disabled={흐름.도나 && p.바람.trim() === 흐름.맡긴글} onClick={() => set묻나(true)}>
           {t('다시 추천받기')}
         </button>
       </흐름칸>
+      {!묻나 ? null : (
+        <확인창
+          제목={t('AI 추천을 다시 받을까요?')}
+          확인={t('추천받기')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            p.on다시();
+          }}
+        >
+          <p>{t('확인하고 싶은 흐름으로 AI 흐름 후보를 다시 만들도록 서버에 맡깁니다. 지금 화면에 있던 후보는 새 후보로 대체되고, 다시 추천받을 수 있습니다')}</p>
+        </확인창>
+      )}
 
       {흐름.꺼짐 ? (
         <div className="scw-box" role="alert">
