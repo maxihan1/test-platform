@@ -52,4 +52,9 @@ export const 계정말: Record<string, string> = {
   '가입 신청을 삭제합니다. 복원할 수 없습니다': 'This deletes the sign-up request. It cannot be undone',
   '삭제 확인': 'Confirm deletion',
   '다른 관리자가 먼저 처리했습니다': 'Another admin already handled this',
+  '비밀번호를 변경할까요?': 'Change your password?',
+  '지금 비밀번호를 확인해 새 비밀번호로 변경합니다. 다음 로그인부터는 새 비밀번호를 씁니다': 'Checks your current password and changes it to the new one. Use the new password from your next sign-in',
+  '가입을 신청할까요?': 'Request an account?',
+  '적은 값으로 승인 대기 계정을 만듭니다. 관리자가 승인하기 전에는 로그인할 수 없고 신청을 취소하는 통로가 없습니다':
+    'Creates an account waiting for approval with these values. You cannot sign in until an admin approves it, and the request cannot be withdrawn',
 };

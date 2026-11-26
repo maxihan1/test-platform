@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { RunHead } from './PerfRunHead.js';
@@ -20,6 +21,8 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
   const [하는중, set하는중] = useState<'pdf' | 'rerun' | 'ai' | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   const [묻나, set묻나] = useState(false);
+  // AI 분석을 다시 만들면 지금 요약이 바뀐다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [AI묻나, setAI묻나] = useState(false);
   const 종류 = 판정종류(run);
   const 일번호 = run.aiJob?.id ?? null;
   // 끝쓰기로 끝난 직후 AI 일이 서기 전 틈 — 일이 아직 없어도 곧 선다. 오류로 끝났거나 숫자가 없으면 일이 서지 않는다
@@ -145,7 +148,7 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
             </ul>
           ) : 만드는중 || !쓰나 ? null : (
             <div>
-              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => void AI다시()}>
+              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => setAI묻나(true)}>
                 <기다림글자 중={하는중 === 'ai'} 평소={t('다시 만들기')} 기다림={t('시작하는 중')} />
               </button>
             </div>
@@ -214,6 +217,19 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
             void 다시실행();
           }}
         />
+      )}
+      {!AI묻나 ? null : (
+        <확인창
+          제목={t('AI 분석을 다시 만들까요?')}
+          확인={t('다시 만들기')}
+          onClose={() => setAI묻나(false)}
+          on확인={() => {
+            setAI묻나(false);
+            void AI다시();
+          }}
+        >
+          <p>{t('이 실행의 기록을 다시 읽어 AI 분석을 다시 만듭니다. 지금 요약은 새 요약으로 대체됩니다')}</p>
+        </확인창>
       )}
     </>
   );

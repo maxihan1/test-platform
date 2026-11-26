@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import type { ServiceRow } from './api.js';
 import { apiDocApi } from './apiDocApi.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말 } from './i18n.js';
 import { 마지막서버 } from './layout.js';
 import { perfApi, type 초안결과 } from './perfApi.js';
@@ -17,6 +18,8 @@ type 길 = 'RECORD' | 'SWAGGER' | 'FILE';
 export function PerfImport({ service, 받음 }: { service: ServiceRow; 받음: (결과: 초안결과, jobId: number) => void }) {
   const t = use말();
   const [열린, set열린] = useState<길 | null>(null);
+  // 파일을 고르면 업로드 전에 한 번 묻는다 — 가져오면 지금 트랜잭션 목록이 바뀐다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [고른파일, set고른파일] = useState<File | null>(null);
   const 일 = usePerfJob<초안결과>((결과, jobId) => {
     set열린(null);
     받음(결과, jobId);
@@ -57,7 +60,7 @@ export function PerfImport({ service, 받음 }: { service: ServiceRow; 받음: (
                 const 파일 = e.target.files?.[0];
                 // 비워 둬야 실패한 뒤 같은 파일을 다시 골라도 onChange 가 선다
                 e.target.value = '';
-                if (파일 !== undefined) void 일.맡기기(() => perfApi.draftFile(service.id, 파일));
+                if (파일 !== undefined) set고른파일(파일);
               }}
             />
           </label>
@@ -65,6 +68,20 @@ export function PerfImport({ service, 받음 }: { service: ServiceRow; 받음: (
         </div>
       ) : null}
       {일.오류 === null ? null : <p className="perf-err" role="alert">{일.오류}</p>}
+      {고른파일 === null ? null : (
+        <확인창
+          제목={t('「{이름}」 파일로 트랜잭션 목록을 만들까요?', { 이름: 고른파일.name })}
+          확인={t('가져오기§트랜잭션')}
+          onClose={() => set고른파일(null)}
+          on확인={() => {
+            const 파일 = 고른파일;
+            set고른파일(null);
+            void 일.맡기기(() => perfApi.draftFile(service.id, 파일));
+          }}
+        >
+          <p>{t('선택한 스크립트를 서버로 보내 트랜잭션 목록을 만듭니다. 지금 트랜잭션 목록은 남지 않지만 다른 파일을 업로드하면 다시 만들 수 있습니다')}</p>
+        </확인창>
+      )}
     </>
   );
 }
@@ -162,6 +179,7 @@ function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 
   // 고른 차례가 곧 트랜잭션 차례다 (§3.9 「Swagger」 — 고른 API 의 차례를 정한다)
   const [고른, set고른] = useState<string[]>([]);
   const [까닭, set까닭] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
 
   if (문서.error !== null) return <Failed error={문서.error} />;
   if (문서.data === null) return <Loading />;
@@ -173,6 +191,11 @@ function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 
       set까닭(t('API 를 하나 이상 선택해 주세요'));
       return;
     }
+    set묻나(true);
+  }
+
+  function 보내기() {
+    set묻나(false);
     const operations = 고른.map((키) => {
       const [method = '', path = ''] = 키.split(' ');
       return { method, path };
@@ -207,6 +230,11 @@ function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 
         </button>
       </div>
       {까닭 === null ? null : <p className="perf-err">{까닭}</p>}
+      {!묻나 ? null : (
+        <확인창 제목={t('선택한 API {수}건으로 트랜잭션 목록을 만들까요?', { 수: 고른.length })} 확인={t('가져오기§트랜잭션')} onClose={() => set묻나(false)} on확인={보내기}>
+          <p>{t('선택한 API 를 선택한 순서대로 트랜잭션으로 만듭니다. 지금 트랜잭션 목록은 남지 않지만 다시 가져오면 다시 만들 수 있습니다')}</p>
+        </확인창>
+      )}
     </div>
   );
 }

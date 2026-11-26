@@ -1,10 +1,11 @@
 // 요구 하나를 고치거나 더하는 칸 — 줄 안에서 펼쳐 쓴다. 가로막는 상자는 DESIGN.md 「모달」 목록에 없어 쓰지 않는다
-// 지우기도 새 판이라 판 이력에서 되돌릴 수 있다 — 확인 상자 대신 그 자리에서 한 번 더 묻는다
+// 저장 · 삭제는 서버에 새 판을 짓는 일이라 확인 창으로 한 번 묻는다 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
 
 import type { PrdBasis } from '@platform/kit';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { 상한, 직접근거 } from '../prd/rules.js';
+import { 확인창 } from './ConfirmBox.js';
 import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
@@ -48,7 +49,7 @@ export function PrdItemForm({
   const [틀림, set틀림] = useState<틀린칸 | null>(null);
   const [저장오류, set저장오류] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [지우기확인, set지우기확인] = useState(false);
+  const [물음, set물음] = useState<'저장' | '삭제' | null>(null);
   const 새것 = 새요구;
   const { 상자, 첫오류로 } = use첫오류<HTMLFormElement>();
   const 첫칸 = useRef<HTMLInputElement>(null);
@@ -106,7 +107,7 @@ export function PrdItemForm({
         const 칸 = 고치기검사(보낼것);
         set틀림(칸);
         if (칸 !== null) 첫오류로();
-        else void 한다(() => on저장(다듬기(보낼것), set저장오류));
+        else set물음('저장');
       }}
     >
       <div className="field">
@@ -163,17 +164,8 @@ export function PrdItemForm({
       )}
       <떠나기상자 막나={바뀜} 버리기도 {...(열쇠 === undefined ? {} : { 열쇠 })} />
       <div className="prd-form-acts">
-        {on지우기 === undefined ? null : 지우기확인 ? (
-          <>
-            <button type="button" className="btn ghost small set-warn" disabled={busy} onClick={() => void 한다(() => on지우기(set저장오류))}>
-              {t('삭제 확인§요구사항')}
-            </button>
-            <button type="button" className="btn ghost small" onClick={() => set지우기확인(false)}>
-              {t('삭제 안 함')}
-            </button>
-          </>
-        ) : (
-          <button type="button" className="btn ghost small set-warn" onClick={() => set지우기확인(true)}>
+        {on지우기 === undefined ? null : (
+          <button type="button" className="btn ghost small set-warn" disabled={busy} onClick={() => set물음('삭제')}>
             {t('이 요구사항 삭제')}
           </button>
         )}
@@ -185,6 +177,24 @@ export function PrdItemForm({
           {t('저장')}
         </button>
       </div>
+      {물음 === null ? null : (
+        <확인창
+          제목={물음 === '저장' ? t('요구사항을 새 PRD 버전으로 저장할까요?') : t('{이름} 요구사항을 삭제할까요?', { 이름: 열쇠 ?? '' })}
+          확인={물음 === '저장' ? t('저장') : t('삭제')}
+          onClose={() => set물음(null)}
+          on확인={() => {
+            set물음(null);
+            if (물음 === '저장') void 한다(() => on저장(다듬기(보낼것), set저장오류));
+            else if (on지우기 !== undefined) void 한다(() => on지우기(set저장오류));
+          }}
+        >
+          <p>
+            {물음 === '저장'
+              ? t('문장과 상태와 기능을 담아 새 PRD 버전을 저장합니다. 버전 기록에서 이전 버전으로 복원할 수 있습니다')
+              : t('이 요구사항을 제외한 새 PRD 버전을 저장합니다. 버전 기록에서 이전 버전으로 복원할 수 있습니다')}
+          </p>
+        </확인창>
+      )}
     </form>
   );
 }

@@ -54,4 +54,8 @@ export const Scout말: Record<string, string> = {
   '답을 만들지 못했습니다': 'Scout could not answer',
   '다시 질문': 'Ask again',
   '대화를 불러오는 중입니다': 'Loading the conversation',
+  // 대화 초기화 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '대화를 초기화할까요?': 'Clear the conversation?',
+  '이 프로젝트에서 나눈 Scout 대화를 서버에서 삭제하고 처음 화면으로 돌아갑니다. 복원할 수 없습니다':
+    'Deletes the Scout conversation for this project from the server and returns to the start. This cannot be undone',
 };

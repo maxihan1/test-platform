@@ -9,6 +9,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { api, ApiError, type UserRow } from './api.js';
 import { UserSection } from './SettingsUser.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = () => {};
@@ -72,6 +73,10 @@ describe('작성 에이전트 토큰', () => {
 
     expect(screen.queryByText('토큰 없음')).not.toBeNull();
     fireEvent.click(screen.getByText('발급'));
+    물음누름('취소');
+    expect(발급).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('발급'));
+    물음누름('발급');
 
     const 상자 = await screen.findByRole('alert');
     expect(발급).toHaveBeenCalledWith('agent');
@@ -83,6 +88,7 @@ describe('작성 에이전트 토큰', () => {
     vi.spyOn(api, 'issueAgentToken').mockReturnValue(new Promise(() => undefined));
     그리기([계정('agent', { isAuthoringAgent: true })]);
     fireEvent.click(screen.getByText('발급'));
+    물음누름('발급');
     expect(screen.getByRole('button', { name: '발급하는 중' })).toHaveProperty('disabled', true);
   });
 
@@ -92,6 +98,7 @@ describe('작성 에이전트 토큰', () => {
     const { rerender } = 그리기([계정('agent', { isAuthoringAgent: true })], onDone);
 
     fireEvent.click(screen.getByText('발급'));
+    물음누름('발급');
     await screen.findByRole('alert');
     expect(onDone).toHaveBeenCalled();
 
@@ -153,6 +160,7 @@ describe('작성 에이전트 토큰', () => {
 
     const 버튼 = screen.getByRole('button', { name: '발급' }) as HTMLButtonElement;
     fireEvent.click(버튼);
+    물음누름('발급');
 
     expect(버튼.disabled).toBe(true);
   });
@@ -163,8 +171,9 @@ describe('작성 에이전트 토큰', () => {
     );
     const { container } = 그리기([계정('agent', { isAuthoringAgent: true })]);
 
+    fireEvent.click(screen.getByText('발급'));
     await act(async () => {
-      fireEvent.click(screen.getByText('발급'));
+      물음누름('발급');
     });
 
     expect(container.querySelector('.err')?.textContent).toContain('NOT_AUTHORING_AGENT');

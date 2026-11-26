@@ -99,8 +99,6 @@ export const 기획서말: Record<string, string> = {
     'The source is set to “직접 작성” (direct entry) automatically. After saving, add more from Edit on the requirement',
   '이 요구사항 삭제': 'Delete this requirement',
   // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
-  '삭제 확인§요구사항': 'Confirm delete',
-  '삭제 안 함': 'Keep it',
   '기능 묶음을 적습니다': 'Enter a feature',
   '요구사항 문장을 적습니다': 'Enter the requirement',
   '출처를 하나 이상 적습니다': 'Add at least one source',
@@ -154,4 +152,17 @@ export const 기획서말: Record<string, string> = {
   펴기: 'Expand',
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '출처는 하나 이상 있어야 해서 하나뿐이면 제거할 수 없습니다': 'At least one source is required, so the only one cannot be removed',
+  // 서버를 바꾸는 동작 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '요구사항을 새 PRD 버전으로 저장할까요?': 'Save the requirement as a new PRD version?',
+  '문장과 상태와 기능을 담아 새 PRD 버전을 저장합니다. 버전 기록에서 이전 버전으로 복원할 수 있습니다':
+    'Saves a new PRD version with the sentence, status and feature. You can restore an earlier version from the history',
+  '{이름} 요구사항을 삭제할까요?': 'Delete requirement {이름}?',
+  '이 요구사항을 제외한 새 PRD 버전을 저장합니다. 버전 기록에서 이전 버전으로 복원할 수 있습니다':
+    'Saves a new PRD version without this requirement. You can restore an earlier version from the history',
+  '{이름} 묶음의 요구사항 {수}건을 {옮길묶음} 묶음으로 옮길까요?': 'Move {수} requirements from {이름} to {옮길묶음}?',
+  '이 묶음에 든 요구사항의 기능 이름을 옮길 묶음으로 변경하고 새 버전으로 저장합니다. 버전 기록에서 이전 버전으로 복원할 수 있습니다':
+    'Changes the feature of every requirement in this group to the target group and saves a new version. You can restore an earlier version from the history',
+  '남은 요구사항 {수}건으로 작성을 시작할까요?': 'Start authoring the {수} remaining requirements?',
+  '이 요구사항만 다시 작성하는 새 작성 요청을 만들고 작성 상세로 이동합니다. 요청을 만들면 복원할 수 없고 작성 상세에서 중단만 할 수 있습니다':
+    'Creates a new authoring request that rewrites only these requirements and opens it. The request cannot be undone once made; you can only stop it from its page',
 };

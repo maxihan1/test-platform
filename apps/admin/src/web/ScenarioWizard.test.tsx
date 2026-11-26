@@ -200,6 +200,11 @@ describe('ScenarioWizard AI 추천', () => {
     const 다시 = screen.getByRole('button', { name: '다시 추천받기' }) as HTMLButtonElement;
     expect(다시.disabled).toBe(false);
     fireEvent.click(다시);
+    expect(screen.getByRole('dialog', { name: 'AI 추천을 다시 받을까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(맡기기).toHaveBeenCalledTimes(1);
+    fireEvent.click(다시);
+    물음누름('추천받기');
     expect(맡기기).toHaveBeenLastCalledWith({ service: 'ZSB', platform: 'desktop', wish: '쿠폰 없이 결제' });
   });
 

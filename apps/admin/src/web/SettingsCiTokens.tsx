@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { api, type SettingsServiceRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 오류문장 } from './SettingsService.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
@@ -39,6 +40,7 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
   const [탭, set탭] = useState<탭>('github');
   const [env, setEnv] = useState('');
   const [복사, set복사] = useState<'token' | 'example' | null>(null);
+  const [만들기묻나, set만들기묻나] = useState(false);
 
   // 실서비스에는 CI 가 빌드를 못 올린다 — 고르개에 아예 안 둔다. 서버가 막는 칸(is_prod) 그대로 본다 — 저장된 줄이라 늘 온다
   const 서버들 = row.envs.filter((it) => it.isProd !== true);
@@ -62,11 +64,17 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
     }
   }
 
-  function 만들기() {
+  // 이름이 비었으면 상자를 열기 전에 막는다. 토큰을 만드는 것도 서버를 바꾸므로 묻는다 (2026-11-26 사용자)
+  function 만들기누름() {
     if (이름.trim() === '') {
       set오류(t('토큰 이름을 적어 주세요'));
       return;
     }
+    set만들기묻나(true);
+  }
+
+  function 만들기() {
+    set만들기묻나(false);
     void 일하기(async () => {
       const r = await api.createServiceToken(row.id, 이름.trim());
       set새토큰(r.token);
@@ -137,10 +145,15 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
 
       <div className="perf-row">
         <input aria-label={t('토큰 이름')} value={이름} maxLength={100} onChange={(e) => set이름(e.target.value)} />
-        <button type="button" className="btn" disabled={보내는중} onClick={만들기}>
+        <button type="button" className="btn" disabled={보내는중} onClick={만들기누름}>
           {t('토큰 만들기')}
         </button>
       </div>
+      {!만들기묻나 ? null : (
+        <확인창 제목={t('CI 토큰을 만들까요?')} 확인={t('토큰 만들기')} onClose={() => set만들기묻나(false)} on확인={만들기}>
+          <p>{t('이름을 붙여 CI 토큰을 만들고 원문을 한 번만 보여 줍니다. 원문을 잃으면 그 토큰을 끊고 다시 만들어야 합니다')}</p>
+        </확인창>
+      )}
 
       {새토큰 === null ? null : (
         <div className="set-pw">

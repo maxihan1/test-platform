@@ -8,6 +8,7 @@ import { ApiError } from './api.js';
 import { Guide } from './Guide.js';
 import { 버리기전 } from './leaveGuard.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const { 지금, 저장, 더하기, 빼기, 글자, 기록, 옛판 } = vi.hoisted(() => ({
   지금: vi.fn((_s: string): Promise<ServiceGuide> => Promise.reject(new Error('판을 정하지 않았다'))),
@@ -117,6 +118,7 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     expect(screen.queryByText('수정한 내용이 없어 저장할 수 없습니다')).toBeNull();
     fireEvent.click(저장버튼());
+    물음누름('저장');
     await vi.waitFor(() =>
       expect(저장).toHaveBeenCalledWith('MKT', 3, {
         intro: '중고 물품을 사고파는 웹 애플리케이션입니다',
@@ -138,6 +140,7 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     fireEvent.change(screen.getByRole('textbox', { name: '작업 규칙' }), { target: { value: '아직 쓰는 중' } });
     fireEvent.click(저장버튼());
+    물음누름('저장');
     await vi.waitFor(() =>
       expect(저장).toHaveBeenCalledWith('MKT', 3, {
         intro: '중고 물품을 사고파는 웹 애플리케이션입니다',
@@ -156,6 +159,7 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     수정('정책');
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     fireEvent.click(저장버튼());
+    물음누름('저장');
     expect(await screen.findByText(/다른 사람이 먼저 가이드를 변경했습니다/)).toBeTruthy();
     await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
     expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
@@ -169,11 +173,13 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     수정('정책');
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     fireEvent.click(저장버튼());
+    물음누름('저장');
     await screen.findByText(/버전 4 · 첨부/);
     expect(within(구획('애플리케이션 소개')).getByText('다른 사람이 고친 소개')).toBeTruthy();
     expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
 
     fireEvent.click(저장버튼());
+    물음누름('저장');
     await vi.waitFor(() =>
       expect(저장).toHaveBeenLastCalledWith('MKT', 4, {
         intro: '다른 사람이 고친 소개',
@@ -192,6 +198,7 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     수정('정책');
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만' } });
     fireEvent.click(저장버튼());
+    물음누름('저장');
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     await act(async () => 끝내기({ version: 4 }));
 
@@ -210,6 +217,11 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     const 고르개 = screen.getByLabelText('정책에 파일 첨부');
     const 문서 = new File(['정책'], '환불 정책.docx');
     fireEvent.change(고르개, { target: { files: [문서] } });
+    expect(screen.getByRole('dialog', { name: '환불 정책.docx 파일을 첨부할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(더하기).not.toHaveBeenCalled();
+    fireEvent.change(고르개, { target: { files: [문서] } });
+    물음누름('첨부');
     await vi.waitFor(() => expect(더하기).toHaveBeenCalledWith('MKT', 'policy', 3, 문서));
 
     fireEvent.change(고르개, { target: { files: [new File(['x'], '설치.exe')] } });
@@ -326,6 +338,7 @@ describe('애플리케이션 가이드 — 쓰던 글을 두고 떠나기 (점�
     수정('정책');
     fireEvent.change(정책칸(), { target: { value: '저장할 글' } });
     fireEvent.click(저장버튼());
+    물음누름('저장');
     await vi.waitFor(() => expect(screen.queryByRole('textbox', { name: '정책' })).toBeNull());
     // 떠나기 막이를 푸는 effect 가 아직 안 돌았을 수 있다 — 부하가 크면 이 순간에 걸린다
     await act(async () => undefined);

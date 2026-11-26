@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import { api, type EvidenceRow } from './api.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -42,8 +43,9 @@ describe('use증적', () => {
     render(<화면 처음={[]} 다음={[행(11, 'PDF', 'READY')]} />);
 
     fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
+      물음누름('리포트 생성');
     });
 
     expect(누름).toHaveBeenCalledTimes(1);
@@ -55,8 +57,9 @@ describe('use증적', () => {
     render(<화면 처음={[]} 다음={[행(11, 'PDF', 'PENDING')]} />);
 
     fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
+      물음누름('리포트 생성');
     });
 
     expect(누름).not.toHaveBeenCalled();
@@ -68,8 +71,9 @@ describe('use증적', () => {
     render(<화면 처음={[]} 다음={[행(11, 'PDF', 'FAILED')]} />);
 
     fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
+      물음누름('리포트 생성');
     });
 
     expect(누름).not.toHaveBeenCalled();

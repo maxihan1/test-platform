@@ -115,7 +115,6 @@ export function 저장한값줄({
     setBusy(true);
     try {
       await api.clearInput(케이스.tcId);
-      set확인중(false);
       on다시읽기();
     } catch (err) {
       on실패(err);
@@ -151,17 +150,8 @@ export function 저장한값줄({
             <button type="button" className="btn ghost" aria-expanded={저장칸} onClick={() => set저장칸((전) => !전)}>
               {t('묶음으로 저장')}
             </button>
-            {saved === undefined ? null : 확인중 ? (
-              <>
-                <button type="button" className="btn ghost" onClick={() => void 지우기()} disabled={busy}>
-                  {t('초기화 확인')}
-                </button>
-                <button type="button" className="btn ghost" onClick={() => set확인중(false)} disabled={busy}>
-                  {t('취소')}
-                </button>
-              </>
-            ) : (
-              <button type="button" className="btn ghost" onClick={() => set확인중(true)}>
+            {saved === undefined ? null : (
+              <button type="button" className="btn ghost" onClick={() => set확인중(true)} disabled={busy}>
                 {t('저장값 초기화')}
               </button>
             )}
@@ -200,6 +190,19 @@ export function 저장한값줄({
         }}
       >
         <p>{t('지금 칸에 있는 입력값과 기대 결과를 그 이름의 묶음으로 저장합니다. 저장한 묶음은 이 화면에서 삭제할 수 없어 복원할 수 없습니다')}</p>
+      </확인창>
+    )}
+    {!확인중 ? null : (
+      <확인창
+        제목={t('{이름} 케이스의 저장값을 초기화할까요?', { 이름: 케이스.tcId })}
+        확인={t('초기화')}
+        onClose={() => set확인중(false)}
+        on확인={() => {
+          set확인중(false);
+          void 지우기();
+        }}
+      >
+        <p>{t('팀이 함께 쓰는 이 케이스의 저장값을 초기화하고 다음 실행부터 코드 기본값을 씁니다. 복원할 수 없습니다')}</p>
       </확인창>
     )}
     </>

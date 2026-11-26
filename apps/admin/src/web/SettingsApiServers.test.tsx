@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { api, ApiError, type SettingsApiServer } from './api.js';
 import { ApiServers } from './SettingsApiServers.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -50,6 +51,11 @@ describe('API 서버 구획', () => {
     fireEvent.change(screen.getByLabelText('pay.demomarket.kr 이름'), { target: { value: ' 결제 ' } });
     fireEvent.change(screen.getByLabelText('auth.demomarket.kr 이름'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: 'API 서버 이름 2건을 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(저장).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
     expect(저장).toHaveBeenCalledWith(5, [
@@ -78,6 +84,7 @@ describe('API 서버 구획', () => {
     await screen.findByText('auth.demomarket.kr');
     fireEvent.change(screen.getByLabelText('pay.demomarket.kr 이름'), { target: { value: '결제' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect(await screen.findByText(/형식이 맞지 않는 것이 있습니다/)).toBeTruthy();
     expect((screen.getByLabelText('pay.demomarket.kr 이름') as HTMLInputElement).value).toBe('결제');

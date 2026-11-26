@@ -9,6 +9,7 @@ import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 import { 서비스, 사람, 케이스단계, 상세, 재료, 기존그리기, 이름칸, 바꾸기, 감싸개, 해시가, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 
 function 주소따라() {
@@ -33,15 +34,29 @@ describe('ScenarioBuild 저장 전 확인', () => {
     const update = vi.spyOn(scenarioApi, 'update');
     바꾸기('   ');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect((await screen.findByRole('status')).textContent).toBe('시나리오 이름을 적어야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('저장은 확인 창을 거친다 — 취소하면 서버를 부르지 않는다', async () => {
+    await 기존그리기();
+    const update = vi.spyOn(scenarioApi, 'update').mockResolvedValue({ version: 4 });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: /시나리오를 저장할까요\?$/ })).toBeTruthy();
+    물음누름('취소');
+    expect(update).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
   });
 
   it('단계가 0개면 서버를 안 부른다', async () => {
     await 기존그리기({ parts: [] });
     const update = vi.spyOn(scenarioApi, 'update');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect((await screen.findByRole('status')).textContent).toBe('단계를 하나 이상 넣어야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
@@ -59,6 +74,7 @@ describe('ScenarioBuild 저장 전 확인', () => {
     await 기존그리기({ parts: [케이스단계('ZSB-001'), 이어붙임] });
     const update = vi.spyOn(scenarioApi, 'update');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect((await screen.findByRole('status')).textContent).toBe('가져올 단계를 다시 선택해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
@@ -78,6 +94,7 @@ describe('ScenarioBuild 저장', () => {
     바꾸기('  새 흐름  ');
     expect(screen.getByText('저장 안 된 변경 있음')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect(await screen.findByText('도착 화면')).toBeTruthy();
     expect(window.location.hash).toBe('#/scenarios/55');
@@ -106,6 +123,8 @@ describe('ScenarioBuild 저장', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
+    물음누름('저장');
+
     expect(await screen.findByText('SC-55')).toBeTruthy();
     await waitFor(() => expect(screen.getByRole('tab', { name: '2번 설정' }).getAttribute('aria-selected')).toBe('true'));
   });
@@ -115,6 +134,7 @@ describe('ScenarioBuild 저장', () => {
     const update = vi.spyOn(scenarioApi, 'update').mockResolvedValue({ version: 4 });
     바꾸기(' 고친 이름 ');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect((await screen.findByRole('status')).textContent).toBe('저장했습니다 · v4');
     expect(update).toHaveBeenCalledWith(12, {
@@ -140,6 +160,7 @@ describe('ScenarioBuild 저장', () => {
 
     expect(await screen.findByText('저장 안 된 변경 있음')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect((await screen.findByRole('status')).textContent).toBe('저장했습니다 · v4');
     expect(update).toHaveBeenCalledWith(12, {
@@ -165,6 +186,7 @@ describe('ScenarioBuild 저장', () => {
     vi.spyOn(scenarioApi, 'update').mockResolvedValue({ version: 4 });
     바꾸기('고친 이름');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     expect((await screen.findByRole('status')).textContent).toBe('저장했습니다 · v4');
 
     바꾸기('또 고친 이름');
@@ -179,6 +201,7 @@ describe('ScenarioBuild 저장', () => {
     vi.spyOn(scenarioApi, 'update').mockReturnValue(new Promise((끝) => (끝내기 = 끝)));
     바꾸기(' 고친 이름 ');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     바꾸기('저장 중에 친 글자');
     await act(async () => {
       끝내기({ version: 4 });
@@ -194,6 +217,7 @@ describe('ScenarioBuild 저장', () => {
     vi.spyOn(scenarioApi, 'update').mockRejectedValue(new ApiError(409, 'STALE_VERSION', 'stale'));
     바꾸기('고침');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect((await screen.findByRole('status')).textContent).toContain('다른 사람이 먼저 저장했습니다');
   });
@@ -203,6 +227,7 @@ describe('ScenarioBuild 저장', () => {
     vi.spyOn(scenarioApi, 'update').mockRejectedValue(new ApiError(400, 'INVALID_REQUEST', '3번 단계: 주소 형식'));
     바꾸기('고침');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect((await screen.findByRole('status')).textContent).toContain('3번 단계: 주소 형식');
   });

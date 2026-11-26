@@ -14,6 +14,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 
 import { api, type UserRow } from './api.js';
 import { UserSection } from './SettingsUser.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 import type { 프로젝트줄 } from './settingsView.js';
 
 // jsdom 에 없는 함수라 끼워 넣지 않으면 TempPassword 가 TypeError 로 죽는다.
@@ -286,6 +287,11 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     고른다('데모마켓 실행', '쓰기');
     고른다('그래프(Grafana)', '안 씀');
     fireEvent.click(screen.getByText('계정 추가'));
+    expect(screen.getByRole('dialog', { name: '계정을 추가할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('계정 추가'));
+    물음누름('계정 추가');
 
     expect(만들기).toHaveBeenCalledWith({
       username: 'choi',
@@ -302,6 +308,9 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     fireEvent.click(screen.getAllByText('편집')[1]!);
     고른다('데모마켓 작성', '쓰기');
     fireEvent.click(screen.getByText('저장'));
+    expect(screen.getByRole('dialog', { name: '계정 정보를 저장할까요?' })).toBeTruthy();
+    expect(고치기).not.toHaveBeenCalled();
+    물음누름('저장');
 
     expect(고치기).toHaveBeenCalledWith('lee', {
       displayName: '이영희',

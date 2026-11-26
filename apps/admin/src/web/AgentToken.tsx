@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { api, type UserRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 오류문장 } from './SettingsService.js';
 import { 기다림글자 } from './ui.js';
@@ -56,6 +57,7 @@ export function AgentToken({
   const 언어 = use언어();
   const [확인, set확인] = useState<'reissue' | 'revoke' | null>(null);
   const [보내는중, set보내는중] = useState(false);
+  const [발급묻나, set발급묻나] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   // 작성 계정이 바뀌어 토큰만 남은 계정에도 그린다 — 안 그리면 남은 토큰을 아무도 못 지운다 (취소만 보인다)
@@ -105,9 +107,23 @@ export function AgentToken({
                   </button>
                 </>
               ) : (
-                <button className="btn ghost" disabled={보내는중} onClick={() => void 발급()}>
+                <button className="btn ghost" disabled={보내는중} onClick={() => set발급묻나(true)}>
                   <기다림글자 중={보내는중} 평소={t('발급')} 기다림={t('발급하는 중')} />
                 </button>
+              )}
+              {/* 처음 발급도 서버에 토큰을 만든다 — 다시 발급 · 취소처럼 한 번 묻는다 (2026-11-26 사용자) */}
+              {!발급묻나 ? null : (
+                <확인창
+                  제목={t('작성 에이전트 토큰을 발급할까요?')}
+                  확인={t('발급')}
+                  onClose={() => set발급묻나(false)}
+                  on확인={() => {
+                    set발급묻나(false);
+                    void 발급();
+                  }}
+                >
+                  <p>{t('이 계정의 작성 에이전트가 로그인에 쓸 토큰을 만들어 값을 한 번만 보여 줍니다. 값을 잃으면 다시 발급해야 합니다')}</p>
+                </확인창>
               )}
               {/* 「작성 에이전트가 왜 여기 나오나」를 사용자가 물었다(2026-10-20) — 무엇에 쓰는 토큰인지 한 줄로 말한다 */}
               <div className="hint">{t('테스트를 대신 쓰는 AI 가 이 토큰으로 로그인합니다')}</div>

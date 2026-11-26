@@ -8,6 +8,7 @@ import { Prd } from './Prd.js';
 import { 판, 아이디, 아이디칸, 잠금 } from './prd.fixture.js';
 import type { PrdItemDraft, PrdNow, PrdVersionRow } from './prdApi.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const { 지금, 저장, 판들, 되돌림, 한판 } = vi.hoisted(() => ({
   지금: vi.fn((_s: string): Promise<PrdNow> => Promise.reject(new Error('판을 정하지 않았다'))),
@@ -92,6 +93,11 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '아이디 칸에는 12자까지 들어간다' } });
     fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'CONFIRMED' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: '요구사항을 새 PRD 버전으로 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(저장).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
     const [서비스, 기준, 보낸것] = 저장.mock.calls[0]!;
     expect([서비스, 기준]).toEqual(['MKT', 12]);
@@ -105,6 +111,7 @@ describe('PRD 관리 — 고치기', () => {
     await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '아이디는 영문 소문자·숫자 4~14자이다' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     const 고리 = await screen.findByRole('link', { name: '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있습니다 →' });
     expect(고리.getAttribute('href')).toBe('#/authoring?todo=1');
     expect(서랍().contains(고리)).toBe(true);
@@ -115,13 +122,14 @@ describe('PRD 관리 — 고치기', () => {
     await 펴서고치기(/MKT-REQ-032/);
     fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'CONFIRMED' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await screen.findByText('저장했습니다 (버전 13)');
     await vi.waitFor(() => expect(screen.queryByLabelText('요구사항 문장')).toBeNull());
     expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있습니다/ })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: '수정' }));
     fireEvent.click(screen.getByRole('button', { name: '이 요구사항 삭제' }));
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    물음누름('삭제');
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있습니다/ })).toBeNull();
   });
@@ -131,6 +139,7 @@ describe('PRD 관리 — 고치기', () => {
     await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '고치다 만 글' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await screen.findByRole('alert');
     expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있습니다/ })).toBeNull();
   });
@@ -176,15 +185,20 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.change(이름칸[1]!, { target: { value: '화면' } });
     fireEvent.change(screen.getAllByLabelText('원본 문장')[1]!, { target: { value: '10분 뒤에 다시 시도하세요' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
     expect(저장.mock.calls[0]![2][3]!.basis).toEqual([...잠금.basis, { from: '화면', quote: '10분 뒤에 다시 시도하세요' }]);
   });
 
-  it('지우기는 그 자리에서 한 번 더 묻고, 확인하면 그 요구를 뺀 판을 보낸다', async () => {
+  it('지우기는 확인 창으로 묻고, 취소하면 보내지 않고 확인하면 그 요구를 뺀 판을 보낸다', async () => {
     await 펴서고치기(/MKT-REQ-040/);
     fireEvent.click(screen.getByRole('button', { name: '이 요구사항 삭제' }));
     expect(저장).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    expect(screen.getByRole('dialog', { name: 'MKT-REQ-040 요구사항을 삭제할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(저장).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '이 요구사항 삭제' }));
+    물음누름('삭제');
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
     expect(저장.mock.calls[0]![2].map((x) => x.reqId)).toEqual([아이디.reqId, 아이디칸.reqId, 잠금.reqId]);
   });
@@ -197,6 +211,7 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.change(within(칸).getByLabelText('기능 묶음'), { target: { value: '로그인' } });
     fireEvent.change(within(칸).getByLabelText('요구사항 문장'), { target: { value: '잠긴 계정으로 로그인하면 「계정이 잠겼습니다」가 보인다' } });
     fireEvent.click(within(칸).getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
     const 보낸것 = 저장.mock.calls[0]![2];
     expect(보낸것).toHaveLength(5);
@@ -220,6 +235,7 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.change(within(칸).getByLabelText('요구사항 문장'), { target: { value: '로그아웃하면 로그인 화면으로 간다' } });
     fireEvent.change(within(칸).getByLabelText('상태'), { target: { value: 'NEEDS_CHECK' } });
     fireEvent.click(within(칸).getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
     expect(저장.mock.calls[0]![2][4]).toMatchObject({ status: 'NEEDS_CHECK', basis: [{ from: '직접 작성' }] });
   });
@@ -238,6 +254,7 @@ describe('PRD 관리 — 고치기', () => {
     await 펴서고치기(/MKT-REQ-032/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '고치던 글' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     const 칸 = screen.getByLabelText('요구사항 문장').closest('form')!;
     expect((await within(칸).findByRole('alert')).textContent).toBe('다른 사람이 먼저 PRD 를 변경했습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다');
     expect((screen.getByLabelText('요구사항 문장') as HTMLTextAreaElement).value).toBe('고치던 글');
@@ -246,6 +263,7 @@ describe('PRD 관리 — 고치기', () => {
     // 판을 다시 읽는 동안은 저장 단추가 잠겨 있다
     await vi.waitFor(() => expect((within(칸).getByRole('button', { name: '저장' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(within(칸).getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await vi.waitFor(() => expect(within(칸).queryByRole('alert')).toBeNull());
   });
 

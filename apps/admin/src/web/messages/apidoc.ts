@@ -46,4 +46,12 @@ export const API문서말: Record<string, string> = {
     '● received by a passing case · ○ not received yet · "No response format": the doc gives no format for that code',
   // 결정 필요로 보내는 주 단추 (WEB-F7-18)
   '변경된 API 만 다시 작성': 'Rewrite changed APIs only',
+  // 받기 · 첨부 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '기준 서버에서 API 문서를 가져와 새 버전으로 저장할까요?': 'Fetch the API doc from the reference server and save it as a new version?',
+  '가져오기': 'Fetch',
+  '설정에 적힌 기준 서버에서 OpenAPI 3 문서를 받아 새 버전으로 저장합니다. 받은 내용이 지금 버전과 같으면 새 버전을 만들지 않고, 만든 버전은 복원할 수 없습니다':
+    'Downloads the OpenAPI 3 doc from the reference server in settings and saves it as a new version. No version is made if it matches the current one, and a version once made cannot be undone',
+  '선택한 파일을 새 버전으로 저장할까요?': 'Save the selected file as a new version?',
+  '업로드': 'Upload',
+  '선택한 OpenAPI 3 JSON 파일을 받아 새 버전으로 저장합니다. 만든 버전은 복원할 수 없습니다': 'Saves the selected OpenAPI 3 JSON file as a new version. A version once made cannot be undone',
 };

@@ -8,6 +8,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { 앱뿌리 } from './App.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import type { User } from './api.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const 사람 = (권한: { cases: 'none' | 'read'; runs: 'none' | 'read' | 'write'; authoring: 'none' | 'read' }): User => ({
   username: 'zap',
@@ -93,6 +94,7 @@ describe('앱 뿌리의 방문 기록 (WEB-F8-01)', () => {
     fireEvent.change(screen.getByLabelText('주소'), { target: { value: '/api/products' } });
     세.로그인됨 = false;
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await screen.findByLabelText('아이디');
     expect(window.location.hash).toBe('#/login');
     expect(window.history.length).toBe(길이);
@@ -142,12 +144,14 @@ describe('앱 뿌리의 방문 기록 (WEB-F8-01)', () => {
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     await screen.findByLabelText('최대 가상 사용자');
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/new?step=2&id=42'));
 
     await 뒤로();
     expect(await screen.findByRole('button', { name: '트랜잭션 추가' })).toBeTruthy();
     expect(document.body.textContent).toContain('/api/products');
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await waitFor(() => expect(부름.some((it) => it.method === 'PUT' && it.url === '/api/perf/scenarios/42')).toBe(true));
     expect(부름.filter((it) => it.method === 'POST' && it.url === '/api/perf/scenarios')).toHaveLength(1);
   });

@@ -16,6 +16,7 @@ import { API문서구획, API문서못보내는이유, 종류칸 } from './Setti
 import { CI토큰구획 } from './SettingsCiTokens.js';
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
+import { 서비스저장단추, 활성구획 } from './SettingsServiceConfirm.js';
 import { 구획, 비밀칸, 접두사칸, 프로젝트칸 } from './SettingsServiceParts.js';
 import { ViewportSection } from './SettingsViewport.js';
 import { message } from './ui.js';
@@ -53,7 +54,6 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const [figma, setFigma] = useState<string | null>(null);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [비활성확인, set비활성확인] = useState(false);
   // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
   const 지금칸 = JSON.stringify({ name, testsRepo, testsDir, envs, 제외, webhook, figma, apiDocPath, apiDocEnv, 프로시저 });
   const [처음칸] = useState(지금칸);
@@ -95,9 +95,8 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
     }
   }
 
-  /** 활성 여부만 뒤집는다. 내릴 때는 확인을 한 번 거친다 */
+  /** 활성 여부만 뒤집는다. 확인은 활성구획이 묻는다 */
   async function 활성을뒤집는다() {
-    set비활성확인(false);
     set보내는중(true);
     setErr(null);
     try {
@@ -210,9 +209,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
       <div className="set-foot">
         {저장했다 ? <span className="hint set-saved" role="status">{t('저장했습니다')}</span> : null}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
-        <button className="btn" disabled={보내는중} onClick={() => void 보낸다()}>
-          {t('저장')}
-        </button>
+        <서비스저장단추 보내는중={보내는중} 못보낸다={못보내는이유 !== null} on저장={() => void 보낸다()} />
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
 
@@ -224,31 +221,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         <CI토큰구획 row={row} />
       </구획>
 
-      {/* 저장과 다른 일이라 따로 둔다 — 적다 만 칸은 저장하지 않고 상태만 뒤집는다 */}
-      <구획 제목={t('애플리케이션 비활성화')} 쓰임={t('비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다')} 경고>
-        {비활성확인 && row.isActive ? (
-          // 결과를 먼저 말하고 확정은 글자가 다른 따로 된 버튼으로 둔다 — SettingsPending.tsx 의 거절 확인과 같은 모양
-          <div className="set-warn">
-            {t('애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다')}{' '}
-            <button className="btn ghost set-warn" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
-              {t('비활성화 확인')}
-            </button>{' '}
-            <button className="btn ghost" disabled={보내는중} onClick={() => set비활성확인(false)}>
-              {t('그만두기')}
-            </button>
-          </div>
-        ) : (
-          <div>
-            <button
-              className="btn ghost"
-              disabled={보내는중}
-              onClick={() => (row.isActive ? set비활성확인(true) : void 활성을뒤집는다())}
-            >
-              {row.isActive ? t('비활성화') : t('다시 활성화')}
-            </button>
-          </div>
-        )}
-      </구획>
+      <활성구획 켜짐={row.isActive} 보내는중={보내는중} on뒤집기={() => void 활성을뒤집는다()} />
       <떠나기상자 막나={지금칸 !== 처음칸 && 지금칸 !== 보낸칸} />
     </div>
   );

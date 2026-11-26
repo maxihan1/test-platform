@@ -4,6 +4,7 @@
 import { useState } from 'react';
 
 import { api } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 오류문장 } from './SettingsService.js';
 import { 구획 } from './SettingsServiceParts.js';
@@ -17,6 +18,7 @@ export function ApiServers({ 프로젝트 }: { 프로젝트: number }) {
   const [고침, set고침] = useState<Record<string, string>>({});
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
 
   const 줄들 = 목록.data?.items ?? [];
   const 값 = (host: string, 이름: string | null) => 고침[host] ?? 이름 ?? '';
@@ -67,10 +69,24 @@ export function ApiServers({ 프로젝트 }: { 프로젝트: number }) {
           ))}
           {err === null ? null : <div className="err">{err}</div>}
           <div className="set-foot">
-            <button className="btn" disabled={보내는중 || 바뀐.length === 0} onClick={() => void 저장()}>
+            <button className="btn" disabled={보내는중 || 바뀐.length === 0} onClick={() => set묻나(true)}>
               {t('저장')}
             </button>
           </div>
+          {/* 이름 한 줄만 고쳐도 서버를 바꾸므로 묻는다 (2026-11-26 사용자) */}
+          {!묻나 ? null : (
+            <확인창
+              제목={t('API 서버 이름 {수}건을 저장할까요?', { 수: 바뀐.length })}
+              확인={t('저장')}
+              onClose={() => set묻나(false)}
+              on확인={() => {
+                set묻나(false);
+                void 저장();
+              }}
+            >
+              <p>{t('케이스가 부른 서버에 붙인 이름을 저장합니다. 나중에 다시 저장할 수 있습니다')}</p>
+            </확인창>
+          )}
         </>
       )}
     </구획>

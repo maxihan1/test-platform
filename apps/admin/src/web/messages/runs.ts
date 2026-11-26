@@ -161,7 +161,6 @@ export const 실행말: Record<string, string> = {
   '저장값 초기화': 'Clear saved values',
   '저장값으로 저장했습니다.': 'Saved as the saved values.',
   '이 이름으로 묶음을 따로 저장합니다': 'Saved separately as a set with this name',
-  '초기화 확인': 'Confirm clear',
   '팀 전체와 정기 실행에 쓰입니다': 'Used by the whole team and scheduled runs',
   '실행': 'Run',
   // 목록 줄의 디바이스마다 ▶ (시안 ①)
@@ -520,4 +519,9 @@ export const 실행말: Record<string, string> = {
   '이 케이스를 실행하는 모든 사람과 정기 실행이 이 값을 씁니다. 다른 값으로 다시 저장할 수 있습니다': 'Everyone who runs this case and scheduled runs use these values. You can save different values later',
   '수정한 입력값을 팀 전체에 저장할까요?': 'Save the values you changed for the whole team?',
   '이 케이스의 입력값이 팀 전체와 정기 실행에 쓰입니다. 다시 수정해 저장할 수 있습니다': 'These values are used by the whole team and scheduled runs for this case. You can change and save them again',
+  // 저장값 초기화 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '{이름} 케이스의 저장값을 초기화할까요?': 'Clear the saved values for {이름}?',
+  '초기화': 'Clear',
+  '팀이 함께 쓰는 이 케이스의 저장값을 초기화하고 다음 실행부터 코드 기본값을 씁니다. 복원할 수 없습니다':
+    'Clears the saved values your team shares for this case; later runs use the code defaults. This cannot be undone',
 };

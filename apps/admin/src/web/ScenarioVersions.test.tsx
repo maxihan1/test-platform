@@ -9,6 +9,7 @@ import { ApiError, type ServiceRow, type User } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi, type CasePartMaterial, type ScenarioDetail } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 import { when } from './ui.js';
 
 const 서비스 = (prefix: string, runs: 'read' | 'write' = 'write'): ServiceRow => ({
@@ -178,6 +179,11 @@ describe('이 버전으로 복원', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
     fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
+    expect(screen.getByRole('dialog', { name: 'v2 버전으로 복원할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(복원).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '이 버전으로 복원' }));
+    물음누름('복원');
 
     await waitFor(() => expect(복원).toHaveBeenCalledWith(12, 2));
     expect(await screen.findByText('v2 내용으로 복원했습니다 · 지금 v4')).toBeTruthy();
@@ -207,6 +213,7 @@ describe('이 버전으로 복원', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
     fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
+    물음누름('복원');
 
     expect(await screen.findByText('삭제한 시나리오라 수정하거나 실행할 수 없습니다')).toBeTruthy();
     expect(screen.queryByText(/내용으로 복원했습니다/)).toBeNull();
@@ -219,6 +226,7 @@ describe('이 버전으로 복원', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
     fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
+    물음누름('복원');
 
     expect(await screen.findByText('요청이 실패했습니다 (SERVER_ERROR)')).toBeTruthy();
     expect(screen.getByLabelText('시나리오 이름')).toBeTruthy();

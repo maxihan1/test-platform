@@ -9,6 +9,7 @@ import { api, ApiError, type SettingsServiceRow, type User, type UserRow } from 
 import type { 프로젝트줄 } from './settingsView.js';
 import { Settings } from './Settings.js';
 import { PendingSection } from './SettingsPending.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -87,6 +88,11 @@ describe('승인 대기 묶음', () => {
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
     fireEvent.click(screen.getByRole('checkbox', { name: /데모마켓/ }));
     fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
+    expect(screen.getByRole('dialog', { name: '이민수 님의 가입 신청을 승인할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(수락).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
+    물음누름('승인');
 
     await waitFor(() => expect(다시).toHaveBeenCalled());
     expect(수락).toHaveBeenCalledWith('minsu', {
@@ -134,6 +140,7 @@ describe('승인 대기 묶음', () => {
     if (일 === 'approve') {
       fireEvent.click(screen.getByRole('button', { name: '승인' }));
       fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
+      물음누름('승인');
     } else {
       fireEvent.click(screen.getByRole('button', { name: '거절' }));
       fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
@@ -160,6 +167,7 @@ describe('두 번 누름과 빈 묶음', () => {
     묶음();
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
     fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
+    물음누름('승인');
     fireEvent.click(screen.getByRole('button', { name: '승인 확인' }));
 
     expect(수락).toHaveBeenCalledTimes(1);

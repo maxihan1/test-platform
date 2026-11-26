@@ -8,6 +8,7 @@ import { Prd } from './Prd.js';
 import { 판 } from './prd.fixture.js';
 import type { PrdHeld, PrdNow } from './prdApi.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const { 지금 } = vi.hoisted(() => ({
   지금: vi.fn((_s: string): Promise<PrdNow> => Promise.reject(new Error('판을 정하지 않았다'))),
@@ -107,6 +108,10 @@ describe('PRD 관리 — 보류 카드', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     await screen.findByText('버전 12 · 요구사항 4건');
     fireEvent.click(within(카드()).getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
+    물음누름('취소');
+    expect(부름).not.toHaveBeenCalled();
+    fireEvent.click(within(카드()).getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
+    물음누름('작성 시작');
     await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/5901'));
     expect(부름).toHaveBeenCalledWith('MKT', { kind: 'AUTHOR', continueFrom: 5873 });
   });
@@ -117,6 +122,7 @@ describe('PRD 관리 — 보류 카드', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     await screen.findByText('버전 12 · 요구사항 4건');
     fireEvent.click(within(카드()).getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
+    물음누름('작성 시작');
     expect((await within(카드()).findByRole('alert')).textContent).not.toBe('');
     expect(window.location.hash).toBe('');
   });

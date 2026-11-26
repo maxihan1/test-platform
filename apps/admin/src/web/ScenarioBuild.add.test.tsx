@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { api, ApiError, type CaseRow, type ServiceRow, type User } from './api.js';
 import { scenarioApi, type CasePartMaterial, type ScenarioDetail } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -242,6 +243,8 @@ describe('ScenarioBuild 잘못 적은 칸이 있을 때', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
+    물음누름('저장');
+
     expect((await screen.findByRole('status')).textContent).toBe('1번 단계의 잘못 적은 칸을 수정해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });
@@ -253,6 +256,8 @@ describe('ScenarioBuild 잘못 적은 칸이 있을 때', () => {
     fireEvent.change(칸, { target: { value: '5' } });
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    물음누름('저장');
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     expect(update.mock.calls[0]?.[1].parts).toEqual([{ kind: 'wait', ms: 5000 }]);
@@ -289,6 +294,8 @@ describe('ScenarioBuild 빈 칸이 남은 단계', () => {
     await screen.findByLabelText('기다릴 시간(초)');
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    물음누름('저장');
 
     expect((await screen.findByRole('status')).textContent).toBe('2번 단계의 잘못 적은 칸을 수정해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();

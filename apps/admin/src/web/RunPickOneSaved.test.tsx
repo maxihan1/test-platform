@@ -165,13 +165,13 @@ describe('「묶음으로 저장」', () => {
 });
 
 describe('「저장값 지우기」', () => {
-  it('그 자리에서 한 번 더 확인받고 지운 뒤 다시 읽게 한다', async () => {
+  it('확인 창에서 한 번 더 확인받고 지운 뒤 다시 읽게 한다', async () => {
     const { on다시읽기 } = await 그린다(저장값케이스);
     const 지우기 = vi.spyOn(api, 'clearInput').mockResolvedValue(undefined);
 
     fireEvent.click(screen.getByRole('button', { name: '저장값 초기화' }));
     expect(지우기).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '초기화 확인' }));
+    물음누름('초기화');
 
     await waitFor(() => expect(on다시읽기).toHaveBeenCalledWith('ZRS-001'));
     expect(지우기).toHaveBeenCalledWith('ZRS-001');
@@ -182,7 +182,7 @@ describe('「저장값 지우기」', () => {
     const 지우기 = vi.spyOn(api, 'clearInput').mockResolvedValue(undefined);
 
     fireEvent.click(screen.getByRole('button', { name: '저장값 초기화' }));
-    fireEvent.click(within(document.querySelector<HTMLElement>('.one-values')!).getByRole('button', { name: '취소' }));
+    물음누름('취소');
 
     expect(지우기).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: '저장값 초기화' })).toBeTruthy();

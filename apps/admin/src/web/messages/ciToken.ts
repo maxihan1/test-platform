@@ -27,4 +27,7 @@ export const CI토큰말: Record<string, string> = {
   '앱의 versionCode 를 빌드 번호와 같게 두면 디바이스에 다른 빌드가 설치되었을 때 실행 결과에서 알 수 있습니다': 'If the app versionCode matches the build number, the run result tells you when a different build is installed on the phone',
   '배포를 끝낸 뒤에 부릅니다': 'Call it after the deploy finishes',
   '적었습니다': 'Noted it',
+  'CI 토큰을 만들까요?': 'Create a CI token?',
+  '이름을 붙여 CI 토큰을 만들고 원문을 한 번만 보여 줍니다. 원문을 잃으면 그 토큰을 끊고 다시 만들어야 합니다':
+    'Creates a named CI token and shows it only once. If you lose it, revoke that token and create a new one',
 };

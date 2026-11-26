@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { 빠른기간, 짧은날 } from '../reporting/qaProjectReportShape.js';
 import type { ServiceRow } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { 서울 } from './seoul.js';
@@ -26,6 +27,7 @@ function 만들기창({ projectId, on닫기 }: { projectId: number; on닫기: ()
   const [중, set중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const [눌렀나, set눌렀나] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류();
   const 기간 = 꼴 === 'custom' ? 직접 : 빠른기간(지금, 꼴);
   const 빈날 = 기간.from === '' || 기간.to === '';
@@ -36,9 +38,12 @@ function 만들기창({ projectId, on닫기 }: { projectId: number; on닫기: ()
     { 값: 'month', 이름: t('이번 달') },
     { 값: 'custom', 이름: t('직접 선택') },
   ];
-  const 만들기 = async () => {
+  const 만들기누름 = () => {
     set눌렀나(true);
     if (빈날) return 첫오류로();
+    set묻나(true);
+  };
+  const 만들기 = async () => {
     set중(true);
     set오류(null);
     try {
@@ -83,7 +88,7 @@ function 만들기창({ projectId, on닫기 }: { projectId: number; on닫기: ()
         <button type="button" className="btn ghost" onClick={on닫기} disabled={중}>
           {t('취소')}
         </button>
-        <button type="button" className="btn primary" onClick={() => void 만들기()} disabled={중}>
+        <button type="button" className="btn primary" onClick={만들기누름} disabled={중}>
           <기다림글자 중={중} 평소={t('만들기')} 기다림={t('만드는 중')} />
         </button>
       </div>
@@ -91,6 +96,19 @@ function 만들기창({ projectId, on닫기 }: { projectId: number; on닫기: ()
         <p className="qar-error" role="alert">
           {오류}
         </p>
+      )}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('{시작}부터 {끝}까지 기간으로 프로젝트 QA 리포트를 만들까요?', { 시작: 기간.from, 끝: 기간.to })}
+          확인={t('만들기')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            void 만들기();
+          }}
+        >
+          <p>{t('선택한 기간의 테스트 결과를 모아 프로젝트 QA 리포트를 만들고 그 리포트를 엽니다. 만든 리포트는 복원할 수 없습니다')}</p>
+        </확인창>
       )}
     </div>
   );

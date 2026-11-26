@@ -97,4 +97,7 @@ export const 성능기기말: Record<string, string> = {
   '{수}회차 더 돌면 메모리 목표를 넘습니다': 'passes the memory target in {수} more loops',
   '디바이스별 요약': 'Summary per device',
   '측정한 디바이스가 없습니다': 'No device was measured',
+  // 확인 창 (2026-11-26 사용자)
+  '이 실행의 AI 분석을 다시 만들까요?': "Build this run's AI analysis again?",
+  '이 실행에 붙은 AI 분석을 다시 만듭니다. 결과가 마음에 들지 않으면 다시 만들 수 있습니다': 'Builds the AI analysis of this run again. If you do not like the result, you can build it again',
 };

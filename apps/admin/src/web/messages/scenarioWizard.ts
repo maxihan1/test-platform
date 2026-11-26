@@ -141,4 +141,12 @@ export const 시나리오마법사말: Record<string, string> = {
   'Android 앱은 디바이스 한 대에서 실행합니다. 단계 사이에 앱을 다시 켜지 않고, 앞 단계가 완료된 화면에서 이어 갑니다':
     'Android app applications run on one phone. The app is not restarted between steps; each step continues from the screen the previous one ended on',
   '{번호}번 {이름} 값 연결 삭제': 'Delete value link of step {번호} {이름}',
+  // 확인 창 (2026-11-26 사용자)
+  '새 시나리오 「{이름}」을 저장할까요?': 'Save new scenario "{이름}"?',
+  '지금 조립한 단계와 이름으로 새 시나리오를 만듭니다. 이 화면에서는 복원할 수 없고, 만든 시나리오는 시나리오 목록에서 삭제합니다':
+    'Creates a new scenario with the steps and name built here. It cannot be undone on this screen; delete it from the scenario list instead',
+  'AI 추천을 다시 받을까요?': 'Get AI suggestions again?',
+  '추천받기': 'Get suggestions',
+  '확인하고 싶은 흐름으로 AI 흐름 후보를 다시 만들도록 서버에 맡깁니다. 지금 화면에 있던 후보는 새 후보로 대체되고, 다시 추천받을 수 있습니다':
+    'Asks the server to build AI flow candidates again for the flow you want to check. The candidates on screen are replaced, and you can ask again',
 };

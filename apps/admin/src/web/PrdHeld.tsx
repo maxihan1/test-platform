@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { api } from './api.js';
 import { 보류오류문장 } from './AuthoringHeld.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import type { PrdHeld } from './prdApi.js';
 
@@ -12,6 +13,7 @@ export function PrdHeldCard({ service, held, 쓰나 }: { service: string; held: 
   const 언어 = use언어();
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [묻나, set묻나] = useState(false);
   const 건수 = Object.keys(held.reqs).length;
   const 다등록 = held.roles.length > 0 && held.roles.every((r) => r.registered);
   // 아직 계정이 없는 역할만 적는다 — 넣은 역할까지 적으면 무엇을 더 등록해야 하는지 흐려진다
@@ -48,7 +50,7 @@ export function PrdHeldCard({ service, held, 쓰나 }: { service: string; held: 
         </a>
         {쓰나 ? (
           <>
-            <button className="btn small" disabled={보내는중 || 뿌리 === null} onClick={이어작성}>
+            <button className="btn small" disabled={보내는중 || 뿌리 === null} onClick={() => set묻나(true)}>
               {t('남은 요구사항으로 이어 작성')}
             </button>
             {뿌리 === null ? (
@@ -62,6 +64,19 @@ export function PrdHeldCard({ service, held, 쓰나 }: { service: string; held: 
           </span>
         )}
       </footer>
+      {!묻나 ? null : (
+        <확인창
+          제목={t('남은 요구사항 {수}건으로 작성을 시작할까요?', { 수: 건수 })}
+          확인={t('작성 시작')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            이어작성();
+          }}
+        >
+          <p>{t('이 요구사항만 다시 작성하는 새 작성 요청을 만들고 작성 상세로 이동합니다. 요청을 만들면 복원할 수 없고 작성 상세에서 중단만 할 수 있습니다')}</p>
+        </확인창>
+      )}
     </section>
   );
 }

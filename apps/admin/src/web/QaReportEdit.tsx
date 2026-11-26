@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { ApiError } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import type { 리포트응답 } from './qaReportApi.js';
@@ -34,6 +35,7 @@ export function 문장수정({ ai, 저장하기, 단추, 이름, on바뀜 }: { a
   const [중, set중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const [눌렀나, set눌렀나] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류();
   const 빈글 = 눌렀나 && 글.trim() === '' ? t('리스크 문장을 적어 주세요') : null;
   const 지금글 = ai !== null && !('failed' in ai) ? ai.current : '';
@@ -54,9 +56,12 @@ export function 문장수정({ ai, 저장하기, 단추, 이름, on바뀜 }: { a
       </button>
     );
   }
-  const 저장 = async () => {
+  const 저장누름 = () => {
     set눌렀나(true);
     if (글.trim() === '') return 첫오류로();
+    set묻나(true);
+  };
+  const 저장 = async () => {
     set중(true);
     set오류(null);
     try {
@@ -80,7 +85,7 @@ export function 문장수정({ ai, 저장하기, 단추, 이름, on바뀜 }: { a
         <button type="button" className="btn ghost" onClick={() => set열림(false)} disabled={중}>
           {t('취소')}
         </button>
-        <button type="button" className="btn primary" onClick={() => void 저장()} disabled={중}>
+        <button type="button" className="btn primary" onClick={저장누름} disabled={중}>
           <기다림글자 중={중} 평소={t('저장')} 기다림={t('저장하는 중')} />
         </button>
       </div>
@@ -88,6 +93,19 @@ export function 문장수정({ ai, 저장하기, 단추, 이름, on바뀜 }: { a
         <p className="qar-error" role="alert">
           {오류}
         </p>
+      )}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('{이름} 문장을 저장할까요?', { 이름 })}
+          확인={t('저장')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            void 저장();
+          }}
+        >
+          <p>{t('리포트에 수정한 문장이 들어가고 AI 가 처음 쓴 글은 따로 남습니다. 저장한 뒤에 다시 수정할 수 있습니다')}</p>
+        </확인창>
       )}
     </div>
   );

@@ -32,6 +32,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
   const [눌렀나, set눌렀나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류();
   const [지울것, set지울것] = useState<{ id: number; name: string } | null>(null);
+  const [올릴까, set올릴까] = useState(false);
   const list = useAsync(() => (앱 === '' ? Promise.resolve({ clients: [] }) : perfApi.dummyClients(Number(앱))), [앱]);
 
   if (services.length === 0) return null;
@@ -57,10 +58,16 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
     }
   }
 
-  function 올리기() {
+  // 칸이 틀렸으면 상자를 열기 전에 그 칸으로 간다. 업로드도 서버를 바꾸므로 묻는다 (2026-11-26 사용자)
+  function 올리기누름() {
     set오류(null);
     set눌렀나(true);
     if (이름.trim() === '' || 명령.trim() === '' || 파일 === null || 파일막힘 !== null) return 첫오류로();
+    set올릴까(true);
+  }
+
+  function 올리기(파일: File) {
+    set올릴까(false);
     void 해보기(
       'upload',
       () => perfApi.addDummyClient(Number(앱), 이름.trim(), 명령.trim(), 파일),
@@ -156,7 +163,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
               </label>
               <칸오류 id="perf-dummy-zip" 사유={파일오류} />
             </div>
-            <button type="button" className="btn" disabled={하는중 !== null} onClick={올리기}>
+            <button type="button" className="btn" disabled={하는중 !== null} onClick={올리기누름}>
               <기다림글자 중={하는중 === 'upload'} 평소={t('업로드')} 기다림={t('업로드 중')} />
             </button>
           </div>
@@ -166,6 +173,11 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
         </>
       ) : null}
       {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
+      {!올릴까 || 파일 === null ? null : (
+        <확인창 제목={t('{이름} 더미 클라이언트를 업로드할까요?', { 이름: 이름.trim() })} 확인={t('업로드')} onClose={() => set올릴까(false)} on확인={() => 올리기(파일)}>
+          <p>{t('선택한 애플리케이션에 zip 파일과 실행 명령을 업로드해 목록에 더합니다. 업로드한 것은 이 화면에서 삭제할 수 있습니다')}</p>
+        </확인창>
+      )}
       {지울것 === null ? null : (
         <확인창
           제목={t('더미 클라이언트를 삭제할까요?')}

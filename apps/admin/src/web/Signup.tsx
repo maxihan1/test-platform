@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { 비밀번호최대, 비밀번호최소, 아이디모양, 이름최대 } from '../auth/rules.js';
 
 import { api, ApiError } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
@@ -20,6 +21,7 @@ export function Signup() {
   const [busy, setBusy] = useState(false);
   const { 상자, 첫오류로 } = use첫오류<HTMLFormElement>();
   const [보냄, set보냄] = useState(false);
+  const [묻나, set묻나] = useState(false);
 
   // 서버도 같은 규칙으로 다시 막는다. 화면이 먼저 보는 것은 칸 아래에 바로 알려 주려는 것이다
   function 살핀다(): Partial<Record<칸, string>> {
@@ -35,12 +37,17 @@ export function Signup() {
     return 결과;
   }
 
-  async function submit(e: React.FormEvent) {
+  // 칸이 틀렸으면 상자를 열기 전에 그 칸으로 간다. 신청은 취소할 길이 없어 한 번 묻는다 (2026-11-26 사용자)
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     const 찾은것 = 살핀다();
     set사유(찾은것);
     setFailed(null);
     if (Object.keys(찾은것).length > 0) return 첫오류로();
+    set묻나(true);
+  }
+
+  async function 보낸다() {
     setBusy(true);
     try {
       await api.signup({ username: 값.username, displayName: 값.displayName.trim(), password: 값.password });
@@ -115,6 +122,19 @@ export function Signup() {
         </button>
         {로그인으로}
       </form>
+      {!묻나 ? null : (
+        <확인창
+          제목={t('가입을 신청할까요?')}
+          확인={t('가입 신청')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            void 보낸다();
+          }}
+        >
+          <p>{t('적은 값으로 승인 대기 계정을 만듭니다. 관리자가 승인하기 전에는 로그인할 수 없고 신청을 취소하는 통로가 없습니다')}</p>
+        </확인창>
+      )}
     </div>
   );
 }

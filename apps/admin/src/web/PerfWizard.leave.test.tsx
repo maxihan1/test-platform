@@ -7,7 +7,7 @@ import type { ServiceRow, User } from './api.js';
 import { 주소로간다, 주소보기, 주소에선다 } from './keepState.fixture.js';
 import { perfApi, type PerfAgent } from './perfApi.js';
 import { PerfWizard } from './PerfWizard.js';
-import { 확인시작 } from './startConfirm.fixture.js';
+import { 물음누름, 확인시작 } from './startConfirm.fixture.js';
 
 const 앱: ServiceRow = {
   id: 7,
@@ -65,6 +65,7 @@ describe('부하 마법사 떠나기 묻기', () => {
     이름을적는다();
     fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    물음누름('임시 저장');
     await screen.findByText('저장했습니다');
     await 주소로간다('#/cases');
     expect(screen.queryByRole('dialog')).toBeNull();

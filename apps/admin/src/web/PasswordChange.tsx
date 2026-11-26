@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { 비밀번호최대, 비밀번호최소 } from '../auth/rules.js';
 
 import { api, ApiError, type User } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
@@ -35,6 +36,7 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
   const [사유, set사유] = useState<Partial<Record<칸, string>>>({});
   const [failed, setFailed] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류<HTMLFormElement>();
 
   // 서버도 같은 규칙으로 다시 막는다. 화면이 먼저 보는 것은 칸 아래에 바로 알려 주려는 것이다
@@ -46,12 +48,17 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
     return 결과;
   }
 
-  async function submit(e: React.FormEvent) {
+  // 칸이 틀렸으면 상자를 열기 전에 그 칸으로 간다. 변경 강제 중에도 묻는다 (2026-11-26 사용자)
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     const 찾은것 = 살핀다();
     set사유(찾은것);
     setFailed(null);
     if (Object.keys(찾은것).length > 0) return 첫오류로();
+    set묻나(true);
+  }
+
+  async function 보낸다() {
     setBusy(true);
     try {
       await api.changePassword({ currentPassword: 값.current, newPassword: 값.next });
@@ -123,6 +130,19 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
           </button>
         )}
       </form>
+      {!묻나 ? null : (
+        <확인창
+          제목={t('비밀번호를 변경할까요?')}
+          확인={t('비밀번호 변경')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            void 보낸다();
+          }}
+        >
+          <p>{t('지금 비밀번호를 확인해 새 비밀번호로 변경합니다. 다음 로그인부터는 새 비밀번호를 씁니다')}</p>
+        </확인창>
+      )}
     </div>
   );
 }

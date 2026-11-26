@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use첫오류 } from './FieldError.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
@@ -74,6 +75,8 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   const { 상자, 첫오류로 } = use첫오류();
   const [하는중, set하는중] = useState<누른곳 | null>(null);
   const [묻나, set묻나] = useState(false);
+  // 임시 저장 · 저장도 서버에 새 버전을 남긴다 — 칸 검사를 지난 뒤 한 번 묻는다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①)
+  const [저장묻기, set저장묻기] = useState<'draft' | 'save' | null>(null);
   const agents = useAsync(() => perfApi.agents(service.projectId), [service.projectId]);
   const 더미들 = useAsync(() => perfApi.dummyClients(service.id), [service.id]);
   const 더미 = 일.방식 === 'DUMMY';
@@ -236,7 +239,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
               </>
             ) : null}
             {쓰나 ? (
-              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => void 저장('draft')}>
+              <button type="button" className="btn ghost" disabled={하는중 !== null} onClick={() => 막힘(1) || set저장묻기('draft')}>
                 <기다림글자 중={하는중 === 'draft'} 평소={t('임시 저장')} 기다림={t('저장하는 중')} />
               </button>
             ) : null}
@@ -244,6 +247,19 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
         }
       />
       {!묻나 ? null : <PerfStartConfirm 종류="LOAD" 줄들={요약} 안내={t('시나리오를 저장하고 대상 서버에 부하가 발생합니다. 실행 화면에서 중단할 수 있습니다')} onClose={() => set묻나(false)} on시작={() => void 실행()} />}
+      {저장묻기 === null ? null : (
+        <확인창
+          제목={저장묻기 === 'draft' ? t('「{이름}」 시나리오를 임시 저장할까요?', { 이름: 일.name.trim() }) : t('「{이름}」 시나리오를 저장할까요?', { 이름: 일.name.trim() })}
+          확인={저장묻기 === 'draft' ? t('임시 저장') : t('저장')}
+          onClose={() => set저장묻기(null)}
+          on확인={() => {
+            set저장묻기(null);
+            void 저장(저장묻기);
+          }}
+        >
+          <p>{저장묻기 === 'draft' ? t('지금까지 수정한 값을 이 시나리오의 임시 저장본에 반영합니다. 저장한 뒤에도 값을 수정해 다시 저장할 수 있습니다') : t('네 단계에서 정한 값으로 시나리오를 저장합니다. 저장한 뒤에도 값을 수정해 다시 저장할 수 있습니다')}</p>
+        </확인창>
+      )}
       {정기창 && 번호 !== null ? <PerfSchedule scenarioId={번호} envs={service.envs} 지금={정기} 바뀜={set정기} 닫기={() => set정기창(false)} /> : null}
       <div className="screen" ref={상자} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <PerfWizardSteps 단계들={단계들} 지금={지금} 끝낸={끝낸} on고름={set지금} />
@@ -271,7 +287,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
             {알림.글}
           </p>
         )}
-        <PerfWizardFoot 지금={지금} 쓰나={쓰나} 하는중={하는중} on이전={() => set지금((지금 - 1) as 단계)} on다음={다음} on저장={() => void 저장('save')} on실행={실행누름} />
+        <PerfWizardFoot 지금={지금} 쓰나={쓰나} 하는중={하는중} on이전={() => set지금((지금 - 1) as 단계)} on다음={다음} on저장={() => 막힘(1) || set저장묻기('save')} on실행={실행누름} />
       </div>
     </>
   );

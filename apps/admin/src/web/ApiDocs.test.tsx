@@ -6,6 +6,7 @@ import type { ApiCoverage, ApiDocChange, ApiDocList } from './apiDocApi.js';
 import { ApiError, type ServiceRow } from './api.js';
 import { ApiDocs } from './ApiDocs.js';
 import type { 판정 } from './role.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 const { 목록, 덮음, 원문, 비교, 받기, 올리기 } = vi.hoisted(() => ({
   목록: vi.fn((_id: number): Promise<ApiDocList> => Promise.reject(new Error('목록을 정하지 않았다'))),
@@ -122,8 +123,24 @@ describe('API 문서', () => {
   it('지금 받은 문서가 현재 버전과 같으면 새 버전을 만들지 않았다고 알린다', async () => {
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
     fireEvent.click(await screen.findByRole('button', { name: '문서 가져오기' }));
+    물음누름('가져오기');
     expect(await screen.findByText('현재 버전과 같아 새 버전을 만들지 않았습니다 (버전 3)')).toBeTruthy();
     expect(받기).toHaveBeenCalledWith(7);
+  });
+
+  it('가져오기 · 파일 첨부는 확인 창을 거치고 취소하면 서버를 부르지 않는다', async () => {
+    render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '문서 가져오기' }));
+    물음누름('취소');
+    expect(받기).not.toHaveBeenCalled();
+    const 파일 = new File(['{}'], 'notify.json', { type: 'application/json' });
+    fireEvent.change(screen.getByLabelText('API 문서 파일'), { target: { files: [파일] } });
+    expect(screen.getByRole('dialog', { name: '선택한 파일을 새 버전으로 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(올리기).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('API 문서 파일'), { target: { files: [파일] } });
+    물음누름('업로드');
+    await waitFor(() => expect(올리기).toHaveBeenCalledWith(7, 파일));
   });
 
   it('작성 상세에서 버전을 짚고 오면 버전 기록을 펴고 그 버전 원문을 보인다', async () => {

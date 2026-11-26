@@ -9,6 +9,7 @@ import { BTS이름 } from './btsName.js';
 import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
+import { 배포토큰단추, 저장설정확인 } from './SettingsBtsConfirm.js';
 import { 배포한줄, 상태단계들, 상태매핑구획, 자동설정결과, 코드저장소구획, 해결단계들, type 저장소들 } from './SettingsBtsParts.js';
 import { 오류문장 } from './SettingsService.js';
 import { 구획 } from './SettingsServiceParts.js';
@@ -52,7 +53,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   const [결과, set결과] = useState<BTS설정결과[] | null>(null);
   const [배포원문, set배포원문] = useState<string | null>(null);
   const [끊기묻기, set끊기묻기] = useState(false);
-  const [다시발급묻기, set다시발급묻기] = useState(false);
+  const [저장묻기, set저장묻기] = useState(false);
   const [불러오는중, set불러오는중] = useState(false);
 
   const 문장 = (e: unknown) => {
@@ -85,10 +86,16 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
 
   const 빈단계 = 상태단계들.some(([단계]) => (상태[단계] ?? '').trim() === '') || 해결단계들.some(([단계]) => (해결[단계] ?? '').trim() === '');
 
-  async function 저장하고설정() {
+  // 칸 검사를 지난 뒤에만 묻는다 — 상자를 띄웠다 닫으면 무엇을 고칠지 다시 찾아야 한다
+  function 저장누름() {
     set오류(null);
     set눌렀나(true);
     if (빈단계 || baseUrl.trim() === '' || btsProject.trim() === '' || botUsername.trim() === '') return 첫오류로();
+    set저장묻기(true);
+  }
+
+  async function 저장하고설정() {
+    set저장묻기(false);
     set바쁨('save');
     set결과(null);
     try {
@@ -117,7 +124,6 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   }
 
   async function 배포토큰() {
-    set다시발급묻기(false);
     set오류(null);
     try {
       set배포원문((await btsApi.deployKey(row.id)).key);
@@ -211,7 +217,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
             {t('연결 해제')}
           </button>
         ) : null}
-        <button type="button" className="btn" disabled={바쁨 !== null} onClick={() => void 저장하고설정()}>
+        <button type="button" className="btn" disabled={바쁨 !== null} onClick={저장누름}>
           <기다림글자 중={바쁨 === 'save'} 평소={t('저장하고 {bts} 자동 설정', { bts: BTS이름 })} 기다림={t('저장하는 중')} />
         </button>
       </div>
@@ -221,33 +227,13 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
           <div className="bts-key">
             <span>{t('배포 알림 토큰')}</span>
             <span className="set-sub">{배포원문 !== null ? t('방금 발급했습니다 · 원문은 지금만 보입니다') : 지금.deployKey === null ? t('발급 전 · 이 프로젝트 전용') : `••••${지금.deployKey.tail}`}</span>
-            {/* 다시 발급하면 deploy.sh 에 넣어 둔 토큰이 바로 끊긴다 — 처음 발급만 바로 하고 다시 발급은 묻는다(리뷰) */}
-            <button type="button" className="btn ghost" onClick={() => (지금.deployKey === null && 배포원문 === null ? void 배포토큰() : set다시발급묻기(true))}>
-              {지금.deployKey === null && 배포원문 === null ? t('발급') : t('다시 발급')}
-            </button>
+            <배포토큰단추 처음={지금.deployKey === null && 배포원문 === null} on발급={() => void 배포토큰()} />
           </div>
           <배포한줄 바탕={지금.publicUrl ?? window.location.origin} projectId={row.id} 원문={배포원문} />
         </구획>
       ) : null}
 
-      {다시발급묻기 ? (
-        <Modal
-          제목={t('배포 알림 토큰 다시 발급')}
-          onClose={() => set다시발급묻기(false)}
-          버튼={
-            <>
-              <button type="button" className="btn ghost" data-first onClick={() => set다시발급묻기(false)}>
-                {t('취소')}
-              </button>
-              <button type="button" className="btn danger" onClick={() => void 배포토큰()}>
-                {t('다시 발급')}
-              </button>
-            </>
-          }
-        >
-          <p>{t('다시 발급하면 deploy.sh 에 넣어 둔 토큰은 바로 쓸 수 없습니다. 새 한 줄로 교체해야 배포 알림이 다시 옵니다')}</p>
-        </Modal>
-      ) : null}
+      {저장묻기 ? <저장설정확인 onClose={() => set저장묻기(false)} on확인={() => void 저장하고설정()} /> : null}
 
       {끊기묻기 ? (
         <Modal

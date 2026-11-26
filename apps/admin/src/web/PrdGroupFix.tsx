@@ -3,6 +3,7 @@
 import type { PrdItem } from '@platform/kit';
 import { useId, useState } from 'react';
 
+import { 확인창 } from './ConfirmBox.js';
 import { Drawer } from './Drawer.js';
 import { use말 } from './i18n.js';
 import type { 이름문제 } from './prdView.js';
@@ -36,6 +37,7 @@ export function 묶음정리서랍({
   // 요구 문장에 그 묶음 이름이 들어 있으면 거기가 고쳐 쓴 화면일 가능성이 크다
   const [to, setTo] = useState(() => 옮길곳들.find((h) => 항목들.some((x) => x.text.includes(h))) ?? 옮길곳들[0] ?? '');
   const [busy, setBusy] = useState(false);
+  const [묻나, set묻나] = useState(false);
 
   return (
     <Drawer className="prd-drawer" aria-labelledby={`${id}-title`} onClose={on닫기}>
@@ -90,16 +92,27 @@ export function 묶음정리서랍({
             type="button"
             className="btn small"
             disabled={busy}
-            onClick={() => {
-              setBusy(true);
-              void on옮기기(to).then((됐나) => {
-                if (!됐나) setBusy(false);
-              });
-            }}
+            onClick={() => set묻나(true)}
           >
             {t('옮기기')}
           </button>
         </div>
+      )}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('{이름} 묶음의 요구사항 {수}건을 {옮길묶음} 묶음으로 옮길까요?', { 이름: feature, 수: 항목들.length, 옮길묶음: to })}
+          확인={t('옮기기')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            setBusy(true);
+            void on옮기기(to).then((됐나) => {
+              if (!됐나) setBusy(false);
+            });
+          }}
+        >
+          <p>{t('이 묶음에 든 요구사항의 기능 이름을 옮길 묶음으로 변경하고 새 버전으로 저장합니다. 버전 기록에서 이전 버전으로 복원할 수 있습니다')}</p>
+        </확인창>
       )}
     </Drawer>
   );

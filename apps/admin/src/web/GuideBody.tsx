@@ -7,6 +7,7 @@ import type { GuideFile, GuideSection as 구획, ServiceGuide } from '@platform/
 
 import { ApiError } from './api.js';
 import { 거절사유 } from './authoringNewText.js';
+import { 확인창 } from './ConfirmBox.js';
 import { guideApi, type 가이드글 } from './guideApi.js';
 import { GuideSection, 구획들, 구획이름 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
@@ -115,8 +116,11 @@ export function useGuideEdit(service: string): 가이드상태 {
  */
 export function GuideBody({ service, 가이드, 쓰나, 예, 한번에 = false }: { service: string; 가이드: 가이드상태; 쓰나: boolean; 예?: string; 한번에?: boolean }) {
   const t = use말();
+  const [물음, set물음] = useState<{ 일: '저장'; s: 구획 } | { 일: '첨부'; s: 구획; file: File } | null>(null);
   const now = 가이드.now;
   if (now === null) return null;
+  // 서버가 거절할 파일은 묻지 않고 바로 사유를 보인다 — 물어 놓고 못 붙이면 헛걸음이다
+  const 첨부누름 = (s: 구획, file: File) => (거절사유(file, true) === null ? set물음({ 일: '첨부', s, file }) : 가이드.더하기(s, file));
   return (
     <>
       {가이드.알림 === null ? null : (
@@ -152,16 +156,34 @@ export function GuideBody({ service, 가이드, 쓰나, 예, 한번에 = false }
                   <button className="btn ghost" disabled={가이드.busy} onClick={() => 가이드.취소(s)}>
                     {t('취소')}
                   </button>
-                  <button className="btn" disabled={!가이드.바뀐(s) || 가이드.busy} onClick={() => void 가이드.저장([s])}>
+                  <button className="btn" disabled={!가이드.바뀐(s) || 가이드.busy} onClick={() => set물음({ 일: '저장', s })}>
                     {t('저장')}
                   </button>
                 </>
               ) : null
             }
-            {...(수정중 ? { on글: (값: string) => 가이드.on글(s, 값), on더하기: (file: File) => 가이드.더하기(s, file), on빼기: 가이드.빼기 } : {})}
+            {...(수정중 ? { on글: (값: string) => 가이드.on글(s, 값), on더하기: (file: File) => 첨부누름(s, file), on빼기: 가이드.빼기 } : {})}
           />
         );
       })}
+      {물음 === null ? null : (
+        <확인창
+          제목={물음.일 === '저장' ? t('{이름} 구획을 저장할까요?', { 이름: t(구획이름[물음.s]) }) : t('{이름} 파일을 첨부할까요?', { 이름: 물음.file.name })}
+          확인={물음.일 === '저장' ? t('저장') : t('첨부')}
+          onClose={() => set물음(null)}
+          on확인={() => {
+            set물음(null);
+            if (물음.일 === '저장') void 가이드.저장([물음.s]);
+            else 가이드.더하기(물음.s, 물음.file);
+          }}
+        >
+          <p>
+            {물음.일 === '저장'
+              ? t('수정한 글로 새 가이드 버전을 만들어 저장하고, 지금 버전은 버전 기록에 그대로 남습니다. 그 사이 다른 사람이 먼저 저장했으면 저장하지 않고 알려 줍니다')
+              : t('선택한 파일을 그 구획에 붙여 가이드 새 버전을 만듭니다. 붙은 파일은 파일 줄의 「제거」로 다시 뺄 수 있습니다')}
+          </p>
+        </확인창>
+      )}
     </>
   );
 }

@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { api, type CI토큰, type SettingsServiceRow } from './api.js';
 import { CI토큰구획 } from './SettingsCiTokens.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -39,6 +40,7 @@ async function 만든다(r: SettingsServiceRow, publicUrl: string | null = null)
   render(<CI토큰구획 row={r} />);
   fireEvent.change(await screen.findByLabelText('토큰 이름'), { target: { value: 'github-main' } });
   fireEvent.click(screen.getByRole('button', { name: '토큰 만들기' }));
+  물음누름('토큰 만들기');
   await screen.findByText('cit_abc123');
   return 만들기;
 }
@@ -97,6 +99,17 @@ describe('설정 › CI 토큰', () => {
     fireEvent.click(screen.getByRole('button', { name: '끊기 확인' }));
     await waitFor(() => expect(끊기).toHaveBeenCalledWith(9, 4));
     await waitFor(() => expect(읽기).toHaveBeenCalledTimes(2));
+  });
+
+  it('「토큰 만들기」는 확인 창을 거치고 취소하면 서버에 보내지 않는다', async () => {
+    vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [], publicUrl: null });
+    const 만들기 = vi.spyOn(api, 'createServiceToken').mockResolvedValue({ tokenId: 5, token: 'cit_abc123' });
+    render(<CI토큰구획 row={행()} />);
+    fireEvent.change(await screen.findByLabelText('토큰 이름'), { target: { value: 'github-main' } });
+    fireEvent.click(screen.getByRole('button', { name: '토큰 만들기' }));
+    expect(screen.getByRole('dialog', { name: 'CI 토큰을 만들까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
   });
 
   it('이름이 비면 서버에 보내지 않는다', async () => {

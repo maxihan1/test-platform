@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { api, type SettingsServiceRow } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { ServicePanel } from './SettingsService.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   떠나기막기(null);
@@ -53,6 +54,7 @@ const 구획제목들 = () => [...document.querySelectorAll('.set-card h3')].map
 async function 고친본문() {
   const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
   fireEvent.click(screen.getByRole('button', { name: '저장' }));
+  물음누름('저장');
   await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
   return 고침.mock.calls[0]?.[1];
 }
@@ -137,6 +139,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     render(<ServicePanel row={{ ...API앱, envs: [{ env: 'qa', baseUrl: 'https://qa.example.com', apiAuths: [절대주소] }] }} onDone={() => {}} />);
     fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://other.example.com' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
   });
 

@@ -11,7 +11,7 @@ import type { 등급 } from './role.js';
 import { TempPassword, type 임시 } from './SettingsPassword.js';
 import { PermissionPicker, PermissionSummary, 배정이틀렸나 } from './SettingsPermissions.js';
 import { 오류문장 } from './SettingsService.js';
-import { UserActions } from './SettingsUserActions.js';
+import { UserActions, 계정저장단추 } from './SettingsUserActions.js';
 import { 계정못보내는이유, 마지막운영계정인가, type 프로젝트줄 } from './settingsView.js';
 
 export function UserSection({
@@ -254,11 +254,11 @@ function UserForm({
         )}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
         {/* 셋 다 안 씀인 묶음은 서버가 400 으로 돌려보낸다. 이유는 그 묶음 옆에 이미 적혀 있다 */}
-        <button
-          className="btn"
-          disabled={보내는중 || 배정이틀렸나(배정들)}
-          onClick={() => {
-            if (못보내는이유 !== null) return;
+        <계정저장단추
+          새것={새것}
+          막힘={보내는중 || 배정이틀렸나(배정들)}
+          못보낸다={못보내는이유 !== null}
+          on저장={() =>
             void 한다(async () => {
               if (새것) {
                 const { tempPassword } = await api.createUser({ username, displayName, role, dashboard, projects: 배정들 });
@@ -267,11 +267,9 @@ function UserForm({
                 await api.updateUser(row.username, { displayName, role, dashboard, projects: 배정들 });
                 onDone?.();
               }
-            });
-          }}
-        >
-          {새것 ? t('계정 추가') : t('저장')}
-        </button>
+            })
+          }
+        />
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
     </div>

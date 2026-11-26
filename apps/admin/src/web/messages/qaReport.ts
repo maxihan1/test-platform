@@ -68,4 +68,11 @@ export const QA리포트말: Record<string, string> = {
   '기간은 92일까지 선택할 수 있습니다': 'You can choose up to 92 days',
   '리스크 문장을 적어 주세요': 'Enter the risk text',
   '{앱들} 건수를 불러오지 못했습니다': 'Could not count {앱들}',
+  // 서버를 바꾸는 동작 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '{이름} 문장을 저장할까요?': 'Save the {이름} text?',
+  '리포트에 수정한 문장이 들어가고 AI 가 처음 쓴 글은 따로 남습니다. 저장한 뒤에 다시 수정할 수 있습니다':
+    'The report uses your edited text and the original AI text is kept separately. You can edit it again after saving',
+  '{시작}부터 {끝}까지 기간으로 프로젝트 QA 리포트를 만들까요?': 'Create a project QA report for {시작} to {끝}?',
+  '선택한 기간의 테스트 결과를 모아 프로젝트 QA 리포트를 만들고 그 리포트를 엽니다. 만든 리포트는 복원할 수 없습니다':
+    'Collects test results for the chosen period into a project QA report and opens it. A report once made cannot be undone',
 };

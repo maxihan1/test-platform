@@ -10,7 +10,7 @@ import { scenarioApi, type CasePartMaterial, type LinkSuggestion } from './scena
 import { 결과주소 } from './ScenarioResultNext.js';
 import { 사람, 서비스, 흘리기 } from './ScenarioTrial.fixture.js';
 import { ScenarioWizard } from './ScenarioWizard.js';
-import { 확인상자, 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
+import { 물음누름, 확인상자, 확인상자있나, 확인시작, 확인줄들, 확인취소 } from './startConfirm.fixture.js';
 import { 장면통로 } from './TrialLive.js';
 
 const 줄 = (tcId: string): CaseRow => ({
@@ -215,6 +215,11 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     const 만들기 = vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 31, version: 1 });
     fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '신규 회원 첫 주문' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(screen.getByRole('dialog', { name: '새 시나리오 「신규 회원 첫 주문」을 저장할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(만들기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     expect(await screen.findByText('「신규 회원 첫 주문」 시나리오를 저장했습니다 · v1')).toBeTruthy();
     expect(만들기).toHaveBeenCalledWith({ service: 'ZSB', name: '신규 회원 첫 주문', platform: 'desktop', parts: 보낸 });
     expect(screen.getByRole('link', { name: '조립 화면에서 열기' }).getAttribute('href')).toBe('#/scenarios/31');
@@ -313,6 +318,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     const 만들기 = vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 33, version: 1 });
     fireEvent.change(칸, { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     expect(await screen.findByText('「DMA 장바구니」 시나리오를 저장했습니다 · v1')).toBeTruthy();
     expect(만들기).toHaveBeenCalledWith(expect.objectContaining({ name: 'DMA 장바구니' }));
   });

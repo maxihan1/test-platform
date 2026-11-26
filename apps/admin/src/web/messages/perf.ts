@@ -224,9 +224,23 @@ export const 성능말: Record<string, string> = {
   '이 화면에서 중단할 수 있습니다': 'You can stop it on this screen',
   // AI 추천 확인 (WEB-F10-02)
   'AI 추천 목표로 변경할까요?': 'Replace with AI suggested targets?',
-  '지금 있는 성능 목표 {수}개가 AI 추천 목표로 모두 변경됩니다': 'All {수} current targets are replaced by AI suggestions',
+  '지금 있는 성능 목표를 모두 AI 추천값으로 변경합니다. 아직 저장하지 않은 시나리오는 추천 전에 먼저 저장합니다':
+    'Replaces every current target with AI suggestions. An unsaved scenario is saved first, before the suggestion',
+  'AI 추천으로 변경': 'Replace with AI suggestions',
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)
   '부하 발생 에이전트를 선택해 주세요': 'Pick a load generator',
   '실행 명령을 적어 주세요': 'Enter a command',
   '{이름} 값을 적어 주세요': 'Enter {이름}',
+  // 확인 창 (2026-11-26 사용자)
+  '「{이름}」 파일로 트랜잭션 목록을 만들까요?': 'Build the transaction list from "{이름}"?',
+  '가져오기§트랜잭션': 'Import',
+  '선택한 스크립트를 서버로 보내 트랜잭션 목록을 만듭니다. 지금 트랜잭션 목록은 남지 않지만 다른 파일을 업로드하면 다시 만들 수 있습니다':
+    'Uploads the chosen script and builds the transaction list. The current list is not kept, but you can build it again by uploading another file',
+  '선택한 API {수}건으로 트랜잭션 목록을 만들까요?': 'Build the transaction list from {수} chosen APIs?',
+  '선택한 API 를 선택한 순서대로 트랜잭션으로 만듭니다. 지금 트랜잭션 목록은 남지 않지만 다시 가져오면 다시 만들 수 있습니다':
+    'Turns the chosen APIs into transactions in the order you chose them. The current list is not kept, but you can import again to rebuild it',
+  '「{이름}」 시나리오를 임시 저장할까요?': 'Save a draft of "{이름}"?',
+  '「{이름}」 시나리오를 저장할까요?': 'Save scenario "{이름}"?',
+  '지금까지 수정한 값을 이 시나리오의 임시 저장본에 반영합니다. 저장한 뒤에도 값을 수정해 다시 저장할 수 있습니다': 'Puts the values edited so far into the draft of this scenario. You can still edit and save again afterwards',
+  '네 단계에서 정한 값으로 시나리오를 저장합니다. 저장한 뒤에도 값을 수정해 다시 저장할 수 있습니다': 'Saves the scenario with the values set in the four steps. You can still edit and save again afterwards',
 };

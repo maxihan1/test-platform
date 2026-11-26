@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 
 import type { Platform } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { 디바이스글 } from './e2eWindowView.js';
 import { use말, use언어 } from './i18n.js';
 import { ScenarioStartConfirm } from './ScenarioStartConfirm.js';
@@ -141,3 +142,13 @@ export function 저장칸(p: Props) {
   );
 }
 
+/** 저장 단추의 확인 창 — 새 시나리오를 만든다 (2026-11-26 사용자 · DESIGN.md 「모달」 ①) */
+export function 마법사저장확인({ 끝, 이름 }: { 끝: ReturnType<typeof useWizardEnd>; 이름: string }) {
+  const t = use말();
+  if (!끝.저장묻나) return null;
+  return (
+    <확인창 제목={t('새 시나리오 「{이름}」을 저장할까요?', { 이름: 이름.trim() })} 확인={t('저장')} onClose={끝.저장묻기닫기} on확인={() => void 끝.저장확인()}>
+      <p>{t('지금 조립한 단계와 이름으로 새 시나리오를 만듭니다. 이 화면에서는 복원할 수 없고, 만든 시나리오는 시나리오 목록에서 삭제합니다')}</p>
+    </확인창>
+  );
+}

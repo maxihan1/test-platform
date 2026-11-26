@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { api, type SettingsServiceRow } from './api.js';
 import { prdApi, type PrdNow } from './prdApi.js';
 import { ServicePanel } from './SettingsService.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -38,6 +39,7 @@ const 서비스: SettingsServiceRow = {
 async function 저장한본문() {
   const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
   fireEvent.click(screen.getByRole('button', { name: '저장' }));
+  물음누름('저장');
   await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
   return 고침.mock.calls[0]?.[1]?.envs?.[0];
 }
@@ -111,6 +113,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     expect(고침.mock.calls[0]?.[1]?.envs?.[1]).toMatchObject({ env: 'prod', isProd: true });
   });

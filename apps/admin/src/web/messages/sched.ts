@@ -113,4 +113,13 @@ export const 정기실행말: Record<string, string> = {
   // 끄기 확인 (WEB-F10-02)
   '「{이름}」 세트를 끌까요?': 'Turn off "{이름}"?',
   '끄면 대기 중인 실행이 빠지고 다시 켜도 복원되지 않습니다': "Any queued run is dropped. Turning it back on does not bring it back",
+  // 서버를 바꾸는 동작 전 확인 창 (2026-11-26 사용자 — 서버를 바꾸는 동작은 모두 묻는다)
+  '「{이름}」 세트를 켤까요?': 'Turn on "{이름}"?',
+  '켜면 정해진 시각에 이 세트를 다시 자동으로 실행합니다': 'Once on, this set runs automatically again at its scheduled times',
+  '리포트 일정을 저장할까요?': 'Save the report schedule?',
+  '이름과 담을 기간, 실행 주기로 리포트 일정을 저장하고 달력을 다음 실행 날짜로 옮깁니다. 저장한 뒤에 다시 수정할 수 있습니다':
+    'Saves the report schedule with its name, period and run cycle, and moves the calendar to the next run date. You can edit it again after saving',
+  '세트를 저장할까요?': 'Save the set?',
+  '5단계에서 확인한 내용으로 세트를 만들거나 수정하고, 「안정화 지표에 사용」을 켰으면 그 세트를 안정화 기준으로 정합니다. 저장한 뒤에 다시 수정할 수 있습니다':
+    'Creates or updates the set as reviewed in step 5, and makes it the stability baseline if "Use for stability metrics" is on. You can edit it again after saving',
 };

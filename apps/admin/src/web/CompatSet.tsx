@@ -8,6 +8,7 @@ import { CompatCasePick } from './CompatCasePick.js';
 import { CompatDevicePick } from './CompatDevicePick.js';
 import { CompatStart } from './CompatStart.js';
 import { 세트주소 } from './CompatSets.js';
+import { 확인창 } from './ConfirmBox.js';
 import { 디바이스구획, 예상구획, 커버리지구획, 케이스구획 } from './CompatSetParts.js';
 import { 오류속성, 칸오류, use첫오류 } from './FieldError.js';
 import { Head } from './Head.js';
@@ -51,6 +52,7 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
   const [오류, set오류] = useState<string | null>(null);
   const [저장중, set저장중] = useState(false);
   const [눌렀나, set눌렀나] = useState(false);
+  const [묻나, set묻나] = useState(false);
   const { 상자, 첫오류로 } = use첫오류();
 
   useEffect(() => {
@@ -114,9 +116,14 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
     }
   }
 
-  async function 저장() {
+  // 칸 오류는 묻기 전에 보인다 — 물어 놓고 보내지 못하면 헛걸음이다
+  function 저장누름() {
     set눌렀나(true);
     if (지금.name.trim() === '' || 지금.devices.length === 0) return 첫오류로();
+    set묻나(true);
+  }
+
+  async function 저장() {
     set저장중(true);
     set오류(null);
     const 몸 = { serviceId, name: 지금.name.trim(), onePerModel: 지금.onePerModel, devices: 지금.devices.map((d) => ({ serial: d.serial })), addedCases: 지금.addedCases };
@@ -151,7 +158,7 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
         행동={
           쓰나 ? (
             <>
-              <button type="button" className={id === 'new' ? 'btn' : 'btn ghost'} disabled={!저장되나} onClick={() => void 저장()}>
+              <button type="button" className={id === 'new' ? 'btn' : 'btn ghost'} disabled={!저장되나} onClick={저장누름}>
                 {t('저장')}
               </button>
               {/* 저장한 세트로만 돈다 — 고치는 중이면 서버의 세트와 화면이 달라 무엇이 돌지 헷갈린다 */}
@@ -208,6 +215,19 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
           }}
         />
       ) : null}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('호환성 세트를 저장할까요?')}
+          확인={t('저장')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            void 저장();
+          }}
+        >
+          <p>{t('세트 이름과 디바이스, 직접 추가한 케이스를 서버에 저장합니다. 새 세트면 저장한 뒤 세트 화면으로 옮기고, 다시 저장하면 수정한 값으로 저장합니다')}</p>
+        </확인창>
+      )}
       {창 === '실행' && id !== 'new' ? <CompatStart setId={id} service={service} envs={envs} 닫기={() => set창(null)} /> : null}
       {창 === '케이스' ? (
         <CompatCasePick

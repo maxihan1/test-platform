@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { api, ApiError, type UserRow, type 배정 } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import type { 등급 } from './role.js';
 import { PermissionPicker, 배정이틀렸나 } from './SettingsPermissions.js';
@@ -92,6 +93,7 @@ export function PendingSection({
             ) : null}
             {열림 === 'approve' ? (
               <ApproveForm
+                이름={it.displayName}
                 projects={projects}
                 onApprove={(body) => 한다(() => api.approveUser(it.username, body))}
                 onCancel={() => set여는것(null)}
@@ -105,10 +107,12 @@ export function PendingSection({
 }
 
 function ApproveForm({
+  이름,
   projects,
   onApprove,
   onCancel,
 }: {
+  이름: string;
   projects: 프로젝트줄[];
   onApprove: (body: { role: 등급; dashboard: 'none' | 'read'; projects: 배정[] }) => Promise<void>;
   onCancel: () => void;
@@ -119,6 +123,7 @@ function ApproveForm({
   const [배정들, set배정들] = useState<배정[]>([]);
   const [dashboard, setDashboard] = useState<'none' | 'read'>('read');
   const [보내는중, set보내는중] = useState(false);
+  const [묻나, set묻나] = useState(false);
 
   return (
     <div className="set-form">
@@ -139,14 +144,26 @@ function ApproveForm({
         <button
           className="btn"
           disabled={보내는중 || 배정이틀렸나(배정들)}
-          onClick={() => {
-            set보내는중(true);
-            void onApprove({ role, dashboard, projects: 배정들 }).finally(() => set보내는중(false));
-          }}
+          onClick={() => set묻나(true)}
         >
           {t('승인 확인')}
         </button>
       </div>
+      {/* 승인하면 계정이 바로 생긴다 — 폼을 다 채운 뒤에도 한 번 묻는다 (2026-11-26 사용자) */}
+      {!묻나 ? null : (
+        <확인창
+          제목={t('{이름} 님의 가입 신청을 승인할까요?', { 이름 })}
+          확인={t('승인')}
+          onClose={() => set묻나(false)}
+          on확인={() => {
+            set묻나(false);
+            set보내는중(true);
+            void onApprove({ role, dashboard, projects: 배정들 }).finally(() => set보내는중(false));
+          }}
+        >
+          <p>{t('정한 등급과 프로젝트 배정으로 계정이 바로 생깁니다. 등급과 배정은 이 화면에서 나중에 수정할 수 있습니다')}</p>
+        </확인창>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { api, ApiError, type SettingsServiceRow } from './api.js';
 import { btsApi, type BTS연결 } from './btsApi.js';
 import { SettingsBts } from './SettingsBts.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -93,6 +94,11 @@ describe('설정 › BTS 연결', () => {
     fireEvent.change(screen.getByLabelText('웹 저장소 1 주소'), { target: { value: 'https://github.com/acme/web' } });
 
     fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    expect(screen.getByRole('dialog', { name: '연결을 저장하고 Issue Bunker 자동 설정을 만들까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(저장).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    물음누름('저장하고 자동 설정');
     await waitFor(() => expect(설정).toHaveBeenCalledWith(3));
     expect(저장).toHaveBeenCalledWith(3, { baseUrl: 'https://bts.example.com', btsProject: 'DM', botUsername: 'qahub-bot', statusMap: 상태, resolutionMap: 해결 });
     expect(저장소).toHaveBeenCalledWith(11, { codeRepos: [{ name: '화면', url: 'https://github.com/acme/web' }] });
@@ -117,6 +123,7 @@ describe('설정 › BTS 연결', () => {
     fireEvent.change(칸, { target: { value: '' } });
     expect(screen.getByText(new RegExp(줄))).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    물음누름('저장하고 자동 설정');
     await waitFor(() => expect(저장).toHaveBeenCalled());
     expect(저장.mock.calls[0]![1].statusMap).toEqual({ ...상태, TEST_FIX: '' });
   });
@@ -149,6 +156,7 @@ describe('설정 › BTS 연결', () => {
     그리기(이은연결);
 
     fireEvent.click(await screen.findByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    물음누름('저장하고 자동 설정');
     expect(await screen.findByText('웹훅은 Issue Bunker 시스템 관리자만 만들 수 있습니다. 관리자에게 이 화면에서 다시 눌러 달라고 요청해 주세요')).toBeTruthy();
     expect(document.querySelectorAll('.bts-checks li.no')).toHaveLength(1);
     expect(screen.getByText('권한 없음')).toBeTruthy();
@@ -162,10 +170,12 @@ describe('설정 › BTS 연결', () => {
 
     const 버튼 = await screen.findByRole('button', { name: '저장하고 Issue Bunker 자동 설정' });
     fireEvent.click(버튼);
+    물음누름('저장하고 자동 설정');
     expect(await screen.findByText('Auth 계정으로 로그인한 관리자 계정이어야 Issue Bunker 자동 설정을 할 수 있습니다')).toBeTruthy();
 
     저장.mockRejectedValue(new ApiError(400, 'SSO_REQUIRED', '', []));
     fireEvent.click(버튼);
+    물음누름('저장하고 자동 설정');
     expect(await screen.findByText('Auth 로그인을 켠 설치에서만 Issue Bunker 를 이을 수 있습니다')).toBeTruthy();
   });
 
@@ -178,6 +188,11 @@ describe('설정 › BTS 연결', () => {
     await screen.findByText('발급 전 · 이 프로젝트 전용');
     expect(한줄()).toContain('Bearer <배포 알림 토큰>');
     fireEvent.click(screen.getByRole('button', { name: '발급' }));
+    expect(screen.getByRole('dialog', { name: '배포 알림 토큰을 발급할까요?' })).toBeTruthy();
+    물음누름('취소');
+    expect(발급).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '발급' }));
+    물음누름('발급');
     await screen.findByText('방금 발급했습니다 · 원문은 지금만 보입니다');
     expect(한줄()).toContain('Bearer pdk_raw123');
     expect(한줄()).toContain('https://qahub.example.com/api/projects/3/deploys');

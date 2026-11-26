@@ -8,6 +8,7 @@ import { scenarioApi } from './scenarioApi.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 장면통로 } from './TrialLive.js';
 import { 부품, 로그인, 안돈, 결과, 연다 } from './ScenarioResult.fixture.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -63,6 +64,7 @@ describe('머리', () => {
     연다(결과({ evidence: [{ id: 4, format: 'PDF', status: 'READY', filePath: '/x.pdf', error: null, generatedAt: '2026-10-16T05:00:00.000Z' }] }));
     fireEvent.click(await screen.findByRole('button', { name: '리포트 생성' }));
     fireEvent.click(screen.getByRole('button', { name: 'PDF 다시 생성' }));
+    물음누름('리포트 생성');
     expect(만들기).toHaveBeenCalledWith(77, 'PDF');
     expect(screen.getByRole('link', { name: '열기 ↗' }).getAttribute('href')).toBe('/api/evidence/4');
   });

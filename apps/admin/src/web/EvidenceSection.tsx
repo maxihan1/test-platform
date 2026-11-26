@@ -5,6 +5,7 @@
 // 그래서 상태와 판단은 `use증적()` 하나에 모으고 그리는 조각만 둘로 나눈다.
 
 import { api, type EvidenceRow, type RunSummary } from './api.js';
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { 받는법, 증적버튼들, type 증적버튼모양 } from './evidence.js';
 import type { 판정 } from './role.js';
@@ -113,12 +114,14 @@ export function use증적(data: 실행상세 | null, 할수: 판정, reload: () 
 export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
   const t = use말();
   const [열림, set열림] = useState(false);
+  const [물음, set물음] = useState<증적버튼모양 | null>(null);
   if (칸.버튼들.length === 0) return null;
   const 하나라도 = 칸.버튼들.some((버튼) => 버튼.누를수있나 && !칸.만드는중.includes(버튼.format));
   const 만드는중 = 칸.만드는중.length > 0 || 칸.버튼들.some((버튼) => !버튼.누를수있나);
   const 단추글 = 만드는중 ? t('리포트 생성 중') : t('리포트 생성');
   return (
-    // 바깥을 누르거나(포커스가 메뉴 밖으로) Esc 를 누르면 닫는다 — 안 닫으면 떠 있는 목록이 아래 본문을 덮는다
+    <>
+    {/* 바깥을 누르거나(포커스가 메뉴 밖으로) Esc 를 누르면 닫는다 — 안 닫으면 떠 있는 목록이 아래 본문을 덮는다 */}
     <span
       className="prd-menu"
       onBlur={(e) => {
@@ -143,7 +146,7 @@ export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
                 disabled={!버튼.누를수있나 || 이것만드는중}
                 onClick={() => {
                   set열림(false);
-                  칸.누르기(버튼);
+                  set물음(버튼);
                 }}
               >
                 {이것만드는중 ? t('{라벨} 생성 중', { 라벨: 버튼.라벨 }) : 버튼.글}
@@ -153,6 +156,20 @@ export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
         </span>
       ) : null}
     </span>
+    {물음 === null ? null : (
+      <확인창
+        제목={t('{이름} 리포트를 생성할까요?', { 이름: 물음.라벨 })}
+        확인={t('리포트 생성')}
+        onClose={() => set물음(null)}
+        on확인={() => {
+          set물음(null);
+          칸.누르기(물음);
+        }}
+      >
+        <p>{t('그 실행의 리포트를 만들어 서버에 저장하고, 다 만들어지면 목록에 더해 다운로드할 수 있게 합니다. 같은 형식을 다시 생성할 수 있고 앞서 만든 문서는 그대로 남습니다')}</p>
+      </확인창>
+    )}
+    </>
   );
 }
 

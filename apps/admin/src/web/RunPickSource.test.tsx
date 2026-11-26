@@ -136,7 +136,7 @@ describe('저장한 뒤', () => {
     await screen.findByText('저장값으로 저장했습니다.');
 
     fireEvent.click(단추('저장값 초기화'));
-    fireEvent.click(단추('초기화 확인'));
+    물음누름('초기화');
 
     await waitFor(() => expect(screen.queryByText('저장값으로 저장했습니다.')).toBeNull());
   });

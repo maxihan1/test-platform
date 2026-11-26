@@ -161,6 +161,10 @@ describe('시험 실행 돌리기', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '저장' }));
     });
+    await act(async () => {
+      // 시험 창이 DOM 에서 뒤에 그려져 맨 뒤 dialog 가 확인 창이 아니다
+      fireEvent.click(within(screen.getByRole('dialog', { name: '「새 흐름」 시나리오를 저장할까요?' })).getByRole('button', { name: '저장' }));
+    });
     await 흘리기(0);
 
     expect(sessionStorage.getItem('scn-trial:new')).toBeNull();
@@ -228,6 +232,10 @@ describe('시험 실행 돌리기', () => {
     });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    });
+    await act(async () => {
+      // 시험 창이 DOM 에서 뒤에 그려져 맨 뒤 dialog 가 확인 창이 아니다
+      fireEvent.click(within(screen.getByRole('dialog', { name: '「새 흐름」 시나리오를 저장할까요?' })).getByRole('button', { name: '저장' }));
     });
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios/55'));
 

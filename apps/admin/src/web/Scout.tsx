@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
+import { 확인창 } from './ConfirmBox.js';
 import { use말, use언어 } from './i18n.js';
 import { ScoutAnswer } from './ScoutAnswer.js';
 import { ScoutComposer } from './ScoutComposer.js';
@@ -42,6 +43,7 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
   const 버튼 = useRef<HTMLButtonElement>(null);
   const 닫기타이머 = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [알림, set알림] = useState(false);
+  const [초기화묻나, set초기화묻나] = useState(false);
   const hud = useHud끌기(휴대폰, 열림);
   const 음성 = use음성(use언어(), set글);
   // 휴대폰 머리 줄을 끌어내린 거리. 놓아서 닫으면 그 자리에서 이어 내려간다
@@ -218,7 +220,7 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
               <strong>Scout</strong>
               <small>{projectName}</small>
             </div>
-            <button type="button" className="btn ghost small" onClick={() => void s.초기화()}>
+            <button type="button" className="btn ghost small" onClick={() => set초기화묻나(true)}>
               {t('대화 초기화')}
             </button>
             <button type="button" className="scout-x" aria-label={t('닫기')} onClick={닫기}>
@@ -272,6 +274,19 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
           />
           <p className="scout-scope">{t('{프로젝트} 프로젝트의 데이터로만 답해요', { 프로젝트: projectName })}</p>
         </section>
+      )}
+      {!초기화묻나 ? null : (
+        <확인창
+          제목={t('대화를 초기화할까요?')}
+          확인={t('초기화')}
+          onClose={() => set초기화묻나(false)}
+          on확인={() => {
+            set초기화묻나(false);
+            void s.초기화();
+          }}
+        >
+          <p>{t('이 프로젝트에서 나눈 Scout 대화를 서버에서 삭제하고 처음 화면으로 돌아갑니다. 복원할 수 없습니다')}</p>
+        </확인창>
       )}
     </div>
   );

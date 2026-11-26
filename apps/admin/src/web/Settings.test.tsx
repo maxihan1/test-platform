@@ -12,6 +12,7 @@ import { btsApi } from './btsApi.js';
 import { 고른서비스를적는다 } from './layout.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { Settings } from './Settings.js';
+import { 물음누름 } from './startConfirm.fixture.js';
 
 beforeEach(() => {
   vi.spyOn(api, 'settingsProjects').mockResolvedValue({ items: [{ id: 1, name: '데모마켓' }] });
@@ -162,6 +163,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     render(<Settings user={사람('admin')} onMeChanged={내재료} 자리="project-1" />);
     fireEvent.change(await screen.findByLabelText('프로젝트 이름'), { target: { value: '데모몰' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { name: '데모몰' }));
     expect(내재료).toHaveBeenCalled();
@@ -242,6 +244,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     await screen.findByRole('heading', { name: /ZST 애플리케이션/ });
     목록.mockResolvedValue({ items: [서비스] });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     const 알림 = await screen.findByText('저장했습니다');
     expect(알림.closest('.set-foot')).not.toBeNull();
@@ -273,6 +276,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     fireEvent.change(screen.getByLabelText('Slack 웹훅'), { target: { value: 'https://hooks.slack.com/x' } });
     목록.mockResolvedValue({ items: [{ ...서비스, hasSlackWebhook: true }] });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    물음누름('저장');
 
     expect(await screen.findByText('저장했습니다')).toBeTruthy();
     expect(고침).toHaveBeenCalledTimes(1);
@@ -291,7 +295,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     fireEvent.change(screen.getByLabelText('Slack 웹훅'), { target: { value: 'https://hooks.slack.com/x' } });
     목록.mockResolvedValue({ items: [{ ...서비스, isActive: false }] });
     fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
-    fireEvent.click(screen.getByRole('button', { name: '비활성화 확인' }));
+    물음누름('비활성화');
 
     expect(await screen.findByRole('button', { name: '다시 활성화' })).toBeTruthy();
     expect(고침).toHaveBeenCalledWith(1, { isActive: false });
