@@ -127,7 +127,8 @@ export function 앞결과(자리: 사본, 지금: readonly PrdItem[], 서비스:
 
 /** 게임 지도 요소의 근거 번호 · 배운 줄의 옮김 표도 표 · 결과 파일과 같이 바꾼다 — 자식은 옮긴 항목을 임시 번호로 적는다. 올리기(authoring-game)는 이 뒤에 돈다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」) */
 function 요소번호바꾸기(자료: string, 맞춤: ReadonlyMap<string, string>): void {
-  for (const 이름 of 맞춤.size === 0 ? [] : [게임자리.요소, 게임자리.옮김]) {
+  // app-compare.json(앱 기획서 맞대기 표)은 이름을 글자로 둔다 — 그 모듈을 가져오면 authoring-app-learned 를 거쳐 이 파일로 도는 고리가 생긴다
+  for (const 이름 of 맞춤.size === 0 ? [] : [게임자리.요소, 게임자리.옮김, 'app-compare.json']) {
     const 글 = 안전히읽기(자료, 이름, 4_000_000);
     if (글 !== null) writeFileSync(join(자료, 이름), 번호바꾸기(글, 맞춤));
   }
