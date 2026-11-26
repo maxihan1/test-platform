@@ -10,11 +10,14 @@ export interface 볼값 { 이름: string; 주소: string; 칸?: string; 화면?:
 export type 비교 = '>=' | '<=' | '==' | '>' | '<';
 /** 잘되고 있으면 이 값이 이렇다 — 부터 · 까지는 다른 볼값이 그 수 이상 · 이하일 때만 본다(「1웨이브 끝까지 세계수 50 이상」) */
 export interface 기대 { 값: string; 비교: 비교; 기준: number; 부터?: { 값: string; 기준: number }; 까지?: { 값: string; 기준: number } }
-export interface 계획 { 볼값: 볼값[]; 기대: 기대[]; 목표: { 값: string; 기준: number } }
+/** 곳 — 이 계획으로 해 보는 곳(STAGE 열쇠). 게임플레이는 판 수를 곳마다 센다 */
+export interface 계획 { 볼값: 볼값[]; 기대: 기대[]; 목표: { 값: string; 기준: number }; 곳?: string }
 
 /** 게임마다 하나 — 얼마나 나아갔나를 보여 주는 값(깬 맵 수 · 레벨 · 해금 수). 해 볼 때마다 이 이름으로 같이 읽는다 */
 export const 나아감열쇠 = 'goal:나아감';
 export const 나아감 = '나아감';
+/** 깰 곳의 결과 자리를 칸으로 읽을 때 에이전트가 볼값에 더하는 이름 */
+export const 결과이름 = '결과';
 export const 회고머리 = 'play:';
 const 기록이름꼴 = /^\d{17}-[^/\\]+$/;
 export const 까닭들 = ['손', '믿은것', '몰랐던것', '됨'] as const;
@@ -49,11 +52,11 @@ export function 계획읽기(data: unknown): 계획 | string {
   const d = 객체(data);
   const 볼 = d.볼값;
   if (!Array.isArray(볼) || 볼.length === 0 || 볼.length > 볼값상한) return `data.볼값 에 읽을 값 1~${볼값상한}개를 [{ 이름, 주소, 칸?, 화면? }] 로 적는다`;
-  const 이름들 = new Set<string>([나아감]);
+  const 이름들 = new Set<string>([나아감, 결과이름]);
   for (const b of 볼) {
     const x = 객체(b);
     if (!글인가(x.이름) || !자리꼴(b) || (x.화면 !== undefined && !글인가(x.화면))) return 'data.볼값 은 [{ 이름, 주소, 칸?, 화면? }] 이다 — 칸이 있으면 오브젝트 값, 없으면 그 자리의 화면 글자를 읽는다';
-    if (이름들.has(x.이름)) return `data.볼값 이름 「${x.이름}」 이 겹친다(「${나아감}」 은 에이전트가 쓴다)`;
+    if (이름들.has(x.이름)) return `data.볼값 이름 「${x.이름}」 이 겹친다(「${나아감}」 · 「${결과이름}」 은 에이전트가 쓴다)`;
     이름들.add(x.이름);
   }
   const 있나 = (이름: unknown): boolean => typeof 이름 === 'string' && 이름들.has(이름);
@@ -66,7 +69,8 @@ export function 계획읽기(data: unknown): 계획 | string {
   }
   const 목표 = 객체(d.목표);
   if (!있나(목표.값) || !수인가(목표.기준)) return 'data.목표 에 이번에 닿으려는 수를 { 값: <볼값 이름>, 기준: <수> } 로 적는다';
-  return { 볼값: 볼 as 볼값[], 기대: 기대들 as 기대[], 목표: { 값: 목표.값 as string, 기준: 목표.기준 as number } };
+  if (d.곳 !== undefined && !글인가(d.곳)) return 'data.곳 에 이 계획으로 해 볼 곳(STAGE 줄 열쇠)을 적는다';
+  return { 볼값: 볼 as 볼값[], 기대: 기대들 as 기대[], 목표: { 값: 목표.값 as string, 기준: 목표.기준 as number }, ...(d.곳 === undefined ? {} : { 곳: d.곳 as string }) };
 }
 
 const 견줌 = (a: number, 비: 비교, b: number): boolean => (비 === '>=' ? a >= b : 비 === '<=' ? a <= b : 비 === '>' ? a > b : 비 === '<' ? a < b : a === b);
@@ -127,7 +131,7 @@ const 자리읽기 = (v: unknown): 값자리 | null => (글인가(객체(v).돌�
 const 자리글 = (z: 값자리): string => ('돌려준' in z ? `돌려준 ${z.돌려준}` : `${z.주소}${z.칸 === undefined ? '' : ` ${z.칸}`}`);
 type 기대값 = string | number | { 아님: string | number };
 const 기대값인가 = (v: unknown): v is 기대값 => typeof v === 'string' || 수인가(v) || (객체(v).아님 !== undefined && (typeof 객체(v).아님 === 'string' || 수인가(객체(v).아님)));
-const 같나 = (본: unknown, 적은: string | number): boolean => (typeof 적은 === 'number' ? 수로(본) === 적은 : 태그뺌(String(본)).trim() === 태그뺌(적은).trim());
+export const 같나 = (본: unknown, 적은: string | number): boolean => (typeof 적은 === 'number' ? 수로(본) === 적은 : 태그뺌(String(본)).trim() === 태그뺌(적은).trim());
 const 맞나 = (본: unknown, 적은: 기대값): boolean => (typeof 적은 === 'object' ? !같나(본, 적은.아님) : 같나(본, 적은));
 const 값글 = (v: 기대값): string => (typeof v === 'object' ? `${JSON.stringify(v.아님)} 아님` : JSON.stringify(v));
 

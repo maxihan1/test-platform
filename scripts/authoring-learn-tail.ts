@@ -12,7 +12,8 @@ export type 세션거리 =
   | { 시험: true; 남은분: number; 빌드?: string; 놓음: boolean; 멈춤?: true }
   /** 틀림 — 시험에서 틀린 줄만 다시 배운다 */
   /** 쪽지 — 앞 AI 가 지도에 남긴 말(authoring-game-tree `쪽지열쇠`) · 트리 — 열린 물음이 어디서 나왔나(authoring-game-tree) · 인수 — 기계가 모은 인수인계(authoring-learn-handoff) */
-  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number; 틀림?: true; 쪽지?: string; 트리?: readonly string[]; 인수?: readonly string[]; 멈춤?: true };
+  /** 단계 — 게임 배우기가 끝나 곳마다 깨 보는 중(authoring-learn-io 학습상태) */
+  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number; 단계?: '게임플레이'; 틀림?: true; 쪽지?: string; 트리?: readonly string[]; 인수?: readonly string[]; 멈춤?: true };
 
 export interface 학습손 {
   통로: 화면통로;
@@ -54,9 +55,9 @@ export interface 학습결과 {
 export const 못뜬것은끊김 = (돌린것: 돌린결과, 앞낸것: readonly string[]): 돌린결과 =>
   앞낸것.length > 0 && 돌린것.코드 === null && !돌린것.시간초과 && !돌린것.멈춤으로죽음 ? { ...돌린것, 코드: 1 } : 돌린것;
 
-/** AI 가 스스로 끝낸 세션을 이어 돌릴 때 주는 글 — 끝은 에이전트가 정한다 */
-export const 이음글 = (남은것: readonly string[]): string =>
-  `아직 끝이 아니다 — 배우기를 끝내는 것은 에이전트가 정한다. 남은 것: ${남은것.join(' · ')}. 하던 데서 이어 배운다(열린 물음을 풀고, 나아감 숫자를 올리거나 아직 안 간 곳을 가 본다). 정리하라는 알림(※ 줄)이 올 때만 쪽지를 고쳐 쓰고 끝낸다.`;
+/** AI 가 스스로 끝낸 세션을 이어 돌릴 때 주는 글 — 끝은 에이전트가 정한다. 놀이 — 게임플레이 단계 */
+export const 이음글 = (남은것: readonly string[], 놀이 = false): string =>
+  `아직 끝이 아니다 — ${놀이 ? '게임플레이' : '배우기'}를 끝내는 것은 에이전트가 정한다. 남은 것: ${남은것.join(' · ')}. ${놀이 ? '하던 곳에서 이어 깬다(회고를 적고 그 곳 맵 정보를 쓴 계획을 새로 적는다)' : '하던 데서 이어 배운다(열린 물음을 풀고, 나아감 숫자를 올리거나 아직 안 간 곳을 가 본다)'}. 정리하라는 알림(※ 줄)이 올 때만 쪽지를 고쳐 쓰고 끝낸다.`;
 
 export interface 학습대상 {
   반영?: { 다시씀: readonly { 번호: string }[]; 새항목: readonly string[] };

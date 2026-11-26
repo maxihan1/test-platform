@@ -7,7 +7,9 @@ import { type 배운것, 요소종류 } from '../apps/admin/src/prd/gameKinds.js
 import { 근거들, 바뀜, 적은줄들, 지금지도, 지도읽기 } from './authoring-game-find.js';
 import { 게임자리, 글받기, 요소상한, 지도상한 } from './authoring-game.js';
 import { 부른다 } from './authoring-io.js';
+import { 판기록들 } from './authoring-learn-check.js';
 import { 글자들, 사람줄 } from './authoring-learn-map.js';
+import { 곳글, 곳셈 } from './authoring-learn-play.js';
 import { 옮김읽기, 이을번호 } from './authoring-learn-prd.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -25,6 +27,8 @@ export interface 학습상태 {
   열쇠: string[];
   /** 앱 배우기만 — 배우기를 마칠 때 남은 배운 줄 없는 화면(장치 ①). PR 머리에 싣는다 */
   남은화면?: string[];
+  /** 게임 배우기가 끝나 곳마다 깨 보는 단계 — 없으면 게임 배우기 단계다. 조작 도우미 · 적는 명령도 이것을 읽는다 */
+  단계?: '게임플레이';
 }
 
 /** 이름 — 앱 배우기는 같은 꼴을 다른 파일(app-learn.json)에 쓴다 */
@@ -42,6 +46,7 @@ export function 상태읽기(자료: string, 이름: string = 게임자리.학�
       ...(typeof 몸.시험 === 'string' ? { 시험: 몸.시험 } : {}),
       열쇠: Array.isArray(몸.열쇠) ? 몸.열쇠.filter((k): k is string => typeof k === 'string') : [],
       ...(Array.isArray(몸.남은화면) ? { 남은화면: 몸.남은화면.filter((k): k is string => typeof k === 'string') } : {}),
+      ...(몸.단계 === '게임플레이' ? { 단계: 몸.단계 } : {}),
     };
   } catch {
     return 없음;
@@ -142,8 +147,10 @@ export async function 학습끝줄(통로: 화면통로, 자료: string, 비밀:
   if (상태.쓴ms === 0) return 상태.안함 === undefined ? [] : [`게임 학습: 안 함 — ${상태.안함}`];
   const 올림 = 안전히읽기(자료, 게임자리.배운글, 요소상한) === null ? { 열쇠: [], 못올림: [] } : await 배움올리기(통로, 자료, 비밀);
   const 지도 = 지금지도(자료);
+  const 곳들 = 상태.단계 === undefined || 지도 === null ? [] : 곳셈(지도.줄들, 판기록들(자료));
   return [
     `게임 학습: 세션 ${상태.세션}번 · ${Math.round(상태.쓴ms / 분)}분 — 시험: ${상태.시험 ?? '못 봄'}`,
+    ...(상태.단계 === undefined ? [] : [`게임플레이: ${곳들.length === 0 ? '깰 곳을 못 적음' : 곳들.map(곳글).join(' · ')}`]),
     ...올림.못올림.map((왜) => `게임 학습: ${왜}`),
     ...(지도 === null ? [] : 사람줄(지도, new Set([...상태.열쇠, ...올림.열쇠]), 비밀)),
   ].map((줄) => (계정섞였나([줄], 비밀) ? `${줄.split(':')[0]!}: 테스트 계정 비밀번호가 들어 있어 안 적음` : 줄));
