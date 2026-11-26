@@ -12,6 +12,14 @@ RUN apt-get update \
  && apt-get update && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/*
 
+# 게임 작성이 빌드 zip 안 데이터 묶음(악마 · 웨이브 · 식물 값)과 dll 칸 이름을 꺼내 전략 계산에 쓴다 (도메인/게임 §3.10 「게임 정보 먼저 쌓기」 · 2026-11-27 사용자).
+# TypeTreeGeneratorAPI 는 dll 을 읽는 네이티브 라이브러리를 품어 .NET 이 필요 없다. 판은 맥에서 실측한 것으로 고정한다
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 python3-venv \
+ && rm -rf /var/lib/apt/lists/* \
+ && python3 -m venv /opt/unitypy \
+ && /opt/unitypy/bin/pip install --no-cache-dir UnityPy==1.25.4 TypeTreeGeneratorAPI==0.0.10
+
 # 이미지의 바탕 판 — `-p`·`--disallowedTools` 인자 동작을 실측한 판이다. 켜면 에이전트가 stable 로 올리고
 # 점검(깃발)을 못 넘으면 이 판으로 되돌린다 (2026-09-24 게이트 1). claude 의 자체 업데이터는 compose 가 끈다
 RUN npm install -g @anthropic-ai/claude-code@2.1.280
