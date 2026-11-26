@@ -170,6 +170,14 @@ describe('10판 확인', () => {
     expect(찍힘()).toContain('멈춰 둔 게임을 못 풀었다');
   });
 
+  it('나아감이 정해진 게임은 판마다 출발점이 같아야 센다 — 다르면 그 판은 안 세고 2', async () => {
+    writeFileSync(join(자료, 'game-map.txt'), `## 목표 (GOAL) — 1개\n- goal:나아감 · 깬 맵 수 · 배움 ${JSON.stringify({ text: 'ㄱ', belief: 'SEEN', data: { 주소: '/Clear', 칸: 'C.n' } })}`);
+    값들 = [0, true, 0, true, 5, true];
+    expect(await 부르기()).toBe(2);
+    expect(판()).toEqual({ 이김: 2, 짐: 0, 출발: 0 });
+    expect(찍힘()).toContain('출발점이 다르다(첫 판 나아감 0 · 이 판 5)');
+  });
+
   it('함수가 던지거나 한도를 넘기면 이긴 판이 아니다', async () => {
     값들 = [true, '적을 못 찾음'];
     expect(await 부르기()).toBe(1);
