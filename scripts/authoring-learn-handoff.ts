@@ -1,8 +1,9 @@
-// 학습 세션 인수인계 — 컨텍스트 60% 에서 바뀐 다음 세션 맨 위에 기계가 모은 것을 둔다: 가장 멀리 간 곳 · 최근 회고 셋 · 지금 계획 · 열린 물음과 안 간 곳 · 게임 지금 상태 (도메인/게임 §3.10 「인수인계」)
+// 학습 세션 인수인계 — 컨텍스트 60% 에서 바뀐 다음 세션 맨 위에 기계가 모은 것을 둔다: 가장 멀리 간 곳 · 최근 회고 셋 · 지금 계획 · 열린 물음과 안 간 곳 · 깰 곳마다 판 수 · 게임 지금 상태 (도메인/게임 §3.10 「인수인계」)
 // 쪽지 하나에 다 적게 했더니 절반은 기계가 더 정확히 아는 것이었다(2026-11-26 다섯 번째 실측) — 쪽지에는 AI 의 짐작과 믿지 말 것만 남긴다
 import type { 지도줄 } from './authoring-game-find.js';
 import { 열린물음 } from './authoring-game-tree.js';
 import { type 판기록, 나아감 } from './authoring-learn-check.js';
+import { 곳글, 곳셈 } from './authoring-learn-play.js';
 import { 회고줄들 } from './authoring-learn-retro.js';
 import { 목록글, 자름 } from './authoring-learn-map.js';
 
@@ -25,7 +26,8 @@ export function 인수인계(지도: { 줄들: 지도줄[] }, 기록들: readonl
   const 다음 = 칸(회고.at(-1)).다음;
   const 계획 = typeof 다음 === 'string' ? 지도.줄들.find((x) => x.key === 다음 && x.learned !== null) : undefined;
   const 열린 = 열린물음(지도 as Parameters<typeof 열린물음>[0], 오늘, 빌드).map((x) => x.key);
-  const 안간 = 지도.줄들.filter((x) => x.kind === 'STAGE' && x.learned !== null && x.learned.belief !== 'OVERTURNED' && 칸(x).상태 !== '가봄' && 칸(x).상태 !== '못감').map((x) => x.key);
+  const 안간 = 지도.줄들.filter((x) => x.kind === 'STAGE' && x.learned !== null && x.learned.belief !== 'OVERTURNED' && !['가봄', '못감', '못깸'].includes(String(칸(x).상태))).map((x) => x.key);
+  const 곳들 = 곳셈(지도.줄들, 기록들);
   const 마지막 = [...기록들].reverse().find((r) => r.값기록 !== undefined && r.값기록.때.length > 0);
   const 끝값 = 마지막?.값기록?.때.at(-1)?.값;
   return [
@@ -35,6 +37,7 @@ export function 인수인계(지도: { 줄들: 지도줄[] }, 기록들: readonl
     `- 지금 계획: ${계획 === undefined ? '마지막 회고의 다음 계획을 못 찾음' : `${계획.key} — ${자름(한칸(계획.learned!.text), 200)}`}`,
     `- 열린 물음 ${열린.length}: ${목록글(열린, 15) || '없음'}`,
     `- 아직 안 간 곳 ${안간.length}: ${목록글(안간, 15) || '없음'}`,
+    ...(곳들.length === 0 ? [] : [`- 깰 곳마다(판은 결과가 읽힌 것만 센다): ${곳들.map(곳글).join(' · ')}`]),
     ...(마지막 === undefined || 끝값 === undefined ? [] : [`- 게임 지금 상태(${마지막.이름} 끝): ${Object.entries(끝값).map(([k, v]) => `${k} ${v ?? '못 읽음'}`).join(' · ')} — 화면부터 보고 잇는다`]),
   ];
 }
