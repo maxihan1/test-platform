@@ -30,7 +30,7 @@ interface Props {
 export type 틀단계 = '준비' | '실행 중' | '결과';
 const 틀단계들: 틀단계[] = ['준비', '실행 중', '결과'];
 
-/** 열려 있는 상자들, 나중에 열린 것이 뒤. Esc 한 번이 겹친 상자를 한꺼번에 닫지 않게 맨 위만 반응하려고 둔다 */
+/** 열려 있는 상자들, 나중에 열린 것이 뒤. Esc 한 번이 겹친 상자를 한꺼번에 닫지 않게, Tab 이 아래 상자에 갇히지 않게 맨 위만 반응하려고 둔다 */
 const 열린상자들: symbol[] = [];
 
 /** 서랍(Drawer)이 Esc 를 상자에 양보하려고 묻는다 */
@@ -69,9 +69,11 @@ export function Modal({ 제목, onClose, children, 버튼, 틀, on닫기단추 =
 
   useEffect(() => {
     function 눌림(e: KeyboardEvent) {
+      // Esc · Tab 은 맨 위 상자만 맡는다. 부모 상자 안에 그린 확인 창에서 부모가 먼저 Tab 을 가두면 포커스가 뒤로 샌다
+      if (열린상자들[열린상자들.length - 1] !== 나.current) return;
       // 닫는 길 셋 중 하나 (DESIGN.md)
       if (e.key === 'Escape') {
-        if (열린상자들[열린상자들.length - 1] === 나.current) onClose();
+        onClose();
         return;
       }
       if (e.key !== 'Tab') return;

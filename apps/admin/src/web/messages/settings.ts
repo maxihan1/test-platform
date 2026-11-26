@@ -186,7 +186,9 @@ export const 설정말: Record<string, string> = {
   '비밀번호 재발급': 'Reissue password',
   '자기 비밀번호는 맨 위 오른쪽 이름을 눌러 나오는 「비밀번호 변경」에서 변경합니다':
     'Change your own password with "Change password" in the menu under your name at the top right',
-  '한 번 더 누르면 지금 비밀번호가 무효가 됩니다': 'Press once more and the current password stops working',
+  '「{이름}」 계정의 비밀번호를 재발급할까요?': 'Reset the password of the account “{이름}”?',
+  '지금 비밀번호가 바로 무효가 되고 임시 비밀번호를 한 번만 보여 줍니다. 복원할 수 없습니다':
+    'The current password stops working right away and a temporary password is shown only once. This cannot be undone',
 
   // 임시 비밀번호 상자 — `<b>` 와 `<code>` 가 사이에 끼어 조각으로 나뉜다
   '의 임시 비밀번호는': "'s temporary password is",
@@ -204,11 +206,12 @@ export const 설정말: Record<string, string> = {
   '발급': 'Issue',
   '다시 발급': 'Reissue',
   '토큰 취소': 'Revoke token',
-  '작성 에이전트가 지금 중단됩니다.': 'The authoring agent stops now.',
-  '새 토큰을 다시 넣어야 합니다': 'The new token must be put in again',
-  '다시 발급할 때까지 작성이 중단됩니다': 'Authoring stays stopped until a token is issued again',
-  '다시 발급 확인': 'Confirm reissue',
-  '토큰 취소 확인': 'Confirm revoke',
+  '작성 에이전트 토큰을 다시 발급할까요?': 'Reissue the authoring agent token?',
+  '작성 에이전트 토큰을 취소할까요?': 'Revoke the authoring agent token?',
+  '작성 에이전트가 지금 중단됩니다. 새 토큰을 다시 넣어야 하고 지금 토큰은 복원할 수 없습니다':
+    'The authoring agent stops now. The new token must be put in again, and the current token cannot be restored',
+  '작성 에이전트가 지금 중단되고 다시 발급할 때까지 작성할 수 없습니다. 복원할 수 없습니다':
+    'The authoring agent stops now and cannot write tests until a token is issued again. This cannot be undone',
   '그만두기': 'Never mind',
   '의 작성 에이전트 토큰입니다. 선택해 복사하세요': "'s authoring agent token. Select it to copy",
   '서버는 .env 의 AUTHORING_AGENT_TOKEN 에, 맥은 처음 켤 때 묻는 칸에 넣습니다': 'On the server put it in AUTHORING_AGENT_TOKEN in .env; on a Mac paste it at the prompt on first start',
@@ -300,7 +303,6 @@ export const 설정말: Record<string, string> = {
   '「{이름}」 파일이 삭제됩니다. 다시 쓰려면 zip 파일을 다시 업로드해야 합니다': 'The file of "{이름}" is deleted. Upload the zip again to use it',
   // 누른 뒤 반응 (WEB-F10-04)
   '발급하는 중': 'Issuing',
-  '취소하는 중': 'Revoking',
   // 서버를 바꾸는 동작의 확인 창 (2026-11-26)
   '작성 에이전트 토큰을 발급할까요?': 'Issue an authoring agent token?',
   '이 계정의 작성 에이전트가 로그인에 쓸 토큰을 만들어 값을 한 번만 보여 줍니다. 값을 잃으면 다시 발급해야 합니다':
@@ -308,6 +310,7 @@ export const 설정말: Record<string, string> = {
   'API 서버 이름 {수}건을 저장할까요?': 'Save {수} API server name(s)?',
   '케이스가 부른 서버에 붙인 이름을 저장합니다. 나중에 다시 저장할 수 있습니다': 'Saves the names given to the servers your cases called. You can save again later',
   '{이름} 님의 가입 신청을 승인할까요?': 'Approve the sign-up request from {이름}?',
+  '{이름} 님의 가입 신청을 거절할까요?': 'Reject the sign-up request from {이름}?',
   '정한 등급과 프로젝트 배정으로 계정이 바로 생깁니다. 등급과 배정은 이 화면에서 나중에 수정할 수 있습니다':
     'The account is created right away with the role and projects you chose. You can change them here later',
   '{이름} 에이전트 정보를 저장할까요?': 'Save the details of agent {이름}?',

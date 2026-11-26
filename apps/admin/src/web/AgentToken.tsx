@@ -69,7 +69,6 @@ export function AgentToken({
     setErr(null);
     try {
       await 일();
-      set확인(null);
       onChanged();
     } catch (e) {
       setErr(오류문장(e, 언어));
@@ -90,61 +89,58 @@ export function AgentToken({
       <div className="field">
         <span className="field-label">{t('작성 에이전트 토큰')}</span>
         <div>
-          {확인 === null ? (
+          <span className="hint">{row.hasAgentToken === true ? t('토큰 있음') : t('토큰 없음')}</span>{' '}
+          {row.hasAgentToken === true ? (
             <>
-              <span className="hint">{row.hasAgentToken === true ? t('토큰 있음') : t('토큰 없음')}</span>{' '}
-              {row.hasAgentToken === true ? (
+              {작성계정 ? (
                 <>
-                  {작성계정 ? (
-                    <>
-                      <button className="btn ghost" disabled={보내는중} onClick={() => set확인('reissue')}>
-                        {t('다시 발급')}
-                      </button>{' '}
-                    </>
-                  ) : null}
-                  <button className="btn ghost" disabled={보내는중} onClick={() => set확인('revoke')}>
-                    {t('토큰 취소')}
-                  </button>
+                  <button className="btn ghost" disabled={보내는중} onClick={() => set확인('reissue')}>
+                    {t('다시 발급')}
+                  </button>{' '}
                 </>
-              ) : (
-                <button className="btn ghost" disabled={보내는중} onClick={() => set발급묻나(true)}>
-                  <기다림글자 중={보내는중} 평소={t('발급')} 기다림={t('발급하는 중')} />
-                </button>
-              )}
-              {/* 처음 발급도 서버에 토큰을 만든다 — 다시 발급 · 취소처럼 한 번 묻는다 (2026-11-26 사용자) */}
-              {!발급묻나 ? null : (
-                <확인창
-                  제목={t('작성 에이전트 토큰을 발급할까요?')}
-                  확인={t('발급')}
-                  onClose={() => set발급묻나(false)}
-                  on확인={() => {
-                    set발급묻나(false);
-                    void 발급();
-                  }}
-                >
-                  <p>{t('이 계정의 작성 에이전트가 로그인에 쓸 토큰을 만들어 값을 한 번만 보여 줍니다. 값을 잃으면 다시 발급해야 합니다')}</p>
-                </확인창>
-              )}
-              {/* 「작성 에이전트가 왜 여기 나오나」를 사용자가 물었다(2026-10-20) — 무엇에 쓰는 토큰인지 한 줄로 말한다 */}
-              <div className="hint">{t('테스트를 대신 쓰는 AI 가 이 토큰으로 로그인합니다')}</div>
+              ) : null}
+              <button className="btn ghost" disabled={보내는중} onClick={() => set확인('revoke')}>
+                {t('토큰 취소')}
+              </button>
             </>
           ) : (
-            // 결과를 먼저 말하고 확정 버튼은 글자가 다른 따로 된 버튼으로 둔다.
-            // 같은 버튼을 두 번 누르게 하는 방식은 사용자가 헷갈렸다 (게이트 1)
-            <div className="set-warn">
-              {t('작성 에이전트가 지금 중단됩니다.')}{' '}
-              {확인 === 'reissue' ? t('새 토큰을 다시 넣어야 합니다') : t('다시 발급할 때까지 작성이 중단됩니다')}{' '}
-              <button
-                className="btn ghost set-warn"
-                disabled={보내는중}
-                onClick={() => void (확인 === 'reissue' ? 발급() : 취소())}
-              >
-                <기다림글자 중={보내는중} 평소={확인 === 'reissue' ? t('다시 발급 확인') : t('토큰 취소 확인')} 기다림={확인 === 'reissue' ? t('발급하는 중') : t('취소하는 중')} />
-              </button>{' '}
-              <button className="btn ghost" disabled={보내는중} onClick={() => set확인(null)}>
-                {t('그만두기')}
-              </button>
-            </div>
+            <button className="btn ghost" disabled={보내는중} onClick={() => set발급묻나(true)}>
+              <기다림글자 중={보내는중} 평소={t('발급')} 기다림={t('발급하는 중')} />
+            </button>
+          )}
+          {/* 처음 발급도 서버에 토큰을 만든다 — 다시 발급 · 취소처럼 한 번 묻는다 (2026-11-26 사용자) */}
+          {!발급묻나 ? null : (
+            <확인창
+              제목={t('작성 에이전트 토큰을 발급할까요?')}
+              확인={t('발급')}
+              onClose={() => set발급묻나(false)}
+              on확인={() => {
+                set발급묻나(false);
+                void 발급();
+              }}
+            >
+              <p>{t('이 계정의 작성 에이전트가 로그인에 쓸 토큰을 만들어 값을 한 번만 보여 줍니다. 값을 잃으면 다시 발급해야 합니다')}</p>
+            </확인창>
+          )}
+          {/* 「작성 에이전트가 왜 여기 나오나」를 사용자가 물었다(2026-10-20) — 무엇에 쓰는 토큰인지 한 줄로 말한다 */}
+          <div className="hint">{t('테스트를 대신 쓰는 AI 가 이 토큰으로 로그인합니다')}</div>
+          {/* 지금 토큰이 바로 무효가 되어 작성 에이전트가 멈춘다 — 서랍 위에 상자를 띄워 묻는다 (2026-11-26 사용자) */}
+          {확인 === null ? null : (
+            <확인창
+              제목={확인 === 'reissue' ? t('작성 에이전트 토큰을 다시 발급할까요?') : t('작성 에이전트 토큰을 취소할까요?')}
+              확인={확인 === 'reissue' ? t('다시 발급') : t('토큰 취소')}
+              onClose={() => set확인(null)}
+              on확인={() => {
+                set확인(null);
+                void (확인 === 'reissue' ? 발급() : 취소());
+              }}
+            >
+              <p>
+                {확인 === 'reissue'
+                  ? t('작성 에이전트가 지금 중단됩니다. 새 토큰을 다시 넣어야 하고 지금 토큰은 복원할 수 없습니다')
+                  : t('작성 에이전트가 지금 중단되고 다시 발급할 때까지 작성할 수 없습니다. 복원할 수 없습니다')}
+              </p>
+            </확인창>
           )}
         </div>
       </div>

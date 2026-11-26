@@ -2,8 +2,8 @@
 //
 // 위의 기대결과 칸(이번 실행 값 · 저장값)과 **이름을 가른다.** 거기는 다음 실행에 쓸 값이고 여기는 저장소의 코드다 —
 // 섞이면 이번 실행만 바꾸려던 값이 코드에 반영된다.
-// 요청 보내기는 서버를 바꾸므로 확인 창으로 한 번 묻는다 (2026-11-26 사용자).
-// 삭제는 상자가 아니라 **이 자리에서 두 번** 누른다 — 눌러도 저장소가 그 자리에서 안 바뀌고 요청만 만들어지기 때문이다 (DESIGN.md 「모달」)
+// 요청 보내기 · 삭제 요청은 저장소를 그 자리에서 안 바꾸고 작성 요청만 만들지만, 그것도 서버를 바꾸는 일이라 확인 창으로 한 번 묻는다 (2026-11-26 사용자).
+// 삭제 요청은 지울 케이스를 쓰는 시나리오를 상자 안에 보여 묻기 전에 영향을 보게 한다
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -29,17 +29,14 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
   const [오류, set오류] = useState<string | null>(null);
   const [만든번호, set만든번호] = useState<number | null>(null);
   const [묻나, set묻나] = useState(false);
-  // 누른 버튼이 사라지는 자리마다 포커스를 옮긴다 — 안 옮기면 body 로 빠져 키보드로 다시 찾아 들어와야 한다.
-  // 삭제 확인 줄에서는 취소로 간다: 더블클릭 · Enter 두 번의 두 번째 누름이 삭제로 새지 않게 (2026-10-01 화면 QA)
-  const [포커스, set포커스] = useState<'cancel' | 'ask' | 'status' | null>(null);
-  const 묻기단추 = useRef<HTMLButtonElement>(null);
-  const 취소단추 = useRef<HTMLButtonElement>(null);
+  // 보내면 누른 버튼이 사라진다 — 결과 줄로 포커스를 옮겨야 body 로 빠지지 않는다
+  const [결과로, set결과로] = useState(false);
   const 결과줄 = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    if (포커스 === null) return;
-    (포커스 === 'cancel' ? 취소단추 : 포커스 === 'ask' ? 묻기단추 : 결과줄).current?.focus();
-    set포커스(null);
-  }, [포커스]);
+    if (!결과로) return;
+    결과줄.current?.focus();
+    set결과로(false);
+  }, [결과로]);
 
   const { 상자, 첫오류로 } = use첫오류();
   const 바꾼 = 바꾼값(칸들, 글);
@@ -55,7 +52,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
       .createAuthoringEdit(service, [고칠])
       .then(({ id }) => {
         set만든번호(id);
-        set포커스('status');
+        set결과로(true);
       })
       .catch((err: unknown) => set오류(고치기오류문장(err, 언어)))
       .finally(() => set보내는중(false));
@@ -109,49 +106,32 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
             </div>
           )}
           <div className="edit-delete">
-            {/* 취소가 앞자리다 — 「케이스 삭제 요청」이 있던 자리에 「삭제 확인」이 서면 더블클릭 한 번이 두 번 누름이 된다 */}
-            {지우려나 ? (
-              <div className="btns">
-                <button
-                  key="cancel"
-                  className="btn ghost"
-                  type="button"
-                  ref={취소단추}
-                  onClick={() => {
-                    set지우려나(false);
-                    set포커스('ask');
-                  }}
-                >
-                  {t('취소')}
-                </button>
-                <button className="btn" type="button" disabled={보내는중} onClick={() => 보낸다({ tcId: row.tcId, delete: true })}>
-                  {t('삭제 확인')}
-                </button>
-              </div>
-            ) : (
-              <div className="btns">
-                <button
-                  key="ask"
-                  className="btn ghost"
-                  type="button"
-                  ref={묻기단추}
-                  onClick={() => {
-                    set지우려나(true);
-                    set포커스('cancel');
-                  }}
-                >
-                  {t('케이스 삭제 요청')}
-                </button>
-              </div>
-            )}
-            {지우려나 && row.procId != null ? (
-              <p className="hint">{t('테스트 프로시저의 케이스라 작성 요청으로 보냅니다. 프로시저에서 제거하고 다시 실행한 뒤 PR 을 등록합니다')}</p>
-            ) : null}
-            {지우려나 ? <ScenarioUsage service={service} tcIds={[row.tcId]} /> : null}
+            <div className="btns">
+              <button className="btn ghost" type="button" disabled={보내는중} onClick={() => set지우려나(true)}>
+                {t('케이스 삭제 요청')}
+              </button>
+            </div>
           </div>
         </>
       )}
       {오류 === null ? null : <p className="error-text">{오류}</p>}
+      {!지우려나 ? null : (
+        <확인창
+          제목={t('{번호} 케이스 삭제를 요청할까요?', { 번호: row.tcId })}
+          확인={t('삭제 요청')}
+          onClose={() => set지우려나(false)}
+          on확인={() => {
+            set지우려나(false);
+            보낸다({ tcId: row.tcId, delete: true });
+          }}
+        >
+          <p>{t('케이스를 삭제하는 작성 요청을 만들고 반영은 테스트 작성 화면에서 합니다. 잘못 보냈으면 그 화면에서 요청을 삭제할 수 있습니다')}</p>
+          {row.procId != null ? (
+            <p className="hint">{t('테스트 프로시저의 케이스라 작성 요청으로 보냅니다. 프로시저에서 제거하고 다시 실행한 뒤 PR 을 등록합니다')}</p>
+          ) : null}
+          <ScenarioUsage service={service} tcIds={[row.tcId]} />
+        </확인창>
+      )}
       {!묻나 ? null : (
         <확인창
           제목={t('코드 기본값 변경을 요청할까요?')}

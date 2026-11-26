@@ -29,13 +29,13 @@ afterEach(() => {
 });
 
 describe('ScenarioBuild 저장 전 확인', () => {
-  it('이름이 공백뿐이면 서버를 안 부르고 사유를 보인다', async () => {
+  it('이름이 공백뿐이면 상자를 띄우지 않고 사유를 보인다', async () => {
     await 기존그리기();
     const update = vi.spyOn(scenarioApi, 'update');
     바꾸기('   ');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
-    물음누름('저장');
 
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect((await screen.findByRole('status')).textContent).toBe('시나리오 이름을 적어야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });
@@ -56,8 +56,8 @@ describe('ScenarioBuild 저장 전 확인', () => {
     await 기존그리기({ parts: [] });
     const update = vi.spyOn(scenarioApi, 'update');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
-    물음누름('저장');
 
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect((await screen.findByRole('status')).textContent).toBe('단계를 하나 이상 넣어야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });
@@ -74,8 +74,8 @@ describe('ScenarioBuild 저장 전 확인', () => {
     await 기존그리기({ parts: [케이스단계('ZSB-001'), 이어붙임] });
     const update = vi.spyOn(scenarioApi, 'update');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
-    물음누름('저장');
 
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect((await screen.findByRole('status')).textContent).toBe('가져올 단계를 다시 선택해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });

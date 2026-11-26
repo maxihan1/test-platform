@@ -84,10 +84,9 @@ describe('UserSection', () => {
     expect(screen.queryByRole('alert')).toBeNull();
 
     fireEvent.click(screen.getAllByText('편집')[1]!);
-    // 되돌릴 수 없는 일이라 두 걸음으로 받는다. 같은 버튼이 글자만 바뀐다
     const 다시만들기 = screen.getByText('비밀번호 재발급');
     fireEvent.click(다시만들기);
-    fireEvent.click(다시만들기);
+    물음누름('비밀번호 재발급');
 
     const 상자 = await screen.findByRole('alert');
     expect(상자.textContent).toContain('Tmp-a1b2c3');
@@ -115,6 +114,22 @@ describe('UserSection', () => {
 
     expect(screen.queryByText('비밀번호 재발급')).toBeNull();
     expect(screen.getByText(/비밀번호 변경/)).toBeTruthy();
+  });
+
+  it('비밀번호 재발급은 확인 창을 거친다 — 취소하면 서버를 안 부르고 확인하면 부른다', async () => {
+    const 재발급 = vi.spyOn(api, 'resetPassword').mockResolvedValue({ tempPassword: 'Tmp-a1b2c3' });
+    그리기();
+    fireEvent.click(screen.getAllByText('편집')[1]!);
+
+    fireEvent.click(screen.getByRole('button', { name: '비밀번호 재발급' }));
+    expect(screen.getByRole('dialog', { name: /계정의 비밀번호를 재발급할까요\?$/ })).toBeTruthy();
+    물음누름('취소');
+    expect(재발급).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '비밀번호 재발급' }));
+    물음누름('비밀번호 재발급');
+    expect(재발급).toHaveBeenCalledTimes(1);
+    expect((await screen.findByRole('alert')).textContent).toContain('Tmp-a1b2c3');
   });
 
   it('남의 줄에는 비밀번호 재발급이 있다', () => {

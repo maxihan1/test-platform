@@ -89,14 +89,18 @@ describe('설정 › CI 토큰', () => {
     expect(옵션).toEqual(['qa', 'stage']);
   });
 
-  it('「끊기」 뒤 「끊기 확인」을 눌러야 끊고 목록을 다시 읽는다', async () => {
+  it('「끊기」는 확인 창을 거친다 — 취소하면 서버를 안 부르고 확인하면 끊고 목록을 다시 읽는다', async () => {
     const 읽기 = vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [토큰()], publicUrl: null });
     const 끊기 = vi.spyOn(api, 'revokeServiceToken').mockResolvedValue(undefined);
     render(<CI토큰구획 row={행()} />);
     fireEvent.click(await screen.findByRole('button', { name: 'github-main 끊기' }));
+    expect(screen.getByRole('dialog', { name: '「github-main」 CI 토큰을 끊을까요?' })).toBeTruthy();
+    expect(screen.getByText('이 토큰을 쓰는 CI 는 다음 빌드부터 업로드하지 못합니다. 복원할 수 없습니다')).toBeTruthy();
+    물음누름('취소');
     expect(끊기).not.toHaveBeenCalled();
-    expect(screen.getByText('이 토큰을 쓰는 CI 는 다음 빌드부터 업로드하지 못합니다')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '끊기 확인' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'github-main 끊기' }));
+    물음누름('끊기');
     await waitFor(() => expect(끊기).toHaveBeenCalledWith(9, 4));
     await waitFor(() => expect(읽기).toHaveBeenCalledTimes(2));
   });

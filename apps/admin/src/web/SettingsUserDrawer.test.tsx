@@ -42,16 +42,16 @@ const 줄열기 = (username: string) => fireEvent.click(screen.getByText(usernam
 const 서랍 = () => screen.getByRole('complementary');
 
 describe('계정 서랍', () => {
-  it('토큰 취소 확인 줄은 다른 계정으로 바꿔 열면 사라진다 — 남으면 바꿔 연 계정의 토큰이 취소된다', () => {
+  it('토큰 취소 확인 창은 다른 계정으로 바꿔 열면 사라진다 — 남으면 바꿔 연 계정의 토큰이 취소된다', () => {
     const 취소 = vi.spyOn(api, 'revokeAgentToken').mockResolvedValue(undefined);
     그리기([계정('agent', { isAuthoringAgent: true, hasAgentToken: true }), 계정('old', { hasAgentToken: true })]);
 
     줄열기('agent');
-    fireEvent.click(screen.getByText('토큰 취소'));
-    expect(screen.queryByText('토큰 취소 확인')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '토큰 취소' }));
+    expect(screen.queryByRole('dialog', { name: '작성 에이전트 토큰을 취소할까요?' })).not.toBeNull();
 
     줄열기('old');
-    expect(screen.queryByText('토큰 취소 확인')).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '작성 에이전트 토큰을 취소할까요?' })).toBeNull();
     expect(취소).not.toHaveBeenCalled();
   });
 
@@ -62,7 +62,7 @@ describe('계정 서랍', () => {
     줄열기('lee');
     const 다시만들기 = screen.getByText('비밀번호 재발급');
     fireEvent.click(다시만들기);
-    fireEvent.click(다시만들기);
+    물음누름('비밀번호 재발급');
     expect((await within(서랍()).findByRole('alert')).textContent).toContain('Tmp-a1b2c3');
 
     줄열기('park');

@@ -7,13 +7,16 @@ import { useState } from 'react';
 import { 확인창 } from './ConfirmBox.js';
 import { use말 } from './i18n.js';
 
-/** 저장할 때마다 서버에 새 버전이 남는다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자) */
-export function 조립저장단추({ 이름, 잠금, 하는중, on저장 }: { 이름: string; 잠금: boolean; 하는중: boolean; on저장: () => void }) {
+/**
+ * 저장할 때마다 서버에 새 버전이 남는다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자)
+ * @param 검사 못 저장하면 사유를 싣고 false. 막힌 저장은 상자를 띄우지 않는다
+ */
+export function 조립저장단추({ 이름, 잠금, 하는중, 검사, on저장 }: { 이름: string; 잠금: boolean; 하는중: boolean; 검사: () => boolean; on저장: () => void }) {
   const t = use말();
   const [묻나, set묻나] = useState(false);
   return (
     <>
-      <button type="button" className="btn ghost" disabled={잠금} onClick={() => set묻나(true)}>
+      <button type="button" className="btn ghost" disabled={잠금} onClick={() => set묻나(검사())}>
         {하는중 ? t('저장하는 중') : t('저장')}
       </button>
       {!묻나 ? null : (

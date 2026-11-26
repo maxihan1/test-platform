@@ -184,9 +184,11 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
 
   const 바뀜 = 찍는다(이름, 디바이스, 단계들) !== 저장본;
 
-  /** @param 칸오류번호 패널 칸에 잘못 적은 글자가 있는 단계 번호. 초안에는 옛 값이 남아 있어 그대로 저장하면 거짓말이 된다 */
-  async function 저장(칸오류번호: number | null = null): Promise<{ id: number; version: number } | null> {
-    if (저장하는중) return null;
+  /**
+   * 못 저장하면 사유를 상태 줄에 싣고 false. 확인 창을 열기 전에도 부른다 — 묻고 나서 막히면 헛걸음이다
+   * @param 칸오류번호 패널 칸에 잘못 적은 글자가 있는 단계 번호. 초안에는 옛 값이 남아 있어 그대로 저장하면 거짓말이 된다
+   */
+  function 저장검사(칸오류번호: number | null = null): boolean {
     const 사유 =
       칸오류번호 !== null
         ? t('{번호}번 단계의 잘못 적은 칸을 수정해야 저장할 수 있습니다', { 번호: 칸오류번호 })
@@ -197,11 +199,12 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
           : 가리킴빈곳(단계들).length > 0
             ? t('가져올 단계를 다시 선택해야 저장할 수 있습니다')
             : null;
-    if (사유 !== null) {
-      set저장오류(사유);
-      return null;
-    }
-    set저장오류(null);
+    set저장오류(사유);
+    return 사유 === null;
+  }
+
+  async function 저장(칸오류번호: number | null = null): Promise<{ id: number; version: number } | null> {
+    if (저장하는중 || !저장검사(칸오류번호)) return null;
     set저장하는중(true);
     const 보낼이름 = 이름.trim();
     const 보낼때이름 = 이름;
@@ -253,6 +256,7 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
     단계들바꾸기: set단계들,
     재료더하기,
     저장,
+    저장검사,
     저장오류,
     저장하는중,
     다시읽기,

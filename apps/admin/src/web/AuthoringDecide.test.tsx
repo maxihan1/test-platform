@@ -13,6 +13,7 @@ const 보낸: { prdVersion: number; picks: 보낼고름[] }[] = [];
 const 진행답: { 값: Promise<{ steps: { step: 1 | 2 | 3 | 4 | 5 | 6 | 7; key: string | null; requestId: number | null; version: number | null }[] }> | null } = { 값: null };
 
 const 제외한: [string, boolean][] = [];
+const 제외답: { 값: Promise<{ ok: true }> | null } = { 값: null };
 
 vi.mock('./decideApi.js', () => ({
   decideApi: {
@@ -22,7 +23,7 @@ vi.mock('./decideApi.js', () => ({
     },
     skipScreen: (_service: string, url: string, skip: boolean) => {
       제외한.push([url, skip]);
-      return Promise.resolve({ ok: true });
+      return 제외답.값 ?? Promise.resolve({ ok: true });
     },
   },
 }));
@@ -72,6 +73,7 @@ const 적용하고 = (칸 = 적용()) => {
 beforeEach(() => {
   보낸.length = 0;
   제외한.length = 0;
+  제외답.값 = null;
   진행답.값 = null;
 });
 afterEach(cleanup);
@@ -293,6 +295,26 @@ describe('결정 목록', () => {
     적용하고();
     await screen.findByText('적용을 시작했습니다');
     expect(보낸).toEqual([{ prdVersion: 3, picks: [{ key: 'screens:ab', pick: 'FIX', screens: ['/coupons'], env: 'stg' }] }]);
+  });
+
+  it('[복원] 확인을 두 번 눌러도 한 번만 보내고, 실패하면 오류 줄이 상자 뒤에 숨지 않는다', async () => {
+    제외답.값 = Promise.reject(new Error('복원 실패'));
+    제외답.값.catch(() => {});
+    const 화면: 결정항목 = {
+      key: 'screens:ab', group: 3, kind: 'SCREENS', picks: ['FIX'], blockedBy: null, env: null,
+      screens: [{ state: '로그아웃', url: '/orders', name: '주문 내역' }],
+      skipped: [{ url: '/reviews/new', name: '리뷰 쓰기' }],
+    };
+    render(<AuthoringDecide service="DMW" 목록={목록([화면])} envs={[]} 다시읽기={() => {}} />);
+    fireEvent.click(screen.getByText('제외한 화면 1개'));
+    fireEvent.click(screen.getByRole('button', { name: '복원' }));
+    const 확인 = within(screen.getByRole('dialog')).getByRole('button', { name: '복원' });
+    fireEvent.click(확인);
+    fireEvent.click(확인);
+
+    expect(await screen.findByText('복원 실패')).toBeTruthy();
+    expect(제외한).toEqual([['/reviews/new', false]]);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('요구사항 확인은 명세 표 차례 — 화면 기준 → 기획서 간 불일치', () => {

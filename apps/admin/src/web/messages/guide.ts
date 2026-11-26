@@ -28,8 +28,8 @@ export const 가이드말: Record<string, string> = {
   제거: 'Remove',
   '파일 첨부': 'Attach file',
   '{구획}에 파일 첨부': 'Attach a file to {구획}',
-  '제거 확인': 'Confirm remove',
-  '{이름} 제거 확인': 'Confirm removing {이름}',
+  '「{이름}」 파일을 제거할까요?': 'Remove the file “{이름}”?',
+  '가이드에서 이 파일을 제거합니다. 이전 버전에서는 열 수 있지만 복원할 수 없습니다': 'Removes this file from the guide. Earlier versions can still open it, but this cannot be undone',
   '{구획} 수정': 'Edit {구획}',
 
   // 버전 기록 — 「버전 기록」 글자는 PRD 표(messages/prd.ts)에 있다

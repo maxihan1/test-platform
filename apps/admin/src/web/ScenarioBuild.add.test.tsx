@@ -243,8 +243,7 @@ describe('ScenarioBuild 잘못 적은 칸이 있을 때', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    물음누름('저장');
-
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect((await screen.findByRole('status')).textContent).toBe('1번 단계의 잘못 적은 칸을 수정해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });
@@ -295,8 +294,7 @@ describe('ScenarioBuild 빈 칸이 남은 단계', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    물음누름('저장');
-
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect((await screen.findByRole('status')).textContent).toBe('2번 단계의 잘못 적은 칸을 수정해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });

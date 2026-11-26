@@ -13,7 +13,9 @@ export const 고치기말: Record<string, string> = {
   '반영은 테스트 작성 화면에서 합니다.': 'Merge it from the test authoring screen.',
   '요청 보내기': 'Send request',
   '케이스 삭제 요청': 'Request case deletion',
-  '삭제 확인': 'Confirm deletion',
+  '{번호} 케이스 삭제를 요청할까요?': 'Request deleting case {번호}?',
+  '케이스를 삭제하는 작성 요청을 만들고 반영은 테스트 작성 화면에서 합니다. 잘못 보냈으면 그 화면에서 요청을 삭제할 수 있습니다':
+    'Creates an authoring request that deletes the case; merge it from the test authoring screen. If you sent it by mistake, delete the request there',
   '삭제하면 이 케이스를 쓰는 E2E 시나리오가 더 이상 실행되지 않습니다. 실행 기록은 남습니다.':
     'E2E scenarios that use this case stop running once it is deleted. Run history is kept.',
   '이 케이스를 쓰는 E2E 시나리오 {수}개 — 삭제하면 다른 케이스로 변경할 때까지 실행할 수 없습니다':

@@ -118,36 +118,37 @@ describe('작성 에이전트 토큰', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('토큰이 있으면 다시 발급은 결과를 말하는 확인 줄을 거치고 그만두기는 API 를 안 부른다', async () => {
+  it('토큰이 있으면 다시 발급은 확인 창을 거치고 취소하면 API 를 안 부른다', async () => {
     const 발급 = vi.spyOn(api, 'issueAgentToken').mockResolvedValue({ agentToken: 'agt-new' });
     그리기([계정('agent', { isAuthoringAgent: true, hasAgentToken: true })]);
 
     expect(screen.queryByText('토큰 있음')).not.toBeNull();
-    fireEvent.click(screen.getByText('다시 발급'));
+    fireEvent.click(screen.getByRole('button', { name: '다시 발급' }));
+    expect(screen.getByRole('dialog', { name: '작성 에이전트 토큰을 다시 발급할까요?' })).toBeTruthy();
     expect(screen.queryByText(/작성 에이전트가 지금 중단됩니다/)).not.toBeNull();
-    fireEvent.click(screen.getByText('그만두기'));
-    expect(screen.queryByText(/작성 에이전트가 지금 중단됩니다/)).toBeNull();
+    물음누름('취소');
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(발급).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText('다시 발급'));
-    fireEvent.click(screen.getByText('다시 발급 확인'));
+    fireEvent.click(screen.getByRole('button', { name: '다시 발급' }));
+    물음누름('다시 발급');
     const 상자 = await screen.findByRole('alert');
     expect(상자.textContent).toContain('agt-new');
   });
 
-  it('취소도 확인 줄을 거치고 확정하면 DELETE 를 부른다', async () => {
+  it('취소도 확인 창을 거치고 확인하면 DELETE 를 부른다', async () => {
     const 취소 = vi.spyOn(api, 'revokeAgentToken').mockResolvedValue(undefined);
     const onDone = vi.fn();
     그리기([계정('agent', { isAuthoringAgent: true, hasAgentToken: true })], onDone);
 
-    fireEvent.click(screen.getByText('토큰 취소'));
-    expect(screen.queryByText(/작성 에이전트가 지금 중단됩니다/)).not.toBeNull();
-    fireEvent.click(screen.getByText('그만두기'));
+    fireEvent.click(screen.getByRole('button', { name: '토큰 취소' }));
+    expect(screen.getByRole('dialog', { name: '작성 에이전트 토큰을 취소할까요?' })).toBeTruthy();
+    물음누름('취소');
     expect(취소).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText('토큰 취소'));
+    fireEvent.click(screen.getByRole('button', { name: '토큰 취소' }));
     await act(async () => {
-      fireEvent.click(screen.getByText('토큰 취소 확인'));
+      물음누름('토큰 취소');
     });
     expect(취소).toHaveBeenCalledWith('agent');
     expect(onDone).toHaveBeenCalled();

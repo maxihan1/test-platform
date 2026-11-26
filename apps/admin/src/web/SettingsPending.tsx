@@ -75,22 +75,19 @@ export function PendingSection({
                 {t('거절')}
               </button>
             </div>
-            {열림 === 'reject' ? (
-              // 결과를 먼저 말하고 확정은 글자가 다른 따로 된 버튼으로 둔다 — AgentToken.tsx 와 같은 모양
-              <div className="set-warn">
-                {t('가입 신청을 삭제합니다. 복원할 수 없습니다')}{' '}
-                <button
-                  className="btn ghost set-warn"
-                  disabled={보내는중}
-                  onClick={() => void 한다(() => api.rejectUser(it.username))}
-                >
-                  {t('삭제 확인')}
-                </button>{' '}
-                <button className="btn ghost" onClick={() => set여는것(null)}>
-                  {t('그만두기')}
-                </button>
-              </div>
-            ) : null}
+            {열림 !== 'reject' ? null : (
+              <확인창
+                제목={t('{이름} 님의 가입 신청을 거절할까요?', { 이름: it.displayName })}
+                확인={t('거절')}
+                onClose={() => set여는것(null)}
+                on확인={() => {
+                  set여는것(null);
+                  void 한다(() => api.rejectUser(it.username));
+                }}
+              >
+                <p>{t('가입 신청을 삭제합니다. 복원할 수 없습니다')}</p>
+              </확인창>
+            )}
             {열림 === 'approve' ? (
               <ApproveForm
                 이름={it.displayName}

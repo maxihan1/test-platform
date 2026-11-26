@@ -5,6 +5,7 @@
 // 한계. jsdom 에는 레이아웃도 CSS 계산도 없어 배치·간격·색·애니메이션은 여기서 못 본다.
 // 그건 사람이 브라우저로 본다 (SPEC §9.1). 「덮개가 뒤를 가린다」도 그래서 여기서는 못 본다.
 
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, createEvent, fireEvent, render, screen } from '@testing-library/react';
 
@@ -168,6 +169,47 @@ describe('Modal', () => {
 
     expect(위닫기).toHaveBeenCalledTimes(1);
     expect(아래닫기).not.toHaveBeenCalled();
+  });
+
+  it('상자 안에 상자를 열면 Tab 은 맨 위 상자 안에서만 돈다', () => {
+    // 확인 창을 부모 상자의 버튼 칸 안에 그리는 자리가 있다(AuthoringNewConfirm). 부모는 다시 그려지지 않아 부모의 Tab 가두기가 먼저 돈다
+    function 묻기단추() {
+      const [열림, set열림] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => set열림(true)}>
+            묻기
+          </button>
+          {!열림 ? null : (
+            <Modal
+              제목="자식 창"
+              onClose={() => {}}
+              버튼={
+                <>
+                  <button type="button">자식 취소</button>
+                  <button type="button">자식 확인</button>
+                </>
+              }
+            >
+              <p>자식</p>
+            </Modal>
+          )}
+        </>
+      );
+    }
+    const 부모닫기 = () => {};
+    const 겹친상자 = () => (
+      <Modal 제목="부모 창" onClose={부모닫기} 버튼={<묻기단추 />}>
+        <input aria-label="부모 칸" />
+      </Modal>
+    );
+    render(<겹친상자 />);
+    fireEvent.click(screen.getByText('묻기'));
+
+    screen.getByText('자식 확인').focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+
+    expect(document.activeElement).toBe(screen.getByText('자식 취소'));
   });
 
   it('틀을 주면 머리에 준비 · 실행 중 · 결과가 서고 지금 단계만 표시되며 × 가 창을 닫는다', () => {

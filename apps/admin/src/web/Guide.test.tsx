@@ -229,27 +229,25 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     expect(더하기).toHaveBeenCalledTimes(1);
   });
 
-  it('제거는 그 파일 번호와 지금 버전으로 보낸다', async () => {
+  it('제거는 확인 창을 거쳐 그 파일 번호와 지금 버전으로 보낸다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
     expect(screen.queryByRole('button', { name: '운영 정책.docx 제거' })).toBeNull();
     수정('정책');
     fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거' }));
-    expect(빼기).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거 확인' }));
+    expect(screen.getByRole('dialog', { name: '「운영 정책.docx」 파일을 제거할까요?' })).toBeTruthy();
+    물음누름('제거');
     await vi.waitFor(() => expect(빼기).toHaveBeenCalledWith('MKT', 11, 3));
   });
 
-  it('제거는 한 번 더 묻고, 취소하면 아무것도 보내지 않고 다시 제거 단추로 돌아간다 (점검 9.2)', async () => {
+  it('제거 확인 창에서 취소하면 아무것도 보내지 않는다 (점검 9.2)', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
     수정('정책');
     fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거' }));
-    const 정책 = 구획('정책');
-    fireEvent.click(within(정책).getAllByRole('button', { name: '취소' })[0]!);
+    물음누름('취소');
     expect(빼기).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: '운영 정책.docx 제거' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '운영 정책.docx 제거 확인' })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('글이 길어지면 글 칸이 줄 수만큼 커진다', async () => {

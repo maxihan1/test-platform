@@ -35,7 +35,7 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
   const [이름, set이름] = useState('');
   const [오류, set오류] = useState<string | null>(null);
   const [보내는중, set보내는중] = useState(false);
-  const [끊을것, set끊을것] = useState<number | null>(null);
+  const [끊을것, set끊을것] = useState<{ tokenId: number; name: string } | null>(null);
   const [새토큰, set새토큰] = useState<string | null>(null);
   const [탭, set탭] = useState<탭>('github');
   const [env, setEnv] = useState('');
@@ -120,27 +120,29 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
                   <td className="perf-faint">{when(it.createdAt, 언어)}</td>
                   <td className="perf-faint">{it.lastUsedAt === null ? t('쓴 적 없음') : when(it.lastUsedAt, 언어)}</td>
                   <td>
-                    {끊을것 === it.tokenId ? (
-                      <div className="set-warn">
-                        {t('이 토큰을 쓰는 CI 는 다음 빌드부터 업로드하지 못합니다')}{' '}
-                        <button type="button" className="btn ghost set-warn" disabled={보내는중} onClick={() => void 일하기(async () => { await api.revokeServiceToken(row.id, it.tokenId); set끊을것(null); })}>
-                          {t('끊기 확인')}
-                        </button>{' '}
-                        <button type="button" className="btn ghost" disabled={보내는중} onClick={() => set끊을것(null)}>
-                          {t('그만두기')}
-                        </button>
-                      </div>
-                    ) : (
-                      <button type="button" className="btn ghost small" aria-label={t('{이름} 끊기', { 이름: it.name })} onClick={() => set끊을것(it.tokenId)}>
-                        {t('끊기')}
-                      </button>
-                    )}
+                    <button type="button" className="btn ghost small" aria-label={t('{이름} 끊기', { 이름: it.name })} onClick={() => set끊을것({ tokenId: it.tokenId, name: it.name })}>
+                      {t('끊기')}
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {끊을것 === null ? null : (
+        <확인창
+          제목={t('「{이름}」 CI 토큰을 끊을까요?', { 이름: 끊을것.name })}
+          확인={t('끊기')}
+          onClose={() => set끊을것(null)}
+          on확인={() => {
+            set끊을것(null);
+            void 일하기(() => api.revokeServiceToken(row.id, 끊을것.tokenId));
+          }}
+        >
+          <p>{t('이 토큰을 쓰는 CI 는 다음 빌드부터 업로드하지 못합니다. 복원할 수 없습니다')}</p>
+        </확인창>
       )}
 
       <div className="perf-row">
