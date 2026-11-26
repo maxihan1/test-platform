@@ -65,7 +65,7 @@ describe('맵 파악', () => {
 
 describe('게임플레이 — 곳마다 깰 때까지', () => {
   const 볼값 = [{ 이름: '웨이브', 주소: 'WaveText' }];
-  const 계획 = (key: string, 곳: string, 쓸것 = [`${곳}#걷기`]) => 줄('TRIAL', key, { 볼값, 기대: [{ 값: '웨이브', 비교: '>=', 기준: 1 }], 목표: { 값: '웨이브', 기준: 6 }, 곳, 쓸것 });
+  const 계획 = (key: string, 곳: string, 쓸것 = [`${곳}#걷기`], 기준 = 1) => 줄('TRIAL', key, { 볼값, 기대: [{ 값: '웨이브', 비교: '>=', 기준 }], 목표: { 값: '웨이브', 기준: 6 }, 곳, 쓸것 });
   const 깰곳 = (key: string, x: object = {}) => 줄('STAGE', key, { 상태: '가봄', 장면: 'BossRoom3', 맵: 다맵, 결과: { 주소: 'ResultText', 깸: '승 리', 짐: '패 배' }, ...x });
   const 판끝 = (이름: string, 계획열쇠: string, 결과글?: string): 판기록 => ({
     이름,
@@ -127,7 +127,7 @@ describe('게임플레이 — 곳마다 깰 때까지', () => {
     writeFileSync(join(자료, 'game-learn.json'), JSON.stringify({ 쓴ms: 1, 세션: 1, 끝: false, 열쇠: [], 단계: '게임플레이' }));
     writeFileSync(join(자료, 'game-learn-grow.json'), JSON.stringify({ 셈: { 확인: 0, 가봄: 9, 나아감: {} }, 안늚: 9, 기록: null }));
     const 칸결과 = 깰곳('stage:셋째 맵', { 결과: { 주소: '/Lumikantle', 칸: 'Lumikantle.HP', 깸: { 이상: 1 }, 짐: { 이하: 0 } } });
-    const 들 = [칸결과, 계획('trial:셋째', 'stage:셋째 맵'), 줄('GOAL', 'goal:나아감', { 주소: 'WaveText' })];
+    const 들 = [칸결과, 계획('trial:셋째', 'stage:셋째 맵', ['stage:셋째 맵#걷기', 'calc:셋째 맵'], 6), 줄('CALC', 'calc:셋째 맵', { 곳: 'stage:셋째 맵' }), 줄('GOAL', 'goal:나아감', { 주소: 'WaveText' })];
     expect(배움막기(자료, 300, 'trial:셋째', 들 as never, [])).toMatchObject({ 볼값: [{ 이름: '웨이브' }, { 이름: '나아감' }, { 이름: '결과', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }] });
     expect(existsSync(join(자료, 'game-learn.done'))).toBe(false);
   });

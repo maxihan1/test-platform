@@ -7,7 +7,7 @@ import type { 배운것 } from '../apps/admin/src/prd/gameKinds.js';
 import { 게임자리 } from './authoring-game.js';
 import type { 지도줄 } from './authoring-game-find.js';
 import { 열린물음 } from './authoring-game-tree.js';
-import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계획읽기, 기대글, 어긋난기대, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
+import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계획읽기, 기대글, 놀이계획검사, 어긋난기대, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
 import { 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { 상태읽기 } from './authoring-learn-io.js';
 import { 결과읽기, 맵빈곳, 맵종류, 놀이막기 } from './authoring-learn-play.js';
@@ -156,7 +156,7 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   }
   // 게임플레이는 곳마다 깰 때까지 한다 — 다섯 번 안 늚으로 끝내지 않는다
   const 놀이 = 상태읽기(자료).단계 === '게임플레이';
-  const 놀막 = 놀이 ? 놀이막기(계획, 줄들, 기록들) : null;
+  const 놀막 = 놀이 ? (놀이계획검사(계획) ?? 놀이막기(계획, 줄들, 기록들)) : null;
   if (놀막 !== null) return { 막음: 놀막 };
   if (!놀이 && 늚재기(자료, 줄들, [...기록들].reverse().find((r) => r.값기록 !== undefined)?.이름 ?? null) >= 안늚상한) {
     // 맵을 다 알기 전에는 안 끝낸다 — 게임플레이가 그 맵을 쓴다

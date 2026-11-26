@@ -19,6 +19,8 @@ export const 나아감 = '나아감';
 /** 깰 곳의 결과 자리를 칸으로 읽을 때 에이전트가 볼값에 더하는 이름 */
 export const 결과이름 = '결과';
 export const 회고머리 = 'play:';
+/** 전략 계산 줄(CALC)의 열쇠 머리 — `authoring-game-calc.ts` 가 이 열쇠로 줄 초안을 낸다 */
+export const 계산머리 = 'calc:';
 const 기록이름꼴 = /^\d{17}-[^/\\]+$/;
 export const 까닭들 = ['손', '믿은것', '몰랐던것', '됨'] as const;
 const 비교들: readonly string[] = ['>=', '<=', '==', '>', '<'];
@@ -72,6 +74,19 @@ export function 계획읽기(data: unknown): 계획 | string {
   if (d.곳 !== undefined && !글인가(d.곳)) return 'data.곳 에 이 계획으로 해 볼 곳(STAGE 줄 열쇠)을 적는다';
   if (d.쓸것 !== undefined && (!Array.isArray(d.쓸것) || !d.쓸것.every(글인가))) return 'data.쓸것 은 이 계획이 믿고 쓰는 지도 줄 열쇠 목록이다(곳의 맵 종류는 「<곳 열쇠>#<종류>」)';
   return { 볼값: 볼 as 볼값[], 기대: 기대들 as 기대[], 목표: { 값: 목표.값 as string, 기준: 목표.기준 as number }, ...(d.곳 === undefined ? {} : { 곳: d.곳 as string }), ...(d.쓸것 === undefined ? {} : { 쓸것: d.쓸것 as string[] }) };
+}
+
+/** 지는 순간에만 깨지는 기대 — 「>= 1」 · 「> 0」 처럼 살아만 있으면 맞는 것. 예측 숫자가 아니다 */
+const 살기만하면 = (g: 기대): boolean => (g.비교 === '>=' && g.기준 <= 1) || (g.비교 === '>' && g.기준 < 1);
+
+/**
+ * 게임플레이 단계의 계획 조건 — 계산 줄(`calc:`)을 쓸것에 달고, 기대에 예측 숫자(「5웨이브 끝에 세계수 40 이상」)가 하나는 있어야 한다.
+ * 계산 없이 심는 자리만 바꿔 판을 돌리던 것(Cats Go! 둘째 맵 48판)을 막는다. 게임 배우기 단계의 계획에는 걸지 않는다
+ */
+export function 놀이계획검사(계획: Pick<계획, '기대' | '쓸것'>): string | null {
+  if (!(계획.쓸것 ?? []).some((k) => k.startsWith(계산머리))) return `게임플레이 계획의 data.쓸것 에 계산 줄 열쇠(${계산머리}<이름>)를 하나 이상 적는다 — scripts/authoring-game-calc.ts 로 버틸 수 있나 · 예산 · 자리를 계산해 CALC 줄로 올린 뒤 그 줄을 쓴다`;
+  if (계획.기대.every(살기만하면)) return '게임플레이 계획의 data.기대 에 예측 숫자를 하나 이상 적는다(예: 5웨이브 끝에 세계수 40 이상) — 「>= 1」 처럼 지는 순간에만 깨지는 기대는 계산이 맞았는지 못 가른다';
+  return null;
 }
 
 const 견줌 = (a: number, 비: 비교, b: number): boolean => (비 === '>=' ? a >= b : 비 === '<=' ? a <= b : 비 === '>' ? a > b : 비 === '<' ? a < b : a === b);
