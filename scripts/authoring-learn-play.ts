@@ -84,7 +84,8 @@ export function 곳셈(줄들: readonly 줄[], 기록들: readonly 판기록[]):
   return 곳줄들(줄들).flatMap((x) => {
     const 결 = 결과읽기(칸(x));
     if (결 === null || typeof 결 === 'string') return [];
-    const 들 = 기록들.flatMap((r) => (r.값기록 !== undefined && 계획곳(줄들, r.값기록.계획) === x.key ? [판결과(r, 결)] : [])).filter((v) => v !== null);
+    // 판 중간 멈춤으로 끝난 기록은 판이 아니다 — 결과를 수로 읽는 곳은 도는 중의 값도 깸 · 짐 어느 한쪽에 걸린다
+    const 들 = 기록들.flatMap((r) => (r.값기록 !== undefined && r.멈춤 === undefined && 계획곳(줄들, r.값기록.계획) === x.key ? [판결과(r, 결)] : [])).filter((v) => v !== null);
     const d = 칸(x);
     return [{ 열쇠: x.key, 판: 들.length, 깸: 들.filter((v) => v === '깸').length, ...(d.상태 === '못깸' && 글인가(d.까닭) ? { 못깸: d.까닭 } : {}) }];
   });
@@ -125,7 +126,8 @@ export function 놀이막기(계획: { 곳?: string; 쓸것?: readonly string[] 
   const 쓸것 = 계획.쓸것 ?? [];
   const 없는 = 쓸것.filter((k) => !맵.has(k) && !줄들.some((x) => x.key === k && x.learned !== null));
   if (없는.length > 0) return `data.쓸것 의 ${없는.join(' · ')} 가 지도에 없다`;
-  if (!쓸것.some((k) => 맵.has(k))) return `계획의 data.쓸것 에 ${계획.곳} 의 맵 정보를 하나 이상 적는다(${[...맵].slice(0, 8).join(' · ') || '그 곳 맵 정보가 없다 — data.맵 부터 채운다'})`;
+  // 맵 일곱 종류가 다 없음이고 딸린 줄도 없는 곳(메뉴 꼴)은 쓸 맵 정보가 없다 — 막으면 그 곳을 영영 못 한다
+  if (맵.size > 0 && !쓸것.some((k) => 맵.has(k))) return `계획의 data.쓸것 에 ${계획.곳} 의 맵 정보를 하나 이상 적는다(${[...맵].slice(0, 8).join(' · ')})`;
   return null;
 }
 

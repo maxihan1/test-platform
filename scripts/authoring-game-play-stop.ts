@@ -61,7 +61,7 @@ export function 멈춤보기시작(
   let 깨운다: (() => void) | undefined;
   let 로그자리 = 볼.로그앞;
   const 로그들: { 초: number; 줄: string }[] = [];
-  let 본새것 = 0;
+  const 본새것 = new Set<string>();
   let 멈춤: 멈춤보고 | null = null;
   let 사진: Buffer | undefined;
   let 못함: string | null = null;
@@ -83,12 +83,13 @@ export function 멈춤보기시작(
     if (!서있다) return;
     const 기 = 볼.값();
     const 나온 = 볼.나온();
-    const 새것 = 나온?.지도에없음.slice(본새것) ?? [];
-    본새것 += 새것.length;
+    // 펼치기가 끝난 이름만 — 펼치는 중에 멈추면 세기가 그쳐 펼친 글 없이 멈춘다
+    const 새것 = (나온?.지도에없음 ?? []).filter((k) => !본새것.has(k) && (나온!.펼침.some((x) => x.종류 === k) || 나온!.안펼침.includes(k)));
+    for (const k of 새것) 본새것.add(k);
     const 왜 = 기.어긋남 !== null ? `기대 ${기.어긋남.기대} 가 ${기.어긋남.초.toFixed(0)}초에 깨짐(${기.어긋남.값이름} ${기.어긋남.값})` : 새것.length > 0 ? `처음 보는 오브젝트 ${새것.join(' · ')}` : null;
     if (왜 === null) return;
     const 초 = (Date.now() - 시작) / 1000;
-    멈춤 = { 초, 까닭: 왜, 값: { ...(기.때.at(-1)?.값 ?? {}) }, 바뀐것: 바뀐것(나온, 초), 로그: 로그들.filter((x) => x.초 >= 초 - 돌아볼초 - 간격ms / 1000).slice(-실을로그).map((x) => `${x.초.toFixed(0)}초 ${x.줄}`) };
+    멈춤 = { 초, 까닭: 왜, 값: { ...(기.때.at(-1)?.값 ?? {}) }, 바뀐것: 바뀐것(나온, 초), 로그: 로그들.filter((x) => x.초 >= 초 - 돌아볼초).slice(-실을로그).map((x) => `${x.초.toFixed(0)}초 ${x.줄}`) };
     서있다 = false;
     멈춘다(왜);
     try {

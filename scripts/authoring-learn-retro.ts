@@ -8,6 +8,7 @@ import { 게임자리 } from './authoring-game.js';
 import type { 지도줄 } from './authoring-game-find.js';
 import { 열린물음 } from './authoring-game-tree.js';
 import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계획읽기, 기대글, 어긋난기대, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
+import { 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { 상태읽기 } from './authoring-learn-io.js';
 import { 결과읽기, 맵빈곳, 맵종류, 놀이막기 } from './authoring-learn-play.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -97,7 +98,8 @@ export function 늚재기(자료: string, 줄들: readonly 줄[], 마지막기�
     // 못 읽으면 처음부터 센다
   }
   if (앞.셈 !== undefined && (앞.기록 ?? null) === 마지막기록) return 앞.안늚 ?? 0;
-  const 앞나아감 = 객체(앞.셈?.나아감);
+  // 옛 꼴(나아감 하나)은 곳 없는 열쇠로 읽는다
+  const 앞나아감 = typeof 앞.셈?.나아감 === 'number' ? { '': 앞.셈.나아감 } : 객체(앞.셈?.나아감);
   const 늘었나 = 앞.셈 === undefined || 지금.확인 > 앞.셈.확인 || 지금.가봄 > 앞.셈.가봄 || Object.entries(지금.나아감).some(([곳, v]) => v > (typeof 앞나아감[곳] === 'number' ? (앞나아감[곳] as number) : -Infinity));
   const 안늚 = 늘었나 ? 0 : (앞.안늚 ?? 0) + 1;
   새로쓰기(join(자료, 게임자리.늚), JSON.stringify({ 셈: 지금, 안늚, 기록: 마지막기록 }));
@@ -141,7 +143,8 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   const 계획 = 줄?.kind === 'TRIAL' ? 계획읽기(칸(줄)) : `${계획열쇠} 는 지도의 계획(TRIAL) 줄이 아니다`;
   if (typeof 계획 === 'string') return { 막음: `계획을 못 읽었다 — ${계획}` };
   // 멈춘 판을 이어 돌릴 때 — 멈춘 순간 값으로 이미 깨진 기대는 계획이 아니다(그대로 돌리면 다시 바로 멈춘다)
-  const 멈춘 = 기록들.at(-1)?.멈춤;
+  // 게임이 아직 그 멈춤에 멈춰 있을 때만 — 판을 새로 시작하면 멈춘 순간 값과 견줄 까닭이 없다
+  const 멈춘 = 멈춤표시읽기(자료) === null ? undefined : 기록들.at(-1)?.멈춤;
   const 깨진 = 멈춘 === undefined ? null : 어긋난기대(계획.기대, 멈춘.값);
   if (깨진 !== null) return { 막음: `새 계획의 기대 「${기대글(깨진)}」 가 멈춘 순간 값(${Object.entries(멈춘!.값).map(([k, v]) => `${k} ${v ?? '못 읽음'}`).join(' · ')})으로 이미 깨졌다 — 지금 판에서 지킬 수 있는 기대로 다시 적는다` };
   const 나 = 나아감자리(칸(찾기(나아감열쇠)));

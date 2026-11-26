@@ -55,12 +55,15 @@ describe('판 중간 멈춤', () => {
     expect(r.사진?.toString()).toBe('사진');
   });
 
-  it('판 도중 처음 보는(지도에 없는) 오브젝트가 나오면 멈춘다', async () => {
+  it('판 도중 처음 보는(지도에 없는) 오브젝트가 나오면 펼치기가 끝난 뒤 멈춘다', async () => {
     const 나온 = 빈나온();
     const 멈춘: string[] = [];
     const 고리 = 멈춤보기시작(게임() as never, Date.now(), { 값: () => 값들(50), 나온: () => 나온, 로그앞: null }, (왜) => 멈춘.push(왜), 10);
     await 쉼(25);
     나온.지도에없음.push('Ghost');
+    await 쉼(30);
+    expect(멈춘).toEqual([]);
+    나온.펼침.push({ 종류: 'Ghost', 초: 1, 주소: '//*[@id=3]' });
     await 쉼(30);
     expect(멈춘).toEqual(['처음 보는 오브젝트 Ghost']);
     expect((await 고리.끝난다()).멈춤!.로그).toEqual([]);
@@ -98,13 +101,15 @@ describe('판 중간 멈춤', () => {
     expect(판기록들(자료)[0]).toMatchObject({ 이름: '20261126070000000-지키기', 멈춤: { 값: { 세계수: 20 } } });
   });
 
-  it('멈춘 판을 이을 새 계획의 기대가 멈춘 순간 값으로 이미 깨졌으면 안 받는다', () => {
+  it('멈춘 판을 이을 새 계획의 기대가 멈춘 순간 값으로 이미 깨졌으면 안 받는다 — 게임이 그 멈춤에 멈춰 있을 때만', () => {
     const 자료 = 폴더();
     writeFileSync(join(자료, 'game-learning.now'), '1');
     const 계획 = (기준: number) => ({ kind: 'TRIAL', key: 'trial:둘째', name: 'ㄱ', line: '', learned: { text: 'ㄱ', belief: 'GUESS', data: { 볼값: [{ 이름: '세계수', 주소: 'HpText' }], 기대: [{ 값: '세계수', 비교: '>=', 기준 }], 목표: { 값: '세계수', 기준: 1 } } } });
     const 회고 = { kind: 'PLAY', key: 'play:20261126070000000-지키기', name: 'ㄱ', line: '', learned: { text: 'ㄱ', belief: 'SEEN', data: {} } };
     const 나아감 = { kind: 'GOAL', key: 'goal:나아감', name: 'ㄱ', line: '', learned: { text: 'ㄱ', belief: 'SEEN', data: { 주소: 'WaveText' } } };
     const 멈춘판 = [{ 이름: '20261126070000000-지키기', 값기록: 값들(28), 멈춤: { 초: 40, 값: { 세계수: 28 } } }];
+    expect(배움막기(자료, 300, 'trial:둘째', [계획(30), 회고, 나아감] as never, 멈춘판)).toMatchObject({ 계획: 'trial:둘째' });
+    writeFileSync(join(자료, 'game-freeze.json'), JSON.stringify({ 배율: 1, 때: new Date().toISOString() }));
     expect(배움막기(자료, 300, 'trial:둘째', [계획(30), 회고, 나아감] as never, 멈춘판)).toMatchObject({ 막음: expect.stringContaining('「세계수 >= 30」 가 멈춘 순간 값(세계수 28)으로 이미 깨졌다') });
     expect(배움막기(자료, 300, 'trial:둘째', [계획(20), 회고, 나아감] as never, 멈춘판)).toMatchObject({ 계획: 'trial:둘째' });
   });

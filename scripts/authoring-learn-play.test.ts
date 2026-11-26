@@ -78,6 +78,7 @@ describe('게임플레이 — 곳마다 깰 때까지', () => {
     expect(결과읽기({ 결과: { 주소: 'HP', 깸: { 넘음: 1 }, 짐: '패 배' } })).toContain('data.결과');
     expect(판결과({ 이름: 'x', 값기록: { 계획: 't', 볼값: [{ 이름: '결과', 주소: 'HP', 칸: 'Tree.HP' }], 간격ms: 2000, 때: [{ 초: 0, 값: { 결과: 0 } }], 어긋남: null, 화면다름: [] } }, { 주소: 'HP', 칸: 'Tree.HP', 깸: { 이상: 1 }, 짐: { 이하: 0 } })).toBe('짐');
     expect(곳셈(지도줄 as never, 기록들)).toEqual([{ 열쇠: 'stage:셋째 맵', 판: 2, 깸: 1 }, { 열쇠: 'stage:넷째 맵', 판: 1, 깸: 0 }]);
+    expect(곳셈(지도줄 as never, [...기록들, { ...판끝('20261126060000005-e', 'trial:넷째', '패 배'), 멈춤: { 초: 30, 값: {} } }])[1]).toMatchObject({ 판: 1 });
     expect(남은깰곳(지도줄 as never, 기록들)).toEqual(['아직 못 깬 곳 1(stage:넷째 맵 1판)']);
     expect(남은깰곳(지도줄.slice(2) as never, 기록들)).toEqual(['깰 곳(data.결과 가 있는 STAGE)이 없다']);
     expect(곳셈(지도줄 as never, 기록들).map(곳글)).toEqual(['stage:셋째 맵 깸(2판 중 1)', 'stage:넷째 맵 아직(1판)']);
@@ -100,6 +101,8 @@ describe('게임플레이 — 곳마다 깰 때까지', () => {
     expect(놀이막기({ 곳: 'stage:넷째 맵', 쓸것: ['rule:고양이 오라'] }, 들 as never, [])).toContain('맵 정보를 하나 이상');
     expect(놀이막기({ 곳: 'stage:넷째 맵', 쓸것: ['stage:넷째 맵#막힘'] }, 들 as never, [])).toContain('stage:넷째 맵#막힘 가 지도에 없다');
     expect(놀이막기({ 곳: 'stage:넷째 맵', 쓸것: ['rule:고양이 오라', 'rule:넷째 맵 길목'] }, 들 as never, [])).toBeNull();
+    const 빈맵 = [깰곳('stage:메뉴판', { 맵: Object.fromEntries(맵종류.map((k) => [k, { 없음: '메뉴만 있다' }])) })];
+    expect(놀이막기({ 곳: 'stage:메뉴판' }, 빈맵 as never, [])).toBeNull();
     expect(계획읽기({ ...계획('trial:x', 'stage:넷째 맵').learned.data, 쓸것: 'rule:x' })).toContain('data.쓸것');
     expect(곳맵줄(들 as never, 'stage:넷째 맵')).toEqual([
       '그 곳(stage:넷째 맵)의 맵 정보 2 — 새 계획의 data.쓸것 에 믿고 쓸 것을 적는다',
