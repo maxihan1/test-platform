@@ -78,7 +78,8 @@ export function 배운것틀림(v: unknown, 종류: string, 갈래: '게임' | '
   if (앱 && l.belief === 'CONFIRMED') {
     if (l.seen === undefined || (l.seen as number) < 앱확인횟수) return 'seen';
     if (l.build === undefined) return 'build';
-    if (l.data === undefined || l.data === null) return 'data';
+    // 빈 값은 잰 것이 아니다 — {} · [] · '' 로 확인을 달면 장치 ④ 가 뚫린다
+    if (l.data === undefined || l.data === null || l.data === '' || (typeof l.data === 'object' && Object.keys(l.data).length === 0)) return 'data';
   }
   if (l.shape !== undefined && !하나인가(l.shape, 꼴)) return 'shape';
   if (l.marks !== undefined && !(Array.isArray(l.marks) && new Set(l.marks).size === l.marks.length && l.marks.every((m) => 하나인가(m, 표시)))) return 'marks';

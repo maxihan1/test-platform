@@ -20,13 +20,17 @@ export interface 배운줄 {
 }
 
 const 상한 = { 줄: 5_000, 글: 200 } as const;
-// 줄바꿈은 배운 것 글의 한 줄을 가르고, NUL · 짝 없는 surrogate 는 jsonb 가 받지 않아 500 이 된다
-const 못넣는글자 = /[\n\r\u0000]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+// 줄바꿈은 배운 것 글의 한 줄을 가르고 「 · 」는 한 줄의 칸을 가른다(찾기 명령이 그것으로 자른다 — 앱 조작 맵 글과 같다). 끝의 「·」는 이어 붙이면 가르개가 된다.
+// NUL · 짝 없는 surrogate 는 jsonb 가 받지 않아 500 이 된다
+const 못넣는글자 = /[\n\r\u0000]| · |^·|·$|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
 const 쪽지열쇠 = 'note:쪽지';
+// 화면에 매이지 않아도 되는 종류 — 나머지는 장치 ① 이 화면 칸으로 세어서 꼭 단다(작성 §3.6 「★ 앱 배우기」 「배운 것 — 종류와 칸」)
+const 화면없어도되는종류: ReadonlySet<string> = new Set(['NOTE', 'ASK']);
 
 const 틀림 = (detail: string) => ({ error: 'BAD_LEARNED', detail }) as const;
 const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
-const 글인가 = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '' && v.length <= 상한.글 && !못넣는글자.test(v);
+// 앞뒤 빈칸이 붙은 열쇠는 UNIQUE 를 지나 같은 것이 두 줄로 쌓인다
+const 글인가 = (v: unknown): v is string => typeof v === 'string' && v.trim() === v && v !== '' && v.length <= 상한.글 && !못넣는글자.test(v);
 // in 은 toString 같은 물려받은 이름도 통과시켜 DB CHECK 가 500 을 낸다
 const 종류인가 = (v: unknown): v is 종류 => typeof v === 'string' && Object.hasOwn(배운종류, v);
 // 열쇠 앞머리가 종류다 — 찾기 명령이 열쇠만 보고 종류를 안다. 쪽지는 세션마다 하나라 열쇠가 하나뿐이다
@@ -38,7 +42,8 @@ function 줄검사(x: unknown, 자리: string): 배운줄 | ReturnType<typeof �
   if (!글인가(e.key) || !열쇠가맞나(e.kind, e.key)) return 틀림(`${자리}.key`);
   if (!글인가(e.name)) return 틀림(`${자리}.name`);
   const screen = e.screen ?? null;
-  if (screen !== null && !(글인가(screen) && screen.startsWith('app:'))) return 틀림(`${자리}.screen`);
+  if (screen !== null && !(글인가(screen) && screen.startsWith('app:') && screen.length > 'app:'.length)) return 틀림(`${자리}.screen`);
+  if (screen === null && !화면없어도되는종류.has(e.kind)) return 틀림(`${자리}.screen`);
   if (e.learned === null) return { kind: e.kind, key: e.key, name: e.name, screen, learned: null };
   const 칸 = 배운것틀림(e.learned, e.kind, '앱');
   if (칸 !== null) return 틀림(`${자리}.learned${칸 === '' ? '' : `.${칸}`}`);

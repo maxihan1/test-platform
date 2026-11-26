@@ -38,7 +38,8 @@ describe('배운것틀림 — 앱 갈래', () => {
     expect(배운것틀림({ ...확인, seen: undefined }, 'INPUT', '앱')).toBe('seen');
     expect(배운것틀림({ ...확인, build: undefined }, 'INPUT', '앱')).toBe('build');
     expect(배운것틀림({ ...확인, data: undefined }, 'INPUT', '앱')).toBe('data');
-    expect(배운것틀림({ ...확인, data: null }, 'INPUT', '앱')).toBe('data');
+    for (const data of [null, '', {}, []]) expect(배운것틀림({ ...확인, data }, 'INPUT', '앱')).toBe('data');
+    expect(배운것틀림({ ...확인, data: 0 }, 'INPUT', '앱')).toBeNull();
     expect(배운것틀림({ ...확인, seen: 1, build: undefined, data: undefined }, 'INPUT')).toBeNull();
     expect(배운것틀림({ text: '한 번 봄', belief: 'SEEN', seen: 1 }, 'RULE', '앱')).toBeNull();
   });
@@ -55,9 +56,24 @@ describe('앱 배운 것 본문 검사', () => {
     expect(배운줄검사({ rows: [{ ...글자수, name: '글\u0000쓰기' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.name' });
     expect(배운줄검사({ rows: [{ ...글자수, name: '글\ud800쓰기' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.name' });
     expect(배운줄검사({ rows: [{ ...글자수, screen: '.ComposeActivity/글쓰기' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.screen' });
+    expect(배운줄검사({ rows: [{ ...글자수, screen: 'app:' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.screen' });
     expect(배운줄검사({ rows: [{ ...글자수, learned: undefined }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.learned' });
     expect(배운줄검사({ rows: [{ ...글자수, learned: { ...글자수.learned, belief: 'MAYBE' } }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.learned.belief' });
     expect(배운줄검사({ rows: [글자수, 글자수] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.1.key' });
+  });
+
+  it('글을 「 · 」로 잇는 배운 것 글이 갈리지 않게 열쇠 · 이름 · 화면 키에 가르개와 앞뒤 빈칸을 못 넣는다', () => {
+    expect(배운줄검사({ rows: [{ ...글자수, name: '좋아요 · 배움 순서' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.name' });
+    expect(배운줄검사({ rows: [{ ...글자수, name: '좋아요 ·' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.name' });
+    expect(배운줄검사({ rows: [{ ...글자수, key: 'input:글자 · 수' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.key' });
+    expect(배운줄검사({ rows: [{ ...글자수, key: 'input:글자수 ' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.key' });
+    expect(배운줄검사({ rows: [{ ...글자수, screen: 'app:.A · 화면 app:.B' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.screen' });
+  });
+
+  it('화면 키는 쪽지 · 궁금한 것 말고는 꼭 단다 — 배운 줄 없는 화면을 이 칸으로 센다', () => {
+    expect(배운줄검사({ rows: [{ ...글자수, screen: undefined }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.screen' });
+    expect(배운줄검사({ rows: [{ ...물음, kind: 'ODD', key: 'odd:예약-게시' }] })).toEqual({ error: 'BAD_LEARNED', detail: 'rows.0.screen' });
+    expect(배운줄검사({ rows: [{ ...물음, screen: 'app:.ComposeActivity/글쓰기' }] })).not.toHaveProperty('error');
   });
 
   it('열쇠 앞머리가 종류의 소문자이고 쪽지는 note:쪽지 하나뿐이다', () => {
@@ -152,14 +168,14 @@ describe.skipIf(연결 === undefined)('앱 배운 것 에이전트 통로', () =
   it('올린 줄만 넣고, 같은 열쇠는 통째로 바꾸며, learned null 은 그 줄을 지운다', async () => {
     const id = await 요청넣기();
     expect((await 올리기(id, { rows: [글자수, 물음, 쪽지] })).statusCode).toBe(204);
-    const 다시 = { ...글자수, name: '글자 수 한도', screen: undefined, learned: { text: '한도는 500자다', belief: 'SEEN', seen: 1 } };
+    const 다시 = { ...글자수, name: '글자 수 한도', screen: 'app:.ComposeActivity/답글', learned: { text: '한도는 500자다', belief: 'SEEN', seen: 1 } };
     expect((await 올리기(id, { rows: [다시, { ...물음, learned: null }, { ...물음, key: 'ask:없는-줄', learned: null }] })).statusCode).toBe(204);
     const r = await q<{ key: string; kind: string; name: string; screen_key: string | null; learned: unknown }>(
       'SELECT key, kind, name, screen_key, learned FROM app_learned WHERE service_id = $1 ORDER BY key COLLATE "C"',
       [서비스],
     );
     expect(r.rows).toEqual([
-      { key: 'input:글쓰기-글자수', kind: 'INPUT', name: '글자 수 한도', screen_key: null, learned: 다시.learned },
+      { key: 'input:글쓰기-글자수', kind: 'INPUT', name: '글자 수 한도', screen_key: 'app:.ComposeActivity/답글', learned: 다시.learned },
       { key: 'note:쪽지', kind: 'NOTE', name: 쪽지.name, screen_key: null, learned: 쪽지.learned },
     ]);
     const 틀림 = await 올리기(id, { rows: [{ ...글자수, learned: { ...글자수.learned, seen: 1 } }] });
