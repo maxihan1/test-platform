@@ -72,6 +72,7 @@ const 면제 = new Map([
   ['scripts/authoring-app-learn.test.ts', '테스트가 만든 임시 자료 폴더의 배우기 상태 · 배운 것 글만 읽는다 (2026-11-26 PR #1013 — PR #1015 에서 더함)'],
   ['scripts/authoring-app-learned.test.ts', '테스트가 만든 임시 자료 폴더의 배운 것 글 · 올릴 줄 파일만 읽는다 (2026-11-26 PR #1013 — PR #1015 에서 더함)'],
   ['scripts/authoring-app-try.test.ts', '테스트가 만든 임시 자료 폴더의 해 본 기록만 읽는다 (2026-11-26 PR #1013 — PR #1015 에서 더함)'],
+  ['scripts/authoring-game-play-stop.test.ts', '테스트가 만든 임시 자료 폴더의 판 기록 · 멈춤 사진만 읽는다 (2026-11-26 PR #1020)'],
 ]);
 
 function 테스트파일들(폴더) {
