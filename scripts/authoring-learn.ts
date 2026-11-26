@@ -38,8 +38,10 @@ const 빈손상한 = 2;
 const 정리앞_ms = 5 * 분;
 /** 이보다 적게 남았으면 세션을 새로 띄우지 않는다 — 게임을 켜고 그 자리까지 가는 데만 몇 분이다 */
 const 최소_ms = 10 * 분;
+/** 앱 배우기도 같은 시간 · 교대 값을 쓴다 (도메인/작성 §3.6 「★ 앱 배우기」 「배우기 세션」) */
+export const 학습값 = { 총_ms, 부분_ms, 정리토큰, 교대토큰, 빈손상한, 정리앞_ms, 최소_ms } as const;
 
-type 한번결과 = { 돌린것: 돌린결과; 크레딧으로: boolean; 앞낸것: string | null };
+export type 한번결과 = { 돌린것: 돌린결과; 크레딧으로: boolean; 앞낸것: string | null };
 
 /** 세션 하나에 주는 재료 — 프롬프트는 부르는 쪽이 짓는다(authoring-learn-prompt) */
 export type 세션거리 =
