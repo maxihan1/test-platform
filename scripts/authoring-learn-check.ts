@@ -24,12 +24,14 @@ const 볼값상한 = 10;
 const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 const 글인가 = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
 const 수인가 = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+/** 화면 글자의 서식 태그를 뗀다 — WaveText 는 `<font-weight="600">2/6</font-weight>` 라 태그를 두면 600 을 읽었다(#16052) */
+const 태그뺌 = (글: string): string => 글.replace(/<[^>]*>/g, '');
 
 /** 값을 수로 — 글이면 처음 나오는 수(「6/6」 → 6 · 「웨이브 3」 → 3). ponytail: 첫 수만 본다, 「남은 3 / 6」 처럼 둘째 수가 뜻이면 칸을 읽는다 */
 export function 수로(v: unknown): number | null {
   if (수인가(v)) return v;
   if (typeof v !== 'string') return null;
-  const m = /-?\d+(?:\.\d+)?/.exec(v.replace(/,/g, ''));
+  const m = /-?\d+(?:\.\d+)?/.exec(태그뺌(v).replace(/,/g, ''));
   return m === null ? null : Number(m[0]);
 }
 
@@ -123,7 +125,7 @@ const 자리읽기 = (v: unknown): 값자리 | null => (글인가(객체(v).돌�
 const 자리글 = (z: 값자리): string => ('돌려준' in z ? `돌려준 ${z.돌려준}` : `${z.주소}${z.칸 === undefined ? '' : ` ${z.칸}`}`);
 type 기대값 = string | number | { 아님: string | number };
 const 기대값인가 = (v: unknown): v is 기대값 => typeof v === 'string' || 수인가(v) || (객체(v).아님 !== undefined && (typeof 객체(v).아님 === 'string' || 수인가(객체(v).아님)));
-const 같나 = (본: unknown, 적은: string | number): boolean => (typeof 적은 === 'number' ? 수로(본) === 적은 : String(본).trim() === 적은.trim());
+const 같나 = (본: unknown, 적은: string | number): boolean => (typeof 적은 === 'number' ? 수로(본) === 적은 : 태그뺌(String(본)).trim() === 적은.trim());
 const 맞나 = (본: unknown, 적은: 기대값): boolean => (typeof 적은 === 'object' ? !같나(본, 적은.아님) : 같나(본, 적은));
 const 값글 = (v: 기대값): string => (typeof v === 'object' ? `${JSON.stringify(v.아님)} 아님` : JSON.stringify(v));
 

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { 값읽기시작, 화면다른것 } from './authoring-game-play-values.js';
 import { 지도읽기 } from './authoring-game-find.js';
-import { type 판기록, 계획읽기, 대봄검사, 어긋난기대, 판기록들 } from './authoring-learn-check.js';
+import { type 판기록, 계획읽기, 대봄검사, 수로, 어긋난기대, 판기록들 } from './authoring-learn-check.js';
 import { 합치기 } from './authoring-learn-note.js';
 import { 남은배울것, 배움막기, 손막힘, 회고없는판, 회고채우기 } from './authoring-learn-retro.js';
 
@@ -46,6 +46,12 @@ describe('지도 검증 — 「확인」 줄은 판 기록 전부에서 값을 �
     const 늘 = { 대봄: { 값: { 주소: 'MyBestValue' }, 기대: [{ 값: '--:--.--' }] } };
     expect(대봄검사(늘, [결과창('20261126001000000-a', '패 배', '--:--.--')])[0]).toContain('1개다');
     expect(대봄검사(늘, [결과창('20261126001000000-a', '패 배', '--:--.--'), 결과창('20261126002000000-b', '승 리', '--:--.--')])).toEqual([]);
+  });
+
+  it('끝 화면 글자는 서식 태그를 떼고 적은 글과 대 본다', () => {
+    const 웨이브 = { 대봄: { 값: { 주소: 'MyBestValue' }, 기대: [{ 값: '6/6' }] } };
+    const 기록들 = ['a', 'b'].map((x) => 결과창(`2026112600100000${x === 'a' ? 0 : 1}-${x}`, '승 리', '<font-weight="600">6/6</font-weight>'));
+    expect(대봄검사(웨이브, 기록들)).toEqual([]);
   });
 
   it('네 항의 합 — 직접 처치 · 중간 보스가 0 아닌 판이 없어 걸린다', () => {
@@ -101,6 +107,11 @@ describe('계획 숫자 읽기 — 2초마다 읽고 처음 어긋난 순간 사
     expect(r.사진?.toString()).toBe('jpg');
     expect(r.기록.화면다름).toEqual(['세계수']);
     expect(화면다른것([{ 초: 0, 값: { 가: 3 }, 화면: { 가: 3 } }], [{ 이름: '가', 주소: 'a', 칸: 'b', 화면: 'c' }])).toEqual([]);
+  });
+
+  it('화면 글자의 서식 태그 안 숫자는 안 읽는다 — #16052 웨이브가 늘 600 이었다', () => {
+    expect(수로('<font-weight="600">2/6</font-weight>')).toBe(2);
+    expect(어긋난기대([{ 값: '세계수', 비교: '>=', 기준: 40, 까지: { 값: '웨이브', 기준: 6 } }], { 세계수: 0, 웨이브: 수로('<font-weight="600">2/6</font-weight>') })).toMatchObject({ 값: '세계수' });
   });
 });
 
