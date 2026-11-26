@@ -44,8 +44,8 @@ export function 맵검사(data: unknown, 기록들: readonly 판기록[]): strin
 /** 맵을 다 채웠나 — 일곱 종류가 다 있다(꼴은 적을 때 맵검사가 봤다) */
 export const 맵다됨 = (x: 줄): boolean => 맵종류.every((k) => 객체(칸(x).맵)[k] !== undefined);
 
-/** 가 본 곳 가운데 맵 일곱 종류를 다 안 채운 곳의 열쇠 */
-export const 맵빈곳 = (줄들: readonly 줄[]): string[] => 곳줄들(줄들).filter((x) => 칸(x).상태 === '가봄' && !맵다됨(x)).map((x) => x.key);
+/** 가 본 곳(가봄 · 못깸) 가운데 맵 일곱 종류를 다 안 채운 곳의 열쇠 */
+export const 맵빈곳 = (줄들: readonly 줄[]): string[] => 곳줄들(줄들).filter((x) => (칸(x).상태 === '가봄' || 칸(x).상태 === '못깸') && !맵다됨(x)).map((x) => x.key);
 
 /** 곳마다 이만큼 해 보고도 못 깨면 「못깸」 + 까닭을 적고 다음 곳으로 간다 (2026-11-26 사용자) */
 export const 판상한 = 50;

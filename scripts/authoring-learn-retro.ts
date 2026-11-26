@@ -113,7 +113,8 @@ export function 늚재기(자료: string, 줄들: readonly 줄[], 마지막기�
 export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<string, string> }, 오늘: string, 빌드?: string, 안적은: readonly string[] = []): string[] {
   const 열린 = 열린물음(지도, 오늘, 빌드);
   const 곳들 = 지도.줄들.filter((x) => x.kind === 'STAGE' && x.learned !== null && x.learned.belief !== 'OVERTURNED');
-  const 안간 = 곳들.filter((x) => !(칸(x).상태 === '가봄' || (칸(x).상태 === '못감' && 글인가(칸(x).까닭))));
+  // 못깸은 가 본 곳이다 — 적는 명령은 단계와 상관없이 판 상한이 차면 받는다
+  const 안간 = 곳들.filter((x) => !(칸(x).상태 === '가봄' || ((칸(x).상태 === '못감' || 칸(x).상태 === '못깸') && 글인가(칸(x).까닭))));
   return [
     ...(열린.length === 0 ? [] : [`열린 물음 ${열린.length}`]),
     ...(곳들.length === 0 ? ['갈 곳(STAGE) 줄이 없다'] : 안간.length === 0 ? [] : [`가 봤거나 못 가는 까닭이 안 적힌 곳 ${안간.length}`]),

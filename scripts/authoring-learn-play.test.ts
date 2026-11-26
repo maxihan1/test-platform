@@ -50,6 +50,8 @@ describe('맵 파악', () => {
     expect(맵빈곳([반맵, 줄('STAGE', 'stage:넷째 맵', { 상태: '못감', 까닭: '잠김' })] as never)).toEqual(['stage:셋째 맵']);
     expect(남은배울것(지도([반맵, 나아감줄]), '2026-11-26')).toEqual([`맵 ${맵종류.length}종류를 다 안 채운 곳 1`]);
     expect(남은배울것(지도([줄('STAGE', 'stage:셋째 맵', { 상태: '가봄', 장면: 'BossRoom3', 맵: 다맵 }), 나아감줄]), '2026-11-26', undefined, ['NavMesh Surface'])).toEqual(['지도에 안 적은 오브젝트 1(NavMesh Surface)']);
+    expect(남은배울것(지도([줄('STAGE', 'stage:셋째 맵', { 상태: '못깸', 까닭: '보스', 장면: 'BossRoom3', 맵: 다맵 }), 나아감줄]), '2026-11-26')).toEqual([]);
+    expect(맵빈곳([줄('STAGE', 'stage:셋째 맵', { 상태: '못깸', 까닭: '보스' })] as never)).toEqual(['stage:셋째 맵']);
   });
 
   it('다섯 번 안 늘어도 맵을 다 안 채운 곳이 있으면 배우기를 안 끝내고 그 곳을 채우라고 막는다', () => {
