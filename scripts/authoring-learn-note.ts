@@ -5,11 +5,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { 기획서종류 } from '../apps/admin/src/prd/gameKinds.js';
+import { type 배운것, 기획서종류 } from '../apps/admin/src/prd/gameKinds.js';
 import { 요소검사 } from '../apps/admin/src/prd/gameMap.js';
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자리, 요소상한, 지도상한 } from './authoring-game.js';
-import { 근거들, 적은줄들, 정리알림, 지금지도, 지도읽기 } from './authoring-game-find.js';
+import { 근거들, 얹기, 적은줄들, 정리알림, 지금지도, 지도읽기 } from './authoring-game-find.js';
+import { type 판기록, 계획읽기, 나아감자리, 나아감열쇠, 대봄검사, 판기록들, 회고기록이름 } from './authoring-learn-check.js';
+import { 회고채우기 } from './authoring-learn-retro.js';
 import { type 지도, 글자들, 빠진게임글 } from './authoring-learn-map.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -18,8 +20,47 @@ import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 const 만든종류 = (지금: 지도): Map<string, string[]> =>
   new Map(지금.줄들.filter((x) => x.kind === 'KIND' && x.learned !== null).map((x) => [x.key.slice('kind:'.length), 지금.줄들.filter((y) => y.kind === x.key.slice('kind:'.length)).map((y) => y.key)]));
 
+const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+
+/**
+ * 판 기록으로 대 본다 — 「확인」은 판 기록 전부에서 값을 읽어 맞아야(지도 검증), 회고 줄은 칸이 맞아야 받고 기록에서 읽은 것을 채운다,
+ * 계획 · 나아감 · 갈 곳 줄은 꼴을 본다. 틀리면 까닭 글. 회고 줄의 배운 것은 채운 것으로 바꾼다 (도메인/게임 §3.10 「지도 검증」 · 「회고」)
+ */
+function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 줄들: Record<string, unknown>[], 기록들: readonly 판기록[]): string | null {
+  const 지금 = 얹기(서버지도, 적은줄들(JSON.stringify({ elements: 앞 })));
+  const 이번 = new Map(줄들.map((x) => [x.key as string, x]));
+  const 찾기 = (k: string): { kind: string; key: string; learned: 배운것 } | undefined => {
+    const n = 이번.get(k);
+    if (n !== undefined) return n.learned === null ? undefined : { kind: n.kind as string, key: k, learned: n.learned as 배운것 };
+    const o = 지금.줄들.find((x) => x.key === k);
+    return o === undefined || o.learned === null ? undefined : { kind: o.kind, key: o.key, learned: o.learned };
+  };
+  for (const x of 줄들) {
+    const l = x.learned as 배운것 | null;
+    if (l === null || typeof l !== 'object') continue;
+    const 열쇠 = x.key as string;
+    if (l.belief === 'CONFIRMED' && x.kind !== 'KIND') {
+      const 걸림 = 대봄검사(l.data, 기록들);
+      if (걸림.length > 0) return `${열쇠} — 확인으로 못 받는다: ${걸림.slice(0, 5).join(' / ')}${걸림.length > 5 ? ` 외 ${걸림.length - 5}` : ''}. 덜 봄(SEEN)으로 적거나 모자란 조건으로 더 해 본다`;
+    }
+    if (x.kind === 'TRIAL' && 객체(l.data).볼값 !== undefined) {
+      const 계획 = 계획읽기(l.data);
+      if (typeof 계획 === 'string') return `${열쇠} — ${계획}`;
+    }
+    if (열쇠 === 나아감열쇠 && 나아감자리(l.data) === null) return `${열쇠} — data 에 얼마나 나아갔나를 읽을 자리를 { 주소, 칸? } 로 적는다(깬 맵 수 · 레벨 · 해금 수)`;
+    const 상태 = 객체(l.data).상태;
+    if (x.kind === 'STAGE' && 상태 !== undefined && !(상태 === '가봄' || 상태 === '안감' || (상태 === '못감' && typeof 객체(l.data).까닭 === 'string'))) return `${열쇠} — data.상태 는 가봄 · 안감 · 못감(그때는 data.까닭)이다`;
+    if (x.kind === 'PLAY' && 회고기록이름(열쇠) !== null) {
+      const 채운 = 회고채우기(열쇠, l, 찾기, 기록들);
+      if (typeof 채운 === 'string') return `${열쇠} — 회고로 못 받는다: ${채운}`;
+      x.learned = 채운;
+    }
+  }
+  return null;
+}
+
 /** 앞에 적은 줄에 합친다 — 같은 열쇠는 새것이 이긴다. 틀리면 까닭 글(아무것도 안 적는다 — 한 줄이 틀리면 서버가 통째로 거절한다) */
-export function 합치기(서버지도: 지도, 앞: readonly { key: string }[], 새: unknown): { elements: { key: string }[]; 수: number } | string {
+export function 합치기(서버지도: 지도, 앞: readonly { key: string }[], 새: unknown, 기록들: readonly 판기록[] = []): { elements: { key: string }[]; 수: number } | string {
   const 줄들 = (Array.isArray(새) ? 새 : [새]) as Record<string, unknown>[];
   for (const x of 줄들) {
     if (typeof x !== 'object' || x === null || typeof x.key !== 'string') return '줄마다 kind · key · name · learned 를 적는다';
@@ -27,6 +68,8 @@ export function 합치기(서버지도: 지도, 앞: readonly { key: string }[],
     // value 는 기획서 값이다 — 본 값은 learned.data 에 적는다
     if (Object.hasOwn(x, 'value')) return `${x.key} — value 는 기획서 값이라 싣지 않는다. 잰 값은 learned.data 에 적는다`;
   }
+  const 대본 = 기록대보기(서버지도, 앞, 줄들, 기록들);
+  if (대본 !== null) return 대본;
   const 합 = new Map(앞.map((e) => [e.key, e]));
   const 서버줄 = new Map(서버지도.줄들.map((x) => [x.key, x]));
   for (const x of 줄들) {
@@ -68,7 +111,7 @@ export function 실행(인자: string[], 입력: string, env: NodeJS.ProcessEnv 
     console.error('[배운 줄] 안 받음 — 테스트 계정 비밀번호가 들어 있다');
     return 1;
   }
-  const r = 합치기(지도읽기(지도글), 적은줄들(안전히읽기(자료, 게임자리.배운글, 요소상한)), 새);
+  const r = 합치기(지도읽기(지도글), 적은줄들(안전히읽기(자료, 게임자리.배운글, 요소상한)), 새, 판기록들(자료));
   if (typeof r === 'string') {
     console.error(`[배운 줄] 안 받음 — 아무것도 안 적었다: ${r}`);
     return 1;

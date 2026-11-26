@@ -20,6 +20,8 @@ export interface 작전 {
 export interface 판수 {
   이김: number;
   짐: number;
+  /** 첫 판을 시작할 때의 나아감 — 판마다 같은 출발점이어야 확인이다(레벨처럼 되돌릴 수 없는 게임은 이어서 쉽게 이긴다) */
+  출발?: number;
 }
 type 기록 = Record<string, 판수 & { 지문: string; 빌드: string }>;
 
@@ -63,7 +65,7 @@ function 기록읽기(자료: string): 기록 {
 export function 이긴판읽기(자료: string, 트리: string, 폴더: string, x: 작전): 판수 {
   const 앞 = 기록읽기(자료)[열쇠(폴더, x)];
   const 수 = (v: unknown): number => (typeof v === 'number' && Number.isInteger(v) && v > 0 ? v : 0);
-  return 앞 !== undefined && 앞.지문 === 작전지문(트리, 폴더, x.파일) && 앞.빌드 === (지금빌드(자료) ?? '') ? { 이김: 수(앞.이김), 짐: 수(앞.짐) } : { 이김: 0, 짐: 0 };
+  return 앞 !== undefined && 앞.지문 === 작전지문(트리, 폴더, x.파일) && 앞.빌드 === (지금빌드(자료) ?? '') ? { 이김: 수(앞.이김), 짐: 수(앞.짐), ...(typeof 앞.출발 === 'number' ? { 출발: 앞.출발 } : {}) } : { 이김: 0, 짐: 0 };
 }
 
 export function 이긴판적기(자료: string, 트리: string, 폴더: string, x: 작전, 판: 판수): void {

@@ -10,6 +10,8 @@ import { 부를준비 } from './authoring-game-play-call.js';
 import { 기록남기기 } from './authoring-game-play-log.js';
 import { type 조작결과, 돌린다 } from './authoring-game-play.js';
 import { type 판수, 다채웠나, 이긴판읽기, 이긴판적기, 채울판 } from './authoring-game-wins-log.js';
+import { 지금지도 } from './authoring-game-find.js';
+import { 나아감열쇠, 나아감자리 } from './authoring-learn-check.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 
 const 머리 = '[10판]';
@@ -21,8 +23,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 것 = await 부를준비('authoring-game-wins', 머리, 인자, 트리, env);
   if (것 === null) return 2;
   const { 폴더, 파일, 이름, 넘길, 초, 비밀들, 자료 } = 것;
-  if (것.화면초 !== undefined || 것.멈춤) {
-    console.error(`${머리} --shots · --freeze 는 못 쓴다 — 10판 확인은 원래 속도 · 같은 조건으로만 돈다`);
+  if (것.화면초 !== undefined || 것.멈춤 || 것.계획 !== undefined) {
+    console.error(`${머리} --shots · --freeze · --plan 은 못 쓴다 — 10판 확인은 원래 속도 · 같은 조건으로만 돈다`);
     return 2;
   }
   if (!자료) {
@@ -37,6 +39,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     console.log(`${끝말()} — 이 작전은 이미 졌다. 작전을 고치거나 시작 조건을 쉽게 맞춘 뒤(함수나 인자가 바뀌면 처음부터 센다) 다시 부른다`);
     return 1;
   }
+  // 나아감이 정해진 게임은 판마다 출발점이 같아야 센다(2026-11-26 사용자 — 스테이지 없는 게임은 「같은 출발점에서 열 번 다 목표 숫자」)
+  const 출발자리 = 나아감자리(지금지도(자료)?.줄들.find((x) => x.key === 나아감열쇠 && x.learned !== null)?.learned?.data) ?? undefined;
   const 끊기 = new AbortController();
   const 끊음 = (): void => 끊기.abort();
   process.once('SIGTERM', 끊음);
@@ -54,7 +58,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       }
       let r: 조작결과;
       try {
-        r = await 돌린다(길 ?? (await gameLink(것.환경)), 것.함수, 것.환경, 초 * 1000, 끊기.signal, { 자료 });
+        r = await 돌린다(길 ?? (await gameLink(것.환경)), 것.함수, 것.환경, 초 * 1000, 끊기.signal, { 자료, ...(출발자리 === undefined ? {} : { 출발: 출발자리 }) });
       } catch (e) {
         return 못셈(`게임에 못 붙었다(${e instanceof Error ? e.message : String(e)})`);
       }
@@ -69,6 +73,11 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       if (r.통신오류 !== null && (r.값 as { 이김?: unknown } | null | undefined)?.이김 !== true) return 못셈(`명령의 답을 못 받았다(${r.통신오류})`);
       const 이김 = r.오류 === undefined ? (r.값 as { 이김?: unknown } | null | undefined)?.이김 : false;
       if (typeof 이김 !== 'boolean') return 못셈('함수가 { 이김: true | false } 를 돌려주지 않았다');
+      if (출발자리 !== undefined) {
+        if (r.출발 === null || r.출발 === undefined) return 못셈('판을 시작할 때 나아감을 못 읽었다');
+        if (판.출발 !== undefined && r.출발 !== 판.출발) return 못셈(`출발점이 다르다(첫 판 나아감 ${판.출발} · 이 판 ${r.출발}) — 함수가 시작 조건부터 같은 자리로 맞춰야 한다. 되돌릴 수 없는 게임이면 이 작전은 미션에 못 쓴다`);
+        판 = { ...판, 출발: r.출발 };
+      }
       판 = 이김 ? { ...판, 이김: 판.이김 + 1 } : { ...판, 짐: 판.짐 + 1 };
       이긴판적기(자료, 트리, 폴더, 작전, 판);
       console.log(비밀가리기(`${머리} ${판.이김 + 판.짐}판째 ${이김 ? '이김' : `짐${r.오류 === undefined ? '' : `(${r.오류})`}`} · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json`}`, 비밀들));

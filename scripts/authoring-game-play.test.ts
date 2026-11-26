@@ -205,8 +205,8 @@ describe('조작 도우미 부르기', () => {
   });
 
   it('깃발 읽기 — --max · --shots · --freeze 를 떼고 틀린 값은 null', () => {
-    expect(깃발읽기(['g', 'play', '걷기'])).toEqual({ 남음: ['g', 'play', '걷기'], 초: 90, 멈춤: false });
-    expect(깃발읽기(['g', '--freeze', 'play', '--shots', '3', '걷기', '["W"]', '--max', '30'])).toEqual({ 남음: ['g', 'play', '걷기', '["W"]'], 초: 30, 화면초: 3, 멈춤: true });
+    expect(깃발읽기(['g', 'play', '걷기'])).toEqual({ 남음: ['g', 'play', '걷기'], 초: 90, 멈춤: false, 초준: false });
+    expect(깃발읽기(['g', '--freeze', 'play', '--shots', '3', '걷기', '["W"]', '--max', '30', '--plan', 'trial:가'])).toEqual({ 남음: ['g', 'play', '걷기', '["W"]'], 초: 30, 화면초: 3, 멈춤: true, 초준: true, 계획: 'trial:가' });
     expect(깃발읽기(['g', '--shots', '0'])).toMatchObject({ 화면초: 0 });
     expect([깃발읽기(['--shots', '-1']), 깃발읽기(['--shots', '가나']), 깃발읽기(['--shots', '301']), 깃발읽기(['--shots']), 깃발읽기(['--max', '9999']), 깃발읽기(['--max'])]).toEqual([null, null, null, null, null, null]);
   });

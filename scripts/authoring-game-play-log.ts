@@ -27,9 +27,12 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
   }
   if (!폴더인가(폴더)) return null;
   const 이름 = `${지금.toISOString().replace(/\D/g, '').slice(0, 17)}-${함수}`;
-  const { 화면, 도중화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, 나온것, ...남은 } = r;
+  const { 화면, 도중화면, 배율: _배율, 배율바꿈: _바꿈, 통신오류: _통신, 입력못놓음: _놓음, 나온것, 어긋난사진, 값기록, ...남은 } = r;
   // 펼친 글은 따로 읽기 좋은 파일로 — json 에는 어디서 무엇을 펼쳤나만
-  const 글 = 나온것 === undefined ? 남은 : { ...남은, 나온것: { ...나온것, 펼침: 나온것.펼침.map(({ 글: _글, ...x }) => x) } };
+  const 펼침뺌 = 나온것 === undefined ? 남은 : { ...남은, 나온것: { ...나온것, 펼침: 나온것.펼침.map(({ 글: _글, ...x }) => x) } };
+  // 어긋난 순간 사진 이름은 회고 줄이 기록에서 읽어 간다
+  const 사진이름 = 어긋난사진 === undefined || 값기록 === undefined || 값기록.어긋남 === null ? undefined : 어긋남파일이름(이름);
+  const 글 = 값기록 === undefined ? 펼침뺌 : { ...펼침뺌, 값기록: 사진이름 === undefined ? 값기록 : { ...값기록, 어긋남: { ...값기록.어긋남!, 사진: 사진이름 } } };
   try {
     let 날글: string;
     try {
@@ -40,6 +43,13 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
     // wx — 자식이 만든 링크를 따라 쓰지 않는다
     writeFileSync(join(폴더, `${이름}.json`), 비밀가리기(날글, 비밀들), { flag: 'wx' });
     if (화면 !== undefined) writeFileSync(join(폴더, `${이름}.jpg`), 화면, { flag: 'wx' });
+    if (사진이름 !== undefined) {
+      try {
+        writeFileSync(join(폴더, 사진이름), 어긋난사진!, { flag: 'wx' });
+      } catch (e) {
+        r.못한것.push(`${사진이름} 남기기: ${까닭(e)}`);
+      }
+    }
     if (나온것 !== undefined && 나온것.펼침.length > 0) {
       // 이 파일이 안 써져도 도중 화면은 남긴다
       try {
@@ -65,6 +75,22 @@ export function 기록남기기(자료: string | undefined, 함수: string, 인�
 
 export const 몇줄 = (머리: string, 줄들: readonly string[]): string[] =>
   줄들.length === 0 ? [] : [`${머리} ${줄들.length}줄`, ...줄들.slice(0, 찍을줄).map((x) => `  ${x.split('\n')[0]!.slice(0, 줄길이)}`), ...(줄들.length > 찍을줄 ? [`  … 나머지는 기록 파일에 있다`] : [])];
+
+/** 계획과 처음 어긋난 순간 사진의 파일 이름 */
+export const 어긋남파일이름 = (이름: string): string => `${이름}-어긋남.jpg`;
+
+/** 계획으로 해 본 줄 — 목표 · 처음 어긋난 때 · 화면 글자와 다른 값 · 회고를 적으라는 말 */
+function 계획줄(r: 조작결과, 기록: string | null): string[] {
+  const 기 = r.값기록;
+  if (기 === undefined) return [];
+  const 이름 = 기록 === null ? null : basename(기록);
+  const 어 = 기.어긋남;
+  return [
+    `계획 ${기.계획} — 볼값 ${기.때.length}번 읽음(${기.간격ms / 1000}초 간격)${어 === null ? ' · 기대와 어긋난 때 없음' : ` · 처음 어긋남 ${어.초.toFixed(0)}초 ${어.값이름} ${어.값} (기대 ${어.기대})${r.어긋난사진 === undefined || 이름 === null ? '' : ` · 그때 사진 ${어긋남파일이름(이름)}`}`}`,
+    ...(기.화면다름.length === 0 ? [] : [`화면 글자와 절반 넘게 다른 값: ${기.화면다름.join(' · ')} — 그 주소는 화면이 보여 주는 값이 아니다. 계획의 주소를 고친다`]),
+    ...(이름 === null ? [] : [`회고 줄 play:${이름} 을 적어야 다음 해 보기가 돈다(지침 「회고」)`]),
+  ];
+}
 
 /** 판 도중 새로 나와 펼친 것의 파일 이름 */
 export const 펼친파일이름 = (이름: string): string => `${이름}-새것.txt`;
@@ -101,4 +127,4 @@ function 새것줄(r: 조작결과, 기록: string | null): string[] {
 }
 
 /** 조작 함수를 부른 명령이 머리 줄 다음에 찍는 줄 — 도중 화면 · 새로 나온 것 · 멈춤 */
-export const 덧줄 = (r: 조작결과, 기록: string | null): string[] => [...도중화면줄(r, 기록), ...새것줄(r, 기록), ...멈춤줄(r)];
+export const 덧줄 = (r: 조작결과, 기록: string | null): string[] => [...계획줄(r, 기록), ...도중화면줄(r, 기록), ...새것줄(r, 기록), ...멈춤줄(r)];

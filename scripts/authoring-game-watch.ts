@@ -10,6 +10,9 @@ import { Game, type Link } from 'control-cli';
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
+import { 지금지도 } from './authoring-game-find.js';
+import { 판기록들 } from './authoring-learn-check.js';
+import { 계획없이초, 배우는중인가, 배움막기 } from './authoring-learn-retro.js';
 import { 기록남기기, 덧줄 } from './authoring-game-play-log.js';
 import { type 조작결과, 돌린다 } from './authoring-game-play.js';
 import { 정리알림 } from './authoring-game-find.js';
@@ -234,6 +237,13 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 것 = a.할일 === null ? null : await 부를준비('authoring-game-watch', '[지켜보기]', a.할일, 트리, env);
   if (a.할일 !== null && 것 === null) return 2;
   const 자료 = env[게임자료환경];
+  // 학습 세션의 지켜보기 --do 는 짧은 재기다 — 앞 회고가 없거나 60초를 넘기면 조작 도우미 --plan 으로 해 본다
+  const 할초 = 것 === null ? 0 : 배우는중인가(자료) && !것.초준 ? Math.min(것.초, 계획없이초) : 것.초;
+  const 막 = 것 === null ? null : 배움막기(자료, 할초, undefined, (자료 === undefined ? null : 지금지도(자료))?.줄들 ?? [], 자료 === undefined ? [] : 판기록들(자료));
+  if (막 !== null && '막음' in 막) {
+    console.error(`[지켜보기] ${막.막음}`);
+    return 2;
+  }
   let 비밀들: string[];
   try {
     비밀들 = 것?.비밀들 ?? 환경비밀번호들(env);
@@ -257,7 +267,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       보기 = 본다(new Game(연결), a, () => 그만, 본, 봤다);
       보기.then(봤다, 봤다);
     }), 쉼(거둠ms)]);
-    r = await 돌린다(연결, 것?.함수 ?? (() => 쉼(a.초 * 1000)), 환경, (것?.초 ?? a.초 + 5) * 1000, 끊기.signal, { 도중화면ms: (것?.화면초 ?? a.화면초) * 1000, 멈춤: 것?.멈춤, 자료 });
+    r = await 돌린다(연결, 것?.함수 ?? (() => 쉼(a.초 * 1000)), 환경, (것 === null ? a.초 + 5 : 할초) * 1000, 끊기.signal, { 도중화면ms: (것?.화면초 ?? a.화면초) * 1000, 멈춤: 것?.멈춤, 자료 });
     그만 = true;
     await Promise.race([보기, 쉼(거둠ms)]);
   } catch (e) {
