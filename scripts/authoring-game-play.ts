@@ -60,6 +60,8 @@ export interface 조작결과 {
   끝글?: 끝글줄[];
   /** 함수를 부르기 직전의 나아감(덧.출발을 줬을 때) — 못 읽으면 null */
   출발?: number | null;
+  /** 부르기 직전 · 도중에 바뀐 · 끝난 순간의 장면 이름 — 맵 정보는 본 장면에만 적는다(authoring-learn-play 맵검사) */
+  장면들?: string[];
 }
 
 export interface 덧 {
@@ -133,6 +135,9 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   await 세기?.준비;
   const 출발자리 = 덧?.출발;
   const 출발 = 출발자리 === undefined ? undefined : 수로(await 해본다('나아감 읽기', () => (출발자리.칸 === undefined ? 맨게임.text(출발자리.주소) : 맨게임.get(출발자리.주소, 출발자리.칸))));
+  // 옛 SDK 는 장면을 못 읽는다 — 못 읽어도 조작은 하고 못한것에도 안 적는다
+  const 장면읽기 = (): Promise<string | null> => 맨게임.scenes().then((x) => (typeof x.active === 'string' ? x.active : null), () => null);
+  const 첫장면 = await 장면읽기();
   const 읽기 = !돌릴까 || 덧?.볼 === undefined ? null : 값읽기시작(맨게임, 덧.볼.계획, 덧.볼.볼값, 덧.볼.기대, 시작);
   let 값: unknown;
   let 오류: string | undefined = 돌릴까 ? undefined : '멈춰 둔 게임을 못 풀어 함수를 부르지 않았다 — `npx control-cli -s=g timescale-set 1` 로 풀고 다시 부른다';
@@ -177,6 +182,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 트리 = await 해본다('끝 화면 글 읽기', () => 맨게임.tree());
   // 옛 SDK · 가짜 게임은 트리 꼴이 다를 수 있다 — 못 읽으면 끝 글 없이 간다
   const 끝글 = !Array.isArray(트리?.tree) ? undefined : flatten(트리.tree).flatMap((e) => (e.node.text === undefined || e.node.text === '' ? [] : [{ 주소: e.address, 경로: e.path, 글: e.node.text }]));
+  const 장면들 = [...new Set([첫장면, ...(셈?.나온?.장면바뀜.map((x) => x.장면) ?? []), await 장면읽기()].filter((x): x is string => x !== null))];
   const 화면 = await 해본다('화면 찍기', () => 맨게임.screenshot());
   process.off('unhandledRejection', 버려진);
   for (const [이름, 답] of [['게임 로그', 로그], ['게임 오류', 게임오류], ['알림', 알림]] as const) {
@@ -204,6 +210,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     ...(읽은 === undefined ? {} : { 값기록: 읽은.기록, ...(읽은.사진 === undefined ? {} : { 어긋난사진: 읽은.사진 }) }),
     ...(끝글 === undefined ? {} : { 끝글 }),
     ...(출발 === undefined ? {} : { 출발 }),
+    ...(장면들.length === 0 ? {} : { 장면들 }),
   };
 }
 

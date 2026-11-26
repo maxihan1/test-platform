@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type 세션거리, type 학습손, 못뜬것은끊김, 학습번호들, 학습하기 } from './authoring-learn.js';
 import { 배움올리기, 학습끝줄 } from './authoring-learn-io.js';
+import { 맵종류 } from './authoring-learn-play.js';
 import { 배울종류 } from './authoring-learn-map.js';
 import { 학습프롬프트 } from './authoring-learn-prompt.js';
 import type { 돌린결과 } from './authoring-spawn.js';
@@ -168,7 +169,7 @@ describe('학습하기 — 세션을 잇는다', () => {
     expect(vi.mocked(o.알린다).mock.calls.map((c) => c[0]).join('\n')).toMatch(/이어 돌린다[\s\S]*그친다/);
   });
 
-  it('이어 돌린 세션이 계획으로 해 봤으면 다시 이어 돌린다 · 다 배웠으면(열린 물음 0 · 갈 곳마다 가 봄 · 나아감 줄) 이어 돌리지 않는다', async () => {
+  it('이어 돌린 세션이 계획으로 해 봤으면 다시 이어 돌린다 · 다 배웠으면(열린 물음 0 · 갈 곳마다 가 봄 · 나아감 줄 · 가 본 곳의 맵) 이어 돌리지 않는다', async () => {
     const 해봄 = (): undefined => {
       mkdirSync(join(자료, 'game-play'), { recursive: true });
       쓰기('game-play/20261126000000001-판.json', { 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [], 어긋남: null, 화면다름: [] } });
@@ -177,7 +178,7 @@ describe('학습하기 — 세션을 잇는다', () => {
     await 학습하기(이음.o);
     expect(vi.mocked(이음.o.한번).mock.calls.map((c) => c[3] === true)).toEqual([false, true, true, true, false]);
     rmSync(join(자료, 'game-learn.json'));
-    const 곳 = { kind: 'STAGE', key: 'stage:첫 맵', name: '첫 맵', learned: { text: 'ㄱ', belief: 'SEEN', data: { 상태: '가봄' } } };
+    const 곳 = { kind: 'STAGE', key: 'stage:첫 맵', name: '첫 맵', learned: { text: 'ㄱ', belief: 'SEEN', data: { 상태: '가봄', 장면: 'Map1', 맵: Object.fromEntries(맵종류.map((k) => [k, { 없음: '메뉴만 있다' }])) } } };
     const 나아감 = { kind: 'GOAL', key: 'goal:나아감', name: '깬 맵 수', learned: { text: 'ㄱ', belief: 'SEEN', data: { 주소: 'ClearCount' } } };
     const 다 = 손([() => 적기(곳, 나아감), () => undefined]);
     await 학습하기(다.o);

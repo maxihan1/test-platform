@@ -11,6 +11,7 @@ import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임자리, 요소상한, 지도상한 } from './authoring-game.js';
 import { 근거들, 얹기, 적은줄들, 정리알림, 지금지도, 지도읽기 } from './authoring-game-find.js';
 import { type 판기록, 계획읽기, 나아감자리, 나아감열쇠, 대봄검사, 판기록들, 회고기록이름 } from './authoring-learn-check.js';
+import { 맵검사 } from './authoring-learn-play.js';
 import { 회고채우기 } from './authoring-learn-retro.js';
 import { type 지도, 글자들, 빠진게임글 } from './authoring-learn-map.js';
 import { 계정섞였나 } from './authoring-reverse.js';
@@ -50,6 +51,8 @@ function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 
     if (열쇠 === 나아감열쇠 && 나아감자리(l.data) === null) return `${열쇠} — data 에 얼마나 나아갔나를 읽을 자리를 { 주소, 칸? } 로 적는다(깬 맵 수 · 레벨 · 해금 수)`;
     const 상태 = 객체(l.data).상태;
     if (x.kind === 'STAGE' && 상태 !== undefined && !(상태 === '가봄' || 상태 === '안감' || (상태 === '못감' && typeof 객체(l.data).까닭 === 'string'))) return `${열쇠} — data.상태 는 가봄 · 안감 · 못감(그때는 data.까닭)이다`;
+    const 맵 = x.kind === 'STAGE' ? 맵검사(l.data, 기록들) : null;
+    if (맵 !== null) return `${열쇠} — ${맵}`;
     if (x.kind === 'PLAY' && 회고기록이름(열쇠) !== null) {
       const 채운 = 회고채우기(열쇠, l, 찾기, 기록들);
       if (typeof 채운 === 'string') return `${열쇠} — 회고로 못 받는다: ${채운}`;

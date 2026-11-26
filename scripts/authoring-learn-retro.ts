@@ -8,6 +8,7 @@ import { 게임자리 } from './authoring-game.js';
 import type { 지도줄 } from './authoring-game-find.js';
 import { 열린물음 } from './authoring-game-tree.js';
 import { type 기대, type 볼값, type 판기록, 가장큰, 계획읽기, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
+import { 맵빈곳, 맵종류 } from './authoring-learn-play.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 
 /** 계획 없이 돌릴 수 있는 길이 — 물음 하나를 짧게 재는 부르기. 그보다 길면 해 보기라 계획과 회고가 있어야 한다 */
@@ -92,8 +93,11 @@ export function 늚재기(자료: string, 줄들: readonly 줄[], 마지막기�
   return 안늚;
 }
 
-/** 다 배웠나 — 남은 것을 돌려준다(빈 목록이면 다 배움). 열린 물음 · 가 보거나 못 가는 까닭이 안 적힌 곳 · 나아감 줄 */
-export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<string, string> }, 오늘: string, 빌드?: string): string[] {
+/**
+ * 다 배웠나 — 남은 것을 돌려준다(빈 목록이면 다 배움). 열린 물음 · 가 보거나 못 가는 까닭이 안 적힌 곳 · 나아감 줄 · 맵을 다 안 채운 곳 ·
+ * 안적은(마지막 판에 나왔거나 장면 처음부터 있던 것 가운데 지도에 없는 이름 — 부르는 쪽이 authoring-game-play-gate 로 읽는다)
+ */
+export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<string, string> }, 오늘: string, 빌드?: string, 안적은: readonly string[] = []): string[] {
   const 열린 = 열린물음(지도, 오늘, 빌드);
   const 곳들 = 지도.줄들.filter((x) => x.kind === 'STAGE' && x.learned !== null && x.learned.belief !== 'OVERTURNED');
   const 안간 = 곳들.filter((x) => !(칸(x).상태 === '가봄' || (칸(x).상태 === '못감' && 글인가(칸(x).까닭))));
@@ -101,6 +105,8 @@ export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<strin
     ...(열린.length === 0 ? [] : [`열린 물음 ${열린.length}`]),
     ...(곳들.length === 0 ? ['갈 곳(STAGE) 줄이 없다'] : 안간.length === 0 ? [] : [`가 봤거나 못 가는 까닭이 안 적힌 곳 ${안간.length}`]),
     ...(나아감자리(칸(지도.줄들.find((x) => x.key === 나아감열쇠))) === null ? [`${나아감열쇠} 줄이 없다`] : []),
+    ...(맵빈곳(지도.줄들).length === 0 ? [] : [`맵 ${맵종류.length}종류를 다 안 채운 곳 ${맵빈곳(지도.줄들).length}`]),
+    ...(안적은.length === 0 ? [] : [`지도에 안 적은 오브젝트 ${안적은.length}(${안적은.slice(0, 5).join(' · ')})`]),
   ];
 }
 
@@ -129,6 +135,9 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
     return { 막음: `손만 고친 해 보기가 ${손상한}번 이어졌고 나아감이 안 늘었다 — 그 세 번이 쓴 계획(${손.계획들.join(' · ')})과 어디서(${손.어디서들.join(' · ') || '없음'})가 아닌 물음이나 곳으로 계획을 새로 적는다` };
   }
   if (늚재기(자료, 줄들, [...기록들].reverse().find((r) => r.값기록 !== undefined)?.이름 ?? null) >= 안늚상한) {
+    // 맵을 다 알기 전에는 안 끝낸다 — 게임플레이가 그 맵을 쓴다
+    const 빈 = 맵빈곳(줄들);
+    if (빈.length > 0) return { 막음: `${안늚상한}번 해 보는 동안 지도가 안 늘었다 — 맵을 다 안 채운 곳이 있어 배우기를 못 끝낸다: ${빈.join(' · ')}. 그 곳 STAGE 의 data.맵 ${맵종류.length}종류를 먼저 채운다(지침 「맵 파악」)` };
     새로쓰기(join(자료, 게임자리.그만), `${안늚상한}번 해 보는 동안 확인 줄 · 가 본 곳 · 나아감이 안 늘었다`);
     return { 막음: `${안늚상한}번 해 보는 동안 지도가 안 늘었다 — 배우기를 끝낸다. 쪽지를 고쳐 쓰고 「학습 끝」 한 줄만 쓰고 끝낸다` };
   }

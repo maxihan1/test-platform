@@ -8,6 +8,7 @@ import type { 띄운결과 } from './authoring-explore.js';
 import { 게임자리, 요소상한 } from './authoring-game.js';
 import { 적은줄들, 지금지도 } from './authoring-game-find.js';
 import { 멈춤표시읽기, 멈춤표시지우기 } from './authoring-game-freeze.js';
+import { 안적은새것 } from './authoring-game-play-gate.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
 import { 배우는중에, 배우는중지우기, 배움올리기, 상태쓰기, 상태읽기, 케이스시작적기 } from './authoring-learn-io.js';
 import { 물음트리, 오늘글 } from './authoring-game-tree.js';
@@ -213,7 +214,8 @@ async function 배우고(o: 학습손): Promise<학습결과> {
         o.알린다(`게임 학습을 끝낸다 — ${그만}`);
         break;
       }
-      const 남은것 = 지금지도(o.자료) === null ? [] : 남은배울것(지금지도(o.자료)!, 오늘글(지금()), 빌드);
+      const 안적은 = 안적은새것(o.자료, false);
+      const 남은것 = 지금지도(o.자료) === null ? [] : 남은배울것(지금지도(o.자료)!, 오늘글(지금()), 빌드, 안적은 === null ? [] : [...안적은.이름들, ...안적은.처음]);
       if (남은것.length === 0) break;
       헛이음 = 해본수() > 앞판 ? 0 : 헛이음 + 1;
       if (헛이음 >= 헛이음상한) {
