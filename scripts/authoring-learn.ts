@@ -1,4 +1,5 @@
-// 게임 배우기 — 케이스를 쓰기 전에 2시간 동안 학습 세션을 이어 띄워 게임을 배우고, 지도만 본 새 세션이 시험을 본다 (도메인/게임 §3.10 「게임 배우기」 · GAME-F6-03)
+// 게임 배우기 — 케이스를 쓰기 전에 학습 세션을 이어 띄워 게임을 배우고, 지도만 본 새 세션이 시험을 본다 (도메인/게임 §3.10 「게임 배우기」 · GAME-F6-03)
+// 언제 끝낼지는 에이전트만 정한다 — AI 에게 시각을 보여 줬더니 마감을 어림해 48분 남기고 스스로 끝냈다(2026-11-26 다섯 번째 실측)
 // 세션끼리는 대화를 넘기지 않는다 — 세션이 끝날 때마다 배운 줄을 올리고 지도를 다시 받아 다음 세션이 지도만 이어받는다
 import { lstatSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -7,27 +8,28 @@ import type { 띄운결과 } from './authoring-explore.js';
 import { 게임자리, 요소상한 } from './authoring-game.js';
 import { 적은줄들, 지금지도 } from './authoring-game-find.js';
 import { 멈춤표시읽기, 멈춤표시지우기 } from './authoring-game-freeze.js';
-import type { 돌린결과 } from './authoring-io.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
 import { 배우는중에, 배우는중지우기, 배움올리기, 상태쓰기, 상태읽기, 케이스시작적기 } from './authoring-learn-io.js';
 import { 물음트리, 오늘글 } from './authoring-game-tree.js';
 import { type 배울것, 배울것고르기, 배울것없나, 쪽지글, 쪽지열쇠 } from './authoring-learn-map.js';
+import { 판기록들 } from './authoring-learn-check.js';
+import { 인수인계 } from './authoring-learn-handoff.js';
+import { 남은배울것 } from './authoring-learn-retro.js';
+import { type 세션거리, type 학습결과, type 학습손, 못뜬것은끊김, 이음글 } from './authoring-learn-tail.js';
 import { 끝낼상태 } from './authoring-progress.js';
 import { 계정섞였나 } from './authoring-reverse.js';
-import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
+import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 import { 컨텍스트크기 } from './authoring-usage.js';
 
 const 분 = 60_000;
-// 2026-11-25 사용자가 정한 값 — 물음이 떨어져도 시간을 다 쓴다(배운 것으로 판을 더 깨 나간다). 세션은 컨텍스트 60% 에서만 바꾼다
+// 앱 배우기만 쓰는 총 시간 — 게임 배우기는 2026-11-26 사용자가 2시간 한도를 없앴다. 세션은 컨텍스트 60% 에서만 바꾼다
 const 총_ms = 120 * 분;
-/** 2시간 가운데 시험 몫 — 네 번째 실측의 시험이 10분이었다 */
+/** 시험 · 틀린 줄 다시 배우기 한 세션 — 에이전트만 안다(AI 에게 안 보인다). 네 번째 실측의 시험이 10분이었다 */
 const 시험_ms = 15 * 분;
 /** 이어 작성 · 반영 — 고친 요구에 닿는 줄만 한 세션 */
 const 부분_ms = 30 * 분;
-/** 시험 · 틀린 줄 다시 배우기는 이보다 길게 돌지 않는다 — 배우기가 일찍 그쳐 시간이 많이 남아도 디바이스를 다 쥐지 않게 */
-const 시험최대_ms = 30 * 분;
-/** 틀린 줄 다시 배우기는 디바이스를 쥔 채라 짧아도 잰다 — 최소 10분이면 시험 몫 15분에서 거의 안 뜬다 */
-const 다시최소_ms = 5 * 분;
+/** AI 가 스스로 끝낸 세션을 이어 돌렸는데 해 본 것이 없는 일이 이만큼 이어지면 그친다 — 디바이스 · 게임이 막혀 헛돈다 */
+const 헛이음상한 = 2;
 /** 작성 모델의 컨텍스트 창 — 네 번째 실측의 케이스 세션이 76만까지 갔다 */
 const 컨텍스트창 = 1_000_000;
 const 정리토큰 = 컨텍스트창 * 0.55;
@@ -41,55 +43,8 @@ const 최소_ms = 10 * 분;
 /** 앱 배우기도 같은 시간 · 교대 값을 쓴다 (도메인/작성 §3.6 「★ 앱 배우기」 「배우기 세션」) */
 export const 학습값 = { 총_ms, 부분_ms, 정리토큰, 교대토큰, 빈손상한, 정리앞_ms, 최소_ms } as const;
 
-export type 한번결과 = { 돌린것: 돌린결과; 크레딧으로: boolean; 앞낸것: string | null };
-
-/** 세션 하나에 주는 재료 — 프롬프트는 부르는 쪽이 짓는다(authoring-learn-prompt) */
-export type 세션거리 =
-  /** 멈춤 — 앞 세션이 조작 도우미 `--freeze` 로 판을 멈춘 채 끝났다(authoring-game-freeze) */
-  | { 시험: true; 남은분: number; 빌드?: string; 놓음: boolean; 멈춤?: true }
-  /** 틀림 — 시험에서 틀린 줄만 다시 배운다 */
-  /** 쪽지 — 앞 AI 가 지도에 남긴 말(authoring-game-tree `쪽지열쇠`) · 트리 — 열린 물음이 어디서 나왔나(authoring-game-tree) */
-  | { 시험?: undefined; 배울것: 배울것; 남은분: number; 빌드?: string; 놓음: boolean; 못올림: string[]; 부분: boolean; 차례: number; 틀림?: true; 쪽지?: string; 트리?: readonly string[]; 멈춤?: true };
-
-export interface 학습손 {
-  통로: 화면통로;
-  자료: string;
-  비밀: readonly string[];
-  /** 이어 작성 · 반영이면 맡은 요구 번호 — 그 요구에 닿는 줄만 30분 한 세션 */
-  번호들?: readonly string[];
-  /** 디바이스를 잡을 길이 없으면 까닭 — 학습을 안 한다 */
-  못함: string | null;
-  빌드: () => Promise<string | undefined>;
-  프롬프트: (거리: 세션거리) => string;
-  /** 글은 띄울 때마다 짓는다 — 크레딧이 도중에 떨어져 구독으로 이어 띄우면 쥔 디바이스 · 남은 시간이 첫 자식 때와 다르다 */
-  한번: (글짓기: () => string, 끊기: AbortSignal, 먹기: (줄: string) => void) => Promise<한번결과>;
-  /** 앞 작성이 배운 조작 도우미를 트리에 가져온다 — 처음 배울 때 한 번만 부른다 */
-  도우미가져오기: () => void;
-  /** 앞 자식이 남긴 프로세스를 거둔다 — 디바이스는 쥔 채다 */
-  거두기: () => Promise<boolean>;
-  늘리기: () => () => void;
-  /** 지금 디바이스를 쥐고 있나(잡기 기록) */
-  쥐었나: () => boolean;
-  놓기: () => Promise<void>;
-  /** 디바이스를 기다리는 정식 실행이 있나 — 있으면 다음 세션 앞에서 놓는다 */
-  양보: () => Promise<boolean>;
-  /** 비켜 준 뒤 다시 빌 때까지 기다린다 — 거짓이면 안 비었다 */
-  빈것기다리기: () => Promise<boolean>;
-  멈추라했다: () => boolean;
-  알린다: (글: string) => void;
-  지금?: () => number;
-}
-
-export interface 학습결과 {
-  /** 있으면 작성을 이것으로 끝낸다(사람 멈춤 · 끊김 · 못 띄움) — 폴더가 남아 이어하기가 학습부터 잇는다 */
-  끝?: 띄운결과;
-  /** 학습 자식들의 출력 — 토큰을 다 더해 알린다 */
-  앞낸것: string[];
-}
-
-/** 앞에 돈 학습 자식이 있는데 다음 자식이 못 떴다 — 실패로 끝내면 배운 폴더와 토큰을 잃어 끊김(코드 1)으로 바꾼다(탐색 세션과 같다) */
-export const 못뜬것은끊김 = (돌린것: 돌린결과, 앞낸것: readonly string[]): 돌린결과 =>
-  앞낸것.length > 0 && 돌린것.코드 === null && !돌린것.시간초과 && !돌린것.멈춤으로죽음 ? { ...돌린것, 코드: 1 } : 돌린것;
+export type { 한번결과, 세션거리, 학습손, 학습결과 } from './authoring-learn-tail.js';
+export { 못뜬것은끊김 } from './authoring-learn-tail.js';
 
 /** 건너뛰었어도 끝에 케이스 시작을 적는다 — 게임 규칙 보류가 대는 판 기록은 이 뒤 것이어야 한다 */
 export const 학습하기 = (o: 학습손): Promise<학습결과> => 배우고(o).finally(() => 케이스시작적기(o.자료, (o.지금 ?? Date.now)()));
@@ -99,6 +54,8 @@ async function 배우고(o: 학습손): Promise<학습결과> {
   // 앞 실행이 남긴 「정리하라」 알림이 케이스를 쓰는 세션의 찾기 명령에 찍히지 않게 — 배우지 않는 길에서도 지운다
   const 알림지우기 = (): void => rmSync(join(o.자료, 게임자리.학습알림), { force: true });
   알림지우기();
+  // 「다섯 번 안 늚」은 이번 실행에서 다시 센다
+  rmSync(join(o.자료, 게임자리.그만), { force: true });
   // 앞 실행이 끊겨 남긴 표시가 케이스를 쓰는 세션의 판을 막지 않게
   배우는중지우기(o.자료);
   const 지금 = o.지금 ?? Date.now;
@@ -129,10 +86,12 @@ async function 배우고(o: 학습손): Promise<학습결과> {
   const 총 = 부분 ? 부분_ms : 총_ms;
   let 못올림: string[] = [];
   const 남은 = (): number => 총 - 상태.쓴ms;
-  const 배움남은 = (): number => 남은() - (부분 ? 0 : 시험_ms);
-  const 시험제한 = (): number => Math.min(시험최대_ms, 남은());
+  // 다 배우는 세션은 한도가 없다 — 컨텍스트 교대와 끝 조건으로만 끝난다
+  const 배움남은 = (): number => (부분 ? 남은() : Infinity);
+  const 시험제한 = (): number => 시험_ms;
 
-  type 세션끝 = { 열쇠수: number } | { 끝: 띄운결과 } | { 못잡음: true };
+  /** 스스로 — AI 가 스스로 끝냈다(컨텍스트 교대 · 마감으로 끊긴 것이 아니다) */
+  type 세션끝 = { 열쇠수: number; 스스로: boolean } | { 끝: 띄운결과 } | { 못잡음: true };
 
   /** 놓으면 그 게임은 꺼진다 — 멈춰 둔 표시가 남으면 다음에 잡은 게임이 스스로 멈춘 화면을 풀어 버린다 */
   const 놓는다 = async (): Promise<void> => {
@@ -143,7 +102,7 @@ async function 배우고(o: 학습손): Promise<학습결과> {
   const 멈춤 = (): { 멈춤?: true } => (o.쥐었나() && 멈춤표시읽기(o.자료) !== null ? { 멈춤: true } : {});
 
   /** 세션 하나 — 마감 · 컨텍스트에서 끊고, 적은 줄을 올린다. 작성을 끝내야 하면 띄운결과 */
-  const 한세션 = async (거리: (남은분: number) => 세션거리, 제한재기: () => number): Promise<세션끝> => {
+  const 한세션 = async (거리: (남은분: number) => 세션거리, 제한재기: () => number, 이음?: string): Promise<세션끝> => {
     // 다음 세션을 띄울 때만 묻는다 — 다 배웠으면 어차피 놓는다. 기다린 시간은 배운 시간에 안 넣는다
     if (앞낸것.length > 0 && o.쥐었나() && (await o.양보())) {
       o.알린다('PC 를 기다리는 정식 실행이 있어 비켜 준다 — 다시 비면 배운 조작 도우미로 그 자리까지 가서 잇는다');
@@ -161,8 +120,9 @@ async function 배우고(o: 학습손): Promise<학습결과> {
       }
     };
     const 끊기 = new AbortController();
-    const 정리때 = setTimeout(() => 알림('세션 끝까지 5분 남았다 — 하던 것을 적고 쪽지(`play:쪽지`)를 고쳐 쓴 뒤 끝낸다'), Math.max(0, 제한 - 정리앞_ms));
-    const 마감 = setTimeout(() => 끊기.abort(), 제한);
+    // 한도 없는 배우기 세션은 컨텍스트로만 끊는다 — 남은 시간을 알리면 AI 가 그것으로 끝을 어림한다
+    const 정리때 = Number.isFinite(제한) ? setTimeout(() => 알림('곧 세션을 끊는다 — 하던 것을 적고 쪽지(`play:쪽지`)를 고쳐 쓴 뒤 끝낸다'), Math.max(0, 제한 - 정리앞_ms)) : undefined;
+    const 마감 = Number.isFinite(제한) ? setTimeout(() => 끊기.abort(), 제한) : undefined;
     let 알렸나 = false;
     const 먹기 = (줄: string): void => {
       const 크기 = 컨텍스트크기(줄);
@@ -178,9 +138,9 @@ async function 배우고(o: 학습손): Promise<학습결과> {
       // 이어 띄운 자식은 컨텍스트가 새것이다
       알림지우기();
       알렸나 = false;
-      return o.프롬프트(거리(Math.max(1, Math.round((제한 - (지금() - 시작)) / 분))));
+      return 이음 ?? o.프롬프트(거리(Number.isFinite(제한) ? Math.max(1, Math.round((제한 - (지금() - 시작)) / 분)) : 0));
     };
-    const r = await o.한번(글짓기, 끊기.signal, 먹기).finally(() => (clearTimeout(정리때), clearTimeout(마감)));
+    const r = await o.한번(글짓기, 끊기.signal, 먹기, 이음 !== undefined).finally(() => (clearTimeout(정리때), clearTimeout(마감)));
     상태.쓴ms += 지금() - 시작;
     const 끝으로 = (돌린것 = r.돌린것): { 끝: 띄운결과 } => ({ 끝: { ...r, 돌린것, 앞낸것: r.앞낸것 === null ? [] : [r.앞낸것] } });
     if (!(await o.거두기())) return 끝으로();
@@ -198,7 +158,7 @@ async function 배우고(o: 학습손): Promise<학습결과> {
     o.알린다(`게임 학습 세션 ${상태.세션} 끝(${r.돌린것.마감으로끊김 === true ? '마감' : '스스로 끝냄'} · 지금까지 ${Math.round(상태.쓴ms / 분)}분) — 지도에 올린 줄 ${올림.열쇠.length}`);
     // 쪽지는 배운 줄이 아니다 — 세션마다 고쳐 쓰는 줄이라 이것까지 세면 「한 줄도 못 배운 세션이 두 번 이어지면 그친다」가 안 걸린다
     const 배운수 = (열쇠들: readonly string[]): number => 열쇠들.filter((k) => k !== 쪽지열쇠).length;
-    return { 열쇠수: 배운수(올림.열쇠) + (올림.못올림.length > 0 ? 배운수(적은줄들(안전히읽기(o.자료, 게임자리.배운글, 요소상한)).map((e) => e.key)) : 0) };
+    return { 스스로: r.돌린것.마감으로끊김 !== true, 열쇠수: 배운수(올림.열쇠) + (올림.못올림.length > 0 ? 배운수(적은줄들(안전히읽기(o.자료, 게임자리.배운글, 요소상한)).map((e) => e.key)) : 0) };
   };
   // 글을 지을 때마다 읽는다 — 크레딧이 떨어져 이어 띄운 자식도 방금 적힌 쪽지를 받는다(아직 안 올린 줄도 얹혀 온다)
   const 쪽지 = (): { 쪽지?: string } => {
@@ -211,29 +171,54 @@ async function 배우고(o: 학습손): Promise<학습결과> {
     const 줄 = 지도 === null ? [] : 물음트리(지도, 오늘글(지금()), 빌드);
     return 줄.length === 0 ? {} : { 트리: 줄 };
   };
-  const 배우기 = (b: 배울것, 틀림?: true): Promise<세션끝> =>
-    배우는중에(o.자료, () => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? 트리() : { 틀림 }), ...쪽지(), ...멈춤() }), 틀림 === undefined ? 배움남은 : 시험제한), 지금());
+  // 앞 세션이 해 본 것 · 회고 · 계획을 기계가 모아 쪽지 위에 둔다 — 첫 세션은 모을 것이 없다
+  const 인수 = (): { 인수?: string[] } => {
+    const 지도 = 상태.세션 === 0 || 부분 ? null : 지금지도(o.자료);
+    const 줄 = 지도 === null ? [] : 인수인계(지도, 판기록들(o.자료), 오늘글(지금()), 빌드);
+    return 줄.length === 0 ? {} : { 인수: 줄 };
+  };
+  const 배우기 = (b: 배울것, 틀림?: true, 이음?: string): Promise<세션끝> =>
+    배우는중에(o.자료, () => 한세션((남은분) => ({ 배울것: b, 남은분, ...(빌드 === undefined ? {} : { 빌드 }), 놓음: !o.쥐었나(), 못올림, 부분, 차례: 상태.세션 + 1, ...(틀림 === undefined ? 트리() : { 틀림 }), ...인수(), ...쪽지(), ...멈춤() }), 틀림 === undefined ? 배움남은 : 시험제한, 이음), 지금());
+  /** 계획으로 해 본 수 — 이어 돌린 세션이 해 본 것이 있나 본다 */
+  const 해본수 = (): number => 판기록들(o.자료).filter((r) => r.값기록 !== undefined).length;
   const 끝내며 = (끝: 띄운결과): 학습결과 => ({ 끝: { ...끝, 돌린것: 못뜬것은끊김(끝.돌린것, 앞낸것) }, 앞낸것 });
 
   const 늘리기끄기 = o.늘리기();
   try {
-    let 빈손 = 0;
-    // 물음이 떨어져도 그치지 않는다 — 배운 것으로 판을 더 깨 나가면 다음 스테이지에서 새 물음이 나온다(2026-11-25 사용자)
-    for (let b: 배울것 | null = 처음; b !== null && 상태.시험 === undefined && (!부분 || (상태.세션 < 1 && !배울것없나(b))) && 배움남은() >= 최소_ms; b = 볼것()) {
-      const r = await 배우기(b);
+    // 끝은 에이전트가 정한다(2026-11-26 사용자) — 다 배웠거나(열린 물음 0 · 갈 곳마다 가 봄이나 못 가는 까닭) 다섯 번 해 보는 동안 안 늘었을 때.
+    // AI 가 그 전에 스스로 끝내면 같은 세션을 이어 돌린다. 컨텍스트 60% 에서 끊긴 세션은 새 세션이 인수인계로 잇는다
+    let 이음: string | undefined;
+    let 헛이음 = 0;
+    for (let b: 배울것 | null = 처음; b !== null && 상태.시험 === undefined && (!부분 || (상태.세션 < 1 && !배울것없나(b) && 배움남은() >= 최소_ms)); b = 볼것()) {
+      const 앞판 = 해본수();
+      const r = await 배우기(b, undefined, 이음);
       if ('끝' in r) return 끝내며(r.끝);
       if ('못잡음' in r) {
         상태.시험 = '시험을 못 봄(정식 실행에 비켜 준 PC 가 다시 비지 않음)';
         break;
       }
-      빈손 = r.열쇠수 === 0 ? 빈손 + 1 : 0;
-      if (빈손 >= 빈손상한) break;
+      이음 = undefined;
+      if (부분 || !r.스스로) continue;
+      const 그만 = 안전히읽기(o.자료, 게임자리.그만, 1_000)?.trim();
+      if (그만 !== undefined && 그만 !== '') {
+        o.알린다(`게임 학습을 끝낸다 — ${그만}`);
+        break;
+      }
+      const 남은것 = 지금지도(o.자료) === null ? [] : 남은배울것(지금지도(o.자료)!, 오늘글(지금()), 빌드);
+      if (남은것.length === 0) break;
+      헛이음 = 해본수() > 앞판 ? 0 : 헛이음 + 1;
+      if (헛이음 >= 헛이음상한) {
+        o.알린다(`게임 학습을 그친다 — 스스로 끝낸 세션을 ${헛이음상한}번 이어 돌렸는데 계획으로 해 본 것이 없다(남은 것: ${남은것.join(' · ')})`);
+        break;
+      }
+      o.알린다(`AI 가 스스로 끝냈지만 아직 남았다 — 같은 세션을 이어 돌린다(${남은것.join(' · ')})`);
+      이음 = 이음글(남은것);
     }
     if (!부분 && 상태.시험 === undefined) {
       const 틀린 = await 시험보기();
       if ('끝' in 틀린) return 끝내며(틀린.끝);
       // 틀린 줄만 — 나머지 궁금한 것은 다음 작성이 이어 배운다(2026-11-25 사용자)
-      if (틀린.열쇠.length > 0 && 남은() >= 다시최소_ms) {
+      if (틀린.열쇠.length > 0) {
         const r = await 배우기({ 빈종류: [], 궁금: 틀린.열쇠, 안잰글: [], 안써봄: [], 빌드다름: [], 게임글: [], 번호: [] }, true);
         if ('끝' in r) return 끝내며(r.끝);
       }
@@ -258,8 +243,8 @@ async function 배우고(o: 학습손): Promise<학습결과> {
   /** 지도만 본 새 세션 — 첫 판을 끝까지 가 보고, 확인된 줄의 값을 먼저 적고 재서 맞힌다. 틀린 줄은 「덜 봄」으로 내린다 */
   async function 시험보기(): Promise<{ 열쇠: string[] } | { 끝: 띄운결과 }> {
     const 지도 = 지금지도(o.자료);
-    if (지도 === null || 남은() < 최소_ms) {
-      상태.시험 = '시험을 못 봄(배우는 데 시간을 다 씀)';
+    if (지도 === null) {
+      상태.시험 = '시험을 못 봄(지도를 못 읽음)';
       return { 열쇠: [] };
     }
     const 감들 = 시험감고르기(지도);
@@ -290,11 +275,4 @@ async function 배우고(o: 학습손): Promise<학습결과> {
   }
 }
 
-export interface 학습대상 {
-  반영?: { 다시씀: readonly { 번호: string }[]; 새항목: readonly string[] };
-  이어작성?: { 남은: readonly string[] };
-}
-
-/** 이어 작성 · 반영이 맡은 요구 번호 — 첫 작성 · 대조 · 화면만은 undefined(전체를 배운다) */
-export const 학습번호들 = (x: 학습대상): string[] | undefined =>
-  x.반영 !== undefined ? [...x.반영.다시씀.map((y) => y.번호), ...x.반영.새항목] : x.이어작성 !== undefined ? [...x.이어작성.남은] : undefined;
+export { 이음글, 학습번호들, type 학습대상 } from './authoring-learn-tail.js';
