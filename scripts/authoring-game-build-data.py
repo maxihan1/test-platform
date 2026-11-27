@@ -128,6 +128,24 @@ def 스크립트찾기(o, 파일들, 캐시):
     return d, 캐시[열쇠]
 
 
+def 애셋이름(af, pid):
+    """꺼낸 묶음 밖 오브젝트의 이름 — 게임 오브젝트면 그 이름, 컴포넌트면 붙은 게임 오브젝트 이름, 그 밖은 자기 이름(Material 따위).
+    출현 목록(MonsterSpawnData.Monster)은 프리팹을 가리켜 번호만으로는 어떤 악마가 나오나 못 읽었다(2026-11-27 16059 이름 없는 참조 348 중 243)"""
+    try:
+        x = af.objects.get(pid)
+        if x is None:
+            return None
+        d = x.read_typetree(check_read=False)
+        g = d.get('m_GameObject')
+        if x.type.name != 'GameObject' and isinstance(g, dict) and g.get('m_FileID') == 0 and g.get('m_PathID'):
+            x = af.objects.get(g['m_PathID'])
+            d = None if x is None else x.read_typetree(check_read=False)
+            return None if d is None or not d.get('m_Name') else 'GameObject/' + d['m_Name']
+    except Exception:
+        return None
+    return x.type.name + '/' + d['m_Name'] if isinstance(d.get('m_Name'), str) and d['m_Name'] else None
+
+
 def 참조해석기(o, 파일들, 자리표):
     # fileID 0 은 같은 파일, 1 부터는 externals 의 파일 — 스크립트찾기와 같은 방식으로 파일을 찾는다
     def 해석(fid, pid):
@@ -135,13 +153,18 @@ def 참조해석기(o, 파일들, 자리표):
             af = o.assets_file if fid == 0 else 파일들.get(os.path.basename(o.assets_file.externals[fid - 1].path))
         except (IndexError, AttributeError):
             return None
-        return None if af is None else 자리표.get((id(af), pid))
+        if af is None:
+            return None
+        열쇠 = (id(af), pid)
+        if 열쇠 not in 자리표:
+            자리표[열쇠] = 애셋이름(af, pid)
+        return 자리표[열쇠]
     return 해석
 
 
 def 참조이어주기(값, 해석):
     """`{m_FileID, m_PathID}` 번호만 있는 칸에 가리키는 데이터 묶음 오브젝트의 `이름`(클래스/이름)을 단다 — 번호만으로는 ItemDropData 가 무엇인지 못 읽는다.
-    해석(fileID, pathID) 이 이름을 돌려주면 단다(번호는 남긴다). 꺼낸 묶음 밖(프리팹 · 그림 따위)을 가리키면 None 이라 번호만 남는다"""
+    해석(fileID, pathID) 이 이름을 돌려주면 단다(번호는 남긴다). 못 읽으면 None 이라 번호만 남는다(꺼낸 묶음 밖은 애셋이름 이 읽는다)"""
     if isinstance(값, dict):
         if set(값) == {'m_FileID', 'm_PathID'}:
             if 값['m_PathID'] != 0:
@@ -301,6 +324,30 @@ def 자체검사():
     밖파일 = object()
     해석 = 참조해석기(가짜오브젝트(), {'globalgamemanagers.assets': 밖파일}, {(id(가짜오브젝트.assets_file), 5): 'A/a', (id(밖파일), 6): 'B/b'})
     assert 해석(0, 5) == 'A/a' and 해석(1, 6) == 'B/b' and 해석(2, 6) is None and 해석(0, 6) is None, '참조 해석기'
+
+    class 종류:
+        def __init__(self, name):
+            self.name = name
+    class 읽을것:
+        def __init__(self, 종류이름, 트리):
+            self.type, self.트리 = 종류(종류이름), 트리
+        def read_typetree(self, check_read=False):
+            return self.트리
+    class 프리팹파일:
+        externals = []
+        objects = {
+            10: 읽을것('GameObject', {'m_Name': 'B3_MonsterGhost_Wave1'}),
+            11: 읽을것('MonoBehaviour', {'m_GameObject': {'m_FileID': 0, 'm_PathID': 10}, 'm_Name': ''}),
+            12: 읽을것('Material', {'m_Name': 'Ghost_Mat'}),
+            13: 읽을것('Transform', {'m_GameObject': {'m_FileID': 0, 'm_PathID': 99}}),
+        }
+    class 프리팹오브젝트:
+        assets_file = 프리팹파일()
+    해석 = 참조해석기(프리팹오브젝트(), {}, {})
+    assert 해석(0, 10) == 'GameObject/B3_MonsterGhost_Wave1', '게임 오브젝트(프리팹)를 가리키면 그 이름 — MonsterSpawnData.Monster'
+    assert 해석(0, 11) == 'GameObject/B3_MonsterGhost_Wave1', '컴포넌트를 가리키면 붙은 게임 오브젝트 이름'
+    assert 해석(0, 12) == 'Material/Ghost_Mat', '자기 이름이 있는 애셋은 그 이름'
+    assert 해석(0, 13) is None and 해석(0, 77) is None, '게임 오브젝트를 못 찾거나 없는 번호면 번호만'
 
     대상 = tempfile.mkdtemp(prefix='build-data-check-')
     try:
