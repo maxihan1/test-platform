@@ -8,7 +8,7 @@ export { type 원, 원안길이 } from './authoring-game-sim-geo.js';
 
 export type { 점 } from './authoring-game-sim-input.js';
 /** 엔진이 바뀌면 올린다 — 게이트가 다른 엔진으로 낸 시뮬 줄을 다시 돌리게 */
-export const 엔진판 = 1;
+export const 엔진판 = 2;
 export const 칸초 = 0.1;
 export const 예상간격초 = 2;
 /** 이만큼 흘러도 안 끝나면 짐으로 끊는다 — 적이 기절만 되풀이하는 입력이 끝나지 않게 */
@@ -111,13 +111,13 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       const 먹 = m.설치물종류[대상!]!.유지!.먹이!;
       const 고른 = 탑들.filter((x) => x.종류 === 대상 && 유지받나(x) && x.유지 < m.설치물종류[x.종류]!.유지!.체력).sort((a, b) => a.유지 - b.유지 || 거리(a.자리, 캐자리) - 거리(b.자리, 캐자리))[0];
       if (고른 === undefined || 재화 < 먹.값) return null;
-      return { 자리: 고른.자리, 기록: 기(고른.자리), 손초: 먹.초, 효과: () => { if (재화 < 먹.값 || !탑들.includes(고른)) return false; 재화 -= 먹.값; 고른.유지 = Math.min(m.설치물종류[고른.종류]!.유지!.체력, 고른.유지 + 먹.양); return true; } };
+      return { 자리: 고른.자리, 기록: 기(고른.자리), 손초: 먹.초, 효과: () => { if (재화 < 먹.값 || !탑들.includes(고른) || !유지받나(고른)) return false; 재화 -= 먹.값; 고른.유지 = Math.min(m.설치물종류[고른.종류]!.유지!.체력, 고른.유지 + 먹.양); return true; } };
     }
     if (무엇 === '키우기') {
       const 종 = m.설치물종류[대상!]!;
       const 고른 = 탑들.filter((x) => x.종류 === 종.이름 && x.레벨 + 1 < 종.레벨.length && 종.레벨[x.레벨 + 1]!.값 <= 재화).sort((a, b) => 덮음(b.자리, 종.레벨[b.레벨 + 1]!.사거리) - 덮음(a.자리, 종.레벨[a.레벨 + 1]!.사거리) || 거리(a.자리, 캐자리) - 거리(b.자리, 캐자리))[0];
       if (고른 === undefined) return null;
-      return { 자리: 고른.자리, 기록: 기(고른.자리), 효과: () => { const 값 = 종.레벨[고른.레벨 + 1]?.값; if (값 === undefined || 재화 < 값) return false; 재화 -= 값; 고른.레벨 += 1; return true; } };
+      return { 자리: 고른.자리, 기록: 기(고른.자리), 효과: () => { const 값 = 종.레벨[고른.레벨 + 1]?.값; if (값 === undefined || 재화 < 값 || !탑들.includes(고른)) return false; 재화 -= 값; 고른.레벨 += 1; return true; } };
     }
     if (무엇 === '줍기') {
       const 고른 = 떨어진.filter((d) => 반경 === undefined || 거리(d.자리, 캐자리) <= 반경).sort((a, b) => 거리(a.자리, 캐자리) - 거리(b.자리, 캐자리))[0];
@@ -156,6 +156,8 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     // 재현은 판이 한 자리에서 한다 — 놓기는 그 자리에, 키우기는 그 자리에 가장 가까운 탑을
     const 효과 = (): boolean => {
       if (x.행동 === '놓기') { const 종 = m.설치물종류[x.대상 ?? '']; const 첫 = 종?.레벨[0]; if (종 === undefined || 첫 === undefined || 재화 < 첫.값) return false; 재화 -= 첫.값; 탑들.push(새탑(종.이름, 자)); return true; }
+      // 먹이도 기록한 자리에 가장 가까운 그 종류 탑에 준다
+      if (x.행동 === '먹이') { const 탑 = 탑들.filter((t) => t.종류 === x.대상 && 유지받나(t)).sort((a, b) => 거리(a.자리, 자) - 거리(b.자리, 자))[0]; const 먹 = 탑 === undefined ? undefined : m.설치물종류[탑.종류]!.유지?.먹이; if (탑 === undefined || 먹 === undefined || 재화 < 먹.값) return false; 재화 -= 먹.값; 탑.유지 = Math.min(m.설치물종류[탑.종류]!.유지!.체력, 탑.유지 + 먹.양); return true; }
       if (x.행동 === '키우기') { const 탑 = 탑들.filter((t) => t.종류 === x.대상).sort((a, b) => 거리(a.자리, 자) - 거리(b.자리, 자))[0]; const 값 = 탑 === undefined ? undefined : m.설치물종류[탑.종류]!.레벨[탑.레벨 + 1]?.값; if (탑 === undefined || 값 === undefined || 재화 < 값) return false; 재화 -= 값; 탑.레벨 += 1; return true; }
       const 계 = 계획(규, x.초);
       return 계 === null ? false : 계.효과();
@@ -184,8 +186,9 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     // 적 걷기 · 닿기 · 캐릭터 때리기
     for (const e of 산적()) {
       // 길 끝에 선 적은 안 걷고 지킬것을 깎는다
-      if (e.닿음) 지킬것 -= m.적종류[e.종류]!.끝초당피해! * 칸초;
-      else if (e.기절 > 0) e.기절 -= 칸초;
+      // 기절한 적은 길 끝에서도 안 깎는다
+      if (e.기절 > 0) e.기절 -= 칸초;
+      else if (e.닿음) 지킬것 -= m.적종류[e.종류]!.끝초당피해! * 칸초;
       else e.진행 += m.적종류[e.종류]!.속도 * (e.둔화 > 0 ? e.배율 : 1) * 칸초;
       if (e.둔화 > 0) e.둔화 -= 칸초;
       const 공 = m.적종류[e.종류]!.공격;
@@ -208,8 +211,9 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       // 유지 — 체력이 시간에 따라 줄고 다하면 멈추거나 사라진다(16098 — 유지비로 고기가 다 나가 업그레이드를 못 했다)
       const 유 = m.설치물종류[t.종류]!.유지;
       if (유 !== undefined && 유지받나(t) && t.유지 > 0) t.유지 = Math.max(0, t.유지 - 유.초당감소 * 칸초);
-      if (유 !== undefined && t.유지 <= 0) {
-        if (유.다하면 === '사라짐') 탑들.splice(탑들.indexOf(t), 1);
+      // 유지없음 레벨로 키우면 다시 때린다
+      if (유지받나(t) && t.유지 <= 0) {
+        if (유!.다하면 === '사라짐') 탑들.splice(탑들.indexOf(t), 1);
         continue;
       }
       if (t.자람 > 0) { t.자람 -= 칸초; continue; }
