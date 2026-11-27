@@ -129,7 +129,7 @@ export function PerfDeviceLive({ run, service, 다시읽기, 쓰나 }: { run: �
           {설정.devices.map((d) => {
             const 줄들 = 숫자.filter((줄) => 줄.serial === d.serial);
             const 최근 = 최근줄(줄들, d.serial);
-            // 1% Low FPS · 분당 끊김은 프레임 시간 분포로 서버만 센다 — 1초 줄에 분포가 안 와 실행 중에는 빼고 끝에 판정한다
+            // 1% Low FPS · 스터터는 프레임 시간 분포로 서버만 센다 — 1초 줄에 분포가 안 와 실행 중에는 빼고 끝에 판정한다
             const 벗어남 = 벗어난지표(설정.targets.filter((x) => x.metric !== 'LOW1_FPS' && x.metric !== 'JANK_PER_MIN'), 지금요약(줄들), d.launchMs);
             const 나쁨 = 벗어남.size > 0;
             const 선 = 줄들.filter((줄) => 줄.sec > 지난초 - 선구간).flatMap((줄) => (줄.fps === null ? [] : [{ x: 줄.sec - Math.max(0, 지난초 - 선구간), y: 줄.fps }]));

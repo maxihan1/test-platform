@@ -57,7 +57,7 @@ describe('기기 성능 계산', () => {
     const 게임 = 결과칸들(true, 결과, 목표들, t);
     expect(게임.map((칸) => [칸.이름, 칸.값, 칸.보조.join(' · '), 칸.나쁨])).toEqual([
       ['평균 FPS', '41', 'Pixel 7 · 목표 45 이상', true],
-      ['분당 끊김', '1.5번', 'Pixel 7 · 125ms 넘게 걸린 프레임', false],
+      ['스터터', '분당 1.5회', 'Pixel 7 · 125ms 넘게 걸린 프레임', false],
       ['프레임 드랍', '3%', 'Galaxy S23', false],
       ['프리징', '2번', 'Galaxy S23 · 0.7초 넘게 정지', false],
       ['CPU 평균', '48%', 'Pixel 7', false],
@@ -85,6 +85,6 @@ describe('기기 성능 계산', () => {
     expect([측정종류of({ kind: 'APP' }), 측정종류of({ kind: 'GAME', gamePlatform: 'android' }), 측정종류of({ kind: 'GAME', gamePlatform: 'windows' })]).toEqual(['APP', 'GAME', 'PC']);
     expect(측정항목('PC').map(([m]) => m)).toEqual(['FPS', 'JANK', 'CPU', 'MEM', 'GPU']);
     expect(측정항목('GAME').map(([m]) => m)).toEqual(['FPS', 'JANK', 'CPU', 'MEM', 'TEMP', 'BATTERY']);
-    expect(값글자('JANK_PER_MIN', 2.25, t)).toBe('분당 2.3번');
+    expect(값글자('JANK_PER_MIN', 2.25, t)).toBe('분당 2.3회');
   });
 });

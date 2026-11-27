@@ -32,6 +32,8 @@ export interface 기기요약줄 {
   runId: number; serviceName: string; device: string | null; startedAt: string | null; verdict: 'PASS' | 'FAIL';
   avgCpu: number | null; maxMemMb: number | null; launchMs: number | null; jankPct: number | null;
   avgFps: number | null; low1Fps: number | null; freezeCount: number | null; maxTempC: number | null;
+  /** PC 게임이면 배터리 온도가 없어 화면이 그 칸에 스터터(분당)를 보인다 (2026-11-27 사용자) */
+  jankPerMin: number | null; pc: boolean;
 }
 export interface 프로젝트요약 {
   apps: 앱요약[];
@@ -77,7 +79,7 @@ async function 페이지줄(runIds: number[]): Promise<Map<number, 페이지요�
   return 모음;
 }
 
-async function 기기숫자(run: 실행줄, 이름: string): Promise<기기요약줄> {
+async function 기기숫자(run: 실행줄, 이름: string, pc = false): Promise<기기요약줄> {
   const 줄들 = await 기기줄읽기(Number(run.id));
   const cfg = run.config as Partial<DeviceRunConfig>;
   const 요약 = 기기요약하기(줄들, cfg.intervalSec ?? 1);
@@ -86,7 +88,7 @@ async function 기기숫자(run: 실행줄, 이름: string): Promise<기기요�
     runId: Number(run.id), serviceName: 이름, device: cfg.devices?.[0]?.model ?? null, startedAt: run.started_at?.toISOString() ?? null, verdict: run.verdict,
     avgCpu: 요약.avgCpu, maxMemMb: 요약.maxMemMb, launchMs: 실행시간.length === 0 ? null : Math.max(...실행시간),
     jankPct: 평균(줄들.map((x) => x.jankPct).filter((v): v is number => v !== null).map(Number)),
-    avgFps: 요약.avgFps, low1Fps: 요약.low1Fps, freezeCount: 요약.freezeCount, maxTempC: 요약.maxTempC,
+    avgFps: 요약.avgFps, low1Fps: 요약.low1Fps, freezeCount: 요약.freezeCount, maxTempC: 요약.maxTempC, jankPerMin: 요약.jankPerMin, pc,
   };
 }
 
@@ -139,8 +141,9 @@ export async function 프로젝트요약읽기(서비스들: 볼서비스[], 작
   const 페이지들 = await 페이지줄(페이지실행.map((r) => Number(r.id)));
   const 종류 = new Map(서비스들.map((s) => [s.id, s.kind]));
   const 기기실행 = (k: 앱종류) => 성능.filter((r) => r.kind === 'DEVICE' && 종류.get(Number(r.service_id)) === k);
+  const PC들 = new Set((await pool.query<{ id: string }>(`SELECT id FROM service WHERE id = ANY($1::bigint[]) AND game_platform = 'windows'`, [ids])).rows.map((r) => Number(r.id)));
   const [게임숫자들, 앱최근, 부하최근] = await Promise.all([
-    Promise.all(기기실행('GAME').map(async (r) => [Number(r.service_id), await 기기숫자(r, 이름.get(Number(r.service_id)) ?? '')] as const)),
+    Promise.all(기기실행('GAME').map(async (r) => [Number(r.service_id), await 기기숫자(r, 이름.get(Number(r.service_id)) ?? '', PC들.has(Number(r.service_id)))] as const)),
     (async () => { const r = 가장최근(기기실행('APP')); return r === null ? null : 기기숫자(r, 이름.get(Number(r.service_id)) ?? ''); })(),
     (async () => { const r = 가장최근(성능.filter((x) => x.kind === 'LOAD')); return r === null ? null : 부하숫자(r, 이름.get(Number(r.service_id)) ?? ''); })(),
   ]);

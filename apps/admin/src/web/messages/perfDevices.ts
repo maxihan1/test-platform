@@ -100,11 +100,11 @@ export const 성능기기말: Record<string, string> = {
   // 확인 창 (2026-11-26 사용자)
   '이 실행의 AI 분석을 다시 만들까요?': "Build this run's AI analysis again?",
   '이 실행에 붙은 AI 분석을 다시 만듭니다. 결과가 마음에 들지 않으면 다시 만들 수 있습니다': 'Builds the AI analysis of this run again. If you do not like the result, you can build it again',
-  // PERF-F2-06 — 분당 끊김 · 배터리 온도 · 열 상태 · PC 게임 (도메인/성능 §3.9 「기기 성능: PC 게임과 측정 정의」)
-  '분당 끊김': 'Stutters per minute',
-  '분당 {수}번': '{수} per minute',
+  // PERF-F2-06 — 스터터 · 배터리 온도 · 열 상태 · PC 게임 (도메인/성능 §3.9 「기기 성능: PC 게임과 측정 정의」)
+  '스터터': 'Stutter',
+  '분당 {수}회': '{수}/min',
   '125ms 넘게 걸린 프레임': 'Frames over 125ms',
-  '번/분': '/min',
+  '회/분': '/min',
   'GPU 사용률': 'GPU usage',
   '열 상태': 'Thermal status',
   '열 제한 없음': 'No thermal throttling',

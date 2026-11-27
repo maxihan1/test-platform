@@ -138,7 +138,7 @@ describe.skipIf(연결 === undefined)('대시보드 프로젝트 요약', () => 
     });
     expect(perf.load?.series.map((x) => [x.sec, x.vus, x.rps])).toEqual([[0, 10, 30], [1, 20, 45]]);
     expect(perf.pages).toMatchObject({ targets: { lcpMs: 2500, fcpMs: null }, rows: [{ url: '/', lcpMs: 876, fcpMs: 468, cls: 0.043 }, { url: '/shop', lcpMs: 976 }] });
-    expect(perf.game).toMatchObject({ serviceName: 'XDPG', device: 'Galaxy S21', avgFps: 58, freezeCount: 2, maxTempC: 38.4, launchMs: 1200 });
+    expect(perf.game).toMatchObject({ serviceName: 'XDPG', device: 'Galaxy S21', avgFps: 58, freezeCount: 2, maxTempC: 38.4, launchMs: 1200, pc: false });
     expect(perf.app).toBeNull();
   });
 });
