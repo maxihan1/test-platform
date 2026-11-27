@@ -19,7 +19,7 @@ type Env = Record<string, string | undefined>;
  * waitForValue — 「값이 될 때까지」. SDK 에 기다리기 명령이 없어 get 을 waitFor 와 같은 간격 · 한도로 되풀이한다 (도메인/게임 §3.10 「케이스 꼴」 기다림)
  * touchDown · touchUp — 「손가락을 올려 둔 동안만 보이는 것」(말풍선). 길게 누르기(longPress)는 눌렀다 뗀 뒤에 답해 그 사이 뜬 것을 못 본다.
  * control-cli 의 touchDown 은 좌표도 받아서 Pick 으로 내지 않고 주소만 받는 꼴로 좁혀 낸다 (2026-11-17 Boss Room 말풍선 케이스 2건 보류)
- * key · keyDown · keyUp · pad — 윈도우 PC 게임의 키보드 · 패드 (공통/3-공유계약 「윈도우 PC 게임」). power(GetAxis 값)는 내지 않는다.
+ * key · keyDown · keyUp · pad — 윈도우 PC 게임의 키보드 · 패드 (공통/3-공유계약 「윈도우 PC 게임」). keyDown 은 power(GetAxis · 스틱 값 -1 ~ 1)를 받는다 — 패드 스틱으로만 걷는 2P 를 못 움직였다(2026-11-27 작성 16058).
  * pad 는 읽기만 한다 — 패드를 바꾸는 길은 러너가 넘긴 PLATFORM_PAD 하나뿐이다(도메인/게임 §3.10 결정 27)
  * mouseMove · scroll — 가짜 마우스를 오브젝트 위로 옮기기 · 휠. 마우스를 올려야 뜨는 말풍선 · 휠 확대 · 오른쪽 클릭(옮긴 뒤 key('Mouse1'))을 PC 케이스가 쓴다. 주소만 받는다(결정 4)
  * restart — 케이스 도중 게임 껐다 켜기. PC 는 VISION, 폰은 Appium 이라 케이스 몸통이 driver 없이 같은 한 줄로 쓴다 (공통/3-공유계약 「게임 테스트 타입」 2026-11-22)
@@ -27,7 +27,7 @@ type Env = Record<string, string | undefined>;
 export type GameDriver = Pick<Game, 'find' | 'findAll' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'components' | 'members' | 'waitFor' | 'layout' | 'errors' | 'touchUp' | 'keyUp'> & {
   touchDown(target: string, options?: Parameters<Game['touchDown']>[1]): Promise<number>;
   key(name: string, options?: { duration?: number }): Promise<void>;
-  keyDown(keys: string): Promise<void>;
+  keyDown(keys: string, options?: { power?: number }): Promise<void>;
   mouseMove(target: string, options?: { duration?: number }): Promise<void>;
   scroll(dy: number, options?: { at?: string; duration?: number }): Promise<void>;
   restart(): Promise<void>;
@@ -175,11 +175,14 @@ export async function openGame(
       await 떼기(번호);
       눌린.delete(번호);
     },
-    // 몸통은 power 를 못 넘긴다 — 타입을 피해 넘긴 값을 조용히 버리지 않고 던진다
+    // 타입을 피해 넘긴 값을 조용히 버리지 않고 던진다
     keyDown: async (keys: string, ...더: unknown[]): Promise<void> => {
-      if (더.length > 0) throw new Error('keyDown 은 키만 받는다 — power 는 쓰지 않는다');
+      const 옵션 = (더[0] ?? {}) as Record<string, unknown>;
+      if (더.length > 1 || Object.keys(옵션).some((k) => k !== 'power')) throw new 인자오류('keyDown 은 키와 power 만 받는다');
+      const power = 옵션.power;
+      if (power !== undefined && (typeof power !== 'number' || !(power >= -1 && power <= 1))) throw new 인자오류(`keyDown 의 power 는 -1 ~ 1 의 수다: ${String(power)}`);
       모름 = true;
-      await 키누르기(keys);
+      await 키누르기(keys, power === undefined ? undefined : { power });
       모름 = false;
       눌린키.add(keys);
     },
