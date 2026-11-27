@@ -201,6 +201,18 @@ export function 길내기(g: 격자, 출발: 점, 도착: 점): 길결과 {
 /** 범위에 넣을 맵의 다른 종류 점 — 지킬것 · 적 길 · 놓기 · 자원 · 출구가 걷기 값 밖에 있어도 격자에 든다 */
 export const 맵점들 = (맵: Record<string, unknown>, 면: 평면 = 'xz'): 점[] => ['놓기', '적', '지킬것', '자원', '출구'].flatMap((k) => 점들모으기(객체(맵[k]).값, 면));
 
+/** 자료 폴더의 지도 · 판 기록으로 그 곳 격자를 짓는다 — 길찾기 명령과 시뮬이 같이 쓴다. 덧은 범위에 더 넣을 점(출발 · 도착) */
+export function 곳격자(자료: string, 곳: string, 덧: readonly 점[] = []): 격자 | string {
+  const 지도 = 지금지도(자료);
+  if (지도 === null) return '게임 지도를 못 읽었다 — 자료 폴더가 맞는지 본다';
+  const 줄 = 곳줄들(지도.줄들).find((x) => x.key === 곳);
+  const 맵 = 객체(객체(줄?.learned?.data).맵);
+  if (줄 === undefined || 객체(맵.걷기).값 === undefined) return `${곳} 는 data.맵.걷기.값 이 있는 STAGE 줄이 아니다 — 먼저 맵을 적는다`;
+  const 면 = 평면정하기(맵);
+  const 칠들 = 판기록들(자료).flatMap((r) => { const c = 기록칠(r, 지도.줄들, 곳, 면); return c === null ? [] : [c]; });
+  return 격자짓기(객체(맵.걷기).값, 객체(맵.막힘).값, 칠들, 면, [...맵점들(맵, 면), ...덧]);
+}
+
 const 점읽기 = (글: string): 점 | null => {
   const 조각 = 글.split(',');
   const 수 = 조각.map((x) => (x.trim() === '' ? NaN : Number(x)));
@@ -218,20 +230,7 @@ export function 실행(인자: string[]): number {
     console.error(`[길찾기] 인자가 틀렸다 — 출발 · 도착은 바닥 평면의 게임 좌표 두 수다\n${쓰는법}`);
     return 2;
   }
-  const 지도 = 지금지도(자료);
-  if (지도 === null) {
-    console.error('[길찾기] 게임 지도를 못 읽었다 — 자료 폴더가 맞는지 본다');
-    return 2;
-  }
-  const 줄 = 곳줄들(지도.줄들).find((x) => x.key === 곳);
-  const 맵 = 객체(객체(줄?.learned?.data).맵);
-  if (줄 === undefined || 객체(맵.걷기).값 === undefined) {
-    console.error(`[길찾기] ${곳} 는 data.맵.걷기.값 이 있는 STAGE 줄이 아니다 — 먼저 맵을 적는다`);
-    return 2;
-  }
-  const 면 = 평면정하기(맵);
-  const 칠들 = 판기록들(자료).flatMap((r) => { const c = 기록칠(r, 지도.줄들, 곳, 면); return c === null ? [] : [c]; });
-  const g = 격자짓기(객체(맵.걷기).값, 객체(맵.막힘).값, 칠들, 면, [...맵점들(맵, 면), 출발, 도착]);
+  const g = 곳격자(자료, 곳, [출발, 도착]);
   if (typeof g === 'string') {
     console.error(`[길찾기] ${g}`);
     return 2;
