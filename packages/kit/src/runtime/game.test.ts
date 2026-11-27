@@ -204,11 +204,17 @@ describe('openGame', () => {
     expect(보낸).toEqual([]);
   });
 
-  it('kit 이 덮은 pad · keyDown 은 남는 인자를 버리지 않고 던진다', async () => {
+  it('kit 이 덮은 pad · keyDown 은 남는 인자를 버리지 않고 던진다 — keyDown 은 -1 ~ 1 의 power 하나만 받는다', async () => {
     const { game, 보낸 } = await 손가락게임();
     await expect(game.pad('xbox' as never)).rejects.toThrow('읽기만 한다');
-    await expect(game.keyDown('W', { power: 0.5 })).rejects.toThrow('power 는 쓰지 않는다');
+    await expect(game.keyDown('JoystickButton16', { power: 2 })).rejects.toThrow('power 는 -1 ~ 1 의 수다');
+    await expect(game.keyDown('JoystickButton16', { power: Number.NaN })).rejects.toThrow('power 는 -1 ~ 1 의 수다');
+    await expect(game.keyDown('W', { power: 1, duration: 1 } as never)).rejects.toThrow('keyDown 은 키와 { power } 만 받는다');
+    await expect(game.keyDown('W', 0.7 as never)).rejects.toThrow('keyDown 은 키와 { power } 만 받는다');
     expect(보낸).toEqual([]);
+    const 케이스: GameDriver = game;
+    await 케이스.keyDown('JoystickButton16', { power: -0.5 });
+    expect(보낸).toEqual([{ cmd: 'key-down', key: 'JoystickButton16', power: -0.5 }]);
   });
 
   it('PLATFORM_PAD 가 넷 밖의 값이면 던진다 — 러너가 늘 넷 중 하나나 빈 값을 넘긴다', async () => {

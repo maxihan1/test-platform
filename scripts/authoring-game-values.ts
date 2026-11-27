@@ -16,7 +16,8 @@ const 값아닌칸 = new Set(['출처', '장면']);
 /** 값 줄이 될 수 없는 지도 종류 — 곳 · 계획 · 회고 · 물음 줄이 글에 종류 이름을 적었다고 값 줄이 되지 않게. PROBE 는 요구가 못 되는 종류라 값을 적어도 값 줄로 안 친다 */
 const 값줄아닌종류 = new Set(['STAGE', 'TRIAL', 'PLAY', 'FAIL', 'ASK', 'ODD', 'KIND', 'SYSTEM', 'PROBE']);
 
-export interface 값파일읽음 { 종류: string; 장면: string | null; 치트: boolean }
+/** 값칸없음 — 펼칠 때 게임 부품에 볼 칸이 하나도 없었다(Transform · 그림 부품뿐). 줄에 적을 게임 값이 없어서 값 줄을 요구하지 않는다. 칸이 비었을 뿐인 파일(아직 안 채워진 네트워크 값)은 아니다 — 첫 읽기가 정본이라 그 파일은 다시 안 덮인다 */
+export interface 값파일읽음 { 종류: string; 장면: string | null; 치트: boolean; 값칸없음?: boolean }
 type 줄 = Pick<지도줄, 'kind' | 'key' | 'name' | 'learned'>;
 
 /** 자료 폴더의 값 파일 — 폴더가 없거나 못 읽은 파일은 건너뛴다 */
@@ -29,8 +30,8 @@ export function 값파일들(자료: string): 값파일읽음[] {
   }
   return 이름들.flatMap((이름) => {
     try {
-      const x = JSON.parse(안전히읽기(join(자료, 게임자리.값파일), 이름, 값파일상한) ?? 'null') as { 종류?: unknown; 장면?: unknown; 치트?: unknown } | null;
-      return typeof x?.종류 === 'string' && x.종류 !== '' ? [{ 종류: x.종류, 장면: typeof x.장면 === 'string' ? x.장면 : null, 치트: x.치트 === true }] : [];
+      const x = JSON.parse(안전히읽기(join(자료, 게임자리.값파일), 이름, 값파일상한) ?? 'null') as { 종류?: unknown; 장면?: unknown; 치트?: unknown; 칸없음?: unknown } | null;
+      return typeof x?.종류 === 'string' && x.종류 !== '' ? [{ 종류: x.종류, 장면: typeof x.장면 === 'string' ? x.장면 : null, 치트: x.치트 === true, 값칸없음: x.칸없음 === true }] : [];
     } catch {
       return [];
     }
@@ -48,8 +49,9 @@ export function 값줄들(줄들: readonly 줄[], 종류: string): 줄[] {
   return 줄들.filter((x) => x.learned !== null && x.learned.belief !== 'OVERTURNED' && !값줄아닌종류.has(x.kind) && 값칸있나(x.learned.data) && 지도에있나(`${x.key} ${x.name} ${x.learned.text}`, 종류));
 }
 
-/** 값 파일 하나의 빠짐 — 값 줄이 없나 · 치트 값인데 줄에 치트 표시가 없나 */
+/** 값 파일 하나의 빠짐 — 값 칸이 없는 파일은 없음. 값 줄이 없나 · 치트 값인데 줄에 치트 표시가 없나 */
 export function 빠짐(파일: 값파일읽음, 줄들: readonly 줄[]): '줄없음' | '치트없음' | null {
+  if (파일.값칸없음 === true) return null;
   const 들 = 값줄들(줄들, 파일.종류);
   if (들.length === 0) return '줄없음';
   return 파일.치트 && !들.some((x) => x.learned!.marks?.includes('CHEAT') === true) ? '치트없음' : null;

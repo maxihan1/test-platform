@@ -7,6 +7,8 @@ import { type 값기록, type 값때, type 기대, type 볼값, 기대글, 수�
 export const 값간격ms = 2_000;
 const 이어실패한도 = 3;
 const 끝기다림ms = 3_000;
+/** 이만큼 지나면 첫 읽기에서 안 바뀐 값도 기대를 본다 — 판이 처음부터 기대를 깬 채 멈춰 있는 것까지 놓치지 않게. 앞 판 끝 화면은 함수 첫 동작(넘기기) 뒤 몇 초 안에 바뀐다 */
+export const 첫값유예ms = 10_000;
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
@@ -59,6 +61,10 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
   let 이어 = 0;
   let 첫못함: string | null = null;
   let 깨운다: (() => void) | undefined;
+  // 볼값마다 처음 읽힌 값 — 그 값에서 바뀌기 전(첫값유예ms 안)에는 그 값의 기대를 안 본다. 첫 읽기는 앞 판 끝 화면일 수 있다(#16054 · #16058 세계수 0 을 새 판 값으로 읽고 0초에 멈췄다).
+  // 값마다 따로 본다 — 웨이브가 먼저 바뀌어도 세계수는 아직 앞 판 값일 수 있다
+  const 처음: Record<string, number> = {};
+  const 움직인 = new Set<string>();
   const 고리 = (async (): Promise<void> => {
     for (let 첫 = true; 서있다 && 이어 < 이어실패한도; 첫 = false) {
       if (!첫) {
@@ -78,7 +84,13 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       첫못함 ??= r.못함;
       이어 = Object.values(r.값).every((v) => v === null) ? 이어 + 1 : 0;
       기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }) });
-      const g = 기록.어긋남 === null ? 어긋난기대(기대들, r.값) : null;
+      for (const [k, v] of Object.entries(r.값)) {
+        if (v === null) continue;
+        처음[k] ??= v;
+        if (처음[k] !== v) 움직인.add(k);
+      }
+      const 볼기대 = 초 * 1000 >= 첫값유예ms ? 기대들 : 기대들.filter((x) => 움직인.has(x.값));
+      const g = 기록.어긋남 === null ? 어긋난기대(볼기대, r.값) : null;
       if (g === null) continue;
       기록.어긋남 = { 초, 값이름: g.값, 값: r.값[g.값]!, 기대: 기대글(g) };
       // 같은 순간 — 숫자를 읽은 바로 뒤에 찍는다. 못 찍어도 숫자는 남는다

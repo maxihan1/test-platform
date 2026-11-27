@@ -93,6 +93,16 @@ describe('펼쳐읽기 · 묶음 칸', () => {
     const 펼침 = await 펼쳐읽기(game(읽음), '//*[@id=7]', 'Ghost(Clone)');
     expect(읽음).toEqual([]);
     expect(펼침.글.join('\n')).toContain('묶음 TypeData → GhostData_1 (MonsterTypeData)');
+    expect(펼침.칸없음).toBe(false);
+  });
+
+  it('게임 부품에 볼 칸이 하나도 없을 때만 칸없음이다 — 값을 못 읽은 네트워크 값은 칸이 있다', async () => {
+    const 부품만 = { components: async () => [{ name: 'Transform', type: 'UnityEngine.Transform' }], members: async () => ({ fields: [], properties: [], methods: [] }), get: async () => 0 } as unknown as Game;
+    expect((await 펼쳐읽기(부품만, '/MenuCamera')).칸없음).toBe(true);
+    const 네트워크 = { components: async () => [{ name: 'MonsterHP', type: 'Game.MonsterHP' }], members: async () => ({ fields: [{ name: 'HP', type: 'NetworkVariable`1[Int32]', value: 'x' }], properties: [], methods: [] }), get: async () => { throw new Error('아직 없음'); } } as unknown as Game;
+    const 펼침 = await 펼쳐읽기(네트워크, '/Ghost');
+    expect(펼침.값).toEqual({});
+    expect(펼침.칸없음).toBe(false);
   });
 });
 

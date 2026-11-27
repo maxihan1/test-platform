@@ -107,6 +107,8 @@ export interface 펼침 {
   /** `컴포넌트.칸` · `컴포넌트.묶음.하위칸` → 읽은 값 — 값 파일에 남긴다 */
   값: Record<string, unknown>;
   목록칸: string[];
+  /** 게임 부품에 볼 칸이 하나도 없다(Transform · 그림 부품뿐) — 값이 비었어도 아직 안 채워진 네트워크 값이면 거짓이다 */
+  칸없음: boolean;
 }
 
 /**
@@ -141,7 +143,7 @@ export async function 펼쳐읽기(game: Game, 주소: string, 이름 = 주소.s
   const 값: Record<string, unknown> = {};
   for (const c of 들) for (const f of 볼칸들(c)) if (!네트워크값(f) && f.value !== undefined && f.value !== null && !목록꼴.test(f.type)) 값[`${c.name}.${f.name}`] = f.value;
   for (const [열쇠, v] of 읽은) 값[열쇠] = v;
-  return { 글: 펼친글(주소, 이름, 들, 컴포넌트.filter((x) => 엔진것.test(x.type)).map((x) => x.name), 읽은), 값, 목록칸 };
+  return { 글: 펼친글(주소, 이름, 들, 컴포넌트.filter((x) => 엔진것.test(x.type)).map((x) => x.name), 읽은), 값, 목록칸, 칸없음: 들.every((c) => 볼칸들(c).length === 0) };
 }
 
 export const 펼친다 = async (game: Game, 주소: string, 이름?: string, 표?: 종류표): Promise<string[]> => (await 펼쳐읽기(game, 주소, 이름, 표)).글;
@@ -165,7 +167,7 @@ export async function 펼쳐남기기(game: Game, 주소: string, 이름: string
   const { 자료 } = 값파일정보;
   const r = await 펼쳐읽기(game, 주소, 이름, 종류표읽기(자료), 값파일정보.그침인가);
   if (자료 === undefined) return r.글;
-  const 못씀 = 값파일쓰기(자료, { 종류: 값파일정보.종류, 장면: 값파일정보.장면, 읽은때: new Date().toISOString(), 출처: '실행 중', 칸: r.값, 목록칸: r.목록칸, ...값파일정보.덧 }, 비밀가리개());
+  const 못씀 = 값파일쓰기(자료, { 종류: 값파일정보.종류, 장면: 값파일정보.장면, 읽은때: new Date().toISOString(), 출처: '실행 중', 칸: r.값, 목록칸: r.목록칸, ...(r.칸없음 ? { 칸없음: true as const } : {}), ...값파일정보.덧 }, 비밀가리개());
   return 못씀 === null ? r.글 : [...r.글, `값 파일을 못 썼다: ${못씀}`];
 }
 
