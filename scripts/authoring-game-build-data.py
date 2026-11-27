@@ -128,6 +128,34 @@ def 스크립트찾기(o, 파일들, 캐시):
     return d, 캐시[열쇠]
 
 
+def 참조해석기(o, 파일들, 자리표):
+    # fileID 0 은 같은 파일, 1 부터는 externals 의 파일 — 스크립트찾기와 같은 방식으로 파일을 찾는다
+    def 해석(fid, pid):
+        try:
+            af = o.assets_file if fid == 0 else 파일들.get(os.path.basename(o.assets_file.externals[fid - 1].path))
+        except (IndexError, AttributeError):
+            return None
+        return None if af is None else 자리표.get((id(af), pid))
+    return 해석
+
+
+def 참조이어주기(값, 해석):
+    """`{m_FileID, m_PathID}` 번호만 있는 칸에 가리키는 데이터 묶음 오브젝트의 `이름`(클래스/이름)을 단다 — 번호만으로는 ItemDropData 가 무엇인지 못 읽는다.
+    해석(fileID, pathID) 이 이름을 돌려주면 단다(번호는 남긴다). 꺼낸 묶음 밖(프리팹 · 그림 따위)을 가리키면 None 이라 번호만 남는다"""
+    if isinstance(값, dict):
+        if set(값) == {'m_FileID', 'm_PathID'}:
+            if 값['m_PathID'] != 0:
+                이름 = 해석(값['m_FileID'], 값['m_PathID'])
+                if 이름 is not None:
+                    값['이름'] = 이름
+            return
+        for v in 값.values():
+            참조이어주기(v, 해석)
+    elif isinstance(값, list):
+        for v in 값:
+            참조이어주기(v, 해석)
+
+
 def 읽기(데이터, 자료):
     관리 = os.path.join(데이터, 'Managed')
     import UnityPy
@@ -156,6 +184,8 @@ def 읽기(데이터, 자료):
     gen.load_local_dll_folder(관리)
     줄들 = []
     값들 = {}
+    자리표 = {}
+    읽힌 = []
     for (어셈블리, 이름공간, 클래스), 오브젝트들 in sorted(묶음.items()):
         전체 = (이름공간 + '.' if 이름공간 else '') + 클래스
         try:
@@ -175,8 +205,12 @@ def 읽기(데이터, 자료):
             if 이름 in 읽음:
                 이름 += '#' + str(o.path_id)
             읽음[이름] = {k: v for k, v in t.items() if k not in 공통칸}
+            자리표[(id(o.assets_file), o.path_id)] = 클래스 + '/' + 이름
+            읽힌.append((o, 읽음[이름]))
         if 읽음:
             값들[클래스] = 읽음
+    for o, 값 in 읽힌:
+        참조이어주기(값, 참조해석기(o, 파일들, 자리표))
     글 = json.dumps(값들, ensure_ascii=False, default=str)
     if len(글) > 값상한:
         print('값이 너무 커서 안 쓴다', len(글))
@@ -244,6 +278,24 @@ def 자체검사():
     assert 표['globalgamemanagers.assets'] is 안, '묶음 안 파일도 이름으로 찾는다'
     assert 표['app.info'] == 'top' and 'data.unity3d' in 표, '이름이 겹치면 바깥 파일'
     assert 1 not in 표, 'SerializedFile 의 오브젝트 표는 펼치지 않는다'
+
+    표 = {(1, 33043): 'MonsterDropData/Drop1', (2, 7): 'ItemData/Gem'}
+    값 = {'ItemDropData': {'m_FileID': 0, 'm_PathID': 33043}, '목록': [{'m_FileID': 1, 'm_PathID': 7}, {'m_FileID': 0, 'm_PathID': 99}], '비움': {'m_FileID': 0, 'm_PathID': 0}, '안': {'x': {'m_FileID': 0, 'm_PathID': 33043}}}
+    참조이어주기(값, lambda f, p: 표.get((1 if f == 0 else 2, p)))
+    assert 값['ItemDropData'] == {'m_FileID': 0, 'm_PathID': 33043, '이름': 'MonsterDropData/Drop1'}, '같은 파일 참조에 이름을 단다(번호는 남긴다)'
+    assert 값['목록'][0] == {'m_FileID': 1, 'm_PathID': 7, '이름': 'ItemData/Gem'}, '다른 파일 참조도 따라간다'
+    assert 값['목록'][1] == {'m_FileID': 0, 'm_PathID': 99}, '꺼낸 묶음 밖을 가리키면 번호만'
+    assert 값['비움'] == {'m_FileID': 0, 'm_PathID': 0} and 값['안']['x']['이름'] == 'MonsterDropData/Drop1', '빈 참조는 그대로 · 안쪽 칸도 따라간다'
+
+    class 가짜외부:
+        path = 'archive:/x/globalgamemanagers.assets'
+    class 가짜파일:
+        externals = [가짜외부()]
+    class 가짜오브젝트:
+        assets_file = 가짜파일()
+    밖파일 = object()
+    해석 = 참조해석기(가짜오브젝트(), {'globalgamemanagers.assets': 밖파일}, {(id(가짜오브젝트.assets_file), 5): 'A/a', (id(밖파일), 6): 'B/b'})
+    assert 해석(0, 5) == 'A/a' and 해석(1, 6) == 'B/b' and 해석(2, 6) is None and 해석(0, 6) is None, '참조 해석기'
 
     대상 = tempfile.mkdtemp(prefix='build-data-check-')
     try:
