@@ -111,7 +111,7 @@ export interface 세는고리 {
 }
 
 /** 바로 한 번(처음 목록) 세고 간격마다 다시 센다. 세기가 던져도 함수는 계속 돈다 — 세 번 이어 실패하면 그친다 */
-export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number, 지도: string, 자료?: string): 세는고리 {
+export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number, 지도: string, 자료?: string, 덧?: { 치트: true; call: string[] }): 세는고리 {
   const 나온: 나온것 = { 간격ms, 처음: {}, 장면바뀜: [], 센때: [], 첫초: {}, 화면것: [], 지도에없음: [], 처음지도에없음: [], 펼침: [], 안펼침: [] };
   let 처음경로: Set<string> | null = null;
   let 처음번호 = new Set<string>();
@@ -178,7 +178,7 @@ export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number
       }
       if (지도에있나(지도, k)) continue;
       나온.지도에없음.push(k);
-      await 새종류펼치기({ 나온, 종류: k, 찾음: f, 초, 펼칠까, 게임: 지킨 as unknown as Game, 장면: 지금장면 ?? 장면, 그침인가: (e) => e instanceof 그침, ...(자료 === undefined ? {} : { 자료 }) });
+      await 새종류펼치기({ 나온, 종류: k, 찾음: f, 초, 펼칠까, 게임: 지킨 as unknown as Game, 장면: 지금장면 ?? 장면, 그침인가: (e) => e instanceof 그침, ...(자료 === undefined ? {} : { 자료 }), ...(덧 === undefined ? {} : { 덧 }) });
     }
   };
   const 해본다 = async (펼칠까: boolean): Promise<void> => {

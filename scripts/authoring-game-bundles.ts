@@ -96,6 +96,9 @@ export interface 값파일 {
   출처: '실행 중';
   칸: Record<string, unknown>;
   목록칸: string[];
+  /** 정보 모으기 명령(authoring-game-info)이 웨이브를 넘겨 본 값이다 — 쓴 call 과 함께 남긴다. 승패 근거로 못 쓴다 */
+  치트?: true;
+  call?: string[];
 }
 
 /** 종류 이름 → 파일 이름 — 경로 글자는 `_` 로 */

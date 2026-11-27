@@ -157,11 +157,11 @@ function 비밀가리개(): (글: string) => string {
 }
 
 /** 펼치고 값 파일 `game-props/<종류>.json` 로 남긴다 — 판 도중 자동 펼치기와 손으로 부른 펼치기가 같이 쓴다. 파일을 못 써도 펼친 글은 돌려준다 */
-export async function 펼쳐남기기(game: Game, 주소: string, 이름: string, 값파일정보: { 종류: string; 장면: string | null; 자료?: string }): Promise<string[]> {
+export async function 펼쳐남기기(game: Game, 주소: string, 이름: string, 값파일정보: { 종류: string; 장면: string | null; 자료?: string; 덧?: { 치트: true; call: string[] } }): Promise<string[]> {
   const { 자료 } = 값파일정보;
   const r = await 펼쳐읽기(game, 주소, 이름, 종류표읽기(자료));
   if (자료 === undefined) return r.글;
-  const 못씀 = 값파일쓰기(자료, { 종류: 값파일정보.종류, 장면: 값파일정보.장면, 읽은때: new Date().toISOString(), 출처: '실행 중', 칸: r.값, 목록칸: r.목록칸 }, 비밀가리개());
+  const 못씀 = 값파일쓰기(자료, { 종류: 값파일정보.종류, 장면: 값파일정보.장면, 읽은때: new Date().toISOString(), 출처: '실행 중', 칸: r.값, 목록칸: r.목록칸, ...값파일정보.덧 }, 비밀가리개());
   return 못씀 === null ? r.글 : [...r.글, `값 파일을 못 썼다: ${못씀}`];
 }
 
