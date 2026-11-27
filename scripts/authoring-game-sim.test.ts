@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { 시뮬 } from './authoring-game-calc.js';
 import { type 모델, 입력읽기 } from './authoring-game-sim-input.js';
-import { 찾기 } from './authoring-game-sim-run.js';
+import { 찾기 } from './authoring-game-sim-search.js';
 import { type 행동, 돌리기 } from './authoring-game-sim.js';
 
 const 기본 = (덧: Record<string, unknown> = {}): Record<string, unknown> => ({
@@ -121,7 +121,7 @@ describe('캐릭터 판단 — 정책', () => {
     expect(끝[1]! - 끝[0]!).toBeLessThan(6);
   });
 
-  it('놓기는 덮는 길이가 같으면 자리후보에 적은 차례로 고른다 — 판 함수가 받는 자리차례와 같다', () => {
+  it('놓기는 덮는 길이가 같으면 자리후보에 적은 차례로 고른다 — 순서표의 놓기 자리가 늘 같다', () => {
     const r = 한판(기본({ 자리후보: [[5, -1], [5, 1]], 캐릭터: { 자리: [5, 1], 걷기속도: 1 } }));
     expect(r.행동기록[0]!.자리).toEqual([5, -1]);
   });
@@ -131,7 +131,7 @@ describe('캐릭터 판단 — 정책', () => {
     expect(r.웨이브[0]).toMatchObject({ 처치: 1, 새어나감: 1, 끝지킬것: 9, 끝재화: 1 });
   });
 
-  it('문턱 후보를 다 돌려 이기는 조합을 고르고, 이웃 문턱이 지면 여유가 낮다', () => {
+  it('문턱 후보를 다 돌려 이기는 조합을 고른다', () => {
     const m = 모델로(기본({
       지킬것: { 체력: 5, 자리: [10, 0] },
       설치물종류: [{ 이름: '탑', 레벨: [{ 값: 99, 사거리: 3, 공격력: 5, 간격: 2 }] }],
@@ -141,7 +141,7 @@ describe('캐릭터 판단 — 정책', () => {
       문턱후보: { 거리: [1, 8] },
     }));
     const r = 찾기(m);
-    expect(r).toMatchObject({ 이긴수: 1, 전체: 2, 가장: { 문턱: { 거리: 8 }, 여유: 0 } });
+    expect(r).toMatchObject({ 이긴수: 1, 전체: 2, 가장: { 문턱: { 거리: 8 }, 느려도이김: true } });
   });
 
   it('재현은 정책 대신 판 행동기록을 그 시각에 그대로 한다', () => {
@@ -198,8 +198,8 @@ describe('입력 · 계산기', () => {
 
   it('계산기 시뮬은 고른 정책과 웨이브마다 결과를 줄 data 에 싣고, 못 이기면 가장 멀리 간 안을 알린다', () => {
     const r = 시뮬(기본({ 자리후보: [[5, 9], [5, 1]] }));
-    expect('줄글' in r && r.줄글.join('\n')).toContain('"자리차례":{"탑":[[5,1],[5,9]]}');
-    expect(r).toMatchObject({ 이름: '시뮬', 글: expect.stringContaining('이기는 안 있음'), 결과: { 계산: '시뮬', 이김: true, 정책: [{ 행동: { 무엇: '놓기' } }], 손: { 행동초: 0.5 } }, 입력요약: { 엔진판: 4, 웨이브수: 1, 보스: false } });
+    expect('줄글' in r && r.줄글.join('\n')).toContain('순서표(첫 웨이브 끝까지) — 놓기 탑 (5,1)');
+    expect(r).toMatchObject({ 이름: '시뮬', 글: expect.stringContaining('이기는 안 있음'), 결과: { 계산: '시뮬', 이김: true, 느려도이김: true, 정책: [{ 행동: { 무엇: '놓기' } }], 손: { 행동초: 0.5 } }, 입력요약: { 엔진판: 4, 웨이브수: 1, 보스: false } });
     expect(시뮬(기본({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }))).toMatchObject({ 글: expect.stringContaining('이기는 안 없음'), 결과: { 이김: false, 짐: { 웨이브: '1웨이브' } } });
   });
 });

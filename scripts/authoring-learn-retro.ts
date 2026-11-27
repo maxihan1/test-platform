@@ -11,6 +11,7 @@ import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계�
 import { 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { 놀이시작뒤, 놀이회고뒤, 상태읽기 } from './authoring-learn-io.js';
 import { 결과읽기, 계산안고침, 계산찍기, 곳안늚, 맵빈곳, 맵종류, 놀이막기 } from './authoring-learn-play.js';
+import type { 따라갈 } from './authoring-game-follow.js';
 import { 시뮬막기 } from './authoring-learn-sim.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 
@@ -152,17 +153,17 @@ export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<strin
   ];
 }
 
-/** 곳 — 계획이 적은 곳. 판 중간 멈춤 보고에 그 곳 맵 정보를 붙인다 */
-export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[]; 곳?: string; 계산?: Record<string, string>; 위치?: { 주소: string; 칸: string } }
+/** 곳 — 계획이 적은 곳. 판 중간 멈춤 보고에 그 곳 맵 정보를 붙인다. 따라갈 — 시뮬이 고른 순서(있으면 조작 도우미가 그 순서대로 판을 하고, 기대가 깨져도 판을 안 멈춘다) */
+export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[]; 곳?: string; 계산?: Record<string, string>; 위치?: { 주소: string; 칸: string }; 따라갈?: 따라갈 }
 
 /** 학습 세션(시험 아님) 동안만 있는 표시가 있나 */
 export const 배우는중인가 = (자료: string | undefined): boolean => 자료 !== undefined && lstatSync(join(자료, 게임자리.배우는중), { throwIfNoEntry: false })?.isFile() === true;
 
 /**
  * 학습 세션에서 조작 도우미를 부르기 전에 본다 — 막을 까닭 글, 계획으로 해 보면 그 계획, 짧은 재기면 null.
- * 학습 세션이 아니면(케이스를 쓰는 세션 · 시험) 막지 않는다. 인자는 판 함수에 넘길 인자 배열 — 게임플레이는 시뮬이 고른 정책이 들어 있어야 돈다
+ * 학습 세션이 아니면(케이스를 쓰는 세션 · 시험) 막지 않는다. 게임플레이에서 시뮬이 필요한 곳이면 조작 도우미가 따라갈 것이 같이 나온다
  */
-export function 배움막기(자료: string | undefined, 초: number, 계획열쇠: string | undefined, 줄들: readonly 지도줄[], 기록들: readonly 판기록[], 인자: readonly unknown[] = []): { 막음: string } | 해볼것 | null {
+export function 배움막기(자료: string | undefined, 초: number, 계획열쇠: string | undefined, 줄들: readonly 지도줄[], 기록들: readonly 판기록[]): { 막음: string } | 해볼것 | null {
   if (자료 === undefined || !배우는중인가(자료)) return null;
   const 없는 = 회고없는판(기록들, 줄들);
   if (없는 !== null) return { 막음: `앞 해 보기(${없는}.json)의 회고 줄(${회고머리}${없는})이 지도에 없다 — 회고를 적은 뒤 다시 부른다(지침 「회고」)` };
@@ -191,10 +192,11 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   // 시뮬이 이기는 안을 내야 판이 돈다 — 기대는 시뮬 예측으로 기계가 더한다(2026-11-28 사용자 「확실히 시뮬레이션 하고 스테이지를 돌자」)
   let 놀막 = 놀이 ? 놀이막기(계획, 줄들, 놀이기록) : null;
   let 시기대: 기대[] = [];
+  let 따라갈: 따라갈 | undefined;
   if (놀이 && 놀막 === null) {
-    const 시 = 시뮬막기(계획, 줄들, 자료, 놀이기록, 인자);
+    const 시 = 시뮬막기(계획, 줄들, 자료, 놀이기록);
     if (시 !== null && '막음' in 시) 놀막 = 시.막음;
-    else 시기대 = 시?.기대 ?? [];
+    else [시기대, 따라갈] = [시?.기대 ?? [], 시?.따라갈];
   }
   if (놀이) 놀막 ??= 놀이계획검사({ ...계획, 기대: [...계획.기대, ...시기대] }) ?? 계산안고침(계획.쓸것 ?? [], 줄들, 놀이기록);
   if (놀막 !== null) return { 막음: 놀막 };
@@ -216,5 +218,5 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   const 결 = 계획.곳 === undefined ? null : 결과읽기(칸(찾기(계획.곳)));
   const 결과볼: 볼값[] = 결 === null || typeof 결 === 'string' || 결.칸 === undefined ? [] : [{ 이름: 결과이름, 주소: 결.주소, 칸: 결.칸 }];
   const 계산 = 계산찍기(계획.쓸것 ?? [], 줄들);
-  return { 계획: 계획열쇠, 볼값: [...계획.볼값, 나, ...결과볼], 기대: [...계획.기대, ...시기대], ...(계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(계획.위치 === undefined ? {} : { 위치: 계획.위치 }), ...(Object.keys(계산).length === 0 ? {} : { 계산 }) };
+  return { 계획: 계획열쇠, 볼값: [...계획.볼값, 나, ...결과볼], 기대: [...계획.기대, ...시기대], ...(계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(계획.위치 === undefined ? {} : { 위치: 계획.위치 }), ...(Object.keys(계산).length === 0 ? {} : { 계산 }), ...(따라갈 === undefined ? {} : { 따라갈 }) };
 }

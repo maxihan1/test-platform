@@ -55,6 +55,20 @@ describe('판 중간 멈춤', () => {
     expect(r.사진?.toString()).toBe('사진');
   });
 
+  it('시뮬 순서대로 하는 판은 기대가 깨져도 안 멈춘다 — 처음 보는 오브젝트에는 멈춘다', async () => {
+    const 기 = { ...값들(28), 어긋남: { 초: 30, 값이름: '세계수', 값: 28, 기대: '세계수 >= 30' } };
+    const 나온 = 빈나온();
+    const 멈춘: string[] = [];
+    const 고리 = 멈춤보기시작(게임() as never, Date.now(), { 값: () => 기, 나온: () => 나온, 로그앞: null }, (왜) => 멈춘.push(왜), 10, false);
+    await 쉼(35);
+    expect(멈춘).toEqual([]);
+    나온.지도에없음.push('Ghost');
+    나온.안펼침.push('Ghost');
+    await 쉼(30);
+    expect(멈춘).toEqual(['처음 보는 오브젝트 Ghost']);
+    await 고리.끝난다();
+  });
+
   it('판 도중 처음 보는(지도에 없는) 오브젝트가 나오면 펼치기가 끝난 뒤 멈춘다', async () => {
     const 나온 = 빈나온();
     const 멈춘: string[] = [];

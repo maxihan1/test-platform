@@ -8,6 +8,8 @@ import { 게임자료환경 } from './authoring-check-game.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
 import { 잡은폰 } from './authoring-run3-game.js';
+import type { 볼값 } from './authoring-learn-check.js';
+import type { 해볼것 } from './authoring-learn-retro.js';
 
 /** 셸 명령의 기본 한도(2분)에 게임에 붙는 시간과 거두는 시간을 남긴다 */
 const 기본초 = 90;
@@ -23,6 +25,20 @@ export function 조작도우미자리(트리: string, 폴더: string, 이름: st
 }
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
+/** 조작 도우미가 함수를 돌릴 때 곁들이는 것(authoring-game-play 돌린다) */
+export interface 덧 {
+  /** 도중 화면 간격(ms) — 안 주거나 0 이면 한 장도 안 찍고 명령도 더 안 보낸다 */
+  도중화면ms?: number;
+  /** 함수가 끝나면 게임을 멈추고 다음에 부를 때 푼다 */
+  멈춤?: boolean;
+  /** 멈춤 표시를 두는 자료 폴더 — 표시가 있으면 멈춤을 안 줘도 부르기 직전에 푼다 */
+  자료?: string;
+  /** 계획으로 해 본다 — 볼값을 2초마다 읽는다 */
+  볼?: 해볼것;
+  /** 함수를 부르기 직전에 이 값(나아감)을 한 번 읽는다 — 10판 확인이 판마다 같은 출발점인지 본다 */
+  출발?: 볼값;
+}
 
 export interface 부를것 {
   폴더: string;
