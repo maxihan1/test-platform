@@ -65,7 +65,7 @@ export function 학습프롬프트(재료: 학습글재료, 거리: 세션거리
       `- **60초 넘게 해 보려면 \`--plan <계획 줄 열쇠>\` 를 붙인다** — 계획(TRIAL)에 잘되면 어떤 숫자인지 적고, 명령이 그 숫자를 2초마다 읽어 처음 어긋난 때를 찾아 준다. 기대가 깨지거나 처음 보는 오브젝트가 나오면 ${멈춤간격ms / 1000}초 안에 게임을 멈추고 멈춤 보고를 찍는다(지침 「판 중간 멈춤」). 끝나면 회고 줄(\`play:<기록 이름>\`)을 적어야 다음이 돈다. 「확인」은 판 기록으로 대 볼 수 있어야 받는다(지침 「지도 검증」).`,
     ]),
     // 형식을 안 줬더니 from · to · status "확인" 으로 지어 써서 서버가 400(rows.0.kind)으로 거절했다(2026-11-27 작성 16094 세션 5)
-    `- 조작 맵(가는 길): ${명령('authoring-game-route')} · 이번에 통과한 동작은 ${자리(게임자리.새맵행)} 의 rows 에 더한다(있는 행은 지우지 마라). 한 행은 \`{ kind: "MOVE", fromKey, action, toKey?, status: "OK" }\` 형태다. kind 는 MOVE(이동 · 조작) · SETUP(상태 설정) · LOG · TERM · POPUP 가운데 하나, 안 된 동작은 status "BLOCKED" 에 reason 을 달고, 더 적을 것은 fields 에 넣는다. from · to · 「확인」은 서버가 안 받는다(필드 뜻은 game.md §8.3).`,
+    `- 조작 맵(가는 길): ${명령('authoring-game-route')} · 이번에 통과한 동작은 ${자리(게임자리.새맵행)} 의 rows 에 더한다(있는 행은 지우지 마라). 한 행은 \`{ kind: "MOVE", fromKey, action, toKey?, status: "OK", warning?, durationMs?, fields? }\` 형태다. kind 는 MOVE(이동 · 조작) · SETUP(상태 설정) · LOG · TERM · POPUP 가운데 하나다. POPUP 은 아무 때나 뜨는 창(공지 · 초대 · 이벤트)만이고 오류 창 · 확인 창은 적지 않는다. status 는 영문 "OK" · "BLOCKED" 만 받는다(「확인」 · 「진행 불가」 글자는 안 받는다). reason 은 BLOCKED 행에만 달고 OK 행에는 뺀다. fields 에는 주소 · 진행 값 · 계정 · 칸만 넣고 warning · durationMs 는 행 바로 아래에 둔다. from · to 같은 다른 이름은 서버가 안 받는다. 필드 뜻은 \`.claude/skills/tpx-author/references/game.md\` §8.3 이다.`,
     `- 지금 빌드: ${거리.빌드 === undefined ? '이름을 모른다 — `learned.build` 에 `control-cli open` 이 찍은 게임 버전을 적는다' : `${거리.빌드} — \`learned.build\` 에 이 글자 그대로 적는다`}.`,
     // 시각 · 남은 분은 싣지 않는다 — 보여 줬더니 마감을 어림해 일찍 끝냈다(2026-11-26 다섯 번째 실측). 끝은 에이전트가 정한다
     '- 컨텍스트가 차면 에이전트가 말없이 끊고 다음 세션이 잇는다 — 적은 것만 남는다. 명령이 「※」 줄을 찍으면 하던 것을 적고 끝낸다.',
