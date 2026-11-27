@@ -113,7 +113,7 @@ export interface 펼침 {
  * 오브젝트 하나를 펼친다 — 판 돌리기도 판 도중 새로 나온 것에 부른다. 이름은 자기 컴포넌트를 가리키는 칸을 거르는 데 쓴다.
  * 표(game-types.txt)가 있으면 묶음 칸도 칸 이름으로 한 번 더 읽는다
  */
-export async function 펼쳐읽기(game: Game, 주소: string, 이름 = 주소.split('/').pop()!.replace(/\[\d+\]$/, ''), 표: 종류표 = new Map()): Promise<펼침> {
+export async function 펼쳐읽기(game: Game, 주소: string, 이름 = 주소.split('/').pop()!.replace(/\[\d+\]$/, ''), 표: 종류표 = new Map(), 그침인가?: (e: unknown) => boolean): Promise<펼침> {
   const 컴포넌트 = await game.components(주소);
   const 들: 펼친것[] = [];
   const 게임것 = 컴포넌트.filter((x) => !엔진것.test(x.type));
@@ -122,7 +122,8 @@ export async function 펼쳐읽기(game: Game, 주소: string, 이름 = 주소.s
   for (const 칸이름 of 더읽을것(들)) {
     try {
       읽은.set(칸이름, await game.get(주소, 칸이름));
-    } catch {
+    } catch (e) {
+      if (그침인가?.(e) === true) throw e;
       // 값이 아직 없는 네트워크 값이다 — 이름만 보인다
     }
   }
@@ -132,7 +133,7 @@ export async function 펼쳐읽기(game: Game, 주소: string, 이름 = 주소.s
       const 타입 = 네트워크값(f) || f.value === null || 목록꼴.test(f.type) ? null : 묶음타입(f.type, f.value, 표);
       const m = typeof f.value === 'string' ? 묶음값.exec(f.value) : null;
       if (타입 === null || m === null || m[1] === 이름) continue;
-      const r = await 묶음읽기(game, 주소, `${c.name}.${f.name}`, 타입, 표);
+      const r = await 묶음읽기(game, 주소, `${c.name}.${f.name}`, 타입, 표, 1, undefined, 그침인가);
       for (const [열쇠, v] of r.값) 읽은.set(열쇠, v);
       목록칸.push(...r.목록칸);
     }
@@ -156,10 +157,13 @@ function 비밀가리개(): (글: string) => string {
   return (글) => 비밀가리기(글, 비밀들);
 }
 
-/** 펼치고 값 파일 `game-props/<종류>.json` 로 남긴다 — 판 도중 자동 펼치기와 손으로 부른 펼치기가 같이 쓴다. 파일을 못 써도 펼친 글은 돌려준다 */
-export async function 펼쳐남기기(game: Game, 주소: string, 이름: string, 값파일정보: { 종류: string; 장면: string | null; 자료?: string; 덧?: { 치트: true; call: string[] } }): Promise<string[]> {
+/**
+ * 펼치고 값 파일 `game-props/<종류>.json` 로 남긴다 — 판 도중 자동 펼치기와 손으로 부른 펼치기가 같이 쓴다. 파일을 못 써도 펼친 글은 돌려준다.
+ * 파일은 다 읽은 뒤에만 쓴다 — 그침이 나면 던져서 아무것도 안 쓴다
+ */
+export async function 펼쳐남기기(game: Game, 주소: string, 이름: string, 값파일정보: { 종류: string; 장면: string | null; 자료?: string; 덧?: { 치트: true; call: string[] }; 그침인가?: (e: unknown) => boolean }): Promise<string[]> {
   const { 자료 } = 값파일정보;
-  const r = await 펼쳐읽기(game, 주소, 이름, 종류표읽기(자료));
+  const r = await 펼쳐읽기(game, 주소, 이름, 종류표읽기(자료), 값파일정보.그침인가);
   if (자료 === undefined) return r.글;
   const 못씀 = 값파일쓰기(자료, { 종류: 값파일정보.종류, 장면: 값파일정보.장면, 읽은때: new Date().toISOString(), 출처: '실행 중', 칸: r.값, 목록칸: r.목록칸, ...값파일정보.덧 }, 비밀가리개());
   return 못씀 === null ? r.글 : [...r.글, `값 파일을 못 썼다: ${못씀}`];

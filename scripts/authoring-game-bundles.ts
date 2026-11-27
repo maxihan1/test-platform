@@ -65,9 +65,10 @@ export interface 묶음읽음 {
 
 /**
  * 묶음 칸 하나를 칸 이름 표로 읽는다. 경로는 `컴포넌트.칸` — 하위 칸은 `경로.하위칸` 점 경로로 get 한다.
- * 하위 칸이 또 표에 있는 묶음이면 한 단계 더 따라간다(최대 두 단계). 목록은 원소를 못 읽으니 이름만 남긴다
+ * 하위 칸이 또 표에 있는 묶음이면 한 단계 더 따라간다(최대 두 단계). 목록은 원소를 못 읽으니 이름만 남긴다.
+ * 그침인가 가 참인 오류(판이 끝나 세기를 그쳤다)는 칸 하나의 실패로 삼키지 않고 다시 던진다 — 반쯤 읽은 값이 값 파일로 굳지 않게
  */
-export async function 묶음읽기(game: Pick<Game, 'get'>, 주소: string, 경로: string, 타입: string, 표: 종류표, 깊이 = 1, 결과: 묶음읽음 = { 값: new Map(), 목록칸: [], 못읽음: [] }): Promise<묶음읽음> {
+export async function 묶음읽기(game: Pick<Game, 'get'>, 주소: string, 경로: string, 타입: string, 표: 종류표, 깊이 = 1, 결과: 묶음읽음 = { 값: new Map(), 목록칸: [], 못읽음: [] }, 그침인가?: (e: unknown) => boolean): Promise<묶음읽음> {
   for (const { 칸, 타입: 칸타입 } of (표.get(타입) ?? []).slice(0, 칸상한)) {
     const 하위 = `${경로}.${칸}`;
     if (목록타입.test(칸타입)) {
@@ -77,12 +78,13 @@ export async function 묶음읽기(game: Pick<Game, 'get'>, 주소: string, 경�
     const 가리키는것 = 가리킴.exec(칸타입)?.[1];
     if (가리키는것 !== undefined) {
       // 엔진 자산(그림 · 프리팹)을 가리키는 칸은 값이 아니다. 표에 있는 묶음만 따라간다
-      if (표.has(짧은(가리키는것)) && 깊이 < 깊이상한) await 묶음읽기(game, 주소, 하위, 짧은(가리키는것), 표, 깊이 + 1, 결과);
+      if (표.has(짧은(가리키는것)) && 깊이 < 깊이상한) await 묶음읽기(game, 주소, 하위, 짧은(가리키는것), 표, 깊이 + 1, 결과, 그침인가);
       continue;
     }
     try {
       결과.값.set(하위, await game.get(주소, 하위));
-    } catch {
+    } catch (e) {
+      if (그침인가?.(e) === true) throw e;
       결과.못읽음.push(하위);
     }
   }

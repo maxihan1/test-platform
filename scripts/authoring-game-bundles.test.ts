@@ -87,6 +87,20 @@ describe('묶음읽기', () => {
     expect(r.값.get('A.T.Damage')).toBe(4);
   });
 
+  it('그침(판이 끝나 세기를 그친 오류)은 칸마다 catch 가 삼키지 않고 그대로 던진다', async () => {
+    class 그침 extends Error {}
+    const 부름: string[] = [];
+    const game = {
+      get: async (_주소: string, 칸: string) => {
+        부름.push(칸);
+        if (칸 === 'A.T.Damage') throw new 그침();
+        return 1;
+      },
+    } as unknown as Pick<Game, 'get'>;
+    await expect(묶음읽기(game, '/a', 'A.T', 'MonsterTypeData', 표, 1, undefined, (e) => e instanceof 그침)).rejects.toBeInstanceOf(그침);
+    expect(부름).toEqual(['A.T.MaxHP', 'A.T.Damage']);
+  });
+
   it('표에 없는 타입은 아무것도 안 읽는다', async () => {
     const g = 게임({});
     expect((await 묶음읽기(g.game, '/a', 'A.T', '없는타입', 표)).값.size).toBe(0);

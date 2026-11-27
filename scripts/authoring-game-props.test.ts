@@ -1,12 +1,12 @@
 // 오브젝트 펼치기 — 값 · 묶음 · 목록 · 빈 칸 · 함수로 가르기, 네트워크 틀 거르기, 네트워크 값 읽기 (도메인/게임 §3.10 「오브젝트 펼치기」)
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { Command, Game, Link } from 'control-cli';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type 펼친것, 더읽을것, 펼쳐읽기, 펼친글, 실행 } from './authoring-game-props.js';
+import { type 펼친것, 더읽을것, 펼쳐남기기, 펼쳐읽기, 펼친글, 실행 } from './authoring-game-props.js';
 import { 종류표만들기 } from './authoring-game-bundles.js';
 
 let 자리들: string[] = [];
@@ -93,6 +93,32 @@ describe('펼쳐읽기 · 묶음 칸', () => {
     const 펼침 = await 펼쳐읽기(game(읽음), '//*[@id=7]', 'Ghost(Clone)');
     expect(읽음).toEqual([]);
     expect(펼침.글.join('\n')).toContain('묶음 TypeData → GhostData_1 (MonsterTypeData)');
+  });
+});
+
+describe('펼쳐남기기 · 그침', () => {
+  class 그침 extends Error {}
+  const 게임 = (): Game =>
+    ({
+      components: async () => [{ name: 'MonsterHP', type: 'Game.MonsterHP' }],
+      members: async () => ({ fields: [{ name: 'HP', type: 'NetworkVariable`1', value: 'Unity.Netcode.NetworkVariable`1[System.Int32]' }, { name: 'MaxHP', type: 'Int32', value: 20 }], properties: [], methods: [] }),
+      get: async () => {
+        throw new 그침();
+      },
+    }) as unknown as Game;
+
+  it('네트워크 값을 읽다 그침이 나면 반쯤 읽은 값 파일을 쓰지 않고 그대로 던진다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-stop-'));
+    자리들.push(자료);
+    await expect(펼쳐남기기(게임(), '/a', 'Ghost', { 종류: 'Ghost', 장면: null, 자료, 그침인가: (e) => e instanceof 그침 })).rejects.toBeInstanceOf(그침);
+    expect(existsSync(join(자료, 'game-props'))).toBe(false);
+  });
+
+  it('그침이 아닌 읽기 실패는 이름만 남기고 값 파일은 쓴다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-stop-'));
+    자리들.push(자료);
+    await 펼쳐남기기(게임(), '/a', 'Ghost', { 종류: 'Ghost', 장면: null, 자료, 그침인가: () => false });
+    expect(existsSync(join(자료, 'game-props', 'Ghost.json'))).toBe(true);
   });
 });
 

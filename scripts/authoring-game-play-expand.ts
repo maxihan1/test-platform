@@ -29,7 +29,7 @@ export async function 새종류펼치기(o: { 나온: 나온것; 종류: string;
   }
   const 주소 = 찾음.id === undefined ? 찾음.path : `//*[@id=${찾음.id}]`;
   try {
-    const 글 = await 펼쳐남기기(o.게임, 주소, 이름만(찾음.path), { 종류, 장면: o.장면, ...(o.자료 === undefined ? {} : { 자료: o.자료 }), ...(o.덧 === undefined ? {} : { 덧: o.덧 }) });
+    const 글 = await 펼쳐남기기(o.게임, 주소, 이름만(찾음.path), { 종류, 장면: o.장면, ...(o.자료 === undefined ? {} : { 자료: o.자료 }), ...(o.덧 === undefined ? {} : { 덧: o.덧 }), 그침인가: o.그침인가 });
     나온.펼침.push({ 종류, 초, 주소, 글 });
   } catch (e) {
     if (o.그침인가(e)) {
