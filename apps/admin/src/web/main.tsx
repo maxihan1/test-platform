@@ -39,6 +39,7 @@ import './runList.css';
 import './runNav.css';
 import './runPill.css';
 import './caseList.css';
+import './detailModal.css';
 import './runFlow.css';
 import './scenarioProc.css';
 import './casePick.css';

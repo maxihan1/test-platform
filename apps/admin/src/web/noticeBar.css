@@ -189,12 +189,13 @@
   }
 }
 
-/* 토스트 — 본문 오른쪽 아래(진행 알약이 있으면 그 위), 휴대폰은 아래 탭 위. 뒤집은 색이라 고리는 --toast-link (DESIGN.md 「토스트」) */
+/* 토스트 — 본문 오른쪽 아래(진행 알약이 있으면 그 위), 휴대폰은 아래 탭 위. 뒤집은 색이라 고리는 --toast-link (DESIGN.md 「토스트」).
+   층은 진행 알약 바로 위 — 상세 창(60) 위에 뜬다(2026-11-27 — 상세 창에서 건 실행의 완료 토스트가 덮개 아래로 숨었다) */
 .toast {
   position: fixed;
   right: 20px;
   bottom: 20px;
-  z-index: 31;
+  z-index: 62;
   display: flex;
   align-items: center;
   gap: 12px;

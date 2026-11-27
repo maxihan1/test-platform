@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 케이스 상세 칸 검사 (SPEC §8.1 「상세 칸」, 2026-10-19 ⑫ 시안 A — 모달에서 목록 오른쪽 칸으로).
+// 케이스 상세 창 검사 (SPEC §8.1 「상세 칸」, 2026-10-19 ⑫ 시안 A · 2026-11-27 시안 C 2판 — 서랍에서 가운데 창으로).
 //
 // §8.1 은 「케이스마다 이력을 따로 부르지 않는다」를 못 박는다. 상세는 그 규칙의 예외인데,
 // 예외인 이유는 **목록이 부르는 것이 아니라 사람이 한 줄을 열었을 때 부르기 때문**이다.
@@ -116,11 +116,11 @@ function 그린다(over: Partial<React.ComponentProps<typeof CaseDetail>> = {}) 
 }
 
 describe('케이스 상세의 설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () => {
-  it('기법이 있으면 구획에 태그로 그린다', () => {
+  it('기법이 있으면 「세부 사항」 줄에 태그로 그린다', () => {
     통로를막는다();
-    const { container } = 그린다({ row: { ...케이스, techniques: ['경계값 분석', '상태 전이'] } });
+    그린다({ row: { ...케이스, techniques: ['경계값 분석', '상태 전이'] } });
 
-    const 구획 = [...container.querySelectorAll('.dsec')].find((el) => el.querySelector('.dlabel')?.textContent === '설계 기법');
+    const 구획 = screen.getByText('설계 기법', { selector: 'dt' }).nextElementSibling;
     expect([...(구획?.querySelectorAll('.tech-tag') ?? [])].map((el) => el.textContent)).toEqual(['경계값 분석', '상태 전이']);
   });
 
@@ -133,16 +133,49 @@ describe('케이스 상세의 설계 기법 (도메인/카탈로그 §8.1 「설
   });
 });
 
-describe('케이스 상세 칸 — 모달이 아니라 목록 옆 칸이다', () => {
-  it('상자가 아니라 aside 로 그리고 케이스 이름을 제목으로 단다', () => {
+describe('케이스 상세 창 — 목록을 덮는 가운데 창이다 (2026-11-27 시안 C 2판)', () => {
+  it('케이스 이름을 제목으로 단 dialog 이고 위치 줄 끝에 번호가 선다', () => {
     통로를막는다();
-    그린다();
+    그린다({ row: { ...케이스, feature: '주문' }, 위치: '기능 테스트' });
 
-    expect(screen.queryByRole('dialog')).toBeNull();
-    const 칸 = document.getElementById('case-pane');
-    expect(칸?.tagName).toBe('ASIDE');
-    expect(within(칸!).getByRole('heading', { name: '상세 케이스' })).toBeTruthy();
-    expect(within(칸!).getByText('ZZD-001')).toBeTruthy();
+    const 칸 = screen.getByRole('dialog', { name: '상세 케이스' });
+    expect(칸.id).toBe('case-pane');
+    expect(칸.getAttribute('aria-modal')).toBe('true');
+    expect(within(칸).getByRole('navigation', { name: '위치' }).textContent).toBe('기능 테스트/주문/ZZD-001');
+  });
+
+  it('왼쪽은 읽는 내용, 오른쪽은 마지막 결과 · 세부 사항이다', () => {
+    통로를막는다();
+    그린다({ 마지막: 한기기마지막 });
+
+    const 왼쪽 = document.querySelector('.dm-main') as HTMLElement;
+    const 오른쪽 = document.querySelector('.dm-side') as HTMLElement;
+    expect(within(왼쪽).getByText('사전 조건')).toBeTruthy();
+    expect(within(오른쪽).getByText('마지막 결과')).toBeTruthy();
+    expect(within(오른쪽).getByText('Pass')).toBeTruthy();
+    expect(within(오른쪽).getByText('디바이스', { selector: 'dt' }).nextElementSibling?.textContent).toBe('PC');
+  });
+
+  it('이전 · 다음은 받은 것만 켜지고 누르면 그것을 부른다', () => {
+    통로를막는다();
+    const on다음 = vi.fn();
+    그린다({ on다음 });
+
+    expect((screen.getByRole('button', { name: '이전' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    expect(on다음).toHaveBeenCalledTimes(1);
+  });
+
+  it('Esc · 바깥 누르기로 닫힌다. 창 안을 눌러서는 안 닫힌다', () => {
+    통로를막는다();
+    const onClose = vi.fn();
+    그린다({ onClose });
+
+    fireEvent.mouseDown(screen.getByText('로그인한 상태다'));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.mouseDown(document.querySelector('.dm-back')!);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 
   it('✕ 상세 닫기 를 누르면 onClose 를 부른다', () => {
@@ -473,33 +506,36 @@ describe('값 저장 — 누르기 전에 누구에게 닿는지 적는다 (점�
 });
 
 describe('실행 단추 — 고친 값을 실은 실행 창을 연다', () => {
-  it('「이 값으로 실행」을 누르면 on실행(row) 를 부른다', () => {
+  it('「실행」은 「입력값」 상자 아래에 서고 누르면 on실행(row) 를 부른다', () => {
     통로를막는다();
     const on실행 = vi.fn();
     그린다({ on실행 });
 
-    fireEvent.click(screen.getByRole('button', { name: '이 값으로 실행' }));
+    const 단추 = screen.getByRole('button', { name: '실행' });
+    expect(단추.closest('details')?.querySelector('summary')?.textContent).toBe('입력값');
+    fireEvent.click(단추);
 
     expect(on실행).toHaveBeenCalledWith(케이스);
   });
 
-  it('값 칸이 없는 케이스는 글자가 「실행」이다', () => {
+  it('입력 칸이 없는 케이스는 「실행」이 마지막 결과 옆에 선다', () => {
     통로를막는다();
     const on실행 = vi.fn();
     그린다({ row: 값없는케이스, on실행 });
 
-    expect(screen.queryByRole('button', { name: '이 값으로 실행' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    const 단추 = screen.getByRole('button', { name: '실행' });
+    expect(단추.closest('.dm-status')).not.toBeNull();
+    fireEvent.click(단추);
     expect(on실행).toHaveBeenCalledTimes(1);
   });
 
-  it('실행 칸이 테스트만이면 글자가 「이 값으로 시험 실행」 · 「테스트 실행」이다', () => {
+  it('실행 칸이 테스트만이면 글자가 「시험 실행」이다', () => {
     통로를막는다();
     const on실행 = vi.fn();
     const { unmount } = 그린다({ on실행, 테스트만: true });
 
-    expect(screen.queryByRole('button', { name: '이 값으로 실행' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '이 값으로 시험 실행' }));
+    expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     expect(on실행).toHaveBeenCalledWith(케이스);
     unmount();
 
@@ -512,7 +548,7 @@ describe('실행 단추 — 고친 값을 실은 실행 창을 연다', () => {
 
     그린다();
 
-    expect(screen.queryByRole('button', { name: '이 값으로 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
   });
 
   it('꺼진 케이스는 단추가 없다', () => {
@@ -520,7 +556,7 @@ describe('실행 단추 — 고친 값을 실은 실행 창을 연다', () => {
 
     그린다({ row: { ...케이스, isActive: false }, on실행: vi.fn() });
 
-    expect(screen.queryByRole('button', { name: '이 값으로 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
   });
 });
 

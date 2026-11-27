@@ -2,6 +2,11 @@
 // 여기에 넣은 키는 화면 어딘가가 실제로 써야 한다 — messages.test.ts 가 양방향으로 센다
 
 export const 껍데기말: Record<string, string> = {
+  // 목록 한 줄의 상세 창 — 케이스 · PRD 요구가 같이 쓴다 (DESIGN.md 「상세 창」 · 2026-11-27)
+  '세부 사항': 'Details',
+  '주소 복사': 'Copy link',
+  '주소를 복사했습니다': 'Link copied',
+  '주소를 복사하지 못했습니다': "Couldn't copy the link",
   // 애플리케이션 줄 맨 아래 「+」 (화면공통 §8 「껍데기」 · 2026-10-29)
   '애플리케이션 추가': 'Add application',
   // 자리 목록 — QA 단계 구분선 넷 (화면공통 §8 「자리 목록」 · 2026-11-12)
