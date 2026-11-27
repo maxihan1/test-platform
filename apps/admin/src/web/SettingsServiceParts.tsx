@@ -32,19 +32,18 @@ export function 비밀칸(p: {
         {p.값 === null ? (
           <div className="set-hook">
             <span>{칸.글}</span>
-            {/* 값이 없을 때는 `+` 기호 하나, 있을 때는 글자 「변경」과 `−` — 있는데 `+` 를 또 보이면 헷갈린다. 기호만 보이는 버튼의 이름은 aria-label 이 맡는다 */}
+            {/* 기호만 있는 버튼은 뜻이 안 읽혀 글자로 쓴다. 값이 없을 때 「입력」, 있을 때 「변경」과 「삭제」 */}
             <button
-              className={p.설정됨 ? 'btn ghost' : 'btn ghost icon'}
+              className="btn ghost"
               aria-label={p.설정됨 ? t('{이름} 변경', { 이름: p.이름 }) : t('{이름} 추가', { 이름: p.이름 })}
-              title={p.설정됨 ? undefined : t('{이름} 추가', { 이름: p.이름 })}
               onClick={() => p.바꾼다('')}
             >
               {칸.버튼}
             </button>
             {p.설정됨 ? (
               // 지우는 길도 빈 칸을 저장하는 것이다 — 서버가 「빈 글자 = 지움」으로 받는다. 저장 전에 「변경 취소」로 물릴 수 있다
-              <button className="btn ghost icon" aria-label={t('{이름} 삭제', { 이름: p.이름 })} title={t('{이름} 삭제', { 이름: p.이름 })} onClick={() => p.바꾼다('')}>
-                −
+              <button className="btn ghost set-del" aria-label={t('{이름} 삭제', { 이름: p.이름 })} onClick={() => p.바꾼다('')}>
+                {t('삭제')}
               </button>
             ) : null}
           </div>

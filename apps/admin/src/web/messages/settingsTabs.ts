@@ -31,4 +31,14 @@ export const 설정탭말: Record<string, string> = {
   '결함 등록': 'Defect reporting',
   '실패한 테스트를 {bts} 이슈로 등록합니다. 연결은 프로젝트마다 하나라서 프로젝트 설정에서 변경합니다': 'Failed tests are filed as {bts} issues. There is one link per project, so change it in the project settings',
   '{프로젝트} 프로젝트 설정에서 보기': 'View in {프로젝트} project settings',
+
+  // 대상 서버 편집기 — 칸 이름 · 머리 · 글자 단추
+  '앱 파일 경로': 'App file path',
+  '앱 파일 경로 · 패키지 이름': 'App file path · package name',
+  '역할 · 아이디 · 비밀번호': 'Role · ID · Password',
+  '준비 주소 · 헤더 이름 · 헤더 값 · 제한 시간': 'Setup URL · Header name · Header value · Time limit',
+  '헤더 이름 · 헤더 값': 'Header name · Header value',
+  '서버 삭제': 'Delete server',
+  '계정 삭제': 'Delete account',
+  '+ 테스트 데이터 준비': '+ Test data setup',
 };

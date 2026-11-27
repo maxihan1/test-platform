@@ -72,18 +72,17 @@ export function 비밀번호칸<T extends 비밀번호상태>({
     return (
       <span className="set-hook">
         <span>{있다 ? t('비밀번호 설정됨') : t('비밀번호 없음')}</span>
-        {/* 없을 때는 `+` 기호 하나, 있을 때는 글자 「변경」과 `−` — 있는데 `+` 를 또 보이면 헷갈린다. 기호만 보이는 버튼의 이름은 aria-label 이 맡는다 */}
+        {/* 기호만 있는 버튼은 뜻이 안 읽혀 글자로 쓴다. 없을 때 「입력」, 있을 때 「변경」과 「삭제」 */}
         <button
-          className={있다 ? 'btn ghost' : 'btn ghost icon'}
+          className="btn ghost"
           aria-label={있다 ? 라벨.변경 : 라벨.추가}
-          title={있다 ? undefined : 라벨.추가}
           onClick={() => 고친다({ ...값, 새비밀번호: '', 비밀번호지움: false })}
         >
-          {있다 ? t('변경') : '+'}
+          {있다 ? t('변경') : t('입력')}
         </button>
         {있다 ? (
-          <button className="btn ghost icon" aria-label={라벨.삭제} title={라벨.삭제} onClick={() => 고친다({ ...값, 비밀번호지움: true })}>
-            −
+          <button className="btn ghost set-del" aria-label={라벨.삭제} onClick={() => 고친다({ ...값, 비밀번호지움: true })}>
+            {t('삭제')}
           </button>
         ) : null}
       </span>
@@ -159,12 +158,11 @@ export function 역할계정칸들({
               }}
             />
             <button
-              className="btn ghost icon"
+              className="btn ghost set-del"
               aria-label={t('대상 서버 {번호} 역할 {순번} 삭제', 자리)}
-              title={t('대상 서버 {번호} 역할 {순번} 삭제', 자리)}
               onClick={() => 고친다(역할들.filter((_, i) => i !== k))}
             >
-              −
+              {t('계정 삭제')}
             </button>
             {역할이름바꿈(r) ? <div className="hint">{t('역할 이름을 변경하면 이 역할의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요')}</div> : null}
           </div>

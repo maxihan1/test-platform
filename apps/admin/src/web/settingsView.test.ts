@@ -84,7 +84,7 @@ describe('Slack 웹훅 칸 (SPEC §8.8)', () => {
   });
 
   it('없으면 넣으라고 말한다', () => {
-    expect(웹훅칸(false, 'ko')).toMatchObject({ 글: '없음', 버튼: '+' });
+    expect(웹훅칸(false, 'ko')).toMatchObject({ 글: '없음', 버튼: '입력' });
   });
 
   it('둘 다 주소를 담지 않는다', () => {

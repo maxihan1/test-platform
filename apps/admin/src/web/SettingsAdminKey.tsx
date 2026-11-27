@@ -71,6 +71,9 @@ export function 어드민키칸({ 줄: r, 번호, 고친다 }: { 줄: 어드민�
   const 지워짐 = 끝넷 !== null && 지금칸(r).header === '' && 지금.새값 === '';
   return (
     <div className="set-env-login">
+      <div className="set-env-sub" aria-hidden="true">
+        {t('헤더 이름 · 헤더 값')}
+      </div>
       <span className="field-label">{t('어드민 키')}</span>
       <input
         type="text"
@@ -90,6 +93,7 @@ export function 어드민키칸({ 줄: r, 번호, 고친다 }: { 줄: 어드민�
         aria-label={t('대상 서버 {번호} 어드민 키 값', { 번호 })}
         onChange={(e) => 고친다({ ...지금, 새값: e.target.value })}
       />
+      <div className="hint">{t('어드민 키는 서버 어드민 API 에 헤더로 실어 보냅니다. 케이스가 재화 지급처럼 서버 상태를 변경할 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 삭제됩니다')}</div>
       {지워짐 ? <div className="hint">{t('이대로 저장하면 이 서버의 어드민 키가 삭제됩니다')}</div> : null}
     </div>
   );

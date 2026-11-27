@@ -85,15 +85,14 @@ export function 준비칸({ 줄: r, 번호, 고친다 }: { 줄: 준비줄; 번�
   if (!p.열림) {
     return (
       <div className="set-env-login">
-        <span className="field-label">{t('테스트 데이터 준비')}</span>
         <button
-          className="btn ghost icon"
+          className="btn ghost"
           aria-label={t('대상 서버 {번호} 테스트 데이터 준비 추가', { 번호 })}
-          title={t('대상 서버 {번호} 테스트 데이터 준비 추가', { 번호 })}
           onClick={() => 고친다({ 열림: true, url: '', header: '', 새값: '', timeoutSec: '120' })}
         >
-          +
+          {t('+ 테스트 데이터 준비')}
         </button>
+        <div className="hint">{t('테스트 데이터 준비 주소는 실행할 때마다 먼저 호출해 테스트 데이터를 처음 상태로 초기화합니다. 같은 주소를 넣은 애플리케이션은 한 번에 하나씩 실행합니다')}</div>
         {지워짐}
       </div>
     );
@@ -101,6 +100,9 @@ export function 준비칸({ 줄: r, 번호, 고친다 }: { 줄: 준비줄; 번�
   const 값보임 = p.새값 === null && 이을수있다(r);
   return (
     <div className="set-env-login">
+      <div className="set-env-sub" aria-hidden="true">
+        {t('준비 주소 · 헤더 이름 · 헤더 값 · 제한 시간')}
+      </div>
       <span className="field-label">{t('테스트 데이터 준비')}</span>
       <input
         type="text"
@@ -154,14 +156,10 @@ export function 준비칸({ 줄: r, 번호, 고친다 }: { 줄: 준비줄; 번�
         />
         <span>{t('초')}</span>
       </span>
-      <button
-        className="btn ghost icon"
-        aria-label={t('대상 서버 {번호} 테스트 데이터 준비 삭제', { 번호 })}
-        title={t('대상 서버 {번호} 테스트 데이터 준비 삭제', { 번호 })}
-        onClick={() => 고친다(준비편집으로(null))}
-      >
-        −
+      <button className="btn ghost set-del" aria-label={t('대상 서버 {번호} 테스트 데이터 준비 삭제', { 번호 })} onClick={() => 고친다(준비편집으로(null))}>
+        {t('삭제')}
       </button>
+      <div className="hint">{t('테스트 데이터 준비 주소는 실행할 때마다 먼저 호출해 테스트 데이터를 처음 상태로 초기화합니다. 같은 주소를 넣은 애플리케이션은 한 번에 하나씩 실행합니다')}</div>
       {지워짐}
     </div>
   );
