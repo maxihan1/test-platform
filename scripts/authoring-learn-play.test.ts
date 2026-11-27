@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { 지도읽기 } from './authoring-game-find.js';
 import { type 판기록, 계획읽기 } from './authoring-learn-check.js';
 import { 합치기 } from './authoring-learn-note.js';
-import { 결과읽기, 곳글, 곳맵줄, 곳셈, 남은깰곳, 놀이막기, 계산안고침, 곳안늚, 맵검사, 맵빈곳, 맵종류, 못깸판, 판결과 } from './authoring-learn-play.js';
+import { 결과읽기, 곳글, 곳맵줄, 곳셈, 남은깰곳, 놀이막기, 계산안고침, 곳안늚, 맵검사, 맵빈곳, 맵종류, 넘김판, 판결과 } from './authoring-learn-play.js';
 import { 남은배울것, 늚셈, 늚재기, 배움막기, 손막힘, 회고채우기 } from './authoring-learn-retro.js';
 
 let 자료 = '';
@@ -89,17 +89,18 @@ describe('게임플레이 — 곳마다 깰 때까지', () => {
   // 그 곳 회고 — 나아감은 판마다 회고가 기록에서 채운다
   const 회고들 = (나아감들: number[], 곳 = 'stage:넷째 맵') => 나아감들.map((n, i) => 줄('PLAY', `play:20261126060000${String(i).padStart(3, '0')}-판`, { 까닭: '손', 곳, 나아감: n, 계획: 'trial:넷째' }));
 
-  it(`계획은 깰 곳을 적어야 하고, 못깸으로 적은 곳 · ${못깸판}판 이어 나아감이 안 는 곳은 다시 안 한다 — 판 수(50판)로는 안 막는다`, () => {
-    const 오십 = Array.from({ length: 50 }, (_, i) => 판끝(`2026112606${String(i).padStart(9, '0')}-판`, 'trial:넷째', '패 배'));
+  it(`계획은 깰 곳을 적어야 하고, 못깸으로 적은 곳 · ${넘김판}판 해 보고 못 깬 곳은 이번에 다시 안 한다 — 다음 맵을 해 보고 그 곳은 게임플레이 단계에서 다시 깬다`, () => {
+    const 판들 = (n: number) => Array.from({ length: n }, (_, i) => 판끝(`2026112606${String(i).padStart(9, '0')}-판`, 'trial:넷째', '패 배'));
     expect(놀이막기({}, 지도줄 as never, [])).toContain('data.곳');
     expect(놀이막기({ 곳: 'stage:랭킹 창' }, 지도줄 as never, [])).toContain('깰 곳이 아니다');
     const 넷째 = { 곳: 'stage:넷째 맵', 쓸것: ['stage:넷째 맵#걷기'] };
-    expect(놀이막기(넷째, 지도줄 as never, 오십)).toBeNull();
-    expect(놀이막기(넷째, [...지도줄, ...회고들([1, 2, 3, 3, 2, 3])] as never, 오십)).toBeNull();
-    expect(놀이막기(넷째, [...지도줄, ...회고들([1, 3, 3, 2, 3, 3, 1])] as never, 오십)).toContain(`${못깸판}판 이어 나아감이 안 늘었다`);
-    expect(곳안늚(회고들([3, 3, 2, 3, 3, 1]) as never, 'stage:넷째 맵', 못깸판)).not.toBeNull();
-    expect(곳안늚(회고들([3, 3, 2, 3, 3, 1]) as never, 'stage:셋째 맵', 못깸판)).toBeNull();
-    expect(곳안늚(회고들([3, 3, 2, 3, 1]) as never, 'stage:넷째 맵', 못깸판)).toBeNull();
+    expect(놀이막기(넷째, 지도줄 as never, 판들(넘김판 - 1))).toBeNull();
+    expect(놀이막기(넷째, 지도줄 as never, 판들(넘김판))).toContain(`stage:넷째 맵 를 ${넘김판}판 해 보고 못 깼다 — 다음 맵`);
+    expect(남은깰곳(지도줄 as never, 판들(넘김판)).join('\n')).not.toContain('stage:넷째 맵');
+    expect(남은깰곳(지도줄 as never, 판들(넘김판 - 1)).join('\n')).toContain('stage:넷째 맵');
+    expect(곳안늚(회고들([3, 3, 2, 3, 3, 1]) as never, 'stage:넷째 맵', 5)).not.toBeNull();
+    expect(곳안늚(회고들([3, 3, 2, 3, 3, 1]) as never, 'stage:셋째 맵', 5)).toBeNull();
+    expect(곳안늚(회고들([3, 3, 2, 3, 1]) as never, 'stage:넷째 맵', 5)).toBeNull();
     expect(놀이막기(넷째, [깰곳('stage:넷째 맵', { 상태: '못깸', 까닭: '3웨이브 보스를 못 막음' })] as never, [])).toContain('못깸으로 적었다');
   });
 
@@ -134,16 +135,14 @@ describe('게임플레이 — 곳마다 깰 때까지', () => {
     expect(계산안고침(['stage:둘째 맵#걷기'], [계산(5)] as never, [쓴판('20261127083607252-맵잇기', 5, true)])).toBeNull();
   });
 
-  it(`못깸은 그 곳에서 ${못깸판}판 이어 나아감이 안 늘어야 적는다 — 못 깨면 넘어가는 길로 쓰지 않는다`, () => {
-    const 여섯 = Array.from({ length: 6 }, (_, i) => 판끝(`2026112606${String(i).padStart(9, '0')}-판`, 'trial:넷째', '패 배'));
+  it(`못깸은 ${넘김판}판 해 보고도 못 깼을 때만 적는다 — 못 깨면 넘어가는 길로 쓰지 않는다`, () => {
+    const 판들 = (n: number) => Array.from({ length: n }, (_, i) => 판끝(`2026112606${String(i).padStart(9, '0')}-판`, 'trial:넷째', '패 배'));
     const 못깸 = [줄('STAGE', 'stage:넷째 맵', { 상태: '못깸', 까닭: '3웨이브 보스', 장면: 'BossRoom3', 결과: { 주소: 'ResultText', 깸: '승 리', 짐: '패 배' } })];
     const 앞 = 지도줄.slice(3).map((x) => ({ kind: x.kind, key: x.key, name: x.name, learned: x.learned }));
-    const 기록 = [...여섯, 판('20261126050000000-둘러보기', ['BossRoom3'])];
-    const 회고 = (들: number[]) => 회고들(들).map((x) => ({ kind: x.kind, key: x.key, name: x.name, learned: x.learned }));
-    expect(합치기(지도읽기(''), [...앞, ...회고([1, 2, 3, 3, 2, 4])], 못깸, 기록)).toContain(`못깸은 data.결과 가 있는 곳에서 ${못깸판}판 이어 나아감이 안 늘었을 때만 적는다(지금 6판 · 깸 0)`);
-    expect(합치기(지도읽기(''), [...앞, ...회고([4, 3, 3, 2, 4, 1])], 못깸, 기록)).toMatchObject({ 수: 1 });
+    const 둘러봄 = 판('20261126050000000-둘러보기', ['BossRoom3']);
+    expect(합치기(지도읽기(''), 앞, 못깸, [...판들(넘김판 - 1), 둘러봄])).toContain(`못깸은 data.결과 가 있는 곳을 ${넘김판}판 해 보고도 못 깼을 때만 적는다(지금 ${넘김판 - 1}판 · 깸 0)`);
+    expect(합치기(지도읽기(''), 앞, 못깸, [...판들(넘김판), 둘러봄])).toMatchObject({ 수: 1 });
   });
-
   it('게임플레이 단계는 다섯 번 안 늘어도 안 끝내고, 결과를 칸으로 읽는 곳이면 그 값을 같이 읽는다', () => {
     writeFileSync(join(자료, 'game-learning.now'), '1');
     writeFileSync(join(자료, 'game-learn.json'), JSON.stringify({ 쓴ms: 1, 세션: 1, 끝: false, 열쇠: [], 단계: '게임플레이' }));

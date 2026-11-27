@@ -583,12 +583,12 @@ describe('학습프롬프트', () => {
     expect(학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], 부분: false, 차례: 1 })).not.toContain('**물음 트리**');
   });
 
-  it('게임플레이 — 단계 표지를 바꾸고, 깰 곳 · 쓸것 · 다섯 판 안 늚 못깸을 알리고(판 수 50 은 없다), 튜토리얼 차례는 안 준다', () => {
+  it('게임플레이 — 단계 표지를 바꾸고, 깰 곳 · 쓸것 · 다섯 판 뒤 다음 맵을 알리고(판 수 50 은 없다), 튜토리얼 차례는 안 준다', () => {
     const 글 = 학습프롬프트(재료, { 배울것, 남은분: 0, 놓음: false, 못올림: [], 부분: false, 차례: 4, 단계: '게임플레이' });
     expect(글).toContain('[단계] 게임플레이');
     expect(글).not.toContain('[단계] 게임 배우기');
     expect(글).toContain('`data.쓸것`(그 곳 맵 정보 하나 이상)');
-    expect(글).toContain('5판 이어 나아감이 안 늘면'); expect(글).not.toContain('50판');
+    expect(글).toContain('5판 해 보고 못 깨면 그 곳은 이번에 더 안 하고 다음 맵'); expect(글).not.toContain('50판');
     expect(글).toContain('깰 곳마다 깨거나 못깸으로 적을 때까지');
     expect(글).not.toContain('튜토리얼 끝까지');
   });
