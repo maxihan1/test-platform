@@ -7,6 +7,7 @@ import { api, type SettingsServiceRow } from './api.js';
 import { prdApi, type PrdNow } from './prdApi.js';
 import { ServicePanel } from './SettingsService.js';
 import { 물음누름 } from './startConfirm.fixture.js';
+import { 탭열기 } from './SettingsTabs.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -47,6 +48,7 @@ async function 저장한본문() {
 describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/인증 §8.8 · 작성 §3.6 「★ 역할별 계정」)', () => {
   it('첫 계정 라벨이 「일반 회원」이고 받은 역할은 아이디만 되돌려 보낸다 — 비밀번호는 서버가 이름으로 이어받는다', async () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     expect(screen.getByText('일반 회원')).toBeTruthy();
     expect((screen.getByLabelText('대상 서버 1 역할 1 이름') as HTMLInputElement).value).toBe('관리자');
 
@@ -62,6 +64,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('역할 추가로 넣은 역할 · 아이디 · 비밀번호가 저장 본문 accounts 에 실린다', async () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 역할 추가' }));
     fireEvent.change(screen.getByLabelText('대상 서버 1 역할 2 이름'), { target: { value: '판매자' } });
     fireEvent.change(screen.getByLabelText('대상 서버 1 역할 2 아이디'), { target: { value: 'seller' } });
@@ -75,6 +78,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('새 역할의 빈 칸은 null 로 보낸다 — 같은 이름의 옛 역할 비밀번호가 되살아나지 않게', async () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 역할 1 삭제' }));
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 역할 추가' }));
     fireEvent.change(screen.getByLabelText('대상 서버 1 역할 1 이름'), { target: { value: '관리자' } });
@@ -84,6 +88,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('삭제를 누르면 그 역할이 목록에서 빠진 채 간다', async () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 역할 1 삭제' }));
 
     expect((await 저장한본문())?.accounts).toEqual([]);
@@ -91,6 +96,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('역할 비밀번호를 변경하거나 삭제하면 그것만 보낸다', async () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     expect(screen.getAllByText('비밀번호 설정됨')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 역할 1 비밀번호 삭제' }));
 
@@ -99,6 +105,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('「실서비스 서버」를 체크하고 저장하면 isProd: true 를 보낸다', async () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByLabelText('대상 서버 1 실서비스 서버'));
 
     expect(await 저장한본문()).toMatchObject({ isProd: true });
@@ -106,6 +113,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('새 줄 이름이 prod 면 「실서비스 서버」가 미리 켜지고 그대로 보낸다 — 끌 수 있다', async () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '+ 대상 서버 추가' }));
     fireEvent.change(screen.getByLabelText('대상 서버 2 키'), { target: { value: 'prod' } });
     fireEvent.change(screen.getByLabelText('대상 서버 2 주소'), { target: { value: 'https://prod.example.com' } });
@@ -120,6 +128,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('역할 비밀번호 칸은 가린 입력이고 자동완성을 받지 않는다', () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 역할 1 비밀번호 변경' }));
     const 칸 = screen.getByLabelText('대상 서버 1 역할 1 비밀번호');
     expect(칸.getAttribute('type')).toBe('password');
@@ -129,6 +138,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('비밀번호가 있던 역할의 이름을 바꾸면 초기화된다고 알리고 빈 비밀번호를 null 로 보낸다', async () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.change(screen.getByLabelText('대상 서버 1 역할 1 이름'), { target: { value: '운영자' } });
     expect(screen.getByText(/이 역할의 비밀번호가 초기화됩니다/)).toBeTruthy();
 
@@ -143,6 +153,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
   ])('새 역할 이름이 「%s」면 저장 버튼 아래에 이유를 말하고 보내지 않는다', (이름, 이유) => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 역할 추가' }));
     fireEvent.change(screen.getByLabelText('대상 서버 1 역할 2 이름'), { target: { value: 이름 } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
@@ -153,6 +164,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
 
   it('안내 문구가 실행 · 테스트 작성과 실서비스 서버 체크를 말한다', () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     expect(screen.getByText(/테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다/)).toBeTruthy();
   });
 });
@@ -168,6 +180,7 @@ describe('역할 이름 제안 (점검 14.2)', () => {
       { role: '관리자', registered: false },
     ]);
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
 
     expect(await screen.findByText('PRD 가 기다리는 역할: 관리자')).toBeTruthy();
     expect(읽음).toHaveBeenCalledWith('ZSA');
@@ -179,6 +192,7 @@ describe('역할 이름 제안 (점검 14.2)', () => {
   it('같은 애플리케이션의 다른 대상 서버 줄에 이미 쓴 역할 이름도 제안한다', async () => {
     받음([]);
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '+ 대상 서버 추가' }));
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 2 역할 추가' }));
 
@@ -191,6 +205,7 @@ describe('역할 이름 제안 (점검 14.2)', () => {
   it('줄마다 제안 목록 id 가 다르다', async () => {
     받음([{ role: '관리자', registered: false }]);
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '+ 대상 서버 추가' }));
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 2 역할 추가' }));
 
@@ -201,6 +216,7 @@ describe('역할 이름 제안 (점검 14.2)', () => {
   it('읽기에 실패하면 제안 없이 조용히 넘어간다 — 오류를 띄우지 않고 직접 쳐서 넣을 수 있다', async () => {
     const 읽음 = vi.spyOn(prdApi, 'now').mockRejectedValue(new Error('PRD 없음'));
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('실행');
     await waitFor(() => expect(읽음).toHaveBeenCalled());
 
     expect(screen.queryByText(/PRD 가 기다리는 역할/)).toBeNull();

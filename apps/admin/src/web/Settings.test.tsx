@@ -13,6 +13,7 @@ import { 고른서비스를적는다 } from './layout.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { Settings } from './Settings.js';
 import { 물음누름 } from './startConfirm.fixture.js';
+import { 탭열기 } from './SettingsTabs.fixture.js';
 
 beforeEach(() => {
   vi.spyOn(api, 'settingsProjects').mockResolvedValue({ items: [{ id: 1, name: '데모마켓' }] });
@@ -272,6 +273,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZST" />);
     await screen.findByRole('heading', { name: /ZST 애플리케이션/ });
 
+    탭열기('알림');
     fireEvent.click(screen.getByRole('button', { name: 'Slack 웹훅 추가' }));
     fireEvent.change(screen.getByLabelText('Slack 웹훅'), { target: { value: 'https://hooks.slack.com/x' } });
     목록.mockResolvedValue({ items: [{ ...서비스, hasSlackWebhook: true }] });
@@ -281,6 +283,24 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(await screen.findByText('저장했습니다')).toBeTruthy();
     expect(고침).toHaveBeenCalledTimes(1);
     expect(screen.queryByLabelText('Slack 웹훅')).toBeNull();
+    // 패널이 다시 그려져도 보던 탭에 남는다
+    expect(screen.getByRole('tab', { name: /^알림/ }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('보던 탭은 애플리케이션마다 기억한다 — 다른 애플리케이션을 보고 돌아와도 그 탭이다', async () => {
+    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스, 둘째] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    const { rerender } = render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZST" />);
+    await screen.findByRole('heading', { name: /ZST 애플리케이션/ });
+    expect(screen.getByRole('tab', { name: /^기본 정보/ }).getAttribute('aria-selected')).toBe('true');
+
+    탭열기('실행');
+    rerender(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZSU" />);
+    await screen.findByRole('heading', { name: /ZSU 애플리케이션/ });
+    expect(screen.getByRole('tab', { name: /^기본 정보/ }).getAttribute('aria-selected')).toBe('true');
+    rerender(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZST" />);
+    await screen.findByRole('heading', { name: /ZST 애플리케이션/ });
+    expect(screen.getByRole('tab', { name: /^실행/ }).getAttribute('aria-selected')).toBe('true');
   });
 
   it('비활성화해도 저장 안 한 이름 · Slack 웹훅이 칸에 남고 「저장했습니다」를 띄우지 않는다', async () => {
@@ -291,8 +311,10 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     await screen.findByRole('heading', { name: /ZST 애플리케이션/ });
 
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '고치던 이름' } });
+    탭열기('알림');
     fireEvent.click(screen.getByRole('button', { name: 'Slack 웹훅 추가' }));
     fireEvent.change(screen.getByLabelText('Slack 웹훅'), { target: { value: 'https://hooks.slack.com/x' } });
+    탭열기('기본 정보');
     목록.mockResolvedValue({ items: [{ ...서비스, isActive: false }] });
     fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
     물음누름('비활성화');
@@ -300,6 +322,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(await screen.findByRole('button', { name: '다시 활성화' })).toBeTruthy();
     expect(고침).toHaveBeenCalledWith(1, { isActive: false });
     expect((screen.getByLabelText('이름') as HTMLInputElement).value).toBe('고치던 이름');
+    탭열기('알림');
     expect((screen.getByLabelText('Slack 웹훅') as HTMLInputElement).value).toBe('https://hooks.slack.com/x');
     expect(screen.queryByText('저장했습니다')).toBeNull();
   });

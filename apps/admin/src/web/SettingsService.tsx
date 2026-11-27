@@ -1,4 +1,4 @@
-// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · API 문서 · 실행 알림 · 테스트 작성 · 화면 크기 · 서비스 비활성화 구획
+// 설정 화면의 애플리케이션 하나 (SPEC §8.8). 탭 넷 — 기본 정보 · 실행 · 테스트 작성 · 알림 · 연동
 // 지우지 않는다 — 비활성으로 내릴 뿐이다. 지우면 그 서비스로 돌린 과거 증적이 흔들린다
 
 import { useState } from 'react';
@@ -8,33 +8,49 @@ import { 어드민키종류인가 } from '../settings/roles.js';
 import { api, ApiError, type SettingsServiceRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
-import { 서비스못보내는이유, 설정오류문장, 제외경로값, 피그마설정주소 } from './settingsView.js';
+import { type 서비스탭, 서비스못보내는이유, 설정오류문장, 제외경로값, 탭상태 } from './settingsView.js';
 import { 어드민키못보내는이유 } from './SettingsAdminKey.js';
 import { 준비못보내는이유 } from './SettingsPrep.js';
 import { API인증못보내는이유 } from './SettingsApiAuths.js';
-import { API문서구획, API문서못보내는이유, 종류칸 } from './SettingsApiService.js';
-import { CI토큰구획 } from './SettingsCiTokens.js';
-import { CrawlExcludeField } from './SettingsCrawlExclude.js';
-import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
-import { 서비스저장단추, 활성구획 } from './SettingsServiceConfirm.js';
-import { 구획, 비밀칸, 접두사칸, 프로젝트칸 } from './SettingsServiceParts.js';
-import { ViewportSection } from './SettingsViewport.js';
+import { API문서못보내는이유 } from './SettingsApiService.js';
+import { 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
+import { 저장줄, 탭속 } from './SettingsServiceTabs.js';
+import { SettingsTabs } from './SettingsTabs.js';
 import { message } from './ui.js';
 
 /**
- * 고른 서비스 하나의 설정 — 구획마다 「어디에 쓰이나」를 한 줄로 단다 (2026-10-09 시안 A).
+ * 고른 애플리케이션 하나의 설정 — 탭마다 「어디에 쓰이나」를 한 줄로 단다 (2026-10-09 시안 A · 탭은 2026-11-27 시안 A).
  * 앞 판은 목록 줄을 펴면 칸 열 개가 한 줄로 이어져 무슨 설정인지 안 읽혔다(2026-10-07 사용자).
  * 새로 만드는 일은 마법사(SettingsWizard.tsx)가 한다 — 이 칸은 고치기만 한다 (2026-10-23 사용자)
  *
+ * 입력 상태는 이 컴포넌트 한 곳이 쥔다 — 탭을 오가도 적은 것이 남고, 저장은 모든 탭의 변경을 한 번에 보낸다
+ *
  * @param onDone 저장했거나(저장 true) 활성만 뒤집었다(false). 접두사를 넘긴다
  * @param 저장했다 방금 저장해 새로 읽은 칸이다. 저장 단추 곁에 「저장했습니다」를 보인다
+ * @param 탭 · on탭 지금 탭은 위(Settings)가 기억한다. 저장하면 이 패널이 다시 그려져서, 안 그러면 보던 탭에서 기본 정보로 튄다. 안 주면 이 안에서 쥔다
  */
-type Props = { row: SettingsServiceRow; onDone: (접두사: string, 저장: boolean) => void; 저장했다?: boolean };
+type Props = {
+  row: SettingsServiceRow;
+  onDone: (접두사: string, 저장: boolean) => void;
+  저장했다?: boolean;
+  탭?: 서비스탭;
+  on탭?: (탭: 서비스탭) => void;
+};
 
-export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
+const 탭이름: [서비스탭, string][] = [
+  ['basic', '기본 정보'],
+  ['run', '실행'],
+  ['author', '테스트 작성'],
+  ['link', '알림 · 연동'],
+];
+
+export function ServicePanel({ row, onDone, 저장했다 = false, 탭: 위탭, on탭: on위탭 }: Props) {
   const t = use말();
-  // 아래 판단 넷은 순수 모듈에 있어 훅을 못 쓴다. 언어를 여기서 꺼내 넘긴다
+  // 아래 판단은 순수 모듈에 있어 훅을 못 쓴다. 언어를 여기서 꺼내 넘긴다
   const 언어 = use언어();
+  const [안탭, set안탭] = useState<서비스탭>('basic');
+  const 탭 = 위탭 ?? 안탭;
+  const 탭고르기 = on위탭 ?? set안탭;
   const [name, setName] = useState(row.name);
   const [testsRepo, setTestsRepo] = useState(row.testsRepo);
   const [testsDir, setTestsDir] = useState(row.testsDir);
@@ -54,11 +70,28 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const [figma, setFigma] = useState<string | null>(null);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
-  const 지금칸 = JSON.stringify({ name, testsRepo, testsDir, envs, 제외, webhook, figma, apiDocPath, apiDocEnv, 프로시저 });
+  // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다.
+  // 탭마다 따로 재서 「저장 안 한 변경」 점을 단다 — 어느 탭에 적다 만 것이 있는지 탭 이름 옆에서 보인다
+  const 탭칸 = {
+    basic: JSON.stringify({ name, testsRepo, testsDir }),
+    run: JSON.stringify({ envs }),
+    author: JSON.stringify({ 제외, figma, apiDocPath, apiDocEnv, 프로시저 }),
+    link: JSON.stringify({ webhook }),
+  } satisfies Record<서비스탭, string>;
+  const 지금칸 = JSON.stringify(탭칸);
+  const [처음탭칸] = useState(탭칸);
   const [처음칸] = useState(지금칸);
   // 저장한 칸. 칸이 새로 읽은 값으로 다시 그려지기 전에도(다시 읽기 실패 포함) 저장한 것을 두고는 묻지 않는다
   const [보낸칸, set보낸칸] = useState<string | null>(null);
+  const 저장안함 = 지금칸 !== 처음칸 && 지금칸 !== 보낸칸;
+
+  // 지금 입력 중인 값이다. 비밀값은 안 만졌으면(null) 저장된 것, 만졌으면 적은 것이 있느냐다
+  const 입력 = {
+    testsRepo,
+    envs,
+    피그마있나: figma === null ? (row.hasFigmaToken ?? false) : figma !== '',
+    웹훅있나: webhook === null ? row.hasSlackWebhook : webhook !== '',
+  };
 
   const 서버들 = envs.map((it) => it.env).filter((env) => env !== '');
   const 못보내는이유 =
@@ -109,6 +142,21 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
     }
   }
 
+  const 탭들 = 탭이름.map(([값, 이름]) => ({
+    값,
+    이름: t(이름),
+    상태: 탭상태(값, 입력, 언어),
+    바뀜: 저장안함 && 탭칸[값] !== 처음탭칸[값],
+  }));
+
+  // JSX 안에 풀어 쓰면 `=> void …` 와 `<` 사이의 한글을 messages.test 가 화면 글자로 읽는다
+  const 저장 = <저장줄 저장했다={저장했다} 보내는중={보내는중} 못보내는이유={못보내는이유} err={err} on저장={() => void 보낸다()} />;
+  const 속값 = {
+    row, kind, 어드민키종류, name, setName, testsDir, setTestsDir, testsRepo, setTestsRepo, envs, setEnvs,
+    apiDocPath, setApiDocPath, apiDocEnv, setApiDocEnv, 제외, set제외, 프로시저, set프로시저, webhook, setWebhook, figma, setFigma,
+    입력, 보내는중, on뒤집기: () => void 활성을뒤집는다(), 저장,
+  };
+
   return (
     <div className="set-panel">
       <h2 className="set-panel-h">
@@ -118,111 +166,10 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         <span className="set-sub">{t('케이스 {건수}건', { 건수: row.caseCount })}</span>
       </h2>
 
-      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호, 애플리케이션 선택 목록, 테스트 폴더에 쓰는 정보입니다')}>
-        <프로젝트칸 지금={{ id: row.projectId, name: row.projectName }} />
-        <접두사칸 값={row.prefix} />
-        <종류칸 값={kind} 게임플랫폼={row.gamePlatform} />
-
-        <div className="field">
-          <label htmlFor="sf-name">{t('이름')}</label>
-          <input
-            id="sf-name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t('결제 페이지')}
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="sf-dir">{t('테스트 폴더')}</label>
-          <div>
-            <input
-              id="sf-dir"
-              type="text"
-              value={testsDir}
-              onChange={(e) => setTestsDir(e.target.value)}
-              placeholder="pay"
-            />
-            <div className="hint">{t('케이스 파일을 읽어 오는 폴더입니다')}</div>
-          </div>
-        </div>
-
-        <div className="field">
-          <label htmlFor="sf-repo">{t('테스트 저장소')}</label>
-          <div>
-            <input
-              id="sf-repo"
-              type="text"
-              value={testsRepo}
-              onChange={(e) => setTestsRepo(e.target.value)}
-              placeholder="https://github.com/..."
-            />
-            <div className="hint">{t('작성 요청이 등록한 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다')}</div>
-          </div>
-        </div>
-      </구획>
-
-      <구획 제목={t('대상 서버§목록')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
-        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row.prefix} api={API종류} 어드민키={어드민키종류} 스토어앱={kind === 'APP'} />
-      </구획>
-
-      {API종류 ? <API문서구획 경로={apiDocPath} 바꾼경로={setApiDocPath} 기준={apiDocEnv} 바꾼기준={setApiDocEnv} 서버들={서버들} /> : null}
-
-      <구획 제목={t('실행 알림')} 쓰임={t('실행할 때 「완료 시 Slack 알림」을 켜면 이 채널로 결과를 보냅니다')}>
-        <비밀칸 id="sf-hook" 이름={t('Slack 웹훅')} 설정됨={row.hasSlackWebhook}
-          값={webhook} 바꾼다={setWebhook} placeholder="https://hooks.slack.com/..."
-          비울때={t('이대로 저장하면 알림이 꺼집니다. 유지하려면 「변경 취소」를 누릅니다')} />
-      </구획>
-
-      <구획 제목={t('테스트 작성')} 쓰임={t('기획서와 피그마로 케이스를 만들 때만 씁니다. 실행에는 영향을 주지 않습니다')}>
-        {/* 규칙은 웹훅과 같다. 발급 안내를 옆에 둔다 — 어디서 만드는지 모르면 칸이 비어 남는다 (도메인/인증 §8.8) */}
-        <비밀칸 id="sf-figma" 이름={t('피그마 토큰')} 설정됨={row.hasFigmaToken ?? false}
-          값={figma} 바꾼다={setFigma} placeholder="figd_..."
-          비울때={t('이대로 저장하면 토큰이 삭제되어 피그마 자료를 읽을 수 없게 됩니다')}>
-          <div className="hint">
-            {t('Figma의 Settings → Security → Personal access tokens에서 발급합니다. 권한은 File content 읽기 전용으로 하고 만료일을 지정합니다')}{' '}
-            <a href={피그마설정주소} target="_blank" rel="noopener noreferrer">
-              {t('Figma 설정 열기')} ↗
-            </a>
-          </div>
-        </비밀칸>
-        <CrawlExcludeField 값={제외} 바꾼다={set제외} />
-        {프로시저종류 ? (
-          <div className="field">
-            <label htmlFor="sf-procedure">{t('프로시저 작성')}</label>
-            <div>
-              <label className="check-inline">
-                <input id="sf-procedure" type="checkbox" checked={프로시저} onChange={(e) => set프로시저(e.target.checked)} />
-                {t('테스트 프로시저로 작성')}
-              </label>
-              <div className="hint">
-                {t('켜면 사용 흐름 하나에 케이스 여러 건을 묶어 작성하고 UI 테스트와 기능 테스트를 한 번에 실행합니다. 테스트 프로시저로 작성한 케이스가 있으면 끌 수 없습니다')}
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </구획>
-
-      {err === null ? null : <div className="err">{err}</div>}
-
-      <div className="set-foot">
-        {저장했다 ? <span className="hint set-saved" role="status">{t('저장했습니다')}</span> : null}
-        {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
-        <서비스저장단추 보내는중={보내는중} 못보낸다={못보내는이유 !== null} on저장={() => void 보낸다()} />
-      </div>
-      {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
-
-      <구획 제목={t('화면 크기')} 쓰임={t('테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지, 모바일도 같이 만들지를 이 판정으로 정합니다')}>
-        <ViewportSection serviceId={row.id} envs={row.envs} />
-      </구획>
-
-      <구획 제목={t('CI 토큰')} 쓰임={t('CI 가 새 빌드를 업로드할 때 쓰는 토큰입니다. 빌드가 업로드되면 스모크 테스트부터 자동으로 실행합니다')}>
-        <CI토큰구획 row={row} />
-      </구획>
-
-      <활성구획 켜짐={row.isActive} 보내는중={보내는중} on뒤집기={() => void 활성을뒤집는다()} />
-      <떠나기상자 막나={지금칸 !== 처음칸 && 지금칸 !== 보낸칸} />
+      <SettingsTabs 이름={t('애플리케이션 설정')} 아이디="sv" 탭들={탭들} 고른={탭} 이동={(값) => 탭고르기(값 as 서비스탭)}>
+        {탭속(탭, 속값)}
+      </SettingsTabs>
+      <떠나기상자 막나={저장안함} />
     </div>
   );
 }

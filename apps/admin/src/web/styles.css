@@ -2713,6 +2713,107 @@ input[type='file']::file-selector-button {
   font-weight: 600;
 }
 
+/* 설정 탭 — 애플리케이션 · 프로젝트가 같이 쓴다. 고른 탭은 아래 막대와 굵은 이름이고, 이름 아래 작은 글이 상태 한 줄이다 */
+.set-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.set-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  margin-bottom: -1px;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  color: var(--ink-muted);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+
+.set-tab[aria-selected='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--accent-mark);
+}
+
+.set-tab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.set-tab-name {
+  font-size: 14px;
+}
+
+.set-tab[aria-selected='true'] .set-tab-name {
+  font-weight: 600;
+}
+
+/* 저장 안 한 변경 점. 판정이 아니라 대표색 막대와 같은 자리의 표시다 */
+.set-tab-dot {
+  margin-left: 4px;
+  font-weight: 600;
+  color: var(--accent-mark);
+}
+
+.set-tab-state {
+  font-size: 12px;
+}
+
+.set-tab-state.is-ok,
+.set-need li.is-ok {
+  color: var(--pass-text);
+}
+
+.set-tab-state.is-warn,
+.set-need li.is-warn {
+  color: var(--link);
+}
+
+.set-tab-state.is-dim,
+.set-need li.is-dim {
+  color: var(--ink-muted);
+}
+
+.set-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 탭 맨 위 「필요한 것」 — 회색 바탕 상자 */
+.set-need {
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--well);
+}
+
+.set-need-h {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.set-need ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.set-need-why {
+  color: var(--ink-muted);
+}
+
 /* 구획 하나 — 제목 아래 「어디에 쓰이나」 한 줄 */
 .set-card {
   border: 1px solid var(--line);

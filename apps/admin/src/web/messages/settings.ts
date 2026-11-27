@@ -2,10 +2,12 @@
 
 import { 설정API말 } from './settingsApi.js';
 import { 설정준비말 } from './settingsPrep.js';
+import { 설정탭말 } from './settingsTabs.js';
 
 export const 설정말: Record<string, string> = {
   ...설정API말,
   ...설정준비말,
+  ...설정탭말,
   // 로그인 화면 (§8.6)
   '아이디와 비밀번호를 넣으면 배정된 애플리케이션을 쓸 수 있습니다.': 'Sign in to open the applications assigned to you.',
   '아이디': 'ID',

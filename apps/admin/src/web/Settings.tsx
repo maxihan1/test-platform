@@ -18,7 +18,7 @@ import { ProjectPanel } from './SettingsProject.js';
 import { ServicePanel } from './SettingsService.js';
 import { UserSection } from './SettingsUser.js';
 import { SettingsWizard } from './SettingsWizard.js';
-import { 프로젝트줄들, type 프로젝트줄 } from './settingsView.js';
+import { type 서비스탭, 프로젝트줄들, type 프로젝트줄 } from './settingsView.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
 /**
@@ -43,6 +43,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   const [판, set판] = useState(0);
   // 방금 저장한 자리. 그 자리를 보는 동안만 「저장했습니다」를 띄운다 — 앞 판은 저장하면 폼이 닫혀 그것이 확인이었다
   const [저장한곳, set저장한곳] = useState<string | null>(null);
+  // 애플리케이션마다 보던 탭. 저장하면 패널이 다시 그려져서 패널 안에 두면 기본 정보로 돌아간다
+  const [탭들, set탭들] = useState<Record<string, 서비스탭>>({});
   // 애플리케이션이 하나도 없으면 마법사 주소로 바꿔 둔다 — 다 만든 뒤 목록을 다시 읽어도 마법사(끝 화면)가 그 자리에 남게.
   // 주소가 비어 있으면 첫 애플리케이션을 여는데, 막 만든 것이 그 첫 애플리케이션이 되어 끝 화면이 사라졌다.
   // 프로젝트도 없을 때 프로젝트부터 만드는 것은 마법사가 정한다(아래 새프로젝트)
@@ -175,6 +177,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
               key={`${서비스.id}-${판}`}
               row={서비스}
               저장했다={저장한곳 === 서비스.prefix}
+              탭={탭들[서비스.prefix] ?? 'basic'}
+              on탭={(탭) => set탭들((전) => ({ ...전, [서비스.prefix]: 탭 }))}
               onDone={(접두사, 저장) => void 서비스다시(접두사, false, 저장)}
             />
           )}
