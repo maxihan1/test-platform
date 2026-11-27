@@ -59,7 +59,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(await screen.findByText('api.example.com')).toBeTruthy();
     expect(읽음).toHaveBeenCalledWith(1);
     expect(프로젝트탭들().map((it) => it[2])).toEqual(['false', 'false', 'true']);
-    expect(screen.queryByLabelText('프로젝트 이름')).toBeNull();
+    expect(screen.queryByRole('textbox', { name: '프로젝트 이름' })).toBeNull();
   });
 
   it('프로젝트 탭의 화살표 키는 옆 탭 주소로 간다', async () => {
