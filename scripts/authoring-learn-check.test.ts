@@ -139,6 +139,24 @@ describe('계획 숫자 읽기 — 2초마다 읽고 처음 어긋난 순간 사
     expect((await 멈춘.끝난다()).기록.어긋남).toMatchObject({ 값이름: '세계수', 값: 0 });
   });
 
+  it('새 판으로 장면이 바뀌는 동안 여러 번 못 읽어도 계속 읽고 새 판의 기대 깨짐을 잡는다 — 맵판이 7초에서 기록을 그쳐 세계수 28 을 놓쳤다(16094 101055010-맵판)', async () => {
+    const 읽을값: (number | Error)[] = [-1, new Error('없음'), new Error('없음'), new Error('없음'), new Error('없음'), 50, 46, 28];
+    const 게임 = {
+      get: async () => {
+        const v = 읽을값.shift() ?? 28;
+        if (v instanceof Error) throw v;
+        return v;
+      },
+      text: async () => '',
+      screenshot: async () => Buffer.from('jpg'),
+    };
+    const 고리 = 값읽기시작(게임 as never, 'trial:셋째 맵', [{ 이름: '세계수', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }], [{ 값: '세계수', 비교: '>=', 기준: 30 }], Date.now(), 5);
+    await vi.waitFor(() => expect(고리.지금().어긋남).not.toBeNull(), { timeout: 500 });
+    const r = await 고리.끝난다();
+    expect(r.기록.때.map((x) => x.값.세계수).slice(0, 8)).toEqual([-1, null, null, null, null, 50, 46, 28]);
+    expect(r.기록.어긋남).toMatchObject({ 값이름: '세계수', 값: 28 });
+  });
+
   it('화면 글자의 서식 태그 안 숫자는 안 읽는다 — #16052 웨이브가 늘 600 이었다', () => {
     expect(수로('<font-weight="600">2/6</font-weight>')).toBe(2);
     expect(수로('<color=red>3</color><size=14>6</size>')).toBe(3);
