@@ -545,6 +545,8 @@ describe('학습프롬프트', () => {
     expect(글).toContain('튜토리얼 끝까지');
     expect(글).toContain('알림이 없으면 끝내지 않는다');
     expect(글).toContain('막혔으면(판이 계속 어긋나거나 조작이 안 먹히면) 끝내지 말고 물음 트리');
+    expect(글).toContain('`{ kind: "MOVE", fromKey, action, toKey?, status: "OK" }`');
+    expect(글).toContain('from · to · 「확인」은 서버가 안 받는다');
     expect(글.trimEnd().split('\n').at(-1)).toContain('끝까지 한국어 해요체');
     expect(글).toContain('읽기만 하고 안 해 본 것 2');
     expect(글).toContain('판에서 아직 안 써 본 것 1: rule:치료');
