@@ -48,6 +48,10 @@ export function ProjectPanel({
   const [옮길것, set옮길것] = useState<{ 앱: SettingsServiceRow; 곳: SettingsProject } | null>(null);
   const [저장묻기, set저장묻기] = useState(false);
   const 안의것 = services.filter((it) => it.projectId === row.id);
+  // 한 번 연 탭은 붙여 둔 채 감추기만 한다 — 빼면 Issue Bunker 연결 탭에 적던 주소 · 키 · 상태 매핑이 다른 탭에 갔다 오면 사라졌다.
+  // 처음부터 다 붙이지 않는 것은 안 여는 탭의 불러오기(Issue Bunker 연결 · 상태 목록)를 부르지 않으려고다
+  const [연탭, set연탭] = useState<ReadonlySet<프로젝트탭>>(() => new Set([탭]));
+  if (!연탭.has(탭)) set연탭(new Set([...연탭, 탭]));
 
   async function 한다(일: () => Promise<unknown>) {
     set보내는중(true);
@@ -82,12 +86,17 @@ export function ProjectPanel({
           window.location.hash = 주소(row.id, 값 as 프로젝트탭);
         }}
       >
-        {탭 === 'bts' ? (
-          <SettingsBts row={row} services={services} onDone={onBts저장} />
-        ) : 탭 === 'api' ? (
-          <ApiServers key={row.id} 프로젝트={row.id} />
-        ) : (
-          <>
+        {연탭.has('bts') ? (
+          <div hidden={탭 !== 'bts'}>
+            <SettingsBts row={row} services={services} onDone={onBts저장} />
+          </div>
+        ) : null}
+        {연탭.has('api') ? (
+          <div hidden={탭 !== 'api'}>
+            <ApiServers key={row.id} 프로젝트={row.id} />
+          </div>
+        ) : null}
+        <div hidden={탭 !== 'basic'}>
           <구획 제목={t('기본 정보')} 쓰임={t('프로젝트 하나에 애플리케이션 여럿이 들어갑니다. 권한은 프로젝트마다 줍니다')}>
             <div className="field">
               <label htmlFor="pf-name">{t('프로젝트 이름')}</label>
@@ -166,8 +175,7 @@ export function ProjectPanel({
               </div>
             ))}
           </구획>
-          </>
-        )}
+        </div>
       </SettingsTabs>
       {옮길것 === null ? null : (
         <확인창

@@ -1,0 +1,51 @@
+// @vitest-environment jsdom
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+
+import { api, type SettingsProject, type SettingsServiceRow } from './api.js';
+import { btsApi, type BTS연결 } from './btsApi.js';
+import { ProjectPanel } from './SettingsProject.js';
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+const 프로젝트: SettingsProject = { id: 7, name: '탭 프로젝트' };
+const 앱: SettingsServiceRow = {
+  id: 71, prefix: 'ZPT', name: '탭 앱', color: '#3A5FCD', projectId: 7, projectName: '탭 프로젝트',
+  envs: [], hasSlackWebhook: false, testsRepo: '', testsDir: 'zpt', isActive: true, caseCount: 0, codeRepos: [],
+};
+const 빈연결: BTS연결 = {
+  linked: false, baseUrl: null, btsProject: null, botUsername: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null, publicUrl: null,
+};
+
+const 그린다 = (탭: 'basic' | 'bts' | 'api') => <ProjectPanel row={프로젝트} projects={[프로젝트]} services={[앱]} onDone={() => {}} 탭={탭} />;
+
+describe('프로젝트 설정 탭은 한 번 열면 붙여 둔다 (도메인/인증 §8.8 「프로젝트」 · 2026-11-27)', () => {
+  it('Issue Bunker 연결 탭에 적던 값이 API 서버 탭에 갔다 와도 남고, 연결 정보는 한 번만 불러온다', async () => {
+    const 연결읽기 = vi.spyOn(btsApi, 'get').mockResolvedValue(빈연결);
+    vi.spyOn(api, 'projectApiServers').mockResolvedValue({ items: [] });
+    const { rerender } = render(그린다('bts'));
+    const 주소칸 = (await screen.findByLabelText('Issue Bunker 주소')) as HTMLInputElement;
+    fireEvent.change(주소칸, { target: { value: 'https://bunker.example.com' } });
+
+    rerender(그린다('api'));
+    expect(screen.queryByRole('textbox', { name: 'Issue Bunker 주소' })).toBeNull();
+    rerender(그린다('bts'));
+
+    expect((screen.getByRole('textbox', { name: 'Issue Bunker 주소' }) as HTMLInputElement).value).toBe('https://bunker.example.com');
+    expect(연결읽기).toHaveBeenCalledTimes(1);
+  });
+
+  it('열지 않은 탭은 불러오지 않는다 — 기본 정보만 본 사람에게 Issue Bunker · API 서버 요청이 가지 않는다', () => {
+    const 연결읽기 = vi.spyOn(btsApi, 'get').mockResolvedValue(빈연결);
+    const 서버읽기 = vi.spyOn(api, 'projectApiServers').mockResolvedValue({ items: [] });
+    render(그린다('basic'));
+
+    expect(screen.getByLabelText('프로젝트 이름')).toBeTruthy();
+    expect(연결읽기).not.toHaveBeenCalled();
+    expect(서버읽기).not.toHaveBeenCalled();
+  });
+});
