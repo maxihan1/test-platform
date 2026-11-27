@@ -4,16 +4,18 @@
 import { 지금지도 } from './authoring-game-find.js';
 import { type 판기록, 판기록들 } from './authoring-learn-check.js';
 import { 계획곳, 곳줄들 } from './authoring-learn-play.js';
+import { 걸음됨, 길찾기, 막힘, 모름, 안인가, 칸번호 } from './authoring-game-path-astar.js';
+
+export { 걸음됨, 길찾기, 막힘, 모름 };
 
 /** 격자 한 칸의 한 변(게임 좌표 단위) — 곳마다 같다 */
 export const 칸크기 = 1;
 /** 격자가 이만큼 넘게 커지면 안 짓는다 — 걷기 값이 단위가 다른 좌표를 담았을 때 메모리를 다 쓰지 않게 */
 export const 격자상한 = 4_000_000;
+/** 범위 둘레에 더 두는 칸 — 가장자리 점에 붙은 길이 범위 밖으로 한 칸 돌아갈 자리 */
+export const 여백 = 2;
 
 export type 점 = readonly [number, number];
-export const 모름 = 0;
-export const 걸음됨 = 1;
-export const 막힘 = 2;
 
 const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 const 수인가 = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -44,8 +46,20 @@ export function 평면정하기(맵: Record<string, unknown>): 평면 {
 }
 
 export interface 막힘읽은것 { 사각형: Array<[점, 점]>; 점: 점[]; 모름: number }
+/** 이름을 단 사각형 — { 사각형: [[x1,z1],[x2,z2]] } 나 { 중심: [x,z], 크기: [가로,세로] }. 아니면 null */
+function 사각형읽기(o: Record<string, unknown>, 면: 평면): [점, 점] | null {
+  if (Array.isArray(o.사각형) && o.사각형.length === 2) {
+    const [a, b] = [좌표읽기(o.사각형[0], 면), 좌표읽기(o.사각형[1], 면)];
+    return a === null || b === null ? null : [a, b];
+  }
+  const 중 = o.중심 === undefined ? null : 좌표읽기(o.중심, 면);
+  const 크 = Array.isArray(o.크기) && o.크기.length === 2 && o.크기.every(수인가) ? (o.크기 as [number, number]) : null;
+  return 중 === null || 크 === null ? null : [[중[0] - 크[0] / 2, 중[1] - 크[1] / 2], [중[0] + 크[0] / 2, 중[1] + 크[1] / 2]];
+}
+
 /**
- * 막힘 값 — 점이면 그 칸, 점 둘짜리 배열이면 축에 나란한 사각형(비스듬한 벽은 점 여럿으로 적는다), 목록 · 종류별로 묶은 객체는 안으로 들어가 읽는다.
+ * 막힘 값 — 점이면 그 칸, 이름을 단 사각형(위 사각형읽기)이면 축에 나란한 사각형(비스듬한 벽은 점 여럿으로 적는다), 목록 · 종류별로 묶은 객체는 안으로 들어가 읽는다.
+ * 맨 배열 [[a],[b]] 는 점 두 개다 — 사각형으로 읽으면 물 오브젝트 두 자리가 둘을 꼭짓점으로 한 넓은 막힘이 됐다(작성 16098 열째 맵).
  * 좌표가 아닌 수 · 객체는 건너뛰고 몇 개인지 센다. 글은 이름표라 안 센다
  */
 export function 막힘읽기(v: unknown, 면: 평면 = 'xz'): 막힘읽은것 {
@@ -55,13 +69,11 @@ export function 막힘읽기(v: unknown, 면: 평면 = 'xz'): 막힘읽은것 {
   const 읽기 = (x: unknown): void => {
     const 한점 = 맨좌표(x) ? 좌표읽기(x, 면) : null;
     if (한점 !== null) return void r.점.push(한점);
-    if (Array.isArray(x) && x.length === 2) {
-      const [a, b] = [좌표읽기(x[0], 면), 좌표읽기(x[1], 면)];
-      if (a !== null && b !== null) return void r.사각형.push([a, b]);
-    }
     if (Array.isArray(x)) return x.forEach(읽기);
     if (typeof x === 'string') return;
     const o = 객체(x);
+    const 네모 = 사각형읽기(o, 면);
+    if (네모 !== null) return void r.사각형.push(네모);
     if (Object.keys(o).length > 0 && Object.values(o).some((y) => typeof y === 'object' && y !== null)) return Object.values(o).forEach(읽기);
     r.모름 += 1;
   };
@@ -78,20 +90,26 @@ const 범위 = (a: number, b: number): [number, number] => {
   const lo = Math.floor(Math.min(a, b) / 칸크기);
   return [lo, Math.max(lo, Math.ceil(Math.max(a, b) / 칸크기) - 1)];
 };
-const 칸번호 = (g: 격자, i: number, j: number): number => (j - g.최소j) * g.너비 + (i - g.최소i);
-const 안인가 = (g: 격자, i: number, j: number): boolean => i >= g.최소i && j >= g.최소j && i < g.최소i + g.너비 && j < g.최소j + g.높이;
 
-/** 격자를 짓는다 — 걷기 점들을 감싼 사각형 안은 모름, 밖은 막힘. 지도 막힘 → 판 기록 차례로 칠하고 걸음됨은 막힘을 덮는다. 기록 차례가 시간 차례다 */
-export function 격자짓기(걷기값: unknown, 막힘값: unknown, 칠들: readonly 칠[], 면: 평면 = 'xz'): 격자 | string {
+/**
+ * 격자를 짓는다 — 범위는 걷기 점 · 판 기록의 걸은 위치와 못감 · 덧(맵의 다른 종류 점 · 출발 · 도착)이 든 칸을 모두 감싸고 둘레에 여백 칸을 둔다. 안은 처음에 모두 모름이다.
+ * 걷기 점 바깥을 막힘으로 치면 걷기 값에 빠진 곳(남쪽 섬)에서 걸은 위치가 범위 밖이라 버려지고 출발 · 도착이 엉뚱한 칸으로 옮겨졌다(작성 16098 열째 맵 252칸 중 걸음됨 0).
+ * 지도 막힘 → 판 기록 차례로 칠하고 걸음됨은 막힘을 덮는다. 기록 차례가 시간 차례다
+ */
+export function 격자짓기(걷기값: unknown, 막힘값: unknown, 칠들: readonly 칠[], 면: 평면 = 'xz', 덧: readonly 점[] = []): 격자 | string {
   const 바닥 = 점들모으기(걷기값, 면);
   if (바닥.length === 0) return '걷기.값 에서 좌표를 못 읽었다';
-  // 걷기 점이 든 칸은 모두 넣는다 — 가장 큰 좌표가 정수면 그 칸이 빠져 걷기 점 · 걸은 위치가 범위 밖 막힘이 됐다
-  const 칸범위 = (수들: number[]): [number, number] => [Math.floor(Math.min(...수들) / 칸크기), Math.floor(Math.max(...수들) / 칸크기)];
-  const [i0, i1] = 칸범위(바닥.map((p) => p[0]));
-  const [j0, j1] = 칸범위(바닥.map((p) => p[1]));
+  const 모두 = [...바닥, ...덧, ...칠들.flatMap((c) => [...c.걸음, ...c.못감])];
+  const 칸범위 = (수들: number[]): [number, number] => {
+    let [lo, hi] = [Infinity, -Infinity];
+    for (const v of 수들) [lo, hi] = [Math.min(lo, v), Math.max(hi, v)];
+    return [Math.floor(lo / 칸크기) - 여백, Math.floor(hi / 칸크기) + 여백];
+  };
+  const [i0, i1] = 칸범위(모두.map((p) => p[0]));
+  const [j0, j1] = 칸범위(모두.map((p) => p[1]));
   const 너비 = i1 - i0 + 1;
   const 높이 = j1 - j0 + 1;
-  if (너비 * 높이 > 격자상한) return `걷기 범위가 칸 ${너비}×${높이} 로 너무 크다 — 걷기.값 이 게임 좌표가 맞는지 본다`;
+  if (너비 * 높이 > 격자상한) return `범위가 칸 ${너비}×${높이} 로 너무 크다 — 걷기.값 · 맵 값 · 판 기록 위치가 같은 게임 좌표인지 본다`;
   const g: 격자 = { 최소i: i0, 최소j: j0, 너비, 높이, 칸: new Uint8Array(너비 * 높이), 건너뜀: 0 };
   const 칠하기 = (i: number, j: number, 값: number): void => {
     if (안인가(g, i, j)) g.칸[칸번호(g, i, j)] = 값;
@@ -146,76 +164,6 @@ export function 열린칸(g: 격자, p: 점): { i: number; j: number; 옮김: bo
   return 가장 === null ? null : { i: 가장.i, j: 가장.j, 옮김: true };
 }
 
-const 방향: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-
-/** A* — 여덟 방향, 대각선은 양옆 두 칸이 다 안 막혔을 때만(모서리를 안 자른다). 걸음됨 비용 1 · 모름 2 · 대각선 ×√2. 길 없으면 null */
-export function 길찾기(g: 격자, 시작: { i: number; j: number }, 끝: { i: number; j: number }): Array<{ i: number; j: number }> | null {
-  const n = g.칸.length;
-  const 값 = new Float64Array(n).fill(Infinity);
-  const 앞 = new Int32Array(n).fill(-1);
-  const 닫힘 = new Uint8Array(n);
-  const s = 칸번호(g, 시작.i, 시작.j);
-  const e = 칸번호(g, 끝.i, 끝.j);
-  // 칸 비용이 가장 싼 1 이라 옥타일 거리가 넘보지 않는다
-  const h = (i: number, j: number): number => {
-    const dx = Math.abs(i - 끝.i);
-    const dy = Math.abs(j - 끝.j);
-    return dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy);
-  };
-  const 힙: Array<[number, number]> = [];
-  const 넣기 = (f: number, k: number): void => {
-    힙.push([f, k]);
-    for (let c = 힙.length - 1; c > 0;) {
-      const p = (c - 1) >> 1;
-      if (힙[p]![0] <= 힙[c]![0]) break;
-      [힙[p], 힙[c]] = [힙[c]!, 힙[p]!];
-      c = p;
-    }
-  };
-  const 빼기 = (): number => {
-    const 위 = 힙[0]![1];
-    const 끝값 = 힙.pop()!;
-    if (힙.length > 0) {
-      힙[0] = 끝값;
-      for (let c = 0; ;) {
-        let m = c;
-        for (const k of [2 * c + 1, 2 * c + 2]) if (k < 힙.length && 힙[k]![0] < 힙[m]![0]) m = k;
-        if (m === c) break;
-        [힙[m], 힙[c]] = [힙[c]!, 힙[m]!];
-        c = m;
-      }
-    }
-    return 위;
-  };
-  값[s] = 0;
-  넣기(h(시작.i, 시작.j), s);
-  while (힙.length > 0) {
-    const k = 빼기();
-    if (닫힘[k] === 1) continue;
-    닫힘[k] = 1;
-    if (k === e) break;
-    const i = g.최소i + (k % g.너비);
-    const j = g.최소j + Math.floor(k / g.너비);
-    for (const [di, dj] of 방향) {
-      const ni = i + di;
-      const nj = j + dj;
-      if (!안인가(g, ni, nj) || g.칸[칸번호(g, ni, nj)] === 막힘) continue;
-      if (di !== 0 && dj !== 0 && (g.칸[칸번호(g, i + di, j)] === 막힘 || g.칸[칸번호(g, i, j + dj)] === 막힘)) continue;
-      const nk = 칸번호(g, ni, nj);
-      const 값새 = 값[k]! + (g.칸[nk] === 걸음됨 ? 1 : 2) * (di !== 0 && dj !== 0 ? Math.SQRT2 : 1);
-      if (값새 < 값[nk]!) {
-        값[nk] = 값새;
-        앞[nk] = k;
-        넣기(값새 + h(ni, nj), nk);
-      }
-    }
-  }
-  if (닫힘[e] !== 1) return null;
-  const 길: Array<{ i: number; j: number }> = [];
-  for (let k = e; k !== -1; k = 앞[k]!) 길.push({ i: g.최소i + (k % g.너비), j: g.최소j + Math.floor(k / g.너비) });
-  return 길.reverse();
-}
-
 /** 칸 길을 가운데 좌표로 바꾸고 곧은 구간은 꺾이는 점만 남긴다 */
 export function 꺾임점(길: ReadonlyArray<{ i: number; j: number }>): 점[] {
   const 점들 = 길.map((c) => 가운데(c.i, c.j));
@@ -229,7 +177,7 @@ export function 꺾임점(길: ReadonlyArray<{ i: number; j: number }>): 점[] {
 
 const 길이 = (점들: readonly 점[]): number => 점들.reduce((합, p, k) => (k === 0 ? 합 : 합 + Math.hypot(p[0] - 점들[k - 1]![0], p[1] - 점들[k - 1]![1])), 0);
 
-export type 길결과 = { 점들: 점[]; 요약: string } | { 틀림: string; 길없음?: true };
+export type 길결과 = { 점들: 점[]; 길이: number; 요약: string } | { 틀림: string; 길없음?: true };
 
 /** 격자 위에서 출발 → 도착 거쳐 갈 점과 요약 한 줄 */
 export function 길내기(g: 격자, 출발: 점, 도착: 점): 길결과 {
@@ -246,8 +194,12 @@ export function 길내기(g: 격자, 출발: 점, 도착: 점): 길결과 {
   // 끝 점은 칸 가운데 대신 실제 출발 · 도착 — 가운데로 두면 반 칸 뒤로 갔다가 출발한다. 막혀 옮겼으면 옮긴 칸 가운데
   if (!시작.옮김) 점들[0] = 출발;
   if (!끝.옮김) 점들[점들.length - 1] = 도착;
-  return { 점들, 요약: `${글} · 길 길이 ${(Math.round(길이(점들) * 100) / 100).toString()}${덧.length === 0 ? '' : ` · ${덧.join(' · ')}`}` };
+  const 잰 = Math.round(길이(점들) * 100) / 100;
+  return { 점들, 길이: 잰, 요약: `${글} · 길 길이 ${잰.toString()}${덧.length === 0 ? '' : ` · ${덧.join(' · ')}`}` };
 }
+
+/** 범위에 넣을 맵의 다른 종류 점 — 지킬것 · 적 길 · 놓기 · 자원 · 출구가 걷기 값 밖에 있어도 격자에 든다 */
+export const 맵점들 = (맵: Record<string, unknown>, 면: 평면 = 'xz'): 점[] => ['놓기', '적', '지킬것', '자원', '출구'].flatMap((k) => 점들모으기(객체(맵[k]).값, 면));
 
 const 점읽기 = (글: string): 점 | null => {
   const 조각 = 글.split(',');
@@ -279,7 +231,7 @@ export function 실행(인자: string[]): number {
   }
   const 면 = 평면정하기(맵);
   const 칠들 = 판기록들(자료).flatMap((r) => { const c = 기록칠(r, 지도.줄들, 곳, 면); return c === null ? [] : [c]; });
-  const g = 격자짓기(객체(맵.걷기).값, 객체(맵.막힘).값, 칠들, 면);
+  const g = 격자짓기(객체(맵.걷기).값, 객체(맵.막힘).값, 칠들, 면, [...맵점들(맵, 면), 출발, 도착]);
   if (typeof g === 'string') {
     console.error(`[길찾기] ${g}`);
     return 2;
