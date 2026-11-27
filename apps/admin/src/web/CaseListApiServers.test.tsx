@@ -65,7 +65,7 @@ const 서버줄 = () => within(판조건('API 서버'));
 const 마지막조건 = (스파이: { mock: { calls: [CaseQuery][] } }) => 스파이.mock.calls.at(-1)![0];
 
 describe('API 서버 꼬리표', () => {
-  it('줄에는 이름 태그가 없고, 상세 서랍을 열면 「API 서버」 구획에 서며, 부른 서버가 없는 케이스에는 구획이 없다', async () => {
+  it('줄에는 이름 태그가 없고, 상세 창을 열면 「세부 사항」의 「API 서버」 줄에 서며, 부른 서버가 없는 케이스에는 줄이 없다', async () => {
     그리기();
     vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
     vi.spyOn(api, 'item').mockRejectedValue(new Error('절차 없음'));
@@ -74,13 +74,13 @@ describe('API 서버 꼬리표', () => {
     expect(within(줄 as HTMLElement).queryByText('API 서버')).toBeNull();
 
     fireEvent.click(within(줄 as HTMLElement).getByRole('button', { name: 'ZAS-FN-001 케이스' }));
-    const 칸 = await screen.findByRole('complementary');
-    const 구획 = [...칸.querySelectorAll('.dsec')].find((el) => el.querySelector('.dlabel')?.textContent === 'API 서버')!;
+    const 칸 = await screen.findByRole('dialog');
+    const 구획 = [...칸.querySelectorAll('dt')].find((el) => el.textContent === 'API 서버')!.nextElementSibling!;
     expect([...구획.querySelectorAll('.tech-tag')].map((el) => el.textContent)).toEqual(['결제', '인증']);
 
     fireEvent.click(within(screen.getByText('ZAS-FN-002').closest('.row') as HTMLElement).getByRole('button', { name: 'ZAS-FN-002 케이스' }));
-    await waitFor(() => expect(screen.getByRole('complementary').querySelector('h2')?.textContent).toBe('ZAS-FN-002 케이스'));
-    expect([...screen.getByRole('complementary').querySelectorAll('.dlabel')].map((el) => el.textContent)).not.toContain('API 서버');
+    await waitFor(() => expect(screen.getByRole('dialog').querySelector('h2')?.textContent).toBe('ZAS-FN-002 케이스'));
+    expect([...screen.getByRole('dialog').querySelectorAll('dt')].map((el) => el.textContent)).not.toContain('API 서버');
   });
 
   it('필터 판의 API 서버 줄은 「전체」와 이름마다 건수를 단 칩이다 — 처음에는 전체가 눌려 있다', async () => {
