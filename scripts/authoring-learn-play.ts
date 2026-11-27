@@ -1,7 +1,7 @@
 // 게임 배우기의 곳(STAGE 줄) — 맵 정보 일곱 종류 검사 · 맵을 다 안 채운 곳 · 곳마다 깸 · 판 수 (도메인/게임 §3.10 「맵 파악」 「게임플레이」)
 // 장면 처음부터 있던 NavMesh · 막힘 오브젝트를 한 번도 안 열고 놓을 자리를 한 칸씩 찍어 봤다(#16053) — 곳마다 맵을 다 적어야 배우기가 끝난다
 import type { 지도줄 } from './authoring-game-find.js';
-import { type 판기록, 값찾기, 같나, 계산머리, 수로, 회고기록이름 } from './authoring-learn-check.js';
+import { type 판기록, 가장큰, 값찾기, 같나, 계산머리, 계획읽기, 수로, 회고기록이름 } from './authoring-learn-check.js';
 
 /** 곳마다 data.맵 에 다 채워야 하는 종류 — 그 게임에 없는 종류는 { 없음: <이유> } */
 export const 맵종류 = ['걷기', '막힘', '놓기', '적', '지킬것', '자원', '출구'] as const;
@@ -58,18 +58,35 @@ export const 계산찍기 = (쓸것: readonly string[], 줄들: readonly 줄[]):
   Object.fromEntries(쓸것.filter((k) => k.startsWith(계산머리)).map((k) => [k, JSON.stringify(칸(줄들.find((x) => x.key === k && x.learned !== null)))]));
 
 /**
- * 계획이 쓸 계산 줄 가운데, 그 줄을 쓴 가장 새 판이 기대를 깼는데 줄이 그때 그대로인 것 — 막을 까닭 글.
- * 틀린 계산을 고치지 않고 근거로만 쓰며 판을 되풀이했다(2026-11-27 16060 둘째 맵 세 번 짐). 게임플레이 계획의 기대가 계산의 예측이라 기대 깨짐을 틀린 신호로 본다
+ * 계획이 쓸 계산 줄 가운데, 그 줄을 쓴 가장 새 판이 기대를 깼거나 목표에 못 닿고 졌는데 줄이 그때 그대로인 것 — 막을 까닭 글.
+ * 틀린 계산을 고치지 않고 근거로만 쓰며 판을 되풀이했다(2026-11-27 16060 둘째 맵 세 번 짐). 게임플레이 계획의 기대가 계산의 예측이라 기대 깨짐을 틀린 신호로 본다.
+ * 기대가 앞 웨이브에만 걸린 계획은 일찍 져도 기대가 안 깨진다(16094 셋째 맵 네 판) — 목표에 못 닿은 짐도 틀린 신호로 본다
  */
 export function 계산안고침(쓸것: readonly string[], 줄들: readonly 줄[], 기록들: readonly 판기록[]): string | null {
   const 지금 = 계산찍기(쓸것, 줄들);
   for (const [k, 글] of Object.entries(지금)) {
     const r = [...기록들].reverse().find((x) => x.값기록?.계산?.[k] !== undefined);
-    const 어 = r?.값기록?.어긋남;
-    if (r === undefined || 어 === undefined || 어 === null || r.값기록!.계산![k] !== 글) continue;
+    if (r === undefined || r.값기록!.계산![k] !== 글) continue;
+    const 어 = r.값기록!.어긋남;
+    if (어 === null) {
+      const 짐 = 못닿고짐(r, 줄들);
+      if (짐 === null) continue;
+      return `${k} 를 근거로 쓴 ${r.이름} 가 목표 ${짐.값} ${짐.기준} · 실제 ${짐.닿은 ?? '못 읽음'} 에서 졌다 — 계산이 판과 어디서 달랐나(입력한 레벨 · 수 · 길 · 빠진 피해)를 찾아 입력을 고치고 \`npx tsx scripts/authoring-game-calc.ts <입력>\` 로 다시 계산해 ${k} 줄을 고친 뒤 계획을 돌린다`;
+    }
     return `${k} 를 근거로 쓴 ${r.이름} 에서 기대 ${어.기대} 가 ${어.초.toFixed(0)}초에 깨졌다(${어.값이름} ${어.값}) — 계산이 판과 어디서 달랐나(입력한 레벨 · 수 · 길 · 빠진 피해)를 찾아 입력을 고치고 \`npx tsx scripts/authoring-game-calc.ts <입력>\` 로 다시 계산해 ${k} 줄을 고친 뒤 계획을 돌린다`;
   }
   return null;
+}
+
+/** 판이 목표에 못 닿고 짐으로 끝났으면 목표와 닿은 가장 큰 수 — 멈춤 · 치트 조각은 결과가 판 결과가 아니라 안 본다 */
+function 못닿고짐(r: 판기록, 줄들: readonly 줄[]): { 값: string; 기준: number; 닿은: number | null } | null {
+  if (r.값기록 === undefined || r.멈춤 !== undefined || r.치트 === true) return null;
+  const 계획 = 계획읽기(칸(줄들.find((x) => x.key === r.값기록!.계획 && x.learned !== null)));
+  if (typeof 계획 === 'string' || 계획.곳 === undefined) return null;
+  const 결 = 결과읽기(칸(곳줄들(줄들).find((x) => x.key === 계획.곳)));
+  if (결 === null || typeof 결 === 'string' || 판결과(r, 결) !== '짐') return null;
+  const 닿은 = 가장큰(r.값기록, 계획.목표.값);
+  return 닿은 !== null && 닿은 >= 계획.목표.기준 ? null : { ...계획.목표, 닿은 };
 }
 
 /** 그 곳 회고 가운데 끝 n 개의 나아감이 그 앞 회고들의 가장 먼 나아감을 못 넘었으면 그 n 개. 앞 회고가 없거나 나아감을 못 읽었으면 견줄 수 없어 null */
