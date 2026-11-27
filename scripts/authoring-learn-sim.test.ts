@@ -115,6 +115,19 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     const 글 = (x: Record<string, unknown>) => (writeFileSync(경로, JSON.stringify(x)), JSON.stringify(x));
     expect(시뮬(유지입력('rule:없는 줄'), { 경로, 글: 글(유지입력('rule:없는 줄')) })).toMatchObject({ 틀림: expect.stringContaining('rule:없는 줄') });
     expect(시뮬(유지입력('rule:식물 유지'), { 경로, 글: 글(유지입력('rule:식물 유지')) })).not.toHaveProperty('틀림');
+    expect(시뮬(유지입력(곳), { 경로, 글: 글(유지입력(곳)) })).toMatchObject({ 틀림: expect.stringContaining('잰 값의 출처가 아니다') });
+    writeFileSync(join(자료, 'game-build-data.json'), JSON.stringify({ PlantData: { Upkeep: 50 } }));
+    expect(시뮬(유지입력('빌드 데이터:PlantData'), { 경로, 글: 글(유지입력('빌드 데이터:PlantData')) })).not.toHaveProperty('틀림');
+    expect(시뮬(유지입력('빌드 데이터:없는타입'), { 경로, 글: 글(유지입력('빌드 데이터:없는타입')) })).toMatchObject({ 틀림: expect.any(String) });
+  });
+
+  it('판에서 깬 적이 있는 곳의 진 시뮬 줄은 시뮬불가가 아니라 「값을 다시 재라」로 막는다(16102 첫 맵)', () => {
+    const 결과 = { 주소: '/결과', 깸: '승리', 짐: '패배' };
+    const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));
+    const 들 = [곳줄({ 결과 }), 계획줄, 짐];
+    expect(막기(계획, 들, 자료, [], [정책(짐)])).toMatchObject({ 막음: expect.stringContaining('다음 맵으로 간다') });
+    writeFileSync(join(자료, 'game-play', '20261127000000000-판.json'), JSON.stringify({ 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [], 어긋남: null, 화면다름: [] }, 끝글: [{ 주소: '/결과', 경로: '', 글: '승리' }] }));
+    expect(막기(계획, 들, 자료, [], [정책(짐)])).toMatchObject({ 막음: expect.stringContaining('1판 깬 적이 있다') });
   });
 
   it('판에 못 들어간 계획 판(행동기록이 비고 값이 한 번도 안 움직임)은 마지막 판으로 안 쳐 그 곳을 잠그지 않는다(16100 첫 맵 · 둘째 맵)', async () => {

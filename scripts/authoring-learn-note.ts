@@ -38,6 +38,8 @@ function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 
     const o = 지금.줄들.find((x) => x.key === k);
     return o === undefined || o.learned === null ? undefined : { kind: o.kind, key: o.key, learned: o.learned };
   };
+  // 이번에 적는 줄까지 얹은 지도 — 못깸 · 시뮬불가가 깸 · 판 수를 셀 때 쓴다
+  const 합 = [...지금.줄들.filter((y) => !이번.has(y.key)), ...줄들.map((y) => ({ kind: y.kind as string, key: y.key as string, learned: y.learned as 배운것 | null }))];
   for (const x of 줄들) {
     const l = x.learned as 배운것 | null;
     if (l === null || typeof l !== 'object') continue;
@@ -53,11 +55,10 @@ function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 
     if (열쇠 === 나아감열쇠 && 나아감자리(l.data) === null) return `${열쇠} — data 에 얼마나 나아갔나를 읽을 자리를 { 주소, 칸? } 로 적는다(깬 맵 수 · 레벨 · 해금 수)`;
     const 상태 = 객체(l.data).상태;
     if (x.kind === 'STAGE' && 상태 !== undefined && !(상태 === '가봄' || 상태 === '안감' || ((상태 === '못감' || 상태 === '못깸') && typeof 객체(l.data).까닭 === 'string'))) return `${열쇠} — data.상태 는 가봄 · 안감 · 못감 · 못깸이다(못감 · 못깸은 data.까닭)`;
-    const 곳틀림 = x.kind === 'STAGE' ? (맵검사(l.data, 기록들) ?? (typeof 결과읽기(l.data) === 'string' ? (결과읽기(l.data) as string) : null) ?? 시뮬불가검사(열쇠, l.data, 찾기, 객체(l.data).시뮬불가 === undefined ? 0 : (곳셈([...지금.줄들.filter((y) => !이번.has(y.key)), ...줄들.map((y) => ({ kind: y.kind as string, key: y.key as string, learned: y.learned as 배운것 | null }))], 기록들).find((y) => y.열쇠 === 열쇠)?.깸 ?? 0))) : null;
+    const 곳틀림 = x.kind === 'STAGE' ? (맵검사(l.data, 기록들) ?? (typeof 결과읽기(l.data) === 'string' ? (결과읽기(l.data) as string) : null) ?? 시뮬불가검사(열쇠, l.data, 찾기, 객체(l.data).시뮬불가 === undefined ? 0 : (곳셈(합, 기록들).find((y) => y.열쇠 === 열쇠)?.깸 ?? 0))) : null;
     if (곳틀림 !== null) return `${열쇠} — ${곳틀림}`;
     if (x.kind === 'STAGE' && 상태 === '못깸') {
       // 못 깨면 넘어가는 길로 쓰지 않게 — 그 곳을 넘김판만큼 해 봐야 못깸이다(2026-11-26 사용자 「깨게 만들어야지」 · 11-27 50판을 뺌)
-      const 합 = [...지금.줄들.filter((y) => !이번.has(y.key)), ...줄들.map((y) => ({ kind: y.kind as string, key: y.key as string, learned: y.learned as 배운것 | null }))];
       // 다시 시작한 때(놀이시작) 뒤 판만 센다 · 정보 모으기를 못깸으로 건너뛰지 못하게 그 곳의 정보 모으기(또는 못 하는 이유)도 있어야 한다
       const 셈 = 곳셈(합, 놀이기록).find((y) => y.열쇠 === 열쇠);
       if (셈 === undefined || 셈.깸 > 0 || 셈.판 < 넘김판) return `${열쇠} — 못깸은 data.결과 가 있는 곳을 ${넘김판}판 해 보고도 못 깼을 때만 적는다(지금 ${셈?.판 ?? 0}판 · 깸 ${셈?.깸 ?? 0})`;

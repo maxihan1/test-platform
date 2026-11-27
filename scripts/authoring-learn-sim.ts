@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import type { 지도줄 } from './authoring-game-find.js';
 import type { 모델 } from './authoring-game-sim-input.js';
 import { 문턱넣기, 입력읽기 } from './authoring-game-sim-input.js';
-import { 격자걷기, 손재기, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
+import { 격자걷기, 근거틀림, 빌드글, 손재기, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
 import { 돌리기, 엔진판 } from './authoring-game-sim.js';
 import { type 기대, type 볼값, type 값기록, type 판기록, 가장큰, 계산머리, 판기록들 } from './authoring-learn-check.js';
 import { 계획곳, 곳셈, 곳줄들, 못닿고짐, 시뮬불가읽기 } from './authoring-learn-play.js';
@@ -48,13 +48,12 @@ function 끝까지(곳줄: 줄 | undefined, s: Pick<시뮬줄, '입력' | '열�
   return s.입력.보스 ? null : `${s.열쇠} 에 보스 웨이브(보스: true)가 없다 — 끝 웨이브 · 보스까지 넣거나, 보스가 없는 곳이면 그 STAGE data.끝웨이브 { 수, 출처 } 를 빌드 데이터에서 읽어 적는다`;
 }
 
-/** 이 곳을 계획으로 해 본 가장 새 판(멈춤 · 치트 조각 빼고) */
-/** 볼값 가운데 하나라도 처음 읽은 값에서 바뀌었나 — 안 바뀌었으면 판이 흐르지 않았다 */
-function 값움직임(기: 값기록): boolean {
+/** 볼값(이름들을 주면 그것만 — 시뮬과 이은 웨이브 · 지킬것) 가운데 하나라도 처음 읽은 수에서 바뀌었나 — 안 바뀌었으면 판이 흐르지 않았다. 메뉴의 시계 같은 값이 움직임으로 잡히지 않게 이은 값만 본다 */
+function 값움직임(기: 값기록, 이름들: readonly string[]): boolean {
   const 처음: Record<string, number> = {};
   for (const t of 기.때) {
     for (const [k, v] of Object.entries(t.값)) {
-      if (v === null) continue;
+      if (typeof v !== 'number' || (이름들.length > 0 && !이름들.includes(k))) continue;
       if (k in 처음 && 처음[k] !== v) return true;
       처음[k] ??= v;
     }
@@ -63,11 +62,11 @@ function 값움직임(기: 값기록): boolean {
 }
 
 /**
- * 이 곳을 계획으로 해 본 가장 새 판(멈춤 · 치트 조각 빼고). 판에 못 들어간 부르기(행동기록이 비고 볼값이 한 번도 안 바뀜)는 건너뛴다 —
+ * 이 곳을 계획으로 부른 가장 새 기록(멈춤 · 치트 조각 빼고). 판에 못 들어간 부르기(행동기록이 비고 이은 볼값이 한 번도 안 바뀜)는 건너뛴다 —
  * 메뉴에서 못 들어간 판이 마지막 판이 되어 「행동기록을 안 돌려줬다」로 그 곳의 다음 판을 다 막았다(16100 첫 맵 · 둘째 맵)
  */
-const 마지막판 = (줄들: readonly 줄[], 기록들: readonly 판기록[], 곳: string): 판기록 | undefined =>
-  [...기록들].reverse().find((r) => r.값기록 !== undefined && r.멈춤 === undefined && r.치트 !== true && 계획곳(줄들, r.값기록.계획) === 곳 && ((행동기록읽기(r)?.length ?? 0) > 0 || 값움직임(r.값기록)));
+const 마지막판 = (줄들: readonly 줄[], 기록들: readonly 판기록[], 곳: string, 이름들: readonly string[]): 판기록 | undefined =>
+  [...기록들].reverse().find((r) => r.값기록 !== undefined && r.멈춤 === undefined && r.치트 !== true && 계획곳(줄들, r.값기록.계획) === 곳 && ((행동기록읽기(r)?.length ?? 0) > 0 || 값움직임(r.값기록, 이름들)));
 
 /** 이 곳을 판에서 깬 수 — 놀이시작과 상관없이 모든 판 기록에서 센다 */
 const 깬판수 = (줄들: readonly 줄[], 자료: string, 곳: string): number => 곳셈(줄들, 판기록들(자료)).find((x) => x.열쇠 === 곳)?.깸 ?? 0;
@@ -103,6 +102,8 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   if ((잰.기록 ?? null) !== (s.결과.손.기록 ?? null)) return { 막음: `${s.열쇠} 는 판 ${잰.기록 ?? '없음'} 을 돈 뒤 다시 안 돌렸다(그 판의 손 시간이 안 들어갔다) — 같은 입력으로 다시 계산해 줄을 고친다` };
   const m = 입력읽기(객체(JSON.parse(글)));
   if ('틀림' in m) return { 막음: `${s.열쇠} 의 입력이 틀렸다 — ${m.틀림}` };
+  const 근 = 근거틀림(m, 줄들, 빌드글(자료));
+  if (근 !== null) return { 막음: `${s.열쇠} — ${근}` };
   // 줄 글자는 믿지 않는다 — 손 시간은 파일 값과 잰 값 가운데 느린 쪽, 정책은 파일의 후보와 문턱 후보로 다시 만든다
   const 손: 모델['손'] = { 행동초: Math.max(m.손.행동초, 잰.행동초) };
   const 걷기 = 격자걷기(자료, m).걷기;
@@ -111,7 +112,7 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   const 정책 = 후보 === undefined || !문턱맞음 ? null : 문턱넣기(후보, s.결과.문턱);
   if (정책 === null || JSON.stringify(정책) !== JSON.stringify(s.결과.정책)) return { 막음: `${s.열쇠} 의 정책이 입력 파일의 정책 후보 · 문턱 후보로 만든 것이 아니다 — 다시 계산해 찍힌 줄을 그대로 적는다` };
   // 판이 시뮬과 어긋났으면 그 판을 재현해야 한다 — 시뮬이 그 판을 못 맞추면 무엇을 잘못 읽었는지 아직 모른다
-  const 앞판 = 마지막판(줄들, 기록들, 곳);
+  const 앞판 = 마지막판(줄들, 기록들, 곳, [s.입력.볼값연결.웨이브, s.입력.볼값연결.지킬것].filter((x): x is string => x !== undefined));
   const 앞시뮬 = 앞판 === undefined ? false : Object.values(앞판.값기록!.계산 ?? {}).some((v) => v.includes('"계산":"시뮬"'));
   if (앞판 !== undefined && 앞시뮬) {
     const 행 = 행동기록읽기(앞판) ?? [];
@@ -135,8 +136,10 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   return { 기대: 다시.웨이브.map((w, i) => ({ 값: 지킬것, 비교: '>=' as const, 기준: Math.round(w.끝지킬것 * 기대여유 * 10) / 10, 부터: { 값: 웨이브이름, 기준: i + 1 }, 까지: { 값: 웨이브이름, 기준: i + 1 } })) };
 }
 
-/** 적는 명령이 STAGE 를 받기 전에 본다 — 시뮬불가가 가리키는 줄이 그 곳의 진 시뮬 줄이고 끝 웨이브 · 보스까지 넣었나 · 끝웨이브 형태. 틀리면 까닭 글 */
-/** 깬판수 — 그 곳을 판에서 깬 수. 깬 적이 있으면 시뮬불가가 아니라 계산 값이 틀린 것이다 */
+/**
+ * 적는 명령이 STAGE 를 받기 전에 본다 — 시뮬불가가 가리키는 줄이 그 곳의 진 시뮬 줄이고 끝 웨이브 · 보스까지 넣었나 · 끝웨이브 형태. 틀리면 까닭 글.
+ * 깬판수는 그 곳을 판에서 깬 수(놀이시작 앞 판도) — 깬 적이 있으면 시뮬불가가 아니라 계산 값이 틀린 것이다
+ */
 export function 시뮬불가검사(열쇠: string, data: unknown, 찾기: (열쇠: string) => 줄 | undefined, 깬판수 = 0): string | null {
   const 끝 = 객체(data).끝웨이브;
   if (끝 !== undefined && !(typeof 객체(끝).수 === 'number' && 글인가(객체(끝).출처))) return 'data.끝웨이브 는 { 수, 출처 } 다 — 그 곳 끝 웨이브 수와 어디서 읽었나(빌드 데이터)';
