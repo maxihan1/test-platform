@@ -9,7 +9,7 @@ import { 지표차례, 지표표 } from './perfDeviceView.js';
 const 단위: Record<기기지표, { 글: string; 배: number }> = {
   AVG_FPS: { 글: 'FPS', 배: 1 },
   LOW1_FPS: { 글: 'FPS', 배: 1 },
-  JANK_PER_MIN: { 글: '번/분', 배: 1 },
+  JANK_PER_MIN: { 글: '회/분', 배: 1 },
   MAX_TEMP: { 글: '도', 배: 1 },
   MAX_MEM: { 글: 'MB', 배: 1 },
   LAUNCH_MS: { 글: '초', 배: 1000 },

@@ -115,7 +115,7 @@ function 분당끊김(rows: readonly 기기줄[], intervalSec: number): number |
   return 한자리(끊김 / ((잰줄.length * intervalSec) / 60));
 }
 
-/** 평균 FPS · 1% Low FPS(프레임 시간 분포로 센다) · 분당 끊김 · 최대 온도 · 프리징 합 · 메모리 최대 · 평균 CPU · 평균 GPU · VRAM 최대. 값이 없으면 null */
+/** 평균 FPS · 1% Low FPS(프레임 시간 분포로 센다) · 스터터(분당) · 최대 온도 · 프리징 합 · 메모리 최대 · 평균 CPU · 평균 GPU · VRAM 최대. 값이 없으면 null */
 export function 기기요약하기(rows: readonly 기기줄[], intervalSec: number): 기기요약 {
   const fps = 값들(rows.map((r) => r.fps));
   return {
@@ -169,7 +169,7 @@ export function 회차메모리(serial: string, rows: readonly 기기줄[]): { s
   return [...묶음.entries()].sort((a, b) => a[0] - b[0]).map(([loop, maxMemMb]) => ({ serial, loop, maxMemMb }));
 }
 
-/** 회차마다 분당 끊김 — 반복 1회차에만 몰리는 끊김(셰이더 컴파일 의심)을 AI 가 보는 재료 */
+/** 회차마다 스터터(분당) — 반복 1회차에만 몰리는 끊김(셰이더 컴파일 의심)을 AI 가 보는 재료 */
 export function 회차끊김(rows: readonly 기기줄[], intervalSec: number): { loop: number; jankPerMin: number | null }[] {
   const 회차들 = [...new Set(rows.flatMap((r) => (r.loop === null ? [] : [r.loop])))].sort((a, b) => a - b);
   return 회차들.map((loop) => ({ loop, jankPerMin: 분당끊김(rows.filter((r) => r.loop === loop), intervalSec) }));

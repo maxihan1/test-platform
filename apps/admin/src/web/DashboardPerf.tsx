@@ -245,7 +245,10 @@ export function 성능칸({ 성능, 종류들, 실패유형 }: { 성능: 성능;
               [t('FPS 평균'), 값글(g?.avgFps ?? null)],
               ['1% Low FPS', 값글(g?.low1Fps ?? null)],
               [t('프리징'), g?.freezeCount == null ? '—' : t('{수}회', { 수: g.freezeCount })],
-              [t('배터리 온도'), g?.maxTempC == null ? '—' : `${String(g.maxTempC)}℃`],
+              // PC 게임은 배터리 온도가 없어 그 자리에 스터터를 보인다 (2026-11-27 사용자)
+              g?.pc === true
+                ? [t('스터터'), g.jankPerMin == null ? '—' : t('분당 {수}회', { 수: g.jankPerMin })]
+                : [t('배터리 온도'), g?.maxTempC == null ? '—' : `${String(g.maxTempC)}℃`],
             ]}
           />
         ) : null}

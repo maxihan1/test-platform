@@ -32,7 +32,7 @@ describe('기기 요약', () => {
     expect(기기요약하기([줄(0, { frameHist: {} })], 1).low1Fps).toBeNull();
   });
 
-  it('분당 끊김은 125ms 칸부터 위 프레임을 분포가 있는 줄의 잰 분으로 나눈다', () => {
+  it('스터터(분당)는 125ms 칸부터 위 프레임을 분포가 있는 줄의 잰 분으로 나눈다', () => {
     const rows = Array.from({ length: 30 }, (_, i) => 줄(i, { frameHist: i === 0 ? { '16': 50, '125': 1, '150': 2 } : i === 1 ? {} : i === 2 ? { '121': 0 } : { '16': 60 } }));
     expect(기기요약하기(rows, 2).jankPerMin).toBe(3);
     expect(기기요약하기([...rows, 줄(30, { frameHist: null })], 2).jankPerMin).toBe(3);
@@ -104,7 +104,7 @@ describe('구간 · 회차', () => {
 });
 
 describe('회차 끊김 · 열 상태', () => {
-  it('회차마다 분당 끊김을 센다', () => {
+  it('회차마다 스터터(분당)를 센다', () => {
     const rows = [
       줄(0, { loop: 1, frameHist: { '200': 2 } }), 줄(1, { loop: 1, frameHist: { '16': 9 } }),
       줄(2, { loop: 2, frameHist: { '16': 9 } }), 줄(3, { loop: 2, frameHist: {} }), 줄(4, { frameHist: { '200': 5 } }), 줄(5, { loop: 3 }),

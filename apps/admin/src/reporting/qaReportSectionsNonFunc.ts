@@ -64,7 +64,7 @@ function 호환성세트(s: 호환성재료): 덩이[] {
 }
 
 // 서버 부하는 성능 PDF 와 같은 이름 · 값 글자, 페이지 · 기기 성능은 그 화면 이름(web/perfDeviceView.ts 지표표)과 같다
-const 지표이름: Record<string, string> = { ...부하지표글, LCP: 'LCP', FCP: 'FCP', CLS: 'CLS', AVG_FPS: '평균 FPS', LOW1_FPS: '1% Low FPS', JANK_PER_MIN: '분당 끊김', MAX_TEMP: '최대 배터리 온도', MAX_MEM: '메모리 최대', LAUNCH_MS: '앱 실행 시간' };
+const 지표이름: Record<string, string> = { ...부하지표글, LCP: 'LCP', FCP: 'FCP', CLS: 'CLS', AVG_FPS: '평균 FPS', LOW1_FPS: '1% Low FPS', JANK_PER_MIN: '스터터', MAX_TEMP: '최대 배터리 온도', MAX_MEM: '메모리 최대', LAUNCH_MS: '앱 실행 시간' };
 
 function 목표값글(metric: string, v: number | null): string {
   if (v === null) return 빈글.기록없음;
@@ -82,7 +82,7 @@ function 목표값글(metric: string, v: number | null): string {
     case 'LOW1_FPS':
       return `${v.toFixed(1)} FPS`;
     case 'JANK_PER_MIN':
-      return `분당 ${v.toFixed(1)}번`;
+      return `분당 ${v.toFixed(1)}회`;
     case 'MAX_TEMP':
       return `${v.toFixed(1)}도`;
     case 'MAX_MEM':

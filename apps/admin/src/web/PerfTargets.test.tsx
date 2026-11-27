@@ -79,7 +79,7 @@ it('PC 게임의 기기 목표에는 최대 배터리 온도를 고를 수 없�
   render(<PerfDeviceTargets 목표들={[{ metric: 'AVG_FPS', op: '>=', value: 60, source: 'MANUAL' }]} 고침={vi.fn()} 쓰나 PC />);
   const 고르개 = screen.getByRole('combobox', { name: '평균 FPS 지표' });
   expect([...고르개.querySelectorAll('option')].map((o) => o.textContent)).not.toContain('최대 배터리 온도');
-  expect([...고르개.querySelectorAll('option')].map((o) => o.textContent)).toContain('분당 끊김');
+  expect([...고르개.querySelectorAll('option')].map((o) => o.textContent)).toContain('스터터');
 });
 
 it('트랜잭션 줄은 두 번 눌러야 지워진다', () => {

@@ -191,7 +191,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
                       <th>{t('디바이스')}</th>
                       <th className="r">{t('평균 FPS')}</th>
                       <th className="r">{t('1% Low FPS')}</th>
-                      <th className="r">{t('분당 끊김')}</th>
+                      <th className="r">{t('스터터')}</th>
                       {PC ? null : <th className="r">{t('최대 배터리 온도')}</th>}
                       <th className="r">{t('메모리 최대')}</th>
                       <th className="r">{t('앱 실행 시간')}</th>
