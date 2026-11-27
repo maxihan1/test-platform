@@ -37,8 +37,10 @@ describe('곳막힘', () => {
     expect(곳막힘([...나아감들(3, 3, 2, 3), 회고(4, 3, '됨')] as never)).toBeNull();
   });
 
-  it('나아감을 한 번도 못 읽은 회고(판에 못 들어간 부르기)는 세 판에 안 센다', () => {
-    expect(곳막힘([...나아감들(3, 3, 2), 회고(3, null as never)] as never)).toBeNull();
+  it('판에 못 들어간 부르기의 회고는 세 판에 안 세고, 사이에 끼어도 진짜 안 늚은 그대로 막는다', () => {
+    const 빈판 = new Set(['20261126000000003-판']);
+    expect(곳막힘([...나아감들(3, 3, 2), 회고(3, null as never)] as never, 곳, 빈판)).toBeNull();
+    expect(곳막힘([...나아감들(3, 3, 2), 회고(3, null as never), 회고(4, 3)] as never, 곳, 빈판)).toMatchObject({ 곳 });
   });
 });
 

@@ -48,6 +48,14 @@ export function 회고채우기(열쇠: string, learned: 배운것, 찾기: (열
   return { ...learned, data: { ...d, 계획: 기.계획, ...(typeof 계획 === 'string' || 계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(목표 === null ? {} : { 목표 }), 나아감: 가장큰(기, 나아감), 어긋남: 기.어긋남, ...(기.화면다름.length === 0 ? {} : { 화면다름: 기.화면다름 }) } };
 }
 
+/**
+ * 판에 못 들어간 부르기 — 2초 기록에서 값을 하나도 못 읽은 판 기록 이름. 그 회고는 손 세 번 · 세 판 안 늚에 안 센다(2026-11-27 작성 16097 7초 별꽃판이 셋째로 세여 새 작전을 한 번도 못 해 봤다).
+ * 회고의 나아감으로 가르지 않는다 — 나아감 주소가 틀린 게임은 모든 판이 비어 막기가 다 풀린다
+ */
+export const 빈판들 = (기록들: readonly 판기록[]): Set<string> =>
+  new Set(기록들.filter((r) => r.값기록 !== undefined && r.값기록.때.every((t) => Object.values(t.값).every((v) => v === null))).map((r) => r.이름));
+const 판회고만 = <T extends 줄>(줄들: readonly T[], 빈판: ReadonlySet<string>): T[] => 줄들.filter((x) => !빈판.has(회고기록이름(x.key) ?? ''));
+
 /** 게임플레이에서 한 곳의 나아감이 이만큼 이어 안 늘면 다음 판 전에 물음 트리를 보게 막는다 — 배우기의 안늚상한(지도 전체)과 따로 곳 단위로 센다 */
 export const 안늚판상한 = 3;
 
@@ -55,12 +63,13 @@ export const 안늚판상한 = 3;
  * 가장 새 회고의 곳(곳을 주면 그 곳)에서 회고 셋 이어 나아감이 그 앞의 가장 먼 나아감을 못 넘었으면 그 셋이 쓴 계획. 목표에 닿았거나(됨) 앞 회고가 없어 견줄 수 없으면 null.
  * 손막힘과 달리 까닭이 손이 아니어도 센다 — 믿은것 · 몰랐던것으로 고치고도 안 느는 곳이다
  */
-export function 곳막힘(줄들: readonly 줄[], 어느곳?: string): { 곳: string; 계획들: string[] } | null {
-  const 회고 = 회고줄들(줄들).filter((x) => 어느곳 === undefined || 칸(x).곳 === 어느곳);
+export function 곳막힘(줄들: readonly 줄[], 어느곳?: string, 빈판: ReadonlySet<string> = new Set()): { 곳: string; 계획들: string[] } | null {
+  const 판줄 = 판회고만(줄들, 빈판);
+  const 회고 = 회고줄들(판줄).filter((x) => 어느곳 === undefined || 칸(x).곳 === 어느곳);
   const 마지막 = 회고.at(-1);
   const 곳 = 칸(마지막).곳;
   if (마지막 === undefined || 칸(마지막).까닭 === '됨' || !글인가(곳)) return null;
-  const 끝 = 곳안늚(줄들, 곳, 안늚판상한);
+  const 끝 = 곳안늚(판줄, 곳, 안늚판상한);
   return 끝 === null ? null : { 곳, 계획들: 끝.map((x) => 칸(x).계획).filter(글인가) };
 }
 
@@ -75,9 +84,8 @@ export function 회고없는판(기록들: readonly 판기록[], 줄들: readonl
  * 손만 고친 회고가 한 곳에서 세 번 이어졌고 나아감이 그 곳의 앞 회고보다 안 늘었으면 그 세 번이 쓴 계획 · 어디서 — 다음 계획은 이것들이 아니어야 한다.
  * 나아감은 곳 안에서만 견준다 — 맵을 옮기면 웨이브가 1 로 돌아가 「안 늚」이 됐다(#16053)
  */
-export function 손막힘(줄들: readonly 줄[]): { 계획들: string[]; 어디서들: string[] } | null {
-  // 나아감을 한 번도 못 읽은 회고는 판에 못 들어간 부르기다 — 해 본 판으로 세면 새 작전을 한 번도 못 해 보고 막혔다(2026-11-27 작성 16097 7초 별꽃판)
-  const 회고 = 회고줄들(줄들).filter((x) => typeof 칸(x).나아감 === 'number');
+export function 손막힘(줄들: readonly 줄[], 빈판: ReadonlySet<string> = new Set()): { 계획들: string[]; 어디서들: string[] } | null {
+  const 회고 = 회고줄들(판회고만(줄들, 빈판));
   if (회고.length <= 손상한) return null;
   const 끝셋 = 회고.slice(-손상한);
   const 곳 = 칸(끝셋[0]).곳;
@@ -167,7 +175,8 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   if (깨진 !== null) return { 막음: `새 계획의 기대 「${기대글(깨진)}」 가 멈춘 순간 값(${Object.entries(멈춘!.값).map(([k, v]) => `${k} ${v ?? '못 읽음'}`).join(' · ')})으로 이미 깨졌다 — 지금 판에서 지킬 수 있는 기대로 다시 적는다` };
   const 나 = 나아감자리(칸(찾기(나아감열쇠)));
   if (나 === null) return { 막음: `${나아감열쇠} 줄(GOAL · data { 주소, 칸? })이 없다 — 이 게임에서 얼마나 나아갔나를 보여 주는 값(깬 맵 수 · 레벨 · 해금 수) 하나를 먼저 정해 적는다` };
-  const 손 = 손막힘(줄들);
+  const 빈판 = 빈판들(기록들);
+  const 손 = 손막힘(줄들, 빈판);
   if (손 !== null && (손.계획들.includes(계획열쇠) || (글인가(칸(줄).어디서) && 손.어디서들.includes(칸(줄).어디서 as string)))) {
     return { 막음: `손만 고친 해 보기가 ${손상한}번 이어졌고 나아감이 안 늘었다 — 그 세 번이 쓴 계획(${손.계획들.join(' · ')})과 어디서(${손.어디서들.join(' · ') || '없음'})가 아닌 물음이나 곳으로 계획을 새로 적는다` };
   }
@@ -178,7 +187,7 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   if (놀막 !== null) return { 막음: 놀막 };
   // 곳 단위로 셋 이어 안 늘면 물음 트리를 보고 열린 물음 하나를 푸는 계획만 받는다(그 물음은 계획의 data.어디서)
   // 계획의 곳에서 잰다 — 가장 새 회고의 곳으로 재면 5판 뒤 다음 맵으로 옮긴 첫 계획이 앞 맵의 안 늚으로 막혔다(2026-11-27 작성 16094 넷째 → 다섯째 맵)
-  const 막힘 = 놀이 ? 곳막힘(줄들, 계획.곳) : null;
+  const 막힘 = 놀이 ? 곳막힘(줄들, 계획.곳, 빈판) : null;
   const 열린 = 막힘 === null ? [] : 열린물음({ 줄들: [...줄들], 이름: new Map() }, 오늘글(Date.now())).map((x) => x.key);
   if (막힘 !== null && 열린.length > 0 && (막힘.계획들.includes(계획열쇠) || !열린.includes(칸(줄).어디서 as string))) {
     return { 막음: `${막힘.곳} 에서 ${안늚판상한}판 이어 나아감이 안 늘었다 — 물음 트리(\`npx tsx scripts/authoring-game-tree.ts ${자료}\`)를 보고 열린 물음 하나를 골라, 그 물음을 싼 길로 푸는 새 계획을 적는다(계획의 data.어디서 에 그 물음 열쇠 · 앞 세 계획(${막힘.계획들.join(' · ')}) 말고)` };

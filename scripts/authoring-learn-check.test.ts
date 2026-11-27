@@ -9,7 +9,7 @@ import { 값읽기시작, 첫값유예ms, 화면다른것 } from './authoring-ga
 import { 지도읽기 } from './authoring-game-find.js';
 import { type 판기록, 계획읽기, 놀이계획검사, 대봄검사, 수로, 어긋난기대, 판기록들 } from './authoring-learn-check.js';
 import { 합치기 } from './authoring-learn-note.js';
-import { 남은배울것, 배움막기, 손막힘, 회고없는판, 회고채우기 } from './authoring-learn-retro.js';
+import { 남은배울것, 배움막기, 빈판들, 손막힘, 회고없는판, 회고채우기 } from './authoring-learn-retro.js';
 
 let 자료 = '';
 beforeEach(() => {
@@ -232,9 +232,15 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     expect(손막힘([...들.slice(0, 4), 회고(3, '몰랐던것', 0)] as never)).toBeNull();
   });
 
-  it('나아감을 한 번도 못 읽은 회고(판에 못 들어간 부르기)는 손만 고친 셋에 안 센다 — 16097 7초 별꽃판이 셋째로 세여 새 작전을 한 번도 못 해 봤다', () => {
+  it('판에 못 들어간 부르기(2초 기록에서 값을 하나도 못 읽은 판)의 회고는 손만 고친 셋에 안 센다 — 16097 7초 별꽃판이 셋째로 세여 새 작전을 한 번도 못 해 봤다', () => {
     const 회고 = (n: number, 까닭: string, 나아감: number | null) => 줄('PLAY', `play:2026112600000000${n}-판`, { 까닭, 나아감, 계획: n === 0 ? 'trial:앞' : 'trial:첫 맵' });
-    expect(손막힘([계획줄, 회고(0, '됨', 1), 회고(1, '손', 0), 회고(2, '손', 1), 회고(3, '손', null)] as never)).toBeNull();
+    const 판 = (n: number, 값: number | null) => ({ 이름: `2026112600000000${n}-판`, 값기록: 값기록('trial:첫 맵', [{ 초: 0, 값: { 세계수: 값, 나아감: null } }, { 초: 2, 값: { 세계수: 값, 나아감: null } }]) });
+    const 빈판 = 빈판들([판(1, 40), 판(3, null)]);
+    expect([...빈판]).toEqual(['20261126000000003-판']);
+    const 들 = [계획줄, 회고(0, '됨', 1), 회고(1, '손', 0), 회고(2, '손', 1), 회고(3, '손', null)];
+    expect(손막힘(들 as never, 빈판)).toBeNull();
+    // 판에는 들어갔는데 나아감 주소가 틀려 못 읽은 회고는 센다 — 회고의 나아감으로 가르면 그런 게임에서 막기가 다 풀린다
+    expect(손막힘(들 as never)).not.toBeNull();
   });
 
   it('다 배웠나 — 열린 물음 · 갈 곳 상태 · 나아감 줄', () => {
