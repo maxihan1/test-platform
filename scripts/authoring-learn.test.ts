@@ -170,13 +170,14 @@ describe('학습하기 — 세션을 잇는다', () => {
     expect(vi.mocked(o.알린다).mock.calls.map((c) => c[0]).join('\n')).toMatch(/이어 돌린다[\s\S]*그친다[\s\S]*게임플레이로 넘어간다/);
   });
 
-  it('※ 정리 알림 뒤 끝낸 세션은 스스로 끝낸 것이 아니라 교대다 — 꽉 찬 대화를 다시 열지 않고 새 세션이 인수인계로 잇는다', async () => {
+  it('※ 정리 알림 뒤 끝낸 세션은 꽉 찬 대화를 다시 열지 않고 새 세션이 인수인계로 잇는다 · 그 세션이 다섯 번 안 늚을 남겼으면 끝 조건은 그대로 본다', async () => {
     const 찬줄 = JSON.stringify({ type: 'assistant', parent_tool_use_id: null, message: { usage: { input_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 553_488 } } });
     const 알림뒤끝 = (n: number) => (_거리: 세션거리, _끊기: AbortSignal, 먹기: (줄: string) => void): undefined => (적기(규칙(`rule:${n}`)), 먹기(찬줄), undefined);
-    const { o, 거리들 } = 손([알림뒤끝(1), 알림뒤끝(2), 알림뒤끝(3), 그만, 그만, () => undefined]);
+    const 그만도 = (n: number) => (거리: 세션거리, 끊기: AbortSignal, 먹기: (줄: string) => void): undefined => (알림뒤끝(n)(거리, 끊기, 먹기), 그만());
+    const { o, 거리들 } = 손([알림뒤끝(1), 알림뒤끝(2), 그만도(3), 그만, () => undefined]);
     await 학습하기(o);
-    expect(vi.mocked(o.한번).mock.calls.map((c) => c[3] === true)).toEqual([false, false, false, false, false, false]);
-    expect(거리들.map((x) => (x.시험 === true ? '시험' : x.차례))).toEqual([1, 2, 3, 4, 5, '시험']);
+    expect(vi.mocked(o.한번).mock.calls.map((c) => c[3] === true)).toEqual([false, false, false, false, false]);
+    expect(거리들.map((x) => (x.시험 === true ? '시험' : `${x.차례}${x.단계 ?? ''}`))).toEqual(['1', '2', '3', '4게임플레이', '시험']);
     const 알린것 = vi.mocked(o.알린다).mock.calls.map((c) => c[0]).join('\n');
     expect(알린것).not.toContain('그친다');
     expect(알린것.match(/※ 정리 알림 뒤 끝냄/g)).toHaveLength(3);
@@ -223,11 +224,11 @@ describe('학습하기 — 세션을 잇는다', () => {
     expect(끝.거리들).toMatchObject([{ 남은분: 0 }, { 남은분: 0, 단계: '게임플레이' }, { 시험: true, 남은분: 15 }, { 틀림: true, 남은분: 15 }]);
   });
 
-  it('컨텍스트로 끊긴 세션이 두 번 이어 한 줄도 못 올리면 그친다 — 계획 없이 헛돌며 디바이스를 쥐지 않게. 배우기에서 그치면 게임플레이로, 게임플레이에서 그치면 시험으로 간다', async () => {
+  it('컨텍스트로 끊기거나 정리 알림 뒤 끝낸 세션이 두 번 이어 한 줄도 못 올리면 그친다 — 계획 없이 헛돌며 디바이스를 쥐지 않게. 배우기에서 그치면 게임플레이로, 게임플레이에서 그치면 시험으로 간다', async () => {
     const { o, 거리들 } = 손([() => 교대, () => 교대, () => 교대, () => 교대, () => undefined]);
     await 학습하기(o);
     expect(거리들.map((x) => (x.시험 === true ? '시험' : (x.단계 ?? '배우기')))).toEqual(['배우기', '배우기', '게임플레이', '게임플레이', '시험']);
-    expect(vi.mocked(o.알린다).mock.calls.map((c) => c[0]).join('\n')).toMatch(/컨텍스트로 끊긴 세션이 2번 이어 한 줄도 못 배웠다 · 게임플레이로 넘어간다[\s\S]*컨텍스트로 끊긴 세션이 2번 이어 한 줄도 못 배웠다/);
+    expect(vi.mocked(o.알린다).mock.calls.map((c) => c[0]).join('\n')).toMatch(/컨텍스트로 끊기거나 정리 알림 뒤 끝낸 세션이 2번 이어 한 줄도 못 배웠다 · 게임플레이로 넘어간다[\s\S]*컨텍스트로 끊기거나 정리 알림 뒤 끝낸 세션이 2번 이어 한 줄도 못 배웠다/);
   });
 
   it('시험은 배우기 · 게임플레이가 끝난 뒤 한 번이다', async () => {
