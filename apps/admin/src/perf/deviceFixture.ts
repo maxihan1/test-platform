@@ -89,13 +89,14 @@ export async function 기기차림(접두사: string, api: boolean) {
   const 줄끔 = new Set<string>();
   // 바꿔 가며 쓰는 값 — 검사가 직접 고친다
   // 프로시저 · 판정은 프로시저 검사(procedure-db.test.ts)가 쓴다 — 판정이 없는 케이스는 PASS, BLOCKED 는 앞 케이스에 막힌 것이다
-  const 상태 = { fps값: 58, 러너지연: 0, 프로시저: false, 판정: {} as Record<string, 'FAIL' | 'BLOCKED'> };
+  // 열은 그 값 이상인 초부터 thermalStatus 1(LIGHT)을 싣는다 — 비면 칸을 안 싣는다 (PERF-F2-05 열 제한 로그)
+  const 상태 = { fps값: 58, 러너지연: 0, 프로시저: false, 판정: {} as Record<string, 'FAIL' | 'BLOCKED'>, 열: null as number | null };
   const 로컬시작 = { at: 0 };
 
   const 줄들 = (시작: number, since: number, serial: string) => {
     if (줄끔.has(serial)) return [];
     const 지금 = Math.floor((Date.now() - 시작) / 1000);
-    return Array.from({ length: Math.max(0, 지금 - since) }, (_, i) => since + 1 + i).map((sec) => ({ sec, fps: 상태.fps값, jankPct: 1, freezeCount: 1, cpu: 20, memMb: 500 + sec * 10, tempC: 38, batteryPct: 80, frameHist: { '32': 30 } }));
+    return Array.from({ length: Math.max(0, 지금 - since) }, (_, i) => since + 1 + i).map((sec) => ({ sec, fps: 상태.fps값, jankPct: 1, freezeCount: 1, cpu: 20, memMb: 500 + sec * 10, tempC: 38, batteryPct: 80, frameHist: { '32': 30 }, ...(상태.열 !== null && { thermalStatus: sec >= 상태.열 ? 1 : 0 }) }));
   };
 
   const 팜 = await 서버((h, 응답, 원본) => {

@@ -11,8 +11,8 @@ import { PC를놓는다 } from '../execution/phone.js';
 import { abortRunner, 보낸다 } from '../execution/runner.js';
 import { type 도는단위, type 단위답, 단위로펼친다, 답풀기, 알릴말 } from './deviceProc.js';
 import { type 기록기, 로컬기록기, 팜기록기 } from './deviceRecorder.js';
-import { PC잡기, PC준비, 종류읽기 } from './deviceRunPc.js';
-import { 구간붙이기, 사양채우기, 줄넣기, 실행시간채우기, type 구간표시 } from './deviceStore.js';
+import { PC잡기, PC준비, 읽은뒤, 종류읽기 } from './deviceRunPc.js';
+import { 구간붙이기, 줄넣기, type 구간표시 } from './deviceStore.js';
 import type { 끝 } from './finish.js';
 import * as 표 from './store.js';
 import type { DeviceRunConfig } from './types.js';
@@ -33,6 +33,7 @@ interface 기기상태 {
   켰음: boolean;
   실행시간씀: boolean;
   사양씀: boolean;
+  열알림: boolean;
   경고함: boolean;
   구간들: 구간표시[];
 }
@@ -96,7 +97,7 @@ export function 기기실행시작(run: 표.실행행, onEnd: 도는기기['onEn
     조작: null, 보낸것: new Set(), 닫는중: null, 놓는중: false, pc: null, PC잡음: false, 직접시작ms: Date.now(), onEnd,
     devices: cfg.devices.map((d, index) => ({
       index, serial: d.serial, model: d.model, rec: d.where === 'FARM' ? 팜기록기(d.serial) : 로컬기록기(d.serial, 로컬),
-      오프셋: 0, 본마지막: -1, 마지막줄: Date.now(), 켰음: false, 실행시간씀: d.launchMs !== null, 사양씀: d.spec != null, 경고함: false, 구간들: [],
+      오프셋: 0, 본마지막: -1, 마지막줄: Date.now(), 켰음: false, 실행시간씀: d.launchMs !== null, 사양씀: d.spec != null, 열알림: false, 경고함: false, 구간들: [],
     })),
   };
   도는기기들.set(run.id, s);
@@ -165,14 +166,7 @@ async function 읽기(s: 도는기기): Promise<void> {
         const 처음 = Math.min(...r.rows.map((x) => x.sec)) + d.오프셋;
         for (const g of d.구간들.filter((x) => x.toSec >= 처음)) await 구간붙이기(s.runId, d.serial, g);
       }
-      if (r.launchMs !== null && !d.실행시간씀) {
-        d.실행시간씀 = true;
-        await 실행시간채우기(s.runId, d.index, r.launchMs);
-      }
-      if (r.spec !== null && !d.사양씀) {
-        d.사양씀 = true;
-        await 사양채우기(s.runId, d.index, r.spec);
-      }
+      await 읽은뒤(s.runId, d, r);
     } catch (e) {
       if (!d.경고함) {
         d.경고함 = true;

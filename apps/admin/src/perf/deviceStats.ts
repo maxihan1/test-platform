@@ -64,6 +64,8 @@ const 합 = (v: number[]): number | null => (v.length === 0 ? null : v.reduce((a
 const 범위 = (처음: number, 끝: number, 폭: number) => Array.from({ length: (끝 - 처음) / 폭 + 1 }, (_, i) => 처음 + i * 폭);
 export const 막대칸: readonly number[] = [...범위(5, 32, 1), ...범위(34, 48, 2), ...범위(53, 133, 4), ...범위(150, 4950, 50)];
 const 끊김칸부터 = 125;
+/** 열 상태 0~6 의 이름 — Android 가 쓰는 이름 그대로다(화면 perfDeviceView.ts 와 같다) */
+export const 열상태이름 = ['NONE', 'LIGHT', 'MODERATE', 'SEVERE', 'CRITICAL', 'EMERGENCY', 'SHUTDOWN'] as const;
 
 /** 칸 값은 그 칸과 다음 칸 아래 끝의 가운데다 — 150ms 위 칸은 50ms 폭이라 아래 끝으로 세면 느린 프레임이 빨라 보인다. 마지막 칸은 아래 끝 */
 const 칸값 = new Map(막대칸.map((c, i) => [String(c), i < 막대칸.length - 1 ? (c + (막대칸[i + 1] as number)) / 2 : c]));

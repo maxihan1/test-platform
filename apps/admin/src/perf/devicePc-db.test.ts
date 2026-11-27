@@ -48,6 +48,18 @@ describe.skipIf(연결 === undefined)('기기 성능 PC 게임 · 게임 실행 
     expect(목록.devices.map((d) => d.serial)).toEqual(['FA1', 'FA2', 'FB1', 'LC1']);
   });
 
+  it('열 상태가 처음 1(LIGHT) 이상이 된 초를 실행 로그에 한 번 남긴다', async () => {
+    f.상태.열 = 1;
+    try {
+      const runId = await f.만들기({}, 2);
+      expect((await f.끝날때까지(runId)).status).toBe('DONE');
+      const 로그 = (await 판.pool.query<{ message: string }>('SELECT message FROM perf_event WHERE run_id = $1', [runId])).rows.map((x) => x.message);
+      expect(로그.filter((m) => m.includes('열 제한(LIGHT)에 들어갔습니다'))).toEqual([expect.stringMatching(/^SM-A236 이 \d+초에 열 제한\(LIGHT\)에 들어갔습니다$/)]);
+    } finally {
+      f.상태.열 = null;
+    }
+  });
+
   it('모바일 게임 직접 플레이는 내 컴퓨터 러너 시작에 game: true 를 싣는다', async () => {
     await 종류로('GAME', 'android');
     try {
@@ -101,6 +113,19 @@ describe.skipIf(연결 === undefined)('기기 성능 PC 게임 · 게임 실행 
       expect(설정.devices[0]?.spec).toEqual({ cpu: 'Intel i5', gpu: 'RTX 3060', resolution: '1920x1080' });
       expect((await f.결과(runId)).devices[0]).toMatchObject({ serial: 'pc-pc1', spec: { gpu: 'RTX 3060' }, summary: { jankPerMin: 0 } });
       expect(f.홀드삭제수('pc-pc1')).toBeGreaterThan(0);
+      expect(PC가비었나()).toBe(true);
+    });
+
+    it('만든 뒤 시작하는 순간 다른 실행이 PC 줄에 있으면 오류로 끝나고 PC 를 잡지 않는다', async () => {
+      const runId = await f.만들기({ ...PC본문 }, 1);
+      const 잡기전 = 팜.호출들.filter((h) => h.path === '/api/devices/pc-pc1/hold' && h.method === 'POST').length;
+      expect(PC를바로잡는다()).toBe(true);
+      try {
+        expect((await f.끝날때까지(runId)).status).toBe('ERROR');
+      } finally {
+        PC를놓는다();
+      }
+      expect(팜.호출들.filter((h) => h.path === '/api/devices/pc-pc1/hold' && h.method === 'POST').length).toBe(잡기전);
       expect(PC가비었나()).toBe(true);
     });
 

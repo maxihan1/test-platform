@@ -1,6 +1,5 @@
 // 기기 성능 — 측정 요청 검사 · 실행 만들기 · 고를 수 있는 기기 목록 (도메인/성능 §3.9 「기기 성능」 · §7 「PERF-F1-08 이 연 통로」)
 
-import { PC항목인가 } from '@platform/kit';
 import { 패키지이름인가 } from '@platform/kit/protocol';
 import { z } from 'zod';
 
@@ -68,24 +67,30 @@ export async function PC게임인가(serviceId: number): Promise<boolean> {
  * PC 게임이면 팜의 PC 줄만 싣고 내 컴퓨터 러너 폰은 싣지 않는다. 아니면 PC 를 뺀다
  */
 export async function 기기목록(PC = false): Promise<기기[]> {
+  return (await 기기와PC(PC)).목록;
+}
+
+/** 기기 목록과 팜의 PC 일련번호 — 측정 요청이 VISION 을 한 번만 부르고 PC 를 가른다 */
+async function 기기와PC(PC: boolean): Promise<{ 목록: 기기[]; PC들: Set<string> }> {
   const 팜 = 팜주소();
   const 로컬 = 내컴퓨터러너();
   const [팜쪽, 로컬쪽] = await Promise.all([
-    팜 === undefined ? [] : 팜기기들(팜, PC),
+    팜 === undefined ? [] : 팜기기들(팜),
     로컬 === undefined || PC ? [] : 로컬기기들(로컬),
   ]);
-  return [...팜쪽, ...로컬쪽];
+  // PC 게임은 PC 줄만, 그 밖은 폰만 — 폰 자리에 PC 를 잡으면 Appium 이 400 이다 (도메인/게임 §3.10 「폰을 고르는 길은 PC 를 거른다」)
+  const 목록 = [...팜쪽.filter((d) => d.pc === PC).map(({ pc: _pc, ...d }) => d), ...로컬쪽];
+  return { 목록, PC들: new Set(팜쪽.filter((d) => d.pc).map((d) => d.serial)) };
 }
 
-async function 팜기기들(팜: string, PC: boolean): Promise<기기[]> {
+async function 팜기기들(팜: string): Promise<(기기 & { pc: boolean })[]> {
   try {
     const res = await fetch(`${팜}/api/devices`, { headers: 팜머리(process.env, await 서버팜토큰()), signal: AbortSignal.timeout(목록제한ms) });
     if (!res.ok) return [];
     const 몸 = (await res.json()) as { value?: { devices?: { serial?: unknown; state?: unknown; model?: unknown; osVersion?: unknown; platform?: unknown }[] } };
-    // PC 게임은 PC 줄만, 그 밖은 폰만 — 폰 자리에 PC 를 잡으면 Appium 이 400 이다 (도메인/게임 §3.10 「폰을 고르는 길은 PC 를 거른다」)
     return (몸.value?.devices ?? []).flatMap((d) =>
-      typeof d.serial === 'string' && 시리얼.test(d.serial) && PC기기인가(d) === PC
-        ? [{ serial: d.serial, model: typeof d.model === 'string' ? d.model : d.serial, os: typeof d.osVersion === 'string' ? d.osVersion : '', where: 'FARM' as const, status: d.state === 'IDLE' ? ('IDLE' as const) : ('BUSY' as const) }]
+      typeof d.serial === 'string' && 시리얼.test(d.serial)
+        ? [{ serial: d.serial, model: typeof d.model === 'string' ? d.model : d.serial, os: typeof d.osVersion === 'string' ? d.osVersion : '', where: 'FARM' as const, status: d.state === 'IDLE' ? ('IDLE' as const) : ('BUSY' as const), pc: PC기기인가(d) }]
         : [],
     );
   } catch {
@@ -157,8 +162,8 @@ async function 케이스검사(serviceId: number, caseIds: string[], 이름: str
     const x = 행.get(id);
     if (게임시나리오인가(id)) return `게임 시나리오는 디바이스 성능에 쓰지 않습니다: ${id}`;
     if (x === undefined) return `이 애플리케이션의 케이스가 아닙니다: ${id}`;
-    // 패드 케이스는 windows-ps5 처럼 패드가 붙은 플랫폼만 선언하기도 한다 — 다 PC 에서 돈다
-    if (!x.platforms.some((p) => (플랫폼 === 'windows' ? PC항목인가(p) : p === 플랫폼))) return `${이름} 케이스가 아닙니다: ${id}`;
+    // PC 는 키보드 케이스(windows)만 — 패드 케이스는 패드를 이어야 해서 1차 밖이다 (§3.9 「PC 게임」)
+    if (!x.platforms.includes(플랫폼)) return `${이름} 케이스가 아닙니다: ${id}`;
     // 프로시저에서 빠져 내려간 케이스는 같이 돌 수도 혼자 돌 수도 없다 (실행 §3.2 「반영」)
     if (x.dropped) return `테스트 프로시저에서 빠진 케이스입니다: ${id}`;
   }
@@ -207,10 +212,9 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
   }
   if (b.devices.some((d) => d.where === 'LOCAL') && 내컴퓨터러너() === undefined) return 나쁨('이 서버에는 내 컴퓨터 러너(LOCAL_RUNNER_URL)가 연결되어 있지 않습니다');
 
-  const 목록 = await 기기목록(PC);
+  const { 목록, PC들 } = await 기기와PC(PC);
   // PC 게임에 폰, 폰 앱에 PC 를 고르면 거절한다. 폰은 목록을 못 읽어도 막지 않는다 — 잡기가 가른다(앞 판 그대로)
-  const 팜PC = PC ? new Set(목록.map((d) => d.serial)) : new Set(팜 === undefined ? [] : (await 팜기기들(팜, true)).map((d) => d.serial));
-  const 어긋남 = b.devices.find((d) => (PC ? !팜PC.has(d.serial) : 팜PC.has(d.serial)));
+  const 어긋남 = b.devices.find((d) => (PC ? !PC들.has(d.serial) : PC들.has(d.serial)));
   if (어긋남 !== undefined) return 나쁨(PC ? `Device VISION 의 Windows PC 가 아닙니다: ${어긋남.serial}` : `Windows PC 는 PC 게임만 잽니다: ${어긋남.serial}`);
   // 다른 실행이 PC 를 쓰는 중이면 기다리지 않는다 — 시작할 때 다시 잡고 못 잡으면 오류로 끝낸다
   if (PC && !PC가비었나()) return { status: 409, error: 'DEVICE_BUSY' };

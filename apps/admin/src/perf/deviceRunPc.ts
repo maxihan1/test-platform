@@ -1,10 +1,12 @@
-// 기기 성능 실행의 PC 게임 몫 — PC 줄 잠금 · 실행 빌드 설치 · 직접 플레이면 게임 켜기 (도메인/성능 §3.9 「기기 성능: PC 게임과 측정 정의」). deviceRun.ts 가 300줄을 넘어 떼어 냈다
+// 기기 성능 실행의 곁일 — PC 줄 잠금 · 실행 빌드 설치 · 직접 플레이면 게임 켜기 · 받은 줄 뒤처리(실행 시간 · 사양 · 열 제한 로그) (도메인/성능 §3.9 「기기 성능: PC 게임과 측정 정의」). deviceRun.ts 가 300줄을 넘어 떼어 냈다
 
 import { 팜주소 } from '../execution/farm.js';
 import { 깐다, 켠다 } from '../execution/pcFarm.js';
 import { 최신PC빌드파일 } from '../execution/pcTrial.js';
 import { PC를바로잡는다 } from '../execution/phone.js';
-import type { 기록기 } from './deviceRecorder.js';
+import type { 기록기, 읽음 } from './deviceRecorder.js';
+import { 열상태이름 } from './deviceStats.js';
+import { 사양채우기, 실행시간채우기 } from './deviceStore.js';
 import * as 표 from './store.js';
 import type { DeviceRunConfig } from './types.js';
 
@@ -38,4 +40,30 @@ export async function PC준비(runId: number, drive: DeviceRunConfig['drive'], p
   pc.게임 = 깔음.게임;
   await 표.로그(runId, `Windows 빌드를 설치했습니다 — ${d.model}`);
   if (drive === 'MANUAL') await 켠다(팜, d.serial, 깔음.게임, 토큰);
+}
+
+interface 뒤처리기기 {
+  index: number;
+  model: string;
+  오프셋: number;
+  실행시간씀: boolean;
+  사양씀: boolean;
+  열알림: boolean;
+}
+
+/** 새 줄을 받은 뒤 — 앱 실행 시간 · PC 사양을 한 번 쓰고, 열 상태가 처음 1(LIGHT) 이상이 된 초를 실행 로그에 남긴다 (§3.9 「배터리 온도 · 열 상태」) */
+export async function 읽은뒤(runId: number, d: 뒤처리기기, r: 읽음): Promise<void> {
+  if (r.launchMs !== null && !d.실행시간씀) {
+    d.실행시간씀 = true;
+    await 실행시간채우기(runId, d.index, r.launchMs);
+  }
+  if (r.spec !== null && !d.사양씀) {
+    d.사양씀 = true;
+    await 사양채우기(runId, d.index, r.spec);
+  }
+  if (d.열알림) return;
+  const 열 = r.rows.find((x) => typeof x.thermalStatus === 'number' && Number.isInteger(x.thermalStatus) && x.thermalStatus >= 1 && x.thermalStatus <= 6);
+  if (열 === undefined) return;
+  d.열알림 = true;
+  await 표.로그(runId, `${d.model} 이 ${열.sec + d.오프셋}초에 열 제한(${열상태이름[열.thermalStatus as number] ?? ''})에 들어갔습니다`, 'WARN');
 }

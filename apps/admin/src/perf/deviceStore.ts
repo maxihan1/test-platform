@@ -5,7 +5,8 @@ import { 분포거르기, type 기기줄 } from './deviceStats.js';
 import * as 표 from './store.js';
 
 // 숫자가 아닌 값이 한 줄이라도 오면 numeric 변환이 묶음 전체를 버린다 — 그 칸만 비운다
-const 수 = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+// GPU 사용률은 0~100 %, VRAM 은 INTEGER 칸 안이어야 한다 — 넘치는 한 줄이 묶음을 통째로 버린다
+const 범위 = (v: unknown, 끝: number): number | null => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 끝 ? v : null);
 const 열상태 = (v: unknown): number | null => (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 6 ? v : null);
 
 /** 기록기의 초(켠 때부터)를 실행 기준 초로 옮겨 넣는다. 같은 (실행, 기기, 초)는 먼저 온 줄을 둔다. 메모리는 팜이 소수로 보내도 정수 칸에 들게 반올림한다.
@@ -13,7 +14,7 @@ const 열상태 = (v: unknown): number | null => (typeof v === 'number' && Numbe
  *  열 상태(0~6)와 프레임 분포도 같은 이유로 걸러서 넣는다. 내 컴퓨터 러너 줄에는 gpu · vramMb 키가 없어 null 이다 */
 export async function 줄넣기(runId: number, serial: string, model: string, 오프셋: number, 원본: 기기줄원본[]): Promise<void> {
   if (원본.length === 0) return;
-  const rows = 원본.map((r) => ({ ...r, frameHist: 분포거르기(r.frameHist), thermalStatus: 열상태(r.thermalStatus), gpu: 수(r.gpu), vramMb: 수(r.vramMb) }));
+  const rows = 원본.map((r) => ({ ...r, frameHist: 분포거르기(r.frameHist), thermalStatus: 열상태(r.thermalStatus), gpu: 범위(r.gpu, 100), vramMb: 범위(r.vramMb, 2 ** 31 - 1) }));
   await (await 표.풀()).query(
     `INSERT INTO perf_device_metric (run_id, serial, device, sec, fps, jank_pct, freeze_count, cpu, mem_mb, temp_c, battery_pct, frame_hist, thermal_status, gpu, vram_mb)
      SELECT $1, $2, $3, x.sec + $4, x.fps, x."jankPct", CASE WHEN x."freezeCount" >= 0 THEN round(x."freezeCount") END, x.cpu, round(x."memMb"), x."tempC", x."batteryPct", x."frameHist", x."thermalStatus", x.gpu, round(x."vramMb")
