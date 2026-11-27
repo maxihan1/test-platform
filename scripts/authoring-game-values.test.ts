@@ -24,7 +24,7 @@ function 자료(파일들: { 종류: string; 장면?: string; 치트?: true; 칸
   const d = mkdtempSync(join(tmpdir(), 'values-'));
   자리들.push(d);
   mkdirSync(join(d, 'game-props'));
-  파일들.forEach((f, i) => writeFileSync(join(d, 'game-props', `f${String(i).padStart(2, '0')}.json`), JSON.stringify({ 종류: f.종류, 장면: f.장면 ?? null, 읽은때: 'x', 출처: '실행 중', 칸: f.칸없음 === undefined ? { 'Mob.MaxHP': 10 } : {}, 목록칸: [], ...(f.치트 === undefined ? {} : { 치트: true, call: ['a|b'] }) })));
+  파일들.forEach((f, i) => writeFileSync(join(d, 'game-props', `f${String(i).padStart(2, '0')}.json`), JSON.stringify({ 종류: f.종류, 장면: f.장면 ?? null, 읽은때: 'x', 출처: '실행 중', 칸: f.칸없음 === undefined ? { 'Mob.MaxHP': 10 } : {}, 목록칸: [], ...(f.칸없음 === undefined ? {} : { 칸없음: true }), ...(f.치트 === undefined ? {} : { 치트: true, call: ['a|b'] }) })));
   writeFileSync(join(d, 'game-map.txt'), '');
   writeFileSync(join(d, 'game-learned.json'), JSON.stringify({ elements: 줄들 }));
   writeFileSync(join(d, 'game-learning.now'), '1');
@@ -48,6 +48,9 @@ describe('값 줄 판정', () => {
     expect(막힘글(d)).toBeNull();
     const e = 자료([{ 종류: 'MenuCamera', 칸없음: true }, { 종류: 'Ghost' }], []);
     expect(값빠짐찾기(값파일들(e), [])?.줄없음).toEqual(['Ghost']);
+    // 칸이 비었을 뿐이면(나온 직후라 네트워크 값이 안 채워짐) 표시가 없어 줄을 요구한다 — 첫 읽기가 정본이라 다시 안 덮인다
+    writeFileSync(join(e, 'game-props', 'f09.json'), JSON.stringify({ 종류: 'Boss', 장면: null, 읽은때: 'x', 출처: '실행 중', 칸: {}, 목록칸: [] }));
+    expect(값빠짐찾기(값파일들(e), [])?.줄없음).toEqual(['Ghost', 'Boss']);
   });
 
   it('PROBE 줄은 값 칸이 있어도 값 줄이 아니다', () => {

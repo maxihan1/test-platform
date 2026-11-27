@@ -99,6 +99,8 @@ export interface 값파일 {
   출처: '실행 중';
   칸: Record<string, unknown>;
   목록칸: string[];
+  /** 펼칠 때 게임 부품에 볼 칸이 하나도 없었다 — 값 줄을 요구하지 않는다(authoring-game-values) */
+  칸없음?: true;
   /** 정보 모으기 명령(authoring-game-info)이 웨이브를 넘겨 본 값이다 — 쓴 call 과 함께 남긴다. 승패 근거로 못 쓴다 */
   치트?: true;
   call?: string[];
