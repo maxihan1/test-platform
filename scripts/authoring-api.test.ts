@@ -34,7 +34,7 @@ describe('API떼기', () => {
   it('판 자료가 지워져 apiDoc 만 빠져도 apiAuths 로 API 행임을 알고 점검이 막는다 — 역방향으로 돌지 않고 비밀값도 가린다', () => {
     const 뗀 = API떼기(집은({ apiDoc: undefined }));
     expect(뗀.target).toBeUndefined();
-    expect(API점검(뗀.api!)).toContain('판 원문');
+    expect(API점검(뗀.api!)).toContain('버전 원문');
     expect(비밀번호들(뗀)).toEqual([인증.clientSecret]);
   });
 
@@ -50,7 +50,7 @@ describe('API점검', () => {
     expect(API점검(api)).toBeNull();
     expect(API점검({ ...api, isProd: true })).toContain('실서비스 서버');
     expect(API점검({ ...api, baseUrl: null })).toContain('줄이 없어졌거나');
-    expect(API점검({ ...api, 판: 0 })).toContain('판 원문');
+    expect(API점검({ ...api, 판: 0 })).toContain('버전 원문');
   });
 });
 
@@ -65,7 +65,7 @@ describe('자식에게 넘기는 것', () => {
     expect(JSON.parse(readFileSync(환경.PLATFORM_API_DOC_FILE!, 'utf8'))).toEqual(문서);
   });
 
-  it('프롬프트 절은 인증 이름과 판 번호만 싣고 비밀값은 안 싣는다', () => {
+  it('프롬프트 절은 인증 이름과 버전 번호만 싣고 비밀값은 안 싣는다', () => {
     const 글 = API절(api, 폴더).join('\n');
     expect(글).toContain('「고객사 A」');
     expect(글).toContain('apiDoc: 3');
@@ -90,8 +90,8 @@ describe('자식에게 넘기는 것', () => {
 });
 
 describe('자료', () => {
-  it('API 문서 판 자료는 받을 파일이 아니라 빼고, 판만 있어도 돌 수 있다', () => {
-    const 자료들 = 입력만([{ id: 1, position: 1, kind: 'API_DOC', name: 'API 문서 판 3', figmaUrl: null }]);
+  it('API 문서 버전 자료는 받을 파일이 아니라 빼고, 판만 있어도 돌 수 있다', () => {
+    const 자료들 = 입력만([{ id: 1, position: 1, kind: 'API_DOC', name: 'API 문서 버전 3', figmaUrl: null }]);
     expect(자료들).toEqual([]);
     expect(돌릴수있나({ api: true }, 자료들)).toBeNull();
     expect(돌릴수있나({}, 자료들)).toContain('자료도 기획서 본문도 없다');
@@ -144,7 +144,7 @@ describe('원장의 API 줄', () => {
     writeFileSync(join(폴더, 'api-doc.json'), JSON.stringify(문서));
     expect(API원장읽기(폴더)).toHaveLength(4);
     writeFileSync(join(폴더, 'api-doc.json'), '{');
-    expect(() => API원장읽기(폴더)).toThrow('API 문서 판 파일이 JSON 이 아니다');
+    expect(() => API원장읽기(폴더)).toThrow('API 문서 버전 파일이 JSON 이 아니다');
   });
 });
 
@@ -158,7 +158,7 @@ describe('바뀐 API 만 다시 작성', () => {
     ],
   };
 
-  it('params.apiApply 를 api.반영 으로 옮기고, 사본에 맡을 API 마다 새 판의 원장 번호를 붙여 쓴다 — 없어진 API 는 번호가 없다', () => {
+  it('params.apiApply 를 api.반영 으로 옮기고, 사본에 맡을 API 마다 새 버전의 원장 번호를 붙여 쓴다 — 없어진 API 는 번호가 없다', () => {
     const 뗀 = API떼기(집은({ params: { apiApply } }));
     expect(뗀.api?.반영).toEqual(apiApply);
     expect(API점검(뗀.api!)).toBeNull();
@@ -179,7 +179,7 @@ describe('바뀐 API 만 다시 작성', () => {
     expect(API절(API떼기(집은()).api!, '/자료').join('\n')).not.toContain('바뀐 API 만 다시 작성');
   });
 
-  it('칸 모양이 틀리거나 새 판이 자료의 판과 다르면 자식을 띄우기 전에 막는다', () => {
+  it('칸 모양이 틀리거나 새 버전이 자료의 판과 다르면 자식을 띄우기 전에 막는다', () => {
     expect(API점검(API떼기(집은({ params: { apiApply: { ...apiApply, operations: [] } } })).api!)).toContain('모양이 틀렸다');
     expect(API점검(API떼기(집은({ params: { apiApply: { ...apiApply, operations: [{ method: 'POST' }] } } })).api!)).toContain('모양이 틀렸다');
     expect(API점검(API떼기(집은({ params: { apiApply: { ...apiApply, toVersion: 4 } } })).api!)).toContain('다르다');

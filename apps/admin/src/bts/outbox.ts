@@ -71,7 +71,7 @@ interface 집은줄 {
   status_map: Record<string, string> | null;
 }
 
-/** 만들기 답의 판 번호 · 지금 상태 — 「QA 검토」로 옮길 때 쓴다 */
+/** 만들기 답의 버전 번호 · 지금 상태 — 「QA 검토」로 옮길 때 쓴다 */
 interface 만든이슈 {
   version: unknown;
   currentStateKey: unknown;
@@ -105,7 +105,7 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
   try {
     const 자리 = { baseUrl: 줄.base_url, 봇: 줄.bot_username ?? '' };
     let 보낼몸 = 몸;
-    // 판 번호 없이 넣은 옮기기(재검증 통과 닫기 — deployFlow.ts) · 담당자 바꾸기(수정 AI — bugfix.ts) · 필드 쓰기(테스트 수정 — testFix.ts)는 보내기 직전에 이슈의 지금 판을 읽는다 — 넣을 때 읽으면 보낼 때 낡는다
+    // 버전 번호 없이 넣은 옮기기(재검증 통과 닫기 — deployFlow.ts) · 담당자 바꾸기(수정 AI — bugfix.ts) · 필드 쓰기(테스트 수정 — testFix.ts)는 보내기 직전에 이슈의 현재 버전을 읽는다 — 넣을 때 읽으면 보낼 때 낡는다
     const 판읽음 = (줄.kind === 'TRANSITION' || 줄.kind === 'ASSIGN' || 줄.kind === 'FIELD') && (몸 as { expectedVersion?: unknown }).expectedVersion === undefined;
     if (판읽음) {
       const 읽음 = await 부르기(자리, 'GET', `/api/v1/issues/${encodeURIComponent(줄.issue_key!)}`);
@@ -125,7 +125,7 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
       보낼몸 = { ...(몸 as object), expectedVersion: data.version };
     }
     const r = await 부르기(자리, method, 경로, 보낼몸);
-    // 읽은 판과 보낸 사이에 누가 이슈를 고쳤다 — 다음 점검이 새 판을 읽어 다시 보낸다
+    // 읽은 버전과 보낸 사이에 누가 이슈를 고쳤다 — 다음 점검이 새 버전을 읽어 다시 보낸다
     if (판읽음 && r.status === 409) return { 상태: 'RETRY', 까닭: 'Issue Bunker 이슈 버전이 그사이 변경되었습니다 (409)' };
     const 실패 = 상태로(r.status);
     if (실패 !== null) return 실패;

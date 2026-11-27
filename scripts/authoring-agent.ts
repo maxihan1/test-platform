@@ -340,7 +340,7 @@ function 클로드최신화(판값: string | undefined): void {
   const 전 = 버전뽑기(친다('claude', ['--version'], '/').낸것);
   const 받기 = 친다('npm', 인자, '/', undefined, 600_000);
   if (!받기.ok) {
-    console.error(`[최신화] 못 받았다 — ${전 ?? '지금 판'} 그대로 돈다: ${받기.까닭}`);
+    console.error(`[최신화] 못 받았다 — ${전 ?? '현재 버전'} 그대로 돈다: ${받기.까닭}`);
     return;
   }
   const 후 = 버전뽑기(친다('claude', ['--version'], '/').낸것);
@@ -349,7 +349,7 @@ function 클로드최신화(판값: string | undefined): void {
     console.log(`[최신화] Claude CLI ${전 ?? '?'} → ${후}`);
     return;
   }
-  console.error(`[최신화] ${후 ?? '새 판'} 이 점검을 못 넘었다 — ${전 ?? '?'} 로 되돌린다`);
+  console.error(`[최신화] ${후 ?? '새 버전'} 이 점검을 못 넘었다 — ${전 ?? '?'} 로 되돌린다`);
   if (전 !== null) 친다('npm', ['install', '-g', `@anthropic-ai/claude-code@${전}`], '/', undefined, 600_000);
 }
 

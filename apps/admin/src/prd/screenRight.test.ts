@@ -82,7 +82,7 @@ describe.skipIf(연결 === undefined)('화면이 맞음 채우기', () => {
 
   beforeEach(async () => {
     await 치우기();
-    // 판 1 = 기준 판(병합된 반영이 읽은 판)
+    // 판 1 = 기준 버전(병합된 반영이 읽은 버전)
     await 부르기('PUT', '/prd', { baseVersion: 0, items: [항목('비밀번호는 8자 이상'), 항목('약관에 동의한다'), 항목('가입하면 메일이 간다')] });
     const 앞작성 = await q<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, prd_version)

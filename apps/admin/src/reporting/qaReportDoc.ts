@@ -104,7 +104,7 @@ export async function 리포트읽기(
 
 export interface 요구추적줄 {
   reqId: string;
-  /** 지금 판에 없는 번호면 null — 「PRD 에 없음」 */
+  /** 현재 버전에 없는 번호면 null — 「PRD 에 없음」 */
   text: string | null;
   tcIds: string[];
 }

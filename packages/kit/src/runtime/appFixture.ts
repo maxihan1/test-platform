@@ -14,7 +14,7 @@ export type AppSide = { driver: AppDriver; game?: KitGame } | { game: KitGame };
 // pc — 그 항목의 프로젝트가 windows* 다. 본문이 프로젝트 이름을 보고 고른다(test.ts)
 type 여는값 = AppOpenOptions & { pc?: true };
 
-// 케이스마다 만든다 — 앞 판처럼 defineTest 가 부를 때 extend 한다
+// 케이스마다 만든다 — 이전 버전처럼 defineTest 가 부를 때 extend 한다
 export const 앱테스트 = () =>
   base.extend<{ appSession: { open(options?: 여는값): Promise<AppSide>; 끝정리를건다(끝: () => Promise<void>): void; 마감을건다(마감: () => Promise<void>): void } }>({
     appSession: async ({}, use, testInfo) => {

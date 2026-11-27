@@ -48,7 +48,7 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
       .items.filter((x) => x.kind === 'API_CHANGED');
   const 다시작성 = (key: string, env: string) =>
     app.inject({ method: 'POST', url: `/api/authoring/decisions/run?service=${접두사}`, payload: { prdVersion: 0, picks: [{ key, pick: 'REDO', env }] } });
-  /** 그 판으로 쓴 API 작성이 병합됐다 — 바뀐 API 의 기준 판이 된다 */
+  /** 그 판으로 쓴 API 작성이 병합됐다 — 바뀐 API 의 기준 버전이 된다 */
   const 병합된작성 = async (version: number) => {
     const r = await q<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status) VALUES ($1, 'AUTHOR', '{}', 'xad-person', '검사', 'DONE') RETURNING id`,
@@ -199,7 +199,7 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
     expect((await 부르기('GET', '/api-docs/compare?from=1')).statusCode).toBe(400);
   });
 
-  it('커버리지는 마지막 판의 API × 숫자 응답 코드를 활성 케이스가 받은 것으로 센다 — 실행을 못 보면 lastRunId 를 비운다', async () => {
+  it('커버리지는 마지막 버전의 API × 숫자 응답 코드를 활성 케이스가 받은 것으로 센다 — 실행을 못 보면 lastRunId 를 비운다', async () => {
     expect((await 부르기('GET', '/api-coverage')).json()).toEqual({ version: null, total: 0, covered: 0, operations: [] });
     await 올리기(JSON.stringify(문서('1')));
     await q(
@@ -231,7 +231,7 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
     expect((await 부르기('GET', '/api-coverage')).json()).toEqual(기대(null));
   });
 
-  it('바뀐 API 다시 작성은 없어진 API 를 빼고 바뀐 API · 그 API 를 부르던 활성 케이스 · 새 판 자료를 싣고 결정 진행을 단다', async () => {
+  it('바뀐 API 다시 작성은 없어진 API 를 빼고 바뀐 API · 그 API 를 부르던 활성 케이스 · 새 버전 자료를 싣고 결정 진행을 단다', async () => {
     await 올리기(JSON.stringify(문서('1', { '/v1/old': { delete: { responses: { '204': {} } } } })));
     await 올리기(JSON.stringify(문서('2', { '/v1/devices': { post: { responses: { '201': {} } } }, '/v1/pushes': { post: { responses: { '202': {} } } } })));
     await 병합된작성(1);
@@ -272,7 +272,7 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
     expect(자료).toEqual([{ kind: 'API_DOC', version: 2 }]);
   });
 
-  it('다시 작성 — 없어진 API 뿐이면 항목이 없고, 대상 서버가 틀리거나 열린 작성이 있으면 400 BAD_PICK, 새 판이 오르면 고를 때 본 열쇠는 409', async () => {
+  it('다시 작성 — 없어진 API 뿐이면 항목이 없고, 대상 서버가 틀리거나 열린 작성이 있으면 400 BAD_PICK, 새 버전이 오르면 고를 때 본 열쇠는 409', async () => {
     await 올리기(JSON.stringify(문서('1', { '/v1/old': { delete: { responses: { '204': {} } } } })));
     await 올리기(JSON.stringify(문서('2')));
     await 병합된작성(1);

@@ -151,7 +151,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
           <div className="empty">{t('측정한 디바이스가 없습니다')}</div>
         ) : (
           <>
-            {/* 위 숫자 칸 줄 — 종류마다 보는 숫자가 다르다 (시안 11판 · WEB-F7-16) */}
+            {/* 위 숫자 칸 줄 — 종류마다 보는 숫자가 다르다 (11차 시안 · WEB-F7-16) */}
             <section className="perf-panel num-tiles" aria-label={t('측정 요약')}>
               {결과칸들(service.kind === 'GAME', 받음, 설정.targets, t).map((칸) => (
                 <div key={칸.이름} className={칸.나쁨 ? 'bad' : undefined}>

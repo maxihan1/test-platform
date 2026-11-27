@@ -1,5 +1,5 @@
 // 서비스 가이드 버전 기록 — 판마다 누가 · 언제 · 무엇이 바뀌었나, 누르면 그 판을 읽기 전용으로 본다 (도메인/작성 §3.6 「★ 서비스 가이드」 「버전 기록」)
-// 되돌리기는 없다 (2026-10-17 사용자 — 보기만). 판에서 뺀 파일도 지우지 않아 옛 판에서 열린다
+// 되돌리기는 없다 (2026-10-17 사용자 — 보기만). 판에서 뺀 파일도 지우지 않아 이전 버전에서 열린다
 
 import { useState } from 'react';
 
@@ -23,7 +23,7 @@ function 바뀐것({ changed }: { changed: GuideVersionRow['changed'] }) {
 export function GuideVersions({ service, 지금판 }: { service: string; 지금판: number }) {
   const t = use말();
   const 언어 = use언어();
-  // 지금 판이 바뀌면(저장 · 더하기 · 빼기) 목록도 다시 읽는다
+  // 현재 버전이 바뀌면(저장 · 더하기 · 빼기) 목록도 다시 읽는다
   const 목록 = useAsync(() => guideApi.versions(service), [service, 지금판]);
   const [본판, set본판] = useState<number | null>(null);
   const 판 = useAsync(() => (본판 === null ? Promise.resolve(null) : guideApi.version(service, 본판)), [service, 본판]);

@@ -157,7 +157,7 @@
   text-overflow: ellipsis;
 }
 
-/* 휴대폰 — 시안 2판 ① 카드마다 따로 (2026-11-24 사용자) */
+/* 휴대폰 — 2차 시안 ① 카드마다 따로 (2026-11-24 사용자) */
 @media (max-width: 640px) {
   .pp-top {
     padding: 10px 16px;

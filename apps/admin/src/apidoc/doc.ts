@@ -131,7 +131,7 @@ const 모양 = (응답: unknown): unknown => {
   return 객체인가(content) ? content.schema : undefined;
 };
 
-/** 커버리지 분모 — 마지막 판의 API 마다 숫자로 적힌 응답 코드. `4XX` · `default` 는 덮었는지 정할 수 없어 뺀다 */
+/** 커버리지 분모 — 마지막 버전의 API 마다 숫자로 적힌 응답 코드. `4XX` · `default` 는 덮었는지 정할 수 없어 뺀다 */
 export function 커버리지틀(문서: 객체): { method: string; path: string; codes: { status: number; noShape: boolean }[] }[] {
   return [...작업들(문서).values()].map((op) => ({
     method: op.method,

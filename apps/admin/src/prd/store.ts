@@ -1,4 +1,4 @@
-// 표준 기획서 판 표를 읽고 쓴다. 저장마다 새 판이고 옛 판은 고치지 않는다 — 되돌리기도 새 판 (도메인/작성 §3.6 「★ 표준 기획서」)
+// 표준 기획서 버전 표를 읽고 쓴다. 저장마다 새 버전이고 이전 버전은 고치지 않는다 — 되돌리기도 새 버전 (도메인/작성 §3.6 「★ 표준 기획서」)
 
 import type { Platform, PrdItem } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
@@ -103,7 +103,7 @@ export async function 판목록(서비스: number): Promise<판줄[]> {
   }));
 }
 
-/** 요청이 집힐 때 적힌 읽은 판(prd_version). 안 적혔으면 null */
+/** 요청이 집힐 때 적힌 읽은 버전(prd_version). 안 적혔으면 null */
 export async function 읽은판(요청: number): Promise<number | null> {
   const r = await (await db()).query<{ prd_version: number | null }>('SELECT prd_version FROM authoring_request WHERE id = $1', [요청]);
   return r.rows[0]?.prd_version ?? null;
@@ -115,7 +115,7 @@ export async function 판하나(서비스: number, version: number): Promise<{ v
 }
 
 /**
- * 서비스마다 저장을 한 줄로 세운다. 판 번호를 읽고 넣는 사이에 다른 저장이 끼면 둘이 같은 번호를 노린다 —
+ * 서비스마다 저장을 한 줄로 세운다. 버전 번호를 읽고 넣는 사이에 다른 저장이 끼면 둘이 같은 번호를 노린다 —
  * PK (service_id, version) 가 마지막 그물이다. 트랜잭션 잠금이라 끝나면 저절로 풀린다
  */
 export async function 잠그고<T>(서비스: number, 일: (손: PoolClient) => Promise<T>, 열쇠: 'prd' | 'guide' = 'prd'): Promise<T> {
@@ -135,7 +135,7 @@ export async function 잠그고<T>(서비스: number, 일: (손: PoolClient) => 
 }
 
 /**
- * 새 판을 넣고 번호를 돌려준다. 앞 판과 통째로 같으면 안 넣고 앞 판 번호다 — 옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게.
+ * 새 버전을 넣고 번호를 돌려준다. 이전 버전과 통째로 같으면 안 넣고 이전 버전 번호다 — 옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게.
  * 표준 기획서가 없는데 빈 목록이면 0 이다(빈 판 1 을 만들지 않는다)
  */
 async function 판넣기(
@@ -156,15 +156,15 @@ async function 판넣기(
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
     [서비스, version, JSON.stringify(새.items), 새.lastNo, 출처, 요청, 사람.username, 사람.displayName, changes === null ? null : JSON.stringify(changes), 배포],
   );
-  // 새 판은 노트 사건 — 같은 트랜잭션이라 판이 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
+  // 새 버전은 노트 사건 — 같은 트랜잭션이라 판이 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
   await 앱노트사건쌓기(서비스, 'PRD_VERSION', (service) => ({ service, version }), 손);
-  // 누가 저장했든(사람 · 결정 · 롤백 · AI 옮기기) 게임 지도가 새 판을 따라간다 — 판과 같이 되돌려진다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」)
+  // 누가 저장했든(사람 · 결정 · 롤백 · AI 옮기기) 게임 지도가 새 버전을 따라간다 — 판과 같이 되돌려진다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」)
   await 기획서따라가기(손, 서비스, 앞?.items ?? [], 새.items);
   return version;
 }
 
 /**
- * 결정 진행(진행 2)이 짓는 버전 — 결정 진행이 이미 서비스 잠금(`잠그고`)을 쥔 트랜잭션 안에서 부른다. 고른 항목만 바꾼 지금 판이라 번호는 늘지 않는다.
+ * 결정 진행(진행 2)이 짓는 버전 — 결정 진행이 이미 서비스 잠금(`잠그고`)을 쥔 트랜잭션 안에서 부른다. 고른 항목만 바꾼 현재 버전이라 번호는 늘지 않는다.
  * 저장 규칙(같은 판이면 안 만듦)은 사람 저장과 같다 (작성 §7 「결정 목록 통로」)
  */
 export async function 결정판넣기(손: PoolClient, 서비스: number, items: PrdItem[], 사람: 저장하는사람, changes: 판변경[], lastNo?: number): Promise<number> {
@@ -181,7 +181,7 @@ export async function 롤백판넣기(손: PoolClient, 서비스: number, items:
 
 const 낡음 = (앞: 앞판 | null) => ({ error: 'PRD_STALE' as const, latest: 앞?.version ?? 0 });
 
-/** 사람이 저장한다. 받은 판이 지금 판이 아니면 PRD_STALE — 두 사람이 같은 판을 고쳐 한쪽이 조용히 사라지지 않게 */
+/** 사람이 저장한다. 받은 버전이 현재 버전이 아니면 PRD_STALE — 두 사람이 같은 판을 고쳐 한쪽이 조용히 사라지지 않게 */
 export async function 사람저장(
   서비스: number,
   접두사: string,
@@ -198,7 +198,7 @@ export async function 사람저장(
   });
 }
 
-/** 옛 판 항목을 복사한 새 판. 사람이 저장한 것과 같은 규칙으로 표시를 단다 — 되돌린 항목은 다음 옮기기가 덮지 않는다. 그 판이 없으면 null */
+/** 이전 버전 항목을 복사한 새 버전. 사람이 저장한 것과 같은 규칙으로 표시를 단다 — 되돌린 항목은 다음 옮기기가 덮지 않는다. 그 판이 없으면 null */
 export async function 되돌리기(
   서비스: number,
   접두사: string,
@@ -218,8 +218,8 @@ export async function 되돌리기(
 }
 
 /**
- * 옮기기(작성 에이전트)가 올린 판. 거절하지 않고 지금 판에 합친다(rules.ts `옮기기판`).
- * 요청의 읽은 판(prd_version)을 같은 트랜잭션에서 그 판으로 바꾼다 — 끝난 요청이면 NOT_RUNNING
+ * 옮기기(작성 에이전트)가 올린 버전. 거절하지 않고 현재 버전에 합친다(rules.ts `옮기기판`).
+ * 요청의 읽은 버전(prd_version)을 같은 트랜잭션에서 그 판으로 바꾼다 — 끝난 요청이면 NOT_RUNNING
  */
 export async function 옮기기(
   요청: number,
@@ -262,9 +262,9 @@ export async function 케이스지도(서비스: number, 요구들?: string[]): 
 }
 
 /**
- * 「반영 안 됨」의 기준 판 — 병합으로 끝난 반영(MERGE) 가운데 가장 최근 것이 병합한 작성 실행이 읽은 판.
+ * 「반영 안 됨」의 기준 버전 — 병합으로 끝난 반영(MERGE) 가운데 가장 최근 것이 병합한 작성 실행이 읽은 버전.
  * 케이스 고치기(EDIT · 그 다시 적용)는 표준 기획서를 안 읽어 기준이 못 된다. 기준이 없거나 그 실행이 판을 안 읽었으면 null — 전부 반영 안 됨이다.
- * 프로시저 안 케이스의 삭제(procDelete)와 바뀐 API 다시 작성(apiApply)도 못 된다 — 집을 때 지금 판을 적지만 요구를 안 고쳐, 그 사이 고친 요구가 반영된 것처럼 사라진다 (작성 §3.6 「세는 방식」)
+ * 프로시저 안 케이스의 삭제(procDelete)와 바뀐 API 다시 작성(apiApply)도 못 된다 — 집을 때 현재 버전을 적지만 요구를 안 고쳐, 그 사이 고친 요구가 반영된 것처럼 사라진다 (작성 §3.6 「세는 방식」)
  */
 // 전 — 그 시각까지 끝난 병합만 본다. 작성 목록이 반영 요청이 시작할 때의 기준을 다시 잴 때 쓴다 (§7 「목록 줄 summary」)
 export async function 기준판(서비스: number, 전?: Date): Promise<{ version: number; items: PrdItem[] } | null> {

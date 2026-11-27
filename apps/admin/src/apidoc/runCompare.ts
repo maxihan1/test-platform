@@ -1,4 +1,4 @@
-// 케이스 실행 시작 때 그 대상 서버의 API 문서를 받아 마지막 판과 견준다 (도메인/API §3.8 「실행 시작 때 견주기」)
+// 케이스 실행 시작 때 그 대상 서버의 API 문서를 받아 마지막 버전과 견준다 (도메인/API §3.8 「실행 시작 때 견주기」)
 // 기준 서버면 다를 때 판을 올리고, 다른 서버면 다를 때 한 줄만 남긴다. 못 받아도 실행은 막지 않는다
 
 import { 문서받기, 문서읽기, 지문 } from './doc.js';
@@ -52,7 +52,7 @@ export async function 실행문서견주기(runId: number): Promise<void> {
     note = 'FETCH_FAILED';
     version = (await 마지막())?.version ?? null;
   } else if (줄.env === 줄.api_doc_env) {
-    // 정기 실행이 올린 판은 누른 사람이 없다
+    // 정기 실행이 올린 버전은 누른 사람이 없다
     version = (await 판올리기(serviceId, 읽음.문서, { source: 'URL', env: 줄.env }, 줄.origin === 'SCHEDULED' ? null : 줄.triggered_by)).version;
   } else {
     const 끝판 = await 마지막();

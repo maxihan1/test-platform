@@ -8,7 +8,7 @@ import { trace경로 } from '../execution/traceIngest.js';
 import { 요약줄들 } from '../execution/traceSummary.js';
 import { 지금판 } from './store.js';
 
-/** 작성 요청 params.screenRight 목록의 한 칸 — env 는 그 실행의 대상 서버, reqIds 는 그 케이스가 덮는 번호 가운데 지금 판에 있는 것(판 차례) */
+/** 작성 요청 params.screenRight 목록의 한 칸 — env 는 그 실행의 대상 서버, reqIds 는 그 케이스가 덮는 번호 가운데 현재 버전에 있는 것(판 차례) */
 export interface 화면이맞음 {
   runId: number;
   tcId: string;

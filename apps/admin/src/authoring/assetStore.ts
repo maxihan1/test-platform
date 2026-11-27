@@ -77,7 +77,7 @@ export async function 준비세우기(입력: {
   값?: Record<string, unknown>;
   // 역방향 칸. 라우트가 판정한 값만 온다 — 대조가 아니면 셋 다 비운다 (DB CHECK 가 짝을 가둔다)
   대조?: { env: string; startUrl: string | null };
-  // API 애플리케이션 — 작성 중 3회 실행이 돌 대상 서버와 자료로 붙일 판 (도메인/작성 §7 「AUTHOR API 문서 판」)
+  // API 애플리케이션 — 작성 중 3회 실행이 돌 대상 서버와 자료로 붙일 판 (도메인/작성 §7 「AUTHOR API 문서 버전」)
   api?: { env: string; 판id: number; version: number };
   // PC 게임의 지원 패드 — 같은 묶음에서 애플리케이션 값을 갈아 끼운다(빈 배열이면 비운다). 안 오면 그대로 (도메인/작성 §7)
   패드?: string[];

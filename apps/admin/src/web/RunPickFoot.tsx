@@ -128,7 +128,7 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
 }
 
 /**
- * 시험 실행과 실행. 기록이 남는지는 누르면 뜨는 시작 확인 창이 적는다 — 앞 판은 단추 아래 두 줄이었다 (2026-11-05 WEB-F9-06 · RunPickConfirm)
+ * 시험 실행과 실행. 기록이 남는지는 누르면 뜨는 시작 확인 창이 적는다 — 이전 버전은 단추 아래 두 줄이었다 (2026-11-05 WEB-F9-06 · RunPickConfirm)
  */
 export function 실행버튼들({
   on시험,

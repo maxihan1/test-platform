@@ -98,11 +98,11 @@ export function API점검(api: API작성): string | null {
   if (api.env === '' || api.baseUrl === null || !/^https?:\/\//.test(api.baseUrl)) {
     return `대상 서버 「${api.env}」 줄이 없어졌거나 주소가 http·https 가 아니다 — 설정을 확인하고 새 요청으로 넣어라`;
   }
-  if (!Number.isSafeInteger(api.판) || api.판 < 1 || !객체인가(api.문서)) return 'API 문서 판 원문이 오지 않았다 — 판이 지워졌으면 새 요청으로 넣어라';
+  if (!Number.isSafeInteger(api.판) || api.판 < 1 || !객체인가(api.문서)) return 'API 문서 버전 원문이 오지 않았다 — 판이 지워졌으면 새 요청으로 넣어라';
   // 사본만 보고 자식이 엉뚱한 API 를 고치지 않게 — 서버가 채운 칸이라 틀리면 서버 쪽 문제다
   if (api.반영 === null) return '「바뀐 API 만 다시 작성」 칸(params.apiApply) 모양이 틀렸다 — 이 요청은 폐기하고 판 비교에서 다시 누른다';
   if (api.반영 !== undefined && api.반영.toVersion !== api.판) {
-    return `「바뀐 API 만 다시 작성」의 새 판(${String(api.반영.toVersion)})과 자료의 판(${String(api.판)})이 다르다 — 이 요청은 폐기하고 판 비교에서 다시 누른다`;
+    return `「바뀐 API 만 다시 작성」의 새 버전(${String(api.반영.toVersion)})과 자료의 판(${String(api.판)})이 다르다 — 이 요청은 폐기하고 판 비교에서 다시 누른다`;
   }
   return null;
 }
@@ -114,7 +114,7 @@ export function 판파일쓰기(api: API작성, 자료폴더: string): boolean {
 }
 
 /**
- * 자식에게 주는 사본 — 서버 칸에 그 API 의 새 판 원장 번호(`API POST /v1/pushes 201`)를 붙인다. 없어진 API 는 번호가 없다.
+ * 자식에게 주는 사본 — 서버 칸에 그 API 의 새 버전 원장 번호(`API POST /v1/pushes 201`)를 붙인다. 없어진 API 는 번호가 없다.
  * 덮던 케이스(`tcIds`)는 누를 때 그 API 를 부르던 활성 케이스다(api_call_seen) — 서버가 박아 둔 것을 그대로 준다
  */
 export function API반영사본(반영: API반영, 문서: unknown) {
@@ -145,7 +145,7 @@ export function API절(api: API작성, 자료폴더: string, 어드민키있음 
     '',
     '--- API 문서 ---',
     '이 애플리케이션은 종류 「API」다 — 화면이 없다. `.claude/skills/tpx-cases/references/api.md` 를 먼저 읽고 따라라. 화면 훑기 · 요소 찾기 · 화면 지도는 건너뛴다.',
-    `- API 문서 판 ${String(api.판)}: ${join(자료폴더, 판파일이름)} — OpenAPI 원문이다. 응답 코드 · 모양 · 경계 숫자의 근거다. 케이스 머리에 \`apiDoc: ${String(api.판)}\` 을 단다`,
+    `- API 문서 버전 ${String(api.판)}: ${join(자료폴더, 판파일이름)} — OpenAPI 원문이다. 응답 코드 · 모양 · 경계 숫자의 근거다. 케이스 머리에 \`apiDoc: ${String(api.판)}\` 을 단다`,
     `- 돌려 볼 대상 서버: ${api.env} — ${api.baseUrl ?? ''}. 환경 변수 PLATFORM_BASE_URL · PLATFORM_API_AUTHS · PLATFORM_API_DOC_FILE 이 이미 있다 — 돌려 보기 명령을 그대로 부르면 그 서버로 돈다`,
     이름들 === ''
       ? '- 이 대상 서버에 API 인증이 없다. 토큰이 필요한 API 는 「인증 없이」 401 케이스만 쓰고, 나머지는 결과 요약에 「API 인증 없음」으로 적어라'
@@ -166,7 +166,7 @@ function API반영절(반영: API반영, 자료폴더: string): string[] {
   return [
     '',
     '--- 바뀐 API 만 다시 작성 ---',
-    `이 요청은 API 문서 판 ${String(반영.fromVersion)} → 판 ${String(반영.toVersion)} 에서 사람이 고른 API 만 다시 쓴다 — 바뀜 ${String(셈(반영, 'CHANGED'))} · 새 API ${String(셈(반영, 'NEW'))} · 없어진 API ${String(셈(반영, 'REMOVED'))}. 자료(기획서)는 없다.`,
+    `이 요청은 API 문서 버전 ${String(반영.fromVersion)} → 판 ${String(반영.toVersion)} 에서 사람이 고른 API 만 다시 쓴다 — 바뀜 ${String(셈(반영, 'CHANGED'))} · 새 API ${String(셈(반영, 'NEW'))} · 없어진 API ${String(셈(반영, 'REMOVED'))}. 자료(기획서)는 없다.`,
     `맡을 API · 덮던 케이스 · 원장 번호: ${join(자료폴더, API반영사본이름)}`,
     '`.claude/skills/tpx-author/references/apply.md` §6 을 먼저 읽고 따라라. 맡은 API 가 아닌 표 줄과 케이스는 손대지 마라. 없어진 API 의 케이스는 지우지 마라.',
   ];
@@ -226,6 +226,6 @@ export function API원장읽기(자료폴더: string): 원장항목[] {
     const 고른 = existsSync(사본자리) ? (JSON.parse(readFileSync(사본자리, 'utf8')) as { 작업: { method: string; path: string }[] }).작업 : undefined;
     return API원장항목(JSON.parse(readFileSync(자리, 'utf8')), 고른);
   } catch (e) {
-    throw new Error(`API 문서 판 파일이 JSON 이 아니다 — ${자리}`, { cause: e });
+    throw new Error(`API 문서 버전 파일이 JSON 이 아니다 — ${자리}`, { cause: e });
   }
 }

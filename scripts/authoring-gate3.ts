@@ -233,7 +233,7 @@ export function 판들읽기(기록들: 돌린기록[], 깨진것빼기 = false)
   return { 판들, 동시: 읽은것.filter((r) => 끝기록꼴.test(r.이름)).map((r) => r.config?.workers).find((w) => w !== 1), 끊긴 };
 }
 
-/** 한 파일 · 한 기기가 지금 판(마지막 수정 뒤)으로 어디까지 확인됐나 */
+/** 한 파일 · 한 기기가 현재 버전(마지막 수정 뒤)으로 어디까지 확인됐나 */
 export interface 파일상태 {
   /** 돌린 기록이 하나라도 있다 */
   있음: boolean;

@@ -13,7 +13,7 @@ import { type 말, 명글자, 분초, 시각글, 사유이름, 초글자, 측정
 import { 유형글자 } from './PerfStepLoad.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
-/** 페이지 · 기기 줄의 핵심 수치 한 줄 — 결과 화면 숫자 칸과 같은 이름이다 (§8.14 「실행 기록」 · 시안 11판) */
+/** 페이지 · 기기 줄의 핵심 수치 한 줄 — 결과 화면 숫자 칸과 같은 이름이다 (§8.14 「실행 기록」 · 11차 시안) */
 function 수치글(kind: string, 게임: boolean, m: 측정수치 | null, t: 말): string {
   if (m === null) return '-';
   const 칸 = (이름: string, 값: number | null | undefined, 글: (n: number) => string) => (값 === null || 값 === undefined ? null : `${t(이름)} ${글(값)}`);

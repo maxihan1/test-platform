@@ -124,7 +124,7 @@ function 케이스결과({ runId, 판정하기, on시나리오 }: 결과바깥 &
 
   const 디바이스들 = 실행디바이스들(data.items);
   // 몇 건 끝났고 얼마 남았나는 머리에 늘 둔다 — 누르면 진행 상자가 무엇이 도는지까지 편다 (도메인/실행 §8.9 · 점검 2.14).
-  // 앞 판은 이 수가 저절로 뜨는 상자에만 있었고 머리에는 「진행 중 98건」(안 끝난 전부)이 있었다
+  // 이전 버전은 이 수가 저절로 뜨는 상자에만 있었고 머리에는 「진행 중 98건」(안 끝난 전부)이 있었다
   const 진행 = running ? 진행상황(data, 진행목록) : null;
   const 진행글 =
     진행 === null
@@ -136,7 +136,7 @@ function 케이스결과({ runId, 판정하기, on시나리오 }: 결과바깥 &
       ? null
       : 시간글자(Math.max(0, new Date(data.finishedAt).getTime() - new Date(data.startedAt).getTime()), 언어);
 
-  // 실행 정보는 이 한 줄이 전부다 — 앞 판은 같은 값을 옆 칸에 또 적었고 좁은 창에서 그 칸이 맨 아래로 묻혔다 (도메인/실행 §8.3 · 점검 2.2)
+  // 실행 정보는 이 한 줄이 전부다 — 이전 버전은 같은 값을 옆 칸에 또 적었고 좁은 창에서 그 칸이 맨 아래로 묻혔다 (도메인/실행 §8.3 · 점검 2.2)
   const 부제 = (
     <span className={정보펼침 ? 'run-meta open' : 'run-meta'}>
       <span className="rm-key">RUN {data.runId}</span>

@@ -128,7 +128,7 @@ function 결과(x: 줄, kind: 요약종류, 고칠것: unknown[] | null): 목록
 }
 
 /**
- * 뿌리마다 summary. 재료는 뿌리 행(종류 · params · 자료)과 **머지를 뺀 최신 작성 실행**(셈 · 만든 케이스 · 읽은 판 · 단계)이다.
+ * 뿌리마다 summary. 재료는 뿌리 행(종류 · params · 자료)과 **머지를 뺀 최신 작성 실행**(셈 · 만든 케이스 · 읽은 버전 · 단계)이다.
  * 기능 묶음 · 화면 이름은 그 실행이 만든 케이스에 달린 요구에서 센다 — 셈(coverage)에는 덮은 요구 번호 목록이 없다(2026-10-26 WEB-F6-06 시작 질문)
  */
 export async function 목록요약들(서비스: number, 뿌리들: number[]): Promise<Map<number, 목록요약>> {
@@ -233,7 +233,7 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
   return 결과표;
 }
 
-/** 그 실행이 만든 케이스에 달린 요구 — 그 실행이 읽은 판의 항목으로. 셈 · 판이 없으면 빈 목록 */
+/** 그 실행이 만든 케이스에 달린 요구 — 그 실행이 읽은 버전의 항목으로. 셈 · 판이 없으면 빈 목록 */
 function 요구들(x: 줄, 판들: Map<number, PrdItem[]>): PrdItem[] {
   const 케이스 = 행케이스(x.result);
   const 항목들 = x.prd_version === null ? undefined : 판들.get(x.prd_version);
@@ -243,8 +243,8 @@ function 요구들(x: 줄, 판들: Map<number, PrdItem[]>): PrdItem[] {
 }
 
 /**
- * 반영 요청이 다시 쓴 요구 수 — 그 실행이 읽은 판을 그 실행이 시작하기 직전의 기준 판과 견준 바뀜 · 새 항목(지움은 쓸 테스트가 없다).
- * 화면이 맞음 번호는 수에서 따로 센다 — 옮기기가 그 번호를 고친 판으로 읽은 판을 바꾸기 때문이다. 아직 안 집혔으면 모른다(0).
+ * 반영 요청이 다시 쓴 요구 수 — 그 실행이 읽은 버전을 그 실행이 시작하기 직전의 기준 버전과 견준 바뀜 · 새 항목(지움은 쓸 테스트가 없다).
+ * 화면이 맞음 번호는 수에서 따로 센다 — 옮기기가 그 번호를 고친 버전으로 읽은 버전을 바꾸기 때문이다. 아직 안 집혔으면 모른다(0).
  * 기능셈은 바뀐 요구사항과 화면이 맞음 번호의 기능 묶음 — 판의 항목 차례로 센다
  */
 async function 바뀐요구들(서비스: number, x: 줄, 판들: Map<number, PrdItem[]>): Promise<{ 수: number; 기능셈: Map<string, number> }> {
@@ -265,7 +265,7 @@ function 기능세기(항목들: PrdItem[]): Map<string, number> {
 }
 
 /**
- * 케이스 고치기 뿌리마다 고칠 케이스가 걸린 기능 묶음 — 지도 ①(req_case)로 요구사항 번호를 찾고 최신 판에서 기능을 읽는다.
+ * 케이스 고치기 뿌리마다 고칠 케이스가 걸린 기능 묶음 — 지도 ①(req_case)로 요구사항 번호를 찾고 최신 버전에서 기능을 읽는다.
  * 지도에 없는 케이스(요구사항 번호가 없는 UI 케이스 등)는 세지 않는다
  */
 async function 고칠케이스기능들(서비스: number, 뿌리들: 줄[]): Promise<Map<string, Map<string, number>>> {

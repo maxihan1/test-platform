@@ -108,7 +108,7 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
     const 앱 = required(env, 'PLATFORM_APP');
     const 꾸러미 = 연결꾸러미(driver.capabilities, 앱);
     const 실행: 실행기 = (script, args) => driver.execute(script, args);
-    // Appium 은 깔린 판 번호가 같거나 높으면 넘긴 APK 를 안 깐다 — 빌드마다 판 번호를 안 올리는 QA 빌드는 옛 앱으로 돈다(2026-11-21 BRM 21177).
+    // Appium 은 깔린 버전 번호가 같거나 높으면 넘긴 APK 를 안 깐다 — 빌드마다 버전 번호를 안 올리는 QA 빌드는 옛 앱으로 돈다(2026-11-21 BRM 21177).
     // 스토어 앱은 깔 파일이 없다
     if (!패키지이름인가(앱)) await 빌드맞추기(실행, 꾸러미, 앱, Date.now() - 연결시작);
     const 앞 = await 앱을켠다(실행, 꾸러미, 켜기전에(capabilities, env.PLATFORM_ENGINE === 'GAME'), { 값: options.intent });

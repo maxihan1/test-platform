@@ -73,7 +73,7 @@ export function 시험결과({ 시험, 케이스들, env, mobileOn }: { 시험: 
   return (
     <>
       <div className="trial-sum">
-        {/* 0 은 점선 회색이다 — 앞 판은 큰 칸 셋이라 어둡게에서 실패 0 칸이 탁한 빨강으로 무거웠다 (점검표 B18) */}
+        {/* 0 은 점선 회색이다 — 이전 버전은 큰 칸 셋이라 어둡게에서 실패 0 칸이 탁한 빨강으로 무거웠다 (점검표 B18) */}
         <span className={수.통과 === 0 ? 'pill zero' : 'pill pass'}>{t('Pass')} <b>{수.통과}</b></span>
         <span className={수.실패 === 0 ? 'pill zero' : 'pill fail'}>{t('Fail')} <b>{수.실패}</b></span>
         <span className={수.안함 === 0 ? 'pill zero' : 'pill na'}>{t('Not tested')} <b>{수.안함}</b>{수.막힘 === 0 ? null : ` (Blocked ${String(수.막힘)})`}</span>

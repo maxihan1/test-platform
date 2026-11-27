@@ -34,9 +34,9 @@ export const 기준재료이름 = 'ledger-base.json';
 export interface 기준표 {
   표글: string;
   있는케이스: Set<string>;
-  /** 기준 판 프로시저 파일의 procId — 번호 명령이 다시 주지 않는다 */
+  /** 기준 버전 프로시저 파일의 procId — 번호 명령이 다시 주지 않는다 */
   있는프로시저?: Set<string>;
-  /** 기준 판의 프로시저 파일마다 procId · 케이스 — 반영 · 삭제 작성의 계획이 통째로 다시 쓸 파일을 찾는다 */
+  /** 기준 버전의 프로시저 파일마다 procId · 케이스 — 반영 · 삭제 작성의 계획이 통째로 다시 쓸 파일을 찾는다 */
   프로시저파일?: 기준프로시저[];
   /** 삭제 작성이 지울 케이스 — 사람이 지우라고 한 것이라 그 줄의 「제거함」을 기준 표에 있던 것처럼 인정한다 */
   지울케이스?: ReadonlySet<string>;
@@ -77,7 +77,7 @@ export function 기준결정만들기(
 }
 
 /**
- * 작성의 원장 사본 — 지금 판에 (있으면) 자식의 결과 파일을 합친 항목으로 만든다. 에이전트(띄우기 전 · 이어받기)와
+ * 작성의 원장 사본 — 현재 버전에 (있으면) 자식의 결과 파일을 합친 항목으로 만든다. 에이전트(띄우기 전 · 이어받기)와
  * 자식의 `npm run prd:ledger` 가 이 함수 하나를 쓴다 — 같은 판 · 같은 결과 파일이면 같은 원장 · 같은 칸 재료다.
  * 기준 표의 결정 · 칸 재료를 같이 싣는다 — 자식의 관문 0 · 번호 명령이 에이전트의 올리기 판정과 같은 재료를 쓴다 (2026-09-30 · 2026-10-04 게이트 1)
  */
@@ -133,11 +133,11 @@ export type 깃손 = (인자: string[]) => { ok: boolean; 낸것: string; 까닭
 export function 기준읽기(깃: 깃손, 기준: string, 서비스: string, 폴더: string): 기준표 | { 까닭: string } {
   const 표 = `docs/cases/${서비스}.md`;
   const 목록 = 깃(['ls-tree', '-r', '-z', '--name-only', 기준, '--', 표, `tests/${폴더}`]);
-  if (!목록.ok) return { 까닭: `기준 판의 파일 목록을 못 읽었다: ${목록.까닭 ?? ''}` };
+  if (!목록.ok) return { 까닭: `기준 버전의 파일 목록을 못 읽었다: ${목록.까닭 ?? ''}` };
   const 파일들 = 목록.낸것.split('\0').filter((f) => f !== '');
   const 읽기 = (f: string): string | { 까닭: string } => {
     const r = 깃(['show', `${기준}:${f}`]);
-    return r.ok ? r.낸것 : { 까닭: `기준 판의 ${f} 를 못 읽었다: ${r.까닭 ?? ''}` };
+    return r.ok ? r.낸것 : { 까닭: `기준 버전의 ${f} 를 못 읽었다: ${r.까닭 ?? ''}` };
   };
   let 표글 = '';
   if (파일들.includes(표)) {
@@ -205,7 +205,7 @@ export function 원장과남은번호(입력: {
   서비스: string;
   폴더: string;
   이어작성원본: number | null;
-  /** 표준 기획서 지금 판 — 자식 앞에서 받은 것 */
+  /** 표준 기획서 현재 버전 — 자식 앞에서 받은 것 */
   지금: readonly PrdItem[];
   /** 옮기는 요청인가 — 자료(또는 화면만)가 있고 이어 작성이 아니다 */
   옮긴다: boolean;
@@ -213,7 +213,7 @@ export function 원장과남은번호(입력: {
   옮긴몸?: unknown;
   /** 이번 집기 accounts 의 역할 이름 — 이 역할의 「계정 미등록」 번호가 남은 번호에 든다 */
   등록역할?: Set<string>;
-  /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight · (BTS 테스트 수정이면) 요청의 testFix · (프로시저 안 케이스 삭제면) 요청의 procDelete */
+  /** 반영 요청이면 현재 버전 번호와 기준 버전 · (화면이 맞음이면) 요청의 screenRight · (BTS 테스트 수정이면) 요청의 testFix · (프로시저 안 케이스 삭제면) 요청의 procDelete */
   반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청[] | null; 테스트고침?: 테스트고침요청 | null; 삭제?: string[] | null };
   /** API 애플리케이션 판의 API 줄 (도메인/API §3.8 「작성」 「원장」) */
   api?: readonly 원장항목[];

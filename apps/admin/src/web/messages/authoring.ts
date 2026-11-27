@@ -80,7 +80,7 @@ export const 작성말: Record<string, string> = {
   '테스트 작성 시작': 'Start writing tests',
   '시작하는 중': 'Starting…',
   'API 문서 버전 {버전}': 'API doc version {버전}',
-  // API 애플리케이션의 새 요청 폼 (도메인/작성 §7 「AUTHOR API 문서 판」)
+  // API 애플리케이션의 새 요청 폼 (도메인/작성 §7 「AUTHOR API 문서 버전」)
   '버전 {버전} (현재 버전)': 'Version {버전} (current)',
   '버전 {버전}': 'Version {버전}',
   'API 문서가 없습니다. API 문서 화면에서 먼저 가져오세요': 'There is no API doc yet. Fetch one on the API docs screen first',

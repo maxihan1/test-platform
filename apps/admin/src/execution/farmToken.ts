@@ -36,7 +36,7 @@ export async function 계정대신PAT(username: string): Promise<string | null> 
 }
 
 /**
- * 그 사람 이름의 팜 토큰. 꺼진 · Auth 에 안 묶인 계정은 서버 몫이다 — 앞 판의 「토큰을 안 넣은 사람」과 같다.
+ * 그 사람 이름의 팜 토큰. 꺼진 · Auth 에 안 묶인 계정은 서버 몫이다 — 이전 버전의 「토큰을 안 넣은 사람」과 같다.
  * **그 사람 것을 못 받으면 던진다** — 서버 몫으로 물러서면 Auth 가 끈 사람이 서버 이름으로 폰을 잡는다. 부르는 쪽이 그 항목을 NA 로 닫는다
  */
 export async function 사람팜토큰(username: string): Promise<string | undefined> {

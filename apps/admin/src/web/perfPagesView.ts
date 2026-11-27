@@ -56,7 +56,7 @@ export function 페이지별최근(줄들: PageRow[]): PageRow[] {
   return [...최근.values()];
 }
 
-/** 표 위 숫자 칸 줄 — LCP · FCP 평균과 목표 넘은 페이지 (시안 11판 「페이지 성능」 · WEB-F7-16). 값이 없는 페이지는 평균에서 뺀다 */
+/** 표 위 숫자 칸 줄 — LCP · FCP 평균과 목표 넘은 페이지 (11차 시안 「페이지 성능」 · WEB-F7-16). 값이 없는 페이지는 평균에서 뺀다 */
 export function 숫자칸(줄들: PageRow[]): { lcp평균: number | null; fcp평균: number | null; 넘은: string[] } {
   const 평균 = (v: (number | null)[]) => {
     const 값 = v.filter((x): x is number => x !== null);
@@ -70,7 +70,7 @@ export function 숫자칸(줄들: PageRow[]): { lcp평균: number | null; fcp평
 }
 
 /**
- * 전체 로드 · 요청 수 — 수집한 리소스 끝 시각 중 가장 늦은 것과 리소스 수 (시안 11판 「페이지 성능」 · WEB-F7-18).
+ * 전체 로드 · 요청 수 — 수집한 리소스 끝 시각 중 가장 늦은 것과 리소스 수 (11차 시안 「페이지 성능」 · WEB-F7-18).
  * ponytail: 수집 스크립트(perf/pageScript.ts)가 리소스를 시작 차례로 문서 + 99개까지만 남긴다 — 그보다 많은 페이지는 요청 수가 100 에서 멈추고(화면은 「100+」)
  * 전체 로드도 뒤늦게 시작한 리소스를 못 봐 짧게 나온다. 정확히 하려면 수집 스크립트가 loadEventEnd 를 같이 남기게 한다
  */

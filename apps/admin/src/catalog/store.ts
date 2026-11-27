@@ -34,7 +34,7 @@ export type CaseRow = Omit<CaseSpec, 'techniques' | 'smoke' | 'procId' | 'procSe
   smokeSet: boolean | null;
   isActive: boolean;
   scannedAt: string;
-  // 지도 ① 과 표준 기획서 지금 판에서 계산한 사유 (prd/unconfirmed.ts)
+  // 지도 ① 과 표준 기획서 현재 버전에서 계산한 사유 (prd/unconfirmed.ts)
   unconfirmed: string | null;
   savedInput: SavedInput | null;
 };

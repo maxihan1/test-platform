@@ -111,7 +111,7 @@ describe.skipIf(연결 === undefined)('결정 필요 「PRD 초안」 카드', (
     expect(또.json()).toEqual({ error: 'DECISIONS_STALE' });
   });
 
-  it('지금 판에 없는 요구를 고친 줄 · 빈 고름 · 범위 밖 번호는 BAD_PICK', async () => {
+  it('현재 버전에 없는 요구를 고친 줄 · 빈 고름 · 범위 밖 번호는 BAD_PICK', async () => {
     const id = await 초안넣기('DONE', [줄('EDIT', { reqId: 'XPU-REQ-009' }), 줄('ADD')]);
     const key = `draft:${String(id)}`;
     for (const rows of [[0], [], [5], [1, 1]]) {

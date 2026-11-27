@@ -64,7 +64,7 @@ export interface 채점 {
   번호표: Map<string, string[]>;
 }
 
-/** PRD 항목들(지금 판)을 정답지와 견준다. 대응은 비정형 기획서일 때만, 표는 케이스 포착률을 볼 때만 */
+/** PRD 항목들(현재 버전)을 정답지와 견준다. 대응은 비정형 기획서일 때만, 표는 케이스 포착률을 볼 때만 */
 export function 채점하기(항목들: PrdItem[], 정답: 정답, 대응: 대응줄[] = [], 표?: string): 채점 {
   const 대응글자 = 대응.map((줄) => ({ 글자: 맨글자(줄.문장), 번호들: 줄.번호들 }));
   const 번호표 = new Map<string, string[]>();

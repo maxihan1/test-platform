@@ -137,7 +137,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
     expect([(await 줄(앞)).state, (await 줄(뒤)).state]).toEqual(['SENT', 'SENT']);
   });
 
-  it('판 번호 없는 옮기기 — 보내기 직전에 판을 읽고, 그사이 판이 바뀌면(409) 다시 보내고, 이미 그 상태면 실은 댓글만 단다', async () => {
+  it('버전 번호 없는 옮기기 — 보내기 직전에 판을 읽고, 그사이 판이 바뀌면(409) 다시 보내고, 이미 그 상태면 실은 댓글만 단다', async () => {
     let 판 = 3;
     let 상태 = 'qa-req';
     답 = (경로) => (경로.endsWith('/transition') ? { status: 판 === 3 ? 409 : 200, json: {} } : { status: 200, json: { data: { version: 판, currentStateKey: 상태 } } });
@@ -162,7 +162,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
     ]);
   });
 
-  it('판 번호 없는 담당자 바꾸기 — 보내기 직전에 판을 읽고, 이미 그 사람이면 보내지 않는다', async () => {
+  it('버전 번호 없는 담당자 바꾸기 — 보내기 직전에 판을 읽고, 이미 그 사람이면 보내지 않는다', async () => {
     부른것.length = 0;
     let 담당 = 'old';
     답 = (경로) => (경로.endsWith('/assignee') ? { status: 200, json: {} } : { status: 200, json: { data: { version: 7, currentStateKey: 'dev', assigneeId: 담당 } } });

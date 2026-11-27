@@ -1,4 +1,4 @@
-// 작성 에이전트가 부르는 서비스 가이드 통로 — 그 요청 서비스의 지금 판과 첨부 (도메인/작성 §7 「서비스 가이드 통로」)
+// 작성 에이전트가 부르는 서비스 가이드 통로 — 그 요청 서비스의 현재 버전과 첨부 (도메인/작성 §7 「서비스 가이드 통로」)
 // 문턱은 표준 기획서 통로와 같다(prd/agentRoutes.ts `도는집은요청` — 맥 계정 · 집은 쪽 · 도는 중)
 
 import type { FastifyInstance } from 'fastify';
@@ -24,7 +24,7 @@ export default async function guideAgentRoutes(app: FastifyInstance): Promise<vo
     };
   });
 
-  // 지금 판에 든 파일만 — 뺀 파일은 사람이 변경 기록에서만 연다
+  // 현재 버전에 든 파일만 — 뺀 파일은 사람이 변경 기록에서만 연다
   app.get<{ Params: { id: string; fileId: string } }>('/authoring/requests/:id/guide/files/:fileId', async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;

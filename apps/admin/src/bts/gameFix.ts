@@ -71,7 +71,7 @@ async function 조작실패들(pool: Pool, runId: number): Promise<{ tcId: strin
 /**
  * 「풀림」 — 그 줄이 끝난 뒤 (a) 그 케이스가 모든 디바이스에서 통과한 끝난 실행이 있거나 (b) 그 케이스를 고친 작성의 반영이 있다.
  * 실패 · 그만둔 케이스를 다음 실행마다 같은 고침으로 되풀이하지 않게 하는 문턱이다.
- * 프로시저 파일을 고친 작성은 그 파일의 케이스를 다 싣는다 — 테스트 고침의 반영은 그 고침이 이 케이스를 맡아 고쳤을 때만 푼다(끝 칸이 없으면 앞 판처럼 맡은 케이스를 다 고친 것으로 본다).
+ * 프로시저 파일을 고친 작성은 그 파일의 케이스를 다 싣는다 — 테스트 고침의 반영은 그 고침이 이 케이스를 맡아 고쳤을 때만 푼다(끝 칸이 없으면 이전 버전처럼 맡은 케이스를 다 고친 것으로 본다).
  * 이슈 등록(failReport.ts 짝SQL 의 released)은 같은 프로시저의 다른 케이스를 고친 반영으로도 푼다 — 거기는 다시 올리는 쪽이 맞고 여기는 같은 고침을 되풀이한다
  */
 async function 풀렸나(손: PoolClient, 서비스: number, tcId: string, env: string, 뒤: Date): Promise<boolean> {
@@ -154,7 +154,7 @@ function 끝나눔(x: 케이스끝 | undefined): { 끝: 'FIXED' | 'FLAKY' } | { 
 /**
  * 게임 고침 작성이 PR 을 열었다 — 결과의 케이스마다 끝(result.testFix.cases)대로 줄을 나눈다.
  * FIXED 는 병합 기다림(PR · 요약), FLAKY 는 그대로 돌려 보니 통과, NOT_FOUND 는 그만둠. 결과에 없는 케이스는 고쳤다는 말이 없어 그만둔다.
- * 칸이 없으면(앞 판 에이전트) 요청의 고치는 줄 전부가 병합 기다림이다. 같은 PR 로 또 끝나도 한 번이다. 고친 케이스가 하나도 없으면 요청을 폐기한다. BTS 로 보내는 것이 없어 늘 false
+ * 칸이 없으면(이전 버전 에이전트) 요청의 고치는 줄 전부가 병합 기다림이다. 같은 PR 로 또 끝나도 한 번이다. 고친 케이스가 하나도 없으면 요청을 폐기한다. BTS 로 보내는 것이 없어 늘 false
  */
 export async function 게임PR열림(뿌리번호: number, prUrl: string, 요약: string, 결과: unknown): Promise<boolean> {
   const 끝들 = 케이스끝읽기(결과);

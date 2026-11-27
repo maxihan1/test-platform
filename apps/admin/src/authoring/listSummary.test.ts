@@ -133,7 +133,7 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
     expect(다시.what.features).toEqual([]);
   });
 
-  it('반영 요청 — 시작하기 직전 기준 판과 견준 바뀐 요구 수 · 멈춘 단계 · 화면이 맞음 번호는 따로', async () => {
+  it('반영 요청 — 시작하기 직전 기준 버전과 견준 바뀐 요구 수 · 멈춘 단계 · 화면이 맞음 번호는 따로', async () => {
     await 판(1, [항목(1, '회원가입', '8자 이상'), 항목(2, '홈', '배너'), 항목(3, '공통', '머리')]);
     await 판(2, [항목(1, '회원가입', '10자 이상'), 항목(2, '홈', '배너 둘'), 항목(3, '공통', '머리'), 항목(4, '결제', '새 요구')]);
     const 첫작성 = await 행({ status: 'DONE', prdVersion: 1, finishedAt: '2026-10-26T00:00:00Z' });
@@ -144,7 +144,7 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
       status: 'RUNNING', prdVersion: 2, startedAt: '2026-10-26T01:00:00Z',
       params: { prdApply: true, decision: { after: [], count: 3 }, screenRight: [{ runId: 1, tcId: 'XWB-FN-001', reqIds: ['XWB-REQ-002'] }] },
     });
-    // 기준 판보다 먼저 시작한 반영은 그때의 기준이 없다 — 판 2 의 요구가 모두 새 것이다
+    // 기준 버전보다 먼저 시작한 반영은 그때의 기준이 없다 — 판 2 의 요구가 모두 새 것이다
     const 앞선 = await 행({ status: 'FAILED', params: { prdApply: true }, prdVersion: 2, startedAt: '2026-10-25T23:00:00Z' });
     // 집히기 전에 멈춘 요청은 단계 글 대신 빈 글 — 화면이 「시작 전에 멈춤」으로 옮긴다
     const 시작전 = await 행({ status: 'STOPPED', params: { prdApply: true }, startedAt: null });
@@ -226,7 +226,7 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
     expect(표.get(수정)!.from.by).toBe('DECISION');
   });
 
-  it('케이스 고치기의 대상 기능 — 지도 ① 로 요구사항을 찾아 최신 판의 기능 · 지도에 없는 케이스는 세지 않는다', async () => {
+  it('케이스 고치기의 대상 기능 — 지도 ① 로 요구사항을 찾아 최신 버전의 기능 · 지도에 없는 케이스는 세지 않는다', async () => {
     await 판(1, [항목(1, '옛 이름', '가')]);
     await 판(2, [항목(1, '로그인', '가'), 항목(2, '로그인', '나'), 항목(3, '장바구니', '다')]);
     const { pool } = await import('../db/index.js');

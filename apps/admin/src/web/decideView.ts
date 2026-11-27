@@ -132,7 +132,7 @@ function 초안셈of(카드들: readonly 초안항목[], 보냄: ReadonlyMap<str
 
 /**
  * 「진행하면 이렇게 됩니다」 — 서버가 도는 차례 그대로(decisionRun.ts): 버그 → 기획서 새 버전 → 반영 → 고치기 · 다시 만들기 → 보완.
- * 문장이 바뀌거나 화면이 맞음을 고르면 바뀐 요구를 안 골라도 같은 요청에서 같이 다시 만든다 — 기준 판이 하나라서다
+ * 문장이 바뀌거나 화면이 맞음을 고르면 바뀐 요구를 안 골라도 같은 요청에서 같이 다시 만든다 — 기준 버전이 하나라서다
  */
 export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVersion: number): 차례줄[] {
   const 보냄 = new Map(보낼것(items, 고른).map((p) => [p.key, p]));

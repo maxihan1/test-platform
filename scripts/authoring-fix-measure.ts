@@ -165,7 +165,7 @@ export function 고친테스트파일들(트리: string, 기준목록경로: str
 
 /**
  * 고친 케이스가 든 파일의 고치기 전 · 뒤 글. 고치기 전은 에이전트가 자료 폴더에 둔 기준 tests 목록(`git ls-tree -r -z <기준>`)의 blob 을 읽는다 — 자식이 커밋을 바꿔도 기준은 그대로다.
- * 옛 꼴 케이스 파일은 `tests/<폴더>/<tcId>.spec.ts`, 프로시저 안 케이스는 기준 판에서 그 케이스가 든 프로시저 파일이다. 없으면 null
+ * 옛 꼴 케이스 파일은 `tests/<폴더>/<tcId>.spec.ts`, 프로시저 안 케이스는 기준 버전에서 그 케이스가 든 프로시저 파일이다. 없으면 null
  */
 export function 고치기전후(기준목록글: string, 트리: string, 깃: (인자: string[]) => { ok: boolean; 낸것: string }, tcId: string, 프로시저들: readonly 기준프로시저[] = []): Omit<잴건, 'tcId'> {
   const 파일 = 프로시저들.find((p) => p.케이스.includes(tcId))?.파일;

@@ -33,7 +33,7 @@ export interface CaseSpec {
   filePath: string;             // 소스 루트 기준 상대 경로
   held?: string;                // 있으면 보류 케이스 — 사람이 값을 채워야 돈다. 머리는 「판정 불가 — 」 또는 「보류 — 」
   techniques?: Technique[];     // 기능 테스트에만 · 칸의 설계 기법. 값은 DB · URL 에 그대로 가는 식별자라 바꾸지 않는다
-  apiDoc?: number;              // API 케이스만 · 케이스가 만들어진 API 문서 판. 없으면 키가 없다 (도메인/API §3.8)
+  apiDoc?: number;              // API 케이스만 · 케이스가 만들어진 API 문서 버전. 없으면 키가 없다 (도메인/API §3.8)
   elements?: string[];          // 게임 케이스만 · 닿는 게임 요소 열쇠(item:sword_short · zone:Town). 비면 키가 없다 (도메인/게임 §3.10 결정 9)
   smoke?: true;                 // 스모크 표시. 웹 · 앱 · 게임 다 쓴다. 없으면 키가 없다 (도메인/게임 §3.10 「빌드마다 돌리기」)
   procId?: ProcId;              // 프로시저 안 케이스만 · 그 케이스가 든 프로시저. defineProcedure 가 싣는다. 옛 꼴 케이스는 키가 없다 (공통/3-공유계약 「테스트 프로시저 타입」)
@@ -98,7 +98,7 @@ export interface ExecuteRequest {  // 파일 하나 + 케이스 목록 (공통/3
   recordHar?: { jobId: number }; // 성능 시나리오 녹화 — 오면 HAR 를 남긴다. jobId 는 기다리는 perf_ai_job 번호. 기록 · 증적에 안 남는다 (공통/3-공유계약 「성능 테스트 타입」)
   stability?: true;             // 정기 실행의 android 항목(Android 앱 · 게임)만. 러너가 통과해도 팜 logcat 하나를 받는다 — 안정화 지표가 통과 항목의 크래시 · ANR 도 센다 (도메인/안정화 §3.15 결정 3 · STAB-F1-04)
   uiCheck?: true;               // 호환성 실행 항목만. historyId 는 compat_run_case.id. android 면 kit 이 Appium 연결 capability 에 farm:uiCheck: true 를 넣고 러너가 통과해도 ui-check.json · ui-*.png 를 받는다. 모바일 웹 항목에는 안 싣는다 — admin 이 Chrome 을 켤 때 점검을 켜고 결과도 받는다 (도메인/호환성 §7 「러너 · kit」)
-  live?: string;                // 장면 열쇠(UUID — 테스트 실행은 그 시험의 trialId · 정식 실행은 항목마다 새것). 오면 마지막 장면을 GET /live/:key 로 낸다. 테스트 실행(runId 0)이면 동작마다 1초 쉬고(누른 곳 표시는 2026-11-06 WEB-F9-14 에 뺐다), 정식 실행은 장면만 찍는다 · 정식 실행 android 도 폰 장면을 찍는다(2026-11-11 — 앞 판은 400) (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+  live?: string;                // 장면 열쇠(UUID — 테스트 실행은 그 시험의 trialId · 정식 실행은 항목마다 새것). 오면 마지막 장면을 GET /live/:key 로 낸다. 테스트 실행(runId 0)이면 동작마다 1초 쉬고(누른 곳 표시는 2026-11-06 WEB-F9-14 에 뺐다), 정식 실행은 장면만 찍는다 · 정식 실행 android 도 폰 장면을 찍는다(2026-11-11 — 이전 버전은 400) (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 }
 
 export interface GamePopup {    // 아무 때나 뜨는 창 하나 (조작 맵 POPUP 행 — 도메인/게임 §3.10 「탐색 플레이 · 조작 맵」)
@@ -270,7 +270,7 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
   timeoutMs: number;
   deleteStatuses?: ScenarioDeleteStatus[];         // 미룬 삭제에 줄 응답 코드. 없는 주소는 204 (도메인/시나리오 §3.7 결정 12)
   recordHar?: { jobId: number };                   // 성능 시나리오 녹화 — ExecuteRequest.recordHar 와 같다. 시나리오는 runId null
-  live?: string;                                   // 장면 열쇠 — ExecuteRequest.live 와 같다. 시험 실행(runId null)은 테스트 모드, 정식 실행은 늦추지 않고 장면만 찍는다(앱 · 게임 단계 폰 장면 · 실제 폰 Chrome 도 — 2026-11-11, 앞 판은 웹 단계만). 웹 장면은 웹 단계의 첫 탭이다
+  live?: string;                                   // 장면 열쇠 — ExecuteRequest.live 와 같다. 시험 실행(runId null)은 테스트 모드, 정식 실행은 늦추지 않고 장면만 찍는다(앱 · 게임 단계 폰 장면 · 실제 폰 Chrome 도 — 2026-11-11, 이전 버전은 웹 단계만). 웹 장면은 웹 단계의 첫 탭이다
 }
 
 export interface ScenarioDeleteStatus {            // 정식 실행에서 본 그 서비스의 DELETE 성공 코드 — 서비스 지도 service_api.ok_status

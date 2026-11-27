@@ -1,4 +1,4 @@
-// 표준 기획서 버전 기록 — 버전마다 누가 언제 무엇으로 만들었는지, 무엇이 바뀌었는지와 복원 (도메인/작성 §3.6 「★ 표준 기획서」 「판 이력」)
+// 표준 기획서 버전 기록 — 버전마다 누가 언제 무엇으로 만들었는지, 무엇이 바뀌었는지와 복원 (도메인/작성 §3.6 「★ 표준 기획서」 「버전 기록」)
 // 복원도 새 버전이고 옛 버전은 지우지 않는다 — 그래서 확인 상자 대신 그 자리에서 한 번 더 묻는다
 // 바뀐 것은 서버가 changes 를 적어 준 버전(결정 진행 · 화면이 맞음)만 그대로 쓰고, 나머지는 앞 버전과 견줘 그때 계산한다
 
@@ -136,7 +136,7 @@ function 바뀐것({ service, 판, 앞판, 읽은, 바로 }: { service: string; 
 export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: string; 지금판: number; 쓰나: boolean; 짓기: 판짓기 }) {
   const t = use말();
   const 언어 = use언어();
-  // 지금 판이 바뀌면(저장 · 확정 · 되돌리기) 목록도 다시 읽는다
+  // 현재 버전이 바뀌면(저장 · 확정 · 되돌리기) 목록도 다시 읽는다
   const 목록 = useAsync(() => prdApi.versions(service), [service, 지금판]);
   const 읽은 = useRef<읽은판>(new Map());
   const [묻는판, set묻는판] = useState<number | null>(null);

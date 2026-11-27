@@ -53,7 +53,7 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
     return () => clearInterval(타이머);
   }, [도는중, reload, runId]);
 
-  // 도는 걸 본 창이 끝을 보면 맨 위 알림 줄이 바로 다시 묻게 한다 — 앞 판은 「실행 중 · 3초 지남」으로 멈춰 있었다
+  // 도는 걸 본 창이 끝을 보면 맨 위 알림 줄이 바로 다시 묻게 한다 — 이전 버전은 「실행 중 · 3초 지남」으로 멈춰 있었다
   useEffect(() => {
     if (data === null) return;
     if (data.status === 'RUNNING') 진행을봤다.current = true;

@@ -1,6 +1,6 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
 // '마지막 결과' 칸을 GET /api/runs/last-by-case 한 번으로 전부 채운다 (SPEC §7.1)
-// 2026-11-11 시안 B — 왼쪽 기능 묶음 목차 + 한 건 한 줄 목록 + 상세 창(2026-11-27 — 앞 판 오른쪽 서랍). 목록은 바닥에 닿으면 다음 50건을 붙인다(useCasePages.ts). 프로시저 묶음은 CaseListProc.tsx
+// 2026-11-11 시안 B — 왼쪽 기능 묶음 목차 + 한 건 한 줄 목록 + 상세 창(2026-11-27 — 이전 버전 오른쪽 서랍). 목록은 바닥에 닿으면 다음 50건을 붙인다(useCasePages.ts). 프로시저 묶음은 CaseListProc.tsx
 // 한 건(줄의 ▶) · 여러 건을 거는 흐름은 useRunPick 이 통째로 들고 있다 — 둘 다 같은 실행 창을 연다 (SPEC §8.10)
 
 import { useRef, useState } from 'react';

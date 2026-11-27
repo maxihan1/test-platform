@@ -1,4 +1,4 @@
-// 새 작성 요청 폼의 API 애플리케이션 칸 — API 문서 판과 대상 서버 (도메인/작성 §7 「AUTHOR API 문서 판」)
+// 새 작성 요청 폼의 API 애플리케이션 칸 — API 문서 버전과 대상 서버 (도메인/작성 §7 「AUTHOR API 문서 버전」)
 
 import { useEffect, useState } from 'react';
 
@@ -16,7 +16,7 @@ interface 읽음 {
 }
 
 /**
- * 이 애플리케이션이 API 종류인지, 문서 판이 무엇무엇인지 묻는다. 화면 애플리케이션은 NOT_API_SERVICE 로 갈린다.
+ * 이 애플리케이션이 API 종류인지, 문서 버전이 무엇무엇인지 묻는다. 화면 애플리케이션은 NOT_API_SERVICE 로 갈린다.
  * `serviceId` 가 없으면(옛 호출) 묻지 않고 화면 폼으로 둔다
  */
 export function useApiDocs(serviceId: number | undefined) {

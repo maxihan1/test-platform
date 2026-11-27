@@ -38,11 +38,11 @@ export interface 케이스화면 {
 export function 기준화면지도(입력: 덮은입력): { 케이스: 케이스화면[]; 덮은틀: string[]; 건너뜀: string[] } | { 까닭: string } {
   const { 깃, 기준, 서비스, 폴더 } = 입력;
   const 목록 = 깃(['ls-tree', '-r', '-z', '--name-only', 기준, '--', `tests/${폴더}`]);
-  if (!목록.ok) return { 까닭: `기준 판의 파일 목록을 못 읽었다: ${목록.까닭 ?? ''}` };
+  if (!목록.ok) return { 까닭: `기준 버전의 파일 목록을 못 읽었다: ${목록.까닭 ?? ''}` };
   const 파일들 = new Set(목록.낸것.split('\0').filter((f) => f !== ''));
   const 읽기 = (f: string): string | { 까닭: string } => {
     const r = 깃(['show', `${기준}:${f}`]);
-    return r.ok ? r.낸것 : { 까닭: `기준 판의 ${f} 를 못 읽었다: ${r.까닭 ?? ''}` };
+    return r.ok ? r.낸것 : { 까닭: `기준 버전의 ${f} 를 못 읽었다: ${r.까닭 ?? ''}` };
   };
   // 화면 파일 하나를 여러 케이스가 가져온다 — 한 번만 읽는다
   const 화면들 = new Map<string, string | { 까닭: string }>();

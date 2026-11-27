@@ -202,7 +202,7 @@ export async function 줄세우기(입력: {
   이어받기?: number;
   // 정방향 머지만 채운다 — 보류를 3회 돌릴 대상 서버 (DB CHECK 가 대조 아닌 행 중 MERGE 에만 허락한다)
   머지대상?: string | null;
-  // API 애플리케이션 작성의 재실행만 채운다 — 원본에서 물려받은 대상 서버 (도메인/작성 §7 「AUTHOR API 문서 판」)
+  // API 애플리케이션 작성의 재실행만 채운다 — 원본에서 물려받은 대상 서버 (도메인/작성 §7 「AUTHOR API 문서 버전」)
   apiEnv?: string;
 }, 손?: PoolClient): Promise<number> {
   const r = await (손 ?? (await db())).query<{ id: string }>(

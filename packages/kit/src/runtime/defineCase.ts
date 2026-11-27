@@ -28,7 +28,7 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
   expected: E;
   held?: string;
   techniques?: Technique[];
-  // API 케이스만 · 케이스를 만든 API 문서 판. 실행 때 그 판과 응답 모양을 견준다 (공통/2 §4 「API 케이스」)
+  // API 케이스만 · 케이스를 만든 API 문서 버전. 실행 때 그 판과 응답 모양을 견준다 (공통/2 §4 「API 케이스」)
   apiDoc?: number;
   // 게임 케이스만 · 닿는 게임 요소 열쇠. 빠른 검사가 게임 지도에 있는지 본다 (공통/3-공유계약 「게임 테스트 타입」)
   elements?: string[];

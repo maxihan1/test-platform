@@ -35,7 +35,7 @@ export interface FailureCase {
   tcId: string;
   tcName: string;
   devices: FailureDevice[];
-  /** 지도 ① 로 덮는 요구 — 지금 판 기준이라 실행 때 박제하지 않는다 */
+  /** 지도 ① 로 덮는 요구 — 현재 버전 기준이라 실행 때 박제하지 않는다 */
   reqs: 카드요구[];
   judgment: 판정;
   /** BTS 를 이은 프로젝트만 칸이 있다. 보낼 줄이 없는 케이스(흔들림으로 닫혀 안 올림)는 null (도메인/BTS §7) */

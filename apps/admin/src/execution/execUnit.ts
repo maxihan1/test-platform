@@ -77,7 +77,7 @@ export async function 단위를닫는다(단위: 실행단위, 까닭: string, s
   else await 프로시저를저장한다(단위, 못간답(케이스목록(단위), 까닭, stack));
 }
 
-/** 실행 단위 하나를 보내고 답을 저장한다. 옛 꼴 케이스는 케이스 1건짜리 목록이고 API 문서 판을 싣는다(callRunner) */
+/** 실행 단위 하나를 보내고 답을 저장한다. 옛 꼴 케이스는 케이스 1건짜리 목록이고 API 문서 버전을 싣는다(callRunner) */
 export async function 단위를돌린다(runId: number, 단위: 실행단위, 멈췄나: () => boolean, 잡은폰?: 잡은폰): Promise<void> {
   if (멈췄나()) return;
   // 시작 시각을 못 적었다고 실행을 버리지 않는다 — 판정과 끝난 때는 답을 저장할 때 따로 적는다

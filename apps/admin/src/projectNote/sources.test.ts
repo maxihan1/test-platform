@@ -1,4 +1,4 @@
-// 노트 사건이 서는 곳(BTS 알림 · 규칙 웹훅 · 표준 기획서 새 판)과 MCP note_read 를 실제 DB 로 본다. BTS 는 가짜다. DATABASE_URL이 있을 때만 돈다
+// 노트 사건이 서는 곳(BTS 알림 · 규칙 웹훅 · 표준 기획서 새 버전)과 MCP note_read 를 실제 DB 로 본다. BTS 는 가짜다. DATABASE_URL이 있을 때만 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -155,7 +155,7 @@ describe.skipIf(연결 === undefined)('노트 사건이 서는 곳 · note_read'
     expect(병합).toEqual([{ kind: 'PR_MERGED', payload: { issueKey: 'XNS-1', prNumber: 12, prUrl: 'https://github.com/x/y/pull/12', prTitle: '' } }]);
   });
 
-  it('표준 기획서 새 판은 PRD_VERSION — BTS 안 이은 프로젝트의 판은 안 쌓는다', async () => {
+  it('표준 기획서 새 버전은 PRD_VERSION — BTS 안 이은 프로젝트의 판은 안 쌓는다', async () => {
     const 항목 = { feature: '로그인', text: '다섯 번 틀리면 잠근다', basis: [{ from: '기획서.docx', quote: '잠근다' }], status: 'CONFIRMED' as const };
     await 사람저장(앱, 'XNR', 0, [항목], { username: 'xnr', displayName: '검사' });
     expect((await 사건들()).at(-1)).toEqual({ kind: 'PRD_VERSION', payload: { service: 'XNR', version: 1 } });

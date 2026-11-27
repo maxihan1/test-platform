@@ -53,7 +53,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   let 진행물음 = 0;
   const 받은중단: number[] = [];
   let 중단답 = true;
-  // 러너 GET /health 가 procedure 칸을 싣나 — 앞 판 러너는 안 싣는다
+  // 러너 GET /health 가 procedure 칸을 싣나 — 이전 버전 러너는 안 싣는다
   let 프로시저돈다 = false;
   const 옛환경 = {
     RUNNER_URL: process.env.RUNNER_URL,

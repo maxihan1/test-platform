@@ -1,4 +1,4 @@
-// 안정화 지표 오류 상세 화면 — 위치 줄 · 머리 · 해결 처리 · Issue Bunker 등록 · 판들 (도메인/안정화 §8.19 「상세」 · 시안 6판 Detail6 · Detail6m)
+// 안정화 지표 오류 상세 화면 — 위치 줄 · 머리 · 해결 처리 · Issue Bunker 등록 · 판들 (도메인/안정화 §8.19 「상세」 · 6차 시안 Detail6 · Detail6m)
 
 import { useState } from 'react';
 

@@ -164,7 +164,7 @@ const 메서드들 = ['get', 'post', 'put', 'patch', 'delete'];
 
 function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 맡기기 }) {
   const t = use말();
-  // 가장 새 판에서 고른다. 판을 고르는 칸은 두지 않는다 — 옛 판으로 시나리오를 만들 일은 드물다
+  // 가장 새 버전에서 고른다. 판을 고르는 칸은 두지 않는다 — 이전 버전으로 시나리오를 만들 일은 드물다
   const 문서 = useAsync(async () => {
     const { versions } = await apiDocApi.list(service.id);
     const 판 = versions[0];

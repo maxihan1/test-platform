@@ -1,4 +1,4 @@
-// 노트 고치기를 집을 때 싣는 note 칸 — 프로젝트 · 애플리케이션 · 지금 판 · 반영 안 된 사건 (도메인/BTS §7 「작성 에이전트 통로」 집기 note 칸)
+// 노트 고치기를 집을 때 싣는 note 칸 — 프로젝트 · 애플리케이션 · 현재 버전 · 반영 안 된 사건 (도메인/BTS §7 「작성 에이전트 통로」 집기 note 칸)
 
 import type { Pool, PoolClient } from 'pg';
 
@@ -19,7 +19,7 @@ export interface 노트집기칸 {
   events: { id: number; kind: string; payload: unknown; createdAt: string }[];
 }
 
-/** 프로젝트의 지금 판 — 받는 통로가 겹칠 앞 판도 이것이다. `손` 은 받는 통로의 잠근 트랜잭션이다 */
+/** 프로젝트의 현재 버전 — 받는 통로가 겹칠 이전 버전도 이것이다. `손` 은 받는 통로의 잠근 트랜잭션이다 */
 export async function 지금노트(projectId: number, 손?: PoolClient): Promise<{ version: number; savedAt: string; docs: 노트문서[] } | null> {
   const r = await (손 ?? (await db())).query<{ version: number; saved_at: Date; docs: 노트문서[] }>(
     'SELECT version, saved_at, docs FROM project_note WHERE project_id = $1 ORDER BY version DESC LIMIT 1',

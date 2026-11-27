@@ -157,7 +157,7 @@ export async function 앞빌드(client: Pick<Pool, 'query'>, serviceId: number, 
 
 /**
  * android 항목이 깔 앱 — 올린 APK 는 번호만 싣고 서명 주소는 폰을 잡은 뒤 만든다(runner.ts). 빌드가 없으면 그 줄의 app_path.
- * 앞 빌드도 같은 꼴로 싣는다 — 실행 앱이 빌드일 때만이다(app_path 로 도는 줄에는 앞 판이 없다)
+ * 앞 빌드도 같은 꼴로 싣는다 — 실행 앱이 빌드일 때만이다(app_path 로 도는 줄에는 이전 버전이 없다)
  */
 export function 앱칸(
   빌드: 빌드행 | null,

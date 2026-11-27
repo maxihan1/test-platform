@@ -27,8 +27,8 @@ export interface 판기록 {
 
 /**
  * 받은 키가 닿은 요구를 그 키가 처음 닿은 판 바로 앞 모습으로 돌린 판. 되돌릴 것이 없으면 changes 가 빈다.
- * 「처음 닿은 판」은 항목의 fromIssues 에 키가 처음 보인 판, 또는 키로 지운 줄(DEL)이 든 판이다 — 지운 항목은 지금 판에 없어 꼬리표가 붙을 자리가 없다.
- * 앞 판에 없던 항목은 지우고, 있던 항목은 그 모습 그대로 돌린다(지운 번호는 다시 안 주므로 lastNo 는 그대로다)
+ * 「처음 닿은 판」은 항목의 fromIssues 에 키가 처음 보인 판, 또는 키로 지운 줄(DEL)이 든 판이다 — 지운 항목은 현재 버전에 없어 꼬리표가 붙을 자리가 없다.
+ * 이전 버전에 없던 항목은 지우고, 있던 항목은 그 모습 그대로 돌린다(지운 번호는 다시 안 주므로 lastNo 는 그대로다)
  * ponytail: 키가 닿은 뒤 다른 이슈가 같은 요구를 또 고쳤으면 그 고침도 같이 사라진다(BTS-F7-01 시작 질문 4) — 잦아지면 판마다 거꾸로 되짚는다
  */
 export function 롤백판(기록: readonly 판기록[], 키들: readonly string[]): { items: PrdItem[]; changes: 판변경[] } {
@@ -67,7 +67,7 @@ export function 롤백판(기록: readonly 판기록[], 키들: readonly string[
   return { items: [...판.values()].sort((a, b) => a.reqId.localeCompare(b.reqId)), changes };
 }
 
-// ponytail: 판을 전부 읽는다 — 롤백은 드물다. 판이 수천이 되면 키가 닿은 판과 그 앞 판만 읽는다
+// ponytail: 판을 전부 읽는다 — 롤백은 드물다. 판이 수천이 되면 키가 닿은 판과 그 이전 버전만 읽는다
 async function 판기록읽기(손: PoolClient, 서비스: number): Promise<판기록[]> {
   return (await 손.query<판기록>('SELECT version, source, items, changes FROM prd_version WHERE service_id = $1 ORDER BY version', [서비스])).rows;
 }
@@ -97,7 +97,7 @@ export async function 롤백되돌리기(deployId: number, projectId: number, bu
       const 새 = 롤백판(기록, 키들);
       if (새.changes.length === 0) return null;
       const 열린 = await 열린작성(서비스, 손);
-      // 열린 작성이 있으면 판은 되돌림 요청을 집을 때 세운다(미룬롤백판세우기) — 그 작성이 들고 있던 옛 판 사본으로 판을 올려 되돌림을 덮는다(BTS-F9-01 문제 28).
+      // 열린 작성이 있으면 판은 되돌림 요청을 집을 때 세운다(미룬롤백판세우기) — 그 작성이 들고 있던 이전 버전 사본으로 판을 올려 되돌림을 덮는다(BTS-F9-01 문제 28).
       // 옮기기는 byPerson 항목만 지키고 합치는데 ROLLBACK 판 항목은 byPerson 이 아니다 — 결정 진행이 작성 중에 막히는(AUTHORING_OPEN) 것과 같은 까닭이다.
       // 실패한 신호를 같은 빌드로 다시 보내면 미룬 요청이 이미 있다 — 막 집혀 판을 세우는 중(RUNNING)이어도 본다
       if (열린.length > 0) {
@@ -147,8 +147,8 @@ export async function 롤백되돌리기(deployId: number, projectId: number, bu
 }
 
 /**
- * 미룬 롤백 판을 되돌림 요청을 집을 때 세운다 — 기다리던 작성이 다 닫힌 뒤라 그 작성이 올린 판까지 본 판 기록으로 짓는다.
- * 세운 판을 그 요청의 읽은 판으로 적고 rollbackKeys 를 지운다 — 집기를 되돌려 다시 집어도 판이 또 서지 않는다.
+ * 미룬 롤백 판을 되돌림 요청을 집을 때 세운다 — 기다리던 작성이 다 닫힌 뒤라 그 작성이 올린 버전까지 본 판 기록으로 짓는다.
+ * 세운 판을 그 요청의 읽은 버전으로 적고 rollbackKeys 를 지운다 — 집기를 되돌려 다시 집어도 판이 또 서지 않는다.
  * 배포 줄은 빌드로 찾는다 — 실패한 신호를 다시 보내면 앞 배포 줄이 지워지고 새 줄이 선다(deploy.ts)
  */
 export async function 미룬롤백판세우기(집은것: 요청): Promise<void> {

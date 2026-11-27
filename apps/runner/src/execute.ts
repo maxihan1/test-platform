@@ -113,7 +113,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
       env: {
         ...process.env,
         // 케이스마다 자기 값을 여기서 꺼낸다. 옛 꼴 파일은 첫 케이스의 값이다 (도메인/러너 §5.2 「프로시저 실행」 「케이스별 입력」)
-        // ponytail: 환경값 한 칸은 128KiB 까지다 — 케이스 10개의 값으로는 못 닿는다. 닿으면 자식을 못 띄워 500 이 되고, 그때 파일로 넘긴다(API 문서 판처럼)
+        // ponytail: 환경값 한 칸은 128KiB 까지다 — 케이스 10개의 값으로는 못 닿는다. 닿으면 자식을 못 띄워 500 이 되고, 그때 파일로 넘긴다(API 문서 버전처럼)
         PLATFORM_CASES: JSON.stringify(req.cases),
         // 사람이 직접 돌릴 때 쓰는 값이다 — 러너를 켠 셸의 값을 자식이 물려받지 않게 비운다
         PLATFORM_PARAMS: '',

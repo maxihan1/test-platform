@@ -51,7 +51,7 @@ export function 열기(사람: 사용자, 통로: string, service: string): numb
 }
 
 /**
- * PRD 요구 찾기 — 지금 판에서 낱말이 모두 든 줄과 그 요구를 덮는 케이스 (GET /api/prd 와 같은 권한).
+ * PRD 요구 찾기 — 현재 버전에서 낱말이 모두 든 줄과 그 요구를 덮는 케이스 (GET /api/prd 와 같은 권한).
  * 낱말은 띄어쓰기로 쪼갠다 — 「최소 주문 금액」이 「주문 금액은 최소 1만 원」에도 걸려야 한다
  */
 export async function prd찾기(사람: 사용자, service: string, query: string, page = 0): Promise<도구답> {

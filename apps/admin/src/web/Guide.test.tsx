@@ -17,7 +17,7 @@ const { 지금, 저장, 더하기, 빼기, 글자, 기록, 옛판 } = vi.hoisted
   빼기: vi.fn((_s: string, _id: number, _base: number) => Promise.resolve({ version: 4 })),
   글자: vi.fn((_s: string, _id: number) => Promise.resolve({ text: '환불은 7일 안에만 받습니다' })),
   기록: vi.fn((_s: string): Promise<GuideVersionRow[]> => Promise.resolve([])),
-  옛판: vi.fn((_s: string, _v: number): Promise<ServiceGuide> => Promise.reject(new Error('옛 판을 정하지 않았다'))),
+  옛판: vi.fn((_s: string, _v: number): Promise<ServiceGuide> => Promise.reject(new Error('이전 버전을 정하지 않았다'))),
 }));
 
 vi.mock('./guideApi.js', async (importOriginal) => {

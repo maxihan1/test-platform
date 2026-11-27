@@ -21,7 +21,7 @@ export default async function btsDraftRoutes(app: FastifyInstance): Promise<void
     const 서비스 = 행.serviceId;
     if (행.kind !== 'PRD_DRAFT' || 서비스 === null) return reply.code(400).send({ error: 'BAD_KIND', detail: 행.kind });
     if (행.status !== 'RUNNING') return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
-    // 번호는 자식이 읽은 판으로 본다 — 도는 사이 사람이 새 판을 저장해도 초안이 본 판과 견준다(0 은 PRD 가 아직 없음)
+    // 번호는 자식이 읽은 버전으로 본다 — 도는 사이 사람이 새 버전을 저장해도 초안이 본 판과 견준다(0 은 PRD 가 아직 없음)
     const { prdVersion, ...몸 } = (req.body ?? {}) as { prdVersion?: unknown };
     if (typeof prdVersion !== 'number' || !Number.isSafeInteger(prdVersion) || prdVersion < 0) return reply.code(400).send({ error: 'BAD_DRAFT', detail: 'prdVersion' });
     const pool = await db();

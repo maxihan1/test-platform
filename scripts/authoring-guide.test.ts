@@ -1,4 +1,4 @@
-// 서비스 가이드 받아 두기 검사 — guide/ 에 글 셋 · 첨부 · 판 번호 · 「비밀번호: 값」 가림 · 워드 원본 지우기 · 못 받아도 간다
+// 서비스 가이드 받아 두기 검사 — guide/ 에 글 셋 · 첨부 · 버전 번호 · 「비밀번호: 값」 가림 · 워드 원본 지우기 · 못 받아도 간다
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -49,7 +49,7 @@ describe('가이드읽기', () => {
 });
 
 describe('가이드글', () => {
-  it('첫 줄이 판 번호 · 구획 셋 · 빈 구획은 글 없음 · 첨부는 구획 아래 읽을 자리와 원래 이름, 못 읽은 것은 까닭', () => {
+  it('첫 줄이 버전 번호 · 구획 셋 · 빈 구획은 글 없음 · 첨부는 구획 아래 읽을 자리와 원래 이름, 못 읽은 것은 까닭', () => {
     const 글 = 가이드글(판, [
       { 구획: 'policy', 이름: '결제.docx', 자리: '/자료/guide/7.txt' },
       { 구획: 'policy', 이름: '옛.doc', 자리: null, 까닭: '옛 워드' },
@@ -62,7 +62,7 @@ describe('가이드글', () => {
 });
 
 describe('가이드받기', () => {
-  it('판을 받아 guide/guide.md 에 두고 판 번호를 돌려준다 · 「비밀번호: 값」 꼴을 가린다', async () => {
+  it('판을 받아 guide/guide.md 에 두고 버전 번호를 돌려준다 · 「비밀번호: 값」 꼴을 가린다', async () => {
     const 건것 = 서버답(판);
     expect(await 가이드받기(서버, 'MKT', 7, 자료, 안바꿈, null)).toBe(3);
     expect(건것).toEqual(['http://admin:3000/api/authoring/requests/7/guide?service=MKT']);

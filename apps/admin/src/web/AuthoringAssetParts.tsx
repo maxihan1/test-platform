@@ -7,7 +7,7 @@ import { use말 } from './i18n.js';
 export function 자료고리({ 요청, 자료, 글 }: { 요청: number; 자료: AuthoringAsset; 글: string }) {
   const t = use말();
   if (자료.kind === 'API_DOC') {
-    // 서버는 판 번호를 따로 싣지 않고 이름을 「API 문서 판 N」으로 짓는다 (authoring/assetStore.ts)
+    // 서버는 버전 번호를 따로 싣지 않고 이름을 「API 문서 버전 N」으로 짓는다 (authoring/assetStore.ts)
     const 판 = /(\d+)$/.exec(자료.name)?.[1];
     if (판 !== undefined) return <a href={`#/api/docs/${판}`}>{t('API 문서 버전 {버전}', { 버전: 판 })}</a>;
   }

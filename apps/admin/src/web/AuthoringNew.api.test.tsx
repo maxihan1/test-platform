@@ -61,7 +61,7 @@ async function 그린다(바꿀것: { envs?: EnvRow[]; on넣었다?: () => void 
 }
 
 describe('새 작성 요청 — API 애플리케이션', () => {
-  it('판 고르개(가장 새 판이 현재 버전)와 대상 서버를 보이고 피그마 · 대조는 숨긴다', async () => {
+  it('판 고르개(가장 새 버전이 현재 버전)와 대상 서버를 보이고 피그마 · 대조는 숨긴다', async () => {
     await 그린다();
     expect(within(screen.getByRole('list', { name: '단계' })).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['1 가이드', '2 자료', '3 확인']);
     const 고르개 = await screen.findByRole('combobox', { name: 'API 문서' });

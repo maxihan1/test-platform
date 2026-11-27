@@ -1,5 +1,5 @@
 // 「PRD 관리」 화면 — 표준 기획서를 보고 고치고 확정한다 (도메인/작성 §3.6 「★ 표준 기획서」 「사람이 고칠 때」 · 2026-10-10 시안 C 「할 일 먼저」)
-// 저장 · 되돌리기는 바로 새 판이다. 확인 필요 확정 · 바뀐 요구 반영은 여기가 아니라 테스트 작성의 「결정 필요」 한 곳에서 한다 (도메인/작성 §3.6 「★ 결정 목록」)
+// 저장 · 되돌리기는 바로 새 버전이다. 확인 필요 확정 · 바뀐 요구 반영은 여기가 아니라 테스트 작성의 「결정 필요」 한 곳에서 한다 (도메인/작성 §3.6 「★ 결정 목록」)
 
 import { useMemo, useState } from 'react';
 
@@ -16,7 +16,7 @@ import type { 판정 } from './role.js';
 import { Failed, Loading, message, useAsync, 기다림글자, 받을이름, 파일로저장 } from './ui.js';
 
 /**
- * 새 판을 짓는 일 하나. 지금 판 번호를 넘겨 보낸다 — 그 사이 다른 저장이 있었으면 서버가 PRD_STALE 로 막는다.
+ * 새 버전을 짓는 일 하나. 현재 버전 번호를 넘겨 보낸다 — 그 사이 다른 저장이 있었으면 서버가 PRD_STALE 로 막는다.
  * 실패 까닭은 맨 위 알림에 띄우고, 두 번째 인자가 있으면 거기에도 알려 준다 — 고치던 칸 옆에 보이려고
  */
 export type 판짓기 = (일: (baseVersion: number) => Promise<{ version: number }>, 실패?: (글: string) => void) => Promise<boolean>;
@@ -70,7 +70,7 @@ export function Prd({
       const 글 = message(err, 언어);
       set알림({ ok: false, 글 });
       실패?.(글);
-      // 다른 사람이 먼저 저장했다 — 지금 판을 다시 읽어야 다시 보낼 수 있다. 고치던 칸은 그 요구가 남아 있으면 그대로 남는다
+      // 다른 사람이 먼저 저장했다 — 현재 버전을 다시 읽어야 다시 보낼 수 있다. 고치던 칸은 그 요구가 남아 있으면 그대로 남는다
       if (err instanceof ApiError && err.code === 'PRD_STALE') await 판.reload();
       return false;
     }

@@ -1,4 +1,4 @@
-// 미확정 계산 — 지도 ① 과 표준 기획서 지금 판에서, 판에 없는 케이스는 확정으로 (도메인/작성 §3.6 「★ 표준 기획서」 「미확정」)
+// 미확정 계산 — 지도 ① 과 표준 기획서 현재 버전에서, 판에 없는 케이스는 확정으로 (도메인/작성 §3.6 「★ 표준 기획서」 「미확정」)
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -67,7 +67,7 @@ describe.skipIf(연결 === undefined)('미확정사유SQL', () => {
     await q('DELETE FROM service WHERE id = $1', [서비스]);
   });
 
-  it('덮는 요구 가운데 지금 판에서 확인 필요인 번호들이 사유다', async () => {
+  it('덮는 요구 가운데 현재 버전에서 확인 필요인 번호들이 사유다', async () => {
     await 판넣기(1, [항목('XUN-REQ-001', 'NEEDS_CHECK'), 항목('XUN-REQ-002', 'NEEDS_CHECK'), 항목('XUN-REQ-003', 'CONFIRMED')]);
     await 지도([
       ['XUN-REQ-002', 'XUN-FN-001'],
@@ -91,7 +91,7 @@ describe.skipIf(연결 === undefined)('미확정사유SQL', () => {
     expect(await 사유들()).toMatchObject({ 'XUN-FN-002': null, 'XUN-FN-003': null, 'XUN-FN-004': null });
   });
 
-  it('「PRD 관리」에서 사람이 확정하면 다음 판부터 확정이다 — 옛 판은 안 본다', async () => {
+  it('「PRD 관리」에서 사람이 확정하면 다음 판부터 확정이다 — 이전 버전은 안 본다', async () => {
     await 판넣기(1, [항목('XUN-REQ-001', 'NEEDS_CHECK')]);
     await 지도([['XUN-REQ-001', 'XUN-FN-001'], ['XUN-REQ-001', 'XUN-FN-002']]);
     expect((await 사유들())['XUN-FN-002']).toBe('확인 필요 — XUN-REQ-001');

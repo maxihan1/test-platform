@@ -8,7 +8,7 @@ import { 확인창 } from './ConfirmBox.js';
 import { use말 } from './i18n.js';
 import { 기다림글자 } from './ui.js';
 
-/** 가이드를 저장하면 서버에 새 판이 생긴다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자) */
+/** 가이드를 저장하면 서버에 새 버전이 생긴다 — 누르기 전에 한 번 묻는다 (2026-11-26 사용자) */
 export function 가이드저장다음({ 바뀜, busy, 대기, on저장 }: { 바뀜: boolean; busy: boolean; 대기: boolean; on저장: () => void }) {
   const t = use말();
   const [묻나, set묻나] = useState(false);

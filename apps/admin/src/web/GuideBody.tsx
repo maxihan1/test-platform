@@ -38,7 +38,7 @@ export function useGuideEdit(service: string): 가이드상태 {
   const t = use말();
   const 언어 = use언어();
   const 판 = useAsync(() => guideApi.now(service), [service]);
-  // 손댄 구획만 든다 — 다른 사람이 먼저 저장해 판을 다시 읽으면 손대지 않은 구획은 새 판 글이 보이고 그대로 보내진다
+  // 손댄 구획만 든다 — 다른 사람이 먼저 저장해 판을 다시 읽으면 손대지 않은 구획은 새 버전 글이 보이고 그대로 보내진다
   const [초안, set초안안] = useState<Partial<가이드글>>({});
   // 저장이 오가는 동안 친 글자를 저장이 끝난 뒤에 봐야 한다 — 저장을 부른 때의 초안은 낡았다
   const 최신초안 = useRef(초안);
@@ -65,7 +65,7 @@ export function useGuideEdit(service: string): 가이드상태 {
       return true;
     } catch (err) {
       set알림({ ok: false, 글: message(err, 언어) });
-      // 다른 사람이 먼저 저장했다 — 지금 판을 다시 읽어야 다시 보낼 수 있다. 고치던 글은 남는다
+      // 다른 사람이 먼저 저장했다 — 현재 버전을 다시 읽어야 다시 보낼 수 있다. 고치던 글은 남는다
       if (err instanceof ApiError && err.code === 'GUIDE_STALE') await 판.reload();
       return false;
     } finally {

@@ -128,7 +128,7 @@ export function Modal({ 제목, onClose, children, 버튼, 틀, on닫기단추 =
                 </li>
               ))}
             </ol>
-            {/* 앞 판은 Esc 로만 닫혔다. 바닥 단추 「닫기」와 이름이 겹치지 않게 「창 닫기」다 */}
+            {/* 이전 버전은 Esc 로만 닫혔다. 바닥 단추 「닫기」와 이름이 겹치지 않게 「창 닫기」다 */}
             <button type="button" className="frame-x" aria-label={t('창 닫기')} onClick={on닫기단추}>
               ×
             </button>

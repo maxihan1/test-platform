@@ -39,7 +39,7 @@ describe('PRD 관리 — 목차의 정리 필요 묶음', () => {
     expect([...document.querySelectorAll('.toc-label')].filter((el) => el.textContent?.includes('정리 필요'))).toHaveLength(1);
   });
 
-  it('눌러서 옮기면 그 묶음의 요구만 feature 가 바뀐 판 전체를 보내고, 알림을 한 줄 띄운다', async () => {
+  it('눌러서 옮기면 그 묶음의 요구만 feature 가 바뀐 버전 전체를 보내고, 알림을 한 줄 띄운다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await 정리목차());
     const 서랍 = screen.getByRole('complementary');

@@ -148,7 +148,7 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     expect(사진.statusCode).toBeGreaterThanOrEqual(400);
   });
 
-  it('결과 통로 — 꼴 · 상한은 400 으로 앞 판을 남기고, 맞으면 앞 판에 겹쳐 새 판을 만든다', async () => {
+  it('결과 통로 — 꼴 · 상한은 400 으로 이전 버전을 남기고, 맞으면 이전 버전에 겹쳐 새 버전을 만든다', async () => {
     const id = Number((await 열린노트())[0]!.id);
     expect((await 노트보내기(id, { docs: [{ name: '한눈에' }] })).json()).toMatchObject({ error: 'BAD_NOTE' });
     expect((await 노트보내기(id, { docs: 다섯.slice(1) })).json()).toMatchObject({ error: 'BAD_NOTE' });

@@ -15,7 +15,7 @@ export const 구획인가 = (값: unknown): 값 is GuideSection => 구획들.inc
 export type 글셋 = Record<GuideSection, string>;
 export type 판파일 = { id: number; section: GuideSection };
 
-/** 질의 · 경로 글자의 판 번호. 0 은 「아직 가이드가 없다」. JSON 본문의 판 번호는 표준 기획서와 같이 숫자만 받는다(prd/routes.ts `판번호`) */
+/** 질의 · 경로 글자의 버전 번호. 0 은 「아직 가이드가 없다」. JSON 본문의 버전 번호는 표준 기획서와 같이 숫자만 받는다(prd/routes.ts `판번호`) */
 export function 글자판번호(값: unknown, 최소 = 0): number | null {
   if (typeof 값 !== 'string' || !/^\d{1,10}$/.test(값)) return null;
   const n = Number(값);
@@ -45,7 +45,7 @@ export interface 판요약 {
 // DB 의 md5(text) 와 같은 값이다 — 둘 다 UTF-8 바이트를 잰다
 const 빈글md5 = createHash('md5').update('').digest('hex');
 
-/** 최신 먼저. 판 1 은 앞 판을 빈 가이드로 본다 */
+/** 최신 먼저. 판 1 은 이전 버전을 빈 가이드로 본다 */
 export function 변경기록(판들: 판요약[], 이름: ReadonlyMap<number, string>): GuideVersionRow[] {
   const 차례 = [...판들].sort((a, b) => a.version - b.version);
   const 줄: GuideVersionRow[] = [];

@@ -153,7 +153,7 @@ export async function 이어작성세우기(
   const 대조 = 원본.compare
     ? await 역방향칸판정({ compare: true, env: 원본.env, startUrl: 원본.startUrl }, 입력.서비스)
     : ({ compare: false } as const);
-  // API 애플리케이션 원본은 대조가 아니어도 env 를 물려받는다 — 재실행과 같은 판정 (§7 「AUTHOR API 문서 판」)
+  // API 애플리케이션 원본은 대조가 아니어도 env 를 물려받는다 — 재실행과 같은 판정 (§7 「AUTHOR API 문서 버전」)
   const api = await 재실행API(입력.서비스, 원본);
   const 결과 = await 뿌리잠그고(원본.id, async (손): Promise<{ code: number; error: string; detail?: number[] } | Awaited<ReturnType<typeof 이어작성준비>>> => {
     const 까닭 = 막는까닭(await 이어작성상태읽기(원본.id, 손));

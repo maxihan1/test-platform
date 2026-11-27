@@ -1,5 +1,5 @@
 // 실행 결과의 실패를 표준 기획서 요구로 모으고, 케이스마다 「화면이 맞음」 · 「버그」 판정을 읽는다 (도메인/리포팅 「실패 요구사항」)
-// 지금 지도 ① · 지금 판으로 세고 박제하지 않는다 — 읽기 전용이다. 쓰는 곳은 버그 남기기 하나(run_case_bug)
+// 지금 지도 ① · 현재 버전으로 세고 박제하지 않는다 — 읽기 전용이다. 쓰는 곳은 버그 남기기 하나(run_case_bug)
 
 import type { PrdItem } from '@platform/kit';
 import type { Pool } from 'pg';
@@ -31,7 +31,7 @@ async function 요구읽기(pool: Pool, runId: number, tcIds: string[]) {
   const 판: PrdItem[] = [];
   const 행들: { reqId: string; tcId: string; axis: 종류 }[] = [];
   if (서비스번호 !== undefined && tcIds.length > 0) {
-    // 지금 판은 「PRD 관리」와 같은 함수로 읽는다 — 정의가 두 벌이면 칸 · 고리가 메뉴와 어긋난다
+    // 현재 버전은 「PRD 관리」와 같은 함수로 읽는다 — 정의가 두 벌이면 칸 · 고리가 메뉴와 어긋난다
     const [판행, 요구행] = await Promise.all([
       지금판(Number(서비스번호)),
       pool.query<{ req_id: string; tc_id: string; axis: 종류 }>(

@@ -23,7 +23,7 @@ export type 다시작성준비 = { 서비스: number; from: number; to: number; 
 /**
  * 판 비교에서 없어진 것 빼고 전부 — 결정 진행은 API 를 하나씩 고르지 않는다 (작성 §3.6 「★ 결정 목록」 ③ 「바뀐 API」).
  * 남은 게 없으면 NOTHING_TO_APPLY — 없어진 API 의 케이스는 지우지 않으니 자식이 할 일이 없다(지우기는 케이스 고치기).
- * 판이 없으면 NOT_FOUND(판 비교 통로와 같다). 새 판이 마지막 판이 아니면 NOT_LATEST_VERSION — 옛 판으로 다시 쓰면 케이스가 뒤로 간다.
+ * 판이 없으면 NOT_FOUND(판 비교 통로와 같다). 새 버전이 마지막 버전이 아니면 NOT_LATEST_VERSION — 이전 버전으로 다시 쓰면 케이스가 뒤로 간다.
  * 풀 연결로 읽기만 한다 — 결정 진행이 잠금을 잡기 전에 부른다
  */
 export async function 다시작성준비하기(입력: { 서비스: number; from: number; to: number; env: unknown }): Promise<다시작성준비 | 다시작성오류> {
@@ -60,7 +60,7 @@ export async function 다시작성넣기(
     toVersion: 준비.to,
     operations: 준비.바뀜.map((c) => ({ ...c, tcIds: 케이스.get(`${c.method} ${c.path}`) ?? [] })),
   };
-  // 자료는 새 판 하나 — 작성 요청 만들기의 API 판 자료와 같은 꼴이라 집기 응답에 target · apiDoc 이 그대로 실린다
+  // 자료는 새 버전 하나 — 작성 요청 만들기의 API 판 자료와 같은 꼴이라 집기 응답에 target · apiDoc 이 그대로 실린다
   const r = await 손.query<{ id: string }>(
     `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, env)
      VALUES ($1, 'AUTHOR', $2, $3, $4, 'PENDING', $5) RETURNING id`,

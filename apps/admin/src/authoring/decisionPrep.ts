@@ -135,7 +135,7 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
         if ('error' in 판정) return 틀림(p.key);
       }
       if (typeof env !== 'string') return 틀림(p.key);
-      // 고른 화면은 목록에 있는 틀이고 하나 이상 · 겹침 없음. 안 보내면 모두다(앞 판 화면과 같다)
+      // 고른 화면은 목록에 있는 틀이고 하나 이상 · 겹침 없음. 안 보내면 모두다(이전 버전 화면과 같다)
       const 틀들 = [...new Set((항목.screens ?? []).map((x) => x.url))];
       const 고른 = p.screens;
       if (고른 !== undefined && (!Array.isArray(고른) || 고른.length === 0 || new Set(고른).size !== 고른.length || !고른.every((u) => typeof u === 'string' && 틀들.includes(u)))) return 틀림(p.key);

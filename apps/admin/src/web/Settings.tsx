@@ -39,7 +39,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   const users = useAsync<{ items: UserRow[] }>(() => api.settingsUsers(), []);
   // 저장한 서비스 칸을 새로 읽은 값으로 다시 그린다 — 안 그리면 적어 넣은 비밀값이 칸에 남아 다음 저장에 또 간다(2026-10-09 코드 검토)
   const [판, set판] = useState(0);
-  // 방금 저장한 자리. 그 자리를 보는 동안만 「저장했습니다」를 띄운다 — 앞 판은 저장하면 폼이 닫혀 그것이 확인이었다
+  // 방금 저장한 자리. 그 자리를 보는 동안만 「저장했습니다」를 띄운다 — 이전 버전은 저장하면 폼이 닫혀 그것이 확인이었다
   const [저장한곳, set저장한곳] = useState<string | null>(null);
   // 애플리케이션마다 보던 탭. 저장하면 패널이 다시 그려져서 패널 안에 두면 기본 정보로 돌아간다
   const [탭들, set탭들] = useState<Record<string, 서비스탭>>({});

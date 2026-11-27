@@ -150,7 +150,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
     expect(집은.mcpKey).toMatch(/^mcj_/);
   });
 
-  it('초안 없이 끝내면 400 BAD_DRAFT, 틀린 초안은 400 이고 맞는 초안은 result.draft 에 지금 판 번호와 같이 남는다', async () => {
+  it('초안 없이 끝내면 400 BAD_DRAFT, 틀린 초안은 400 이고 맞는 초안은 result.draft 에 현재 버전 번호와 같이 남는다', async () => {
     const id = Number((await q(`SELECT id FROM authoring_request WHERE service_id = $1 AND status = 'RUNNING'`, [앱.XPT])).rows[0].id);
     expect((await 끝내기(id, 'XPT', { status: 'DONE' })).json()).toEqual({ error: 'BAD_DRAFT', detail: 'draft' });
     expect((await 끝내기(id, 'XPT', { status: 'FAILED', error: 'x', result: { draft: { rows: [] } } })).json()).toEqual({ error: 'BAD_DRAFT', detail: 'result' });
@@ -159,7 +159,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
     expect(틀림.json()).toEqual({ error: 'BAD_DRAFT', detail: 'rows.0.reqId' });
     expect((await 초안보내기(id, { rows: [] })).json()).toEqual({ error: 'BAD_DRAFT', detail: 'prdVersion' });
     expect((await 초안보내기(id, { prdVersion: 9, rows: [] })).json()).toEqual({ error: 'BAD_DRAFT', detail: 'prdVersion' });
-    // 자식이 도는 사이 사람이 그 요구를 지운 새 판을 저장해도 자식이 본 판(1)으로 견준다
+    // 자식이 도는 사이 사람이 그 요구를 지운 새 버전을 저장해도 자식이 본 판(1)으로 견준다
     await q(`INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name) VALUES ($1, 2, '[]', 1, 'PERSON', 'xpt', 'xpt')`, [앱.XPT]);
     const 초안 = { rows: [{ op: 'EDIT', reqId: 'XPT-FN-001', text: '최소 주문 금액은 2만 원이다', basis: 'XPQ-1 본문', issueKeys: ['XPQ-1'], sure: true }] };
     const 받음 = await 초안보내기(id, { ...초안, prdVersion: 1 });

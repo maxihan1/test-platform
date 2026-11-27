@@ -55,7 +55,7 @@ export function 버전뽑기(글: string): string | null {
 }
 
 /**
- * 올린 판이 우리가 쓰는 깃발을 다 아는가. 격리의 한 축이 `--disallowedTools`·`--permission-mode` 라
+ * 올린 버전이 우리가 쓰는 깃발을 다 아는가. 격리의 한 축이 `--disallowedTools`·`--permission-mode` 라
  * 설치는 됐는데 깃발이 사라진 판으로 돌면 막아 둔 도구가 조용히 풀린다 (2026-09-24 계획 검토)
  */
 export function 점검통과(도움말: string): boolean {
