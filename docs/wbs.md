@@ -1603,7 +1603,8 @@
 
 ### PERF-F2 — PC 게임 성능 · 측정 정의 PC · 폰 공통 (2026-11-27 사용자 · 성능 결정 17 · 18)
 
-- [ ] `PERF-F2-01` 명세 — 성능 §3.9 「기기 성능: PC 게임과 측정 정의」 · §7 · 러너 한 줄 꼴 · VISION PC 기대 모양 · perf_device_metric 새 칸 (계약 블록은 전부 대기)
+- [x] `PERF-F2-01` 명세 — 성능 §3.9 「기기 성능: PC 게임과 측정 정의」 · §7 · 러너 1초 줄 형태 · VISION PC 기대 모양 · perf_device_metric 새 칸 (계약 블록은 전부 대기)
+  - 근거 PR #1027 · 2026-11-27
 - [ ] `PERF-F2-02` 러너 폰 측정 — 프레임 시간 분포 · 열 상태 · 게임 실행 시간 SDK 응답 (러너 perfAdb · perfRead · perfDevice. Devicefarm `packages/control-adb/perf.ts` 도 같은 고침 — 그쪽 저장소 줄로)
 - [ ] `PERF-F2-03` DB · 서버 셈 — perf_device_metric 새 칸 마이그레이션 · 1% Low 분포 셈 · 분당 끊김 · `JANK_PER_MIN` · 누수 의심 1% · 응답 새 칸
 - [ ] `PERF-F2-04` VISION PC 측정 — pc-agent 에 PresentMon · 성능 카운터 · 잡기 perf · 사양 · 게임 실행 시간 (Devicefarm 저장소 — 그쪽 명세부터)
