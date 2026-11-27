@@ -11,7 +11,7 @@ import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계�
 import { 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { 놀이시작뒤, 놀이회고뒤, 상태읽기 } from './authoring-learn-io.js';
 import { 결과읽기, 계산안고침, 계산찍기, 곳안늚, 맵빈곳, 맵종류, 놀이막기 } from './authoring-learn-play.js';
-import type { 따라갈 } from './authoring-game-follow.js';
+import type { 따라갈 } from '@platform/kit/gameplay';
 import { 시뮬막기 } from './authoring-learn-sim.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 

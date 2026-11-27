@@ -1,17 +1,13 @@
 // 게임플레이 진행 조건 — 시뮬레이션으로 끝 웨이브 · 보스까지 이기는 안이 있어야 판을 돌고, 판이 시뮬과 어긋나면 그 판을 재현해야 다음 판이 돈다 (도메인/게임 §3.10 「게임플레이」)
 // 2026-11-28 사용자 「확실히 시뮬레이션 하고 스테이지를 돌자」 — 판에서 알아낸 값이 빌드 데이터에 처음부터 있었는데 판을 수십 번 돌았다(작성 16094 · 16097 · 16098)
 // 게이트는 AI 가 적은 줄 글자를 믿지 않는다. 입력 파일 해시 · 엔진판을 보고 고른 정책으로 다시 돌려 이김을 확인한다
-// 판은 조작 도우미가 그 순서대로 한다(authoring-game-follow) — 여기서 따라갈 것(모델 · 고른 순서 · 버금 순서)을 넘긴다
+// 판은 조작 도우미가 그 순서대로 한다(kit gameplay 의 따라가기) — 여기서 따라갈 것(모델 · 고른 순서 · 버금 순서)을 넘긴다
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { 지도줄 } from './authoring-game-find.js';
-import { 기대여유 } from './authoring-game-follow-plan.js';
-import type { 따라갈 } from './authoring-game-follow.js';
-import { type 규칙, 입력읽기 } from './authoring-game-sim-input.js';
+import { type 규칙, type 따라갈, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가 } from '@platform/kit/gameplay';
 import { 격자걷기, 근거틀림, 빌드글, 손넣기, 손재기, 판행동기록, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
-import { 입력정책인가 } from './authoring-game-sim-search.js';
-import { 돌리기, 엔진판 } from './authoring-game-sim.js';
 import { type 기대, type 볼값, type 값기록, type 판기록, 가장큰, 계산머리, 판기록들 } from './authoring-learn-check.js';
 import { 계획곳, 곳셈, 곳줄들, 못닿고짐, 시뮬불가읽기 } from './authoring-learn-play.js';
 

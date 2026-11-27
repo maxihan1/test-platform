@@ -113,7 +113,7 @@ export interface 어긋남 { 초: number; 값이름: string; 값: number; 기대
 export interface 값기록 { 계획: string; 볼값: 볼값[]; 간격ms: number; 때: 값때[]; 어긋남: 어긋남 | null; 화면다름: string[]; 계산?: Record<string, string>; 서있음?: number }
 export interface 끝글줄 { 주소: string; 경로: string; 글: string }
 /** 멈춤 — 판 중간 멈춤 순간의 볼값(authoring-game-play-stop) */
-/** 따라감 — 순서대로 하기(authoring-game-follow)가 남긴 행동기록 · 다시 계산 · 끝. 함수가 끊겨도(멈춤 · 한도) 남는다 */
+/** 따라감 — 순서대로 하기(kit gameplay)가 남긴 행동기록 · 다시 계산 · 끝. 함수가 끊겨도(멈춤 · 한도) 남는다 */
 export interface 판기록 { 이름: string; 값?: unknown; 값기록?: 값기록; 끝글?: 끝글줄[]; 장면들?: string[]; 멈춤?: { 초: number; 값: Record<string, number | null> }; 치트?: true; 시간표?: 시간표; 따라감?: unknown }
 
 /** 자료 폴더의 판 기록 — 지켜보기 · 새것 글은 뺀다. 이름순이 시간순이다 */

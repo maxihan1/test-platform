@@ -1,10 +1,9 @@
 // 순서대로 하기 — 순서표 묶기 · 판 중간 모델 · 반응 고르기 · 가짜 판에서 따라가기(다시 계산 · 한 바퀴 줍기 · 재화 모자람 · 안 됨 빼기 · 반응 동작 · 손동작 검사)
 import { describe, expect, it } from 'vitest';
 
-import { 가까운순, 반응고르기, 순서표, 예상값, 이어모델, 표글 } from './authoring-game-follow-plan.js';
-import { type 따라간기록, type 손, type 판상태, 따라가기, 새기록, 손읽기, 순서대로함수 } from './authoring-game-follow.js';
-import { 판행동기록 } from './authoring-game-sim-run.js';
-import { type 모델, type 점, 입력읽기 } from './authoring-game-sim-input.js';
+import { 가까운순, 반응고르기, 순서표, 예상값, 이어모델, 표글 } from './followPlan.js';
+import { type 따라간기록, type 손, type 판상태, 따라가기, 새기록, 손읽기, 순서대로함수 } from './follow.js';
+import { type 모델, type 점, 입력읽기 } from './simInput.js';
 
 const 기본 = (덧: Record<string, unknown> = {}): Record<string, unknown> => ({
   계산: '시뮬',
@@ -175,7 +174,7 @@ describe('가짜 판에서 따라가기', () => {
 });
 
 describe('시간 한도를 넘는 판을 이어 하기', () => {
-  it('안 끝난 앞 기록에 이어 붙이면 행동의 초가 판 처음부터 이어지고, 재현은 앞 기록의 행동부터 읽는다', async () => {
+  it('안 끝난 앞 기록에 이어 붙이면 행동의 초가 판 처음부터 이어진다', async () => {
     expect(새기록()).toEqual({ 행동기록: [], 다시계산: [] });
     expect(새기록({ 이름: '앞', 따라감: { 행동기록: [], 다시계산: [], 끝: '짐' } })).toEqual({ 행동기록: [], 다시계산: [] });
     expect(새기록({ 이름: '앞', 값: 1 } as never)).toEqual({ 행동기록: [], 다시계산: [] });
@@ -187,9 +186,6 @@ describe('시간 한도를 넘는 판을 이어 하기', () => {
     await 따라가기(판.손, { 모델: m, 정책: m.정책들[0]!, 버금: [] }, 이은, 판.덧);
     expect(이은.행동기록[0]).toMatchObject({ 초: 420.5, 행동: '줍기', 시작초: 421, 끝초: 422.2 });
     expect(이은.걸린초).toBeGreaterThan(1.5);
-    const 기록들 = [{ 이름: '20261128000000000-판', 따라감: { 행동기록: 앞행동 } }, { 이름: '20261128000700000-판', 따라감: 이은 }];
-    expect(판행동기록(기록들, 기록들[1]!)!.map((x) => [x.초, x.행동])).toEqual([[0, '놓기'], [420.5, '줍기']]);
-    expect(판행동기록(기록들, 기록들[0]!)!.length).toBe(1);
   });
 });
 

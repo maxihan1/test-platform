@@ -1,12 +1,9 @@
-// 시뮬레이션 돌리기 — 손 시간 · 걷는 속도는 판 행동기록에서 재고, 걷는 거리는 격자 길찾기로 내고, 순서 찾기(authoring-game-sim-search)가 고른 순서를 줄로 낸다 (도메인/게임 §3.10 「게임 정보 먼저 쌓기」 ④)
-// 계산기(authoring-game-calc.ts 의 `시뮬`) · 게이트(authoring-learn-sim.ts) · 순서대로 하기(authoring-game-follow.ts)가 같이 쓴다
+// 시뮬레이션 돌리기 — 손 시간 · 걷는 속도는 판 기록에서 재고, 걷는 거리는 격자 길찾기로 내고, 순서 찾기(kit gameplay)가 고른 순서를 줄로 낸다 (도메인/게임 §3.10 「게임 정보 먼저 쌓기」 ④)
+// 계산기(authoring-game-calc.ts 의 `시뮬`) · 게이트(authoring-learn-sim.ts)가 같이 쓴다. 엔진 · 순서 찾기 · 순서대로 하기는 케이스도 쓰게 `packages/kit/src/gameplay` 에 있다
 import { createHash } from 'node:crypto';
 
 import { 곳격자, 길내기, 맨쌍글 } from './authoring-game-path.js';
-import { type 모델, type 행동종류, type 점, 행동종류들 } from './authoring-game-sim-input.js';
-import { 순서표, 표글 } from './authoring-game-follow-plan.js';
-import { 느린손배, 정책글, 찾기 } from './authoring-game-sim-search.js';
-import { type 걷는거리, type 시뮬결과, type 행동, 돌리기, 엔진판 } from './authoring-game-sim.js';
+import { type 걷는거리, type 모델, type 시뮬결과, type 잰손, type 점, type 행동, 느린손배, 돌리기, 손넣기, 손셈, 순서표, 엔진판, 정책글, 찾기, 표글, 행동초첫값 } from '@platform/kit/gameplay';
 import { type 지도줄, 지금지도 } from './authoring-game-find.js';
 import { 게임자리 } from './authoring-game.js';
 import { 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -14,10 +11,7 @@ import { type 판기록, 판기록들 } from './authoring-learn-check.js';
 import { 놀이시작뒤 } from './authoring-learn-io.js';
 import { 계획곳 } from './authoring-learn-play.js';
 
-/** 잰 판이 하나도 없을 때 행동 하나에 드는 초 — 첫 판 첫 웨이브만 이 값으로 돈다(순서대로 하기가 웨이브마다 잰 값으로 바꾼다) */
-export const 행동초첫값 = 0.5;
-/** 한 종류의 손 시간을 따로 재려면 그 종류 행동이 이만큼은 있어야 한다 */
-const 종류표본 = 3;
+export { type 잰손, 손넣기, 손셈, 행동초첫값 };
 
 const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 const 수 = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -44,26 +38,6 @@ export function 판행동기록(기록들: readonly 판기록[], r: 판기록): 
   return 내것 === null || 앞 === undefined ? 내것 : [...(판행동기록(기록들, 앞) ?? []), ...내것];
 }
 
-export interface 잰손 { 행동초: number; 종류별?: Partial<Record<행동종류, number>>; 걷기속도?: number; 기록?: string }
-const 가운데 = (들: number[]): number => Math.round([...들].sort((a, b) => a - b)[Math.floor(들.length / 2)]! * 100) / 100;
-
-/**
- * 행동기록에서 손을 잰다 — 행동 하나에 든 초는 고르고 읽는 데 든 시간(초 → 시작초)과 도착해서 끝낼 때까지(도착초 → 끝초)의 합이고, 가운데 값을 쓴다.
- * 종류별은 그 종류가 셋 이상일 때만, 걷는 속도는 3초 넘게 걸었을 때만 낸다. 잴 것이 없으면 null
- */
-export function 손셈(들: readonly 행동[]): Omit<잰손, '기록'> | null {
-  const 초들 = 들.flatMap((x) => (x.끝초 === undefined ? [] : [{ 종류: x.행동, 초: x.끝초 - (x.도착초 ?? x.초) + ((x.시작초 ?? x.초) - x.초) }])).filter((v) => v.초 >= 0);
-  if (초들.length === 0) return null;
-  const 종류별: Partial<Record<행동종류, number>> = {};
-  for (const k of 행동종류들) {
-    const 것 = 초들.filter((x) => x.종류 === k).map((x) => x.초);
-    if (것.length >= 종류표본) 종류별[k] = 가운데(것);
-  }
-  const 걸은 = 들.filter((x) => 수(x.걸음) && x.걸음 > 1 && x.도착초 !== undefined);
-  const 걸은초 = 걸은.reduce((a, x) => a + (x.도착초! - (x.시작초 ?? x.초)), 0);
-  return { 행동초: 가운데(초들.map((x) => x.초)), ...(Object.keys(종류별).length === 0 ? {} : { 종류별 }), ...(걸은초 >= 3 ? { 걷기속도: Math.round((걸은.reduce((a, x) => a + x.걸음!, 0) / 걸은초) * 100) / 100 } : {}) };
-}
-
 /**
  * 손 — 그 곳을 적은 계획으로 해 본 새 판(놀이시작 뒤) 가운데 행동기록이 있는 가장 새 판에서 잰다. 그 곳 판이 없으면 다른 곳의 가장 새 판(같은 게임 · 같은 손이다).
  * 지난 판의 바퀴 시간표는 안 쓴다(2026-11-28 사용자 — 정책을 받은 판 함수는 읽고 쉬는 시간이 없다)
@@ -76,13 +50,6 @@ export function 손재기(자료: string, 곳: string): 잰손 {
   const 잰 = 판 === undefined ? null : 손셈(행동기록읽기(판)!);
   return 잰 === null ? { 행동초: 행동초첫값 } : { ...잰, 기록: 판!.이름 };
 }
-
-/** 잰 손을 모델에 넣는다 — 지어낸 빠른 손을 막는다(입력이 잰 값보다 빠르면 잰 값 · 걷기도 잰 속도가 느리면 그 속도) */
-export const 손넣기 = (m: 모델, 잰: Omit<잰손, '기록'>): 모델 => ({
-  ...m,
-  손: { 행동초: Math.max(m.손.행동초, 잰.행동초), ...(잰.종류별 === undefined ? {} : { 종류별: 잰.종류별 }) },
-  캐릭터: { ...m.캐릭터, 걷기속도: Math.min(m.캐릭터.걷기속도, 잰.걷기속도 ?? Infinity) },
-});
 
 /** 격자 길찾기로 걷는 거리 — 칸 쌍마다 한 번만 찾는다. 격자를 못 지으면 곧은 거리 */
 export function 격자걷기(자료: string, m: 모델): { 걷기: 걷는거리; 글: string } {

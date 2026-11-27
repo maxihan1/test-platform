@@ -1,8 +1,8 @@
 // 순서 찾기 — AI 가 적은 정책에서 시작해 규칙 자리 · 문턱 · 키우기 대상을 하나씩 바꿔 가며 더 나은 순서를 엔진이 찾는다 (도메인/게임 §3.10 「게임 정보 먼저 쌓기」 ④)
 // 16103 첫 맵은 AI 가 적은 규칙표 하나와 숫자 여덟 조합만 견줘, 고기 서너 개를 줍고 식물로 뛰어가는 순서가 그대로 판에 나갔다(2026-11-28 사용자 「왜 시뮬레이션으로 이걸 안 그렸냐」)
 // 무작위가 없다 — 같은 입력이면 같은 순서를 찾는다
-import { type 모델, type 규칙, 문턱넣기 } from './authoring-game-sim-input.js';
-import { type 걷는거리, type 시뮬결과, 돌리기 } from './authoring-game-sim.js';
+import { type 모델, type 규칙, 문턱넣기 } from './simInput.js';
+import { type 걷는거리, type 시뮬결과, 돌리기 } from './sim.js';
 
 /** AI 가 적은 정책 × 문턱 조합을 이만큼 넘게 돌리지 않는다 — 후보를 줄여 달라고 알린다 */
 export const 조합상한 = 400;

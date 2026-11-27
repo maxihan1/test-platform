@@ -1,12 +1,12 @@
 // 게임플레이 시뮬레이션 엔진 — 0.1초씩 흘리며 적 출현 · 걷기 · 설치물과 캐릭터의 공격 · 재화 흐름 · 캐릭터의 정책 판단을 센다 (도메인/게임 §3.10 「게임 정보 먼저 쌓기」 ④)
 // 웨이브 체력 합만 견주던 계산은 「버틴다」고 해 놓고 판은 1~2웨이브에서 졌다(작성 16094 · 16097 · 16098) — 출현 빠르기 · 걷는 시간 · 자라는 시간 · 줍는 시간을 다 넣는다
 // 게임을 모른다. 같은 입력이면 늘 같은 결과라(무작위 없음) 게이트가 다시 돌려 확인한다
-import { 거리, 길위자리, 누적길이, 원안길이 } from './authoring-game-sim-geo.js';
-import type { 모델, 규칙, 상태이름, 행동종류, 점 } from './authoring-game-sim-input.js';
+import { 거리, 길위자리, 누적길이, 원안길이 } from './simGeo.js';
+import type { 모델, 규칙, 상태이름, 행동종류, 점 } from './simInput.js';
 
-export { type 원, 원안길이 } from './authoring-game-sim-geo.js';
+export { type 원, 원안길이 } from './simGeo.js';
 
-export type { 점 } from './authoring-game-sim-input.js';
+export type { 점 } from './simInput.js';
 /** 엔진이 바뀌면 올린다 — 게이트가 다른 엔진으로 낸 시뮬 줄을 다시 돌리게 */
 export const 엔진판 = 4;
 export const 칸초 = 0.1;

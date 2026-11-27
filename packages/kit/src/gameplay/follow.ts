@@ -1,11 +1,11 @@
 // 순서대로 하기 — 시뮬이 고른 순서를 순서표로 받아 판에서 그대로 하고, 웨이브가 끝나거나 판이 어긋나면 그 자리에서 다시 계산한다 (도메인/게임 §3.10 「게임플레이」)
 // 2026-11-28 사용자 「시뮬레이션으로 동작해야 하잖아」 — 판 함수가 바퀴마다 화면을 다시 읽어 규칙표로 고르던 것을 그만둔다(16103 은 바퀴의 74% 가 읽기였고 고기 서너 개를 줍고 식물로 뛰어가기를 되풀이했다)
 // 게임을 모른다. 게임마다 다른 것은 판 함수가 돌려주는 손동작(읽기 넷 · 걷기 · 행동)뿐이다. 행동기록은 여기서 남겨 함수가 끊겨도(멈춤 · 한도) 손 시간을 잰다
-import type { 모델, 규칙, 점, 시작상태 } from './authoring-game-sim-input.js';
-import { 정책글 } from './authoring-game-sim-search.js';
-import { 손셈 } from './authoring-game-sim-run.js';
-import type { 걷는거리, 시뮬결과, 행동 } from './authoring-game-sim.js';
-import { type 단계, 가까운순, 기대여유, 다시고르기, 반응고르기, 반응행동, 순서표, 예상값, 이어모델, 표글 } from './authoring-game-follow-plan.js';
+import type { 모델, 규칙, 점, 시작상태 } from './simInput.js';
+import { 정책글 } from './simSearch.js';
+import { 손셈 } from './hand.js';
+import type { 걷는거리, 시뮬결과, 행동 } from './sim.js';
+import { type 단계, 가까운순, 기대여유, 다시고르기, 반응고르기, 반응행동, 순서표, 예상값, 이어모델, 표글 } from './followPlan.js';
 
 /** 순서표가 비었을 때 다시 계산하는 간격 · 그동안 쉬는 길이(첫 값) — 할 것이 없는데 판을 계속 읽지 않게 */
 export const 빈표다시초 = 3;

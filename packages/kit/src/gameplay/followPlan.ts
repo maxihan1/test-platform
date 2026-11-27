@@ -1,8 +1,8 @@
 // 순서표 — 시뮬이 고른 순서로 흘린 행동기록을 판에서 따라 할 단계로 묶고, 판에서 읽은 상태로 남은 판을 다시 흘릴 모델을 만든다 (도메인/게임 §3.10 「게임플레이」 순서대로 하기)
-// 게임을 모른다. 판을 읽고 손을 움직이는 것은 authoring-game-follow.ts 가 판 함수의 손동작으로 한다
-import type { 모델, 규칙, 조건, 점, 시작상태, 행동종류 } from './authoring-game-sim-input.js';
-import { type 찾은안, 나은가, 돌려보기, 점수 } from './authoring-game-sim-search.js';
-import type { 걷는거리, 시뮬결과 } from './authoring-game-sim.js';
+// 게임을 모른다. 판을 읽고 손을 움직이는 것은 follow.ts 가 판 함수의 손동작으로 한다
+import type { 모델, 규칙, 조건, 점, 시작상태, 행동종류 } from './simInput.js';
+import { type 찾은안, 나은가, 돌려보기, 점수 } from './simSearch.js';
+import type { 걷는거리, 시뮬결과 } from './sim.js';
 
 /** 웨이브마다 지킬것이 시뮬 예측의 이 비율 아래로 내려가면 판이 시뮬과 어긋난 것이다(첫 값) — 기계가 넣는 기대와 판 도중 다시 계산이 같이 쓴다 */
 export const 기대여유 = 0.8;

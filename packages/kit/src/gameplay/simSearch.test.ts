@@ -1,9 +1,9 @@
 // 순서 찾기 — 규칙 자리를 바꿔 이기는 순서를 찾나 · 문턱 격자 · 점수 차례 · 입력 규칙으로 만든 순서만 받나 · 손 재기
 import { describe, expect, it } from 'vitest';
 
-import { type 모델, 입력읽기 } from './authoring-game-sim-input.js';
-import { 손넣기, 손셈 } from './authoring-game-sim-run.js';
-import { 나은가, 문턱격자, 입력정책인가, 점수, 정책글, 찾기 } from './authoring-game-sim-search.js';
+import { type 모델, 입력읽기 } from './simInput.js';
+import { 손넣기, 손셈 } from './hand.js';
+import { 나은가, 문턱격자, 입력정책인가, 점수, 정책글, 찾기 } from './simSearch.js';
 
 const 기본 = (덧: Record<string, unknown> = {}): Record<string, unknown> => ({
   계산: '시뮬',

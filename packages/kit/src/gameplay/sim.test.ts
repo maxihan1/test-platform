@@ -1,10 +1,9 @@
-// 게임플레이 시뮬레이션 — 손으로 셀 수 있는 작은 판으로 처치 시각 · 몰림 · 자라는 시간 · 줍기 · 손 빠르기 · 정책 차례 · 쿨타임 · 업그레이드 · 문턱 찾기 · 재현 · 입력 오류를 본다
+// 게임플레이 시뮬레이션 — 손으로 셀 수 있는 작은 판으로 처치 시각 · 몰림 · 자라는 시간 · 줍기 · 손 빠르기 · 정책 차례 · 쿨타임 · 업그레이드 · 문턱 찾기 · 재현 · 입력 오류 · 판 중간에서 잇기를 본다(계산기 출력은 scripts/authoring-game-calc.test.ts)
 import { describe, expect, it } from 'vitest';
 
-import { 시뮬 } from './authoring-game-calc.js';
-import { type 모델, 입력읽기 } from './authoring-game-sim-input.js';
-import { 찾기 } from './authoring-game-sim-search.js';
-import { type 행동, 돌리기 } from './authoring-game-sim.js';
+import { type 모델, 입력읽기 } from './simInput.js';
+import { 찾기 } from './simSearch.js';
+import { type 행동, 돌리기 } from './sim.js';
 
 const 기본 = (덧: Record<string, unknown> = {}): Record<string, unknown> => ({
   계산: '시뮬',
@@ -188,19 +187,12 @@ describe('길 끝 머무름 피해 · 유지비', () => {
   });
 });
 
-describe('입력 · 계산기', () => {
+describe('입력', () => {
   it('정책이 쓴 문턱의 후보가 없거나 대상이 없으면 무엇이 틀렸나 알린다', () => {
     expect(입력읽기(기본({ 정책: [{ 조건: [{ 값: '재화', 비교: '>=', 기준: '$값' }], 행동: { 무엇: '놓기', 대상: '탑' } }] }))).toMatchObject({ 틀림: expect.stringContaining('$값') });
     expect(입력읽기(기본({ 정책: [{ 조건: [], 행동: { 무엇: '놓기', 대상: '성' } }] }))).toMatchObject({ 틀림: expect.stringContaining('설치물종류') });
     expect(입력읽기(기본({ 정책: [{ 조건: [{ 값: '지킬것둘레적수', 비교: '>=', 기준: 1 }], 행동: { 무엇: '줍기' } }] }))).toMatchObject({ 틀림: expect.stringContaining('반경') });
     expect(입력읽기(기본({ 웨이브: [{ 출현: [{ 종류: '유령', 수: 1, 간격: 0, 길: '가' }] }] }))).toMatchObject({ 틀림: expect.stringContaining('웨이브 1번') });
-  });
-
-  it('계산기 시뮬은 고른 정책과 웨이브마다 결과를 줄 data 에 싣고, 못 이기면 가장 멀리 간 안을 알린다', () => {
-    const r = 시뮬(기본({ 자리후보: [[5, 9], [5, 1]] }));
-    expect('줄글' in r && r.줄글.join('\n')).toContain('순서표(첫 웨이브 끝까지) — 놓기 탑 (5,1)');
-    expect(r).toMatchObject({ 이름: '시뮬', 글: expect.stringContaining('이기는 안 있음'), 결과: { 계산: '시뮬', 이김: true, 느려도이김: true, 정책: [{ 행동: { 무엇: '놓기' } }], 손: { 행동초: 0.5 } }, 입력요약: { 엔진판: 4, 웨이브수: 1, 보스: false } });
-    expect(시뮬(기본({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }))).toMatchObject({ 글: expect.stringContaining('이기는 안 없음'), 결과: { 이김: false, 짐: { 웨이브: '1웨이브' } } });
   });
 });
 

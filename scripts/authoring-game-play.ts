@@ -5,10 +5,10 @@
 import { pathToFileURL } from 'node:url';
 
 import { gameLink, openGame } from '@platform/kit/game';
+import { type 따라간기록, 새기록, 순서대로함수 } from '@platform/kit/gameplay';
 import { Game, flatten, type Command, type Link } from 'control-cli';
 
 import { 판에치트달기 } from './authoring-game-cheat-mark.js';
-import { type 따라간기록, 새기록, 순서대로함수 } from './authoring-game-follow.js';
 import { 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { type 덧, 기본화면초, 부를준비 } from './authoring-game-play-call.js';
 import { 멈추기, 풀기 } from './authoring-game-play-freeze.js';
