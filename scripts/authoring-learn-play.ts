@@ -1,7 +1,7 @@
 // 게임 배우기의 곳(STAGE 줄) — 맵 정보 일곱 종류 검사 · 맵을 다 안 채운 곳 · 곳마다 깸 · 판 수 (도메인/게임 §3.10 「맵 파악」 「게임플레이」)
 // 장면 처음부터 있던 NavMesh · 막힘 오브젝트를 한 번도 안 열고 놓을 자리를 한 칸씩 찍어 봤다(#16053) — 곳마다 맵을 다 적어야 배우기가 끝난다
 import type { 지도줄 } from './authoring-game-find.js';
-import { type 판기록, 값찾기, 같나, 수로, 회고기록이름 } from './authoring-learn-check.js';
+import { type 판기록, 값찾기, 같나, 계산머리, 수로, 회고기록이름 } from './authoring-learn-check.js';
 
 /** 곳마다 data.맵 에 다 채워야 하는 종류 — 그 게임에 없는 종류는 { 없음: <이유> } */
 export const 맵종류 = ['걷기', '막힘', '놓기', '적', '지킬것', '자원', '출구'] as const;
@@ -52,6 +52,25 @@ export const 맵빈곳 = (줄들: readonly 줄[]): string[] => 곳줄들(줄들)
  * 판 수(50판)로 끊으면 둘째 맵 하나에 세 시간이 넘었다. 배우기의 다섯 번 안 늚과 같은 수다. 세 판(곳막힘 · 물음 트리)보다 뒤에 온다
  */
 export const 못깸판 = 5;
+
+/** 계획이 쓸 계산 줄마다 지금 data JSON — 판 기록에 남겨 다음 계획 때 고쳤나를 본다 */
+export const 계산찍기 = (쓸것: readonly string[], 줄들: readonly 줄[]): Record<string, string> =>
+  Object.fromEntries(쓸것.filter((k) => k.startsWith(계산머리)).map((k) => [k, JSON.stringify(칸(줄들.find((x) => x.key === k && x.learned !== null)))]));
+
+/**
+ * 계획이 쓸 계산 줄 가운데, 그 줄을 쓴 가장 새 판이 기대를 깼는데 줄이 그때 그대로인 것 — 막을 까닭 글.
+ * 틀린 계산을 고치지 않고 근거로만 쓰며 판을 되풀이했다(2026-11-27 16060 둘째 맵 세 번 짐). 게임플레이 계획의 기대가 계산의 예측이라 기대 깨짐을 틀린 신호로 본다
+ */
+export function 계산안고침(쓸것: readonly string[], 줄들: readonly 줄[], 기록들: readonly 판기록[]): string | null {
+  const 지금 = 계산찍기(쓸것, 줄들);
+  for (const [k, 글] of Object.entries(지금)) {
+    const r = [...기록들].reverse().find((x) => x.값기록?.계산?.[k] !== undefined);
+    const 어 = r?.값기록?.어긋남;
+    if (r === undefined || 어 === undefined || 어 === null || r.값기록!.계산![k] !== 글) continue;
+    return `${k} 를 근거로 쓴 ${r.이름} 에서 기대 ${어.기대} 가 ${어.초.toFixed(0)}초에 깨졌다(${어.값이름} ${어.값}) — 계산이 판과 어디서 달랐나(입력한 레벨 · 수 · 길 · 빠진 피해)를 찾아 입력을 고치고 \`npx tsx scripts/authoring-game-calc.ts <입력>\` 로 다시 계산해 ${k} 줄을 고친 뒤 계획을 돌린다`;
+  }
+  return null;
+}
 
 /** 그 곳 회고 가운데 끝 n 개의 나아감이 그 앞 회고들의 가장 먼 나아감을 못 넘었으면 그 n 개. 앞 회고가 없거나 나아감을 못 읽었으면 견줄 수 없어 null */
 export function 곳안늚<T extends 줄>(줄들: readonly T[], 곳: string, n: number): T[] | null {

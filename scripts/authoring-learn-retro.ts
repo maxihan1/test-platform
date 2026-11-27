@@ -10,7 +10,7 @@ import { 열린물음, 오늘글 } from './authoring-game-tree.js';
 import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계획읽기, 기대글, 놀이계획검사, 어긋난기대, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
 import { 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { 상태읽기 } from './authoring-learn-io.js';
-import { 결과읽기, 곳안늚, 맵빈곳, 맵종류, 놀이막기 } from './authoring-learn-play.js';
+import { 결과읽기, 계산안고침, 계산찍기, 곳안늚, 맵빈곳, 맵종류, 놀이막기 } from './authoring-learn-play.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 
 /** 계획 없이 돌릴 수 있는 길이 — 물음 하나를 짧게 재는 부르기. 그보다 길면 해 보기라 계획과 회고가 있어야 한다 */
@@ -141,7 +141,7 @@ export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<strin
 }
 
 /** 곳 — 계획이 적은 곳. 판 중간 멈춤 보고에 그 곳 맵 정보를 붙인다 */
-export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[]; 곳?: string }
+export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[]; 곳?: string; 계산?: Record<string, string> }
 
 /** 학습 세션(시험 아님) 동안만 있는 표시가 있나 */
 export const 배우는중인가 = (자료: string | undefined): boolean => 자료 !== undefined && lstatSync(join(자료, 게임자리.배우는중), { throwIfNoEntry: false })?.isFile() === true;
@@ -173,7 +173,7 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   // 게임플레이는 곳마다 깰 때까지 한다 — 다섯 번 안 늚으로 끝내지 않는다
   const 놀이 = 상태읽기(자료).단계 === '게임플레이';
   // 못깸(다섯 판)이 물음 트리(세 판)보다 먼저다 — 다섯 판째에도 물음 트리로 보내면 못깸으로 못 넘어간다
-  const 놀막 = 놀이 ? (놀이계획검사(계획) ?? 놀이막기(계획, 줄들, 기록들)) : null;
+  const 놀막 = 놀이 ? (놀이계획검사(계획) ?? 놀이막기(계획, 줄들, 기록들) ?? 계산안고침(계획.쓸것 ?? [], 줄들, 기록들)) : null;
   if (놀막 !== null) return { 막음: 놀막 };
   // 곳 단위로 셋 이어 안 늘면 물음 트리를 보고 열린 물음 하나를 푸는 계획만 받는다(그 물음은 계획의 data.어디서)
   const 막힘 = 놀이 ? 곳막힘(줄들) : null;
@@ -191,5 +191,6 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   // 결과를 오브젝트 값으로 읽는 곳이면 2초 기록에 같이 남긴다 — 판이 끝난 순간 깸 · 짐을 그 값으로 가른다
   const 결 = 계획.곳 === undefined ? null : 결과읽기(칸(찾기(계획.곳)));
   const 결과볼: 볼값[] = 결 === null || typeof 결 === 'string' || 결.칸 === undefined ? [] : [{ 이름: 결과이름, 주소: 결.주소, 칸: 결.칸 }];
-  return { 계획: 계획열쇠, 볼값: [...계획.볼값, 나, ...결과볼], 기대: 계획.기대, ...(계획.곳 === undefined ? {} : { 곳: 계획.곳 }) };
+  const 계산 = 계산찍기(계획.쓸것 ?? [], 줄들);
+  return { 계획: 계획열쇠, 볼값: [...계획.볼값, 나, ...결과볼], 기대: 계획.기대, ...(계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(Object.keys(계산).length === 0 ? {} : { 계산 }) };
 }

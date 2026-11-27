@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { 지도읽기 } from './authoring-game-find.js';
 import { type 판기록, 계획읽기 } from './authoring-learn-check.js';
 import { 합치기 } from './authoring-learn-note.js';
-import { 결과읽기, 곳글, 곳맵줄, 곳셈, 남은깰곳, 놀이막기, 곳안늚, 맵검사, 맵빈곳, 맵종류, 못깸판, 판결과 } from './authoring-learn-play.js';
+import { 결과읽기, 곳글, 곳맵줄, 곳셈, 남은깰곳, 놀이막기, 계산안고침, 곳안늚, 맵검사, 맵빈곳, 맵종류, 못깸판, 판결과 } from './authoring-learn-play.js';
 import { 남은배울것, 늚셈, 늚재기, 배움막기, 손막힘, 회고채우기 } from './authoring-learn-retro.js';
 
 let 자료 = '';
@@ -118,6 +118,20 @@ describe('게임플레이 — 곳마다 깰 때까지', () => {
       `  stage:넷째 맵#걷기: ${JSON.stringify(바닥).slice(0, 100)}`,
       '  rule:넷째 맵 길목: ㄱ',
     ]);
+  });
+
+  it('계산 줄을 쓴 판이 기대를 깼는데 그 계산 줄이 그대로면 다음 계획을 안 돌린다 — 16060 둘째 맵이 세 번 지는 동안 calc 를 안 고쳤다', () => {
+    const 계산 = (결과: number) => 줄('CALC', 'calc:둘째맵', { 입력: '식물 넷', 결과 });
+    const 쓴판 = (이름: string, 결과: number, 어긋남: boolean): 판기록 => ({
+      이름,
+      값기록: { 계획: 'trial:둘째', 볼값: [], 간격ms: 2000, 때: [], 어긋남: 어긋남 ? { 초: 40, 값이름: '세계수', 값: 7, 기대: '세계수 >= 15' } : null, 화면다름: [], 계산: { 'calc:둘째맵': JSON.stringify(계산(결과).learned.data) } },
+    });
+    const 쓸것 = ['stage:둘째 맵#걷기', 'calc:둘째맵'];
+    expect(계산안고침(쓸것, [계산(5)] as never, [쓴판('20261127083607252-맵잇기', 5, true)])).toContain('calc:둘째맵 를 근거로 쓴 20261127083607252-맵잇기 에서 기대 세계수 >= 15 가 40초에 깨졌다');
+    expect(계산안고침(쓸것, [계산(3)] as never, [쓴판('20261127083607252-맵잇기', 5, true)])).toBeNull();
+    expect(계산안고침(쓸것, [계산(5)] as never, [쓴판('20261127083607252-맵잇기', 5, false)])).toBeNull();
+    expect(계산안고침(쓸것, [계산(5)] as never, [쓴판('20261127083607252-맵잇기', 5, true), 쓴판('20261127084012348-맵잇기', 5, false)])).toBeNull();
+    expect(계산안고침(['stage:둘째 맵#걷기'], [계산(5)] as never, [쓴판('20261127083607252-맵잇기', 5, true)])).toBeNull();
   });
 
   it(`못깸은 그 곳에서 ${못깸판}판 이어 나아감이 안 늘어야 적는다 — 못 깨면 넘어가는 길로 쓰지 않는다`, () => {
