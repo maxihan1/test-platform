@@ -1609,7 +1609,7 @@
 - [ ] `PERF-F2-03` DB · 서버 셈 — perf_device_metric 새 칸 마이그레이션 · 1% Low 분포 셈 · 분당 끊김 · `JANK_PER_MIN` · 누수 의심 1% · 응답 새 칸
 - [ ] `PERF-F2-04` VISION PC 측정 — pc-agent 에 PresentMon · 성능 카운터 · 잡기 perf · 사양 · 게임 실행 시간 (Devicefarm 저장소 — 그쪽 명세부터)
 - [ ] `PERF-F2-05` 서버 PC 연결 — windows 애플리케이션은 PC 줄만 · PC 줄 잠금 · 실행 빌드 깔기 · `MAX_TEMP` 거절 (PERF-F2-04 뒤)
-- [ ] `PERF-F2-06` 화면 — 시안 먼저 · 배터리 온도 이름 · 열 상태 띠 · 분당 끊김 칸 · PC 기기 · GPU · VRAM 그래프 · PC 사양 · 기본 목표값 셋
+- [ ] `PERF-F2-06` 화면 — 시안 먼저 · 배터리 온도 이름 · 열 상태 띠 · 분당 끊김 칸 · PC 기기 · GPU · VRAM 그래프 · PC 사양 · 기본 목표값 셋 · `docs/WORDS.md` 에 배터리 온도 줄(디바이스 온도 · 기기 온도 막기) · `kind.ts` PC 게임 카드 소개의 성능 줄 · 직접 플레이 설명(폰 · PC)
 - [ ] `PERF-F2-07` 시험 — Boss Room 폰 · Cats Go! PC 측정 · PC 녹화 켠 것과 끈 것 FPS 비교 (사용자가 시작하라고 할 때만)
 
 ## E2E — E2E 시나리오
