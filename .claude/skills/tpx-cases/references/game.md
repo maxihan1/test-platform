@@ -139,7 +139,7 @@ export class 강화창 {
 | 보이는 글자(창 제목 · 안내 · 숫자 표시) | 화면 | `await game.text('/HudCanvas/Gold/Value')` |
 | 서버가 정하는 값(재화 · 아이템 · 강화 결과) | 서버와 화면 둘 다. 값마다 `verify` 따로 | `admin.get(…)` 로 서버 값 · `game.text` 로 화면 값 |
 | 게임이 폰에서 셈하는 값(이동 속도 · 데미지) | 게임 안 속성 | `await game.get('Player', 'PlayerController.moveSpeed')` |
-| 오브젝트가 든 데이터 묶음 값(적 체력 · 설치물 공격력) | 게임 안 속성 — 칸 이름은 작성 자료 폴더 `game-types.txt` · 지도 값 줄에서. 모르면 `game.members(주소, 컴포넌트)` 로 펼친다. 같은 이름이 여럿이면 `game.findAll` 로 경로를 골라 하나씩 | `await game.get('/Ghost(Clone)[0]', 'MonsterAI.TypeData.MaxHP')` · 기대값은 지도의 실행 중 값 줄이 기획서 · 역기획 확정을 거친 것만(빌드 데이터 값 · 화면 값을 기대값으로 쓰지 않는다) |
+| 오브젝트가 든 데이터 묶음 값(적 체력 · 설치물 공격력) | 게임 안 속성 — 칸 이름은 작성 자료 폴더 `game-types.txt` · 지도 값 줄에서. 모르면 `game.members(주소, 컴포넌트)` 로 펼친다. 같은 이름이 여럿이면 `game.findAll` 로 경로를 골라 하나씩 | `await game.get('/Ghost(Clone)[0]', 'MonsterAI.TypeData.MaxHP')` · 기대값은 표준 기획서 항목에서만(지도 값 줄이 PRD 로 옮겨진 항목 · 확정이면 확정 케이스 · `확인 필요` 면 미확정 케이스. 지도 · 값 파일 · 빌드 데이터 숫자를 그대로 쓰지 않는다) |
 | 데이터 표 줄 | 줄마다 `verify.element(문장, 열쇠, 서버값, 기대값)` | 아래 `test-design.md` 「데이터 표」 |
 | 확률 ③ 분포 | `verify.rates(문장, 결과마다 횟수, 결과마다 기대 확률, 허용 오차)` | 아래 `test-design.md` 「확률 세 겹」 |
 

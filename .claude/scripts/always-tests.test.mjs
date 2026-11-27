@@ -71,6 +71,10 @@ const 면제 = new Map([
   ['scripts/authoring-game-play-spawns.test.ts', '테스트가 만든 임시 자료 폴더의 판 기록 · 지도 파일만 읽는다 (2026-11-26 PR #1010)'],
   ['scripts/authoring-app-learn.test.ts', '테스트가 만든 임시 자료 폴더의 배우기 상태 · 배운 것 글만 읽는다 (2026-11-26 PR #1013 — PR #1015 에서 더함)'],
   ['scripts/authoring-app-learned.test.ts', '테스트가 만든 임시 자료 폴더의 배운 것 글 · 올릴 줄 파일만 읽는다 (2026-11-26 PR #1013 — PR #1015 에서 더함)'],
+  ['scripts/authoring-game-build-data.test.ts', '테스트가 만든 임시 폴더에 푼 가짜 빌드 파일만 읽는다 (2026-11-27 PR #1021)'],
+  ['scripts/authoring-game-bundles.test.ts', '테스트가 만든 임시 자료 폴더의 값 파일만 읽는다 (2026-11-27 PR #1021)'],
+  ['scripts/authoring-game-info.test.ts', '테스트가 만든 임시 자료 폴더의 값 파일 · 정보 모으기 기록만 읽는다 (2026-11-27 PR #1021)'],
+  ['scripts/authoring-game-props.test.ts', '테스트가 만든 임시 자료 폴더의 값 파일만 읽는다 (2026-11-27 PR #1021)'],
   ['scripts/authoring-app-try.test.ts', '테스트가 만든 임시 자료 폴더의 해 본 기록만 읽는다 (2026-11-26 PR #1013 — PR #1015 에서 더함)'],
   ['scripts/authoring-game-play-stop.test.ts', '테스트가 만든 임시 자료 폴더의 판 기록 · 멈춤 사진만 읽는다 (2026-11-26 PR #1020)'],
 ]);
