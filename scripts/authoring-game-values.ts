@@ -13,8 +13,8 @@ const 찍을종류 = 10;
 const 값파일상한 = 2_000_000;
 /** 값 칸으로 안 치는 data 칸 — 어디서 왔나를 적은 것뿐이다 */
 const 값아닌칸 = new Set(['출처', '장면']);
-/** 값 줄이 될 수 없는 지도 종류 — 곳 · 계획 · 회고 · 물음 줄이 글에 종류 이름을 적었다고 값 줄이 되지 않게 */
-const 값줄아닌종류 = new Set(['STAGE', 'TRIAL', 'PLAY', 'FAIL', 'ASK', 'ODD', 'KIND', 'SYSTEM']);
+/** 값 줄이 될 수 없는 지도 종류 — 곳 · 계획 · 회고 · 물음 줄이 글에 종류 이름을 적었다고 값 줄이 되지 않게. PROBE 는 요구가 못 되는 종류라 값을 적어도 값 줄로 안 친다 */
+const 값줄아닌종류 = new Set(['STAGE', 'TRIAL', 'PLAY', 'FAIL', 'ASK', 'ODD', 'KIND', 'SYSTEM', 'PROBE']);
 
 export interface 값파일읽음 { 종류: string; 장면: string | null; 치트: boolean }
 type 줄 = Pick<지도줄, 'kind' | 'key' | 'name' | 'learned'>;

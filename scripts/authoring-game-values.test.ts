@@ -41,6 +41,12 @@ describe('값 줄 판정', () => {
     expect(빠짐({ 종류: 'Ghost', 장면: null, 치트: true }, 줄들)).toBe('치트없음');
   });
 
+  it('PROBE 줄은 값 칸이 있어도 값 줄이 아니다', () => {
+    const 줄들 = [줄('PROBE', 'probe:Ghost', '유령 탐색', 값), 줄('DATA', 'monster:Ghost', '유령', 값)] as never;
+    expect(값줄들(줄들, 'Ghost').map((x) => x.key)).toEqual(['monster:Ghost']);
+    expect(빠짐({ 종류: 'Ghost', 장면: null, 치트: false }, [줄('PROBE', 'probe:Ghost', '유령 탐색', 값)] as never)).toBe('줄없음');
+  });
+
   it('종류 이름은 처음 열 개 뒤에 「외 N개」', () => {
     expect(이름글(Array.from({ length: 12 }, (_, i) => `K${i}`))).toBe('K0 · K1 · K2 · K3 · K4 · K5 · K6 · K7 · K8 · K9 외 2개');
     expect(이름글(['A'])).toBe('A');
