@@ -10,7 +10,10 @@ export const 서있음거리 = 0.3;
 const 끝기다림ms = 3_000;
 /** 이만큼 지나면 첫 읽기에서 안 바뀐 값도 기대를 본다 — 판이 처음부터 기대를 깬 채 멈춰 있는 것까지 놓치지 않게. 앞 판 끝 화면은 함수 첫 동작(넘기기) 뒤 몇 초 안에 바뀐다 */
 export const 첫값유예ms = 10_000;
-/** 판을 연 뒤 이 안에 장면이 바뀌면 그 앞 읽기는 앞 판 결과 화면이라 버린다(첫 값). 판이 끝나 결과 장면으로 가는 것은 이보다 늦어 버리지 않는다 */
+/**
+ * 판을 연 뒤 이 안에 장면이 바뀌고 그때까지 값이 처음 읽은 값에서 안 움직였으면 그 앞 읽기는 앞 판 결과 화면 · 로딩이라 버린다(첫 값).
+ * 장면을 읽는 게임은 장면이 안 바뀌는 동안 이 시간까지 안 바뀐 값의 기대를 안 본다 — 10초에 앞 판 값으로 기대가 깨져 새 판이 열리기 전에 멈췄다
+ */
 export const 앞판장면ms = 20_000;
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -80,7 +83,7 @@ export function 화면다른것(때들: readonly 값때[], 볼: readonly 볼값[
  * 바로 한 번 읽고 함수가 끝날 때까지 간격마다 다시 읽는다. 읽기가 던져도 함수는 계속 돈다.
  * 못 읽어도 그치지 않는다 — 새 판으로 장면이 바뀌는 5초 동안 세 번 못 읽고 그쳐 그 판 기록 · 기대 감시가 다 끊겼다(2026-11-27 16094 맵판 · 끝막기판)
  */
-export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: readonly 볼값[], 기대들: readonly 기대[], 시작: number, 간격ms = 값간격ms, 위치?: { 주소: string; 칸: string }): 값읽는고리 {
+export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: readonly 볼값[], 기대들: readonly 기대[], 시작: number, 간격ms = 값간격ms, 위치?: { 주소: string; 칸: string }, 시작장면: string | null = null): 값읽는고리 {
   const 기록: 값기록 = { 계획, 볼값: [...볼], 간격ms, 때: [], 어긋남: null, 화면다름: [] };
   let 사진: Buffer | undefined;
   let 서있다 = true;
@@ -92,8 +95,9 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
   const 처음: Record<string, number> = {};
   const 움직인 = new Set<string>();
   // 새 판을 여는 부르기는 앞 판 결과 화면에서 시작한다 — 장면이 바뀌기 전 읽기가 기록에 남아 나아감이 부풀었다(16098 셋째 맵 첫 읽기 웨이브 6 · 세계수 -4)
-  let 첫장면: string | null = null;
-  let 장면바뀜 = false;
+  // 기준은 부르기 직전에 읽은 장면 — 첫 읽기 때 장면을 못 읽어도 흔들리지 않게. 결과 → 로딩 → 판처럼 여러 번 바뀌면 바뀔 때마다 본다
+  let 기준장면 = 시작장면;
+  let 버린초: number | null = null;
   // 옛 SDK 는 장면을 못 읽는다 — 못 읽으면 버리지 않는다
   const 장면읽기 = (): Promise<string | null> => (게임.scenes === undefined ? Promise.resolve(null) : 게임.scenes().then((x) => (typeof x.active === 'string' ? x.active : null), () => null));
   const 고리 = (async (): Promise<void> => {
@@ -113,7 +117,7 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       const [r, 위치답, 장면] = await Promise.all([
         한번읽기(게임, 볼),
         위치 === undefined ? undefined : 게임.get(위치.주소, 위치.칸).then((v) => ({ v: 세수로(v), 못함: null }), (e: unknown) => ({ v: null, 못함: 까닭(e) })),
-        장면바뀜 ? Promise.resolve(null) : 장면읽기(),
+        초 * 1000 < 앞판장면ms ? 장면읽기() : Promise.resolve(null),
       ]);
       // 못 읽거나 세 수로 못 바꾸면 null — 서 있던 비율은 둘 다 읽힌 쌍만 센다. 까닭은 못함으로 알린다(주소 · 칸을 틀리게 적었을 수 있다)
       const 자리 = 위치답?.v;
@@ -121,18 +125,17 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       // 끝난다가 기록을 돌려준 뒤 늦게 끝난 읽기다 — 저장된 기록 · 마지막 화면 찍기와 엇갈리지 않게 버린다
       if (!서있다) return;
       첫못함 ??= r.못함 ?? (위치못함 === null ? null : `위치: ${위치못함}`);
-      if (장면 !== null && !장면바뀜) {
-        첫장면 ??= 장면;
-        if (장면 !== 첫장면) {
-          장면바뀜 = true;
-          if (초 * 1000 < 앞판장면ms) {
-            기록.때 = [];
-            기록.어긋남 = null;
-            사진 = undefined;
-            for (const k of Object.keys(처음)) delete 처음[k];
-            움직인.clear();
-          }
+      if (장면 !== null) {
+        기준장면 ??= 장면;
+        // 값이 처음에서 움직였으면 이 판이 진행되다 장면이 바뀐 것(일찍 진 판)이라 둔다
+        if (장면 !== 기준장면 && 움직인.size === 0) {
+          기록.때 = [];
+          기록.어긋남 = null;
+          사진 = undefined;
+          for (const k of Object.keys(처음)) delete 처음[k];
+          버린초 = 초;
         }
+        기준장면 = 장면;
       }
       기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }), ...(자리 === undefined ? {} : { 위치: 자리 }) });
       for (const [k, v] of Object.entries(r.값)) {
@@ -140,7 +143,9 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
         처음[k] ??= v;
         if (처음[k] !== v) 움직인.add(k);
       }
-      const 볼기대 = 초 * 1000 >= 첫값유예ms ? 기대들 : 기대들.filter((x) => 움직인.has(x.값));
+      // 안 바뀐 값을 보기 시작하는 때 — 버렸으면 그때부터 첫값유예, 장면을 읽는 게임은 앞판장면까지, 못 읽으면 첫값유예
+      const 유예끝 = 버린초 !== null ? 버린초 * 1000 + 첫값유예ms : 기준장면 !== null ? 앞판장면ms : 첫값유예ms;
+      const 볼기대 = 초 * 1000 >= 유예끝 ? 기대들 : 기대들.filter((x) => 움직인.has(x.값));
       const g = 기록.어긋남 === null ? 어긋난기대(볼기대, r.값) : null;
       if (g === null) continue;
       기록.어긋남 = { 초, 값이름: g.값, 값: r.값[g.값]!, 기대: 기대글(g) };

@@ -87,7 +87,7 @@ export async function 부를준비(명령: string, 머리: string, 인자: strin
   const 깃발 = 깃발읽기(인자);
   const [폴더, 파일, 이름, 인자글, ...남음] = 깃발?.남음 ?? [];
   if (깃발 === null || 폴더 === undefined || 파일 === undefined || 이름 === undefined || 남음.length > 0 || !/^[\p{L}\p{N}_$]+$/u.test(이름)) {
-    console.error(`쓰는 법: npx tsx scripts/${명령}.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초 — ${최대초}까지>] [--shots <초 — ${최대화면초}까지 · 0 은 끔>] [--freeze — 학습 세션은 안 줘도 시간 한도로 끝나면 멈춘 채 돌려준다] [--plan <계획 줄 열쇠>]`);
+    console.error(`쓰는 법: npx tsx scripts/${명령}.ts <테스트 폴더> <도우미 파일 이름> <함수> ['<인자 JSON 배열>'] [--max <초 — ${최대초}까지>] [--shots <초 — ${최대화면초}까지 · 0 은 끔>] [--freeze — 학습 세션은 안 줘도 시간 한도로 끝나거나 --plan 으로 부른 판이면 멈춘 채 돌려준다] [--plan <계획 줄 열쇠>]`);
     return null;
   }
   const { 초 } = 깃발;
