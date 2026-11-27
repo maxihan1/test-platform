@@ -155,7 +155,7 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
     expect(await 받은줄()).toEqual([]);
   });
 
-  it('기준 서버 실행은 문서가 다르면 판을 올리고 그 버전 번호를 실행에 박제한다', async () => {
+  it('기준 서버 실행은 문서가 다르면 버전을 올리고 그 버전 번호를 실행에 박제한다', async () => {
     내줄것 = { 코드: 200, 글: JSON.stringify(문서('2')) };
     const { runId } = await 실행('stg');
     await 실행문서견주기(runId);

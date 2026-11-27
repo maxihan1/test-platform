@@ -809,7 +809,7 @@ describe('CaseList 상세 칸에서 고친 값', () => {
   });
 });
 
-describe('CaseList 상세 창 (⑫ 시안 A · 점검 7.12 · 2026-11-27 시안 C 2판)', () => {
+describe('CaseList 상세 창 (⑫ 시안 A · 점검 7.12 · 2026-11-27 시안 C 2차)', () => {
   const 칸 = () => document.getElementById('case-pane');
 
   it('이름을 누르면 목록을 덮는 상세 창이 열리고 주소에 case= 가 남는다', async () => {

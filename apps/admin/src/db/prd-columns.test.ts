@@ -57,7 +57,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 버전 칸', () => {
     await 판넣기(2, 'PERSON', null);
   });
 
-  it('작성 요청의 읽은 버전은 그 서비스에 있는 판만 가리킨다', async () => {
+  it('작성 요청의 읽은 버전은 그 서비스에 있는 버전만 가리킨다', async () => {
     await expect(q('UPDATE authoring_request SET prd_version = 99 WHERE id = $1', [요청])).rejects.toThrow(
       /authoring_request_prd_version_fkey/,
     );

@@ -109,7 +109,7 @@ export async function 요소넣기(서비스: number, elements: 게임요소[], 
     await 손.query(`UPDATE game_element SET value = NULL, req_ids = '{}', prd_changed = '{}', updated_at = now() WHERE service_id = $1 AND key = ANY($2::text[])`, [서비스, remove]);
     // 지난 값을 읽어 되쓰는 줄이 있어 먼저 잠근다 — 그 사이 판 저장이 단 「기획서가 바뀜」을 덮지 않게
     await 손.query('SELECT key FROM game_element WHERE service_id = $1 AND key = ANY($2::text[]) ORDER BY key FOR UPDATE', [서비스, elements.map((e) => e.key)]);
-    // server_value · checked_run 은 그대로 둔다 — 실행 결과만 쓴다. 기획서 몫을 다시 올린 요소는 지금 판으로 만든 것이라 「기획서가 바뀜」을 비운다
+    // server_value · checked_run 은 그대로 둔다 — 실행 결과만 쓴다. 기획서 몫을 다시 올린 요소는 현재 버전으로 만든 것이라 「기획서가 바뀜」을 비운다
     await 손.query(
       `INSERT INTO game_element (service_id, kind, key, name, value, req_ids, learned, prd_changed)
        SELECT $1,
@@ -154,7 +154,7 @@ const 상태조각 = (열쇠: string): string[] => 열쇠.slice('state:'.length)
 /**
  * 기획서 새 판이 게임 지도를 끌고 간다 — 판넣기와 같은 트랜잭션에서 돈다. 게임이 아닌 애플리케이션은 요소가 없어 아무 일도 없다.
  * 지운 요구에만 붙은 요소는 빼고(다른 요구에도 붙었으면 번호만, 배운 것이 있으면 기획서 값과 번호만 뗀다), 그 상태를 목표로 하는 조작 맵 행도 뺀다 — 목표가 없어진 길이다.
- * 문장이 바뀐 요구에 붙은 요소는 prd_changed 에 번호를 적는다 — 새 값은 AI 가 지금 판을 읽어야 알아서 서버가 고칠 수 없다. 다음 작성이 다시 올리면 비워진다
+ * 문장이 바뀐 요구에 붙은 요소는 prd_changed 에 번호를 적는다 — 새 값은 AI 가 현재 버전을 읽어야 알아서 서버가 고칠 수 없다. 다음 작성이 다시 올리면 비워진다
  */
 export async function 기획서따라가기(손: { query: Awaited<ReturnType<typeof db>>['query'] }, 서비스: number, 앞: PrdItem[], 새: PrdItem[]): Promise<void> {
   const 새글 = new Map(새.map((x) => [x.reqId, x.text]));
@@ -233,7 +233,7 @@ export async function 지도글(서비스: number): Promise<string> {
       `- ${x.key} · ${x.name}`,
       x.value === null ? null : `기획서 ${JSON.stringify(x.value)}`,
       x.req_ids.length === 0 ? null : `근거 ${x.req_ids.join(', ')}`,
-      x.prd_changed.length === 0 ? null : `기획서가 바뀜(${x.prd_changed.join(', ')}) — 지금 판으로 다시 올린다`,
+      x.prd_changed.length === 0 ? null : `기획서가 바뀜(${x.prd_changed.join(', ')}) — 현재 버전으로 다시 올린다`,
       // 실행 행을 지우면 checked_run 만 비고 서버 값은 남는다 — 서버 값으로 가른다. 기획서 값이 없으면 견줄 것이 없다
       x.server_value === null
         ? (다룰(x) ? '서버 값 대조 전' : null)

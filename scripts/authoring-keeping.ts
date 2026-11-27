@@ -149,7 +149,7 @@ export async function 작업방준비(
     await 손.단계('보관한 작업방이 없어 처음부터 하는 중');
   }
 
-  // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 옛 판일 수 있다
+  // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 이전 버전일 수 있다
   const 메인 = 진짜main묻기(판.원천);
   if ('까닭' in 메인) {
     await 손.끝내기({ status: 'FAILED', error: 메인.까닭 });

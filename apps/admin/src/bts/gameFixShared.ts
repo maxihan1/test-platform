@@ -30,7 +30,7 @@ export const 게임고침끝들 = ['FIXED', 'FLAKY', 'NOT_FOUND'] as const;
 export const 케이스끝틀 = z.array(z.object({ tcId: z.string(), outcome: z.enum(게임고침끝들), note: z.string().max(300).optional() }));
 export type 케이스끝 = z.infer<typeof 케이스끝틀>[number];
 
-/** 끝내기 result 에서 케이스마다의 끝 — 칸이 없거나 꼴이 틀리면 null(앞 판 에이전트 · 모름) */
+/** 끝내기 result 에서 케이스마다의 끝 — 칸이 없거나 꼴이 틀리면 null(이전 버전 에이전트 · 모름) */
 export function 케이스끝읽기(결과: unknown): 케이스끝[] | null {
   const r = 케이스끝틀.safeParse((결과 as { testFix?: { cases?: unknown } } | null)?.testFix?.cases);
   return r.success ? r.data : null;

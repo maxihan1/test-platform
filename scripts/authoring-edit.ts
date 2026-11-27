@@ -148,7 +148,7 @@ export async function 편집처리(
   도는번호.add(것.id);
   let 자리: 사본 | null = null;
   try {
-    // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 옛 판일 수 있다
+    // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 이전 버전일 수 있다
     const 메인 = 진짜main묻기(판.원천);
     if ('까닭' in 메인) return void (await 손.끝내기({ status: 'FAILED', error: 메인.까닭 }));
     const 만든것 = await 사본만들기(것.id, 판.바탕, 판.원천, 판.원격주소, 메인.sha, 자식);

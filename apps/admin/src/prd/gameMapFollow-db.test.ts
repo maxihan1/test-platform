@@ -112,13 +112,13 @@ describe.skipIf(연결 === undefined)('기획서 새 판이 게임 지도를 끌
     expect((await 행들()).some((x) => x.to_key === 'state:채팅=없음')).toBe(true);
   });
 
-  it('문장이 바뀐 요구에 붙은 요소는 「기획서가 바뀜」이 붙고, 지금 판으로 다시 올리면 지워진다', async () => {
+  it('문장이 바뀐 요구에 붙은 요소는 「기획서가 바뀜」이 붙고, 현재 버전으로 다시 올리면 지워진다', async () => {
     await 판저장([항목('001', '상점은 9종을 판다'), ...판1.slice(1)]);
 
     expect((await 요소들()).find((x) => x.key === 'shop:단검')?.prd_changed).toEqual(['XGV-REQ-001']);
     const 글 = await 지도글(서비스);
     expect(글).toContain('기획서가 바뀐 요소 1개');
-    expect(글).toContain('- shop:단검 · 단검 · 기획서 {"가격":80} · 근거 XGV-REQ-001 · 기획서가 바뀜(XGV-REQ-001) — 지금 판으로 다시 올린다');
+    expect(글).toContain('- shop:단검 · 단검 · 기획서 {"가격":80} · 근거 XGV-REQ-001 · 기획서가 바뀜(XGV-REQ-001) — 현재 버전으로 다시 올린다');
     expect(글).not.toContain('level:30 · 레벨 30 · 근거 XGV-REQ-004 · 기획서가 바뀜');
 
     await 요소넣기(서비스, [{ kind: 'DATA', key: 'shop:단검', name: '단검', value: { 가격: 80 }, reqIds: ['XGV-REQ-001'] }], []);

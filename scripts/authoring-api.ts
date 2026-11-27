@@ -98,11 +98,11 @@ export function API점검(api: API작성): string | null {
   if (api.env === '' || api.baseUrl === null || !/^https?:\/\//.test(api.baseUrl)) {
     return `대상 서버 「${api.env}」 줄이 없어졌거나 주소가 http·https 가 아니다 — 설정을 확인하고 새 요청으로 넣어라`;
   }
-  if (!Number.isSafeInteger(api.판) || api.판 < 1 || !객체인가(api.문서)) return 'API 문서 버전 원문이 오지 않았다 — 판이 지워졌으면 새 요청으로 넣어라';
+  if (!Number.isSafeInteger(api.판) || api.판 < 1 || !객체인가(api.문서)) return 'API 문서 버전 원문이 오지 않았다 — 버전이 지워졌으면 새 요청으로 넣어라';
   // 사본만 보고 자식이 엉뚱한 API 를 고치지 않게 — 서버가 채운 칸이라 틀리면 서버 쪽 문제다
   if (api.반영 === null) return '「바뀐 API 만 다시 작성」 칸(params.apiApply) 모양이 틀렸다 — 이 요청은 폐기하고 판 비교에서 다시 누른다';
   if (api.반영 !== undefined && api.반영.toVersion !== api.판) {
-    return `「바뀐 API 만 다시 작성」의 새 버전(${String(api.반영.toVersion)})과 자료의 판(${String(api.판)})이 다르다 — 이 요청은 폐기하고 판 비교에서 다시 누른다`;
+    return `「바뀐 API 만 다시 작성」의 새 버전(${String(api.반영.toVersion)})과 자료의 버전(${String(api.판)})이 다르다 — 이 요청은 폐기하고 버전 비교에서 다시 누른다`;
   }
   return null;
 }
@@ -166,7 +166,7 @@ function API반영절(반영: API반영, 자료폴더: string): string[] {
   return [
     '',
     '--- 바뀐 API 만 다시 작성 ---',
-    `이 요청은 API 문서 버전 ${String(반영.fromVersion)} → 판 ${String(반영.toVersion)} 에서 사람이 고른 API 만 다시 쓴다 — 바뀜 ${String(셈(반영, 'CHANGED'))} · 새 API ${String(셈(반영, 'NEW'))} · 없어진 API ${String(셈(반영, 'REMOVED'))}. 자료(기획서)는 없다.`,
+    `이 요청은 API 문서 버전 ${String(반영.fromVersion)} → 버전 ${String(반영.toVersion)} 에서 사람이 고른 API 만 다시 쓴다 — 바뀜 ${String(셈(반영, 'CHANGED'))} · 새 API ${String(셈(반영, 'NEW'))} · 없어진 API ${String(셈(반영, 'REMOVED'))}. 자료(기획서)는 없다.`,
     `맡을 API · 덮던 케이스 · 원장 번호: ${join(자료폴더, API반영사본이름)}`,
     '`.claude/skills/tpx-author/references/apply.md` §6 을 먼저 읽고 따라라. 맡은 API 가 아닌 표 줄과 케이스는 손대지 마라. 없어진 API 의 케이스는 지우지 마라.',
   ];

@@ -1,4 +1,4 @@
-// 설정 › BTS 연결의 구획 조각 — 상태 매핑 · 코드 저장소 · 자동 설정 결과 · 배포 스크립트 한 줄 (SPEC 도메인/BTS §8.15 · 시안 B 3판). SettingsBts.tsx 가 300줄에 닿지 않게 뗐다
+// 설정 › BTS 연결의 구획 조각 — 상태 매핑 · 코드 저장소 · 자동 설정 결과 · 배포 스크립트 한 줄 (SPEC 도메인/BTS §8.15 · 시안 B 3차). SettingsBts.tsx 가 300줄에 닿지 않게 뗐다
 
 import { useState } from 'react';
 

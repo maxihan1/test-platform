@@ -313,7 +313,7 @@
 .prd-drawer select {
   width: 100%;
 }
-/* 요구 상세 창의 출처 — 자료(파일)마다 상자 하나. 머리에 파일 이름을 한 번, 줄마다 위치 · 원문 (2026-11-27 사용자 — 앞 판은 줄마다 파일 이름을 되풀이했다) */
+/* 요구 상세 창의 출처 — 자료(파일)마다 상자 하나. 머리에 파일 이름을 한 번, 줄마다 위치 · 원문 (2026-11-27 사용자 — 이전 버전은 줄마다 파일 이름을 되풀이했다) */
 .prd-src {
   display: grid;
   gap: 12px;
@@ -360,7 +360,7 @@
 .prd-src li.no-ref {
   grid-template-columns: minmax(0, 1fr);
 }
-/* 요구 상세 창 왼쪽의 고치기 칸 — 상태 고르개는 칸 폭을 다 쓴다(앞 판 서랍의 `.prd-drawer select` 와 같다) */
+/* 요구 상세 창 왼쪽의 고치기 칸 — 상태 고르개는 칸 폭을 다 쓴다(이전 버전 서랍의 `.prd-drawer select` 와 같다) */
 .dm-main .field select {
   width: 100%;
 }
@@ -463,7 +463,7 @@
   min-width: 0;
 }
 
-/* 판 이력 */
+/* 버전 기록 */
 .prd-vscroll {
   overflow-x: auto;
 }
