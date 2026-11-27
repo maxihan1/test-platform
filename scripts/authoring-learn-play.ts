@@ -84,8 +84,9 @@ export function 곳셈(줄들: readonly 줄[], 기록들: readonly 판기록[]):
   return 곳줄들(줄들).flatMap((x) => {
     const 결 = 결과읽기(칸(x));
     if (결 === null || typeof 결 === 'string') return [];
-    // 판 중간 멈춤으로 끝난 기록은 판이 아니다 — 결과를 수로 읽는 곳은 도는 중의 값도 깸 · 짐 어느 한쪽에 걸린다
-    const 들 = 기록들.flatMap((r) => (r.값기록 !== undefined && r.멈춤 === undefined && 계획곳(줄들, r.값기록.계획) === x.key ? [판결과(r, 결)] : [])).filter((v) => v !== null);
+    // 판 중간 멈춤으로 끝난 기록은 판이 아니다 — 결과를 수로 읽는 곳은 도는 중의 값도 깸 · 짐 어느 한쪽에 걸린다.
+    // 정보 모으기가 웨이브를 넘긴 판(치트)이 이어진 기록도 판이 아니다 — 넘긴 웨이브가 깸으로 읽힌다
+    const 들 = 기록들.flatMap((r) => (r.값기록 !== undefined && r.멈춤 === undefined && r.치트 !== true && 계획곳(줄들, r.값기록.계획) === x.key ? [판결과(r, 결)] : [])).filter((v) => v !== null);
     const d = 칸(x);
     return [{ 열쇠: x.key, 판: 들.length, 깸: 들.filter((v) => v === '깸').length, ...(d.상태 === '못깸' && 글인가(d.까닭) ? { 못깸: d.까닭 } : {}) }];
   });

@@ -144,6 +144,7 @@ describe('실행', () => {
     expect(파일).toMatchObject({ 종류: 'Ghost', 출처: '실행 중', 치트: true, call: ['/M|M.Clear', '/M|M.Skip|3,x'], 칸: { 'Ghost.Hp': 30 } });
     const 기록 = readFileSync(join(자료, 'game-play', readdirSync(join(자료, 'game-play')).find((x) => x.endsWith('-정보모으기.json'))!), 'utf8');
     expect(JSON.parse(기록)).toMatchObject({ 함수: '정보모으기', 치트: true, call: ['/M|M.Clear', '/M|M.Skip|3,x'], 곳: 'stage:둘째' });
+    expect(JSON.parse(readFileSync(join(자료, 'game-cheat.json'), 'utf8'))).toMatchObject({ 장면: 'S' });
   }, 15_000);
 
   it('call 이 거듭 안 먹히면 그치고 1', async () => {
@@ -159,5 +160,6 @@ describe('실행', () => {
     });
     expect(await 실행([자료, 'stage:둘째', '--call', '/M|M.없음', '--steps', '10', '--wait', '1'], 트리, {}, 길)).toBe(1);
     expect((명령 as unknown as Record<string, unknown>[]).filter((c) => c.cmd === 'call')).toHaveLength(2);
+    expect(JSON.parse(readFileSync(join(자료, 'game-cheat.json'), 'utf8'))).toMatchObject({ 장면: 'S' });
   }, 15_000);
 });

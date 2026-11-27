@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { gameLink, openGame } from '@platform/kit/game';
 import { Game, flatten, type Command, type Link } from 'control-cli';
 
+import { 판에치트달기 } from './authoring-game-cheat-mark.js';
 import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
 import { 멈추기, 풀기 } from './authoring-game-play-freeze.js';
 import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
@@ -64,6 +65,8 @@ export interface 조작결과 {
   출발?: number | null;
   /** 부르기 직전 · 도중에 바뀐 · 끝난 순간의 장면 이름 — 맵 정보는 본 장면에만 적는다(authoring-learn-play 맵검사) */
   장면들?: string[];
+  /** 정보 모으기(authoring-game-info)가 웨이브를 넘긴 판에서 이어 부른 기록 — 곳셈이 판으로 안 센다 */
+  치트?: true;
   /** 판 중간 멈춤 — 계획의 기대가 깨졌거나 처음 보는 오브젝트가 나와 함수를 끊고 게임을 멈췄다 */
   멈춤?: 멈춤보고;
   멈춤사진?: Buffer;
@@ -265,6 +268,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     process.off('SIGTERM', 끊음);
     process.off('SIGINT', 끊음);
   }
+  판에치트달기(자료, r);
   const 기록 = 기록남기기(자료, 이름, 넘길, r, 비밀들);
   const 글 = [
     `[조작 도우미] ${이름} ${r.오류 === undefined ? '끝' : '멈춤'} · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json${r.화면 === undefined ? '' : ' · 끝 화면 .jpg'}`}`,

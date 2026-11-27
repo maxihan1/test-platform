@@ -8,6 +8,7 @@ import { gameLink } from '@platform/kit/game';
 import { Game, type Link } from 'control-cli';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
+import { 치트표시쓰기 } from './authoring-game-cheat-mark.js';
 import { 정리알림, 지금지도 } from './authoring-game-find.js';
 import { 기록남기기 } from './authoring-game-play-log.js';
 import { type 곳판, 곳셈 } from './authoring-learn-play.js';
@@ -190,6 +191,12 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 셈 = await 세기.끝난다();
   if (셈.못함 !== null) 못한것.push(셈.못함);
   await 해본다('입력 놓기', () => game.resetInput());
+  // 이 판은 웨이브를 넘긴 판이다 — 이어서 부른 조작 도우미 기록에 치트 표시를 달게 장면과 때를 남긴다
+  if (돈단계 > 0) {
+    const 지금장면 = await 해본다('장면 읽기', () => game.scenes());
+    const 표시못씀 = 치트표시쓰기(자료, typeof 지금장면?.active === 'string' ? 지금장면.active : null);
+    if (표시못씀 !== null) 못한것.push(`치트 표시 파일 쓰기: ${표시못씀}`);
+  }
   const r: 조작결과 & { 치트: true; call: string[]; 곳: string } = {
     값: { 정보모으기: { 곳, 단계: 돈단계 } }, 걸린ms: Date.now() - 시작, 로그: [], 게임오류: [], 알림: [], 못한것, 배율: 풀림.배율, 배율바꿈: false, 통신오류: null, 입력못놓음: false,
     도중화면: [], 도중간격ms: 0, 알림말: 풀림.알림말, 멈춘채: false, ...(셈.나온 === null ? {} : { 나온것: 셈.나온 }), ...표시, 곳,
@@ -198,7 +205,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 새 = 셈.나온?.펼침.filter((x) => x.글 !== undefined).length ?? 0;
   console.log(비밀가리기([
     `[정보 모으기] ${곳} ${돈단계}단계 · ${((Date.now() - 시작) / 1000).toFixed(0)}초 · 치트(웨이브 넘기기) — 값 파일 ${새}종류${기록 === null ? '' : ` · 기록 ${기록}.json`}`,
-    '이 값은 call 로 웨이브를 넘겨 본 것이다 — 값 파일에 치트 표시가 붙었고 승패 근거로 쓰지 않는다',
+    '이 값은 call 로 웨이브를 넘겨 본 것이다 — 값 파일에 치트 표시가 붙었고 승패 근거로 쓰지 않는다. 이 판에서 이어 부르는 조작 도우미 기록도 치트로 적히고 판 수에 안 센다(장면을 떠나면 풀린다)',
     ...(셈.나온 === null ? [] : 나온것줄(셈.나온, null, 기록 === null ? null : `${기록}-새것.txt`)),
     ...(못한것.length === 0 ? [] : [`못 한 것: ${못한것.slice(0, 8).join(' · ')}`]),
   ].join('\n'), 비밀들));
