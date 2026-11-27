@@ -6,8 +6,16 @@ import type { 실행줄 } from './perfApi.js';
 
 export type 기기자리 = 'FARM' | 'LOCAL';
 export type 조작 = 'APPIUM' | 'GAME' | 'MANUAL';
-export type 측정지표 = 'FPS' | 'JANK' | 'CPU' | 'MEM' | 'TEMP' | 'BATTERY';
-export type 기기지표 = 'AVG_FPS' | 'LOW1_FPS' | 'MAX_TEMP' | 'MAX_MEM' | 'LAUNCH_MS';
+/** GPU 는 PC 만 — GPU 사용률과 VRAM 그래프 (§7 「측정 요청」) */
+export type 측정지표 = 'FPS' | 'JANK' | 'CPU' | 'MEM' | 'TEMP' | 'BATTERY' | 'GPU';
+export type 기기지표 = 'AVG_FPS' | 'LOW1_FPS' | 'JANK_PER_MIN' | 'MAX_TEMP' | 'MAX_MEM' | 'LAUNCH_MS';
+
+/** PC 사양 — 사양이 다르면 FPS 를 비교할 수 없어 결과에 남긴다 (§3.9 「기기 성능: PC 게임과 측정 정의」) */
+export interface PC사양 {
+  cpu: string;
+  gpu: string;
+  resolution: string;
+}
 
 export interface 고를기기 {
   serial: string;
@@ -31,7 +39,8 @@ export interface 기기측정요청 {
   drive: 조작;
   caseIds?: string[];
   durationSec?: number;
-  build: { package: string };
+  /** Windows 애플리케이션은 쓰지 않는다 — 실행 빌드 zip 을 설치한다 */
+  build?: { package: string };
   devices: { serial: string; where: 기기자리 }[];
   repeat: number;
   targets: 기기목표[];
@@ -46,7 +55,7 @@ export interface 기기설정 {
   caseIds: string[];
   durationSec: number;
   package: string;
-  devices: { serial: string; where: 기기자리; model: string; launchMs: number | null }[];
+  devices: { serial: string; where: 기기자리; model: string; launchMs: number | null; spec?: PC사양 | null }[];
   repeat: number;
   metrics: 측정지표[];
   intervalSec: 1 | 2 | 5;
@@ -62,6 +71,11 @@ export interface 기기요약 {
   freezeCount: number | null;
   maxMemMb: number | null;
   avgCpu: number | null;
+  /** 125ms 넘게 걸린 프레임의 1분당 수 — 프레임 시간 분포로 서버만 센다 */
+  jankPerMin: number | null;
+  /** PC 만 */
+  avgGpu: number | null;
+  maxVramMb: number | null;
 }
 
 export interface 기기숫자 {
@@ -76,10 +90,15 @@ export interface 기기숫자 {
   memMb: number | null;
   tempC: number | null;
   batteryPct: number | null;
+  /** 폰 열 상태 0~6 (NONE · LIGHT · MODERATE · SEVERE · CRITICAL · EMERGENCY · SHUTDOWN) */
+  thermalStatus: number | null;
+  /** PC 만 */
+  gpu: number | null;
+  vramMb: number | null;
 }
 
 export interface 기기결과 {
-  devices: { serial: string; model: string; where: 기기자리; launchMs: number | null; summary: 기기요약; verdict: 'PASS' | 'FAIL' | null }[];
+  devices: { serial: string; model: string; where: 기기자리; launchMs: number | null; spec: PC사양 | null; summary: 기기요약; verdict: 'PASS' | 'FAIL' | null }[];
   metrics: 기기숫자[];
   segments: { serial: string; loop: number | null; segment: string; fromSec: number; toSec: number }[];
   loops: { serial: string; loop: number; maxMemMb: number }[];

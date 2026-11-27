@@ -12,7 +12,8 @@ import { perfApi, type 실행상세 } from './perfApi.js';
 import { 자동포함, 폰케이스들 } from './perfDeviceCases.js';
 import { PerfDeviceReplay } from './PerfDeviceReplay.js';
 import { 기기시작확인 } from './PerfStartConfirm.js';
-import { 값글자, 결과칸들, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작 } from './perfDeviceView.js';
+import { 값글자, 결과칸들, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작, 측정종류of } from './perfDeviceView.js';
+import type { 기기지표 } from './perfDeviceApi.js';
 import { 갱신간격, 분석틈, 분초, 사유이름, 시각글, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { Loading, message, useAsync, 기다림글자, 올라가는값 } from './ui.js';
 
@@ -23,6 +24,8 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
   const t = use말();
   const 언어 = use언어();
   const 설정 = 기기설정of(run);
+  // PC 게임은 배터리 온도가 없고 결과에 PC 사양을 남긴다 (§3.9 「기기 성능: PC 게임과 측정 정의」)
+  const PC = 측정종류of(service) === 'PC';
   const 결과 = useAsync(() => perfApi.deviceResult(run.id), [run.id]);
   const [하는중, set하는중] = useState<일 | null>(null);
   const [오류, set오류] = useState<string | null>(null);
@@ -61,7 +64,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
 
   // 결과에는 고른 케이스만 있다 — 서버가 프로시저로 펼칠 것까지 세어 묻는다
   const 다시누름 = () =>
-    하기('count', async () => set묻는수(설정.drive === 'MANUAL' ? 0 : 자동포함(await 폰케이스들(service.prefix), 설정.caseIds).수));
+    하기('count', async () => set묻는수(설정.drive === 'MANUAL' ? 0 : 자동포함(await 폰케이스들(service.prefix, PC ? 'windows' : 'android'), 설정.caseIds).수));
 
   // 같은 조건으로 새 측정 하나를 만들고 그 번호 화면으로 간다
   const 다시실행 = () =>
@@ -71,7 +74,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
         env: run.env,
         drive: 다시조작,
         ...(설정.drive === 'MANUAL' ? { durationSec: 설정.durationSec } : { caseIds: 설정.caseIds }),
-        build: { package: 설정.package },
+        ...(PC ? {} : { build: { package: 설정.package } }),
         devices: 설정.devices.map(({ serial, where }) => ({ serial, where })),
         repeat: 설정.repeat,
         targets: 설정.targets,
@@ -188,7 +191,8 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
                       <th>{t('디바이스')}</th>
                       <th className="r">{t('평균 FPS')}</th>
                       <th className="r">{t('1% Low FPS')}</th>
-                      <th className="r">{t('최대 디바이스 온도')}</th>
+                      <th className="r">{t('분당 끊김')}</th>
+                      {PC ? null : <th className="r">{t('최대 배터리 온도')}</th>}
                       <th className="r">{t('메모리 최대')}</th>
                       <th className="r">{t('앱 실행 시간')}</th>
                       <th>{t('판정')}</th>
@@ -197,15 +201,19 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
                   <tbody>
                     {받음.devices.map((d) => {
                       const 벗어남 = 벗어난지표(설정.targets, d.summary, d.launchMs);
-                      const 칸 = (m: 'AVG_FPS' | 'LOW1_FPS' | 'MAX_TEMP' | 'MAX_MEM' | 'LAUNCH_MS', 값: number | null) => (
+                      const 칸 = (m: 기기지표, 값: number | null) => (
                         <td className={벗어남.has(m) ? 'r mono perf-err' : 'r mono'}>{값글자(m, 값, t)}</td>
                       );
                       return (
                         <tr key={d.serial}>
-                          <td>{d.model}</td>
+                          <td>
+                            {d.model}
+                            {d.spec == null ? null : <div className="perf-faint">{[d.spec.cpu, d.spec.gpu, d.spec.resolution].join(' · ')}</div>}
+                          </td>
                           {칸('AVG_FPS', d.summary.avgFps)}
                           {칸('LOW1_FPS', d.summary.low1Fps)}
-                          {칸('MAX_TEMP', d.summary.maxTempC)}
+                          {칸('JANK_PER_MIN', d.summary.jankPerMin)}
+                          {PC ? null : 칸('MAX_TEMP', d.summary.maxTempC)}
                           {칸('MAX_MEM', d.summary.maxMemMb)}
                           {칸('LAUNCH_MS', d.launchMs)}
                           <td>{d.verdict === null ? '-' : <span className={`verdict ${판정꼴[d.verdict]}`}>{판정이름(d.verdict, t)}</span>}</td>

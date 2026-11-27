@@ -9,6 +9,7 @@ import { 지표차례, 지표표 } from './perfDeviceView.js';
 const 단위: Record<기기지표, { 글: string; 배: number }> = {
   AVG_FPS: { 글: 'FPS', 배: 1 },
   LOW1_FPS: { 글: 'FPS', 배: 1 },
+  JANK_PER_MIN: { 글: '번/분', 배: 1 },
   MAX_TEMP: { 글: '도', 배: 1 },
   MAX_MEM: { 글: 'MB', 배: 1 },
   LAUNCH_MS: { 글: '초', 배: 1000 },
@@ -16,9 +17,10 @@ const 단위: Record<기기지표, { 글: string; 배: number }> = {
 
 const 근거글자: Record<기기목표['source'], string> = { PRD: '기획서', AI: 'AI 추천', MANUAL: '직접 입력' };
 
-export function PerfDeviceTargets({ 목표들, 고침, 쓰나 }: { 목표들: 기기목표[]; 고침: (목표들: 기기목표[]) => void; 쓰나: boolean }) {
+export function PerfDeviceTargets({ 목표들, 고침, 쓰나, PC }: { 목표들: 기기목표[]; 고침: (목표들: 기기목표[]) => void; 쓰나: boolean; PC: boolean }) {
   const t = use말();
-  const 남은 = 지표차례.filter((m) => !목표들.some((목표) => 목표.metric === m));
+  // PC 는 배터리 온도가 없다 — 서버가 PC 의 MAX_TEMP 목표를 400 으로 거절한다 (§7 「기기 성능 목표 한 줄」)
+  const 남은 = 지표차례.filter((m) => !(PC && m === 'MAX_TEMP') && !목표들.some((목표) => 목표.metric === m));
   const 바꾸기 = (i: number, 줄: 기기목표) => 고침(목표들.map((x, j) => (j === i ? 줄 : x)));
 
   return (

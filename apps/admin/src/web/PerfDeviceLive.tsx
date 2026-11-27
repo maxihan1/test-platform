@@ -9,7 +9,7 @@ import { 기기성능이름 } from './kind.js';
 import { Modal } from './Modal.js';
 import { perfApi, type 실행로그, type 실행상세 } from './perfApi.js';
 import type { 기기숫자 } from './perfDeviceApi.js';
-import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 조작글, 지금요약, 지표표, 최근줄 } from './perfDeviceView.js';
+import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 열상태이름, 조작글, 지금요약, 지표표, 최근줄, 측정종류of } from './perfDeviceView.js';
 import { 가장큰값, 갱신간격, 눈금최대, 분초, 선점, 시각글, 시분 } from './perfRunView.js';
 import { message } from './ui.js';
 
@@ -23,7 +23,9 @@ const 선구간 = 120;
 export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상세; 다시읽기: () => Promise<boolean>; 쓰나: boolean }) {
   const t = use말();
   const 언어 = use언어();
-  const 기기성능 = 기기성능이름(use지금앱()?.kind);
+  const 지금앱 = use지금앱();
+  const 기기성능 = 기기성능이름(지금앱?.kind);
+  const PC = 측정종류of(지금앱) === 'PC';
   const 설정 = 기기설정of(run);
   const [숫자, set숫자] = useState<기기숫자[]>([]);
   const [로그, set로그] = useState<실행로그[]>([]);
@@ -126,8 +128,8 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
           {설정.devices.map((d) => {
             const 줄들 = 숫자.filter((줄) => 줄.serial === d.serial);
             const 최근 = 최근줄(줄들, d.serial);
-            // 1% Low FPS 는 숫자가 적으면 최저 FPS 와 같아 앱이 뜨는 첫 몇 초에 미달로 보인다 — 실행 중에는 빼고 끝에 판정한다
-            const 벗어남 = 벗어난지표(설정.targets.filter((x) => x.metric !== 'LOW1_FPS'), 지금요약(줄들), d.launchMs);
+            // 1% Low FPS · 분당 끊김은 프레임 시간 분포로 서버만 센다 — 1초 줄에 분포가 안 와 실행 중에는 빼고 끝에 판정한다
+            const 벗어남 = 벗어난지표(설정.targets.filter((x) => x.metric !== 'LOW1_FPS' && x.metric !== 'JANK_PER_MIN'), 지금요약(줄들), d.launchMs);
             const 나쁨 = 벗어남.size > 0;
             const 선 = 줄들.filter((줄) => 줄.sec > 지난초 - 선구간).flatMap((줄) => (줄.fps === null ? [] : [{ x: 줄.sec - Math.max(0, 지난초 - 선구간), y: 줄.fps }]));
             const 값 = (글: string, 칸: string, 빨강: boolean) => (
@@ -149,10 +151,11 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
                 <svg viewBox="0 0 200 40" preserveAspectRatio="none" className="pd-spark" aria-hidden="true">
                   <polyline points={선점(선, 선구간, 눈금최대(60, ...선.map((p) => p.y)), 200, 40)} className={나쁨 ? 'bad' : undefined} vectorEffect="non-scaling-stroke" />
                 </svg>
-                {값('디바이스 온도', 글(최근?.tempC, (n) => t('{수}도', { 수: n })), 벗어남.has('MAX_TEMP'))}
+                {PC ? null : 값('배터리 온도', 글(최근?.tempC, (n) => [t('{수}도', { 수: n }), (최근?.thermalStatus ?? 0) > 0 ? 열상태이름[최근?.thermalStatus ?? 0] : null].filter(Boolean).join(' · ')), 벗어남.has('MAX_TEMP') || (최근?.thermalStatus ?? 0) > 0)}
                 {값('CPU', 글(최근?.cpu, (n) => `${String(Math.round(n))}%`), false)}
+                {PC ? 값('GPU', 글(최근?.gpu, (n) => `${String(Math.round(n))}%`), false) : null}
                 {값('메모리', 메모리글자(최근?.memMb ?? null), 벗어남.has('MAX_MEM'))}
-                {값('배터리', 글(최근?.batteryPct, (n) => `${String(n)}%`), false)}
+                {PC ? 값('VRAM', 메모리글자(최근?.vramMb ?? null), false) : 값('배터리', 글(최근?.batteryPct, (n) => `${String(n)}%`), false)}
                 {값('앱 실행 시간', 값글자('LAUNCH_MS', d.launchMs, t), 벗어남.has('LAUNCH_MS'))}
               </section>
             );

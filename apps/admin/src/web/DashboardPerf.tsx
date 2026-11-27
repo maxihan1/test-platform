@@ -245,7 +245,7 @@ export function 성능칸({ 성능, 종류들, 실패유형 }: { 성능: 성능;
               [t('FPS 평균'), 값글(g?.avgFps ?? null)],
               ['1% Low FPS', 값글(g?.low1Fps ?? null)],
               [t('프리징'), g?.freezeCount == null ? '—' : t('{수}회', { 수: g.freezeCount })],
-              [t('디바이스 온도'), g?.maxTempC == null ? '—' : `${String(g.maxTempC)}℃`],
+              [t('배터리 온도'), g?.maxTempC == null ? '—' : `${String(g.maxTempC)}℃`],
             ]}
           />
         ) : null}

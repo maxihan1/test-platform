@@ -16,7 +16,7 @@ import { 자동포함, 폰케이스들 } from './perfDeviceCases.js';
 import { PerfDeviceMetrics } from './PerfDeviceMetrics.js';
 import { PerfDevicePick, 기기키 } from './PerfDevicePick.js';
 import { PerfDeviceTargets } from './PerfDeviceTargets.js';
-import { 기본목표, 실행열기, 케이스조작, 측정항목 } from './perfDeviceView.js';
+import { 기본목표, 실행열기, 케이스조작, 측정종류of, 측정항목 } from './perfDeviceView.js';
 import { 기기시작확인 } from './PerfStartConfirm.js';
 import { message } from './ui.js';
 
@@ -45,6 +45,9 @@ export function PerfDeviceStart({
   const t = use말();
   const 언어 = use언어();
   const 게임 = service.kind === 'GAME';
+  const 종류 = 측정종류of(service);
+  // PC 게임은 Device VISION PC 한 대에 실행 빌드 zip 을 설치해 잰다 — 앱 패키지 이름 칸이 없다 (§3.9 「기기 성능: PC 게임과 측정 정의」)
+  const PC = 종류 === 'PC';
   const [조작, set조작] = useState<조작>(앞?.drive === 'MANUAL' ? 'MANUAL' : 케이스조작(service.kind));
   const [케이스들, set케이스들] = useState<CaseRow[] | null>(null);
   const [고른케이스, set고른케이스] = useState<string[]>(앞?.caseIds ?? []);
@@ -54,8 +57,8 @@ export function PerfDeviceStart({
   const [앱, set앱] = useState(앞?.package ?? '');
   const [기기들, set기기들] = useState<고를기기[] | null>(null);
   const [고른기기, set고른기기] = useState<string[]>(앞?.devices.map(기기키) ?? []);
-  const [목표들, set목표들] = useState<기기목표[]>(앞?.targets ?? 기본목표);
-  const [항목, set항목] = useState<측정지표[]>(앞?.metrics ?? 측정항목.map(([m]) => m));
+  const [목표들, set목표들] = useState<기기목표[]>(앞?.targets ?? 기본목표(종류));
+  const [항목, set항목] = useState<측정지표[]>(앞?.metrics ?? 측정항목(종류).map(([m]) => m));
   const [간격, set간격] = useState<1 | 2 | 5>(앞?.intervalSec ?? 1);
   const [녹화, set녹화] = useState(앞?.record ?? true);
   const [하는중, set하는중] = useState(false);
@@ -81,7 +84,7 @@ export function PerfDeviceStart({
         set알림(message(err, 언어));
       },
     );
-    폰케이스들(service.prefix).then(
+    폰케이스들(service.prefix, PC ? 'windows' : 'android').then(
       (모음) => 살음 && set케이스들(모음),
       (err: unknown) => {
         if (!살음) return;
@@ -106,7 +109,7 @@ export function PerfDeviceStart({
 
   function 막는까닭(): { 칸: 시작칸; 글: string } | null {
     if (env === '') return { 칸: 'env', 글: t('대상 서버를 선택해 주세요') };
-    if (!앱이름.test(앱)) return { 칸: 'package', 글: t('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요') };
+    if (!PC && !앱이름.test(앱)) return { 칸: 'package', 글: t('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요') };
     // 목록을 못 읽었으면 무엇이 자동 포함되는지 몰라 확인 창이 덜 적는다
     if (케이스로 && 케이스들 === null) return { 칸: 'cases', 글: t('케이스 목록을 읽는 중입니다') };
     if (케이스로 && 케이스오류 !== null) return { 칸: 'cases', 글: 케이스오류 };
@@ -136,7 +139,7 @@ export function PerfDeviceStart({
         env,
         drive: 조작,
         ...(케이스로 ? { caseIds: 고른케이스 } : { durationSec: 분 * 60 }),
-        build: { package: 앱 },
+        ...(PC ? {} : { build: { package: 앱 } }),
         devices: 골라보냄,
         repeat: 케이스로 ? 반복 : 1,
         targets: 목표들,
@@ -173,10 +176,14 @@ export function PerfDeviceStart({
         <section className="perf-panel" aria-labelledby="pd-m">
           <h2 id="pd-m">{t('조작 방식')}</h2>
           <div className="pd-kinds" role="radiogroup" aria-label={t('조작 방식')}>
-            {게임
-              ? 조작칸('GAME', '게임 케이스', '선택한 게임 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 에 연결된 디바이스만 쓸 수 있습니다')
-              : 조작칸('APPIUM', 'Appium 케이스', '선택한 Android 앱 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 에 연결된 디바이스만 쓸 수 있습니다')}
-            {조작칸('MANUAL', '직접 플레이', 'Device VISION 에 연결된 디바이스를 손에 들고 플레이하는 동안 기록합니다')}
+            {PC
+              ? 조작칸('GAME', '게임 케이스', '선택한 게임 케이스를 PC 에서 반복 실행하며 측정합니다. Device VISION 에 연결된 PC 한 대를 씁니다')
+              : 게임
+                ? 조작칸('GAME', '게임 케이스', '선택한 게임 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 에 연결된 디바이스만 쓸 수 있습니다')
+                : 조작칸('APPIUM', 'Appium 케이스', '선택한 Android 앱 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 에 연결된 디바이스만 쓸 수 있습니다')}
+            {PC
+              ? 조작칸('MANUAL', '직접 플레이', '실행 빌드를 설치하고 게임을 켜 둡니다. Device VISION 에 연결된 PC 앞에 앉아 플레이하는 동안 기록합니다')
+              : 조작칸('MANUAL', '직접 플레이', 'Device VISION 에 연결된 디바이스를 손에 들고 플레이하는 동안 기록합니다')}
           </div>
         </section>
 
@@ -197,13 +204,21 @@ export function PerfDeviceStart({
               </label>
               <칸오류 id="pd-env-err" 사유={틀린('env')} />
             </div>
-            <div className="perf-cell">
+            {PC ? (
+              <div className="perf-cell">
+                <span className="perf-field">
+                  {t('실행 빌드')}
+                  <span className="mono">{service.latestBuildNo == null ? t('Windows 빌드가 없습니다') : t('빌드 {번호}', { 번호: service.latestBuildNo })}</span>
+                </span>
+                <span className="perf-faint">{t('측정을 시작할 때 최근 Windows 빌드를 PC 에 설치합니다')}</span>
+              </div>
+            ) : <div className="perf-cell">
               <label className="perf-field">
                 {t('앱 패키지 이름')}
                 <input className="mono" value={앱} placeholder="com.demo.market" disabled={!쓰나} {...오류속성('pd-pkg-err', 틀린('package'))} onChange={(e) => set앱(e.target.value.trim())} />
               </label>
               <칸오류 id="pd-pkg-err" 사유={틀린('package')} />
-            </div>
+            </div>}
             {케이스로 ? (
               <label className="perf-field">
                 {t('반복')}
@@ -256,10 +271,10 @@ export function PerfDeviceStart({
           <칸오류 id="pd-cases-err" 사유={틀린('cases')} />
         </section>
 
-        <PerfDevicePick serviceId={service.id} 기기들={기기들} 고른={쓸기기.map(기기키)} 고침={set고른기기} 팜만={케이스로} 쓰나={쓰나} 사유={틀린('devices')} />
-        <PerfDeviceTargets 목표들={목표들} 고침={set목표들} 쓰나={쓰나} />
+        <PerfDevicePick serviceId={service.id} 기기들={기기들} 고른={쓸기기.map(기기키)} 고침={set고른기기} 팜만={케이스로} PC={PC} 쓰나={쓰나} 사유={틀린('devices')} />
+        <PerfDeviceTargets 목표들={목표들} 고침={set목표들} 쓰나={쓰나} PC={PC} />
 
-        <PerfDeviceMetrics 항목={항목} on항목={set항목} 간격={간격} on간격={set간격} 녹화={녹화} on녹화={set녹화} 쓰나={쓰나} 사유={틀린('metrics')} />
+        <PerfDeviceMetrics 종류={종류} 항목={항목} on항목={set항목} 간격={간격} on간격={set간격} 녹화={녹화} on녹화={set녹화} 쓰나={쓰나} 사유={틀린('metrics')} />
 
         {알림 === null ? null : (
           <p className="perf-err" role="alert">

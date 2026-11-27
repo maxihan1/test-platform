@@ -48,7 +48,7 @@ describe('측정 시작', () => {
     const 요청 = 만들기.mock.calls[0]![0];
     expect(요청).toMatchObject({ serviceId: 8, env: 'qa', drive: 'APPIUM', caseIds: ['ZQD-001'], build: { package: 'com.demo.market' }, repeat: 3, intervalSec: 1, record: true });
     expect(요청.devices).toEqual([{ serial: 'S24', where: 'FARM' }, { serial: 'A23', where: 'FARM' }]);
-    expect(요청.targets.find((x) => x.metric === 'LAUNCH_MS')).toEqual({ metric: 'LAUNCH_MS', op: '<=', value: 3000, source: 'MANUAL' });
+    expect(요청.targets.find((x) => x.metric === 'LAUNCH_MS')).toEqual({ metric: 'LAUNCH_MS', op: '<=', value: 5000, source: 'MANUAL' });
     expect(요청).not.toHaveProperty('durationSec');
   });
 

@@ -8,21 +8,33 @@ import { 가장큰값, type 말 } from './perfRunView.js';
 export const 지표표: Record<기기지표, { 이름: string; op: '<=' | '>=' }> = {
   AVG_FPS: { 이름: '평균 FPS', op: '>=' },
   LOW1_FPS: { 이름: '1% Low FPS', op: '>=' },
-  MAX_TEMP: { 이름: '최대 디바이스 온도', op: '<=' },
+  JANK_PER_MIN: { 이름: '분당 끊김', op: '<=' },
+  MAX_TEMP: { 이름: '최대 배터리 온도', op: '<=' },
   MAX_MEM: { 이름: '메모리 최대', op: '<=' },
   LAUNCH_MS: { 이름: '앱 실행 시간', op: '<=' },
 };
 export const 지표차례 = Object.keys(지표표) as 기기지표[];
 
-/** 측정 항목 칩 — 화면이 그릴 그래프만 가른다. 기록기는 늘 다 읽는다 */
-export const 측정항목: [측정지표, string][] = [
+/** 측정하는 쪽 — 앱 · 모바일 게임 · PC 게임. 기본 목표 · 고를 수 있는 측정 항목이 갈린다 (§3.9 「기기 성능: PC 게임과 측정 정의」) */
+export type 측정종류 = 'APP' | 'GAME' | 'PC';
+export const 측정종류of = (service: { kind?: string; gamePlatform?: string | null } | null | undefined): 측정종류 =>
+  service?.kind !== 'GAME' ? 'APP' : service.gamePlatform === 'windows' ? 'PC' : 'GAME';
+
+/** 측정 항목 칩 — 화면이 그릴 그래프만 가른다. 기록기는 늘 다 읽는다. PC 는 배터리 온도 · 배터리가 없고 GPU · VRAM 이 있다 */
+const 모든측정항목: [측정지표, string][] = [
   ['FPS', 'FPS'],
   ['JANK', '프레임 드랍'],
   ['CPU', 'CPU'],
   ['MEM', '메모리'],
-  ['TEMP', '디바이스 온도'],
+  ['TEMP', '배터리 온도'],
   ['BATTERY', '배터리'],
+  ['GPU', 'GPU · VRAM'],
 ];
+export const 측정항목 = (종류: 측정종류): [측정지표, string][] =>
+  모든측정항목.filter(([m]) => (종류 === 'PC' ? m !== 'TEMP' && m !== 'BATTERY' : m !== 'GPU'));
+
+/** 열 상태 0~6 의 이름 — Android 가 쓰는 이름 그대로다 */
+export const 열상태이름 = ['NONE', 'LIGHT', 'MODERATE', 'SEVERE', 'CRITICAL', 'EMERGENCY', 'SHUTDOWN'] as const;
 
 /** 케이스로 재는 조작 방식은 애플리케이션 종류가 정한다 — 게임 화면은 Appium 이 버튼을 못 찾는다 (§3.9 「조작 셋」) */
 export const 케이스조작 = (kind: string | undefined): 조작 => (kind === 'GAME' ? 'GAME' : 'APPIUM');
@@ -35,14 +47,15 @@ export const 조작글 = (설정: Pick<기기설정, 'drive' | 'caseIds'>, t: �
       ? t('게임 케이스 {수}건', { 수: 설정.caseIds.length })
       : t('Appium 케이스 {수}건', { 수: 설정.caseIds.length });
 
-/** 처음 여는 측정의 목표 — 시안의 값이다. 사람이 고치거나 지운다 */
-export const 기본목표: 기기목표[] = [
-  { metric: 'AVG_FPS', op: '>=', value: 45, source: 'MANUAL' },
-  { metric: 'LOW1_FPS', op: '>=', value: 30, source: 'MANUAL' },
-  { metric: 'MAX_TEMP', op: '<=', value: 45, source: 'MANUAL' },
-  { metric: 'MAX_MEM', op: '<=', value: 1536, source: 'MANUAL' },
-  { metric: 'LAUNCH_MS', op: '<=', value: 3000, source: 'MANUAL' },
-];
+/**
+ * 처음 여는 측정의 목표 — §3.9 「기본 목표값」이다. 사람이 고치거나 지운다. 서버에는 기본값이 없다.
+ * 앱 실행 시간 5초는 Google Play Android vitals 의 콜드 스타트 「과도함」 기준, 게임 30초는 SDK 가 답할 때까지라서다. PC 는 배터리 온도가 없다
+ */
+export function 기본목표(종류: 측정종류): 기기목표[] {
+  const 줄 = (metric: 기기지표, value: number): 기기목표 => ({ metric, op: 지표표[metric].op, value, source: 'MANUAL' });
+  if (종류 === 'PC') return [줄('AVG_FPS', 60), 줄('LOW1_FPS', 30), 줄('JANK_PER_MIN', 1), 줄('MAX_MEM', 4096), 줄('LAUNCH_MS', 30_000)];
+  return [줄('AVG_FPS', 45), 줄('LOW1_FPS', 30), 줄('JANK_PER_MIN', 1), 줄('MAX_MEM', 1536), 줄('MAX_TEMP', 45), 줄('LAUNCH_MS', 종류 === 'GAME' ? 30_000 : 5000)];
+}
 
 export const 한자리 = (n: number): number => Math.round(n * 10) / 10;
 
@@ -52,6 +65,7 @@ export const 메모리글자 = (mb: number | null): string => (mb === null ? '-'
 export function 값글자(metric: 기기지표, 값: number | null, t: 말): string {
   if (값 === null) return '-';
   if (metric === 'MAX_TEMP') return t('{수}도', { 수: 한자리(값) });
+  if (metric === 'JANK_PER_MIN') return t('분당 {수}번', { 수: 한자리(값) });
   if (metric === 'MAX_MEM') return 메모리글자(값);
   if (metric === 'LAUNCH_MS') return t('{수}초', { 수: 한자리(값 / 1000) });
   return String(한자리(값));
@@ -65,7 +79,8 @@ const 값들 = (xs: (number | null)[]): number[] => xs.filter((x): x is number =
 const 평균 = (v: number[]): number | null => (v.length === 0 ? null : v.reduce((a, b) => a + b, 0) / v.length);
 const 합 = (v: number[]): number | null => (v.length === 0 ? null : v.reduce((a, b) => a + b, 0));
 
-/** 실행 중 지금까지 받은 숫자의 요약 — 서버 deviceStats 의 기기요약하기와 같은 셈이다(서버 쪽은 zod 를 끌고 와 화면이 따로 센다) */
+/** 실행 중 지금까지 받은 숫자의 요약 — 서버 deviceStats 의 기기요약하기를 따라 센다(서버 쪽은 zod 를 끌고 와 화면이 따로 센다).
+ *  1% Low · 분당 끊김은 프레임 시간 분포로 세는데 1초 줄에 분포가 안 와서 끝난 뒤 서버 값으로만 본다 */
 export function 지금요약(줄들: readonly 기기숫자[]): 기기요약 {
   const fps = 값들(줄들.map((r) => r.fps)).sort((a, b) => a - b);
   const 낮은 = fps.slice(0, Math.max(1, Math.floor(fps.length * 0.01)));
@@ -78,12 +93,16 @@ export function 지금요약(줄들: readonly 기기숫자[]): 기기요약 {
     freezeCount: 합(값들(줄들.map((r) => r.freezeCount))),
     maxMemMb: 최대(값들(줄들.map((r) => r.memMb))),
     avgCpu: 반올림(평균(값들(줄들.map((r) => r.cpu)))),
+    jankPerMin: null,
+    avgGpu: 반올림(평균(값들(줄들.map((r) => r.gpu)))),
+    maxVramMb: 최대(값들(줄들.map((r) => r.vramMb))),
   };
 }
 
 export const 요약값 = (요약: 기기요약, launchMs: number | null): Record<기기지표, number | null> => ({
   AVG_FPS: 요약.avgFps,
   LOW1_FPS: 요약.low1Fps,
+  JANK_PER_MIN: 요약.jankPerMin,
   MAX_TEMP: 요약.maxTempC,
   MAX_MEM: 요약.maxMemMb,
   LAUNCH_MS: launchMs,
@@ -109,7 +128,7 @@ export interface 결과칸 {
 type 결과기기 = 기기결과['devices'][number];
 
 /**
- * 결과 화면 위 숫자 칸 줄 — 앱은 CPU · 메모리 · 앱 실행 시간 · 프리징, 게임은 FPS · 프레임 드랍 · 프리징 · CPU · 메모리 (시안 11판 「앱 성능 · 게임 성능」 · WEB-F7-16).
+ * 결과 화면 위 숫자 칸 줄 — 앱은 CPU · 메모리 · 앱 실행 시간 · 프리징, 게임(폰 · PC)은 FPS · 분당 끊김 · 프레임 드랍 · 프리징 · CPU · 메모리 (시안 11판 「앱 성능 · 게임 성능」 · WEB-F7-16 · 분당 끊김은 PERF-F2-06).
  * 게임 프리징은 표시 시각 사이 0.7초를 재게 된 뒤 더했다(2026-11-10 사용자).
  * 시안의 「화면 멈춤」은 QA 현장 말 「프리징」으로 적었다(WEB-F7-26 사용자). 기기가 여럿이면 가장 나쁜 기기의 값이다 — 한 대라도 넘으면 넘은 것이다
  */
@@ -138,7 +157,9 @@ export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'device
   const 메모리 = 칸('메모리 최대', (d) => d.summary.maxMemMb, true, 메모리글자, 'MAX_MEM');
   const 프리징 = 칸('프리징', (d) => d.summary.freezeCount, true, (n) => t('{수}번', { 수: n }));
   프리징.보조.push(t('0.7초 넘게 정지'));
-  if (게임) return [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), 프리징, cpu, 메모리];
+  const 끊김 = 칸('분당 끊김', (d) => d.summary.jankPerMin, true, (n) => t('{수}번', { 수: 한자리(n) }), 'JANK_PER_MIN');
+  끊김.보조.push(t('125ms 넘게 걸린 프레임'));
+  if (게임) return [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 끊김, 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), 프리징, cpu, 메모리];
   return [cpu, 메모리, 칸('앱 실행 시간', (d) => d.launchMs, true, (n) => 값글자('LAUNCH_MS', n, t), 'LAUNCH_MS'), 프리징];
 }
 

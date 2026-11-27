@@ -3,9 +3,10 @@
 import { 오류묶음, 칸오류 } from './FieldError.js';
 import { use말 } from './i18n.js';
 import type { 측정지표 } from './perfDeviceApi.js';
-import { 측정항목 } from './perfDeviceView.js';
+import { 측정항목, type 측정종류 } from './perfDeviceView.js';
 
 export function PerfDeviceMetrics({
+  종류,
   항목,
   on항목,
   간격,
@@ -15,6 +16,7 @@ export function PerfDeviceMetrics({
   쓰나,
   사유,
 }: {
+  종류: 측정종류;
   항목: 측정지표[];
   on항목: (항목: 측정지표[]) => void;
   간격: 1 | 2 | 5;
@@ -30,7 +32,7 @@ export function PerfDeviceMetrics({
     <section className="perf-panel" aria-labelledby="pd-k">
       <h2 id="pd-k">{t('측정 항목')}</h2>
       <div className="pd-checks" {...오류묶음('pd-metrics-err', 사유)}>
-        {측정항목.map(([m, 이름]) => (
+        {측정항목(종류).map(([m, 이름]) => (
           <label key={m}>
             <input type="checkbox" checked={항목.includes(m)} disabled={!쓰나} onChange={() => on항목(항목.includes(m) ? 항목.filter((x) => x !== m) : [...항목, m])} />
             {t(이름)}
@@ -55,7 +57,7 @@ export function PerfDeviceMetrics({
           <span className="perf-faint">{t('FPS가 떨어진 장면을 녹화 화면으로 확인')}</span>
         </label>
       </div>
-      <span className="perf-faint">{t('앱 실행 시간은 측정을 시작할 때 디바이스마다 한 번 잽니다')}</span>
+      <span className="perf-faint">{종류 === 'APP' ? t('앱 실행 시간은 측정을 시작할 때 디바이스마다 한 번 잽니다') : t('게임의 앱 실행 시간은 게임을 켠 때부터 게임 SDK 가 처음 응답할 때까지 잽니다')}</span>
     </section>
   );
 }
