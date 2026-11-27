@@ -7,6 +7,7 @@ import { api, type SettingsServiceRow } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { ServicePanel } from './SettingsService.js';
 import { 물음누름 } from './startConfirm.fixture.js';
+import { 탭열기 } from './SettingsTabs.fixture.js';
 
 afterEach(() => {
   떠나기막기(null);
@@ -73,7 +74,9 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
 
     expect(screen.queryByRole('group', { name: '종류' })).toBeNull();
     expect(screen.getByText('만든 뒤에는 변경할 수 없습니다')).toBeTruthy();
+    탭열기('테스트 작성');
     expect(구획제목들()).toContain('API 문서');
+    탭열기('실행');
     expect((screen.getByLabelText('대상 서버 1 API 인증 1 비밀값') as HTMLInputElement).placeholder).toBe('•••• abcd');
 
     const 본문 = await 고친본문();
@@ -84,6 +87,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
 
   it('문서 경로와 기준 서버를 비우면 null 로 보낸다', async () => {
     render(<ServicePanel row={API앱} onDone={() => {}} />);
+    탭열기('테스트 작성');
     fireEvent.change(screen.getByLabelText('문서 경로'), { target: { value: '' } });
     fireEvent.change(screen.getByLabelText('기준 서버'), { target: { value: '' } });
 
@@ -93,9 +97,11 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
   it('화면 애플리케이션에는 API 문서 · API 인증 칸이 없고 API 칸을 하나도 보내지 않는다', async () => {
     render(<ServicePanel row={화면앱} onDone={() => {}} />);
 
-    expect(구획제목들()).not.toContain('API 문서');
-    expect(screen.queryByText('API 인증')).toBeNull();
     expect(screen.getByText('웹')).toBeTruthy();
+    탭열기('테스트 작성');
+    expect(구획제목들()).not.toContain('API 문서');
+    탭열기('실행');
+    expect(screen.queryByText('API 인증')).toBeNull();
 
     const 본문 = await 고친본문();
     for (const 키 of ['kind', 'apiDocPath', 'apiDocEnv']) expect(본문).not.toHaveProperty(키);
@@ -105,6 +111,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
   it('비밀값 없이 새로 더한 인증은 칸 아래에 알리고 저장을 막는다', () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={API앱} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 API 인증 추가' }));
     인증을채운다(2, { 이름: '고객사 B', 주소: '/oauth/token', 아이디: 'client-b' });
 
@@ -117,6 +124,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
   it('저장된 인증의 이름이나 토큰 주소를 바꾸면 옛 비밀값을 못 이어받아 비밀값을 다시 받는다', () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={API앱} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.change(screen.getByLabelText('대상 서버 1 API 인증 1 토큰 주소'), { target: { value: 'https://auth.example.com/token' } });
 
     expect((screen.getByLabelText('대상 서버 1 API 인증 1 비밀값') as HTMLInputElement).placeholder).toBe('비밀값');
@@ -127,6 +135,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
   it('대상 서버 주소를 바꾸면 / 로 시작하는 토큰 주소의 인증은 비밀값을 다시 받고, http(s) 토큰 주소는 그대로 잇는다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={API앱} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://other.example.com' } });
 
     expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 변경하면 다시 넣어야 합니다')).toBeTruthy();
@@ -137,6 +146,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
 
     const 절대주소 = { name: '고객사 A', tokenUrl: 'https://auth.example.com/token', clientId: 'client-a', clientSecretLast4: 'abcd' };
     render(<ServicePanel row={{ ...API앱, envs: [{ env: 'qa', baseUrl: 'https://qa.example.com', apiAuths: [절대주소] }] }} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://other.example.com' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     물음누름('저장');
@@ -145,6 +155,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
 
   it('「삭제」를 누르면 그 인증이 빠진 목록을 보낸다', async () => {
     render(<ServicePanel row={API앱} onDone={() => {}} />);
+    탭열기('실행');
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 API 인증 1 삭제' }));
 
     expect((await 고친본문())?.envs?.[0]?.apiAuths).toEqual([]);

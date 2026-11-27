@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, within } from '@testing-library/react';
 
 import { api, type SettingsServiceRow } from './api.js';
 import { ServicePanel } from './SettingsService.js';
+import { 탭열기 } from './SettingsTabs.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -34,6 +35,7 @@ const 구획 = () => [...document.querySelectorAll<HTMLElement>('.set-card')].fi
 describe('애플리케이션 설정 「화면 크기」 구획 (도메인/인증 §8.8 · PRD-F10-08 시안 B)', () => {
   it('대상 서버마다 판정을 보이고, 훑기 전 서버는 「아직 판정 안 함」이며 펼칠 단추가 없다', () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('테스트 작성');
     const 줄 = [...within(구획()).getAllByRole('row')].slice(1);
     expect(줄.map((r) => r.querySelector('td')?.textContent)).toEqual(['live', 'qa', 'stage']);
     expect(within(줄[0]!).getByText('아직 판정 안 함')).toBeTruthy();
@@ -55,6 +57,7 @@ describe('애플리케이션 설정 「화면 크기」 구획 (도메인/인증
       same: 18,
     });
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('테스트 작성');
     fireEvent.click(within(구획()).getAllByRole('button', { name: '화면별 차이' })[0]!);
 
     expect(await within(구획()).findByText('상품 목록')).toBeTruthy();
@@ -77,6 +80,7 @@ describe('애플리케이션 설정 「화면 크기」 구획 (도메인/인증
         : Promise.resolve({ items: [{ state: '로그아웃', url: '/m', name: '스테이지 화면', viewport: { ...차이, 모바일주소: 'https://m.example.com/' } }], differ: 250, same: 0 }),
     );
     render(<ServicePanel row={서비스} onDone={() => {}} />);
+    탭열기('테스트 작성');
     const [qa, stage] = within(구획()).getAllByRole('button', { name: '화면별 차이' });
     fireEvent.click(qa!);
     fireEvent.click(stage!);

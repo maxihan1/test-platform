@@ -173,7 +173,7 @@ openssl rand -hex 32
 | `SESSION_SECRET` | 로그인 세션을 서명하는 키. **비어 있거나 32바이트보다 짧으면 admin이 기동을 거부한다** (`openssl rand -hex 32` 면 충분하다). 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채 「가끔 로그인이 풀린다」로 겪는다 |
 | `ADMIN_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`5434`으로 뜬다(postgres 는 2026-10-27 에 5433 에서 옮겼다 — 맥의 BTS 개발 DB 가 5433 을 쓴다. 옮기는 법은 「20. 서버와 맥에 나눠 띄우기」 「맥 postgres 를 5434 로 옮기기」). 한 서버에 다른 것과 같이 띄울 때만 바꾼다. **Grafana 는 바깥 포트가 없다** (2026-09-28) — 플랫폼에 로그인한 뒤 `그래프(Grafana) ↗`(같은 주소의 `/grafana/`)로 들어간다. 그래프(Grafana) 권한(설정 → 계정 → 그래프(Grafana) `읽기`)이 있는 사람만 열린다. 옛 `GRAFANA_PORT` 는 `.env` 에서 지워도 된다 |
 | `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` | DB 비밀번호 둘 (2026-10-23). 슈퍼유저 `platform` 과 Grafana 읽기 전용 계정 `grafana_ro` 의 것이다. **비우면 `platform` · `grafana_ro` 그대로다.** 서버는 `openssl rand -hex 24` 로 만든 값을 넣는다 — 주소에 그대로 들어가므로 영문 · 숫자만 쓴다(`@` · `#` · `$` 같은 글자는 주소나 `.env` 를 깨뜨린다). **DB 를 처음 만들 때만 읽힌다** — 이미 돌던 서버는 아래 「18. DB 비밀번호 바꾸기」 순서대로 한다. 개발 맥도 바꿔도 된다 — pre-push 의 임시 DB 도 이 두 칸을 읽는다. 맥 Docker Desktop 은 러너가 `host.docker.internal:5434` 으로 DB 에 닿아 비밀번호만 막는다 |
-| `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다. **아래 maxihan 계정 로그인을 켜면 꼭 채운다** — 돌아올 주소가 이 위에 붙는다. **CI 가 APK 를 올리는 애플리케이션(Android 앱 · 게임)도 꼭 채운다** — 디바이스 팜이 APK 를 받는 서명 주소가 이 위에 붙고, 비우면 그 항목은 미실행으로 닫힌다(도메인/실행 §3.11). 설정 › CI 토큰의 CI 예시 주소도 이 값 위에 붙는다 — 비우면 브라우저를 연 주소가 들어가 localhost 면 CI 가 닿지 않는다. 설정 › 성능 에이전트의 설치 명령도 이 값 위에 붙는다 — **앞단 프록시(Caddy) 뒤에 두면 꼭 채운다.** 비우면 설치 명령이 `http://` 주소가 되어 에이전트 토큰이 거절된다. **설정 › BTS 연결의 「BTS 자동 설정」도 이 값이 있어야 한다** — BTS 웹훅 · 규칙이 이 주소로 QA Hub 를 부르고, BTS 는 사설 주소 · localhost 를 거절한다(비우면 「공개 주소가 없어」 한 줄로 막힌다 · 도메인/BTS §3.12 「설정 · 고장 대응」). **Claude 의 `/mcp` 로그인도 이 값 위에 붙는다** — 이 값 + `/mcp` 가 Auth 설정 `auth.mcp.resource` 와 글자까지 같아야 한다(운영 `https://commander.maxihan.com/mcp`). 다르면 로그인을 마쳐도 401 이라 Claude 가 로그인 창을 계속 다시 띄운다 |
+| `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다. **아래 maxihan 계정 로그인을 켜면 꼭 채운다** — 돌아올 주소가 이 위에 붙는다. **CI 가 APK 를 올리는 애플리케이션(Android 앱 · 게임)도 꼭 채운다** — 디바이스 팜이 APK 를 받는 서명 주소가 이 위에 붙고, 비우면 그 항목은 미실행으로 닫힌다(도메인/실행 §3.11). 설정 › CI 토큰의 CI 예시 주소도 이 값 위에 붙는다 — 비우면 브라우저를 연 주소가 들어가 localhost 면 CI 가 닿지 않는다. 설정 › 성능 에이전트의 설치 명령도 이 값 위에 붙는다 — **앞단 프록시(Caddy) 뒤에 두면 꼭 채운다.** 비우면 설치 명령이 `http://` 주소가 되어 에이전트 토큰이 거절된다. **설정 › 프로젝트 › Issue Bunker 연결 탭의 「BTS 자동 설정」도 이 값이 있어야 한다** — BTS 웹훅 · 규칙이 이 주소로 QA Hub 를 부르고, BTS 는 사설 주소 · localhost 를 거절한다(비우면 「공개 주소가 없어」 한 줄로 막힌다 · 도메인/BTS §3.12 「설정 · 고장 대응」). **Claude 의 `/mcp` 로그인도 이 값 위에 붙는다** — 이 값 + `/mcp` 가 Auth 설정 `auth.mcp.resource` 와 글자까지 같아야 한다(운영 `https://commander.maxihan.com/mcp`). 다르면 로그인을 마쳐도 401 이라 Claude 가 로그인 창을 계속 다시 띄운다 |
 | `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` | 선택 (2026-10-20). **maxihan 계정(Auth_platform)으로 로그인하게 한다.** Auth_platform 주소와, 거기에 이 플랫폼을 등록하고 받은 client id · secret 이다. 등록할 주소는 셋이다 — 돌아올 주소 `PLATFORM_PUBLIC_URL` + `/api/auth/sso/callback` · 로그아웃 뒤 돌아올 주소 `PLATFORM_PUBLIC_URL` + `/` · back-channel 로그아웃 주소 `PLATFORM_PUBLIC_URL` + `/api/auth/backchannel-logout` (뒤 둘은 2026-11-03 S24 — 로그아웃이 Auth_platform 세션까지 끊고, 다른 앱에서 로그아웃하면 Auth 가 이 주소로 알려 이 앱도 로그아웃된다. 2026-10-29~11-02 에는 로그아웃 뒤 돌아올 주소를 안 썼다). **셋 다 채우면 켜지고 셋 다 비우면 비밀번호 로그인 그대로다. 일부만 채우면 admin 이 기동을 거부한다.** 켜면 로그인 안 된 사람은 이 앱 화면을 거치지 않고 바로 Auth_platform 로그인 화면으로 가고(돌아온 알림이나 로그아웃 표시가 있을 때만 이 앱 카드가 뜬다 — 도메인/인증 §8.6) 회원가입 · 비밀번호 변경이 사라진다. 기본 계정 `admin` 은 Auth_platform 의 같은 아이디 `admin` 으로 처음 들어올 때 이어진다 (SPEC 도메인/인증 §3.5 「maxihan 계정」) |
 
 **2026-09-17에 넷이 이 표에서 빠졌다.** `PLATFORM_INSTANCE_NAME`·`_COLOR`·`PLATFORM_TESTS_REPO`·`PLATFORM_ENV_URLS`.
@@ -343,8 +343,8 @@ npm run authoring-agent
 
 **② 설정 화면에 넣기** — 운영(`admin`) 등급 계정으로 한다.
 
-1. 사이드바 **「설정」** → 왼쪽 설정 메뉴에서 그 서비스를 고른다
-2. **「피그마 토큰」** 칸에 붙여 넣고 저장한다
+1. 사이드바 **「설정」** → 왼쪽 설정 메뉴에서 그 서비스를 고른다(다른 프로젝트의 서비스는 프로젝트 줄을 눌러 펼친다)
+2. **「테스트 작성」** 탭 → **「피그마 토큰」** 칸의 `입력` 을 누르고 붙여 넣은 뒤 저장한다
 3. 칸이 **`설정됨 · 변경`** 으로 바뀌면 들어간 것이다. 값은 다시 안 보인다 — Slack 웹훅 칸과 같다
 4. 바꾸려면 `변경` 을 눌러 새 값을 넣는다. 비우면 그 서비스는 피그마 자료를 못 읽는다
 
@@ -944,13 +944,13 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    DEVICE_FARM_URL=https://farm.maxihan.com/wd/hub
    DEVICE_FARM_RUN_AS=qahub-runner
    BTS_BOT_USERNAMES=qahub-ai
-   BTS_URLS=<설정 › BTS 연결에 적는 Issue Bunker 주소>
+   BTS_URLS=<설정 › 프로젝트 › Issue Bunker 연결 탭에 적는 Issue Bunker 주소>
    AUTHORING_AGENT_USER=<맥 .env 와 같은 아이디>
    ```
    - **`DEVICE_FARM_RUN_AS` 는 사람이 안 누른 일(정기 · 빌드 실행 · 작성 AI · 기기 성능 · 기기 목록)이 팜에 보일 전용 Auth 계정 이름(username)이다 — 운영은 `qahub-runner`** (2026-11-04 토큰 정책 · 앞 판은 `maxi`). admin 이 그 이름의 「대신 PAT」(3시간)를 Auth 에서 받아 팜에 싣는다. 사람이 누른 실행은 누른 사람 이름이다 — 아무도 토큰을 붙여 넣지 않는다(SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」 · 도메인/인증 §7 「대신 PAT」)
    - 개인 계정을 적지 않는다 — 팜은 같은 주인의 잡기 요청에 이미 잡힌 폰을 내줘서, 그 사람이 손으로 쓰던 폰과 섞이고 기록 · 사용률도 섞인다. 전용 계정은 Auth 관리자 화면 › 사용자에서 만들고 그 계정으로 브라우저 로그인하지 않는다. 토큰 규칙의 원본은 Auth_platform `docs/token-policy.md` 다
    - 대신 PAT 는 로그인과 같은 `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` 로 받는다. Auth 운영 설정의 `auth.delegated-pats.clients` 에 `AUTH_CLIENT_ID`(`test-platform`)가 있어야 한다 — 없으면 403 이라 Auth 에 묶인 사람이 누른 실행은 그 항목이 NA 로 닫히고, 서버 몫(Auth 에 안 묶인 계정이 누른 실행도)은 (아래대로 `DEVICE_FARM_TOKEN` 을 비워 두었으니) 팜 토큰 없이 가서 인증 켠 팜이 401 을 준다
-   - **`BTS_BOT_USERNAMES` 는 설정 › BTS 연결의 「QA Hub AI 계정 이름」으로 받을 Auth 계정 이름, `BTS_URLS` 는 열쇠를 보낼 Issue Bunker 주소다**(둘 다 쉼표로 여럿) — 밖의 이름 · 주소는 저장 · 불러오기 · 부르기를 거절한다. 비면 Issue Bunker 를 못 잇는다(SPEC 도메인/BTS 「열쇠 표」)
+   - **`BTS_BOT_USERNAMES` 는 설정 › 프로젝트 › Issue Bunker 연결 탭의 「QA Hub AI 계정 이름」으로 받을 Auth 계정 이름, `BTS_URLS` 는 열쇠를 보낼 Issue Bunker 주소다**(둘 다 쉼표로 여럿) — 밖의 이름 · 주소는 저장 · 불러오기 · 부르기를 거절한다. 비면 Issue Bunker 를 못 잇는다(SPEC 도메인/BTS 「열쇠 표」)
    - **`DEVICE_FARM_TOKEN` 은 비워 둔다 — 사람 PAT 를 넣지 않는다**(토큰 정책 §2). 사람은 PAT 를 만들지 않아서 SSO 를 끈 설치도 넣을 값이 없다 — 그런 설치는 인증 없는 팜(같은 맥)에만 붙는다. 운영 서버는 이미 비워 두었다(2026-11-04 — `.env` 에 이 줄이 없다). 앞 판(2026-10-27 ~ 11-03)은 여기에 `maxi` 의 PAT 를 넣었다. 코드는 이 칸을 아직 읽는다
    - 새면 3시간 동안 팜과 Issue Bunker 를 그 계정 이름으로 쓸 수 있다(대신 PAT 의 scopes `[bunker, vision]`). 러너의 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 팜 토큰(대신 PAT)을 읽을 수 있다. 그래서 `DEVICE_FARM_RUN_AS` 는 Bunker 권한이 작은 계정인 쪽이 낫다
    - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU · 메모리 상한이 걸린다

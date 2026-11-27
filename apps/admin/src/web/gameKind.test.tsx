@@ -49,7 +49,7 @@ const 값칸 = () => screen.getByLabelText('대상 서버 1 어드민 키 값');
 
 describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 §7 adminKey · GAME-F1-08)', () => {
   it('저장된 키는 끝 4자리만 보이고 손대지 않으면 값 없이 머리만 보내 서버가 옛 값을 잇는다', async () => {
-    render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
+    render(<ServicePanel 탭="run" row={게임앱([키있는줄])} onDone={() => {}} />);
 
     expect((머리칸() as HTMLInputElement).value).toBe('X-Admin-Key');
     expect(값칸().getAttribute('placeholder')).toBe('•••• a91f');
@@ -57,7 +57,7 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
   });
 
   it('두 칸을 비우고 저장하면 null 을 보내 지운다', async () => {
-    render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
+    render(<ServicePanel 탭="run" row={게임앱([키있는줄])} onDone={() => {}} />);
 
     expect(screen.queryByText('이대로 저장하면 이 서버의 어드민 키가 삭제됩니다')).toBeNull();
     fireEvent.change(머리칸(), { target: { value: '' } });
@@ -67,7 +67,7 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
   });
 
   it('머리 이름이나 대상 서버 이름 · 주소를 바꾸고 값을 안 넣으면 저장 전에 까닭을 말한다', () => {
-    render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
+    render(<ServicePanel 탭="run" row={게임앱([키있는줄])} onDone={() => {}} />);
     const 까닭 = '새 어드민 키라면 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다';
 
     fireEvent.change(머리칸(), { target: { value: 'X-Gm-Key' } });
@@ -83,7 +83,7 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
   });
 
   it('서버와 같은 규칙으로 머리 이름 · 값 꼴을 먼저 짚는다', () => {
-    render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
+    render(<ServicePanel 탭="run" row={게임앱([키있는줄])} onDone={() => {}} />);
 
     fireEvent.change(머리칸(), { target: { value: 'X Admin' } });
     expect(screen.getByText('어드민 키 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다')).toBeTruthy();
@@ -103,14 +103,14 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
   });
 
   it('게임이 아닌 애플리케이션에는 칸이 없고 adminKey 를 안 보낸다', async () => {
-    render(<ServicePanel row={{ ...게임앱([{ env: 'qa', baseUrl: 'https://qa.example.com' }]), kind: 'APP' }} onDone={() => {}} />);
+    render(<ServicePanel 탭="run" row={{ ...게임앱([{ env: 'qa', baseUrl: 'https://qa.example.com' }]), kind: 'APP' }} onDone={() => {}} />);
 
     expect(screen.queryByLabelText('대상 서버 1 어드민 키 헤더 이름')).toBeNull();
     expect((await 고친본문())?.envs?.[0]).not.toHaveProperty('adminKey');
   });
 
   it('API 애플리케이션에도 칸이 서고 저장된 키는 값 없이 머리만 보낸다 — 서버 어드민 API 를 부르는 케이스가 쓴다', async () => {
-    render(<ServicePanel row={{ ...게임앱([키있는줄]), kind: 'API' }} onDone={() => {}} />);
+    render(<ServicePanel 탭="run" row={{ ...게임앱([키있는줄]), kind: 'API' }} onDone={() => {}} />);
 
     expect((머리칸() as HTMLInputElement).value).toBe('X-Admin-Key');
     expect((await 고친본문())?.envs?.[0]?.adminKey).toEqual({ header: 'X-Admin-Key' });

@@ -140,23 +140,26 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
               onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, baseUrl: e.target.value } : v)))}
             />
             <button
-              className="btn ghost icon"
+              className="btn ghost"
               aria-label={t('대상 서버 {번호} 삭제', { 번호: i + 1 })}
-              title={t('대상 서버 {번호} 삭제', { 번호: i + 1 })}
               onClick={() => onChange(envs.filter((_, k) => k !== i))}
             >
-              −
+              {t('서버 삭제')}
             </button>
-            <label className="check-inline">
-              <input
-                type="checkbox"
-                checked={it.isProd ?? 운영이름인가(it.env)}
-                aria-label={t('대상 서버 {번호} 실서비스 서버', { 번호: i + 1 })}
-                onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, isProd: e.target.checked } : v)))}
-              />
-              {t('실서비스 서버')}
-            </label>
             <div className="set-env-login">
+              <label className="check-inline">
+                <input
+                  type="checkbox"
+                  checked={it.isProd ?? 운영이름인가(it.env)}
+                  aria-label={t('대상 서버 {번호} 실서비스 서버', { 번호: i + 1 })}
+                  onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, isProd: e.target.checked } : v)))}
+                />
+                {t('실서비스 서버')}
+              </label>
+              <div className="hint">{t('실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
+            </div>
+            <div className="set-env-login">
+              <span className="field-label">{스토어앱 ? t('앱 파일 경로 · 패키지 이름') : t('앱 파일 경로')}</span>
               <input
                 type="text"
                 autoComplete="off"
@@ -165,6 +168,11 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
                 aria-label={t('대상 서버 {번호} 앱 파일 경로', { 번호: i + 1 })}
                 onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, appPath: e.target.value } : v)))}
               />
+              <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 실행할 때 설치할 apk 입니다. Device VISION 이 실행 중인 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 지정한 PLATFORM_APP 을 씁니다')}</div>
+              {스토어앱 ? <div className="hint">{t('APK 가 없으면 Device VISION 디바이스에 스토어에서 설치해 둔 앱의 패키지 이름을 적습니다')}</div> : null}
+            </div>
+            <div className="set-env-sub" aria-hidden="true">
+              {t('역할 · 아이디 · 비밀번호')}
             </div>
             <계정칸 줄={it} 번호={i + 1} 고친다={(next) => onChange(envs.map((v, k) => (k === i ? next : v)))} />
             <역할계정칸들
@@ -179,6 +187,9 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
               }}
               고친다={(역할들) => onChange(envs.map((v, k) => (k === i ? { ...v, 역할들 } : v)))}
             />
+            <div className="set-env-login">
+              <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다')}</div>
+            </div>
             <준비칸 줄={it} 번호={i + 1} 고친다={(준비) => onChange(envs.map((v, k) => (k === i ? { ...v, 준비 } : v)))} />
             {어드민키 ? <어드민키칸 줄={it} 번호={i + 1} 고친다={(어드민) => onChange(envs.map((v, k) => (k === i ? { ...v, 어드민 } : v)))} /> : null}
             {api ? (
@@ -200,19 +211,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
         >
           {t('+ 대상 서버 추가')}
         </button>
-        {envs.length === 0 ? (
-          <div className="hint">{t('등록된 서버가 없으면 테스트를 실행할 수 없습니다')}</div>
-        ) : (
-          <>
-            <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
-            <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 실행할 때 설치할 apk 입니다. Device VISION 이 실행 중인 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 지정한 PLATFORM_APP 을 씁니다')}</div>
-            <div className="hint">{t('테스트 데이터 준비 주소는 실행할 때마다 먼저 호출해 테스트 데이터를 처음 상태로 초기화합니다. 같은 주소를 넣은 애플리케이션은 한 번에 하나씩 실행합니다')}</div>
-            {스토어앱 ? <div className="hint">{t('APK 가 없으면 Device VISION 디바이스에 스토어에서 설치해 둔 앱의 패키지 이름을 적습니다')}</div> : null}
-            {어드민키 ? (
-              <div className="hint">{t('어드민 키는 서버 어드민 API 에 헤더로 실어 보냅니다. 케이스가 재화 지급처럼 서버 상태를 변경할 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 삭제됩니다')}</div>
-            ) : null}
-          </>
-        )}
+        {envs.length === 0 ? <div className="hint">{t('등록된 서버가 없으면 테스트를 실행할 수 없습니다')}</div> : null}
       </div>
     </div>
   );

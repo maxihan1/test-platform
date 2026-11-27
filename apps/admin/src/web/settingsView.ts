@@ -1,7 +1,7 @@
 // 설정 화면이 하는 판단 (SPEC §8.8). 화면은 그리기만 하고 고를 것은 여기서 정한다
 
 import { 아이디모양 } from '../auth/rules.js';
-import { type 역할까닭, 역할까닭찾기, 역할최대개수, 역할최대글자 } from '../settings/roles.js';
+import { type 역할까닭, 역할까닭찾기, 역할최대개수, 역할최대글자, 운영이름인가 } from '../settings/roles.js';
 import { 제외경로정리, 제외경로최대개수, 제외경로최대글자 } from '../settings/rules.js';
 
 import type { EnvRow, SettingsServiceRow, UserRow } from './api.js';
@@ -133,12 +133,12 @@ export function 계정못보내는이유(
  * Slack 웹훅 칸에 무엇을 적나 (SPEC §8.8).
  *
  * **주소를 되돌려 보여주지 않는다.** 비밀값이라 응답에도 안 담겨 오고(§7),
- * 화면은 설정됐는지만 안다. 그래서 고치는 길이 「변경」이다 — 값이 없을 때는 `+` 기호 하나만 둔다.
+ * 화면은 설정됐는지만 안다. 그래서 고치는 길이 「변경」이다 — 값이 없을 때는 「입력」 하나만 둔다.
  */
 export function 웹훅칸(hasSlackWebhook: boolean, 언어: 언어): { 글: string; 버튼: string } {
   return hasSlackWebhook
     ? { 글: t('설정됨', 언어), 버튼: t('변경', 언어) }
-    : { 글: t('없음', 언어), 버튼: '+' };
+    : { 글: t('없음', 언어), 버튼: t('입력', 언어) };
 }
 
 /** 피그마 토큰 발급 안내의 링크. 토큰은 Figma 계정 설정의 Security 탭에서 만든다 (도메인/인증 §8.8) */
@@ -219,4 +219,70 @@ export function 권한경고(p: 권한칸): 'noCases' | 'allOff' | null {
  */
 export function 설정오류문장(code: string, 언어: 언어, detail?: string): string {
   return 요청오류문장(code, 언어, detail);
+}
+
+/** 애플리케이션 설정의 탭. 값은 화면에 안 나가는 식별자다 */
+export type 서비스탭 = 'basic' | 'run' | 'author' | 'link';
+
+export interface 탭상태값 {
+  글: string;
+  /** ok 는 됐다, warn 은 해야 할 것이 남았다, dim 은 안 해도 된다 */
+  톤: 'ok' | 'warn' | 'dim';
+}
+
+export interface 탭필요 {
+  이름: string;
+  설명: string;
+  필수: boolean;
+  됨: boolean;
+}
+
+/** 탭 상태 한 줄과 「필요한 것」이 보는 지금 입력 중인 값. 저장된 값이 아니다 */
+export interface 탭입력 {
+  testsRepo: string;
+  envs: (EnvRow & { 역할들?: readonly { role?: string; loginId?: string | null }[] })[];
+  피그마있나: boolean;
+  웹훅있나: boolean;
+}
+
+const 서버주소있는줄 = (envs: 탭입력['envs']) => envs.filter((it) => it.baseUrl.trim() !== '');
+const 실서비스인가 = (it: 탭입력['envs'][number]) => it.isProd ?? 운영이름인가(it.env);
+/** 아이디가 적힌 일반 회원 + 역할 계정. 아이디 없는 줄은 로그인에 못 써서 세지 않는다 */
+const 아이디있나 = (it: { loginId?: string | null }) => (it.loginId ?? '').trim() !== '';
+const 계정수 = (envs: 탭입력['envs']) => envs.reduce((합, it) => 합 + (아이디있나(it) ? 1 : 0) + (it.역할들 ?? []).filter(아이디있나).length, 0);
+
+/** 탭 이름 아래 상태 한 줄 (SPEC §8.8). 지금 입력 중인 값 기준이다 */
+export function 탭상태(탭: 서비스탭, 입력: 탭입력, 언어: 언어): 탭상태값 {
+  switch (탭) {
+    case 'basic':
+      return 입력.testsRepo.trim() === '' ? { 글: t('테스트 저장소 비어 있음', 언어), 톤: 'warn' } : { 글: t('✓ 입력 완료', 언어), 톤: 'ok' };
+    case 'run': {
+      const 서버 = 서버주소있는줄(입력.envs).length;
+      return 서버 === 0 ? { 글: t('대상 서버 없음', 언어), 톤: 'warn' } : { 글: t('✓ 서버 {서버}개 · 계정 {계정}개', 언어, { 서버, 계정: 계정수(입력.envs) }), 톤: 'ok' };
+    }
+    case 'author':
+      return 입력.피그마있나 ? { 글: t('✓ 피그마 토큰 설정됨', 언어), 톤: 'ok' } : { 글: t('피그마 토큰 없음', 언어), 톤: 'dim' };
+    case 'link':
+      return 입력.웹훅있나 ? { 글: t('✓ Slack 설정됨', 언어), 톤: 'ok' } : { 글: t('Slack 없음', 언어), 톤: 'dim' };
+  }
+}
+
+/** 탭 맨 위 「필요한 것」 목록. 이 두 탭만 있다 (SPEC §8.8) */
+export function 탭필요한것(탭: 'run' | 'author', 입력: 탭입력, 언어: 언어): 탭필요[] {
+  if (탭 === 'run') {
+    return [
+      { 이름: t('대상 서버 주소', 언어), 설명: t('필수', 언어), 필수: true, 됨: 서버주소있는줄(입력.envs).length > 0 },
+      { 이름: t('테스트 계정', 언어), 설명: t('로그인이 있는 화면이면 필요', 언어), 필수: false, 됨: 계정수(입력.envs) > 0 },
+    ];
+  }
+  return [
+    { 이름: t('테스트 저장소', 언어), 설명: t('필수 · 기본 정보 탭', 언어), 필수: true, 됨: 입력.testsRepo.trim() !== '' },
+    {
+      이름: t('실서비스 서버가 아닌 대상 서버', 언어),
+      설명: t('필수 · 실행 탭. 실서비스 서버로 체크한 줄은 작성 · 탐색이 안 갑니다', 언어),
+      필수: true,
+      됨: 서버주소있는줄(입력.envs).some((it) => !실서비스인가(it)),
+    },
+    { 이름: t('피그마 토큰', 언어), 설명: t('기획서에 피그마 링크가 있을 때만', 언어), 필수: false, 됨: 입력.피그마있나 },
+  ];
 }

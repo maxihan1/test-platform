@@ -2,7 +2,6 @@
 
 export const BTS말: Record<string, string> = {
   '{bts} 연결': '{bts} connection',
-  '{프로젝트} › {bts} 연결': '{프로젝트} › {bts} connection',
   '연결됨 · {키}': 'Connected · {키}',
   '연결 정보 입력': 'Enter connection details',
   '{bts} 자동 설정': 'Set up {bts} automatically',

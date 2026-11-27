@@ -2,10 +2,12 @@
 
 import { 설정API말 } from './settingsApi.js';
 import { 설정준비말 } from './settingsPrep.js';
+import { 설정탭말 } from './settingsTabs.js';
 
 export const 설정말: Record<string, string> = {
   ...설정API말,
   ...설정준비말,
+  ...설정탭말,
   // 로그인 화면 (§8.6)
   '아이디와 비밀번호를 넣으면 배정된 애플리케이션을 쓸 수 있습니다.': 'Sign in to open the applications assigned to you.',
   '아이디': 'ID',
@@ -82,8 +84,8 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 비밀번호 변경': 'Change target server {번호} password',
   '대상 서버 {번호} 비밀번호 삭제': 'Delete target server {번호} password',
   '대상 서버 {번호} 비밀번호 변경 취소': 'Cancel changing target server {번호} password',
-  '테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다':
-    'Test accounts are used to sign in when running and authoring tests. Checking Live service server excludes it from test authoring and screen exploration',
+  '테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다': 'Test accounts are used to sign in when running and authoring tests',
+  '실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다': 'Checking Live service server excludes it from test authoring and screen exploration',
   '실서비스 서버': 'Live service server',
   '대상 서버 {번호} 실서비스 서버': 'Target server {번호} is a live service server',
   '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',

@@ -1,4 +1,4 @@
-// 설정 › 프로젝트 › BTS 연결 화면 (SPEC 도메인/BTS §8.15 · 시안 B 3판 2026-10-31). 연결 정보 → BTS 자동 설정 → 배포 스크립트 한 줄
+// 설정 › 프로젝트 › Issue Bunker 연결 탭 (SPEC 도메인/BTS §8.15 · 시안 B 3판 2026-10-31). 연결 정보 → BTS 자동 설정 → 배포 스크립트 한 줄
 // BTS 쪽(웹훅 · 규칙 둘 · 보드 칸 · 이슈 필드)은 누른 사람의 대신 PAT 로 서버가 만든다 — 사람이 값을 옮겨 적지 않는다(2026-10-31 사용자 「자동으로 설정하면 되잖아」)
 
 import { useEffect, useState } from 'react';
@@ -158,10 +158,12 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
 
   return (
     <div className="set-panel" ref={상자}>
-      <h2 className="set-panel-h">
-        {t('{프로젝트} › {bts} 연결', { 프로젝트: row.name, bts: BTS이름 })}
-        {지금.linked ? <span className="tech-tag">{t('연결됨 · {키}', { 키: 지금.btsProject ?? '' })}</span> : null}
-      </h2>
+      {/* 「{프로젝트} › Issue Bunker 연결」 머리는 프로젝트 설정의 탭 이름과 겹쳐 뺐다. 연결 상태 표시만 남긴다 */}
+      {지금.linked ? (
+        <div>
+          <span className="tech-tag">{t('연결됨 · {키}', { 키: 지금.btsProject ?? '' })}</span>
+        </div>
+      ) : null}
       <ol className="bts-steps">
         {차례.map((it, i) => (
           <li key={i} className={it.됨 ? 'done' : ''}>

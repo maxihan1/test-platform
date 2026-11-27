@@ -4,21 +4,19 @@
 import { Fragment, useEffect, useState } from 'react';
 
 import { api, type SettingsProject, type SettingsServiceRow, type User, type UserRow } from './api.js';
-import { BTS이름 } from './btsName.js';
 import { Head } from './Head.js';
 import { 고른서비스를읽는다 } from './layout.js';
 import { 떠나기로했다, 주소덮기 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
-import { SettingsBts } from './SettingsBts.js';
 import { PendingSection } from './SettingsPending.js';
 import { SettingsPerfAgents } from './SettingsPerfAgents.js';
 import { SettingsPerfDummy } from './SettingsPerfDummy.js';
-import { ProjectPanel } from './SettingsProject.js';
+import { ProjectPanel, type 프로젝트탭 } from './SettingsProject.js';
 import { ServicePanel } from './SettingsService.js';
 import { UserSection } from './SettingsUser.js';
 import { SettingsWizard } from './SettingsWizard.js';
-import { 프로젝트줄들, type 프로젝트줄 } from './settingsView.js';
+import { type 서비스탭, 프로젝트줄들, type 프로젝트줄 } from './settingsView.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
 /**
@@ -43,6 +41,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   const [판, set판] = useState(0);
   // 방금 저장한 자리. 그 자리를 보는 동안만 「저장했습니다」를 띄운다 — 앞 판은 저장하면 폼이 닫혀 그것이 확인이었다
   const [저장한곳, set저장한곳] = useState<string | null>(null);
+  // 애플리케이션마다 보던 탭. 저장하면 패널이 다시 그려져서 패널 안에 두면 기본 정보로 돌아간다
+  const [탭들, set탭들] = useState<Record<string, 서비스탭>>({});
   // 애플리케이션이 하나도 없으면 마법사 주소로 바꿔 둔다 — 다 만든 뒤 목록을 다시 읽어도 마법사(끝 화면)가 그 자리에 남게.
   // 주소가 비어 있으면 첫 애플리케이션을 여는데, 막 만든 것이 그 첫 애플리케이션이 되어 끝 화면이 사라졌다.
   // 프로젝트도 없을 때 프로젝트부터 만드는 것은 마법사가 정한다(아래 새프로젝트)
@@ -75,8 +75,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   // 주소에 자리가 없으면 맨 위에서 고른 서비스로 연다. 그 서비스가 목록에 없으면 첫 서비스다 (점검 N13)
   const 헤더서비스 = 서비스들.find((it) => it.prefix === 고른서비스를읽는다())?.prefix;
   // 프로젝트 자리는 접두사 모양(대문자·숫자)에 안 걸리게 `project-` 로 시작한다 — 대문자로 바꾸기 전에 먼저 가른다
-  // `project-<번호>-bts` 는 그 프로젝트의 BTS 연결 화면이다 (도메인/BTS §8.15)
-  const 프로젝트자리 = 자리 !== undefined && /^project-(new|\d+(-bts)?)$/i.test(자리);
+  // `project-<번호>-bts` · `-api` 는 그 프로젝트 설정의 Issue Bunker 연결 · API 서버 탭이다 (도메인/BTS §8.15)
+  const 프로젝트자리 = 자리 !== undefined && /^project-(new|\d+(-bts|-api)?)$/i.test(자리);
   const 고른 =
     자리 === undefined
       ? (헤더서비스 ?? 서비스들[0]?.prefix ?? 'new')
@@ -86,8 +86,10 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
           ? 자리
           : 자리.toUpperCase();
   const 서비스 = 서비스들.find((it) => it.prefix === 고른);
-  const BTS자리 = 고른.endsWith('-bts');
-  const 프로젝트 = 프로젝트들.find((it) => `project-${it.id}` === (BTS자리 ? 고른.slice(0, -'-bts'.length) : 고른));
+  const 프로젝트탭: 프로젝트탭 = 고른.endsWith('-bts') ? 'bts' : 고른.endsWith('-api') ? 'api' : 'basic';
+  const 프로젝트 = 프로젝트들.find((it) => `project-${it.id}` === 고른.replace(/-(bts|api)$/, ''));
+  // 메뉴는 지금 프로젝트 하나만 펼친다 — 고른 애플리케이션의 프로젝트, 프로젝트 화면이면 그 프로젝트, 계정 같은 곳이면 맨 위에서 보던 애플리케이션의 프로젝트
+  const 지금프로젝트 = 서비스?.projectId ?? 프로젝트?.id ?? 서비스들.find((it) => it.prefix === 헤더서비스)?.projectId;
   const 프로젝트줄 = 프로젝트줄들(프로젝트들, 서비스들);
   const 대기수 = users.data.items.filter((it) => it.isApproved === false).length;
   // 마법사의 「나가기」 — 보던 애플리케이션, 없으면 첫 프로젝트, 그것도 없으면 계정이다
@@ -125,7 +127,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
       <Head 제목={t('설정')} 부제={t('관리자만 볼 수 있는 화면입니다')} />
 
       <div className="screen set-layout">
-        <설정메뉴 프로젝트들={프로젝트줄} 서비스들={서비스들} 고른={고른} 계정수={users.data.items.length - 대기수} 대기수={대기수} />
+        <설정메뉴 프로젝트들={프로젝트줄} 서비스들={서비스들} 고른={고른} 고른프로젝트={프로젝트?.id} 지금프로젝트={지금프로젝트} 계정수={users.data.items.length - 대기수} 대기수={대기수} />
         <div className="set-main">
           {고른 === 'perf-agents' ? (
             <SettingsPerfAgents
@@ -162,10 +164,16 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
           ) : 프로젝트자리 ? (
             프로젝트 === undefined ? (
               <div className="empty">{t('그 프로젝트를 찾지 못했습니다')}</div>
-            ) : BTS자리 ? (
-              <SettingsBts row={프로젝트} services={서비스들} onDone={() => void services.reload()} />
             ) : (
-              <ProjectPanel key={`${프로젝트.id}-${판}`} row={프로젝트} projects={프로젝트들} services={서비스들} onDone={() => void 프로젝트다시()} />
+              <ProjectPanel
+                key={`${프로젝트.id}-${판}`}
+                row={프로젝트}
+                projects={프로젝트들}
+                services={서비스들}
+                탭={프로젝트탭}
+                onDone={() => void 프로젝트다시()}
+                onBts저장={() => void services.reload()}
+              />
             )
           ) : 서비스 === undefined ? (
             <div className="empty">{t('그 애플리케이션을 찾지 못했습니다')}</div>
@@ -175,6 +183,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
               key={`${서비스.id}-${판}`}
               row={서비스}
               저장했다={저장한곳 === 서비스.prefix}
+              탭={탭들[서비스.prefix] ?? 'basic'}
+              on탭={(탭) => set탭들((전) => ({ ...전, [서비스.prefix]: 탭 }))}
               onDone={(접두사, 저장) => void 서비스다시(접두사, false, 저장)}
             />
           )}
@@ -191,12 +201,18 @@ function 설정메뉴({
   프로젝트들,
   서비스들,
   고른,
+  고른프로젝트,
+  지금프로젝트,
   계정수,
   대기수,
 }: {
   프로젝트들: 프로젝트줄[];
   서비스들: SettingsServiceRow[];
   고른: string;
+  /** 프로젝트 화면을 보고 있으면 그 번호 — 프로젝트 탭(기본 정보 · 연결 · API 서버)이 어느 것이든 같은 줄이 지금 자리다 */
+  고른프로젝트: number | undefined;
+  /** 펼칠 프로젝트 하나 */
+  지금프로젝트: number | undefined;
   계정수: number;
   대기수: number;
 }) {
@@ -207,30 +223,33 @@ function 설정메뉴({
     <nav className="set-nav" aria-label={t('설정 메뉴')}>
       <h2>{t('프로젝트')}</h2>
       {프로젝트들.length === 0 ? <p className="hint">{t('아직 프로젝트가 없습니다')}</p> : null}
-      {/* 애플리케이션은 제 프로젝트 아래에 들여 쓴다 — 나란히 두면 어느 프로젝트 것인지 안 보였다 (2026-10-20 ⑬-3) */}
-      {프로젝트들.map((it) => (
-        <Fragment key={it.id}>
-          <a href={`#/settings/project-${it.id}`} {...자리(`project-${it.id}`)}>
-            <span className="set-nav-name">{it.name}</span>
-            <span className="set-nav-sub">{t('애플리케이션 {수}개', { 수: it.앱수 })}</span>
-          </a>
-          {/* 묶음 이름을 프로젝트로 달아 화면 읽기에도 어느 프로젝트 것인지 들린다 */}
-          <div className="set-nav-tree" role="group" aria-label={it.name}>
-            <a href={`#/settings/project-${it.id}-bts`} {...자리(`project-${it.id}-bts`)}>
-              <span className="set-nav-name">{t('{bts} 연결', { bts: BTS이름 })}</span>
+      {/* 프로젝트는 다 보이고 지금 프로젝트 하나만 펼쳐 그 애플리케이션을 들여 쓴다 — 나란히 두면 어느 프로젝트 것인지 안 보였고(2026-10-20 ⑬-3), 다 펼치면 길었다 */}
+      {프로젝트들.map((it) => {
+        const 펼침 = it.id === 지금프로젝트;
+        return (
+          <Fragment key={it.id}>
+            <a href={`#/settings/project-${it.id}`} {...(it.id === 고른프로젝트 ? { 'aria-current': 'page' as const } : {})} aria-expanded={펼침}>
+              <span className="set-nav-caret" aria-hidden="true">{펼침 ? '▾' : '▸'}</span>
+              <span className="set-nav-name">{it.name}</span>
+              <span className="set-nav-sub">{t('애플리케이션 {수}개', { 수: it.앱수 })}</span>
             </a>
-            {서비스들
-              .filter((앱) => 앱.projectId === it.id)
-              .map((앱) => (
-                <a key={앱.id} href={`#/settings/${encodeURIComponent(앱.prefix)}`} {...자리(앱.prefix)}>
-                  <span className="set-nav-name">{앱.name}</span>
-                  {/* 접두사는 늘 둔다 — 주소와 케이스 번호에 쓰이는 이름이다. 비활성이면 곁에 그 사실을 더한다 */}
-                  <span className="set-nav-sub">{앱.isActive ? 앱.prefix : `${앱.prefix} · ${t('비활성')}`}</span>
-                </a>
-              ))}
-          </div>
-        </Fragment>
-      ))}
+            {/* 묶음 이름을 프로젝트로 달아 화면 읽기에도 어느 프로젝트 것인지 들린다 */}
+            {펼침 ? (
+              <div className="set-nav-tree" role="group" aria-label={it.name}>
+                {서비스들
+                  .filter((앱) => 앱.projectId === it.id)
+                  .map((앱) => (
+                    <a key={앱.id} href={`#/settings/${encodeURIComponent(앱.prefix)}`} {...자리(앱.prefix)}>
+                      <span className="set-nav-name">{앱.name}</span>
+                      {/* 접두사는 늘 둔다 — 주소와 케이스 번호에 쓰이는 이름이다. 비활성이면 곁에 그 사실을 더한다 */}
+                      <span className="set-nav-sub">{앱.isActive ? 앱.prefix : `${앱.prefix} · ${t('비활성')}`}</span>
+                    </a>
+                  ))}
+              </div>
+            ) : null}
+          </Fragment>
+        );
+      })}
       <a href="#/settings/project-new" className="set-nav-add" {...자리('project-new')}>
         {t('+ 프로젝트 추가')}
       </a>
