@@ -78,8 +78,8 @@ SPEC 에 없는 결정이 필요하면 **직접 정하지 말고 질문한다.**
 하나의 기능 = 하나의 커밋. 커밋 메시지: `[WS-A] 케이스 스캐너: tcId 중복 검출`
 
 ### 2.3 완료 전 검사 — 끝에 한 명
-`/tpx` 3단계 — pre-push 통과 + 렌즈 하나(`code-review`). **명세(`docs/spec/**` · `docs/SPEC.md`)가 바뀐 작업만 `spec-review` 를 더한다.**
-지적을 고친 뒤에는 렌즈를 다시 부르지 않고 pre-push 만 다시 통과시킨다 (2026-10-09 사용자).
+`/tpx` 3단계 — 렌즈 하나(`code-review`) → 지적 고침 → push 한 번(pre-push). **명세(`docs/spec/**` · `docs/SPEC.md`)가 바뀐 작업만 `spec-review` 를 더한다.**
+지적을 고친 뒤에는 렌즈를 다시 부르지 않는다 (2026-10-09 사용자). 리뷰를 push 전에 돌려 pre-push 는 PR 마다 한 번만 돈다 (2026-11-28 사용자).
 
 **사람 PR 에는 CI 가 없다** — pre-push 가 유일한 자동 검사다(차선별 내용은 `docs/HOOKS.md`). CI 는 작성 에이전트 PR(`author-`)에만 돈다.
 
