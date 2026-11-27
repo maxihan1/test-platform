@@ -126,6 +126,29 @@ describe('PRD 관리 — 전체 요구', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('출처는 자료마다 상자 하나 — 머리에 자료 이름과 「N곳」, 줄마다 위치 · 원문만 (2026-11-27)', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-031/ }));
+
+    const 상자 = within(서랍()).getByText('기획서.docx').closest('.prd-src-box') as HTMLElement;
+    expect(within(상자).getByText('1곳')).toBeTruthy();
+    expect([...상자.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['REQ-MEM-001아이디: 영문 소문자·숫자 4~12자']);
+    expect(within(서랍()).queryByText('자료')).toBeNull();
+  });
+
+  it('머리의 이전 · 다음은 목차 차례대로 옆 요구로 창을 바꾸고, 닫으면 지금 연 줄로 포커스가 돌아온다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-031/ }));
+    expect((within(서랍()).getByRole('button', { name: '이전' }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(within(서랍()).getByRole('button', { name: '다음' }));
+
+    expect(within(서랍()).getByRole('navigation', { name: '위치' }).textContent).toContain('MKT-REQ-032');
+    expect(screen.getByRole('button', { name: /MKT-REQ-032/ }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(서랍()).getByRole('button', { name: '상세 닫기' }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /MKT-REQ-032/ }));
+  });
+
   it('왼쪽 목차의 묶음을 누르면 그 묶음으로 가고 지금 보는 묶음이 표시된다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 목차 = await screen.findByRole('navigation', { name: '기능 묶음 목차' });

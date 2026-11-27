@@ -25,38 +25,66 @@ interface Props {
   오른쪽: ReactNode;
 }
 
+/** Tab 이 닿는 칸인가 — 접힌 상자 안 칸은 보이지 않는다. 접힌 상자의 머리(summary)는 닿는다 */
+function 보이나(el: HTMLElement): boolean {
+  const 접힌 = el.closest('details:not([open])');
+  if (접힌 === null) return true;
+  return el.tagName === 'SUMMARY' && el.parentElement === 접힌 && 접힌.parentElement?.closest('details:not([open])') == null;
+}
+
+/** 목록에서 지금 줄의 앞 · 뒤 줄을 여는 함수. 처음 · 끝이거나 목록에 없으면 없다 — 케이스 목록 · PRD 요구가 같이 쓴다 */
+export function 옆열기<T>(목록: readonly T[], 지금: T | undefined, 차이: number, 열기: (것: T) => void): (() => void) | undefined {
+  const 자리 = 지금 === undefined ? -1 : 목록.indexOf(지금);
+  const 옆 = 자리 === -1 ? undefined : 목록[자리 + 차이];
+  return 옆 === undefined ? undefined : () => 열기(옆);
+}
+
 export function DetailModal({ id, 위치, 번호, 제목, 주소, on이전, on다음, onClose, 왼쪽, 오른쪽 }: Props) {
   const t = use말();
   const 앱 = use지금앱();
   const 창 = useRef<HTMLDivElement>(null);
+  const 몸 = useRef<HTMLDivElement>(null);
   // 연 자리는 그리기 전에 잡는다 — 창으로 옮긴 포커스가 아니라 누른 줄이 잡혀야 닫을 때 돌려준다
   const [연곳] = useState(() => document.activeElement);
   const [복사, set복사] = useState<'ok' | 'fail' | null>(null);
 
-  // 가로막는 창이라 포커스를 창으로 옮긴다. 첫 단추(주소 복사)가 아니라 창 자체로 — Enter 한 번에 무엇이 눌리지 않게
+  // 가로막는 창이라 포커스를 창으로 옮긴다. 첫 단추(주소 복사)가 아니라 창 자체로 — Enter 한 번에 무엇이 눌리지 않게.
+  // 이전 · 다음으로 창이 새로 떴으면(케이스 상세는 줄마다 새로 그린다) 누른 단추를 이어 잡는다 — 창 자체로 가면 Tab 을 다시 세 번 눌러야 했다
   useEffect(() => {
-    창.current?.focus();
+    const 누른글 = 연곳 instanceof HTMLElement && 연곳.closest('.dm') !== null ? 연곳.getAttribute('aria-label') : null;
+    const 이어 = [...(창.current?.querySelectorAll<HTMLButtonElement>('.dm-icon') ?? [])].find((b) => b.getAttribute('aria-label') === 누른글 && !b.disabled);
+    (이어 ?? 창.current)?.focus();
     return () => {
+      // 옆 줄로 넘어가 새 창이 떠 있으면 건드리지 않는다 — 돌려주면 뒤 목록이 처음 누른 줄로 굴렀다
+      if (document.querySelector('.dm') !== null) return;
       // 창 안에 있던 포커스는 창과 같이 사라져 body 로 간다 — 그때만 연 자리로 돌려준다
       const 지금 = document.activeElement;
-      if ((지금 === null || 지금 === document.body) && 연곳 instanceof HTMLElement) 연곳.focus();
+      if ((지금 === null || 지금 === document.body) && 연곳 instanceof HTMLElement && 연곳.isConnected) 연곳.focus();
     };
   }, []);
+
+  // 옆 줄로 넘어가면 두 칸을 맨 위로 — 앞 줄에서 내려 둔 자리가 남으면 새 제목이 안 보인다
+  useEffect(() => {
+    const 몸칸 = 몸.current;
+    if (몸칸 === null) return;
+    몸칸.scrollTop = 0;
+    for (const 칸 of 몸칸.children) 칸.scrollTop = 0;
+  }, [번호]);
 
   // 듣기는 열 때 한 번만 건다 — onClose 가 바뀔 때마다 다시 걸면 창 안에서 연 상자보다 뒤로 밀려 Esc 하나에 둘 다 닫힌다
   const 닫기 = useRef(onClose);
   닫기.current = onClose;
   useEffect(() => {
     const 누름 = (e: KeyboardEvent) => {
-      // 창 안에서 연 상자(실행 창 · 확인 창)나 위에 뜬 알림 서랍이 있으면 Esc · Tab 은 그쪽 몫이다
-      if (상자열렸나() || document.getElementById('nt-drawer') !== null) return;
+      // 창 안에서 연 상자(실행 창 · 확인 창)가 있으면 Esc · Tab 은 그쪽 몫이다. 알림 서랍은 덮개 아래라 양보하지 않는다 — 양보하면 보이지 않는 서랍만 닫혀 Esc 가 안 듣는 것처럼 보였다
+      if (상자열렸나()) return;
       if (e.key === 'Escape') {
         닫기.current();
         return;
       }
       if (e.key !== 'Tab' || 창.current === null) return;
       // 뒤 목록은 덮여 있다 — 포커스가 밖으로 나가면 보이지 않는 줄을 누르게 된다
-      const 것들 = [...창.current.querySelectorAll<HTMLElement>(포커스가능)];
+      const 것들 = [...창.current.querySelectorAll<HTMLElement>(`${포커스가능}, summary`)].filter(보이나);
       if (것들.length === 0) return;
       const 처음 = 것들[0]!;
       const 끝 = 것들[것들.length - 1]!;
@@ -64,7 +92,7 @@ export function DetailModal({ id, 위치, 번호, 제목, 주소, on이전, on�
       if (!e.shiftKey && (document.activeElement === 끝 || !안)) {
         e.preventDefault();
         처음.focus();
-      } else if (e.shiftKey && (document.activeElement === 처음 || document.activeElement === 창.current)) {
+      } else if (e.shiftKey && (document.activeElement === 처음 || document.activeElement === 창.current || !안)) {
         e.preventDefault();
         끝.focus();
       }
@@ -83,7 +111,8 @@ export function DetailModal({ id, 위치, 번호, 제목, 주소, on이전, on�
   // 클립보드는 https 에서만 열린다. http 로 연 사내 서버에는 navigator.clipboard 가 없어 그 자리에서 던진다 — 약속 안에서 불러 실패 갈래로 받는다(SettingsCiTokens.tsx 와 같다)
   function 복사하기() {
     void Promise.resolve()
-      .then(() => navigator.clipboard.writeText(new URL(주소 ?? '', window.location.href).href))
+      // 주소가 없으면 지금 주소 그대로다 — new URL('', …) 은 # 뒤를 버려 해시 주소의 케이스가 사라졌다
+      .then(() => navigator.clipboard.writeText(주소 === undefined ? window.location.href : new URL(주소, window.location.href).href))
       .then(
         () => set복사('ok'),
         () => set복사('fail'),
@@ -127,7 +156,7 @@ export function DetailModal({ id, 위치, 번호, 제목, 주소, on이전, on�
             {단추('close', t('상세 닫기'), onClose)}
           </div>
         </div>
-        <div className="dm-body">
+        <div className="dm-body" ref={몸}>
           <div className="dm-main">
             {/* 제목을 비우는 동안(고치기)에도 창 이름은 번호로 남는다 */}
             {제목 === null ? (

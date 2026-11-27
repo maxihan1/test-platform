@@ -22,9 +22,10 @@ export function 근거목록({ basis }: { basis: PrdBasis[] }) {
             <small>{t('{건수}곳', { 건수: 줄들.length })}</small>
           </div>
           <ul>
+            {/* 위치가 없는 출처(직접 적은 것 등)는 원문이 줄을 다 쓴다 — 빈 위치 칸이 원문 앞에 남았다 */}
             {줄들.map((b, i) => (
-              <li key={i}>
-                <span className="prd-id">{b.ref}</span>
+              <li key={i} className={b.ref ? undefined : 'no-ref'}>
+                {b.ref ? <span className="prd-id">{b.ref}</span> : null}
                 <span>{b.quote}</span>
               </li>
             ))}

@@ -357,6 +357,13 @@
 .prd-src li + li {
   border-top: 1px solid var(--line);
 }
+.prd-src li.no-ref {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* 요구 상세 창 왼쪽의 고치기 칸 — 상태 고르개는 칸 폭을 다 쓴다(앞 판 서랍의 `.prd-drawer select` 와 같다) */
+.dm-main .field select {
+  width: 100%;
+}
 .prd-src .prd-id {
   font-size: 12.5px;
   color: var(--ink-faint);

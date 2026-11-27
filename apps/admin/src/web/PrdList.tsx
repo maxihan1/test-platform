@@ -1,5 +1,5 @@
-// 「PRD 관리」 아래쪽의 전체 요구 — 왼쪽 기능 묶음 목차 + 한 줄 목록 + 오른쪽 서랍 (도메인/작성 §3.6 「★ 표준 기획서」 · 2026-11-11 목록 시안 B)
-// 펼치고 접던 묶음 머리와 줄 펴기는 없다. 한 줄을 누르면 서랍(PrdDrawer.tsx)이 근거 · 테스트 · 고치기를 보인다
+// 「PRD 관리」 아래쪽의 전체 요구 — 왼쪽 기능 묶음 목차 + 한 줄 목록 + 상세 창 (도메인/작성 §3.6 「★ 표준 기획서」 · 2026-11-11 목록 시안 B · 2026-11-27 서랍을 상세 창으로)
+// 펼치고 접던 묶음 머리와 줄 펴기는 없다. 한 줄을 누르면 상세 창(PrdDrawer.tsx)이 출처 · 테스트 · 고치기를 보인다
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -8,6 +8,7 @@ import type { PrdItem } from '@platform/kit';
 import { 줄보류of } from '../prd/heldText.js';
 import type { 지도API } from '../prd/apiMap.js';
 import { 요구판정, 추적하기, type 결과읽기 } from '../prd/trace.js';
+import { 옆열기 } from './DetailModal.js';
 import { use말 } from './i18n.js';
 import { use주소조건, 버리기전, 주소조건 } from './leaveGuard.js';
 import { 묶음목차, use목차위치, 목차자리, type 목차칸 } from './ListToc.js';
@@ -39,9 +40,9 @@ export function PrdList({
   /** 실행 read 가 없거나 아직 못 받았으면 null — 마지막 결과를 안 그린다 */
   결과: 결과읽기 | null;
   케이스보나: boolean;
-  /** 서비스 지도. 못 받았으면 null — 서랍의 「거치는 API」를 안 그린다 */
+  /** 서비스 지도. 못 받았으면 null — 상세 창의 「호출하는 API」를 안 그린다 */
   apis: 지도API[] | null;
-  /** 케이스 목록에서 누른 요구 번호 — 그 줄의 서랍을 연 채로 열고 그 줄로 간다 */
+  /** 케이스 목록에서 누른 요구 번호 — 그 줄의 상세 창을 연 채로 열고 그 줄로 간다 */
   여기?: string;
 }) {
   const t = use말();
@@ -112,7 +113,7 @@ export function PrdList({
     정리: 정리까닭(t, 문제.get(g.feature) ?? null),
   }));
 
-  // 고치던 글이 있으면 서랍을 닫거나 바꾸기 전에 먼저 묻는다
+  // 고치던 글이 있으면 상세 창 · 서랍을 닫거나 바꾸기 전에 먼저 묻는다
   const 비우고 = (이어서: () => void) => (고치는 === null ? 이어서() : 버리기전(이어서, 고치는));
   const 열기 = (reqId: string) =>
     비우고(() => {
@@ -123,9 +124,12 @@ export function PrdList({
     });
   const 닫기 = () =>
     비우고(() => {
+      // 닫으면 지금 연 줄로 포커스가 돌아온다 — 이전 · 다음으로 옮겨 왔어도 처음 누른 줄이 아니라 지금 줄이다(케이스 목록과 같다)
+      const 줄 = 연줄;
       set고치는(null);
       set연줄(null);
       set정리(null);
+      if (줄 !== null) document.getElementById(prd줄아이디(줄))?.focus();
     });
   const 정리열기 = (feature: string) =>
     비우고(() => {
@@ -155,17 +159,13 @@ export function PrdList({
   const 연것 = 연줄 === null ? undefined : now.items.find((x) => x.reqId === 연줄);
   // 상세 창의 이전 · 다음 — 목차 묶음 차례 그대로다. 칩 · 찾기에 걸러진 줄은 건너뛴다
   const 차례 = 묶음.flatMap((g) => g.items);
-  const 옆열기 = (차이: number) => {
-    const 자리 = 연것 === undefined ? -1 : 차례.indexOf(연것);
-    const 옆 = 자리 === -1 ? undefined : 차례[자리 + 차이];
-    return 옆 === undefined
-      ? undefined
-      : () =>
-          비우고(() => {
-            set고치는(null);
-            set연줄(옆.reqId);
-          });
-  };
+  const 옆 = (차이: number) =>
+    옆열기(차례, 연것, 차이, (x) =>
+      비우고(() => {
+        set고치는(null);
+        set연줄(x.reqId);
+      }),
+    );
   const 정리묶음 = 정리 === null ? undefined : 전체묶음.find((g) => g.feature === 정리);
   const 칩들: [칩키, string][] = [
     ['전체', t('전체 {건수}', { 건수: 칩수.전체 })],
@@ -263,8 +263,8 @@ export function PrdList({
             }
             return 됐나;
           }}
-          on이전={옆열기(-1)}
-          on다음={옆열기(1)}
+          on이전={옆(-1)}
+          on다음={옆(1)}
           on닫기={닫기}
         />
       )}

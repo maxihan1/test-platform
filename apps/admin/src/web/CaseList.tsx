@@ -1,6 +1,6 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
 // '마지막 결과' 칸을 GET /api/runs/last-by-case 한 번으로 전부 채운다 (SPEC §7.1)
-// 2026-11-11 시안 B — 왼쪽 기능 묶음 목차 + 한 건 한 줄 목록 + 오른쪽 서랍. 목록은 바닥에 닿으면 다음 50건을 붙인다(useCasePages.ts). 프로시저 묶음은 CaseListProc.tsx
+// 2026-11-11 시안 B — 왼쪽 기능 묶음 목차 + 한 건 한 줄 목록 + 상세 창(2026-11-27 — 앞 판 오른쪽 서랍). 목록은 바닥에 닿으면 다음 50건을 붙인다(useCasePages.ts). 프로시저 묶음은 CaseListProc.tsx
 // 한 건(줄의 ▶) · 여러 건을 거는 흐름은 useRunPick 이 통째로 들고 있다 — 둘 다 같은 실행 창을 연다 (SPEC §8.10)
 
 import { useRef, useState } from 'react';
@@ -8,6 +8,7 @@ import { useRef, useState } from 'react';
 import { api, type 앱종류 } from './api.js';
 import { CaseDetail } from './CaseDetail.js';
 import { 빈기억 } from './caseDetailView.js';
+import { 옆열기 } from './DetailModal.js';
 import { use엑셀받기 } from './CaseExport.js';
 import { use검색조건 } from './CaseListFilter.js';
 import { 걸린칩들 } from './CaseListContext.js';
@@ -129,10 +130,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   }
 
   // 상세 창의 이전 · 다음 — 줄은 받은 차례 그대로 선다(기능 묶음 · 프로시저로 묶어도 순서는 안 바뀐다)
-  const 옆열기 = (차이: number) => {
-    const row = 연줄 === undefined ? undefined : 보일것[보일것.indexOf(연줄) + 차이];
-    return row === undefined ? undefined : () => 검색.set열린(row.tcId);
-  };
+  const 옆 = (차이: number) => 옆열기(보일것, 연줄, 차이, (row) => 검색.set열린(row.tcId));
   const 화면이름 = kind === 'UI' ? t('UI 테스트') : kind === 'GS' ? t('게임 미션') : t('기능 테스트');
 
   const 전체 = cases.data?.total ?? 0;
@@ -173,7 +171,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         }
       />
 
-      {/* 상세 칸은 목록 위에 겹치는 서랍이라(⑬-2) 목록은 늘 전체 폭을 쓴다 */}
+      {/* 상세는 목록 위에 겹치는 창이라(⑬-2 · 2026-11-27 상세 창) 목록은 늘 전체 폭을 쓴다 */}
       <div className="cases-split">
         <div className="screen list-screen">
           {/* 표 위는 한 줄이다 — 결과 탭 · 고른 조건 칩 · 찾기 · 필터 단추. 조건은 필터 판에 접는다 (도메인/카탈로그 §8.1 「검색 조건」 · 2026-10-30 WEB-F7-07) */}
@@ -293,8 +291,8 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             on실행={할수('테스트실행') ? (row, 묶음) => void 뽑기.여럿열기(묶음 ?? [row]) : undefined}
             테스트만={테스트만}
             위치={화면이름}
-            on이전={옆열기(-1)}
-            on다음={옆열기(1)}
+            on이전={옆(-1)}
+            on다음={옆(1)}
             onClose={닫기}
             on값={(어디, key, value) => 값고침(연줄.tcId, 어디, key, value)}
             on저장됨={async () => {
