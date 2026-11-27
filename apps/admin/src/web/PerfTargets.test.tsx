@@ -65,12 +65,21 @@ describe('부하 성능 목표', () => {
 
 it('기기 목표 줄은 두 번 눌러야 지워진다', () => {
   const 고침 = vi.fn();
-  render(<PerfDeviceTargets 목표들={기본목표} 고침={고침} 쓰나 />);
+  render(<PerfDeviceTargets 목표들={기본목표('APP')} 고침={고침} 쓰나 PC={false} />);
   const 이름들 = screen.getAllByRole('button', { name: /목표 삭제$/ }).map((b) => b.getAttribute('aria-label')!);
   fireEvent.click(screen.getByRole('button', { name: 이름들[0] }));
   expect(고침).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: `${이름들[0]!} · 삭제 확인` }));
-  expect(고침).toHaveBeenCalledWith(기본목표.slice(1));
+  expect(고침).toHaveBeenCalledWith(기본목표('APP').slice(1));
+});
+
+it('PC 게임의 기기 목표에는 최대 배터리 온도를 고를 수 없다', () => {
+  render(<PerfDeviceTargets 목표들={[]} 고침={vi.fn()} 쓰나 PC />);
+  expect(screen.queryByRole('option', { name: '최대 배터리 온도' })).toBeNull();
+  render(<PerfDeviceTargets 목표들={[{ metric: 'AVG_FPS', op: '>=', value: 60, source: 'MANUAL' }]} 고침={vi.fn()} 쓰나 PC />);
+  const 고르개 = screen.getByRole('combobox', { name: '평균 FPS 지표' });
+  expect([...고르개.querySelectorAll('option')].map((o) => o.textContent)).not.toContain('최대 배터리 온도');
+  expect([...고르개.querySelectorAll('option')].map((o) => o.textContent)).toContain('분당 끊김');
 });
 
 it('트랜잭션 줄은 두 번 눌러야 지워진다', () => {

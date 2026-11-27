@@ -107,7 +107,7 @@ export interface DeviceRunConfig {
   durationSec: number;
   package: string;
   // launchMs 는 기록기가 앱 실행 시간을 잰 뒤에 채운다
-  devices: { serial: string; where: 'FARM' | 'LOCAL'; model: string; launchMs: number | null }[];
+  devices: { serial: string; where: 'FARM' | 'LOCAL'; model: string; launchMs: number | null; spec?: { cpu: string; gpu: string; resolution: string } | null }[];
   repeat: number;
   metrics: string[];
   intervalSec: 1 | 2 | 5;

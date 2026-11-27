@@ -223,9 +223,10 @@ export async function 성능결과(사람: 사용자, runId: number): Promise<�
   }
   if (행.kind === 'DEVICE') {
     const 줄들 = await 줄읽기(runId);
-    const 기기별 = (행.config as unknown as DeviceRunConfig).devices.map((d) => ({ d, 줄: 줄들.filter((r) => r.serial === d.serial) }));
+    const cfg = 행.config as unknown as DeviceRunConfig;
+    const 기기별 = cfg.devices.map((d) => ({ d, 줄: 줄들.filter((r) => r.serial === d.serial) }));
     const 실행 = { status: String(run.status), targets: run.targets as { scope: string; verdict: string }[] | null };
-    return { ok: true, data: { ...머리칸, devices: 기기줄들(기기별, 실행).slice(0, 최대줄), ...(기기별.length > 최대줄 && { truncated: true }) } };
+    return { ok: true, data: { ...머리칸, devices: 기기줄들(기기별, 실행, cfg.intervalSec).slice(0, 최대줄), ...(기기별.length > 최대줄 && { truncated: true }) } };
   }
   return { ok: true, data: 머리칸 };
 }

@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { use말 } from './i18n.js';
 import { PerfChart } from './PerfChart.js';
 import { 영상주소, type 기기결과, type 기기목표, type 기기숫자, type 측정지표 } from './perfDeviceApi.js';
-import { 점들, 조각찾기 } from './perfDeviceView.js';
+import { 열상태이름, 점들, 조각찾기 } from './perfDeviceView.js';
 import { 가장큰값, 눈금최대, 분초 } from './perfRunView.js';
 
 /** 구간 띠 색 — 구간 이름 차례로 돌려 쓴다. 회색 셋이라 뜻이 없다 */
@@ -22,11 +22,16 @@ interface 줄그림 {
 const 그림들: 줄그림[] = [
   { 항목: 'FPS', 이름: 'FPS', 값: (줄) => 줄.fps, 목표: 'AVG_FPS' },
   { 항목: 'JANK', 이름: '프레임 드랍', 값: (줄) => 줄.jankPct },
-  { 항목: 'TEMP', 이름: '디바이스 온도', 값: (줄) => 줄.tempC, 목표: 'MAX_TEMP' },
+  { 항목: 'TEMP', 이름: '배터리 온도', 값: (줄) => 줄.tempC, 목표: 'MAX_TEMP' },
   { 항목: 'CPU', 이름: 'CPU', 값: (줄) => 줄.cpu },
   { 항목: 'MEM', 이름: '메모리', 값: (줄) => 줄.memMb, 목표: 'MAX_MEM' },
   { 항목: 'BATTERY', 이름: '배터리', 값: (줄) => 줄.batteryPct },
+  { 항목: 'GPU', 이름: 'GPU 사용률', 값: (줄) => 줄.gpu },
+  { 항목: 'GPU', 이름: 'VRAM', 값: (줄) => 줄.vramMb },
 ];
+
+/** 열 상태 띠 — 1(LIGHT) 이상인 초만 칠한다. 판정이 아니라 판정 색 · 대표색을 쓰지 않고 구간 띠처럼 회색 농도로 가른다. 3(SEVERE) 부터 진하다 (§3.9 「배터리 온도 · 열 상태」 · DESIGN.md 원칙 1) */
+const 열색 = (status: number): string => (status >= 3 ? 'var(--ink)' : 'var(--ink-faint)');
 
 export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기기 }: { runId: number; 결과: 기기결과; 항목: 측정지표[]; 목표들: 기기목표[]; 처음기기: string }) {
   const t = use말();
@@ -123,8 +128,9 @@ export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기�
           const 선 = 점들(줄들, g.값);
           const 목표 = g.목표 === undefined ? undefined : 목표들.find((x) => x.metric === g.목표);
           const 위 = 눈금최대(가장큰값(선.map((p) => p.y)), 목표?.value ?? 0);
+          const 열줄 = g.항목 === 'TEMP' ? 줄들.filter((줄) => (줄.thermalStatus ?? 0) > 0) : [];
           return (
-            <div key={g.항목} className="pd-lane">
+            <div key={g.이름} className="pd-lane">
               <span className="perf-faint">{t(g.이름)}</span>
               <PerfChart
                 선들={[{ 이름: t(g.이름), 색: 'var(--ink)', 점들: 선, 최대Y: 위 }]}
@@ -134,6 +140,22 @@ export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기�
                 {...(목표 === undefined ? {} : { 목표: { 이름: t('목표'), 값: 목표.value, 최대Y: 위 } })}
                 {...(재생초 === null ? {} : { 세로선: { x: 재생초, 색: 'var(--ink-muted)' } })}
               />
+              {g.항목 !== 'TEMP' || !줄들.some((줄) => 줄.thermalStatus !== null) ? null : (
+                <>
+                  <span className="perf-faint">{t('열 상태')}</span>
+                  {열줄.length === 0 ? (
+                    <span className="perf-faint">{t('열 제한 없음')}</span>
+                  ) : (
+                    <svg viewBox="0 0 600 12" preserveAspectRatio="none" className="pd-band" role="img" aria-label={t('열 제한 {목록}', { 목록: [...new Set(열줄.map((줄) => 열상태이름[줄.thermalStatus ?? 0]))].join(', ') })}>
+                      {열줄.map((줄) => (
+                        <rect key={줄.sec} x={(줄.sec / 끝초) * 600} y={0} width={Math.max(1, 600 / 끝초)} height={12} style={{ fill: 열색(줄.thermalStatus ?? 0) }}>
+                          <title>{`${분초(줄.sec)} ${열상태이름[줄.thermalStatus ?? 0]}`}</title>
+                        </rect>
+                      ))}
+                    </svg>
+                  )}
+                </>
+              )}
             </div>
           );
         })}

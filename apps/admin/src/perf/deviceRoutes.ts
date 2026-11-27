@@ -8,7 +8,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { artifactsDir, 볼륨파일 } from '../artifactFile.js';
 import { 정수 } from '../routeParams.js';
-import { 기기목록, 시리얼, 측정본문, 측정세우기 } from './devices.js';
+import { PC게임인가, 기기목록, 시리얼, 측정본문, 측정세우기 } from './devices.js';
 import { 녹화이름 } from './deviceRecorder.js';
 import { 구간묶기, 기기줄들, 누수의심, 회차메모리 } from './deviceStats.js';
 import { 줄읽기 } from './deviceStore.js';
@@ -34,7 +34,11 @@ export default async function perfDeviceRoutes(app: FastifyInstance): Promise<vo
   // 영상을 앞뒤로 넘길 수 있게 Range 를 받는 sendFile 로 내준다 — 팜 증적 영상 통로와 같은 방식
   await app.register(fastifyStatic, { root: artifactsDir(), serve: false });
 
-  app.get('/perf/devices', async () => ({ devices: await 기기목록() }));
+  // serviceId 가 PC 게임이면 VISION PC 줄만, 아니면 폰만 싣는다 (§7 「GET /api/perf/devices」)
+  app.get<{ Querystring: { serviceId?: string } }>('/perf/devices', async (req) => {
+    const serviceId = 정수(req.query.serviceId ?? '');
+    return { devices: await 기기목록(serviceId !== null && (await PC게임인가(serviceId))) };
+  });
 
   app.post('/perf/devices/measure', async (req, reply) => {
     const p = 측정본문.safeParse(req.body);
@@ -60,9 +64,9 @@ export default async function perfDeviceRoutes(app: FastifyInstance): Promise<vo
     const 기기별 = cfg.devices.map((d) => ({ d, 줄: 줄들.filter((r) => r.serial === d.serial) }));
     const 회차들 = 기기별.map(({ d, 줄 }) => ({ serial: d.serial, 회차: 회차메모리(d.serial, 줄) }));
     return {
-      devices: 기기줄들(기기별, 실행),
+      devices: 기기줄들(기기별, 실행, cfg.intervalSec),
       metrics: 줄들.filter((r) => r.sec >= from).map((r) => ({
-        serial: r.serial, sec: r.sec, loop: r.loop, segment: r.segment, fps: r.fps, jankPct: r.jankPct, freezeCount: r.freezeCount, cpu: r.cpu, memMb: r.memMb, tempC: r.tempC, batteryPct: r.batteryPct,
+        serial: r.serial, sec: r.sec, loop: r.loop, segment: r.segment, fps: r.fps, jankPct: r.jankPct, freezeCount: r.freezeCount, cpu: r.cpu, memMb: r.memMb, tempC: r.tempC, batteryPct: r.batteryPct, thermalStatus: r.thermalStatus, gpu: r.gpu, vramMb: r.vramMb,
       })),
       segments: 기기별.flatMap(({ d, 줄 }) => 구간묶기(d.serial, 줄)),
       loops: 회차들.flatMap((x) => x.회차),

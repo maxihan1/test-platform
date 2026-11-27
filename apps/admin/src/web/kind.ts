@@ -117,12 +117,12 @@ export const 카드차례: readonly 종류카드[] = [
   { kind: 'SCREEN' }, { kind: 'APP' }, { kind: 'GAME', gamePlatform: 'android' }, { kind: 'GAME', gamePlatform: 'windows' }, { kind: 'API' },
 ];
 
-// 영상 · FPS 를 아직 안 재서 PC 게임 성능 테스트는 서버 부하뿐이다 (결정 28)
+// PC 도 게임 성능(FPS · 끊김 · GPU)을 잰다 — Device VISION PC 가 PresentMon 으로 잰다 (도메인/성능 결정 17 · PERF-F2-06)
 const PC게임소개 = {
   한줄: 'Windows PC 에서 하는 Unity 게임',
   예: 'RPG · 액션 · 콘솔 이식 게임',
   확인: '키보드와 패드로 조작해 게임 속 버튼 · 보상이 기획서대로 동작하는지 확인합니다',
-  성능: '성능 테스트: 서버 부하',
+  성능: '성능 테스트: 서버 부하 · 게임 성능(FPS · 끊김 · GPU)',
   고름: 'Unity 게임을 Windows 용(zip)으로 빌드합니다',
 };
 

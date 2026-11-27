@@ -35,7 +35,10 @@ function 줄을만든다() {
     }
   }
 
-  return { 바로잡는다, 놓는다, 차례 };
+  // 잡지 않고 보기만 한다 — 기기 성능이 측정을 만들 때 PC 를 쓰는 실행이 있으면 기다리지 않고 409 로 거절한다 (도메인/성능 §3.9 「PC 게임」)
+  const 비었나 = (): boolean => !쓰는중 && 기다림.length === 0;
+
+  return { 바로잡는다, 놓는다, 차례, 비었나 };
 }
 
 const 디바이스줄 = 줄을만든다();
@@ -59,3 +62,4 @@ const PC줄 = 줄을만든다();
 export const PC를바로잡는다 = PC줄.바로잡는다;
 export const PC를놓는다 = PC줄.놓는다;
 export const PC차례 = PC줄.차례;
+export const PC가비었나 = PC줄.비었나;

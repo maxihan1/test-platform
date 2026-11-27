@@ -154,6 +154,7 @@ export const 마법사말: Record<string, string> = {
   '알림 발송 · 결제 승인 · 회원 조회': 'Sending notifications · approving payments · member lookup',
   '요청을 보냈을 때 기대한 응답이 오는지 확인합니다': 'Checks each request gets the promised response',
   '성능 테스트: 서버 부하': 'Performance: server load',
+  '성능 테스트: 서버 부하 · 게임 성능(FPS · 끊김 · GPU)': 'Performance: server load · game performance (FPS · stutter · GPU)',
   '화면 없이 요청과 응답만 있습니다': 'Only requests and responses, no screen',
   '가이드를 저장하고 다음 단계로 넘어갈까요?': 'Save the guide and go to the next step?',
   '편집한 가이드를 저장하고 다음 단계로 넘어갑니다. 저장한 가이드는 나중에 다시 수정할 수 있습니다': 'Saves the guide you edited and moves to the next step. You can edit the saved guide again later',

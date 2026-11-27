@@ -19,6 +19,7 @@ export function PerfDevicePick({
   고른,
   고침,
   팜만,
+  PC,
   쓰나,
   사유,
 }: {
@@ -29,6 +30,8 @@ export function PerfDevicePick({
   고침: (고른: string[]) => void;
   /** Appium · 게임 케이스는 팜 폰만 잰다 — 내 컴퓨터 러너 폰은 고를 수 없다 */
   팜만: boolean;
+  /** PC 게임 — Device VISION PC 한 대만 잰다(1차). 사양별 AI 추천은 폰만이다 */
+  PC: boolean;
   쓰나: boolean;
   /** 「측정 시작」을 이 칸이 막았을 때의 까닭 */
   사유: string | null;
@@ -36,13 +39,14 @@ export function PerfDevicePick({
   const t = use말();
   const [추천, set추천] = useState<기기추천 | null>(null);
   const 일 = usePerfJob<기기추천>(set추천);
+  const 상한 = PC ? 1 : 기기상한;
   const 고를수 = (d: 고를기기) => d.status === 'IDLE' && !(팜만 && d.where === 'LOCAL');
   const 모델 = (serial: string) => 기기들?.find((d) => d.serial === serial && d.where === 'FARM')?.model ?? serial;
 
   return (
     <section className="perf-panel" aria-labelledby="pd-d">
       <h2 id="pd-d">{t('측정 디바이스')}</h2>
-      {쓰나 ? (
+      {쓰나 && !PC ? (
         <div className="perf-well perf-row">
           <span className="perf-ai">{t('AI 추천')}</span>
           {추천 !== null ? (
@@ -69,7 +73,7 @@ export function PerfDevicePick({
       {기기들 === null ? (
         <span className="perf-faint">{t('디바이스 목록을 읽는 중입니다')}</span>
       ) : 기기들.length === 0 ? (
-        <span className="perf-faint">{t('선택할 수 있는 디바이스가 없습니다. Device VISION 이나 내 컴퓨터 테스트 실행기가 켜져 있는지 확인해 주세요')}</span>
+        <span className="perf-faint">{PC ? t('선택할 수 있는 PC 가 없습니다. Device VISION 에 Windows PC 가 연결되어 있는지 확인해 주세요') : t('선택할 수 있는 디바이스가 없습니다. Device VISION 이나 내 컴퓨터 테스트 실행기가 켜져 있는지 확인해 주세요')}</span>
       ) : (
         <div className="perf-table-box" {...오류묶음('pd-devices-err', 사유)}>
           <table className="perf-table" aria-label={t('측정 디바이스')}>
@@ -78,7 +82,7 @@ export function PerfDevicePick({
                 <th>{t('선택')}</th>
                 <th>{t('디바이스')}</th>
                 <th>{t('위치')}</th>
-                <th>{t('Android')}</th>
+                <th>{PC ? t('OS') : t('Android')}</th>
                 <th>{t('상태')}</th>
               </tr>
             </thead>
@@ -86,7 +90,7 @@ export function PerfDevicePick({
               {기기들.map((d) => {
                 const 키 = 기기키(d);
                 const 골랐나 = 고른.includes(키);
-                const 막힘 = !쓰나 || !고를수(d) || (!골랐나 && 기기상한 <= 고른.length);
+                const 막힘 = !쓰나 || !고를수(d) || (!골랐나 && 상한 <= 고른.length);
                 return (
                   <tr key={키} className={고를수(d) ? undefined : 'pd-off'}>
                     <td>
@@ -112,7 +116,7 @@ export function PerfDevicePick({
         </div>
       )}
       <칸오류 id="pd-devices-err" 사유={사유} />
-      <span className="perf-faint">{t('한 번에 {수}대까지 나란히 잽니다', { 수: 기기상한 })}</span>
+      <span className="perf-faint">{PC ? t('PC 는 한 번에 한 대를 잽니다') : t('한 번에 {수}대까지 나란히 잽니다', { 수: 기기상한 })}</span>
     </section>
   );
 }

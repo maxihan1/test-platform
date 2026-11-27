@@ -4,11 +4,11 @@ import { 게임시나리오인가 } from '@platform/kit/protocol';
 
 import { api, type CaseRow } from './api.js';
 
-/** 폰 케이스만 고른다(게임 케이스도 android 다) — 서버도 아니면 거절한다. 목록은 쪽마다 50건이라 끝까지 받는다 */
-export async function 폰케이스들(prefix: string): Promise<CaseRow[]> {
+/** 그 디바이스의 케이스만 고른다(모바일 게임 케이스도 android, PC 게임은 windows) — 서버도 아니면 거절한다. 목록은 쪽마다 50건이라 끝까지 받는다 */
+export async function 폰케이스들(prefix: string, platform: 'android' | 'windows' = 'android'): Promise<CaseRow[]> {
   const 모음: CaseRow[] = [];
   for (let page = 1; ; page += 1) {
-    const 쪽 = await api.cases({ service: prefix, platform: 'android', page });
+    const 쪽 = await api.cases({ service: prefix, platform, page });
     모음.push(...쪽.items);
     if (쪽.items.length === 0 || 모음.length >= 쪽.total) break;
   }

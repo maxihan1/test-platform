@@ -65,6 +65,23 @@ export async function 깐다(팜: string, serial: string, zip: string, 토큰: s
   }
 }
 
+/**
+ * 깐 게임을 켠다 — 기기 성능의 PC 직접 플레이만 쓴다. 케이스로 잴 때는 kit 이 같은 /launch 로 켠다(control-cli pcLaunch).
+ * VISION 은 프로세스가 뜨면 답한다. SDK 준비(게임 실행 시간)는 PC 에이전트가 잰다 (도메인/성능 §3.9 「PC 게임」)
+ */
+export async function 켠다(팜: string, serial: string, 게임: string, 토큰: string | undefined, 부르기: typeof fetch = fetch): Promise<void> {
+  const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/launch`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...팜머리(process.env, 토큰) },
+    body: JSON.stringify({ game: 게임 }),
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (res.ok) return;
+  const 몸 = ((await res.json().catch(() => null)) as { value?: { message?: unknown; refused?: unknown } } | null)?.value;
+  const 까닭 = typeof 몸?.message === 'string' ? 몸.message : typeof 몸?.refused === 'string' ? 몸.refused : `HTTP ${String(res.status)}`;
+  throw new Error(`Device VISION 이 게임을 켜지 못했습니다: ${까닭}`);
+}
+
 // 빈 PC 를 기다리는 정식 실행 수 — 게임을 배우느라 PC 를 쥔 작성 에이전트가 비켜 줄지 본다 (도메인/게임 §3.10 「게임 배우기」)
 let 기다리는수 = 0;
 export const PC기다리는실행있나 = (): boolean => 기다리는수 > 0;

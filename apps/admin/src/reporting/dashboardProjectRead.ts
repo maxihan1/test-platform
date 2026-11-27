@@ -79,8 +79,8 @@ async function 페이지줄(runIds: number[]): Promise<Map<number, 페이지요�
 
 async function 기기숫자(run: 실행줄, 이름: string): Promise<기기요약줄> {
   const 줄들 = await 기기줄읽기(Number(run.id));
-  const 요약 = 기기요약하기(줄들);
   const cfg = run.config as Partial<DeviceRunConfig>;
+  const 요약 = 기기요약하기(줄들, cfg.intervalSec ?? 1);
   const 실행시간 = (cfg.devices ?? []).map((d) => d.launchMs).filter((v): v is number => v !== null);
   return {
     runId: Number(run.id), serviceName: 이름, device: cfg.devices?.[0]?.model ?? null, startedAt: run.started_at?.toISOString() ?? null, verdict: run.verdict,
