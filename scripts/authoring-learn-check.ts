@@ -4,14 +4,16 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 게임자리 } from './authoring-game.js';
+import type { 시간표 } from './authoring-game-play-time.js';
 
 /** 해 보는 동안 2초마다 읽는 값 — 칸이 있으면 오브젝트 값(`get`), 없으면 그 자리의 화면 글자(`text`). 화면은 같은 값을 보여 주는 글자 자리 */
 export interface 볼값 { 이름: string; 주소: string; 칸?: string; 화면?: string }
 export type 비교 = '>=' | '<=' | '==' | '>' | '<';
 /** 잘되고 있으면 이 값이 이렇다 — 부터 · 까지는 다른 볼값이 그 수 이상 · 이하일 때만 본다(「1웨이브 끝까지 세계수 50 이상」) */
 export interface 기대 { 값: string; 비교: 비교; 기준: number; 부터?: { 값: string; 기준: number }; 까지?: { 값: string; 기준: number } }
-/** 곳 — 이 계획으로 해 보는 곳(STAGE 열쇠). 게임플레이는 판 수를 곳마다 센다 · 쓸것 — 이 계획이 믿고 쓰는 지도 줄 열쇠(곳의 맵 종류는 `<곳>#<종류>`) */
-export interface 계획 { 볼값: 볼값[]; 기대: 기대[]; 목표: { 값: string; 기준: number }; 곳?: string; 쓸것?: string[] }
+/** 위치 — 캐릭터 위치를 읽는 자리(칸은 {x,y,z} · 배열 · 「(1.0, 2.0, 3.0)」 글 가운데 무엇이든 된다). 적으면 2초마다 같이 읽어 서 있던 비율을 남긴다
+ * 곳 — 이 계획으로 해 보는 곳(STAGE 열쇠). 게임플레이는 판 수를 곳마다 센다 · 쓸것 — 이 계획이 믿고 쓰는 지도 줄 열쇠(곳의 맵 종류는 `<곳>#<종류>`) */
+export interface 계획 { 볼값: 볼값[]; 기대: 기대[]; 목표: { 값: string; 기준: number }; 곳?: string; 쓸것?: string[]; 위치?: { 주소: string; 칸: string } }
 
 /** 게임마다 하나 — 얼마나 나아갔나를 보여 주는 값(깬 맵 수 · 레벨 · 해금 수). 해 볼 때마다 이 이름으로 같이 읽는다 */
 export const 나아감열쇠 = 'goal:나아감';
@@ -73,7 +75,8 @@ export function 계획읽기(data: unknown): 계획 | string {
   if (!있나(목표.값) || !수인가(목표.기준)) return 'data.목표 에 이번에 닿으려는 수를 { 값: <볼값 이름>, 기준: <수> } 로 적는다';
   if (d.곳 !== undefined && !글인가(d.곳)) return 'data.곳 에 이 계획으로 해 볼 곳(STAGE 줄 열쇠)을 적는다';
   if (d.쓸것 !== undefined && (!Array.isArray(d.쓸것) || !d.쓸것.every(글인가))) return 'data.쓸것 은 이 계획이 믿고 쓰는 지도 줄 열쇠 목록이다(곳의 맵 종류는 「<곳 열쇠>#<종류>」)';
-  return { 볼값: 볼 as 볼값[], 기대: 기대들 as 기대[], 목표: { 값: 목표.값 as string, 기준: 목표.기준 as number }, ...(d.곳 === undefined ? {} : { 곳: d.곳 as string }), ...(d.쓸것 === undefined ? {} : { 쓸것: d.쓸것 as string[] }) };
+  if (d.위치 !== undefined && !(자리꼴(d.위치) && 글인가(객체(d.위치).칸))) return 'data.위치 는 캐릭터 위치를 읽는 { 주소, 칸 } 이다 — 서 있던 비율을 재는 데 쓴다';
+  return { 볼값: 볼 as 볼값[], 기대: 기대들 as 기대[], 목표: { 값: 목표.값 as string, 기준: 목표.기준 as number }, ...(d.곳 === undefined ? {} : { 곳: d.곳 as string }), ...(d.쓸것 === undefined ? {} : { 쓸것: d.쓸것 as string[] }), ...(d.위치 === undefined ? {} : { 위치: d.위치 as { 주소: string; 칸: string } }) };
 }
 
 /** 지는 순간에만 깨지는 기대 — 「>= 1」 · 「> 0」 처럼 살아만 있으면 맞는 것. 예측 숫자가 아니다 */
@@ -104,13 +107,13 @@ export function 어긋난기대(기대들: readonly 기대[], 값: Readonly<Reco
 export const 기대글 = (g: 기대): string => `${g.값} ${g.비교} ${g.기준}${g.부터 === undefined ? '' : ` (${g.부터.값} ${g.부터.기준} 부터)`}${g.까지 === undefined ? '' : ` (${g.까지.값} ${g.까지.기준} 까지)`}`;
 
 /** 판 기록 json 가운데 이 검사가 읽는 칸 */
-export interface 값때 { 초: number; 값: Record<string, number | null>; 화면?: Record<string, number | null> }
+export interface 값때 { 초: number; 값: Record<string, number | null>; 화면?: Record<string, number | null>; 위치?: [number, number, number] | null }
 export interface 어긋남 { 초: number; 값이름: string; 값: number; 기대: string; 사진?: string }
 /** 계산 — 계획이 쓴 계산 줄(calc:)마다 그때의 data JSON. 기대가 깨졌거나 목표에 못 닿고 졌는데 계산 줄이 그대로면 다음 계획을 막는다(authoring-learn-play 계산안고침) */
-export interface 값기록 { 계획: string; 볼값: 볼값[]; 간격ms: number; 때: 값때[]; 어긋남: 어긋남 | null; 화면다름: string[]; 계산?: Record<string, string> }
+export interface 값기록 { 계획: string; 볼값: 볼값[]; 간격ms: number; 때: 값때[]; 어긋남: 어긋남 | null; 화면다름: string[]; 계산?: Record<string, string>; 서있음?: number }
 export interface 끝글줄 { 주소: string; 경로: string; 글: string }
 /** 멈춤 — 판 중간 멈춤 순간의 볼값(authoring-game-play-stop) */
-export interface 판기록 { 이름: string; 값?: unknown; 값기록?: 값기록; 끝글?: 끝글줄[]; 장면들?: string[]; 멈춤?: { 초: number; 값: Record<string, number | null> }; 치트?: true }
+export interface 판기록 { 이름: string; 값?: unknown; 값기록?: 값기록; 끝글?: 끝글줄[]; 장면들?: string[]; 멈춤?: { 초: number; 값: Record<string, number | null> }; 치트?: true; 시간표?: 시간표 }
 
 /** 자료 폴더의 판 기록 — 지켜보기 · 새것 글은 뺀다. 이름순이 시간순이다 */
 export function 판기록들(자료: string): 판기록[] {
@@ -124,7 +127,7 @@ export function 판기록들(자료: string): 판기록[] {
   return 이름들.flatMap((x) => {
     try {
       const 몸 = 객체(JSON.parse(readFileSync(join(폴더, x), 'utf8')));
-      return [{ 이름: x.slice(0, -5), 값: 몸.값, ...(몸.값기록 === undefined ? {} : { 값기록: 몸.값기록 as 값기록 }), ...(Array.isArray(몸.끝글) ? { 끝글: 몸.끝글 as 끝글줄[] } : {}), ...(Array.isArray(몸.장면들) ? { 장면들: (몸.장면들 as unknown[]).filter(글인가) } : {}), ...(객체(몸.멈춤).값 === undefined ? {} : { 멈춤: 몸.멈춤 as NonNullable<판기록['멈춤']> }), ...(몸.치트 === true ? { 치트: true as const } : {}) }];
+      return [{ 이름: x.slice(0, -5), 값: 몸.값, ...(몸.값기록 === undefined ? {} : { 값기록: 몸.값기록 as 값기록 }), ...(Array.isArray(몸.끝글) ? { 끝글: 몸.끝글 as 끝글줄[] } : {}), ...(Array.isArray(몸.장면들) ? { 장면들: (몸.장면들 as unknown[]).filter(글인가) } : {}), ...(객체(몸.멈춤).값 === undefined ? {} : { 멈춤: 몸.멈춤 as NonNullable<판기록['멈춤']> }), ...(몸.치트 === true ? { 치트: true as const } : {}), ...(수인가(객체(몸.시간표).기다림ms) ? { 시간표: 몸.시간표 as 시간표 } : {}) }];
     } catch {
       return [];
     }

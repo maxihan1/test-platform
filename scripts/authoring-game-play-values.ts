@@ -5,6 +5,8 @@ import type { Game } from 'control-cli';
 import { type 값기록, type 값때, type 기대, type 볼값, 기대글, 수로, 어긋난기대 } from './authoring-learn-check.js';
 
 export const 값간격ms = 2_000;
+/** 이웃한 두 읽기의 가로 거리(x · z)가 이보다 작으면 그 사이 서 있었다고 본다 — 높이(y)는 점프로 흔들려 뺀다 (첫 값, 실측 뒤 고친다) */
+export const 서있음거리 = 0.3;
 const 끝기다림ms = 3_000;
 /** 이만큼 지나면 첫 읽기에서 안 바뀐 값도 기대를 본다 — 판이 처음부터 기대를 깬 채 멈춰 있는 것까지 놓치지 않게. 앞 판 끝 화면은 함수 첫 동작(넘기기) 뒤 몇 초 안에 바뀐다 */
 export const 첫값유예ms = 10_000;
@@ -19,6 +21,26 @@ export interface 값읽는고리 {
   지금: () => 값기록;
   /** 돌던 읽기를 기다린 뒤 기록 · 어긋난 순간 사진 · 못 읽은 일 */
   끝난다: () => Promise<{ 기록: 값기록; 사진?: Buffer; 못함: string | null }>;
+}
+
+/** 위치 값을 세 수로 — {x,y,z} 객체 · 배열 · 「(1.0, 2.0, 3.0)」 글. 못 바꾸면 null */
+export function 세수로(v: unknown): [number, number, number] | null {
+  const 목록 = Array.isArray(v) ? v : typeof v === 'object' && v !== null ? [(v as Record<string, unknown>).x, (v as Record<string, unknown>).y, (v as Record<string, unknown>).z] : typeof v === 'string' ? (v.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi) ?? []).map(Number) : [];
+  return 목록.length === 3 && 목록.every((x) => typeof x === 'number' && Number.isFinite(x)) ? (목록 as [number, number, number]) : null;
+}
+
+/** 위치가 둘 다 읽힌 이웃한 때 쌍 가운데 가로 거리가 서있음거리 미만인 쌍의 비율 — 쌍이 없으면 null */
+export function 서있던비율(때들: readonly 값때[]): number | null {
+  let 쌍 = 0;
+  let 섬 = 0;
+  for (let i = 1; i < 때들.length; i++) {
+    const a = 때들[i - 1]!.위치;
+    const b = 때들[i]!.위치;
+    if (a == null || b == null) continue;
+    쌍 += 1;
+    if (Math.hypot(a[0] - b[0], a[2] - b[2]) < 서있음거리) 섬 += 1;
+  }
+  return 쌍 === 0 ? null : 섬 / 쌍;
 }
 
 /** 한 번 읽는다 — 칸이 있으면 오브젝트 값, 없으면 그 자리의 화면 글자. 못 읽은 값은 null */
@@ -56,7 +78,7 @@ export function 화면다른것(때들: readonly 값때[], 볼: readonly 볼값[
  * 바로 한 번 읽고 함수가 끝날 때까지 간격마다 다시 읽는다. 읽기가 던져도 함수는 계속 돈다.
  * 못 읽어도 그치지 않는다 — 새 판으로 장면이 바뀌는 5초 동안 세 번 못 읽고 그쳐 그 판 기록 · 기대 감시가 다 끊겼다(2026-11-27 16094 맵판 · 끝막기판)
  */
-export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: readonly 볼값[], 기대들: readonly 기대[], 시작: number, 간격ms = 값간격ms): 값읽는고리 {
+export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: readonly 볼값[], 기대들: readonly 기대[], 시작: number, 간격ms = 값간격ms, 위치?: { 주소: string; 칸: string }): 값읽는고리 {
   const 기록: 값기록 = { 계획, 볼값: [...볼], 간격ms, 때: [], 어긋남: null, 화면다름: [] };
   let 사진: Buffer | undefined;
   let 서있다 = true;
@@ -80,10 +102,12 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       }
       const 초 = (Date.now() - 시작) / 1000;
       const r = await 한번읽기(게임, 볼);
+      // 위치는 값 읽기가 느려져도 못 읽으면 null — 서 있던 비율은 둘 다 읽힌 쌍만 센다
+      const 자리 = 위치 === undefined ? undefined : await 게임.get(위치.주소, 위치.칸).then(세수로, () => null);
       // 끝난다가 기록을 돌려준 뒤 늦게 끝난 읽기다 — 저장된 기록 · 마지막 화면 찍기와 엇갈리지 않게 버린다
       if (!서있다) return;
       첫못함 ??= r.못함;
-      기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }) });
+      기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }), ...(자리 === undefined ? {} : { 위치: 자리 }) });
       for (const [k, v] of Object.entries(r.값)) {
         if (v === null) continue;
         처음[k] ??= v;
@@ -114,6 +138,8 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       await Promise.race([고리, new Promise<void>((다음) => (시계 = setTimeout(다음, 끝기다림ms)))]);
       clearTimeout(시계);
       기록.화면다름 = 화면다른것(기록.때, 볼);
+      const 비율 = 서있던비율(기록.때);
+      if (비율 !== null) 기록.서있음 = 비율;
       return { 기록, ...(사진 === undefined ? {} : { 사진 }), 못함: 첫못함 === null ? null : `볼값 읽기: ${첫못함}` };
     },
   };

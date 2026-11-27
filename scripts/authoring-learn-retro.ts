@@ -34,7 +34,8 @@ export const 회고줄들 = (줄들: readonly 줄[]): 줄[] => 줄들.filter((x)
  */
 export function 회고채우기(열쇠: string, learned: 배운것, 찾기: (열쇠: string) => 줄 | undefined, 기록들: readonly 판기록[]): 배운것 | string {
   const 이름 = 회고기록이름(열쇠)!;
-  const 기 = 기록들.find((r) => r.이름 === 이름)?.값기록;
+  const 판 = 기록들.find((r) => r.이름 === 이름);
+  const 기 = 판?.값기록;
   if (기 === undefined) return `판 기록 ${이름}.json 에 계획으로 해 본 값 기록이 없다 — 회고는 --plan 으로 해 본 판에만 단다`;
   const d = 객체(learned.data);
   if (!까닭들.includes(d.까닭 as (typeof 까닭들)[number])) return `data.까닭 은 ${까닭들.join(' · ')} 가운데 하나다(손 — 하려던 것이 판에서 안 됐다 · 믿은것 — 쓴 지도 줄이 틀렸다 · 몰랐던것 — 새 물음 · 됨 — 목표에 닿았다)`;
@@ -45,7 +46,15 @@ export function 회고채우기(열쇠: string, learned: 배운것, 찾기: (열
   if (!(d.까닭 === '됨' && d.다음 === undefined) && (다음?.kind !== 'TRIAL' || typeof 계획읽기(칸(다음)) === 'string')) return 'data.다음 에 다음에 해 볼 계획(TRIAL) 줄 열쇠를 적는다 — 그 줄에 볼값 · 기대 · 목표가 있어야 한다(이번에 같이 적어도 된다 · 까닭이 「됨」이면 안 적어도 된다)';
   const 계획 = 계획읽기(칸(찾기(기.계획)));
   const 목표 = typeof 계획 === 'string' ? null : { ...계획.목표, 닿은: 가장큰(기, 계획.목표.값) };
-  return { ...learned, data: { ...d, 계획: 기.계획, ...(typeof 계획 === 'string' || 계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(목표 === null ? {} : { 목표 }), 나아감: 가장큰(기, 나아감), 어긋남: 기.어긋남, ...(기.화면다름.length === 0 ? {} : { 화면다름: 기.화면다름 }) } };
+  const 표 = 판?.시간표;
+  const 끝값: Record<string, number> = {};
+  for (const b of 기.볼값) {
+    const 마지막 = [...기.때].reverse().find((t) => (t.값[b.이름] ?? null) !== null);
+    if (마지막 !== undefined) 끝값[b.이름] = 마지막.값[b.이름]!;
+  }
+  const 초 = (ms: number): number => Math.round(ms / 1000);
+  // 시간표 · 서있음 · 끝값은 AI 가 적는 칸이 아니라 기록에서 읽어 채운다 — 게임마다 다른 끝 수(손 고기 · 바닥 고기)는 AI 가 볼값으로 적고 끝값으로 본다
+  return { ...learned, data: { ...d, ...(표 === undefined ? {} : { 시간표: { 읽기초: 초(표.읽기ms), 입력초: 초(표.입력ms), 기타초: 초(표.기타ms), 기다림초: 초(표.기다림ms) } }), ...(기.서있음 === undefined ? {} : { 서있음: Math.round(기.서있음 * 100) / 100 }), ...(Object.keys(끝값).length === 0 ? {} : { 끝값 }), 계획: 기.계획, ...(typeof 계획 === 'string' || 계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(목표 === null ? {} : { 목표 }), 나아감: 가장큰(기, 나아감), 어긋남: 기.어긋남, ...(기.화면다름.length === 0 ? {} : { 화면다름: 기.화면다름 }) } };
 }
 
 /** 게임플레이에서 한 곳의 나아감이 이만큼 이어 안 늘면 다음 판 전에 물음 트리를 보게 막는다 — 배우기의 안늚상한(지도 전체)과 따로 곳 단위로 센다 */
@@ -141,7 +150,7 @@ export function 남은배울것(지도: { 줄들: 지도줄[]; 이름: Map<strin
 }
 
 /** 곳 — 계획이 적은 곳. 판 중간 멈춤 보고에 그 곳 맵 정보를 붙인다 */
-export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[]; 곳?: string; 계산?: Record<string, string> }
+export interface 해볼것 { 계획: string; 볼값: 볼값[]; 기대: 기대[]; 곳?: string; 계산?: Record<string, string>; 위치?: { 주소: string; 칸: string } }
 
 /** 학습 세션(시험 아님) 동안만 있는 표시가 있나 */
 export const 배우는중인가 = (자료: string | undefined): boolean => 자료 !== undefined && lstatSync(join(자료, 게임자리.배우는중), { throwIfNoEntry: false })?.isFile() === true;
@@ -196,5 +205,5 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   const 결 = 계획.곳 === undefined ? null : 결과읽기(칸(찾기(계획.곳)));
   const 결과볼: 볼값[] = 결 === null || typeof 결 === 'string' || 결.칸 === undefined ? [] : [{ 이름: 결과이름, 주소: 결.주소, 칸: 결.칸 }];
   const 계산 = 계산찍기(계획.쓸것 ?? [], 줄들);
-  return { 계획: 계획열쇠, 볼값: [...계획.볼값, 나, ...결과볼], 기대: 계획.기대, ...(계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(Object.keys(계산).length === 0 ? {} : { 계산 }) };
+  return { 계획: 계획열쇠, 볼값: [...계획.볼값, 나, ...결과볼], 기대: 계획.기대, ...(계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(계획.위치 === undefined ? {} : { 위치: 계획.위치 }), ...(Object.keys(계산).length === 0 ? {} : { 계산 }) };
 }

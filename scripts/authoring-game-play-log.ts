@@ -5,6 +5,7 @@ import { basename, join } from 'node:path';
 import { 게임자리 } from './authoring-game.js';
 import type { 조작결과 } from './authoring-game-play.js';
 import { 나온것줄, 펼친파일글 } from './authoring-game-play-spawns.js';
+import { 바퀴줄 } from './authoring-game-play-time.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 폴더인가 } from './authoring-screens-keep-io.js';
 
@@ -147,4 +148,4 @@ function 새것줄(r: 조작결과, 기록: string | null): string[] {
 }
 
 /** 조작 함수를 부른 명령이 머리 줄 다음에 찍는 줄 — 도중 화면 · 새로 나온 것 · 멈춤 */
-export const 덧줄 = (r: 조작결과, 기록: string | null): string[] => [...계획줄(r, 기록), ...판멈춤줄(r, 기록), ...도중화면줄(r, 기록), ...새것줄(r, 기록), ...멈춤줄(r)];
+export const 덧줄 = (r: 조작결과, 기록: string | null): string[] => [...계획줄(r, 기록), ...(r.시간표 === undefined ? [] : [바퀴줄(r.시간표)]), ...판멈춤줄(r, 기록), ...도중화면줄(r, 기록), ...새것줄(r, 기록), ...멈춤줄(r)];

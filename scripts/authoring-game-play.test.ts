@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 게임자료환경 } from './authoring-check-game.js';
 import { 깃발읽기, 조작도우미자리 } from './authoring-game-play-call.js';
-import { 기록남기기, 도중파일이름 } from './authoring-game-play-log.js';
+import { 기록남기기, 덧줄, 도중파일이름 } from './authoring-game-play-log.js';
 import { 간격정하기, 상한장, 찍기시작 } from './authoring-game-play-shots.js';
 import { 돌린다, 실행 } from './authoring-game-play.js';
 
@@ -139,6 +139,34 @@ describe('조작 도우미 부르기', () => {
     expect(r.오류).toBe('밖에서 명령을 끊었습니다');
     expect(g.명령).toContain('key-down W');
     expect(g.명령.indexOf('input-reset')).toBeGreaterThan(g.명령.indexOf('key-down W'));
+  });
+
+  it('명령 종류마다 걸린 시간과 기다림을 재 기록 · 덧줄에 남긴다 — 명령이 하나도 없어도 함수가 돌았으면 남는다', async () => {
+    const g = 가짜();
+    const 느린: Link = async (c) => {
+      const cmd = (c as unknown as { cmd: string }).cmd;
+      if (cmd === 'get' || cmd === 'key-down') await new Promise((다음) => setTimeout(다음, 60));
+      return g.길(c);
+    };
+    const r = await 돌린다(
+      느린,
+      async (game) => {
+        const d = game as { keyDown(k: string): Promise<void>; get(a: string, b: string): Promise<unknown> };
+        await Promise.all([d.get('/P', 'T.position'), d.keyDown('W')]);
+        await new Promise((다음) => setTimeout(다음, 100));
+      },
+      {},
+      5_000,
+    );
+    expect(r.시간표!.읽기ms).toBeGreaterThanOrEqual(50);
+    expect(r.시간표!.입력ms).toBeGreaterThanOrEqual(50);
+    expect(r.시간표!.기타ms).toBeLessThan(50);
+    expect(r.시간표!.기다림ms).toBeGreaterThanOrEqual(90);
+    expect(r.시간표!.읽기ms + r.시간표!.기다림ms).toBeLessThanOrEqual(r.걸린ms + 5);
+    expect(덧줄(r, null).some((x) => /^바퀴: 읽기 \d+초 · 입력 \d+초 · 기다림 \d+초$/.test(x))).toBe(true);
+    const 없음 = await 돌린다(가짜().길, () => new Promise((다음) => setTimeout(다음, 30)), {}, 5_000);
+    expect(없음.시간표).toMatchObject({ 읽기ms: 0, 입력ms: 0, 기타ms: 0 });
+    expect(없음.시간표!.기다림ms).toBeGreaterThanOrEqual(25);
   });
 
   it('기다리지 않은 일이 던져도 거두고, JSON 으로 못 바꾸는 값이어도 기록을 남긴다', async () => {
