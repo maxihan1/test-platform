@@ -100,6 +100,24 @@ describe('멈춰 가며 하기', () => {
     expect((await 돌린다(덧없이.길, 읽기만, {}, 5_000)).알림말).toHaveLength(1);
   });
 
+  it('학습 세션에서 시간 한도로 끝나면 --freeze 가 없어도 멈춘 채 돌려주고, 학습 세션이 아니거나 한도 전에 끝나면 안 멈춘다', async () => {
+    const 오래 = (): Promise<void> => new Promise((끝) => setTimeout(끝, 400));
+    const 학습 = 새자료();
+    writeFileSync(join(학습, 'game-learning.now'), '1');
+    const g = 가짜(1);
+    const r = await 돌린다(g.길, 오래, {}, 100, undefined, { 자료: 학습 });
+    expect(r.오류).toContain('제한 시간');
+    expect(g.배율()).toBe(0);
+    expect(멈춤표시읽기(학습)?.배율).toBe(1);
+    const 끝남 = 가짜(1);
+    await 돌린다(끝남.길, 읽기만, {}, 5_000, undefined, { 자료: 학습 });
+    expect(끝남.배율()).toBe(1);
+    const 시험 = 새자료();
+    const 시험판 = 가짜(1);
+    await 돌린다(시험판.길, 오래, {}, 100, undefined, { 자료: 시험 });
+    expect(시험판.배율()).toBe(1);
+  });
+
   it('표시의 풀 값이 0 이면 풀 것이 없다 — 표시를 지우고 판이 안 흐른다고 알린다', async () => {
     const d = 새자료();
     멈춤표시쓰기(d, 0);
