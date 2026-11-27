@@ -13,6 +13,7 @@ import { 떠나기로했다, 떠나기상자, 버리기전 } from './leaveGuard.
 import { perfApi } from './perfApi.js';
 import type { 고를기기, 기기목표, 기기설정, 조작, 측정지표 } from './perfDeviceApi.js';
 import { 자동포함, 폰케이스들 } from './perfDeviceCases.js';
+import { PerfDeviceDrive } from './PerfDeviceDrive.js';
 import { PerfDeviceMetrics } from './PerfDeviceMetrics.js';
 import { PerfDevicePick, 기기키 } from './PerfDevicePick.js';
 import { PerfDeviceTargets } from './PerfDeviceTargets.js';
@@ -157,35 +158,12 @@ export function PerfDeviceStart({
     }
   }
 
-  const 조작칸 = (값: 조작, 이름: string, 설명: string) => (
-    <label className={조작 === 값 ? 'pd-kind on' : 'pd-kind'}>
-      <input type="radio" name="pd-drive" checked={조작 === 값} disabled={!쓰나} onChange={() => set조작(값)} />
-      <span>
-        <b>{t(이름)}</b>
-        <br />
-        <span className="perf-faint">{t(설명)}</span>
-      </span>
-    </label>
-  );
-
   return (
     <>
       <떠나기상자 막나={지금값 !== 처음값} 버리기도 />
       <Head 위치={t('성능 테스트')} 제목={t(기기성능이름(service.kind))} 부제={t('새 측정')} />
       <div className="screen perf-run" ref={상자}>
-        <section className="perf-panel" aria-labelledby="pd-m">
-          <h2 id="pd-m">{t('조작 방식')}</h2>
-          <div className="pd-kinds" role="radiogroup" aria-label={t('조작 방식')}>
-            {PC
-              ? 조작칸('GAME', '게임 케이스', '선택한 게임 케이스를 PC 에서 반복 실행하며 측정합니다. Device VISION 에 연결된 PC 한 대를 씁니다')
-              : 게임
-                ? 조작칸('GAME', '게임 케이스', '선택한 게임 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 에 연결된 디바이스만 쓸 수 있습니다')
-                : 조작칸('APPIUM', 'Appium 케이스', '선택한 Android 앱 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 에 연결된 디바이스만 쓸 수 있습니다')}
-            {PC
-              ? 조작칸('MANUAL', '직접 플레이', '실행 빌드를 설치하고 게임을 켜 둡니다. Device VISION 에 연결된 PC 앞에 앉아 플레이하는 동안 기록합니다')
-              : 조작칸('MANUAL', '직접 플레이', 'Device VISION 에 연결된 디바이스를 손에 들고 플레이하는 동안 기록합니다')}
-          </div>
-        </section>
+        <PerfDeviceDrive 조작={조작} on조작={set조작} 쓰나={쓰나} 게임={게임} PC={PC} />
 
         <section className="perf-panel" aria-labelledby="pd-s">
           <h2 id="pd-s">{케이스로 ? t('케이스와 빌드') : t('측정 시간과 빌드')}</h2>
@@ -204,14 +182,12 @@ export function PerfDeviceStart({
               </label>
               <칸오류 id="pd-env-err" 사유={틀린('env')} />
             </div>
+            {/* 대상 서버마다 빌드가 달라 번호는 적지 않는다 — 서버가 고른 줄의 최근 빌드를 깔고, 없으면 400 으로 알린다 */}
             {PC ? (
-              <div className="perf-cell">
-                <span className="perf-field">
-                  {t('실행 빌드')}
-                  <span className="mono">{service.latestBuildNo == null ? t('Windows 빌드가 없습니다') : t('빌드 {번호}', { 번호: service.latestBuildNo })}</span>
-                </span>
-                <span className="perf-faint">{t('측정을 시작할 때 최근 Windows 빌드를 PC 에 설치합니다')}</span>
-              </div>
+              <span className="perf-field">
+                {t('실행 빌드')}
+                <span className="perf-faint">{t('측정을 시작할 때 이 대상 서버의 최근 Windows 빌드를 PC 에 설치합니다')}</span>
+              </span>
             ) : <div className="perf-cell">
               <label className="perf-field">
                 {t('앱 패키지 이름')}

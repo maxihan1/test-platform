@@ -30,8 +30,8 @@ const 그림들: 줄그림[] = [
   { 항목: 'GPU', 이름: 'VRAM', 값: (줄) => 줄.vramMb },
 ];
 
-/** 열 상태 띠 — 1(LIGHT) 이상인 초만 칠한다. 1~2 는 경고 색, 3(SEVERE) 부터는 폰이 성능을 크게 낮춰 실패 색이다 (§3.9 「배터리 온도 · 열 상태」) */
-const 열색 = (status: number): string => (status >= 3 ? 'var(--fail)' : 'var(--accent)');
+/** 열 상태 띠 — 1(LIGHT) 이상인 초만 칠한다. 판정이 아니라 판정 색 · 대표색을 쓰지 않고 구간 띠처럼 회색 농도로 가른다. 3(SEVERE) 부터 진하다 (§3.9 「배터리 온도 · 열 상태」 · DESIGN.md 원칙 1) */
+const 열색 = (status: number): string => (status >= 3 ? 'var(--ink)' : 'var(--ink-faint)');
 
 export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기기 }: { runId: number; 결과: 기기결과; 항목: 측정지표[]; 목표들: 기기목표[]; 처음기기: string }) {
   const t = use말();

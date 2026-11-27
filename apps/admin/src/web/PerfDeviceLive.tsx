@@ -3,7 +3,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { Head, use지금앱 } from './Head.js';
+import type { ServiceRow } from './api.js';
+import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
 import { Modal } from './Modal.js';
@@ -20,12 +21,12 @@ const 글 = (값: number | null | undefined, 꼴: (n: number) => string): string
 /** 타일의 작은 FPS 선이 보는 구간(초) */
 const 선구간 = 120;
 
-export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상세; 다시읽기: () => Promise<boolean>; 쓰나: boolean }) {
+export function PerfDeviceLive({ run, service, 다시읽기, 쓰나 }: { run: 실행상세; service: ServiceRow; 다시읽기: () => Promise<boolean>; 쓰나: boolean }) {
   const t = use말();
   const 언어 = use언어();
-  const 지금앱 = use지금앱();
-  const 기기성능 = 기기성능이름(지금앱?.kind);
-  const PC = 측정종류of(지금앱) === 'PC';
+  const 기기성능 = 기기성능이름(service.kind);
+  // 결과 화면처럼 그 실행의 애플리케이션으로 가른다 — 지금 고른 앱이 아직 안 읽혔어도 PC 타일이 맞게 선다
+  const PC = 측정종류of(service) === 'PC';
   const 설정 = 기기설정of(run);
   const [숫자, set숫자] = useState<기기숫자[]>([]);
   const [로그, set로그] = useState<실행로그[]>([]);
@@ -151,7 +152,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
                 <svg viewBox="0 0 200 40" preserveAspectRatio="none" className="pd-spark" aria-hidden="true">
                   <polyline points={선점(선, 선구간, 눈금최대(60, ...선.map((p) => p.y)), 200, 40)} className={나쁨 ? 'bad' : undefined} vectorEffect="non-scaling-stroke" />
                 </svg>
-                {PC ? null : 값('배터리 온도', 글(최근?.tempC, (n) => [t('{수}도', { 수: n }), (최근?.thermalStatus ?? 0) > 0 ? 열상태이름[최근?.thermalStatus ?? 0] : null].filter(Boolean).join(' · ')), 벗어남.has('MAX_TEMP') || (최근?.thermalStatus ?? 0) > 0)}
+                {PC ? null : 값('배터리 온도', 글(최근?.tempC, (n) => [t('{수}도', { 수: n }), (최근?.thermalStatus ?? 0) > 0 ? 열상태이름[최근?.thermalStatus ?? 0] : null].filter(Boolean).join(' · ')), 벗어남.has('MAX_TEMP'))}
                 {값('CPU', 글(최근?.cpu, (n) => `${String(Math.round(n))}%`), false)}
                 {PC ? 값('GPU', 글(최근?.gpu, (n) => `${String(Math.round(n))}%`), false) : null}
                 {값('메모리', 메모리글자(최근?.memMb ?? null), 벗어남.has('MAX_MEM'))}

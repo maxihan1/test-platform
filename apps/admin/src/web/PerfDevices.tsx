@@ -70,7 +70,7 @@ export function PerfDevices({ service, run, 쓰나 }: { service: ServiceRow; run
     return <PerfDeviceStart service={service} 앞={읽은 === null ? null : 기기설정of(읽은)} 앞env={읽은?.env ?? null} 쓰나={쓰나} 취소={읽은 === null ? null : () => set새로(false)} />;
   }
   return 도는중인가(읽은.status) ? (
-    <PerfDeviceLive run={읽은} 다시읽기={다시읽기} 쓰나={쓰나} />
+    <PerfDeviceLive run={읽은} service={service} 다시읽기={다시읽기} 쓰나={쓰나} />
   ) : (
     <PerfDeviceResult run={읽은} service={service} 다시읽기={다시읽기} 쓰나={쓰나} 새측정={() => set새로(true)} />
   );
