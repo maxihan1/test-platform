@@ -545,6 +545,10 @@ describe('학습프롬프트', () => {
     expect(글).toContain('튜토리얼 끝까지');
     expect(글).toContain('알림이 없으면 끝내지 않는다');
     expect(글).toContain('막혔으면(판이 계속 어긋나거나 조작이 안 먹히면) 끝내지 말고 물음 트리');
+    expect(글).toContain('`{ kind: "MOVE", fromKey, action, toKey?, status: "OK", warning?, durationMs?, fields? }`');
+    expect(글).toContain('status 는 영문 "OK" · "BLOCKED" 만 받는다');
+    expect(글).toContain('reason 은 BLOCKED 행에만');
+    expect(글).toContain('`.claude/skills/tpx-author/references/game.md` §8.3');
     expect(글.trimEnd().split('\n').at(-1)).toContain('끝까지 한국어 해요체');
     expect(글).toContain('읽기만 하고 안 해 본 것 2');
     expect(글).toContain('판에서 아직 안 써 본 것 1: rule:치료');
