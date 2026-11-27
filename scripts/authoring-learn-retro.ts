@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import type { 배운것 } from '../apps/admin/src/prd/gameKinds.js';
 import { 게임자리 } from './authoring-game.js';
 import type { 지도줄 } from './authoring-game-find.js';
-import { 열린물음 } from './authoring-game-tree.js';
-import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계획읽기, 기대글, 어긋난기대, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
+import { 열린물음, 오늘글 } from './authoring-game-tree.js';
+import { type 기대, type 볼값, type 판기록, 가장큰, 결과이름, 계획읽기, 기대글, 놀이계획검사, 어긋난기대, 까닭들, 나아감, 나아감열쇠, 나아감자리, 회고기록이름, 회고머리 } from './authoring-learn-check.js';
 import { 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { 상태읽기 } from './authoring-learn-io.js';
 import { 결과읽기, 맵빈곳, 맵종류, 놀이막기 } from './authoring-learn-play.js';
@@ -46,6 +46,26 @@ export function 회고채우기(열쇠: string, learned: 배운것, 찾기: (열
   const 계획 = 계획읽기(칸(찾기(기.계획)));
   const 목표 = typeof 계획 === 'string' ? null : { ...계획.목표, 닿은: 가장큰(기, 계획.목표.값) };
   return { ...learned, data: { ...d, 계획: 기.계획, ...(typeof 계획 === 'string' || 계획.곳 === undefined ? {} : { 곳: 계획.곳 }), ...(목표 === null ? {} : { 목표 }), 나아감: 가장큰(기, 나아감), 어긋남: 기.어긋남, ...(기.화면다름.length === 0 ? {} : { 화면다름: 기.화면다름 }) } };
+}
+
+/** 게임플레이에서 한 곳의 나아감이 이만큼 이어 안 늘면 다음 판 전에 물음 트리를 보게 막는다 — 배우기의 안늚상한(지도 전체)과 따로 곳 단위로 센다 */
+export const 안늚판상한 = 3;
+
+/**
+ * 가장 새 회고의 곳에서 회고 셋 이어 나아감이 그 앞의 가장 먼 나아감을 못 넘었으면 그 셋이 쓴 계획. 목표에 닿았거나(됨) 앞 회고가 없어 견줄 수 없으면 null.
+ * 손막힘과 달리 까닭이 손이 아니어도 센다 — 믿은것 · 몰랐던것으로 고치고도 안 느는 곳이다
+ */
+export function 곳막힘(줄들: readonly 줄[]): { 곳: string; 계획들: string[] } | null {
+  const 회고 = 회고줄들(줄들);
+  const 마지막 = 회고.at(-1);
+  const 곳 = 칸(마지막).곳;
+  if (마지막 === undefined || 칸(마지막).까닭 === '됨' || !글인가(곳)) return null;
+  const 곳회고 = 회고.filter((x) => 칸(x).곳 === 곳);
+  const 끝 = 곳회고.slice(-안늚판상한);
+  const 앞 = 곳회고.slice(0, -안늚판상한);
+  const 최대 = (들: 줄[]): number => Math.max(-Infinity, ...들.map((x) => 칸(x).나아감).filter((v): v is number => typeof v === 'number'));
+  if (앞.length === 0 || 끝.length < 안늚판상한 || !Number.isFinite(최대(앞)) || 최대(끝) > 최대(앞)) return null;
+  return { 곳, 계획들: 끝.map((x) => 칸(x).계획).filter(글인가) };
 }
 
 /** 계획으로 해 본 가장 새 판 가운데 회고 줄이 없는 것 */
@@ -156,7 +176,13 @@ export function 배움막기(자료: string | undefined, 초: number, 계획열�
   }
   // 게임플레이는 곳마다 깰 때까지 한다 — 다섯 번 안 늚으로 끝내지 않는다
   const 놀이 = 상태읽기(자료).단계 === '게임플레이';
-  const 놀막 = 놀이 ? 놀이막기(계획, 줄들, 기록들) : null;
+  // 곳 단위로 셋 이어 안 늘면 물음 트리를 보고 열린 물음 하나를 푸는 계획만 받는다(그 물음은 계획의 data.어디서)
+  const 막힘 = 놀이 ? 곳막힘(줄들) : null;
+  const 열린 = 막힘 === null ? [] : 열린물음({ 줄들: [...줄들], 이름: new Map() }, 오늘글(Date.now())).map((x) => x.key);
+  if (막힘 !== null && 열린.length > 0 && (막힘.계획들.includes(계획열쇠) || !열린.includes(칸(줄).어디서 as string))) {
+    return { 막음: `${막힘.곳} 에서 ${안늚판상한}판 이어 나아감이 안 늘었다 — 물음 트리(\`npx tsx scripts/authoring-game-tree.ts ${자료}\`)를 보고 열린 물음 하나를 골라, 그 물음을 싼 길로 푸는 새 계획을 적는다(계획의 data.어디서 에 그 물음 열쇠 · 앞 세 계획(${막힘.계획들.join(' · ')}) 말고)` };
+  }
+  const 놀막 = 놀이 ? (놀이계획검사(계획) ?? 놀이막기(계획, 줄들, 기록들)) : null;
   if (놀막 !== null) return { 막음: 놀막 };
   if (!놀이 && 늚재기(자료, 줄들, [...기록들].reverse().find((r) => r.값기록 !== undefined)?.이름 ?? null) >= 안늚상한) {
     // 맵을 다 알기 전에는 안 끝낸다 — 게임플레이가 그 맵을 쓴다

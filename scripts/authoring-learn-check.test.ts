@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { 값읽기시작, 화면다른것 } from './authoring-game-play-values.js';
 import { 지도읽기 } from './authoring-game-find.js';
-import { type 판기록, 계획읽기, 대봄검사, 수로, 어긋난기대, 판기록들 } from './authoring-learn-check.js';
+import { type 판기록, 계획읽기, 놀이계획검사, 대봄검사, 수로, 어긋난기대, 판기록들 } from './authoring-learn-check.js';
 import { 합치기 } from './authoring-learn-note.js';
 import { 남은배울것, 배움막기, 손막힘, 회고없는판, 회고채우기 } from './authoring-learn-retro.js';
 
@@ -156,6 +156,24 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     expect(배움막기(자료, 300, 'trial:첫 맵', 회고(3), 판(3))).not.toHaveProperty('막음');
     expect(배움막기(자료, 300, 'trial:첫 맵', 회고(4), 판(4))).toMatchObject({ 막음: expect.stringContaining('배우기를 끝낸다') });
     expect(readFileSync(join(자료, 'game-learn.done'), 'utf8')).toContain('안 늘었다');
+  });
+
+  it('게임플레이 계획은 계산 줄(calc:)과 예측 숫자가 있어야 받고, 게임 배우기 계획은 그대로 받는다', () => {
+    const 예측 = { 값: '세계수', 비교: '>=' as const, 기준: 40, 까지: { 값: '웨이브', 기준: 5 } };
+    const 살기만 = { 값: '세계수', 비교: '>=' as const, 기준: 1 };
+    expect(놀이계획검사({ 기대: [예측], 쓸것: ['stage:둘째 맵#걷기'] })).toContain('calc:');
+    expect(놀이계획검사({ 기대: [예측] })).toContain('calc:');
+    expect(놀이계획검사({ 기대: [살기만], 쓸것: ['calc:둘째 맵 버티기'] })).toContain('예측 숫자');
+    expect(놀이계획검사({ 기대: [{ ...살기만, 비교: '>' as const, 기준: 0 }], 쓸것: ['calc:a'] })).toContain('예측 숫자');
+    expect(놀이계획검사({ 기대: [살기만, 예측], 쓸것: ['stage:둘째 맵#걷기', 'calc:둘째 맵 버티기'] })).toBeNull();
+    expect(놀이계획검사({ 기대: [{ 값: '적', 비교: '<=' as const, 기준: 3 }], 쓸것: ['calc:a'] })).toBeNull();
+
+    const 지도 = 지도읽기('').줄들;
+    const 들 = [줄('TRIAL', 'trial:첫 맵', { ...계획data, 기대: [{ 값: '세계수', 비교: '>=', 기준: 1 }] }), 나아감줄].map((x) => ({ ...x, name: x.key, line: '' })) as never as typeof 지도;
+    writeFileSync(join(자료, 'game-learning.now'), '1');
+    expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).toMatchObject({ 계획: 'trial:첫 맵' });
+    writeFileSync(join(자료, 'game-learn.json'), JSON.stringify({ 쓴ms: 1, 세션: 1, 끝: false, 열쇠: [], 단계: '게임플레이' }));
+    expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).toMatchObject({ 막음: expect.stringContaining('calc:') });
   });
 
   it('손만 고친 회고가 세 번 이어지고 나아감이 안 늘면 그 세 계획 · 어디서로는 다시 못 한다', () => {

@@ -1,12 +1,13 @@
 // 오브젝트 펼치기 — 값 · 묶음 · 목록 · 빈 칸 · 함수로 가르기, 네트워크 틀 거르기, 네트워크 값 읽기 (도메인/게임 §3.10 「오브젝트 펼치기」)
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { Command, Link } from 'control-cli';
+import type { Command, Game, Link } from 'control-cli';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type 펼친것, 더읽을것, 펼친글, 실행 } from './authoring-game-props.js';
+import { type 펼친것, 더읽을것, 펼쳐남기기, 펼쳐읽기, 펼친글, 실행 } from './authoring-game-props.js';
+import { 종류표만들기 } from './authoring-game-bundles.js';
 
 let 자리들: string[] = [];
 afterEach(() => {
@@ -70,6 +71,57 @@ describe('펼친글', () => {
   });
 });
 
+describe('펼쳐읽기 · 묶음 칸', () => {
+  const 표 = 종류표만들기('MonsterTypeData MaxHP:int Damage:float\n');
+  const game = (읽음: string[]): Game =>
+    ({
+      components: async () => [{ name: 'MonsterAI', type: 'Game.MonsterAI' }],
+      members: async () => ({ fields: [{ name: 'TypeData', type: 'MonsterTypeData', value: 'GhostData_1 (Game.Configuration.MonsterTypeData)' }, { name: 'Self', type: 'MonsterAI', value: 'Ghost(Clone) (Game.MonsterAI)' }, { name: 'Speed', type: 'Single', value: 3 }], properties: [], methods: [] }),
+      get: async (_주소: string, 칸: string) => (읽음.push(칸), 칸.endsWith('MaxHP') ? 30 : 4),
+    }) as unknown as Game;
+
+  it('표에 있는 묶음 칸은 칸 이름으로 읽어 글에 `칸=값` 으로 넣고, 자기 컴포넌트를 가리키는 칸은 안 읽는다', async () => {
+    const 읽음: string[] = [];
+    const 펼침 = await 펼쳐읽기(game(읽음), '//*[@id=7]', 'Ghost(Clone)', 표);
+    expect(읽음).toEqual(['MonsterAI.TypeData.MaxHP', 'MonsterAI.TypeData.Damage']);
+    expect(펼침.글.join('\n')).toContain('TypeData.MaxHP=30 · TypeData.Damage=4');
+    expect(펼침.값).toMatchObject({ 'MonsterAI.Speed': 3, 'MonsterAI.TypeData.MaxHP': 30, 'MonsterAI.TypeData.Damage': 4 });
+  });
+
+  it('표가 없으면 묶음 칸은 이름만 보이고 get 을 더 부르지 않는다', async () => {
+    const 읽음: string[] = [];
+    const 펼침 = await 펼쳐읽기(game(읽음), '//*[@id=7]', 'Ghost(Clone)');
+    expect(읽음).toEqual([]);
+    expect(펼침.글.join('\n')).toContain('묶음 TypeData → GhostData_1 (MonsterTypeData)');
+  });
+});
+
+describe('펼쳐남기기 · 그침', () => {
+  class 그침 extends Error {}
+  const 게임 = (): Game =>
+    ({
+      components: async () => [{ name: 'MonsterHP', type: 'Game.MonsterHP' }],
+      members: async () => ({ fields: [{ name: 'HP', type: 'NetworkVariable`1', value: 'Unity.Netcode.NetworkVariable`1[System.Int32]' }, { name: 'MaxHP', type: 'Int32', value: 20 }], properties: [], methods: [] }),
+      get: async () => {
+        throw new 그침();
+      },
+    }) as unknown as Game;
+
+  it('네트워크 값을 읽다 그침이 나면 반쯤 읽은 값 파일을 쓰지 않고 그대로 던진다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-stop-'));
+    자리들.push(자료);
+    await expect(펼쳐남기기(게임(), '/a', 'Ghost', { 종류: 'Ghost', 장면: null, 자료, 그침인가: (e) => e instanceof 그침 })).rejects.toBeInstanceOf(그침);
+    expect(existsSync(join(자료, 'game-props'))).toBe(false);
+  });
+
+  it('그침이 아닌 읽기 실패는 이름만 남기고 값 파일은 쓴다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-stop-'));
+    자리들.push(자료);
+    await 펼쳐남기기(게임(), '/a', 'Ghost', { 종류: 'Ghost', 장면: null, 자료, 그침인가: () => false });
+    expect(existsSync(join(자료, 'game-props', 'Ghost.json'))).toBe(true);
+  });
+});
+
 describe('실행', () => {
   const 트리 = (잡음 = true): string => {
     const t = mkdtempSync(join(tmpdir(), 'game-props-'));
@@ -78,10 +130,11 @@ describe('실행', () => {
     if (잡음) writeFileSync(join(t, '.control-cli', 'held'), 'pc-pc1\n');
     return t;
   };
-  const 가짜 = (명령: Record<string, unknown>[]): Link =>
+  const 가짜 = (명령: Record<string, unknown>[], 못찾음 = false): Link =>
     (async (c: Command) => {
       const cmd = c as unknown as Record<string, unknown>;
       명령.push(cmd);
+      if (cmd.cmd === 'find') return 못찾음 ? { ok: true, found: false } : { ok: true, found: true, path: '/Pool/Ghost(Clone)[0]', id: 5 };
       if (cmd.cmd === 'components') return { ok: true, components: [{ name: 'Transform', type: 'UnityEngine.Transform' }, { name: 'MonsterHP', type: 'Game.MonsterHP' }] };
       if (cmd.cmd === 'members') return { ok: true, fields: 악마[1]!.fields, properties: [], methods: [] };
       if (cmd.cmd === 'get') return { ok: true, value: 7 };
@@ -95,7 +148,34 @@ describe('실행', () => {
     const 글 = 찍힘.mock.calls.flat().join('\n');
     expect(글).toContain('엔진 부품: Transform');
     expect(글).toContain('HP.Value=7 · MaxHP=20');
-    expect(명령.map((x) => x.cmd).filter((x) => !['components', 'members', 'get'].includes(String(x)))).toEqual([]);
+    expect(명령.map((x) => x.cmd).filter((x) => !['components', 'members', 'get', 'scenes', 'find'].includes(String(x)))).toEqual([]);
+  });
+
+  it('자료 폴더가 있으면 손으로 부른 펼치기도 값 파일을 남긴다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-data-'));
+    자리들.push(자료);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['/Pool/Ghost(Clone)[0]'], 트리(), { AUTHORING_GAME_DIR: 자료 }, 가짜([]))).toBe(0);
+    const 파일 = JSON.parse(readFileSync(join(자료, 'game-props', 'Ghost.json'), 'utf8')) as { 종류: string; 출처: string; 칸: Record<string, unknown> };
+    expect(파일).toMatchObject({ 종류: 'Ghost', 출처: '실행 중' });
+    expect(파일.칸['MonsterHP.MaxHP']).toBe(20);
+  });
+
+  it('번호 주소(//*[@id=5])로 불러도 값 파일 종류는 오브젝트 실제 경로에서 만든다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-data-'));
+    자리들.push(자료);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['//*[@id=5]'], 트리(), { AUTHORING_GAME_DIR: 자료 }, 가짜([]))).toBe(0);
+    expect(readdirSync(join(자료, 'game-props'))).toEqual(['Ghost.json']);
+  });
+
+  it('주소로 오브젝트를 못 찾으면 값 파일을 안 쓴다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-data-'));
+    자리들.push(자료);
+    const 찍힘 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['//*[@id=5]'], 트리(), { AUTHORING_GAME_DIR: 자료 }, 가짜([], true))).toBe(0);
+    expect(existsSync(join(자료, 'game-props'))).toBe(false);
+    expect(찍힘.mock.calls.flat().join('\n')).toContain('값 파일은 안 썼다');
   });
 
   it('주소가 없거나 잡은 디바이스가 없으면 2', async () => {

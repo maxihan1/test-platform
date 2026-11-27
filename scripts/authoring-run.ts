@@ -37,11 +37,13 @@ import { 배운것받기 } from './authoring-app-learned.js';
 import { 저장본넣기 } from './authoring-screens-keep-io.js';
 import { 잡기늘리기 } from './authoring-app-hold.js';
 import { PC게임못함, 게임화면받기, 받은빌드이름, 빌드이름기다리기, 받은팜토큰, 앱링크갈기, 앱맵받기, 앱화면받기, 잡은폰놓기, 잡은폰토큰, 탐색환경, 팜주소 } from './authoring-app-screen.js';
-import { 코드자리비우기, 코드저장소받기 } from './authoring-code-repos.js';
+import { 코드자리비우기 } from './authoring-code-repos.js';
 import { 앱문구받기 } from './authoring-apk-strings.js';
 import { PC게임환경, 게임자료환경 } from './authoring-check-game.js';
 import { 고칠케이스환경 } from './authoring-run3-env.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
+import { 캐시자리만들기 } from './authoring-game-build-data.js';
+import { 게임가린뒤받기 } from './authoring-run-game.js';
 import { 미션줄 } from './authoring-missions.js';
 import { type 탐색단계, 병합팝업행, 세션띄우기, 탐색끝줄, 탐색하나, 팝업싣는손 } from './authoring-explore.js';
 import { 못뜬것은끊김, 학습번호들, 학습하기 } from './authoring-learn.js';
@@ -238,7 +240,8 @@ async function 사본에서(
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 비밀번호들(것));
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
   // 게임 코드 저장소는 가린 뒤 받는다 — 가리기가 자료 폴더를 다 훑어 큰 저장소에 시간을 쓰지 않게. 못 받아도 간다 · 저장소 사이에 멈춤을 본다 (§3.6 「가이드와 게임 코드 맞춰 보기」)
-  const 코드 = 게임화면 !== undefined && 것.codeRepos !== undefined ? await 코드저장소받기(것.codeRepos, 자리.자료, process.env, () => 박동.멈추라했다()) : undefined;
+  const 빌드캐시 = 캐시자리만들기(판.바탕, 서비스); // 작성마다 새 자료 폴더라 같은 빌드를 매번 받던 것을 서비스 접두사 · 빌드 번호별로 작업 바탕에 둔다
+  const 코드 = 게임화면 === undefined ? undefined : await 게임가린뒤받기({ 코드저장소: 것.codeRepos, 멈추라했다: () => 박동.멈추라했다(), 빌드데이터: { 자료: 자리.자료, 임시: 자리.임시, 집: 자리.집, 관리주소: 주소기지, 자식, 알린다: (글) => console.error(`[작성] ${것.id}번 — ${글}`), ...(빌드캐시 === undefined ? {} : { 캐시자리: 빌드캐시 }) } });
   // 작성은 표준 기획서만 읽는다 — 지금 판으로 원장을 만든다. 못 받으면 원장이 없어 작성하지 않는다 (§3.6 「작성은 표준 기획서만 읽는다」). 화면이 맞음 건의 실패 trace 도 같이 받는다(못 받아도 간다)
   const [기획서] = await Promise.all([판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 비밀번호들(것)), 실패trace받기({ 주소기지, 토큰 }, 것, 자리.자료)]);
   if ('까닭' in 기획서) return void (await 손.끝내기({ status: 'FAILED', error: 기획서.까닭 }));

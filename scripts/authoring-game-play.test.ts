@@ -86,6 +86,16 @@ describe('조작 도우미 부르기', () => {
     expect(JSON.parse(readFileSync(join(t, 'data', 'game-play', 남은[1]!), 'utf8'))).toMatchObject({ 함수: '걷기', 인자: ['W'], 값: { 자리: [1, 2, 3] }, 로그: ['t Log 이번 로그'] });
   });
 
+  it('정보 모으기가 웨이브를 넘긴 표시가 있으면 이 판 기록에 치트를 단다', async () => {
+    const t = 트리();
+    mkdirSync(join(t, 'data'), { recursive: true });
+    writeFileSync(join(t, 'data', 'game-cheat.json'), JSON.stringify({ 장면: 'S', 때: '2026-11-27T00:00:00.000Z' }));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['g', 'play', '걷기', '["W"]', '--max', '5'], t, { [게임자료환경]: join(t, 'data') }, 가짜().길)).toBe(0);
+    const 기록 = readdirSync(join(t, 'data', 'game-play')).find((x) => x.endsWith('.json'))!;
+    expect(JSON.parse(readFileSync(join(t, 'data', 'game-play', 기록), 'utf8'))).toMatchObject({ 함수: '걷기', 치트: true });
+  });
+
   it('함수가 던지면 1 — 눌러 둔 입력을 놓고 오류에서 비밀번호를 가린다', async () => {
     const g = 가짜();
     const 찍힘 = vi.spyOn(console, 'log').mockImplementation(() => {});
