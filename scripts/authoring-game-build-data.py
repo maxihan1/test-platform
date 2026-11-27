@@ -101,11 +101,12 @@ def 쓰기(폴더, 이름, 글):
 
 
 def 파일표만들기(files, 표=None):
-    """이름 → 파일 표. 압축 묶음(data.unity3d)에 든 파일까지 펼친다. 외부 참조(globalgamemanagers.assets)가 묶음 안에 있는 빌드가 있다. 이름이 겹치면 먼저 본 것.
+    """이름 → 파일 표. 압축 묶음(data.unity3d)에 든 파일까지 펼친다. 외부 참조(globalgamemanagers.assets)가 묶음 안에 있는 빌드가 있다. 이름이 겹치면 바깥 파일이 이긴다.
     SerializedFile 의 files 는 오브젝트 표(번호 → 오브젝트)라 펼치지 않는다"""
     표 = {} if 표 is None else 표
     for k, v in files.items():
         표.setdefault(os.path.basename(k), v)
+    for v in files.values():
         if type(v).__name__ in ('BundleFile', 'WebFile'):
             파일표만들기(v.files, 표)
     return 표
@@ -241,7 +242,8 @@ def 자체검사():
         '/x/Cats Go_Data/app.info': 'top',
     })
     assert 표['globalgamemanagers.assets'] is 안, '묶음 안 파일도 이름으로 찾는다'
-    assert 표['app.info'] is 겹침 and 'data.unity3d' in 표, '이름이 겹치면 먼저 본 것'
+    assert 표['app.info'] == 'top' and 'data.unity3d' in 표, '이름이 겹치면 바깥 파일'
+    assert 1 not in 표, 'SerializedFile 의 오브젝트 표는 펼치지 않는다'
 
     대상 = tempfile.mkdtemp(prefix='build-data-check-')
     try:
