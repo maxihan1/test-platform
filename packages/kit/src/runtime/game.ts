@@ -178,7 +178,8 @@ export async function openGame(
     // 타입을 피해 넘긴 값을 조용히 버리지 않고 던진다
     keyDown: async (keys: string, ...더: unknown[]): Promise<void> => {
       const 옵션 = (더[0] ?? {}) as Record<string, unknown>;
-      if (더.length > 1 || Object.keys(옵션).some((k) => k !== 'power')) throw new 인자오류('keyDown 은 키와 power 만 받는다');
+      // keyDown('X', 0.7) 처럼 세기만 넘기면 Object.keys 가 비어 그냥 눌린다 — 객체만 받는다
+      if (더.length > 1 || typeof 옵션 !== 'object' || Array.isArray(옵션) || Object.keys(옵션).some((k) => k !== 'power')) throw new 인자오류('keyDown 은 키와 { power } 만 받는다');
       const power = 옵션.power;
       if (power !== undefined && (typeof power !== 'number' || !(power >= -1 && power <= 1))) throw new 인자오류(`keyDown 의 power 는 -1 ~ 1 의 수다: ${String(power)}`);
       모름 = true;

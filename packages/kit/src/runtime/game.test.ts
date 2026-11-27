@@ -209,7 +209,8 @@ describe('openGame', () => {
     await expect(game.pad('xbox' as never)).rejects.toThrow('읽기만 한다');
     await expect(game.keyDown('JoystickButton16', { power: 2 })).rejects.toThrow('power 는 -1 ~ 1 의 수다');
     await expect(game.keyDown('JoystickButton16', { power: Number.NaN })).rejects.toThrow('power 는 -1 ~ 1 의 수다');
-    await expect(game.keyDown('W', { power: 1, duration: 1 } as never)).rejects.toThrow('keyDown 은 키와 power 만 받는다');
+    await expect(game.keyDown('W', { power: 1, duration: 1 } as never)).rejects.toThrow('keyDown 은 키와 { power } 만 받는다');
+    await expect(game.keyDown('W', 0.7 as never)).rejects.toThrow('keyDown 은 키와 { power } 만 받는다');
     expect(보낸).toEqual([]);
     const 케이스: GameDriver = game;
     await 케이스.keyDown('JoystickButton16', { power: -0.5 });
