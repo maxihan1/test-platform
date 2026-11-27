@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 프로젝트 설정의 한 번 연 탭이 붙어 있어 적던 값이 남는지 보는 검사
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';

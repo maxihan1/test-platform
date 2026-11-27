@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 애플리케이션 설정의 탐색 제외 경로 · 프로시저 작성 칸 검사
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';

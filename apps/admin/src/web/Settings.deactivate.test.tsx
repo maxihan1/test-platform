@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 비활성화해도 다른 탭에 적어 둔 저장 안 한 값이 남는지 보는 검사
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 애플리케이션 설정의 피그마 토큰 칸과 대상 서버 테스트 계정 검사
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';

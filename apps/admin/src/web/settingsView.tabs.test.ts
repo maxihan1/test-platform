@@ -1,3 +1,4 @@
+// 애플리케이션 설정 탭 상태 한 줄과 「필요한 것」 계산 검사
 import { describe, expect, it } from 'vitest';
 
 import { 탭상태, 탭필요한것, type 탭입력 } from './settingsView.js';

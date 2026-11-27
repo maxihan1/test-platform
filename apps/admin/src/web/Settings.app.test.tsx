@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 설정 틀의 애플리케이션 · 계정 메뉴와 저장 뒤 보던 탭 검사
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';

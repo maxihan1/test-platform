@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 설정 틀의 프로젝트 설정 탭 셋 · 주소 · 이름 바꾸기 검사
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';

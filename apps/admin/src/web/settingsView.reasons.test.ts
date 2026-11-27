@@ -1,3 +1,4 @@
+// 애플리케이션 · 계정 설정을 못 보내는 이유 계산 검사
 import { describe, expect, it } from 'vitest';
 
 import { 계정못보내는이유, 서비스못보내는이유 } from './settingsView.js';

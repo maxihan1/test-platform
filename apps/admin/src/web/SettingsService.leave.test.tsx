@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 애플리케이션 설정에 적다 만 칸을 두고 떠날 때 묻는지 보는 검사
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
