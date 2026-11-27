@@ -333,7 +333,7 @@ describe('애플리케이션 설정 탭 상태 한 줄과 「필요한 것」 (S
     // 주소를 아직 안 적은 줄은 서버로 세지 않는다
     expect(탭상태('run', { ...입력, envs: [{ env: 'qa', baseUrl: '' }] }, 'ko')).toEqual({ 글: '대상 서버 없음', 톤: 'warn' });
     const envs: 탭입력['envs'] = [
-      { env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'member', 역할들: [{ role: '관리자' }, { role: '판매자' }] },
+      { env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'member', 역할들: [{ role: '관리자', loginId: 'admin' }, { role: '판매자', loginId: 'seller' }, { role: '구매자', loginId: ' ' }, { role: '손님', loginId: null }] },
       { env: 'stg', baseUrl: 'https://stg.example.com', loginId: '  ' },
     ];
     expect(탭상태('run', { ...입력, envs }, 'ko')).toEqual({ 글: '✓ 서버 2개 · 계정 3개', 톤: 'ok' });

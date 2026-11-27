@@ -240,15 +240,16 @@ export interface 탭필요 {
 /** 탭 상태 한 줄과 「필요한 것」이 보는 지금 입력 중인 값. 저장된 값이 아니다 */
 export interface 탭입력 {
   testsRepo: string;
-  envs: (EnvRow & { 역할들?: readonly unknown[] })[];
+  envs: (EnvRow & { 역할들?: readonly { role?: string; loginId?: string | null }[] })[];
   피그마있나: boolean;
   웹훅있나: boolean;
 }
 
 const 서버주소있는줄 = (envs: 탭입력['envs']) => envs.filter((it) => it.baseUrl.trim() !== '');
 const 실서비스인가 = (it: 탭입력['envs'][number]) => it.isProd ?? 운영이름인가(it.env);
-/** 아이디가 적힌 일반 회원 + 역할 계정. 한 줄이 한 계정이다 */
-const 계정수 = (envs: 탭입력['envs']) => envs.filter((it) => (it.loginId ?? '').trim() !== '').length + envs.reduce((합, it) => 합 + (it.역할들?.length ?? 0), 0);
+/** 아이디가 적힌 일반 회원 + 역할 계정. 아이디 없는 줄은 로그인에 못 써서 세지 않는다 */
+const 아이디있나 = (it: { loginId?: string | null }) => (it.loginId ?? '').trim() !== '';
+const 계정수 = (envs: 탭입력['envs']) => envs.reduce((합, it) => 합 + (아이디있나(it) ? 1 : 0) + (it.역할들 ?? []).filter(아이디있나).length, 0);
 
 /** 탭 이름 아래 상태 한 줄 (SPEC §8.8). 지금 입력 중인 값 기준이다 */
 export function 탭상태(탭: 서비스탭, 입력: 탭입력, 언어: 언어): 탭상태값 {
