@@ -36,6 +36,8 @@ export interface 프레임수 {
   uptimeMs: number | null;
   /** 그리는 데 0.7초 넘게 걸린 프레임 수(프리징). 프레임 시간 막대가 없으면 null */
   frozen: number | null;
+  /** 프레임 시간 막대 { "<칸 ms>": 앱이 뜬 뒤 쌓인 수 }. 없으면 null */
+  막대: Record<string, number> | null;
 }
 
 export interface 틱 {
@@ -53,6 +55,22 @@ export function 연결된serial들(out: string): string[] {
     .flatMap((m) => (m === null ? [] : [m[1]]));
 }
 
+const 범위 = (처음: number, 끝: number, 폭: number) => Array.from({ length: (끝 - 처음) / 폭 + 1 }, (_, i) => 처음 + i * 폭);
+
+/** gfxinfo `HISTOGRAM:` 칸 이름(ms) — AOSP hwui ProfileData 의 칸 그대로다. 5~32 는 1ms, 34~48 은 2ms, 53~133 은 4ms, 150~4950 은 50ms 폭.
+ *  게임 · PC 프레임도 이 칸에 넣어 1% Low · 끊김 셈을 하나로 한다 (성능 §3.9 「기기 성능: PC 게임과 측정 정의」) */
+export const 막대칸: readonly number[] = [...범위(5, 32, 1), ...범위(34, 48, 2), ...범위(53, 133, 4), ...범위(150, 4950, 50)];
+
+/** 프레임 시간(ms)이 들 칸 — 칸 이름이 그 ms 이하인 가장 큰 칸. 5ms 아래는 5ms 칸, 4950ms 위는 마지막 칸 */
+export function 막대칸에넣는다(ms: number): number {
+  let 칸 = 막대칸[0] as number;
+  for (const c of 막대칸) {
+    if (c > ms) break;
+    칸 = c;
+  }
+  return 칸;
+}
+
 export function gfxinfo를읽는다(out: string): 프레임수 | null {
   const total = out.match(/Total frames rendered:\s*(\d+)/);
   const janky = out.match(/Janky frames:\s*(\d+)/);
@@ -60,9 +78,27 @@ export function gfxinfo를읽는다(out: string): 프레임수 | null {
   const uptime = out.match(/^Uptime:\s*(\d+)/m);
   // 150ms 위 막대 칸 이름은 50ms 칸의 아래 끝이다(700ms 칸은 700~749ms). 「GPU HISTOGRAM」 줄은 GPU 만 잰 것이라 줄 머리로 거른다.
   // 0.7초는 Android 가 정지된 프레임(frozen frame)으로 세는 기준이다
-  const 막대 = out.match(/^\s*HISTOGRAM:(.*)$/m);
-  const frozen = 막대 === null ? null : [...막대[1].matchAll(/(\d+)ms=(\d+)/g)].reduce((합, m) => (Number(m[1]) >= 700 ? 합 + Number(m[2]) : 합), 0);
-  return { total: Number(total[1]), janky: Number(janky[1]), uptimeMs: uptime === null ? null : Number(uptime[1]), frozen };
+  const 줄 = out.match(/^\s*HISTOGRAM:(.*)$/m);
+  const 막대 = 줄 === null ? null : Object.fromEntries([...줄[1].matchAll(/(\d+)ms=(\d+)/g)].map((m) => [m[1], Number(m[2])]));
+  const frozen = 막대 === null ? null : Object.entries(막대).reduce((합, [칸, 수]) => (Number(칸) >= 700 ? 합 + 수 : 합), 0);
+  return { total: Number(total[1]), janky: Number(janky[1]), uptimeMs: uptime === null ? null : Number(uptime[1]), frozen, 막대 };
+}
+
+/** 두 막대 사이에 늘어난 수만 — 0 인 칸은 뺀다. 앱이 다시 떠 줄어든 칸이 있으면 null */
+export function 막대차(지금: Record<string, number>, 앞: Record<string, number>): Record<string, number> | null {
+  const 차: Record<string, number> = {};
+  for (const [칸, 수] of Object.entries(지금)) {
+    const d = 수 - (앞[칸] ?? 0);
+    if (d < 0) return null;
+    if (d > 0) 차[칸] = d;
+  }
+  return 차;
+}
+
+/** `dumpsys thermalservice` 의 Thermal Status(0 NONE ~ 6 SHUTDOWN) */
+export function 열상태를읽는다(out: string): number | null {
+  const m = out.match(/Thermal Status:\s*([0-6])\b/);
+  return m === null ? null : Number(m[1]);
 }
 
 /**

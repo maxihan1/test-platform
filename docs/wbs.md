@@ -1605,8 +1605,9 @@
 
 - [x] `PERF-F2-01` 명세 — 성능 §3.9 「기기 성능: PC 게임과 측정 정의」 · §7 · 러너 1초 줄 형태 · VISION PC 기대 모양 · perf_device_metric 새 칸 (계약 블록은 전부 대기)
   - 근거 PR #1027 · 2026-11-27
-- [ ] `PERF-F2-02` 러너 폰 측정 — 프레임 시간 분포 · 열 상태 · 게임 실행 시간 SDK 응답 (러너 perfAdb · perfRead · perfDevice. Devicefarm `packages/control-adb/perf.ts` 도 같은 고침 — 그쪽 저장소 줄로)
-- [ ] `PERF-F2-03` DB · 서버 셈 — perf_device_metric 새 칸 마이그레이션 · 1% Low 분포 셈 · 분당 끊김 · `JANK_PER_MIN` · 누수 의심 1% · 응답 새 칸
+- [x] `PERF-F2-02` 러너 폰 측정 — 프레임 시간 분포 · 열 상태 · 게임 실행 시간 SDK 응답 (러너 perfAdb · perfRead · perfDevice. Devicefarm `packages/control-adb/perf.ts` 도 같은 고침 — 그쪽 저장소 줄로)
+  - 근거 PR #1028 · 2026-11-27 (러너만 · Devicefarm control-adb/perf.ts 같은 고침은 남음)
+- [ ] `PERF-F2-03` DB · 서버 셈 — perf_device_metric 새 칸 마이그레이션 · 1% Low 분포 셈 · 분당 끊김 · `JANK_PER_MIN` · 누수 의심 1% · 응답 새 칸 · 게임 직접 플레이면 내 컴퓨터 러너 시작에 `game: true` 싣기(러너는 PERF-F2-02 가 받는다) · 러너 줄에 없는 `gpu` · `vramMb` 는 null 로 받기
 - [ ] `PERF-F2-04` VISION PC 측정 — pc-agent 에 PresentMon · 성능 카운터 · 잡기 perf · 사양 · 게임 실행 시간 (Devicefarm 저장소 — 그쪽 명세부터)
 - [ ] `PERF-F2-05` 서버 PC 연결 — windows 애플리케이션은 PC 줄만 · PC 줄 잠금 · 실행 빌드 깔기 · `MAX_TEMP` 거절 (PERF-F2-04 뒤)
 - [ ] `PERF-F2-06` 화면 — 시안 먼저 · 배터리 온도 이름 · 열 상태 띠 · 분당 끊김 칸 · PC 기기 · GPU · VRAM 그래프 · PC 사양 · 기본 목표값 셋 · `docs/WORDS.md` 에 배터리 온도 줄(디바이스 온도 · 기기 온도 막기) · `kind.ts` PC 게임 카드 소개의 성능 줄 · 직접 플레이 설명(폰 · PC)
