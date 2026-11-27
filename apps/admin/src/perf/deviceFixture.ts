@@ -29,7 +29,14 @@ async function 서버(핸들: (호출: 호출, 응답: (status: number, 몸: unk
     req.on('data', (c: Buffer) => 조각.push(c));
     req.on('end', () => {
       const 글 = Buffer.concat(조각).toString('utf8');
-      const h: 호출 = { method: req.method ?? '', path: req.url ?? '', body: 글 === '' ? {} : (JSON.parse(글) as Record<string, unknown>) };
+      // PC 깔기는 zip 바이트를 보낸다 — JSON 이 아니면 몸을 비우고 받는다
+      let body: Record<string, unknown> = {};
+      try {
+        body = 글 === '' ? {} : (JSON.parse(글) as Record<string, unknown>);
+      } catch {
+        body = { bytes: 글.length };
+      }
+      const h: 호출 = { method: req.method ?? '', path: req.url ?? '', body };
       호출들.push(h);
       const 응답 = (status: number, 몸: unknown) => res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(몸));
       void Promise.resolve(핸들(h, 응답, res)).catch(() => 응답(500, { error: 'x' }));
@@ -102,6 +109,8 @@ export async function 기기차림(접두사: string, api: boolean) {
         { serial: 'FA1', state: 'IDLE', model: 'SM-A236', osVersion: '13', resolution: '1080x2408' },
         { serial: 'FA2', state: 'IDLE', model: 'Pixel 6', osVersion: '14', resolution: '1080x2400' },
         { serial: 'FB1', state: 'BUSY', model: 'Galaxy S9', osVersion: '10', resolution: '1440x2960' },
+        // VISION 의 Windows PC 줄 — PC 게임 측정만 고른다 (PERF-F2-05)
+        { serial: 'pc-pc1', state: 'IDLE', model: 'pc-pc1', osVersion: 'Windows', platform: 'windows' },
       ] } });
     }
     const serial = decodeURIComponent(m?.[1] ?? '');
@@ -113,8 +122,11 @@ export async function 기기차림(접두사: string, api: boolean) {
     if (h.method === 'DELETE' && 뒤 === '/hold') return 응답(200, {});
     if (뒤.startsWith('/perf?')) {
       const since = Number(new URL(h.path, 'http://x').searchParams.get('since'));
-      return 응답(200, { rows: 줄들(팜시작.get(serial) ?? Date.now(), since, serial), launchMs: 줄끔.has(serial) ? null : 2300 });
+      const PC = serial.startsWith('pc-');
+      return 응답(200, { rows: 줄들(팜시작.get(serial) ?? Date.now(), since, serial), launchMs: 줄끔.has(serial) ? null : 2300, ...(PC && { spec: { cpu: 'Intel i5', gpu: 'RTX 3060', resolution: '1920x1080' } }) });
     }
+    if (h.method === 'POST' && 뒤 === '/install') return 응답(200, { value: { game: 'CatsGo.exe' } });
+    if (h.method === 'POST' && 뒤 === '/launch') return 응답(200, { value: { pid: 4321 } });
     if (뒤 === '/perf/files') return 응답(200, { files: [{ name: 'rec-0.mp4', bytes: 8 }, { name: '../evil.mp4', bytes: 1 }, { name: 'perf-metrics.jsonl', bytes: 5 }] });
     if (뒤 === '/perf/files/rec-0.mp4') return void 원본.writeHead(200, { 'content-type': 'video/mp4' }).end(Buffer.from('FAKEMP4!'));
     return 응답(404, { error: 'x' });

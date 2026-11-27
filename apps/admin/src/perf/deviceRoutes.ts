@@ -8,7 +8,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { artifactsDir, 볼륨파일 } from '../artifactFile.js';
 import { 정수 } from '../routeParams.js';
-import { 기기목록, 시리얼, 측정본문, 측정세우기 } from './devices.js';
+import { PC게임인가, 기기목록, 시리얼, 측정본문, 측정세우기 } from './devices.js';
 import { 녹화이름 } from './deviceRecorder.js';
 import { 구간묶기, 기기줄들, 누수의심, 회차메모리 } from './deviceStats.js';
 import { 줄읽기 } from './deviceStore.js';
@@ -34,7 +34,11 @@ export default async function perfDeviceRoutes(app: FastifyInstance): Promise<vo
   // 영상을 앞뒤로 넘길 수 있게 Range 를 받는 sendFile 로 내준다 — 팜 증적 영상 통로와 같은 방식
   await app.register(fastifyStatic, { root: artifactsDir(), serve: false });
 
-  app.get('/perf/devices', async () => ({ devices: await 기기목록() }));
+  // serviceId 가 PC 게임이면 VISION PC 줄만, 아니면 폰만 싣는다 (§7 「GET /api/perf/devices」)
+  app.get<{ Querystring: { serviceId?: string } }>('/perf/devices', async (req) => {
+    const serviceId = 정수(req.query.serviceId ?? '');
+    return { devices: await 기기목록(serviceId !== null && (await PC게임인가(serviceId))) };
+  });
 
   app.post('/perf/devices/measure', async (req, reply) => {
     const p = 측정본문.safeParse(req.body);

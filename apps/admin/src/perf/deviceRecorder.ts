@@ -22,16 +22,40 @@ export interface 기기줄원본 {
   memMb: number | null;
   tempC: number | null;
   batteryPct: number | null;
+  /** 아래 넷은 받은 그대로다 — 저장할 때 거른다(deviceStore 줄넣기). 내 컴퓨터 러너 줄에는 gpu · vramMb 키가 없다 */
+  frameHist?: unknown;
+  thermalStatus?: unknown;
+  gpu?: unknown;
+  vramMb?: unknown;
+}
+
+/** VISION PC 가 /perf 응답에 싣는 사양 (러너 「기기 측정 — VISION PC」) */
+export interface PC사양 {
+  cpu: string;
+  gpu: string;
+  resolution: string;
 }
 
 export interface 읽음 {
   rows: 기기줄원본[];
   launchMs: number | null;
+  /** VISION PC 만 */
+  spec: PC사양 | null;
 }
+
+const 사양읽기 = (v: unknown): PC사양 | null => {
+  const x = v as Partial<Record<keyof PC사양, unknown>> | null;
+  return x !== null && typeof x === 'object' && typeof x.cpu === 'string' && typeof x.gpu === 'string' && typeof x.resolution === 'string'
+    ? { cpu: x.cpu.slice(0, 200), gpu: x.gpu.slice(0, 200), resolution: x.resolution.slice(0, 50) }
+    : null;
+};
 
 export interface 켜기옵션 {
   runId: number;
+  /** VISION PC 는 빈 글이다 — PC 에이전트가 자기가 켠 게임 프로세스를 잰다 */
   package: string;
+  /** 게임이면 앱 실행 시간을 SDK ping 첫 답까지로 잰다 — 내 컴퓨터 러너에만 싣는다(팜은 잡기 동안 스스로 안다) */
+  game: boolean;
   intervalSec: number;
   record: boolean;
   /** 팜이 폰을 잡아 둘 분 */
@@ -113,7 +137,7 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       try {
         res = await 부르기(`${주소()}/hold`, {
           method: 'POST', headers: { 'content-type': 'application/json', ...(await 머리()) },
-          body: JSON.stringify({ minutes: o.holdMinutes, perf: { package: o.package, intervalSec: o.intervalSec, record: o.record } }),
+          body: JSON.stringify({ minutes: o.holdMinutes, perf: { ...(o.package === '' ? {} : { package: o.package }), intervalSec: o.intervalSec, record: o.record } }),
           signal: AbortSignal.timeout(팜제한ms),
         });
       } catch (e) {
@@ -129,8 +153,8 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
     async 새줄(since) {
       const res = await 부르기(`${주소()}/perf?since=${since}`, { headers: await 머리(), signal: AbortSignal.timeout(팜제한ms) });
       if (!res.ok) throw new Error(`Device VISION 이 측정값을 주지 않았습니다 (${await 거절문장(res)})`);
-      const 몸 = (await res.json()) as Partial<읽음>;
-      return { rows: 몸.rows ?? [], launchMs: typeof 몸.launchMs === 'number' ? 몸.launchMs : null };
+      const 몸 = (await res.json()) as Partial<Record<keyof 읽음, unknown>>;
+      return { rows: Array.isArray(몸.rows) ? (몸.rows as 기기줄원본[]) : [], launchMs: typeof 몸.launchMs === 'number' ? 몸.launchMs : null, spec: 사양읽기(몸.spec) };
     },
     async 늘리기() {
       const res = await 부르기(`${주소()}/hold/extend`, {
@@ -176,7 +200,7 @@ export function 로컬기록기(serial: string, 주소: string, 부르기: typeo
     async 켜기(o) {
       const res = await 부르기(`${주소}/perf/device/start`, {
         method: 'POST', headers: { 'content-type': 'application/json', ...러너머리() },
-        body: JSON.stringify({ runId: o.runId, serial, package: o.package, intervalSec: o.intervalSec, record: o.record }),
+        body: JSON.stringify({ runId: o.runId, serial, package: o.package, intervalSec: o.intervalSec, record: o.record, ...(o.game && { game: true }) }),
         signal: AbortSignal.timeout(켜기제한ms),
       });
       if (!res.ok) throw new Error(`내 컴퓨터 러너가 측정을 켜지 않았습니다: ${await 거절문장(res)}`);
@@ -187,7 +211,7 @@ export function 로컬기록기(serial: string, 주소: string, 부르기: typeo
       const res = await 부르기(`${주소}/perf/device/${encodeURIComponent(recId)}?since=${since}`, { headers: 러너머리(), signal: AbortSignal.timeout(팜제한ms) });
       if (!res.ok) throw new Error(`내 컴퓨터 러너가 측정값을 주지 않았습니다 (${await 거절문장(res)})`);
       const 몸 = (await res.json()) as Partial<읽음>;
-      return { rows: 몸.rows ?? [], launchMs: typeof 몸.launchMs === 'number' ? 몸.launchMs : null };
+      return { rows: 몸.rows ?? [], launchMs: typeof 몸.launchMs === 'number' ? 몸.launchMs : null, spec: null };
     },
     async 늘리기() {},
     // 러너가 이미 같은 폴더에 썼다. 멈춘 뒤 이름만 실행 기준 초로 바꾼다 — 폴더와 오프셋을 기억해 둔다

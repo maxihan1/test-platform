@@ -4,17 +4,16 @@ import type { 기기줄원본 } from './deviceRecorder.js';
 import { 분포거르기, type 기기줄 } from './deviceStats.js';
 import * as 표 from './store.js';
 
-/** 부른 쪽이 기기줄원본에 칸을 더하기 전까지 새 칸 넷을 따로 받는다 */
-type 새칸 = { frameHist?: unknown; thermalStatus?: unknown; gpu?: unknown; vramMb?: unknown };
-
+// 숫자가 아닌 값이 한 줄이라도 오면 numeric 변환이 묶음 전체를 버린다 — 그 칸만 비운다
+const 수 = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const 열상태 = (v: unknown): number | null => (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 6 ? v : null);
 
 /** 기록기의 초(켠 때부터)를 실행 기준 초로 옮겨 넣는다. 같은 (실행, 기기, 초)는 먼저 온 줄을 둔다. 메모리는 팜이 소수로 보내도 정수 칸에 들게 반올림한다.
  *  프리징은 음수면 비운다 — 칸 검사(>= 0)에 한 줄이 걸리면 그 묶음의 FPS · CPU · 메모리까지 다 버려진다.
  *  열 상태(0~6)와 프레임 분포도 같은 이유로 걸러서 넣는다. 내 컴퓨터 러너 줄에는 gpu · vramMb 키가 없어 null 이다 */
-export async function 줄넣기(runId: number, serial: string, model: string, 오프셋: number, 원본: (기기줄원본 & 새칸)[]): Promise<void> {
+export async function 줄넣기(runId: number, serial: string, model: string, 오프셋: number, 원본: 기기줄원본[]): Promise<void> {
   if (원본.length === 0) return;
-  const rows = 원본.map((r) => ({ ...r, frameHist: 분포거르기(r.frameHist), thermalStatus: 열상태(r.thermalStatus), gpu: r.gpu ?? null, vramMb: r.vramMb ?? null }));
+  const rows = 원본.map((r) => ({ ...r, frameHist: 분포거르기(r.frameHist), thermalStatus: 열상태(r.thermalStatus), gpu: 수(r.gpu), vramMb: 수(r.vramMb) }));
   await (await 표.풀()).query(
     `INSERT INTO perf_device_metric (run_id, serial, device, sec, fps, jank_pct, freeze_count, cpu, mem_mb, temp_c, battery_pct, frame_hist, thermal_status, gpu, vram_mb)
      SELECT $1, $2, $3, x.sec + $4, x.fps, x."jankPct", CASE WHEN x."freezeCount" >= 0 THEN round(x."freezeCount") END, x.cpu, round(x."memMb"), x."tempC", x."batteryPct", x."frameHist", x."thermalStatus", x.gpu, round(x."vramMb")
@@ -30,6 +29,14 @@ export async function 실행시간채우기(runId: number, index: number, ms: nu
   await (await 표.풀()).query(
     `UPDATE perf_run SET config = jsonb_set(config, ARRAY['devices', $2::text, 'launchMs'], to_jsonb($3::int)) WHERE id = $1`,
     [runId, index, Math.round(ms)],
+  );
+}
+
+/** VISION PC 가 준 사양을 실행 설정의 그 기기 칸에 쓴다 — 사양이 다르면 FPS 를 비교할 수 없어 남긴다 (§3.9 「PC 게임」) */
+export async function 사양채우기(runId: number, index: number, spec: { cpu: string; gpu: string; resolution: string }): Promise<void> {
+  await (await 표.풀()).query(
+    `UPDATE perf_run SET config = jsonb_set(config, ARRAY['devices', $2::text, 'spec'], $3::jsonb) WHERE id = $1`,
+    [runId, index, JSON.stringify(spec)],
   );
 }
 

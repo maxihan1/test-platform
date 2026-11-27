@@ -9,7 +9,8 @@ import { PC로 } from './pcFarm.js';
 import { PC화면을단다 } from './pcScreen.js';
 import type { 못감함수, 폰화면함수 } from './trialPhone.js';
 
-async function 최신PC빌드파일(serviceId: number, env: string): Promise<string | null> {
+/** 그 줄 최신 빌드의 zip 경로 — 기기 성능의 PC 측정도 이것을 깐다 (도메인/성능 §3.9 「PC 게임」) */
+export async function 최신PC빌드파일(serviceId: number, env: string): Promise<string | null> {
   const { pool } = await import('../db/index.js');
   const 빌드 = await 최신빌드(pool, serviceId, env);
   if (빌드 === null) return null;

@@ -28,7 +28,7 @@ afterEach(async () => {
   rmSync(뿌리, { recursive: true, force: true });
 });
 
-const 켜기 = { runId: 3, package: 'com.demo', intervalSec: 1, record: true, holdMinutes: 30 };
+const 켜기 = { runId: 3, package: 'com.demo', intervalSec: 1, record: true, holdMinutes: 30, game: false };
 
 function 부르기(멈춤답: unknown): typeof fetch {
   return vi.fn(async (url: string | URL | Request) =>
@@ -79,6 +79,38 @@ describe('팜기록기 · 토큰', () => {
     expect(await rec.팜토큰()).toBe('pat_dlg1');
     expect(await 팜기록기('R3CS', 가짜).팜토큰()).toBe('pat_abc');
     expect(await 로컬기록기('LC1', 'http://127.0.0.1:1', 부르기({})).팜토큰()).toBeUndefined();
+  });
+});
+
+describe('PC · 게임 (PERF-F2-05)', () => {
+  it('VISION PC 는 잡기 perf 에 앱 이름을 싣지 않고, /perf 응답의 사양을 읽는다. 모양이 틀린 사양은 버린다', async () => {
+    vi.stubEnv('DEVICE_FARM_URL', 'http://farm.test');
+    const 받은: unknown[] = [];
+    let 사양: unknown = { cpu: 'Intel i5', gpu: 'RTX 3060', resolution: '1920x1080' };
+    const 가짜 = vi.fn(async (url: string | URL | Request, 설정?: RequestInit) => {
+      if (설정?.body !== undefined) 받은.push(JSON.parse(String(설정.body)));
+      return String(url).includes('/perf?since=') ? Response.json({ rows: [], launchMs: 54000, spec: 사양 }) : Response.json({ held: { until: 2, now: 1 } });
+    }) as unknown as typeof fetch;
+    const rec = 팜기록기('pc-pc1', 가짜);
+    await rec.켜기({ ...켜기, package: '', game: true });
+    expect(받은[0]).toEqual({ minutes: 30, perf: { intervalSec: 1, record: true } });
+    expect(await rec.새줄(0)).toEqual({ rows: [], launchMs: 54000, spec: { cpu: 'Intel i5', gpu: 'RTX 3060', resolution: '1920x1080' } });
+    사양 = { cpu: 'Intel i5' };
+    expect((await rec.새줄(0)).spec).toBeNull();
+  });
+
+  it('내 컴퓨터 러너는 게임일 때만 시작 요청에 game: true 를 싣는다', async () => {
+    const 받은: unknown[] = [];
+    const 가짜 = vi.fn(async (_url: string | URL | Request, 설정?: RequestInit) => {
+      받은.push(JSON.parse(String(설정?.body)));
+      return Response.json({ recId: 'r1' }, { status: 201 });
+    }) as unknown as typeof fetch;
+    await 로컬기록기('LC1', 'http://127.0.0.1:1', 가짜).켜기({ ...켜기, game: true });
+    await 로컬기록기('LC2', 'http://127.0.0.1:1', 가짜).켜기(켜기);
+    expect(받은).toEqual([
+      { runId: 3, serial: 'LC1', package: 'com.demo', intervalSec: 1, record: true, game: true },
+      { runId: 3, serial: 'LC2', package: 'com.demo', intervalSec: 1, record: true },
+    ]);
   });
 });
 
