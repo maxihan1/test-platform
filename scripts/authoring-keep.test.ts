@@ -1,8 +1,13 @@
 // 작성 이어하기의 보관 판정 검사 — 보관 표시 · 훑기 · 이어받을 폴더 · 넘겨받기 · 잠그기 (도메인/작성 §7 「이어하기」)
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { 사본자리 } from './authoring-copy.js';
-import { type 보관, 보관글, 보관읽기, 이어받을폴더, 잠그기명령, 넘겨받기명령, 훑기판정 } from './authoring-keep.js';
+import { type 보관, 기준올리기되돌리기, 기준올리기명령, 보관글, 보관읽기, 이어받을폴더, 잠그기명령, 넘겨받기명령, 훑기판정 } from './authoring-keep.js';
 
 const 기준 = 'a'.repeat(40);
 const 좋은것: 보관 = { 서비스: 'PAY', 기준, 옛케이스: ['pay/a.spec.ts'], 끝: true };
@@ -92,5 +97,74 @@ describe('넘겨받기명령 · 잠그기명령', () => {
   it('맥(자식 uid 없음)은 소유를 안 바꾼다', () => {
     expect(넘겨받기명령(자리, 기준, null)).toHaveLength(1);
     expect(잠그기명령(자리, null)).toEqual([]);
+  });
+});
+
+describe('기준올리기명령 — 넘겨받은 사본을 최신 main 위로 옮긴다 (16060 이 #1023 시점 조작 도우미로 돌았다)', () => {
+  const 깃 = (cwd: string, ...인자: string[]): string => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...인자], { cwd, encoding: 'utf8' }).trim();
+  const 친다 = (목록: { 명령: string; 인자: string[] }[], cwd: string): boolean => {
+    for (const c of 목록) {
+      try {
+        execFileSync(c.명령, c.인자, { cwd, stdio: 'ignore' });
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  };
+  /** 원격(옛 main → 새 main) 과 옛 main 에 푼 사본 — 자식이 케이스를 하나 새로 쓰고 하나 고쳤다 */
+  function 준비(): { 바탕: string; 자리: ReturnType<typeof 사본자리>; 옛: string; 새: string; 원격: string } {
+    const 바탕 = mkdtempSync(join(tmpdir(), 'keep-'));
+    const 원격 = join(바탕, 'origin');
+    mkdirSync(join(원격, 'scripts'), { recursive: true });
+    mkdirSync(join(원격, 'tests', 'pay'), { recursive: true });
+    깃(원격, 'init', '-q', '-b', 'main');
+    writeFileSync(join(원격, 'scripts', 'a.ts'), '옛 도우미\n');
+    writeFileSync(join(원격, 'tests', 'pay', 'y.spec.ts'), '옛 케이스\n');
+    깃(원격, 'add', '-A');
+    깃(원격, 'commit', '-q', '-m', '옛');
+    const 옛 = 깃(원격, 'rev-parse', 'HEAD');
+    writeFileSync(join(원격, 'scripts', 'a.ts'), '새 도우미\n');
+    깃(원격, 'commit', '-q', '-am', '새');
+    const 새 = 깃(원격, 'rev-parse', 'HEAD');
+    const 자리 = 사본자리(1, 바탕);
+    mkdirSync(자리.트리, { recursive: true });
+    깃(바탕, 'clone', '-q', '--bare', 원격, 자리.git);
+    깃(바탕, `--git-dir=${자리.git}`, `--work-tree=${자리.트리}`, 'checkout', '-q', '--detach', '-f', 옛);
+    writeFileSync(join(자리.트리, 'tests', 'pay', 'x.spec.ts'), '자식이 쓴 케이스\n');
+    writeFileSync(join(자리.트리, 'tests', 'pay', 'y.spec.ts'), '자식이 고친 케이스\n');
+    return { 바탕, 자리, 옛, 새, 원격 };
+  }
+  const 사본깃 = (자리: ReturnType<typeof 사본자리>, ...인자: string[]): string => 깃(자리.뿌리, `--git-dir=${자리.git}`, `--work-tree=${자리.트리}`, ...인자);
+
+  it('플랫폼 파일은 새 main 이 되고, 자식이 쓴 · 고친 케이스는 그대로 남아 바뀐 파일로 보인다', () => {
+    const { 바탕, 자리, 새 } = 준비();
+    try {
+      const 옛 = 사본깃(자리, 'rev-parse', 'HEAD');
+      expect(친다(기준올리기명령(자리, 옛, 새), 자리.뿌리)).toBe(true);
+      expect(친다(넘겨받기명령(자리, 새, null), 자리.뿌리)).toBe(true);
+      expect(readFileSync(join(자리.트리, 'scripts', 'a.ts'), 'utf8')).toBe('새 도우미\n');
+      expect(readFileSync(join(자리.트리, 'tests', 'pay', 'x.spec.ts'), 'utf8')).toBe('자식이 쓴 케이스\n');
+      expect(readFileSync(join(자리.트리, 'tests', 'pay', 'y.spec.ts'), 'utf8')).toBe('자식이 고친 케이스\n');
+      expect(사본깃(자리, 'rev-parse', 'HEAD')).toBe(새);
+      expect(사본깃(자리, 'status', '--porcelain', '-uall').split('\n').map((x) => x.trim()).sort()).toEqual(['?? tests/pay/x.spec.ts', 'M tests/pay/y.spec.ts']);
+    } finally {
+      rmSync(바탕, { recursive: true, force: true });
+    }
+  });
+
+  it('자식 변경이 새 main 과 부딪히면 되돌려 앞 기준 그대로 잇는다', () => {
+    const { 바탕, 자리, 옛, 새 } = 준비();
+    try {
+      writeFileSync(join(자리.트리, 'scripts', 'a.ts'), '자식이 고친 도우미\n');
+      expect(친다(기준올리기명령(자리, 옛, 새), 자리.뿌리)).toBe(false);
+      친다(기준올리기되돌리기(자리), 자리.뿌리);
+      expect(친다(넘겨받기명령(자리, 옛, null), 자리.뿌리)).toBe(true);
+      expect(사본깃(자리, 'rev-parse', 'HEAD')).toBe(옛);
+      expect(readFileSync(join(자리.트리, 'scripts', 'a.ts'), 'utf8')).toBe('자식이 고친 도우미\n');
+      expect(readFileSync(join(자리.트리, 'tests', 'pay', 'x.spec.ts'), 'utf8')).toBe('자식이 쓴 케이스\n');
+    } finally {
+      rmSync(바탕, { recursive: true, force: true });
+    }
   });
 });
