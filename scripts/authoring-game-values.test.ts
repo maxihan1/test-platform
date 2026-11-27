@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { 막힘글 } from './authoring-game-play-gate.js';
-import { 곳정보남음, 값줄들, 값파일들, 빠짐, 이름글 } from './authoring-game-values.js';
+import { 곳정보남음, 값빠짐찾기, 값줄들, 값파일들, 빠짐, 이름글 } from './authoring-game-values.js';
 import { 끝조건남은것 } from './authoring-learn-left.js';
 
 let 자리들: string[] = [];
@@ -20,11 +20,11 @@ const 값 = { 출처: '실행 중', MaxHP: 162, speed: 5 };
 const 줄 = (kind: string, key: string, name: string, data?: unknown, marks?: string[]): 적음 => ({ kind, key, name, learned: { text: '유령', belief: 'SEEN', ...(data === undefined ? {} : { data }), ...(marks === undefined ? {} : { marks }) } });
 
 /** 자료 폴더 — 학습 세션이고, 값 파일 종류들과 안 올린 배운 줄을 놓는다 */
-function 자료(파일들: { 종류: string; 장면?: string; 치트?: true }[], 줄들: 적음[]): string {
+function 자료(파일들: { 종류: string; 장면?: string; 치트?: true; 칸없음?: true }[], 줄들: 적음[]): string {
   const d = mkdtempSync(join(tmpdir(), 'values-'));
   자리들.push(d);
   mkdirSync(join(d, 'game-props'));
-  파일들.forEach((f, i) => writeFileSync(join(d, 'game-props', `f${String(i).padStart(2, '0')}.json`), JSON.stringify({ 종류: f.종류, 장면: f.장면 ?? null, 읽은때: 'x', 출처: '실행 중', 칸: {}, 목록칸: [], ...(f.치트 === undefined ? {} : { 치트: true, call: ['a|b'] }) })));
+  파일들.forEach((f, i) => writeFileSync(join(d, 'game-props', `f${String(i).padStart(2, '0')}.json`), JSON.stringify({ 종류: f.종류, 장면: f.장면 ?? null, 읽은때: 'x', 출처: '실행 중', 칸: f.칸없음 === undefined ? { 'Mob.MaxHP': 10 } : {}, 목록칸: [], ...(f.치트 === undefined ? {} : { 치트: true, call: ['a|b'] }) })));
   writeFileSync(join(d, 'game-map.txt'), '');
   writeFileSync(join(d, 'game-learned.json'), JSON.stringify({ elements: 줄들 }));
   writeFileSync(join(d, 'game-learning.now'), '1');
@@ -39,6 +39,15 @@ describe('값 줄 판정', () => {
     expect(빠짐({ 종류: 'Ghost', 장면: null, 치트: false }, 줄들)).toBeNull();
     expect(빠짐({ 종류: 'Ghost2', 장면: null, 치트: false }, 줄들)).toBe('줄없음');
     expect(빠짐({ 종류: 'Ghost', 장면: null, 치트: true }, 줄들)).toBe('치트없음');
+  });
+
+  it('게임 값 칸이 하나도 없는 값 파일(Transform · 그림 부품뿐)은 값 줄을 요구하지 않는다', () => {
+    const d = 자료([{ 종류: 'MenuCamera', 칸없음: true }], []);
+    expect(값파일들(d)[0]!.값칸없음).toBe(true);
+    expect(값빠짐찾기(값파일들(d), [])).toBeNull();
+    expect(막힘글(d)).toBeNull();
+    const e = 자료([{ 종류: 'MenuCamera', 칸없음: true }, { 종류: 'Ghost' }], []);
+    expect(값빠짐찾기(값파일들(e), [])?.줄없음).toEqual(['Ghost']);
   });
 
   it('PROBE 줄은 값 칸이 있어도 값 줄이 아니다', () => {
