@@ -21,7 +21,17 @@ export interface PerfDeviceDeps {
   초ms?: number;
   /** 이만큼 아무도 새 줄을 받아 가지 않으면 기록기를 스스로 멈춘다 */
   잊힘ms?: number;
+  /** 게임 SDK 에 ping 한 번 — 답이 없으면 던진다. 테스트가 가짜를 넣는다 */
+  게임응답?: (serial: string) => Promise<void>;
 }
+
+const 기본게임응답 = async (serial: string): Promise<void> => {
+  const { Game, usbLink } = await import('control-cli');
+  await new Game(usbLink(serial)).ping();
+};
+
+// 게임이 켜진 뒤 SDK 가 답할 때까지 기다리는 한도 — 무거운 게임은 로딩이 1분을 넘기도 한다
+const 게임응답한도ms = 180_000;
 
 // serial · package 는 `adb shell` 을 거쳐 폰 셸에 들어간다. 꼴을 좁혀 셸 문법이 못 들어오게 한다 (첫 글자는 adb 옵션이 못 되게 문자만)
 const startRequest = z.object({
@@ -30,6 +40,8 @@ const startRequest = z.object({
   package: z.string().regex(/^[A-Za-z]\w*(\.[A-Za-z]\w*)+$/),
   intervalSec: z.union([z.literal(1), z.literal(2), z.literal(5)]),
   record: z.boolean(),
+  // 게임이면 앱 실행 시간을 SDK 가 ping 에 처음 답할 때까지로 잰다 — 첫 화면은 스플래시다 (성능 §3.9 「기기 성능: PC 게임과 측정 정의」)
+  game: z.boolean().optional(),
 });
 const sinceQuery = z.object({ since: z.coerce.number().optional() });
 
@@ -43,6 +55,7 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
   const 초ms = deps.초ms ?? 1000;
   // admin 은 5초마다 받아 간다. 2분 넘게 안 오면 admin 이 이 기록기를 잊은 것이다
   const 잊힘ms = deps.잊힘ms ?? 120_000;
+  const 게임응답 = deps.게임응답 ?? 기본게임응답;
   const 기록기들 = new Map<string, 기록기>();
   // 기록기를 만드는 동안(await 사이)에도 같은 폰이 두 번 잡히지 않게 serial 로 먼저 잡는다
   const 재는중 = new Set<string>();
@@ -114,6 +127,20 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
     }
   }
 
+  // 켠 때부터 SDK 가 처음 답할 때까지(ms). 한도 안에 답이 없으면 null — 측정은 계속한다
+  async function 게임이답할때까지(serial: string, 켬: number): Promise<number | null> {
+    while (now() - 켬 < 게임응답한도ms) {
+      try {
+        await 게임응답(serial);
+        return now() - 켬;
+      } catch {
+        await 대기(초ms / 2);
+      }
+    }
+    console.warn(`[runner] 기기 ${serial} 게임이 ${게임응답한도ms / 1000}초 안에 SDK 로 답하지 않아 앱 실행 시간을 못 쟀다`);
+    return null;
+  }
+
   async function 끊는다(r: 기록기): Promise<void> {
     r.멈춤 = true;
     if (r.타이머 !== undefined) clearInterval(r.타이머);
@@ -134,7 +161,7 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
     if (!parsed.success) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
-    const { runId, serial, package: pkg, intervalSec, record } = parsed.data;
+    const { runId, serial, package: pkg, intervalSec, record, game } = parsed.data;
     if (재는중.has(serial)) {
       return reply.code(409).send({ error: 'DEVICE_BUSY', detail: `${serial} 를 이미 재고 있다` });
     }
@@ -163,12 +190,16 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
         await sh(r, 'am', 'force-stop', pkg);
         const 컴포넌트 = 컴포넌트를읽는다(await sh(r, 'cmd', 'package', 'resolve-activity', '--brief', pkg));
         // 무거운 앱은 10초를 넘겨 뜨기도 한다
+        const 켬 = now();
         if (컴포넌트 !== null) r.launchMs = totalTime을읽는다(await adb(['-s', serial, 'shell', 'am', 'start', '-W', '-n', 컴포넌트], 30_000));
+        if (컴포넌트 !== null && game === true) r.launchMs = await 게임이답할때까지(serial, 켬);
       } catch (err) {
         console.warn(`[runner] 기기 ${serial} 앱 실행 시간을 못 쟀다: ${err instanceof Error ? err.message : String(err)}`);
       }
 
       r.시작ms = now();
+      // 게임 응답을 몇 분 기다렸을 수 있다 — 그 시간을 「아무도 안 받아 갔다」로 세면 첫 읽기에서 스스로 멈춘다
+      r.마지막조회 = now();
       기록기들.set(r.recId, r);
       읽기를시작한다(r);
       if (record) r.녹화루프 = 녹화한다(r);

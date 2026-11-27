@@ -6,9 +6,13 @@ import {
   surfaceView층을찾는다,
   totalTime을읽는다,
   기기목록,
+  막대차,
+  막대칸,
+  막대칸에넣는다,
   메모리Mb를읽는다,
   배터리를읽는다,
   연결된serial들,
+  열상태를읽는다,
   컴포넌트를읽는다,
   프레임시각들,
 } from './perfAdb.js';
@@ -30,11 +34,11 @@ describe('연결된serial들', () => {
 describe('gfxinfo를읽는다', () => {
   it('렌더링한 프레임과 끊긴 프레임 수를 읽는다', () => {
     const out = 'Stats since: 1234ns\nTotal frames rendered: 1520\nJanky frames: 38 (2.50%)\n50th percentile: 6ms';
-    expect(gfxinfo를읽는다(out)).toEqual({ total: 1520, janky: 38, uptimeMs: null, frozen: null });
+    expect(gfxinfo를읽는다(out)).toEqual({ total: 1520, janky: 38, uptimeMs: null, frozen: null, 막대: null });
   });
   it('덤프를 뜬 시각(Uptime)도 읽는다', () => {
     const out = 'Applications Graphics Acceleration Info:\nUptime: 61209466 Realtime: 61209999\n\nTotal frames rendered: 10\nJanky frames: 1 (10.00%)\n';
-    expect(gfxinfo를읽는다(out)).toEqual({ total: 10, janky: 1, uptimeMs: 61209466, frozen: null });
+    expect(gfxinfo를읽는다(out)).toEqual({ total: 10, janky: 1, uptimeMs: 61209466, frozen: null, 막대: null });
   });
   it('앱이 없으면 null', () => {
     expect(gfxinfo를읽는다('No process found for: com.x')).toBeNull();
@@ -158,5 +162,55 @@ describe('기기목록', () => {
       throw new Error('spawn adb ENOENT');
     };
     expect(await 기기목록(adb)).toEqual([]);
+  });
+});
+
+describe('막대칸 · 막대칸에넣는다', () => {
+  it('gfxinfo 칸 그대로 154칸 — 5~32 1ms · 34~48 2ms · 53~133 4ms · 150~4950 50ms', () => {
+    expect(막대칸).toHaveLength(154);
+    expect(막대칸.slice(26, 31)).toEqual([31, 32, 34, 36, 38]);
+    expect(막대칸.slice(35, 39)).toEqual([48, 53, 57, 61]);
+    expect(막대칸.slice(56, 59)).toEqual([133, 150, 200]);
+    expect(막대칸.at(-1)).toBe(4950);
+  });
+
+  it.each([
+    [3, 5],
+    [16.7, 16],
+    [33.3, 32],
+    [35, 34],
+    [60, 57],
+    [125, 125],
+    [149, 133],
+    [300, 300],
+    [749, 700],
+    [9999, 4950],
+  ])('%sms 프레임은 %sms 칸', (ms, 칸) => {
+    expect(막대칸에넣는다(ms)).toBe(칸);
+  });
+});
+
+describe('gfxinfo 막대 · 막대차', () => {
+  it('HISTOGRAM 줄의 칸을 다 읽고 GPU 막대는 안 본다', () => {
+    const out = 'Total frames rendered: 10\nJanky frames: 3 (30.00%)\nHISTOGRAM: 5ms=5 650ms=1 700ms=2 750ms=3 4950ms=1\nGPU HISTOGRAM: 1ms=4 4950ms=9\n';
+    expect(gfxinfo를읽는다(out)?.막대).toEqual({ 5: 5, 650: 1, 700: 2, 750: 3, 4950: 1 });
+  });
+
+  it('늘어난 칸만 남기고 0 인 칸은 뺀다', () => {
+    expect(막대차({ 5: 90, 16: 12, 750: 1 }, { 5: 40, 16: 12 })).toEqual({ 5: 50, 750: 1 });
+    expect(막대차({ 5: 40 }, { 5: 40 })).toEqual({});
+  });
+
+  it('앱이 다시 떠 줄어든 칸이 있으면 null', () => {
+    expect(막대차({ 5: 3 }, { 5: 40 })).toBeNull();
+  });
+});
+
+describe('열상태를읽는다', () => {
+  it('Thermal Status 0~6 을 읽는다', () => {
+    expect(열상태를읽는다('IsStatusOverride: false\nThermal Status: 2\nCached temperatures:\n')).toBe(2);
+  });
+  it('없으면 null', () => {
+    expect(열상태를읽는다("Can't find service: thermalservice\n")).toBeNull();
   });
 });

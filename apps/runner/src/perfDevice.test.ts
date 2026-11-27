@@ -64,6 +64,7 @@ function 가짜Adb(옵션: 가짜옵션 = {}) {
     }
     if (줄.endsWith(`dumpsys meminfo ${앱}`)) return '  TOTAL PSS:   102400  TOTAL RSS: 1\n';
     if (줄.endsWith('dumpsys battery')) return '  level: 80\n  temperature: 305\n';
+    if (줄.endsWith('dumpsys thermalservice')) return 'IsStatusOverride: false\nThermal Status: 1\n';
     if (줄.includes(' pull ')) {
       await writeFile(args[args.length - 1] as string, 'mp4');
       return '';
@@ -130,9 +131,9 @@ describe('측정 시작 · 조회 · 중지', () => {
 
     const { rows, launchMs } = await 줄수를기다린다(app, recId, 3);
     expect(launchMs).toBe(700);
-    expect(rows[0]).toEqual({ sec: 0, fps: null, jankPct: null, freezeCount: null, cpu: null, memMb: 100, tempC: 30.5, batteryPct: 80 });
+    expect(rows[0]).toEqual({ sec: 0, fps: null, jankPct: null, freezeCount: null, frameHist: null, cpu: null, memMb: 100, tempC: 30.5, batteryPct: 80, thermalStatus: 1 });
     // 한 번 읽을 때마다 렌더링 120 · 끊김 6 · 앱 틱 50 · 전체 1000 이 늘고 간격은 2초다
-    expect(rows[1]).toEqual({ sec: 2, fps: 60, jankPct: 5, freezeCount: null, cpu: 5, memMb: 100, tempC: 30.5, batteryPct: 80 });
+    expect(rows[1]).toEqual({ sec: 2, fps: 60, jankPct: 5, freezeCount: null, frameHist: null, cpu: 5, memMb: 100, tempC: 30.5, batteryPct: 80, thermalStatus: 1 });
     expect(rows[2]?.sec).toBe(4);
 
     const 이후 = (await app.inject({ method: 'GET', url: `/perf/device/${recId}?since=2` })).json<{ rows: PerfRow[] }>();
@@ -259,5 +260,41 @@ describe('화면 녹화', () => {
     expect(가짜.호출).toContain(`-s ${시리얼} shell rm /sdcard/qahub-${recId}-0.mp4`);
     expect(가짜.호출).toContain(`-s ${시리얼} shell rm /sdcard/qahub-${recId}-1.mp4`);
     expect(가짜.호출).toContain(`-s ${시리얼} shell pkill -2 -x screenrecord`);
+  });
+});
+
+describe('게임 앱 실행 시간', () => {
+  it('game 이면 켠 때부터 SDK 가 ping 에 처음 답할 때까지다 — am start 의 첫 화면(스플래시)이 아니다', async () => {
+    let 시각 = 0;
+    let 물음 = 0;
+    const app = 서버({
+      adb: 가짜Adb({ 게임: true }).adb,
+      now: () => 시각,
+      게임응답: async () => {
+        시각 += 1500;
+        물음 += 1;
+        if (물음 < 3) throw new Error('ECONNREFUSED');
+      },
+    });
+    const res = await 시작(app, { ...시작본문, game: true });
+    expect(res.statusCode).toBe(201);
+    const { launchMs } = (await app.inject({ method: 'GET', url: `/perf/device/${res.json<{ recId: string }>().recId}` })).json<{ launchMs: number | null }>();
+    expect(launchMs).toBe(4500);
+  });
+
+  it('SDK 가 한도 안에 답하지 않으면 실행 시간은 null 이고 측정은 선다', async () => {
+    let 시각 = 0;
+    const app = 서버({
+      adb: 가짜Adb({ 게임: true }).adb,
+      now: () => 시각,
+      게임응답: async () => {
+        시각 += 60_000;
+        throw new Error('ECONNREFUSED');
+      },
+    });
+    const res = await 시작(app, { ...시작본문, game: true });
+    expect(res.statusCode).toBe(201);
+    const { launchMs } = (await app.inject({ method: 'GET', url: `/perf/device/${res.json<{ recId: string }>().recId}` })).json<{ launchMs: number | null }>();
+    expect(launchMs).toBeNull();
   });
 });

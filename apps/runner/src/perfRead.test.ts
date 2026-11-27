@@ -120,14 +120,14 @@ const 고른프레임 = (시작: number, n: number) => Array.from({ length: n },
 describe('끊김멈춤을센다 — 게임 · SurfaceView', () => {
   it('고르게 그리면 끊김 0% · 멈춤 0', () => {
     const 앞 = 고른프레임(0, 4);
-    expect(끊김멈춤을센다(고른프레임(앞.at(-1)! + ms(33.3), 30), 앞)).toEqual({ jankPct: 0, freezeCount: 0 });
+    expect(끊김멈춤을센다(고른프레임(앞.at(-1)! + ms(33.3), 30), 앞)).toEqual({ jankPct: 0, freezeCount: 0, frameHist: { 32: 30 } });
   });
 
   it('한 프레임이 300ms 걸리면 끊김 1번 — 30프레임 중이면 3.3%', () => {
     const 앞 = 고른프레임(0, 4);
     const 새것 = 고른프레임(앞.at(-1)! + ms(33.3), 29);
     새것.push(새것.at(-1)! + ms(300));
-    expect(끊김멈춤을센다(새것, 앞)).toEqual({ jankPct: 3.3, freezeCount: 0 });
+    expect(끊김멈춤을센다(새것, 앞)).toEqual({ jankPct: 3.3, freezeCount: 0, frameHist: { 32: 29, 300: 1 } });
   });
 
   it('직전 3프레임 평균의 2배를 넘어도 83.3ms 아래면 끊김이 아니다 — 60fps 게임의 40ms 프레임', () => {
@@ -142,11 +142,11 @@ describe('끊김멈춤을센다 — 게임 · SurfaceView', () => {
 
   it('프레임 사이가 0.7초를 넘으면 멈춤 1번 · 끊김도 1번', () => {
     const 앞 = 고른프레임(0, 4);
-    expect(끊김멈춤을센다([앞.at(-1)! + ms(800)], 앞)).toEqual({ jankPct: 100, freezeCount: 1 });
+    expect(끊김멈춤을센다([앞.at(-1)! + ms(800)], 앞)).toEqual({ jankPct: 100, freezeCount: 1, frameHist: { 800: 1 } });
   });
 
   it('새 프레임이 없으면 끊김은 비우고 멈춤은 0 — 굳은 간격은 다음 프레임이 올 때 센다', () => {
-    expect(끊김멈춤을센다([], 고른프레임(0, 4))).toEqual({ jankPct: null, freezeCount: 0 });
+    expect(끊김멈춤을센다([], 고른프레임(0, 4))).toEqual({ jankPct: null, freezeCount: 0, frameHist: {} });
   });
 
   it('직전 3프레임이 없는 프레임은 끊김 분모에 넣지 않는다 — 견줄 프레임이 없으면 비운다', () => {
@@ -211,5 +211,26 @@ describe('한줄을읽는다 — 끊김 · 멈춤 가짜를 만들지 않는다'
     await 한줄을읽는다(adb, r, 1);
     출력 = latency출력(12, 60).trimEnd() + `\n${14e9 - 5} ${14e9} ${14e9 + 5}\n`;
     expect(await 한줄을읽는다(adb, r, 2)).toMatchObject({ jankPct: null, freezeCount: 0 });
+  });
+});
+
+describe('한줄을읽는다 — 프레임 시간 분포', () => {
+  it('gfxinfo 앱은 막대가 늘어난 칸을 싣고 새 프레임이 없는 간격은 빈 분포다', async () => {
+    let 덤프 = { 렌더: 100, 막대: '5ms=90 16ms=10 750ms=1' };
+    const adb = 가짜Adb(() => `Total frames rendered: ${덤프.렌더}\nJanky frames: 0 (0.00%)\nHISTOGRAM: ${덤프.막대}\n`);
+    const r = 기록기를만든다(1);
+    expect((await 한줄을읽는다(adb, r, 0)).frameHist).toBeNull();
+    덤프 = { 렌더: 160, 막대: '5ms=148 16ms=12 750ms=2' };
+    expect((await 한줄을읽는다(adb, r, 1)).frameHist).toEqual({ 5: 58, 16: 2, 750: 1 });
+    expect((await 한줄을읽는다(adb, r, 2)).frameHist).toEqual({});
+  });
+
+  it('게임은 SurfaceFlinger 표시 시각 사이를 같은 칸에 넣는다 — 60fps 는 16ms 칸', async () => {
+    let 끝초 = 10;
+    const adb = 가짜Adb(() => 'Total frames rendered: 0\nJanky frames: 0 (0.00%)\n', () => latency출력(끝초, 60));
+    const r = 기록기를만든다(1);
+    await 한줄을읽는다(adb, r, 0);
+    끝초 = 11;
+    expect((await 한줄을읽는다(adb, r, 1)).frameHist).toEqual({ 16: 60 });
   });
 });

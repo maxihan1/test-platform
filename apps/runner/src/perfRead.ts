@@ -1,4 +1,4 @@
-// 기기 성능 한 줄 읽기 — adb 로 FPS · 프레임 드랍 · 프리징 · CPU · 메모리 · 온도 · 배터리를 한 번 읽는다 (SPEC 도메인/러너 「Android 에서 읽는 곳」)
+// 기기 성능 한 줄 읽기 — adb 로 FPS · 프레임 드랍 · 프리징 · 프레임 시간 분포 · CPU · 메모리 · 배터리 온도 · 배터리 · 열 상태를 한 번 읽는다 (SPEC 도메인/러너 「Android 에서 읽는 곳」)
 
 import {
   type Adb,
@@ -8,8 +8,11 @@ import {
   surfaceView층을찾는다,
   cpu틱을읽는다,
   gfxinfo를읽는다,
+  막대차,
+  막대칸에넣는다,
   메모리Mb를읽는다,
   배터리를읽는다,
+  열상태를읽는다,
   프레임시각들,
 } from './perfAdb.js';
 
@@ -19,10 +22,14 @@ export interface PerfRow {
   jankPct: number | null;
   /** 그 간격에 0.7초 넘게 걸린 프레임 수(프리징) */
   freezeCount: number | null;
+  /** 그 간격 프레임의 프레임 시간 분포 { "<칸 ms>": 수 }. 새 프레임이 없으면 {} · 못 읽으면 null */
+  frameHist: Record<string, number> | null;
   cpu: number | null;
   memMb: number | null;
   tempC: number | null;
   batteryPct: number | null;
+  /** dumpsys thermalservice 의 Thermal Status 0~6 */
+  thermalStatus: number | null;
 }
 
 export interface 기록기 {
@@ -77,22 +84,25 @@ const 멈춤ns = 0.7e9;
 
 /** 새 프레임마다 앞 프레임과의 간격을 본다. 앞은 새것보다 이른 프레임(앞 읽기의 마지막 4개)이고 둘 다 오름차순이다.
  *  끊김 비율의 분모는 직전 3프레임이 있어 견줄 수 있었던 프레임만 센다 — 견줄 프레임이 하나도 없으면 null */
-export function 끊김멈춤을센다(새것: number[], 앞: number[]): { jankPct: number | null; freezeCount: number } {
+export function 끊김멈춤을센다(새것: number[], 앞: number[]): { jankPct: number | null; freezeCount: number; frameHist: Record<string, number> } {
   const 전부 = [...앞, ...새것];
   let 끊김 = 0;
   let 견줌 = 0;
   let 멈춤 = 0;
+  const frameHist: Record<string, number> = {};
   for (let i = Math.max(1, 앞.length); i < 전부.length; i += 1) {
     const 이번 = (전부[i] as number) - (전부[i - 1] as number);
+    const 칸 = String(막대칸에넣는다(이번 / 1e6));
+    frameHist[칸] = (frameHist[칸] ?? 0) + 1;
     if (이번 > 멈춤ns) 멈춤 += 1;
     if (i < 4) continue;
     견줌 += 1;
     if (이번 > 2 * (((전부[i - 1] as number) - (전부[i - 4] as number)) / 3) && 이번 > 끊김바닥ns) 끊김 += 1;
   }
-  return { jankPct: 견줌 === 0 ? null : 반올림((끊김 / 견줌) * 100), freezeCount: 멈춤 };
+  return { jankPct: 견줌 === 0 ? null : 반올림((끊김 / 견줌) * 100), freezeCount: 멈춤, frameHist };
 }
 
-type 표시칸 = { fps: number; jankPct: number | null; freezeCount: number };
+type 표시칸 = { fps: number; jankPct: number | null; freezeCount: number; frameHist: Record<string, number> };
 
 // 표시 시각을 세는 길 — 게임 · SurfaceView 는 gfxinfo 가 0 이라 이쪽으로 센다. 끝난 간격 안에 새로 찍힌 프레임만 센다.
 // 게임 기능 테스트 항목은 gfxinfo 를 건너뛰고 FPS 만 부른다(gameFps.ts)
@@ -141,14 +151,15 @@ export async function 표시프레임으로(adb: Adb, r: 프레임상태): Promi
   return (await 표시프레임칸(adb, r))?.fps ?? null;
 }
 
-type 프레임칸 = Pick<PerfRow, 'fps' | 'jankPct' | 'freezeCount'>;
+type 프레임칸 = Pick<PerfRow, 'fps' | 'jankPct' | 'freezeCount' | 'frameHist'>;
 
 async function fps를읽는다(adb: Adb, r: 프레임상태, sec: number): Promise<프레임칸> {
-  const 없음 = { fps: null, jankPct: null, freezeCount: null };
+  const 없음 = { fps: null, jankPct: null, freezeCount: null, frameHist: null };
   const cur = gfxinfo를읽는다(await sh(adb, r, 'dumpsys', 'gfxinfo', r.pkg));
   const prev = r.이전gfx;
   if (cur !== null) r.이전gfx = { ...cur, sec };
   let freezeCount: number | null = null;
+  let frameHist: Record<string, number> | null = null;
   if (cur !== null && prev !== undefined) {
     const 렌더 = cur.total - prev.total;
     const 끊김 = cur.janky - prev.janky;
@@ -156,18 +167,19 @@ async function fps를읽는다(adb: Adb, r: 프레임상태, sec: number): Promi
     if (렌더 < 0 || 끊김 < 0) return 없음;
     // 게임처럼 gfxinfo 로 하나도 안 그린 앱은 여기서 비우고 아래 표시 시각으로 센다. 그린 적이 있으면 이번 간격에 안 그렸어도 0 이다 — 가만히 있는 것이지 굳은 것이 아니다
     if (cur.total > 0 && cur.frozen !== null && prev.frozen !== null && cur.frozen >= prev.frozen) freezeCount = cur.frozen - prev.frozen;
+    if (cur.total > 0 && cur.막대 !== null && prev.막대 !== null) frameHist = 막대차(cur.막대, prev.막대);
     // 읽기가 간격보다 오래 걸려 틱을 건너뛰었으면 그만큼 쌓인 프레임이다 — 간격 한 칸이 아니라 앞 읽기부터 흐른 초로 나눈다.
     // 덤프 자체가 늦게 돌 수도 있어 폰이 덤프를 뜬 시각이 있으면 그것을, 없으면 측정 초를 쓴다
     const 흐른초 = cur.uptimeMs !== null && prev.uptimeMs !== null ? (cur.uptimeMs - prev.uptimeMs) / 1000 : sec - prev.sec;
-    if (렌더 > 0) return { fps: 반올림(렌더 / 흐른초), jankPct: 반올림((끊김 / 렌더) * 100), freezeCount };
+    if (렌더 > 0) return { fps: 반올림(렌더 / 흐른초), jankPct: 반올림((끊김 / 렌더) * 100), freezeCount, frameHist };
   } else if (cur !== null && cur.total > 0) {
     return 없음;
   }
   // gfxinfo 가 0 이면(게임 · SurfaceView) SurfaceFlinger 표시 시각으로 센다. gfxinfo 로 그린 적 있는 일반 앱이 이번 간격만 쉬었으면
   // FPS 만 표시 시각으로 보고 끊김 · 멈춤은 gfxinfo 것을 그대로 둔다 — 쉰 것을 멈춤으로 세지 않는다
   const 칸 = await 안전(r, 'SurfaceFlinger 프레임', () => 표시프레임칸(adb, r));
-  if (cur !== null && cur.total > 0) return { fps: 칸?.fps ?? null, jankPct: null, freezeCount };
-  return { fps: 칸?.fps ?? null, jankPct: 칸?.jankPct ?? null, freezeCount: 칸?.freezeCount ?? null };
+  if (cur !== null && cur.total > 0) return { fps: 칸?.fps ?? null, jankPct: null, freezeCount, frameHist };
+  return { fps: 칸?.fps ?? null, jankPct: 칸?.jankPct ?? null, freezeCount: 칸?.freezeCount ?? null, frameHist: 칸?.frameHist ?? null };
 }
 
 async function cpu를읽는다(adb: Adb, r: 기록기): Promise<number | null> {
@@ -184,9 +196,9 @@ async function cpu를읽는다(adb: Adb, r: 기록기): Promise<number | null> {
 
 /** sec 는 부르는 쪽이 시계로 정한다 — 읽기가 간격보다 오래 걸려 한 번 건너뛰어도 녹화 · 구간과 시각이 맞는다 */
 export async function 한줄을읽는다(adb: Adb, r: 기록기, sec: number): Promise<PerfRow> {
-  let 프레임: 프레임칸 = { fps: null, jankPct: null, freezeCount: null };
+  let 프레임: 프레임칸 = { fps: null, jankPct: null, freezeCount: null, frameHist: null };
   let 배터리: { tempC: number | null; batteryPct: number | null } = { tempC: null, batteryPct: null };
-  const [cpu, memMb] = await Promise.all([
+  const [cpu, memMb, , , thermalStatus] = await Promise.all([
     안전(r, 'CPU', () => cpu를읽는다(adb, r)),
     안전(r, '메모리', async () => 메모리Mb를읽는다(await sh(adb, r, 'dumpsys', 'meminfo', r.pkg))),
     안전(r, 'FPS', async () => {
@@ -197,6 +209,7 @@ export async function 한줄을읽는다(adb: Adb, r: 기록기, sec: number): P
       배터리 = 배터리를읽는다(await sh(adb, r, 'dumpsys', 'battery'));
       return null;
     }),
+    안전(r, '열 상태', async () => 열상태를읽는다(await sh(adb, r, 'dumpsys', 'thermalservice'))),
   ]);
-  return { sec, ...프레임, cpu, memMb, ...배터리 };
+  return { sec, ...프레임, cpu, memMb, ...배터리, thermalStatus };
 }
