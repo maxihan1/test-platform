@@ -94,11 +94,21 @@ export function ServicePanel({ row, onDone, 저장했다 = false, 탭: 위탭, o
   };
 
   const 서버들 = envs.map((it) => it.env).filter((env) => env !== '');
-  const 못보내는이유 =
-    서비스못보내는이유({ 새것: false, prefix: row.prefix, name, testsDir, envs, 제외 }, 언어) ??
-    (API종류 ? (API문서못보내는이유({ 경로: apiDocPath, 기준: apiDocEnv, 서버들 }, 언어) ?? API인증못보내는이유(envs, 언어)) : null) ??
-    (어드민키종류 ? 어드민키못보내는이유(envs, 언어) : null) ??
-    준비못보내는이유(envs, 언어);
+  // 못 보내는 이유를 탭마다 따로 잰다 — 이유가 다른 탭 칸에 있으면 그 탭으로 가는 길을 저장 줄에 단다.
+  // 공통 판단(서비스못보내는이유)은 한 번에 다 보므로, 그 탭 칸만 실제 값으로 넣고 나머지는 통과하는 값으로 채운다
+  const 통과값 = { 새것: false, prefix: row.prefix, name: '-', testsDir: '-', envs: [], 제외: '' };
+  const 탭이유: Record<서비스탭, string | null> = {
+    basic: 서비스못보내는이유({ ...통과값, name, testsDir }, 언어),
+    run:
+      서비스못보내는이유({ ...통과값, envs }, 언어) ??
+      (API종류 ? API인증못보내는이유(envs, 언어) : null) ??
+      (어드민키종류 ? 어드민키못보내는이유(envs, 언어) : null) ??
+      준비못보내는이유(envs, 언어),
+    author: 서비스못보내는이유({ ...통과값, 제외 }, 언어) ?? (API종류 ? API문서못보내는이유({ 경로: apiDocPath, 기준: apiDocEnv, 서버들 }, 언어) : null),
+    link: null,
+  };
+  const 막힌탭 = 탭이름.find(([값]) => 탭이유[값] !== null);
+  const 못보내는이유 = 막힌탭 === undefined ? null : 탭이유[막힌탭[0]];
 
   async function 보낸다() {
     if (못보내는이유 !== null) return;
@@ -150,7 +160,11 @@ export function ServicePanel({ row, onDone, 저장했다 = false, 탭: 위탭, o
   }));
 
   // JSX 안에 풀어 쓰면 `=> void …` 와 `<` 사이의 한글을 messages.test 가 화면 글자로 읽는다
-  const 저장 = <저장줄 저장했다={저장했다} 보내는중={보내는중} 못보내는이유={못보내는이유} err={err} on저장={() => void 보낸다()} />;
+  const 같이저장 = 탭들.filter((it) => it.바뀜 && it.값 !== 탭).map((it) => it.이름);
+  const 막힌탭길 = 막힌탭 === undefined || 막힌탭[0] === 탭 ? null : { 이름: t(막힌탭[1]), 이동: () => 탭고르기(막힌탭[0]) };
+  const 저장 = (
+    <저장줄 저장했다={저장했다} 보내는중={보내는중} 못보내는이유={못보내는이유} err={err} on저장={() => void 보낸다()} 같이저장={같이저장} 막힌탭={막힌탭길} />
+  );
   const 속값 = {
     row, kind, 어드민키종류, name, setName, testsDir, setTestsDir, testsRepo, setTestsRepo, envs, setEnvs,
     apiDocPath, setApiDocPath, apiDocEnv, setApiDocEnv, 제외, set제외, 프로시저, set프로시저, webhook, setWebhook, figma, setFigma,

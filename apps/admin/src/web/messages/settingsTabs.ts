@@ -4,6 +4,8 @@ export const 설정탭말: Record<string, string> = {
   // 탭 틀
   '애플리케이션 설정': 'Application settings',
   '저장 안 한 변경 있음': 'Unsaved changes',
+  '다른 탭의 변경도 같이 저장됩니다 · {탭들}': 'Changes on other tabs are saved too · {탭들}',
+  '{탭} 탭에서 확인': 'Check the {탭} tab',
   '알림 · 연동': 'Notifications and links',
   '프로젝트 설정': 'Project settings',
 

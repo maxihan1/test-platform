@@ -15,8 +15,15 @@ import { 구획, 비밀칸, 접두사칸, 프로젝트칸 } from './SettingsServ
 import { 필요한것상자 } from './SettingsTabs.js';
 import { ViewportSection } from './SettingsViewport.js';
 
-/** 입력이 있는 탭 맨 아래의 저장 줄. 저장은 모든 탭의 변경을 한 번에 보낸다 */
-export function 저장줄(p: { 저장했다: boolean; 보내는중: boolean; 못보내는이유: string | null; err: string | null; on저장: () => void }) {
+/**
+ * 입력이 있는 탭의 저장 줄. 저장은 모든 탭의 변경을 한 번에 보낸다.
+ * @param 같이저장 지금 탭 밖에서 바뀐 탭 이름들. 다른 탭에서 걸어 둔 삭제(웹훅 비우기 등)가 말없이 같이 나가지 않게 이름을 보인다
+ * @param 막힌탭 못 보내는 이유가 다른 탭 칸에 있을 때 그 탭으로 가는 길. 이유만 보이면 그 칸이 안 보여 찾지 못한다
+ */
+export function 저장줄(p: {
+  저장했다: boolean; 보내는중: boolean; 못보내는이유: string | null; err: string | null; on저장: () => void;
+  같이저장: string[]; 막힌탭: { 이름: string; 이동: () => void } | null;
+}) {
   const t = use말();
   return (
     <>
@@ -26,7 +33,18 @@ export function 저장줄(p: { 저장했다: boolean; 보내는중: boolean; 못
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
         <서비스저장단추 보내는중={p.보내는중} 못보낸다={p.못보내는이유 !== null} on저장={p.on저장} />
       </div>
-      {p.못보내는이유 === null ? null : <div className="hint set-why">{p.못보내는이유}</div>}
+      {p.같이저장.length === 0 ? null : <div className="hint set-why">{t('다른 탭의 변경도 같이 저장됩니다 · {탭들}', { 탭들: p.같이저장.join(' · ') })}</div>}
+      {p.못보내는이유 === null ? null : (
+        <div className="hint set-why">
+          {p.못보내는이유}
+          {p.막힌탭 === null ? null : (
+            <>
+              {' '}
+              <button type="button" className="btn ghost small" onClick={p.막힌탭.이동}>{t('{탭} 탭에서 확인', { 탭: p.막힌탭.이름 })}</button>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -165,10 +183,11 @@ function 작성탭(p: 탭속값) {
         ) : null}
       </구획>
       {p.kind === 'API' ? <API문서구획 경로={p.apiDocPath} 바꾼경로={p.setApiDocPath} 기준={p.apiDocEnv} 바꾼기준={p.setApiDocEnv} 서버들={서버들} /> : null}
+      {/* 읽기만 하는 보고서는 저장 줄 아래에 둔다 — 폼 가운데 있으면 저장 대상처럼 읽힌다(점검 14.8) */}
+      {p.저장}
       <구획 제목={t('화면 크기')} 쓰임={t('테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지, 모바일도 같이 만들지를 이 판정으로 정합니다')}>
         <ViewportSection serviceId={p.row.id} envs={p.row.envs} />
       </구획>
-      {p.저장}
     </>
   );
 }
@@ -182,6 +201,8 @@ function 알림탭(p: 탭속값) {
           값={p.webhook} 바꾼다={p.setWebhook} placeholder="https://hooks.slack.com/..."
           비울때={t('이대로 저장하면 알림이 꺼집니다. 유지하려면 「변경 취소」를 누릅니다')} />
       </구획>
+      {/* 저장 대상은 웹훅 하나다. 아래 결함 등록(링크) · CI 토큰(누르면 바로 적용)은 저장과 상관없어 저장 줄 아래에 둔다 */}
+      {p.저장}
       {/* 연결 상태는 이 화면이 받는 응답에 없어 안 보인다. 연결은 프로젝트마다 하나라 고치는 곳은 프로젝트 설정이다 */}
       <구획 제목={t('결함 등록')} 쓰임={t('실패한 테스트를 {bts} 이슈로 등록합니다. 연결은 프로젝트마다 하나라서 프로젝트 설정에서 변경합니다', { bts: BTS이름 })}>
         <div>
@@ -191,7 +212,6 @@ function 알림탭(p: 탭속값) {
       <구획 제목={t('CI 토큰')} 쓰임={t('CI 가 새 빌드를 업로드할 때 쓰는 토큰입니다. 빌드가 업로드되면 스모크 테스트부터 자동으로 실행합니다')}>
         <CI토큰구획 row={p.row} />
       </구획>
-      {p.저장}
     </>
   );
 }
