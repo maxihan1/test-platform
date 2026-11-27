@@ -194,7 +194,11 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   let 글: string[];
   try {
     const 장면 = await game.scenes().then((x) => (typeof x.active === 'string' ? x.active : null), () => null);
-    글 = await 펼쳐남기기(game, 주소, 이름만(주소), { 종류: 종류(주소), 장면, ...(자료 === undefined ? {} : { 자료 }) });
+    // 종류는 넘겨받은 주소 글자가 아니라 오브젝트의 실제 경로에서 만든다 — `//*[@id=123]` 이 `*[@id=123]` 종류가 되지 않게. 못 찾으면 값 파일을 안 쓴다
+    const 찾음 = await game.find(주소);
+    const 이름 = 이름만(찾음?.path ?? 주소);
+    글 = 찾음 === null || 자료 === undefined ? await 펼쳐남기기(game, 주소, 이름, { 종류: '', 장면 }) : await 펼쳐남기기(game, 주소, 이름, { 종류: 종류(찾음.path), 장면, 자료 });
+    if (찾음 === null && 자료 !== undefined) 글.push('값 파일은 안 썼다 — 주소로 오브젝트를 찾지 못해 종류를 알 수 없다');
   } catch (e) {
     console.error(`[펼치기] ${비밀가리기(까닭(e), 비밀들)}`);
     return 1;

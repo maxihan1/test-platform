@@ -1,5 +1,5 @@
 // 오브젝트 펼치기 — 값 · 묶음 · 목록 · 빈 칸 · 함수로 가르기, 네트워크 틀 거르기, 네트워크 값 읽기 (도메인/게임 §3.10 「오브젝트 펼치기」)
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -130,10 +130,11 @@ describe('실행', () => {
     if (잡음) writeFileSync(join(t, '.control-cli', 'held'), 'pc-pc1\n');
     return t;
   };
-  const 가짜 = (명령: Record<string, unknown>[]): Link =>
+  const 가짜 = (명령: Record<string, unknown>[], 못찾음 = false): Link =>
     (async (c: Command) => {
       const cmd = c as unknown as Record<string, unknown>;
       명령.push(cmd);
+      if (cmd.cmd === 'find') return 못찾음 ? { ok: true, found: false } : { ok: true, found: true, path: '/Pool/Ghost(Clone)[0]', id: 5 };
       if (cmd.cmd === 'components') return { ok: true, components: [{ name: 'Transform', type: 'UnityEngine.Transform' }, { name: 'MonsterHP', type: 'Game.MonsterHP' }] };
       if (cmd.cmd === 'members') return { ok: true, fields: 악마[1]!.fields, properties: [], methods: [] };
       if (cmd.cmd === 'get') return { ok: true, value: 7 };
@@ -147,7 +148,7 @@ describe('실행', () => {
     const 글 = 찍힘.mock.calls.flat().join('\n');
     expect(글).toContain('엔진 부품: Transform');
     expect(글).toContain('HP.Value=7 · MaxHP=20');
-    expect(명령.map((x) => x.cmd).filter((x) => !['components', 'members', 'get', 'scenes'].includes(String(x)))).toEqual([]);
+    expect(명령.map((x) => x.cmd).filter((x) => !['components', 'members', 'get', 'scenes', 'find'].includes(String(x)))).toEqual([]);
   });
 
   it('자료 폴더가 있으면 손으로 부른 펼치기도 값 파일을 남긴다', async () => {
@@ -158,6 +159,23 @@ describe('실행', () => {
     const 파일 = JSON.parse(readFileSync(join(자료, 'game-props', 'Ghost.json'), 'utf8')) as { 종류: string; 출처: string; 칸: Record<string, unknown> };
     expect(파일).toMatchObject({ 종류: 'Ghost', 출처: '실행 중' });
     expect(파일.칸['MonsterHP.MaxHP']).toBe(20);
+  });
+
+  it('번호 주소(//*[@id=5])로 불러도 값 파일 종류는 오브젝트 실제 경로에서 만든다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-data-'));
+    자리들.push(자료);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['//*[@id=5]'], 트리(), { AUTHORING_GAME_DIR: 자료 }, 가짜([]))).toBe(0);
+    expect(readdirSync(join(자료, 'game-props'))).toEqual(['Ghost.json']);
+  });
+
+  it('주소로 오브젝트를 못 찾으면 값 파일을 안 쓴다', async () => {
+    const 자료 = mkdtempSync(join(tmpdir(), 'game-props-data-'));
+    자리들.push(자료);
+    const 찍힘 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    expect(await 실행(['//*[@id=5]'], 트리(), { AUTHORING_GAME_DIR: 자료 }, 가짜([], true))).toBe(0);
+    expect(existsSync(join(자료, 'game-props'))).toBe(false);
+    expect(찍힘.mock.calls.flat().join('\n')).toContain('값 파일은 안 썼다');
   });
 
   it('주소가 없거나 잡은 디바이스가 없으면 2', async () => {
