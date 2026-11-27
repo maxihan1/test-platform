@@ -544,6 +544,8 @@ describe('학습프롬프트', () => {
     expect(글).toContain('글로 된 자료가 없다');
     expect(글).toContain('튜토리얼 끝까지');
     expect(글).toContain('알림이 없으면 끝내지 않는다');
+    expect(글).toContain('막혔으면(판이 계속 어긋나거나 조작이 안 먹히면) 끝내지 말고 물음 트리');
+    expect(글.trimEnd().split('\n').at(-1)).toContain('끝까지 한국어 해요체');
     expect(글).toContain('읽기만 하고 안 해 본 것 2');
     expect(글).toContain('판에서 아직 안 써 본 것 1: rule:치료');
     expect(글).toContain('authoring-game-tree.ts /자료');
@@ -552,6 +554,7 @@ describe('학습프롬프트', () => {
       const 좁은글 = 학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], ...좁은 });
       expect(좁은글).not.toContain('튜토리얼 끝까지');
       expect(좁은글).toContain('위에 적은 것을 다 배웠을 때 끝낸다');
+      expect(좁은글).not.toContain('다른 가지를 골라');
     }
     expect(글).not.toMatch(/^\/tpx-author/);
   });
