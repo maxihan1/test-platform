@@ -14,44 +14,6 @@
   min-width: 0;
 }
 
-.case-pane {
-  padding: 16px 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* 서랍 높이에 맞춰 구획이 눌리지 않게 한다 — 넘치면 서랍이 스크롤한다 */
-.case-pane > * {
-  flex-shrink: 0;
-}
-
-.case-pane .dsec {
-  margin-bottom: 0;
-}
-
-.case-pane-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.case-pane-head > div {
-  flex: 1;
-  min-width: 0;
-}
-
-.case-pane-head .tcid {
-  padding: 0;
-}
-
-.case-pane-head h2 {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--ink);
-}
-
 /* 미확정 사유 — 판정 색이 아니다. 할 일을 알리는 배지(`.case-tag`)와 같은 무게로 테두리만 준다 */
 .case-unconfirmed {
   font-size: 13px;
@@ -89,14 +51,6 @@
   gap: 4px 10px;
   padding-left: 30px;
   font-size: 12.5px;
-}
-
-.case-pane-act {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .dhist-n {

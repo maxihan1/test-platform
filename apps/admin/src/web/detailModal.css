@@ -1,0 +1,360 @@
+/* 목록 한 줄의 상세 창 (DetailModal.tsx · DESIGN.md 「상세 창」). 케이스 상세 · PRD 요구 상세가 같이 쓴다. 색은 토큰만 쓴다 */
+
+/* 뒤 목록을 덮는다. 층은 머리(30) · 서랍(40) · 고른 칩 면(50) 위, 창 안에서 여는 ① 상자(100) 아래다 */
+.dm-back {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--scrim);
+  animation: 나타남 var(--t2) var(--ease);
+}
+
+/* transform 을 쓰지 않는다 — 창 안에서 여는 상자(실행 창 · 확인 창)는 포털 없이 그 자리에 그려서 판에 transform 이 걸리면 창에 붙어 잘린다 (DESIGN.md 「움직임」) */
+.dm {
+  position: absolute;
+  inset: 32px;
+  margin: 0 auto;
+  max-width: 1160px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.dm:focus {
+  outline: none;
+}
+
+.dm-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px 4px 32px;
+}
+
+.dm-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.dm-crumb b {
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.dm-note {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.dm-icons {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.dm-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.dm-icon:hover:not(:disabled) {
+  background: var(--well);
+  color: var(--ink);
+}
+
+.dm-icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.dm-icon .side-ico {
+  width: 16px;
+  height: 16px;
+}
+
+/* 두 칸이 따로 스크롤한다 — 긴 실행 기록을 내려도 오른쪽 결과 · 실행 단추는 그 자리다 */
+.dm-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.dm-main,
+.dm-side {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dm-main {
+  padding: 12px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.dm-main > * {
+  flex-shrink: 0;
+}
+
+.dm-title {
+  margin: 0 0 -4px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* 왼쪽 구획 제목 — 작은 회색 이름표가 아니라 읽는 글의 제목이다 */
+.dm-main .dlabel,
+.dm-main section > h3,
+.dm-main details.prd-fold > summary {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.dm-main .dlabel * {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.dm-main .dsec {
+  margin: 0;
+}
+
+.dm-side {
+  padding: 18px 24px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dm-side > * {
+  flex-shrink: 0;
+}
+
+/* 맨 위 — 마지막 결과와 주 동작. Jira 의 상태 · 단추 줄 자리다 */
+.dm-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.dm-status .lbl {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.dm-status .verdict,
+.dm-status .case-tag {
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* 접히는 상자 — 이름은 굵게, 값은 보통 글씨. 줄 사이 선을 긋지 않는다 */
+.dm-card {
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+}
+
+.dm-card > summary {
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.dm-card > summary::-webkit-details-marker,
+.dm-main details.prd-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 접힘 표시 — 닫히면 오른쪽, 열리면 아래를 가리킨다 */
+.dm-card > summary::before,
+.dm-main details.prd-fold > summary::before {
+  content: "";
+  flex: none;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 2px;
+  border-right: 2px solid var(--ink-muted);
+  border-bottom: 2px solid var(--ink-muted);
+  transform: rotate(-45deg);
+  transition: transform var(--t1) var(--ease);
+}
+
+.dm-card[open] > summary::before,
+.dm-main details.prd-fold[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.dm-card > summary small,
+.dm-main details.prd-fold > summary small {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.dm-card[open] > summary {
+  padding-bottom: 6px;
+}
+
+.dm-main details.prd-fold > summary {
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.dm-rows {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 20px 12px;
+  margin: 0;
+  padding: 10px 16px 18px 42px;
+  font-size: 13.5px;
+}
+
+.dm-rows dt {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dm-rows dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dm-rows ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.dm-card-body {
+  padding: 6px 16px 16px 42px;
+  display: grid;
+  gap: 12px;
+}
+
+.dm-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 「코드 기본값 변경 요청」은 접기 자체가 상자다 — 편 안쪽만 상자 여백을 준다 */
+.case-edit-fold.dm-card > :not(summary) {
+  padding: 0 16px 16px;
+}
+
+/* 오른쪽 상자는 좁다 — 입력 칸은 이름 아래에 폭을 다 써서 선다 */
+.dm-card-body .field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.dm-card-body .field input,
+.dm-card-body .field textarea,
+.dm-card-body .field select {
+  width: 100%;
+}
+
+/* 휴대폰 — 화면을 꽉 채우는 창. 제목 → 결과 · 실행 · 세부 사항 → 읽는 내용 차례로 쌓인다 */
+@media (max-width: 620px) {
+  .dm {
+    inset: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .dm-head {
+    padding: 12px 16px 4px;
+  }
+
+  /* 휴대폰에서는 번호만 남긴다 — 44px 단추 넷 옆에 이름까지 두면 머리가 두 줄로 꺾인다. 어느 케이스인지는 제목이 말한다 */
+  .dm-crumb > :nth-last-child(n + 2) {
+    display: none;
+  }
+
+  .dm-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .dm-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 0 16px 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .dm-main {
+    display: contents;
+  }
+
+  .dm-main > .dm-title {
+    order: -2;
+    padding-top: 4px;
+    font-size: 19px;
+  }
+
+  /* 한 줄로 쌓이면 칸이 줄어들지 않아야 한다 — 줄어들면 넘친 상자가 아래 절차 위에 겹친다 */
+  .dm-side {
+    order: -1;
+    flex: none;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .dm-rows {
+    grid-template-columns: 92px minmax(0, 1fr);
+    padding-left: 16px;
+  }
+
+  .dm-card-body {
+    padding-left: 16px;
+  }
+}

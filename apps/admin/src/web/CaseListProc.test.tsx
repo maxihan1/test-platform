@@ -226,7 +226,7 @@ describe('케이스 상세의 「테스트 프로시저」 구획', () => {
       Promise.resolve({ items: q.q === 'ZPP-TP-001' ? 다섯 : [한건], total: 5, page: 1, pageSize: 50 }),
     );
     fireEvent.click(screen.getByRole('button', { name: `${tcId} 케이스` }));
-    const 칸 = within(await screen.findByRole('complementary').catch(() => document.querySelector<HTMLElement>('#case-pane')!));
+    const 칸 = within(await screen.findByRole('dialog'));
     await waitFor(() => expect(document.querySelectorAll('.case-proc-list li')).toHaveLength(5));
     return { ...것, 칸 };
   }

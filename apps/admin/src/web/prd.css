@@ -284,12 +284,6 @@
 .prd-drawer-body > .prd-note {
   margin: 0;
 }
-.prd-big {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
 .prd-drawer-foot {
   display: flex;
   justify-content: flex-end;
@@ -319,26 +313,75 @@
 .prd-drawer select {
   width: 100%;
 }
-.prd-drawer .prd-basis-row {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-.prd-drawer .prd-basis-row input:nth-child(3) {
-  grid-column: 1 / 3;
-}
-.prd-basis {
+/* 요구 상세 창의 출처 — 자료(파일)마다 상자 하나. 머리에 파일 이름을 한 번, 줄마다 위치 · 원문 (2026-11-27 사용자 — 앞 판은 줄마다 파일 이름을 되풀이했다) */
+.prd-src {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 2px 12px;
-  margin: 0;
-  font-size: 13px;
+  gap: 12px;
 }
-.prd-basis dt {
-  color: var(--ink-muted);
-  white-space: nowrap;
+.prd-src-box {
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  overflow: hidden;
 }
-.prd-basis dd {
-  margin: 0;
+.prd-src-file {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--well);
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  font-weight: 500;
   overflow-wrap: anywhere;
+}
+.prd-src-file small {
+  margin-left: auto;
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+.prd-src ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.prd-src li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.prd-src li + li {
+  border-top: 1px solid var(--line);
+}
+.prd-src li.no-ref {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* 요구 상세 창 왼쪽의 고치기 칸 — 상태 고르개는 칸 폭을 다 쓴다(앞 판 서랍의 `.prd-drawer select` 와 같다) */
+.dm-main .field select {
+  width: 100%;
+}
+.prd-src .prd-id {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+/* 호출하는 API — 출처와 같은 상자 모양 */
+.dm-main .prd-apis {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.dm-main .prd-apis li {
+  padding: 10px 14px;
+}
+.dm-main .prd-apis li + li {
+  border-top: 1px solid var(--line);
 }
 .prd-design {
   list-style: none;

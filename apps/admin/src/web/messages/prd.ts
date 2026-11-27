@@ -16,10 +16,8 @@ export const 기획서말: Record<string, string> = {
   '저장했습니다 (버전 {버전})': 'Saved (version {버전})',
 
   // 할 일 두 칸
-  '이 요구사항을 어디서 읽었는지 보여 줍니다': 'Where this requirement was read from',
   자료: 'Document',
   위치: 'Location',
-  원문: 'Original text',
   '실제 화면에서 본 것': 'Seen on the live screen',
   '사람이 직접 적은 것': 'Written by a person',
   '새 항목': 'New',
@@ -147,7 +145,9 @@ export const 기획서말: Record<string, string> = {
 
   // 서비스 지도 (PrdApis.tsx · 도메인/작성 §3.6 「서비스 지도」)
   '애플리케이션 지도를 못 읽었습니다 — {까닭}': 'Could not read the application map — {까닭}',
-  '거치는 API {건수}개': 'APIs used: {건수}',
+  '호출하는 API': 'Called APIs',
+  '{건수}곳': '{건수} places',
+  '출처가 없습니다': 'No sources',
   '{케이스} {단계}단계': '{케이스} step {단계}',
   펴기: 'Expand',
   // 잠긴 단추 · 칸 아래 사유 (WEB-F10-03)

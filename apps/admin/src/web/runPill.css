@@ -1,11 +1,12 @@
 /* 진행 창을 닫은 실행의 진행 알약 (DESIGN.md 「창이 아닌 떠 있는 것」). 색은 토큰만 쓴다 */
 
-/* 진행 알약 — 진행 창을 닫은 실행 (DESIGN.md 「창이 아닌 떠 있는 것」). 창(.modal-back 100)보다 아래, 화면 위에 뜬다 */
+/* 진행 알약 — 진행 창을 닫은 실행 (DESIGN.md 「창이 아닌 떠 있는 것」). 창(.modal-back 100)보다 아래, 상세 창(60) 위에 뜬다 —
+   상세 창의 「실행」으로 건 실행의 알약이 덮개 아래로 숨었다(2026-11-27) */
 .run-pill {
   position: fixed;
   right: 20px;
   bottom: 20px;
-  z-index: 30;
+  z-index: 61;
   display: flex;
   align-items: center;
   gap: 10px;

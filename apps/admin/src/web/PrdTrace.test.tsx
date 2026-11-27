@@ -62,7 +62,7 @@ afterEach(() => {
 });
 
 const 줄of = (reqId: string) => screen.getByRole('button', { name: new RegExp(reqId) });
-const 서랍 = () => screen.getByRole('complementary');
+const 서랍 = () => screen.getAllByRole('dialog')[0]!;
 const 열기 = (reqId: string) => {
   fireEvent.click(줄of(reqId));
   return 서랍();
@@ -131,11 +131,11 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     await vi.waitFor(() => expect(within(아이디).getByText(/^Fail \d+ \/ 3$/).tagName).toBe('SPAN'));
   });
 
-  it('서랍을 열면 종류 · 기법 숫자를 설계 미리보기 앞에 보인다', async () => {
+  it('상세 창 「세부 사항」의 테스트 줄에 종류 · 기법 숫자를 보인다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
     열기('MKT-REQ-031');
-    const 구획 = screen.getByRole('heading', { name: '테스트' }).closest('section') as HTMLElement;
+    const 구획 = screen.getByText('테스트', { selector: 'dt' }).nextElementSibling as HTMLElement;
     expect([...구획.querySelectorAll('.prd-kv span')].map((x) => x.textContent)).toEqual([
       '정상 1',
       '경계 1',
@@ -144,7 +144,7 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
       '경계값 분석 1',
       '동등 분할 2',
     ]);
-    expect(구획.nextElementSibling?.querySelector('h3')?.textContent).toBe('출처');
+    expect(구획.closest('details')?.querySelector('summary')?.textContent).toBe('세부 사항');
   });
 
   it('게임 시나리오가 덮는 요구는 서랍 종류 숫자에 미션을 더한다 — 0 이면 안 그린다', async () => {
@@ -152,7 +152,7 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
     열기('MKT-REQ-031');
-    const 구획 = screen.getByRole('heading', { name: '테스트' }).closest('section') as HTMLElement;
+    const 구획 = screen.getByText('테스트', { selector: 'dt' }).nextElementSibling as HTMLElement;
     expect([...구획.querySelectorAll('.prd-kv span')].map((x) => x.textContent).slice(0, 5)).toEqual(['정상 1', '경계 0', '예외 0', 'UI 0', '미션 1']);
   });
 

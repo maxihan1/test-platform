@@ -4773,10 +4773,6 @@ details[open]:not(.ph-me)::details-content {
   animation: 열림 0.15s var(--ease);
 }
 
-/* 버튼으로 여는 출처 목록은 붙을 때 나타난다 */
-.prd-basis {
-  animation: 나타남 var(--t2) var(--ease);
-}
 
 /* 고른 칩의 면 — motion.ts 가 앞 칩 자리에서 새 칩 자리로 옮기고 지운다.
    칩 위에 뜨지만 lighten 으로 섞여 면보다 밝은 칩 글자가 비친다 */

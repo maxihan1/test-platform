@@ -45,15 +45,16 @@ describe('머리 실행 단추', () => {
   });
 });
 
-describe('한 건 한 줄과 상세 서랍의 맥락', () => {
+describe('한 건 한 줄과 상세 창의 맥락', () => {
   const 줄 = async (tcId: string) => (await screen.findByText(tcId)).closest('.row') as HTMLElement;
   async function 서랍열기(tcId: string) {
     vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
     vi.spyOn(api, 'item').mockRejectedValue(new Error('절차 없음'));
     fireEvent.click(within(await 줄(tcId)).getByRole('button', { name: `${tcId} 케이스` }));
-    return await screen.findByRole('complementary');
+    return await screen.findByRole('dialog');
   }
-  const 구획 = (칸: HTMLElement, 이름: string) => [...칸.querySelectorAll('.dsec')].find((el) => el.querySelector('.dlabel')?.textContent === 이름);
+  // 「세부 사항」의 이름 줄(dt) 옆 값(dd)이다
+  const 구획 = (칸: HTMLElement, 이름: string) => [...칸.querySelectorAll('dt')].find((el) => el.textContent === 이름)?.nextElementSibling ?? undefined;
 
   it('줄에는 요구 · 종류 · 화면 · 설계 기법 · 최근 5회 막대가 없고 이름 · 결과 · ▶ 만 있다', async () => {
     그리기();
@@ -65,7 +66,7 @@ describe('한 건 한 줄과 상세 서랍의 맥락', () => {
     expect(within(비번줄).getByRole('button', { name: 'ZCL-FN-001 PC 실행' })).toBeTruthy();
   });
 
-  it('서랍에 덮는 요구 전부 · 종류 · 설계 기법 · 화면이 서고 요구 번호는 「PRD 관리」 그 항목으로 간다', async () => {
+  it('상세 창에 덮는 요구 전부 · 종류 · 설계 기법 · 화면이 서고 요구 번호는 「PRD 관리」 그 항목으로 간다', async () => {
     그리기();
     const 칸 = await 서랍열기('ZCL-FN-001');
     expect(within(칸).getByRole('link', { name: 'ZCL-REQ-003' }).getAttribute('href')).toBe('#/prd/ZCL-REQ-003');
@@ -107,18 +108,19 @@ describe('한 건 한 줄과 상세 서랍의 맥락', () => {
     expect(within(칸).getByText(/PRD 에 없는 번호입니다/)).toBeTruthy();
   });
 
-  it('작성 보기 권한이 없으면 서랍의 요구 번호가 글자뿐이다', async () => {
+  it('작성 보기 권한이 없으면 상세 창의 요구 번호가 글자뿐이다', async () => {
     그리기({ 요구보나: false });
     const 칸 = await 서랍열기('ZCL-FN-001');
     expect(within(칸).queryByRole('link')).toBeNull();
     expect(within(칸).getByText('ZCL-REQ-003')).toBeTruthy();
   });
 
-  it('줄의 이름 버튼을 누르면 오른쪽 서랍이 열리고 모달은 뜨지 않는다', async () => {
+  it('줄의 이름 버튼을 누르면 목록을 덮는 가운데 상세 창이 열린다 (2026-11-27 시안 C 2판)', async () => {
     그리기();
     const 칸 = await 서랍열기('ZCL-FN-001');
     expect(칸.id).toBe('case-pane');
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(칸.getAttribute('aria-modal')).toBe('true');
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
   });
 });
 
