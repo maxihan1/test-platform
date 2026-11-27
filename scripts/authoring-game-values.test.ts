@@ -103,4 +103,16 @@ describe('곳마다 정보 끝', () => {
     const 남은 = 끝조건남은것(d, true, 지도, Date.parse('2026-11-27T00:00:00Z'));
     expect(남은).toEqual(['stage:둘째 맵 의 정보가 안 끝났다 — 값 줄 없는 종류 1(Ghost)', '열린 물음 1']);
   });
+
+  it('배우기 단계 끝 조건에도 값 줄 없는 종류가 남은 것으로 나오고, 줄을 적으면 빠진다', () => {
+    const d = 자료([{ 종류: 'Ghost' }, { 종류: 'Boss', 치트: true }], []);
+    const 지도 = (줄들: 적음[]) => ({ 줄들, 이름: new Map() }) as never;
+    const 지금 = Date.parse('2026-11-27T00:00:00Z');
+    expect(끝조건남은것(d, false, 지도([]), 지금)).toContain('값 줄 없는 종류 2(Ghost · Boss)');
+    const 남음 = 끝조건남은것(d, false, 지도([줄('DATA', 'monster:Ghost', '유령', 값), 줄('DATA', 'monster:Boss', '보스', 값)]), 지금);
+    expect(남음.join('\n')).toContain('치트 표시 없는 종류 1(Boss)');
+    expect(남음.join('\n')).not.toContain('값 줄 없는 종류');
+    const 끝 = 끝조건남은것(d, false, 지도([줄('DATA', 'monster:Ghost', '유령', 값), 줄('DATA', 'monster:Boss', '보스', 값, ['CHEAT'])]), 지금);
+    expect(끝.join('\n')).not.toContain('종류');
+  });
 });
