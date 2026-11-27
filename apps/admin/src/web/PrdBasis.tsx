@@ -1,7 +1,7 @@
-// 요구 하나의 출처 목록 — 자료 · 위치 · 원문. 확인 필요 카드와 펼친 요구 줄이 같이 쓴다 (도메인/작성 §3.6 「사람이 고칠 때」)
+// 요구 하나의 출처 목록 — 자료(파일)마다 상자 하나, 그 안에 위치 · 원문 (도메인/작성 §3.6 「사람이 고칠 때」)
+// 2026-11-27 사용자 — 앞 판은 줄마다 「자료: 파일 이름 · 위치: … 원문: …」을 되풀이해 길게 늘어졌다
 
 import type { PrdBasis } from '@platform/kit';
-import { Fragment } from 'react';
 
 import { 직접작성, 화면에서 } from '../prd/rules.js';
 import { use말 } from './i18n.js';
@@ -10,27 +10,27 @@ export function 근거목록({ basis }: { basis: PrdBasis[] }) {
   const t = use말();
   // 값은 그대로 두고 표시만 푼다. 자료 이름(문서 파일명 등)은 사람이 적은 그대로 보인다
   const 풀이: Record<string, string> = { [화면에서]: t('실제 화면에서 본 것'), [직접작성]: t('사람이 직접 적은 것') };
+  if (basis.length === 0) return <p className="prd-none">{t('출처가 없습니다')}</p>;
+  const 자료별 = new Map<string, PrdBasis[]>();
+  for (const b of basis) 자료별.set(b.from, [...(자료별.get(b.from) ?? []), b]);
   return (
-    <>
-      <p className="hint">{t('이 요구사항을 어디서 읽었는지 보여 줍니다')}</p>
-      <dl className="prd-basis">
-        {basis.map((b, i) => (
-          <Fragment key={i}>
-            <dt>
-              {t('자료')}: {풀이[b.from] ?? b.from}
-              {b.ref ? (
-                <>
-                  {' '}
-                  · {t('위치')}: <span className="prd-id">{b.ref}</span>
-                </>
-              ) : null}
-            </dt>
-            <dd>
-              {t('원문')}: 「{b.quote}」
-            </dd>
-          </Fragment>
-        ))}
-      </dl>
-    </>
+    <div className="prd-src">
+      {[...자료별].map(([자료, 줄들]) => (
+        <div className="prd-src-box" key={자료}>
+          <div className="prd-src-file">
+            <span>{풀이[자료] ?? 자료}</span>
+            <small>{t('{건수}곳', { 건수: 줄들.length })}</small>
+          </div>
+          <ul>
+            {줄들.map((b, i) => (
+              <li key={i}>
+                <span className="prd-id">{b.ref}</span>
+                <span>{b.quote}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }

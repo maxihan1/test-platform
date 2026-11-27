@@ -22,8 +22,6 @@ export const 케이스말: Record<string, string> = {
   '다시 불러오기': 'Load again',
   '상세 닫기': 'Close details',
   'RUN {번호} · {때}': 'RUN {번호} · {때}',
-  '이 값으로 실행': 'Run with these values',
-  '이 값으로 시험 실행': 'Trial run with these values',
   '모두에게 저장': 'Save for everyone',
   '최근 실행 {건수}번': 'Last {건수} runs',
   '진행 보기': 'View progress',

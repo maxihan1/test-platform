@@ -38,7 +38,7 @@ export function 요구줄({ row, 요구보나, 요구쓰나 }: { row: CaseRow; �
 }
 
 /**
- * 상세 서랍의 화면 · API 서버 구획 — 줄에서 뺀 맥락이다. API 애플리케이션은 화면 자리에 엔드포인트가 선다.
+ * 상세 창 「세부 사항」의 화면 · API 서버 줄 — 줄에서 뺀 맥락이다. API 애플리케이션은 화면 자리에 엔드포인트가 선다.
  * 화면 이름을 못 읽었으면 주소, 그것도 없으면 파일 이름이다. 주소는 마우스를 올리면 보인다
  */
 export function 케이스자리({ row }: { row: CaseRow }) {
@@ -49,9 +49,9 @@ export function 케이스자리({ row }: { row: CaseRow }) {
   return (
     <>
       {화면들.length + 끝점들.length === 0 ? null : (
-        <div className="dsec">
-          <div className="dlabel">{끝점들.length > 0 && 화면들.length === 0 ? t('엔드포인트') : t('화면')}</div>
-          <div className="case-where">
+        <>
+          <dt>{끝점들.length > 0 && 화면들.length === 0 ? t('엔드포인트') : t('화면')}</dt>
+          <dd className="case-where">
             {화면들.map((s) => (
               <span className="case-screen" key={s.file} title={s.url ?? undefined}>
                 {s.name == null ? (s.url ?? 파일이름(s.file)) : 화면이름글(s.name)}
@@ -62,21 +62,21 @@ export function 케이스자리({ row }: { row: CaseRow }) {
                 {e}
               </span>
             ))}
-          </div>
-        </div>
+          </dd>
+        </>
       )}
       {/* API 서버 이름은 판정 색이 아니라 설명 정보다 (도메인/카탈로그 §8.1 「API 서버」) */}
       {서버들.length === 0 ? null : (
-        <div className="dsec">
-          <div className="dlabel">{t('API 서버')}</div>
-          <div className="case-where">
+        <>
+          <dt>{t('API 서버')}</dt>
+          <dd className="case-where">
             {서버들.map((이름) => (
               <span className="tech-tag" key={이름}>
                 {이름}
               </span>
             ))}
-          </div>
-        </div>
+          </dd>
+        </>
       )}
     </>
   );

@@ -15,7 +15,7 @@ const { 지금, 워드 } = vi.hoisted(() => ({
 
 vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, wordExport: 워드, apis: () => Promise.resolve({ apis: [] }) } }));
 
-const 서랍 = () => screen.getByRole('complementary');
+const 서랍 = () => screen.getAllByRole('dialog')[0]!;
 const 쓰는사람: 판정 = () => true;
 const 보는사람: 판정 = () => false;
 
@@ -104,7 +104,7 @@ describe('PRD 관리 — 전체 요구', () => {
     const 로그인 = [...document.querySelectorAll('.toc-label')].find((el) => el.textContent?.includes('로그인'))!;
     expect(로그인.textContent).toContain('2건');
     expect(로그인.textContent).toMatch(/확인 필요 [1-9]/);
-    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('줄을 누르면 서랍이 열려 근거와 판정 함수가 계산한 설계 미리보기를 보이고, 다시 누르면 닫힌다', async () => {
@@ -112,18 +112,18 @@ describe('PRD 관리 — 전체 요구', () => {
     const 줄 = await screen.findByRole('button', { name: /MKT-REQ-031/ });
     fireEvent.click(줄);
     expect(줄.getAttribute('aria-pressed')).toBe('true');
-    expect(within(서랍()).getByText('원문: 「아이디: 영문 소문자·숫자 4~12자」')).toBeTruthy();
+    expect(within(서랍()).getByText('아이디: 영문 소문자·숫자 4~12자')).toBeTruthy();
     expect(['3자', '4자', '12자', '13자'].every((값) => within(서랍()).getByText(값))).toBe(true);
     expect(within(서랍()).getByText('동등 분할')).toBeTruthy();
     fireEvent.click(줄);
-    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('상세 닫기 단추로 서랍을 닫는다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-031/ }));
     fireEvent.click(within(서랍()).getByRole('button', { name: '상세 닫기' }));
-    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('왼쪽 목차의 묶음을 누르면 그 묶음으로 가고 지금 보는 묶음이 표시된다', async () => {
@@ -190,20 +190,20 @@ describe('PRD 관리 — 전체 요구', () => {
     expect(줄.getAttribute('aria-pressed')).toBe('true');
     expect(줄.classList.contains('prd-open')).toBe(true);
     await waitFor(() => expect(document.activeElement).toBe(줄));
-    expect(within(서랍()).getByText('원문: 「5회 연속 실패 시 10분 잠금」')).toBeTruthy();
+    expect(within(서랍()).getByText('5회 연속 실패 시 10분 잠금')).toBeTruthy();
     expect(screen.getByRole('button', { name: /MKT-REQ-031/ }).getAttribute('aria-pressed')).toBe('false');
   });
 
   it('지금 판에 없는 번호로 오면 아무 서랍도 열지 않는다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} 여기="MKT-REQ-999" />);
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
-    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('로그인 묶음의 두 근거를 다 보인다 — 문서끼리 달라 확인 필요가 된 항목', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-040/ }));
-    for (const b of 로그인실패.basis) expect(within(서랍()).getByText(`원문: 「${b.quote}」`)).toBeTruthy();
+    for (const b of 로그인실패.basis) expect(within(서랍()).getByText(b.quote)).toBeTruthy();
   });
 });
 

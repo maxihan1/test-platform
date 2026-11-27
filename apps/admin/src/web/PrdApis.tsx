@@ -1,4 +1,4 @@
-// 「PRD 관리」의 서비스 지도 — 편 요구 줄의 「거치는 API」 (도메인/작성 §3.6 「서비스 지도」 · 2026-10-16 시안)
+// 「PRD 관리」의 서비스 지도 — 요구 상세 창의 「호출하는 API」 (도메인/작성 §3.6 「서비스 지도」 · 2026-10-16 시안 · 2026-11-27 이름 바꿈 — 앞 판 「거치는 API」)
 // 요구 → API 는 지도 ①(GET /prd 의 cases)과 지도 API 의 케이스 줄을 tcId 로 잇는다. 관찰한 API 라 기대값의 근거가 아니다
 
 import type { ReactNode } from 'react';
@@ -56,7 +56,10 @@ export function 거치는API({ 줄들 }: { 줄들: 거치는줄[] }) {
   return (
     <section>
       <details className="prd-fold">
-        <summary>{t('거치는 API {건수}개', { 건수: 줄들.length })}</summary>
+        <summary>
+          {t('호출하는 API')}
+          <small>{t('{건수}개', { 건수: 줄들.length })}</small>
+        </summary>
         <ul className="prd-apis">
           {줄들.map((a) => (
             <API줄 key={`${a.method} ${a.host}${a.path}`} a={a}>

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 「PRD 관리」 서비스 지도 — 편 요구 줄의 「거치는 API」
+// 「PRD 관리」 서비스 지도 — 요구 상세 창의 「호출하는 API」
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,16 +52,17 @@ describe('PRD 관리 — 애플리케이션 지도', () => {
   it('요구 줄을 눌러 서랍을 열면 그 요구의 케이스가 부른 API 와 단계만 보인다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-040/ }));
-    const 구획 = (await screen.findByText('거치는 API 2개')).closest('section') as HTMLElement;
+    const 구획 = (await screen.findByText('호출하는 API')).closest('section') as HTMLElement;
+    expect(within(구획).getByText('2개')).toBeTruthy();
     const 줄들 = within(구획).getAllByRole('listitem').map((x) => x.textContent);
     // 다른 요구의 케이스(MKT-FN-099)는 안 달고, 단계가 없는 줄은 번호만
     expect(줄들).toEqual(['POSTdemo.market/api/auth/loginMKT-FN-012 2단계', 'GETdemo.market/api/meMKT-FN-012']);
   });
 
-  it('서랍의 거치는 API 는 개발 정보라 접혀 있다 (점검 8.12)', async () => {
+  it('상세 창의 호출하는 API 는 개발 정보라 접혀 있다 (점검 8.12)', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-040/ }));
-    const 접기 = (await screen.findByText('거치는 API 2개')).closest('details') as HTMLDetailsElement;
+    const 접기 = (await screen.findByText('호출하는 API')).closest('details') as HTMLDetailsElement;
     expect(접기.open).toBe(false);
   });
 
@@ -71,12 +72,12 @@ describe('PRD 관리 — 애플리케이션 지도', () => {
     expect(screen.queryByRole('region', { name: /케이스가 안 거친 API/ })).toBeNull();
   });
 
-  it('지도가 비었으면 거치는 API 가 없다', async () => {
+  it('지도가 비었으면 호출하는 API 가 없다', async () => {
     지도.mockResolvedValue({ apis: [] });
     render(<Prd service="MKT" 할수={보는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-040/ }));
-    await screen.findByRole('heading', { name: '테스트' });
-    expect(screen.queryByText(/거치는 API/)).toBeNull();
+    await screen.findByText('테스트', { selector: 'dt' });
+    expect(screen.queryByText('호출하는 API')).toBeNull();
   });
 
   it('지도를 못 읽어도 메뉴는 그대로 쓰고 까닭을 한 줄로 보인다', async () => {

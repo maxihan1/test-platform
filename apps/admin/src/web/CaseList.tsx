@@ -128,6 +128,13 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
     if (tcId !== null) document.getElementById(`case-open-${tcId}`)?.focus();
   }
 
+  // 상세 창의 이전 · 다음 — 줄은 받은 차례 그대로 선다(기능 묶음 · 프로시저로 묶어도 순서는 안 바뀐다)
+  const 옆열기 = (차이: number) => {
+    const row = 연줄 === undefined ? undefined : 보일것[보일것.indexOf(연줄) + 차이];
+    return row === undefined ? undefined : () => 검색.set열린(row.tcId);
+  };
+  const 화면이름 = kind === 'UI' ? t('UI 테스트') : kind === 'GS' ? t('게임 미션') : t('기능 테스트');
+
   const 전체 = cases.data?.total ?? 0;
   // 모두 고른 동안은 아직 안 받은 줄도 고른 것이다 — 고른 표에는 손으로 고른 것만 들어 있다
   const 골랐나 = (row: { tcId: string }) => 뽑기.모두 || 뽑기.고른.has(row.tcId);
@@ -148,7 +155,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
       <Head
         클래스="case-head"
         위치={앱종류 === 'API' || ((앱종류 === 'GAME' || 한종류) && kind !== 'UI') ? undefined : t(앱종류 === 'GAME' || 한종류 ? '기능 테스트' : '기능 · UI 테스트')}
-        제목={kind === 'UI' ? t('UI 테스트') : kind === 'GS' ? t('게임 미션') : t('기능 테스트')}
+        제목={화면이름}
         부제={<목록부제 전체={cases.data?.total ?? null} 미확정={cases.data?.unconfirmed} scan={scan.data} error={notice ?? scan.error} 모으는중={뽑기.모으는중} UI링크={앱종류 === 'GAME' && kind === 'FN' && !한종류} />}
         행동={
           <목록머리행동
@@ -285,6 +292,9 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             저장된다={할수('입력값저장')}
             on실행={할수('테스트실행') ? (row, 묶음) => void 뽑기.여럿열기(묶음 ?? [row]) : undefined}
             테스트만={테스트만}
+            위치={화면이름}
+            on이전={옆열기(-1)}
+            on다음={옆열기(1)}
             onClose={닫기}
             on값={(어디, key, value) => 값고침(연줄.tcId, 어디, key, value)}
             on저장됨={async () => {

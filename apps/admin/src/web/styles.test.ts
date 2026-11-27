@@ -920,6 +920,7 @@ describe('휴대폰 (SPEC 공통/5 §8 「휴대폰 화면」)', () => {
     ['runNav.css', '.rm-more'],
     ['runPrep.css', '.segc label'],
     ['runWindow.css', '.frame-x'],
+    ['detailModal.css', '.dm-icon'],
     ['noticeBar.css', '.nt-more'],
   ])('%s %s — 누르는 자리가 44px 이상이다', (파일, 선택자) => {
     expect(휴대폰높이(파일, 선택자)).toBeGreaterThanOrEqual(44);
@@ -928,6 +929,7 @@ describe('휴대폰 (SPEC 공통/5 §8 「휴대폰 화면」)', () => {
   it.each([
     ['scout.css', '.scout-body'],
     ['drawer.css', '.drawer'],
+    ['detailModal.css', '.dm-side'],
     ['styles.css', '.modal-body'],
     ['phone.css', '.sheet'],
     ['trialRunning.css', '.trial-queue'],

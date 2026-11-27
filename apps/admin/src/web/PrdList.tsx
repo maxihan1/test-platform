@@ -153,6 +153,19 @@ export function PrdList({
   };
 
   const 연것 = 연줄 === null ? undefined : now.items.find((x) => x.reqId === 연줄);
+  // 상세 창의 이전 · 다음 — 목차 묶음 차례 그대로다. 칩 · 찾기에 걸러진 줄은 건너뛴다
+  const 차례 = 묶음.flatMap((g) => g.items);
+  const 옆열기 = (차이: number) => {
+    const 자리 = 연것 === undefined ? -1 : 차례.indexOf(연것);
+    const 옆 = 자리 === -1 ? undefined : 차례[자리 + 차이];
+    return 옆 === undefined
+      ? undefined
+      : () =>
+          비우고(() => {
+            set고치는(null);
+            set연줄(옆.reqId);
+          });
+  };
   const 정리묶음 = 정리 === null ? undefined : 전체묶음.find((g) => g.feature === 정리);
   const 칩들: [칩키, string][] = [
     ['전체', t('전체 {건수}', { 건수: 칩수.전체 })],
@@ -250,6 +263,8 @@ export function PrdList({
             }
             return 됐나;
           }}
+          on이전={옆열기(-1)}
+          on다음={옆열기(1)}
           on닫기={닫기}
         />
       )}
