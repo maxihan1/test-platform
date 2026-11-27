@@ -285,7 +285,7 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     writeFileSync(join(자료, 'game-learning.now'), '1');
     expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).toMatchObject({ 계획: 'trial:첫 맵' });
     writeFileSync(join(자료, 'game-learn.json'), JSON.stringify({ 쓴ms: 1, 세션: 1, 끝: false, 열쇠: [], 단계: '게임플레이' }));
-    expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).toMatchObject({ 막음: expect.stringContaining('calc:') });
+    expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).toMatchObject({ 막음: expect.stringContaining('data.곳') });
   });
 
   it('손만 고친 회고가 세 번 이어지고 나아감이 안 늘면 그 세 계획 · 어디서로는 다시 못 한다', () => {

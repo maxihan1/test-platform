@@ -82,7 +82,7 @@ export function 계산안고침(쓸것: readonly string[], 줄들: readonly 줄[
 }
 
 /** 판이 목표에 못 닿고 짐으로 끝났으면 목표와 닿은 가장 큰 수 — 멈춤 · 치트 조각은 결과가 판 결과가 아니라 안 본다 */
-function 못닿고짐(r: 판기록, 줄들: readonly 줄[]): { 값: string; 기준: number; 닿은: number } | null {
+export function 못닿고짐(r: 판기록, 줄들: readonly 줄[]): { 값: string; 기준: number; 닿은: number } | null {
   if (r.값기록 === undefined || r.멈춤 !== undefined || r.치트 === true) return null;
   const 계획 = 계획읽기(칸(줄들.find((x) => x.key === r.값기록!.계획 && x.learned !== null)));
   if (typeof 계획 === 'string' || 계획.곳 === undefined) return null;
@@ -126,8 +126,20 @@ export function 판결과(기록: 판기록, 결: 결과): '깸' | '짐' | null 
   return 맞나(결.깸) ? '깸' : 맞나(결.짐) ? '짐' : null;
 }
 
-/** 정보 — 그 곳에서 정보 모으기를 했거나(웨이브를 한 단계라도 넘긴 기록) 못 하는 이유(STAGE data.정보못모음)를 적었다 */
-export interface 곳판 { 열쇠: string; 판: number; 깸: number; 못깸?: string; 정보?: true }
+/**
+ * 시뮬불가 — 시뮬레이션으로 이기는 안이 없어 판 없이 넘긴 곳(STAGE data.시뮬불가 { 계산, 웨이브, 모자람, 다시봄? }). 다른 맵을 다 돈 뒤 한 번 다시 시뮬하고, 그래도 없으면 다시봄 을 달아 닫는다(2026-11-28 사용자)
+ * 정보 — 그 곳에서 정보 모으기를 했거나(웨이브를 한 단계라도 넘긴 기록) 못 하는 이유(STAGE data.정보못모음)를 적었다
+ */
+export interface 곳판 { 열쇠: string; 판: number; 깸: number; 못깸?: string; 정보?: true; 시뮬불가?: { 글: string; 다시봄: boolean } }
+
+/** STAGE data.시뮬불가 — 없으면 null, 형태가 틀리면 까닭 글 */
+export function 시뮬불가읽기(data: unknown): { 계산: string; 웨이브: string; 모자람: string; 다시봄: boolean } | null | string {
+  const v = 객체(data).시뮬불가;
+  if (v === undefined) return null;
+  const x = 객체(v);
+  if (!글인가(x.계산) || !x.계산.startsWith(계산머리) || !글인가(x.웨이브) || !글인가(x.모자람) || (x.다시봄 !== undefined && x.다시봄 !== true)) return `data.시뮬불가 는 { 계산: <${계산머리}시뮬 줄 열쇠>, 웨이브: <진 웨이브>, 모자람: <무엇이 얼마 모자랐나>, 다시봄?: true(다른 맵을 다 돈 뒤 다시 시뮬해도 불가) } 이다`;
+  return { 계산: x.계산, 웨이브: x.웨이브, 모자람: x.모자람, 다시봄: x.다시봄 === true };
+}
 
 /** 계획 줄이 적은 곳 — 판 기록의 계획에서 곳을 찾는다 */
 export const 계획곳 = (줄들: readonly 줄[], 계획: string): unknown => 칸(줄들.find((x) => x.key === 계획 && x.learned !== null)).곳;
@@ -142,7 +154,8 @@ export function 곳셈(줄들: readonly 줄[], 기록들: readonly 판기록[]):
     const 들 = 기록들.flatMap((r) => (r.값기록 !== undefined && r.멈춤 === undefined && r.치트 !== true && 계획곳(줄들, r.값기록.계획) === x.key ? [판결과(r, 결)] : [])).filter((v) => v !== null);
     const d = 칸(x);
     const 모음 = 기록들.some((r) => { const 정 = 객체(객체(r.값).정보모으기); return 정.곳 === x.key && typeof 정.단계 === 'number' && 정.단계 > 0; }) || 글인가(d.정보못모음);
-    return [{ 열쇠: x.key, 판: 들.length, 깸: 들.filter((v) => v === '깸').length, ...(d.상태 === '못깸' && 글인가(d.까닭) ? { 못깸: d.까닭 } : {}), ...(모음 ? { 정보: true as const } : {}) }];
+    const 불가 = 시뮬불가읽기(d);
+    return [{ 열쇠: x.key, 판: 들.length, 깸: 들.filter((v) => v === '깸').length, ...(d.상태 === '못깸' && 글인가(d.까닭) ? { 못깸: d.까닭 } : {}), ...(모음 ? { 정보: true as const } : {}), ...(불가 === null || typeof 불가 === 'string' ? {} : { 시뮬불가: { 글: `${불가.웨이브} · ${불가.모자람}`, 다시봄: 불가.다시봄 } }) }];
   });
 }
 
@@ -150,15 +163,20 @@ export function 곳셈(줄들: readonly 줄[], 기록들: readonly 판기록[]):
 export function 남은깰곳(줄들: readonly 줄[], 기록들: readonly 판기록[]): string[] {
   const 셈 = 곳셈(줄들, 기록들);
   if (셈.length === 0) return ['깰 곳(data.결과 가 있는 STAGE)이 없다'];
-  // 넘김판을 해 본 곳은 이번에 더 안 한다 — 남은 것으로 세면 다음 맵이 없을 때 끝나지 않는다
-  const 남은 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 < 넘김판);
+  // 넘김판을 해 본 곳은 이번에 더 안 한다 — 남은 것으로 세면 다음 맵이 없을 때 끝나지 않는다. 시뮬불가로 넘긴 곳은 다른 맵을 다 돈 뒤에 본다
+  const 남은 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 < 넘김판 && x.시뮬불가 === undefined);
   // 넘김판을 하고도 못 깬 곳은 정보 모으기를 한 번 해야 넘어간다 — 같은 판 수에서 맵이 먼저 닫혀 정보 모으기에 한 번도 못 닿았다(2026-11-27 16094 · 16097)
   const 모을곳 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 >= 넘김판 && x.정보 !== true);
+  const 다시볼곳 = 남은.length + 모을곳.length > 0 ? [] : 다시시뮬곳(셈);
   return [
     ...(남은.length === 0 ? [] : [`아직 못 깬 곳 ${남은.length}(${남은.slice(0, 5).map((x) => `${x.열쇠} ${x.판}판`).join(' · ')})`]),
     ...(모을곳.length === 0 ? [] : [`정보 모으기 남은 곳 ${모을곳.length}(${모을곳.slice(0, 5).map((x) => x.열쇠).join(' · ')})`]),
+    ...(다시볼곳.length === 0 ? [] : [`다시 시뮬 남은 곳 ${다시볼곳.length}(${다시볼곳.slice(0, 5).map((x) => x.열쇠).join(' · ')}) — 다른 맵을 다 돌았다. 그동안 쌓인 손 값 · 고친 데이터로 다시 시뮬해 이기는 안이 나오면 판을 돌고, 그래도 없으면 data.시뮬불가.다시봄 을 true 로`]),
   ];
 }
+
+/** 시뮬불가로 넘겼고 아직 다시 안 본 곳 — 깨지도 못깸으로 닫지도 않았다 */
+const 다시시뮬곳 = (셈: readonly 곳판[]): 곳판[] => 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.시뮬불가 !== undefined && !x.시뮬불가.다시봄);
 
 /** 곳의 맵 정보 — 그 곳 STAGE 의 맵 종류(`<곳>#<종류>`, 없음이 아닌 것)와 data.곳 이 그 곳인 줄(계획 · 회고 빼고) */
 export function 곳맵(줄들: readonly 줄[], 곳: string): { 열쇠: string; 글: string }[] {
@@ -181,6 +199,10 @@ export function 놀이막기(계획: { 곳?: string; 쓸것?: readonly string[] 
   const 셈 = 곳셈(줄들, 기록들).find((x) => x.열쇠 === 계획.곳);
   if (셈 === undefined) return `${계획.곳} 는 깰 곳이 아니다 — 그 STAGE 줄에 data.결과 { 주소, 칸?, 깸, 짐 } 을 먼저 적는다`;
   if (셈.못깸 !== undefined) return `${계획.곳} 는 못깸으로 적었다 — 아직 못 깬 다른 곳을 해 본다`;
+  if (셈.시뮬불가?.다시봄 === true) return `${계획.곳} 는 다시 시뮬해도 이기는 안이 없어 닫았다(${셈.시뮬불가.글})`;
+  // 시뮬불가로 넘긴 곳은 다른 맵을 다 돈 뒤에 다시 연다(2026-11-28 사용자)
+  if (셈.시뮬불가 !== undefined && 남은깰곳(줄들, 기록들).every((x) => x.startsWith('다시 시뮬 남은 곳'))) return null;
+  if (셈.시뮬불가 !== undefined) return `${계획.곳} 는 시뮬레이션상 불가로 넘겼다(${셈.시뮬불가.글}) — 다른 맵을 다 돈 뒤에 다시 시뮬한다`;
   if (셈.깸 === 0 && 셈.판 >= 넘김판 && 셈.정보 !== true) {
     return `${계획.곳} 를 ${셈.판}판 해 보고 못 깼다 — 다음 맵으로 넘기기 전에 이 곳에서 정보 모으기를 한 번 한다(\`npx tsx scripts/authoring-game-info.ts <자료 폴더> ${계획.곳} --call '<주소>|<컴포넌트.메서드>'\` · 지침 「${넘김판}판 해 보고도 못 깨면」). 웨이브를 넘기는 함수가 없어 못 하면 그 STAGE 줄 data.정보못모음 에 이유를 적는다`;
   }
@@ -196,4 +218,4 @@ export function 놀이막기(계획: { 곳?: string; 쓸것?: readonly string[] 
 }
 
 /** 곳마다 한 토막 — PR 머리 · 인수인계에 싣는다 */
-export const 곳글 = (x: 곳판): string => `${x.열쇠} ${x.깸 > 0 ? `깸(${x.판}판 중 ${x.깸})` : x.못깸 !== undefined ? `못 깸(${x.판}판 · ${x.못깸})` : `아직(${x.판}판)`}`;
+export const 곳글 = (x: 곳판): string => `${x.열쇠} ${x.깸 > 0 ? `깸(${x.판}판 중 ${x.깸})` : x.못깸 !== undefined ? `못 깸(${x.판}판 · ${x.못깸})` : x.시뮬불가 !== undefined ? `시뮬레이션상 불가(${x.시뮬불가.글}${x.시뮬불가.다시봄 ? ' · 다시 봐도 불가' : ''})` : `아직(${x.판}판)`}`;

@@ -253,7 +253,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   }
   // 학습 세션만 — 앞 회고 · 계획 · 손만 고친 되풀이 · 다섯 번 안 늚을 본다
   const 지도줄 = (자료 === undefined ? null : 지금지도(자료))?.줄들 ?? [];
-  const 막 = 배움막기(자료, 초, 것.계획, 지도줄, 자료 === undefined ? [] : 판기록들(자료));
+  const 막 = 배움막기(자료, 초, 것.계획, 지도줄, 자료 === undefined ? [] : 판기록들(자료), 것.넘길);
   if (막 !== null && '막음' in 막) {
     console.error(`[조작 도우미] ${막.막음}`);
     return 2;
