@@ -209,9 +209,14 @@ def 읽기(데이터, 자료):
             읽힌.append((o, 읽음[이름]))
         if 읽음:
             값들[클래스] = 읽음
+    # 이름을 달아 상한을 넘으면 이름 없이 쓴다 — 이름 때문에 값 전체를 잃지 않게
+    이름없는글 = json.dumps(값들, ensure_ascii=False, default=str)
     for o, 값 in 읽힌:
         참조이어주기(값, 참조해석기(o, 파일들, 자리표))
     글 = json.dumps(값들, ensure_ascii=False, default=str)
+    if len(글) > 값상한 >= len(이름없는글):
+        print('참조 이름을 달면 너무 커서 이름 없이 쓴다', len(글))
+        글 = 이름없는글
     if len(글) > 값상한:
         print('값이 너무 커서 안 쓴다', len(글))
         return 0
