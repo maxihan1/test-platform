@@ -286,6 +286,8 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).toMatchObject({ 계획: 'trial:첫 맵' });
     writeFileSync(join(자료, 'game-learn.json'), JSON.stringify({ 쓴ms: 1, 세션: 1, 끝: false, 열쇠: [], 단계: '게임플레이' }));
     expect(배움막기(자료, 300, 'trial:첫 맵', 들, [])).toMatchObject({ 막음: expect.stringContaining('data.곳') });
+    const 곳있음 = [줄('STAGE', 'stage:첫 맵', { 결과: { 주소: '/결과', 깸: '승리', 짐: '패배' }, 맵: { 적: { 없음: '적이 안 온다' } } }), 줄('TRIAL', 'trial:첫 맵', { ...계획data, 곳: 'stage:첫 맵', 기대: [{ 값: '세계수', 비교: '>=', 기준: 1 }] }), 나아감줄].map((x) => ({ ...x, name: x.key, line: '' })) as never as typeof 지도;
+    expect(배움막기(자료, 300, 'trial:첫 맵', 곳있음, [])).toMatchObject({ 막음: expect.stringContaining('calc:') });
   });
 
   it('손만 고친 회고가 세 번 이어지고 나아감이 안 늘면 그 세 계획 · 어디서로는 다시 못 한다', () => {

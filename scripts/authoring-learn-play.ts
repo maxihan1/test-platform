@@ -166,7 +166,7 @@ export function 남은깰곳(줄들: readonly 줄[], 기록들: readonly 판기�
   // 넘김판을 해 본 곳은 이번에 더 안 한다 — 남은 것으로 세면 다음 맵이 없을 때 끝나지 않는다. 시뮬불가로 넘긴 곳은 다른 맵을 다 돈 뒤에 본다
   const 남은 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 < 넘김판 && x.시뮬불가 === undefined);
   // 넘김판을 하고도 못 깬 곳은 정보 모으기를 한 번 해야 넘어간다 — 같은 판 수에서 맵이 먼저 닫혀 정보 모으기에 한 번도 못 닿았다(2026-11-27 16094 · 16097)
-  const 모을곳 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 >= 넘김판 && x.정보 !== true);
+  const 모을곳 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 >= 넘김판 && x.정보 !== true && x.시뮬불가 === undefined);
   const 다시볼곳 = 남은.length + 모을곳.length > 0 ? [] : 다시시뮬곳(셈);
   return [
     ...(남은.length === 0 ? [] : [`아직 못 깬 곳 ${남은.length}(${남은.slice(0, 5).map((x) => `${x.열쇠} ${x.판}판`).join(' · ')})`]),

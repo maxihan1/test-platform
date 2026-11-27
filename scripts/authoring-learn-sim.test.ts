@@ -74,6 +74,16 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(막기(계획, [곳줄(), 계획줄, 짐], 자료, [], [정책(짐)])).toMatchObject({ 막음: expect.stringContaining('이기는 안이 없다') });
     const 고친 = { ...짐, learned: { ...짐.learned!, data: { ...짐.learned!.data, 결과: { ...(짐.learned!.data.결과 as object), 이김: true } } } };
     expect(막기(계획, [곳줄(), 계획줄, 고친], 자료, [], [정책(짐)])).toMatchObject({ 막음: expect.stringContaining('다시 돌리니') });
+    const 이김줄 = 계산줄('가', 입력());
+    const 손지어냄 = 입력({ 손: { 행동초: 9 } });
+    const 느림 = 계산줄('가', 손지어냄);
+    expect(느림.learned!.data.결과).toMatchObject({ 이김: false });
+    const 빠른손 = { ...느림, learned: { ...느림.learned!, data: { ...느림.learned!.data, 결과: { ...(이김줄.learned!.data.결과 as object) } } } };
+    expect(막기(계획, [곳줄(), 계획줄, 빠른손], 자료, [], [정책(이김줄)])).toMatchObject({ 막음: expect.stringContaining('다시 돌리니') });
+    const 지은정책 = [{ 조건: [], 행동: { 무엇: '놓기', 대상: '탑' } }, { 조건: [], 행동: { 무엇: '줍기' } }];
+    const 정책바꿈 = { ...이김줄, learned: { ...이김줄.learned!, data: { ...이김줄.learned!.data, 결과: { ...(이김줄.learned!.data.결과 as object), 정책: 지은정책 } } } };
+    writeFileSync(join(자료, 'game-calc', '가.json'), JSON.stringify(입력()));
+    expect(막기(계획, [곳줄(), 계획줄, 정책바꿈], 자료, [], [{ 정책: 지은정책 }])).toMatchObject({ 막음: expect.stringContaining('정책 후보') });
     const c = 계산줄('가', 입력());
     writeFileSync(join(자료, 'game-calc', '가.json'), JSON.stringify(입력({ 재화: { 시작: 1 } })));
     expect(막기(계획, [곳줄(), 계획줄, c], 자료, [], [정책(c)])).toMatchObject({ 막음: expect.stringContaining('바뀌었다') });
@@ -143,5 +153,13 @@ describe('시뮬불가 — 판 없이 넘기고 다른 맵을 다 돈 뒤 한 �
     expect(남은깰곳(닫음 as never, [])).toEqual([]);
     expect(놀이막기({ 곳, 쓸것: ['calc:가'] }, 닫음 as never, [])).toContain('다시 시뮬해도');
     expect(곳글(곳셈(닫음 as never, []).find((x) => x.열쇠 === 곳)!)).toBe('stage:시험 시뮬레이션상 불가(1웨이브 · 초당 피해 3 모자람 · 다시 봐도 불가)');
+  });
+
+  it('열 판을 해 보고 시뮬불가로 넘긴 곳은 정보 모으기 남은 곳에 묶이지 않고 다시 시뮬 남은 곳으로 열린다', () => {
+    const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] } }));
+    const 판들 = Array.from({ length: 10 }, (_, i) => ({ 이름: `2026112800000${i}000-판`, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [], 어긋남: null, 화면다름: [] }, 끝글: [{ 주소: '/결과', 경로: '', 글: '패배' }] }));
+    const 들 = [불가곳(짐), 줄('STAGE', 'stage:다른', { 결과, 상태: '못깸', 까닭: 'ㄱ' }), 계획줄, 짐];
+    expect(곳셈(들 as never, 판들).find((x) => x.열쇠 === 곳)).toMatchObject({ 판: 10, 깸: 0 });
+    expect(남은깰곳(들 as never, 판들)).toEqual([expect.stringContaining('다시 시뮬 남은 곳 1(stage:시험)')]);
   });
 });

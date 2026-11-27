@@ -73,7 +73,6 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
   const 캐체력최대 = m.캐릭터.체력 ?? Infinity;
   let [재화, 지킬것, 캐자리, 캐체력, 쓰러짐, 캐쿨] = [m.재화.시작, m.지킬것.체력, m.캐릭터.자리, 캐체력최대, 0, 0];
   let 할: 할일 | null = null;
-  let 쉼끝 = 0;
   let 지금 = 0;
   const 쿨: Record<string, number> = {};
   const 남은개수: Record<string, number> = Object.fromEntries(Object.values(m.아이템).map((x) => [x.이름, x.개수 ?? Infinity]));
@@ -95,7 +94,9 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     덮음표.set(열쇠, v);
     return v;
   };
-  const 둘레적 = (p: 점, r: number): 적[] => 적들.filter((e) => 거리(자리(e), p) <= r);
+  // 캐릭터가 죽인 적은 그 칸 끝 처치 단계까지 남아 있다 — 살아 있는 것만 센다
+  const 산적 = (): 적[] => 적들.filter((e) => e.체력 > 0);
+  const 둘레적 = (p: 점, r: number): 적[] => 산적().filter((e) => 거리(자리(e), p) <= r);
   const 상태 = (이름: 상태이름, 반경 = 0): number => {
     switch (이름) {
       case '지킬것체력': return 지킬것;
@@ -106,7 +107,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       case '지킬것둘레적수': return 둘레적(m.지킬것.자리, 반경).length;
       case '캐릭터둘레적수': return 둘레적(캐자리, 반경).length;
       case '캐릭터둘레재화수': return 떨어진.filter((d) => 거리(d.자리, 캐자리) <= 반경).length;
-      case '지킬것가까운적거리': return Math.min(Infinity, ...적들.map((e) => 거리(자리(e), m.지킬것.자리)));
+      case '지킬것가까운적거리': return Math.min(Infinity, ...산적().map((e) => 거리(자리(e), m.지킬것.자리)));
     }
   };
   const 맞기 = (e: 적, 피해: number, 둔화?: { 배율: number; 초: number }, 기절?: number): void => {
@@ -115,7 +116,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     if (기절 !== undefined) e.기절 = Math.max(e.기절, 기절);
   };
   /** 할 수 있으면 할 일 — 갈 자리 · 도착 뒤 효과. 못 하면 null */
-  const 계획 = (r: 규칙, t: number): Omit<할일, '도착초' | '끝초'> & { 앞초?: number } | null => {
+  const 계획 = (r: 규칙, t: number): Omit<할일, '도착초' | '끝초'> & { 가능초?: number } | null => {
     const { 무엇, 대상, 반경 } = r.행동;
     const 기 = (자: 점): 행동 => ({ 초: t, 행동: 무엇, ...(대상 === undefined ? {} : { 대상 }), 자리: [Math.round(자[0] * 10) / 10, Math.round(자[1] * 10) / 10] });
     if (무엇 === '놓기') {
@@ -123,7 +124,8 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       const 첫 = 종.레벨[0]!;
       if (재화 < 첫.값) return null;
       const 빈 = m.자리후보.filter((p) => !탑들.some((x) => 거리(x.자리, p) < 0.5));
-      const 고른 = 빈.map((p) => ({ p, 덮: 덮음(p, 첫.사거리), d: 거리(p, 캐자리) })).sort((a, b) => b.덮 - a.덮 || a.d - b.d)[0];
+      // 같은 덮음이면 자리후보에 적은 차례 — 판 함수가 받는 자리차례와 같은 순서다
+      const 고른 = 빈.map((p) => ({ p, 덮: 덮음(p, 첫.사거리) })).sort((a, b) => b.덮 - a.덮)[0];
       if (고른 === undefined) return null;
       return { 자리: 고른.p, 기록: 기(고른.p), 효과: () => (재화 >= 첫.값 ? ((재화 -= 첫.값), 탑들.push({ 종류: 종.이름, 레벨: 0, 자리: 고른.p, 자람: 종.자라는초, 쿨: 0 }), true) : false) };
     }
@@ -149,7 +151,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       return { 자리: 캐자리, 기록: 기(캐자리), 효과: () => { if (재화 < 수단.값) return false; 재화 -= 수단.값; 쿨[수단.이름] = t + 수단.쿨타임; if (수단.대상 === '캐릭터') 캐체력 = Math.min(캐체력최대, 캐체력 + 수단.양); else 지킬것 = Math.min(m.지킬것.체력, 지킬것 + 수단.양); return true; } };
     }
     // 공격 · 아이템 — 반경을 주면 지킬것 둘레 그 안의 적만, 아니면 아무 적 가운데 길 끝에 가장 가까운 것
-    const 후보 = (반경 === undefined ? 적들 : 둘레적(m.지킬것.자리, 반경)).sort((a, b) => 남은(a) - 남은(b))[0];
+    const 후보 = (반경 === undefined ? 산적() : 둘레적(m.지킬것.자리, 반경)).sort((a, b) => 남은(a) - 남은(b))[0];
     if (후보 === undefined) return null;
     const 사거리 = 무엇 === '공격' ? m.캐릭터.공격!.사거리 : m.아이템[대상!]!.사거리;
     if (무엇 === '아이템' && ((쿨[대상!] ?? 0) > t || 남은개수[대상!]! <= 0)) return null;
@@ -158,7 +160,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     const 설자리: 점 = d <= 사거리 ? 캐자리 : [적자리[0] + ((캐자리[0] - 적자리[0]) * 사거리 * 0.9) / d, 적자리[1] + ((캐자리[1] - 적자리[1]) * 사거리 * 0.9) / d];
     if (무엇 === '공격') {
       const 공 = m.캐릭터.공격!;
-      return { 자리: 설자리, 기록: 기(설자리), 앞초: Math.max(0, 캐쿨 - t), 효과: () => { if (후보.체력 <= 0 || 거리(자리(후보), 캐자리) > 공.사거리 * 1.5) return false; 맞기(후보, 공.공격력); 캐쿨 = 지금 + 공.간격; return true; } };
+      return { 자리: 설자리, 기록: 기(설자리), 가능초: 캐쿨, 효과: () => { if (후보.체력 <= 0 || 거리(자리(후보), 캐자리) > 공.사거리 * 1.5) return false; 맞기(후보, 공.공격력); 캐쿨 = 지금 + 공.간격; return true; } };
     }
     const 템 = m.아이템[대상!]!;
     return { 자리: 설자리, 기록: 기(설자리), 효과: () => { if ((쿨[템.이름] ?? 0) > 지금) return false; const 중심 = 후보.체력 > 0 ? 자리(후보) : 적자리; for (const e of 둘레적(중심, Math.max(템.범위, 0.01))) 맞기(e, 템.피해, undefined, 템.기절); 쿨[템.이름] = 지금 + 템.쿨타임; 남은개수[템.이름]! -= 1; return true; } };
@@ -196,7 +198,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     }
     출현표 = 출현표.filter((x) => x.초 > 지금);
     // 적 걷기 · 닿기 · 캐릭터 때리기
-    for (const e of 적들) {
+    for (const e of 산적()) {
       if (e.기절 > 0) e.기절 -= 칸초;
       else e.진행 += m.적종류[e.종류]!.속도 * (e.둔화 > 0 ? e.배율 : 1) * 칸초;
       if (e.둔화 > 0) e.둔화 -= 칸초;
@@ -207,7 +209,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
         if (캐체력 <= 0) [쓰러짐, 캐체력, 할] = [지금 + m.캐릭터.쓰러지면초, 캐체력최대, null];
       }
     }
-    for (const e of 적들.filter((x) => 남은(x) <= 0)) {
+    for (const e of 산적().filter((x) => 남은(x) <= 0)) {
       지킬것 -= m.적종류[e.종류]!.닿으면피해;
       셈[e.웨이브]!.새어나감 += 1;
       셈[e.웨이브]!.새체력 += Math.max(0, e.체력);
@@ -238,16 +240,17 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       if (재현남은 !== null) {
         const 다음 = 재현남은[0];
         if (다음 !== undefined && (다음.도착초 ?? 다음.초) <= 지금) 할 = 재현할일(재현남은.shift()!);
-      } else if (쉼끝 <= 지금) {
+      } else {
         let 고른: ReturnType<typeof 계획> = null;
         for (const r of 정책) {
           고른 = r.조건.every((c) => 맞나(상태(c.값, c.반경), c.비교, c.기준 as number)) ? 계획(r, 지금) : null;
           if (고른 !== null) break;
         }
-        if (고른 === null) 쉼끝 = 지금 + 칸초;
-        else {
+        // 할 수 있는 규칙이 없으면 다음 칸에 다시 본다
+        if (고른 !== null) {
           const 도착 = 지금 + 걷기(캐자리, 고른.자리) / m.캐릭터.걷기속도;
-          할 = { 도착초: 도착, 끝초: 도착 + Math.max(m.손.행동초, 고른.앞초 ?? 0), 자리: 고른.자리, 기록: 고른.기록, 효과: 고른.효과 };
+          // 쿨타임은 걷는 동안에도 돈다 — 도착 뒤 손 시간과 쿨타임이 끝나는 때 가운데 늦은 쪽
+          할 = { 도착초: 도착, 끝초: Math.max(도착 + m.손.행동초, 고른.가능초 ?? 0), 자리: 고른.자리, 기록: 고른.기록, 효과: 고른.효과 };
         }
       }
     }

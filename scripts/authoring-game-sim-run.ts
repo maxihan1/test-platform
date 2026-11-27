@@ -2,7 +2,7 @@
 // 계산기(authoring-game-calc.ts 의 `시뮬`)와 게이트(authoring-learn-sim.ts)가 같이 쓴다
 import { createHash } from 'node:crypto';
 
-import { 곳격자, 길내기 } from './authoring-game-path.js';
+import { 곳격자, 길내기, 맨쌍글 } from './authoring-game-path.js';
 import { type 모델, type 규칙, type 점, 문턱넣기 } from './authoring-game-sim-input.js';
 import { type 걷는거리, type 시뮬결과, type 행동, 돌리기, 엔진판, 원안길이 } from './authoring-game-sim.js';
 import { 지금지도 } from './authoring-game-find.js';
@@ -52,7 +52,7 @@ export function 격자걷기(자료: string, m: 모델): { 걷기: 걷는거리;
   if (typeof g === 'string') return { 걷기: 곧은, 글: `격자를 못 지어 곧은 거리로 걸었다 — ${g}` };
   const 표 = new Map<string, number>();
   return {
-    글: '걷는 거리는 격자 길찾기',
+    글: ['걷는 거리는 격자 길찾기', ...맨쌍글(g)].join(' · '),
     걷기: (a, b) => {
       const 열쇠 = `${Math.floor(a[0])},${Math.floor(a[1])}>${Math.floor(b[0])},${Math.floor(b[1])}`;
       let d = 표.get(열쇠);
@@ -125,7 +125,7 @@ export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일�
   const m: 모델 = { ...모델, 손: { 행동초: Math.max(모델.손.행동초, 잰.행동초) } };
   const 걸음 = 자료 === undefined ? { 걷기: undefined, 글: '자료 폴더 밖 입력이라 곧은 거리로 걸었다' } : 격자걷기(자료, m);
   let 재현: { 기록: string; 이김: boolean; 웨이브수: number; 짐?: 시뮬결과['짐'] } | undefined;
-  const 줄글: string[] = [`손 — 행동 하나 ${m.손.행동초}초(${잰.기록 === undefined ? '새 판 행동기록 없음 · 첫 값' : `${잰.기록} 에서 잼`}) · ${걸음.글}`];
+  const 줄글: string[] = [...(자료 === undefined ? ['이 입력은 <자료 폴더>/game-calc/ 밖에 있다 — 이 줄로는 판이 안 돈다(조작 도우미가 그 자리에서 입력을 다시 읽는다). 입력을 그 폴더로 옮겨 다시 계산한다'] : []), `손 — 행동 하나 ${m.손.행동초}초(${잰.기록 === undefined ? '새 판 행동기록 없음 · 첫 값' : `${잰.기록} 에서 잼`}) · ${걸음.글}`];
   if (m.재현 !== undefined) {
     const 판 = 자료 === undefined ? undefined : 판기록들(자료).find((r) => r.이름 === m.재현!.기록);
     const 행 = 판 === undefined ? null : 행동기록읽기(판);
