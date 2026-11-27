@@ -4,7 +4,9 @@ import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 게임자리 } from './authoring-game.js';
+import { 지금지도 } from './authoring-game-find.js';
 import { type 나온것, 지도글, 지도에있나 } from './authoring-game-play-spawns.js';
+import { 값막는글, 값빠짐찾기, 값파일들 } from './authoring-game-values.js';
 
 /** 앞 판을 볼 기록 수 — 최근 것부터 이만큼에서 「새로 나온 것」을 센 기록을 찾는다 */
 const 볼기록 = 20;
@@ -33,9 +35,11 @@ export function 안적은새것(자료: string | undefined, 학습만 = true): �
     }
     if (나온 === undefined) continue;
     const 지도 = 지도글(자료);
-    const 안적은 = 나온.지도에없음.filter((k) => !지도에있나(지도, k));
+    // 값 파일이 있는 종류는 이름 글자로 통과하지 않는다 — 값 줄을 보는 값빠짐찾기가 맡는다
+    const 값종류 = new Set(값파일들(자료).map((x) => x.종류));
+    const 안적은 = 나온.지도에없음.filter((k) => !값종류.has(k) && !지도에있나(지도, k));
     // 옛 기록에는 처음지도에없음이 없다
-    const 처음 = (나온.처음지도에없음 ?? []).filter((k) => !지도에있나(지도, k));
+    const 처음 = (나온.처음지도에없음 ?? []).filter((k) => !값종류.has(k) && !지도에있나(지도, k));
     return 안적은.length + 처음.length === 0 ? null : { 기록: join(폴더, 이름.replace(/\.json$/, '')), 이름들: 안적은, 처음 };
   }
   return null;
@@ -47,3 +51,15 @@ export const 막는글 = (x: 안적은것): string =>
     ...(x.이름들.length === 0 ? [] : [`[조작 도우미] 앞 판(${x.기록}.json)에 새로 나온 ${x.이름들.join(' · ')} 이(가) 지도에 없다 — ${x.기록}-새것.txt 의 펼친 글(없으면 지켜보기로 다시 보거나 다음에 보일 때 펼친다)을 보고 그 이름을 넣어 PROBE 나 ASK 줄로 적은 뒤 다시 부른다(회고 「새로 나온 것」 · 학습 세션만 막는다)`]),
     ...(x.처음.length === 0 ? [] : [`[조작 도우미] 앞 판(${x.기록}.json) 장면에 처음부터 있던 ${x.처음.join(' · ')} 이(가) 지도에 없다 — 하나씩 펼쳐(authoring-game-props) 무엇인지 보고 그 이름을 넣어 PROBE 나 ASK 줄로 적은 뒤 다시 부른다. 걷는 바닥 · 막는 것 · 놓는 자리 · 적 길 같은 맵 정보면 그 곳 STAGE 의 data.맵 에도 적는다(지침 「맵 파악」)`]),
   ].join('\n');
+
+/**
+ * 다음 판을 막을 글 — 앞 판의 지도에 없는 새것 · 값 파일이 있는데 값 줄이 없는 종류 · 치트 표시가 없는 종류. 안 막으면 null.
+ * 값 줄은 학습 세션에서만 본다(시험 · 케이스 세션은 지도를 안 쓴다)
+ */
+export function 막힘글(자료: string | undefined): string | null {
+  if (자료 === undefined || lstatSync(join(자료, 게임자리.배우는중), { throwIfNoEntry: false })?.isFile() !== true) return null;
+  const 안적은 = 안적은새것(자료);
+  const 지도 = 지금지도(자료);
+  const 값 = 지도 === null ? null : 값빠짐찾기(값파일들(자료), 지도.줄들);
+  return 안적은 === null && 값 === null ? null : [...(안적은 === null ? [] : [막는글(안적은)]), ...(값 === null ? [] : [값막는글(값)])].join('\n');
+}

@@ -12,7 +12,7 @@ import { 멈추기, 풀기 } from './authoring-game-play-freeze.js';
 import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
 import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
 import { type 나온것, 세기시작, 지도글 } from './authoring-game-play-spawns.js';
-import { 막는글, 안적은새것 } from './authoring-game-play-gate.js';
+import { 막힘글 } from './authoring-game-play-gate.js';
 import { type 멈춤보고, 멈춤보기시작 } from './authoring-game-play-stop.js';
 import { 값읽기시작 } from './authoring-game-play-values.js';
 import { 결과글 } from './authoring-game-state.js';
@@ -235,9 +235,9 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const { 이름, 넘길, 환경, 비밀들, 자료 } = 것;
   // 학습 세션에서 계획 없이 --max 도 안 줬으면 짧은 재기다 — 기본 90초를 60초로 줄인다
   const 초 = 배우는중인가(자료) && 것.계획 === undefined && !것.초준 ? Math.min(것.초, 계획없이초) : 것.초;
-  const 안적은 = 안적은새것(자료);
-  if (안적은 !== null) {
-    console.error(막는글(안적은));
+  const 막힘 = 막힘글(자료);
+  if (막힘 !== null) {
+    console.error(막힘);
     return 2;
   }
   // 학습 세션만 — 앞 회고 · 계획 · 손만 고친 되풀이 · 다섯 번 안 늚을 본다
