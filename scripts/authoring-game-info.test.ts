@@ -41,6 +41,8 @@ describe('깃발읽기', () => {
     expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|M.CheatSpawnFinalBoss|1'])).toMatchObject({ 부름들: [{ 주소: '/M', 메서드: 'M.CheatSpawnFinalBoss', 인자: ['1'] }] });
     expect(깃발읽기(['/자료', 'stage:둘째', '--call', '//*[@id=1] | //*[@id=2]|A.B|1.5, "x" ,true'])).toMatchObject({ 부름들: [{ 주소: '//*[@id=1] | //*[@id=2]', 메서드: 'A.B', 인자: ['1.5', 'x', 'true'] }] });
     expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|M.Skip|'])).toMatchObject({ 부름들: [{ 주소: '/M', 메서드: 'M.Skip' }] });
+    expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|M.Spawn|Boss.Final'])).toMatchObject({ 부름들: [{ 주소: '/M', 메서드: 'M.Spawn', 인자: ['Boss.Final'] }] });
+    expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/a|b/M|M.Skip'])).toMatchObject({ 부름들: [{ 주소: '/a|b/M', 메서드: 'M.Skip' }] });
     expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|M.없는꼴|1,2'])).not.toBeTypeOf('string');
     expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|메서드만|1'])).toContain('--call');
     expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|Skip|1'])).toContain('--call');
