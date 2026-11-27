@@ -151,11 +151,11 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   // 옛 SDK 는 장면을 못 읽는다 — 못 읽어도 조작은 하고 못한것에도 안 적는다
   const 장면읽기 = (): Promise<string | null> => 맨게임.scenes().then((x) => (typeof x.active === 'string' ? x.active : null), () => null);
   const 첫장면 = await 장면읽기();
-  const 읽기 = !돌릴까 || 덧?.볼 === undefined ? null : 값읽기시작(맨게임, 덧.볼.계획, 덧.볼.볼값, 덧.볼.기대, 시작, undefined, 덧.볼.위치);
+  const 읽기 = !돌릴까 || 덧?.볼 === undefined ? null : 값읽기시작(맨게임, 덧.볼.계획, 덧.볼.볼값, 덧.볼.기대, 시작, undefined, 덧.볼.위치, 첫장면);
   // 계획으로 해 볼 때만 — 걸리면 넘음을 거절해 함수를 끊고 아래에서 멈춘다
   let 판멈춤: (왜: string) => void = () => {};
   let 멈춘까닭: string | null = null;
-  // 한도로 끝난 뒤 AI 가 회고를 쓰는 동안 판이 흘러 졌다(16054) — 학습 세션이면 --freeze 가 없어도 멈춘 채 돌려준다
+  // 한도로 끝난 뒤 AI 가 회고를 쓰는 동안 판이 흘러 졌다(16054) — 학습 세션이면 --freeze 가 없어도 멈춘 채 돌려준다. 계획으로 부른 판은 함수가 스스로 끝나도 멈춘다(16098 첫 맵 5/6 세계수 49 판이 35초 동안 흘러 졌다)
   let 한도끝 = false;
   const 멈춰보기 = 읽기 === null ? null : 멈춤보기시작(맨게임, 시작, { 값: 읽기.지금, 나온: () => 세기?.지금() ?? null, 로그앞: 앞.로그 }, (왜) => ((멈춘까닭 = 왜), 판멈춤(왜)));
   let 값: unknown;
@@ -180,7 +180,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   세기?.그친다();
   읽기?.그친다();
   멈춰보기?.그친다();
-  const 멈춤 = (덧?.멈춤 === true || 멈춘까닭 !== null || (한도끝 && 배우는중인가(덧?.자료))) && 돌릴까 ? await 멈추기(맨게임, 덧?.자료, 배율, 배율바꿈, 해본다) : null;
+  const 멈춤 = (덧?.멈춤 === true || 멈춘까닭 !== null || ((한도끝 || 덧?.볼 !== undefined) && 배우는중인가(덧?.자료))) && 돌릴까 ? await 멈추기(맨게임, 덧?.자료, 배율, 배율바꿈, 해본다) : null;
   막음 = true;
   for (const 끝 = Date.now() + 답기다림ms; 보내는중 > 0 && Date.now() < 끝; ) await 쉼(50);
   try {
