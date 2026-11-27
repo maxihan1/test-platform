@@ -24,7 +24,7 @@ beforeEach(() => {
   mkdirSync(join(t, 'tests', 'g', 'helpers'), { recursive: true });
   mkdirSync(join(t, '.control-cli'));
   mkdirSync(자료());
-  writeFileSync(join(t, 'tests', 'g', 'helpers', 'play.helper.ts'), 'export const 판 = () => new Promise((끝) => setTimeout(() => 끝({ 이김: false }), 50));\n');
+  writeFileSync(join(t, 'tests', 'g', 'helpers', 'play.helper.ts'), 'export const 판 = () => new Promise((끝) => setTimeout(() => 끝({ 이김: false }), 2_100));\n');
   writeFileSync(join(t, '.control-cli', 'held'), 'pc-pc1\n');
   writeFileSync(join(자료(), 'game-map.txt'), 지도);
   writeFileSync(join(자료(), 'game-learning.now'), '1');
@@ -34,11 +34,13 @@ afterEach(() => {
   rmSync(t, { recursive: true, force: true });
 });
 
+// 첫 읽기는 앞 판 끝 화면일 수 있어 기대를 안 본다 — 두 번째 읽기(2초)에 바뀐 값으로 어긋난다
+let 세계수: number[] = [];
 const 길 = (async (c: Command) => {
   const cmd = c as unknown as Record<string, unknown>;
   switch (cmd.cmd) {
     case 'ping': return { ok: true, app: 'g', version: '1' };
-    case 'get': return { ok: true, value: 42 };
+    case 'get': return { ok: true, value: 세계수.shift() ?? 42 };
     case 'find': return { ok: true, found: true, path: cmd.target, text: '깬 맵 0' };
     case 'tree': return { ok: true, scene: 'Main', screen: [100, 100], tree: [{ name: 'Canvas', children: [{ name: 'MyBestValue', text: '--:--.--' }] }] };
     case 'timescale-get': return { ok: true, timeScale: 1 };
@@ -58,13 +60,14 @@ it('계획으로 해 보면 볼값 · 처음 어긋난 순간 사진 · 끝 화�
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   expect(await 부르기('--max', '61')).toBe(2);
   expect(찍힘()).toContain('--plan <계획(TRIAL) 줄 열쇠>');
+  세계수 = [60];
   expect(await 부르기('--max', '61', '--plan', 'trial:첫 맵')).toBe(0);
   const 파일들 = readdirSync(join(자료(), 'game-play'));
   const 이름 = 파일들.find((x) => x.endsWith('-판.json'))!.slice(0, -5);
   expect(파일들).toContain(`${이름}-어긋남.jpg`);
   const 몸 = JSON.parse(readFileSync(join(자료(), 'game-play', `${이름}.json`), 'utf8')) as Record<string, unknown>;
   expect(몸).toMatchObject({
-    값기록: { 계획: 'trial:첫 맵', 때: [{ 값: { 세계수: 42, 나아감: 0 } }], 어긋남: { 값이름: '세계수', 값: 42, 기대: '세계수 >= 50', 사진: `${이름}-어긋남.jpg` } },
+    값기록: { 계획: 'trial:첫 맵', 때: [{ 값: { 세계수: 60, 나아감: 0 } }, { 값: { 세계수: 42, 나아감: 0 } }], 어긋남: { 값이름: '세계수', 값: 42, 기대: '세계수 >= 50', 사진: `${이름}-어긋남.jpg` } },
     끝글: [{ 주소: 'MyBestValue', 글: '--:--.--' }],
   });
   expect(찍힘()).toContain(`회고 줄 play:${이름} 을 적어야 다음 해 보기가 돈다`);
