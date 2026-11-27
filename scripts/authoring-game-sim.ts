@@ -2,19 +2,20 @@
 // 웨이브 체력 합만 견주던 계산은 「버틴다」고 해 놓고 판은 1~2웨이브에서 졌다(작성 16094 · 16097 · 16098) — 출현 빠르기 · 걷는 시간 · 자라는 시간 · 줍는 시간을 다 넣는다
 // 게임을 모른다. 같은 입력이면 늘 같은 결과라(무작위 없음) 게이트가 다시 돌려 확인한다
 import { 거리, 길위자리, 누적길이, 원안길이 } from './authoring-game-sim-geo.js';
-import type { 모델, 규칙, 상태이름, 점 } from './authoring-game-sim-input.js';
+import type { 모델, 규칙, 상태이름, 행동종류, 점 } from './authoring-game-sim-input.js';
 
 export { type 원, 원안길이 } from './authoring-game-sim-geo.js';
 
 export type { 점 } from './authoring-game-sim-input.js';
 /** 엔진이 바뀌면 올린다 — 게이트가 다른 엔진으로 낸 시뮬 줄을 다시 돌리게 */
-export const 엔진판 = 3;
+export const 엔진판 = 4;
 export const 칸초 = 0.1;
 export const 예상간격초 = 2;
 /** 이만큼 흘러도 안 끝나면 짐으로 끊는다 — 적이 기절만 되풀이하는 입력이 끝나지 않게 */
 export const 최대초 = 3600;
 
-export interface 행동 { 초: number; 행동: string; 대상?: string; 자리?: 점; 도착초?: number; 끝초?: number; 됨?: boolean }
+/** 자리들 — 한 번에 주운 자리들(순서대로 하기가 이어진 줍기를 한 단계로 묶는다). 시작초 — 걷기 시작한 때(앞 행동이 끝난 뒤 읽고 고르는 데 든 시간이 초와 시작초 사이다) */
+export interface 행동 { 초: number; 행동: string; 대상?: string; 자리?: 점; 자리들?: 점[]; 시작초?: number; 도착초?: number; 끝초?: number; 됨?: boolean }
 export interface 웨이브결과 { 이름: string; 처치: number; 새어나감: number; 끝지킬것: number; 끝재화: number; 끝초: number }
 export interface 시뮬결과 {
   이김: boolean;
@@ -45,7 +46,8 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
   const 탑들: 탑[] = [];
   const 떨어진: { 자리: 점; 값: number }[] = [];
   const 캐체력최대 = m.캐릭터.체력 ?? Infinity;
-  let [재화, 지킬것, 캐자리, 캐체력, 쓰러짐, 캐쿨] = [m.재화.시작, m.지킬것.체력, m.캐릭터.자리, 캐체력최대, 0, 0];
+  const 시 = m.시작;
+  let [재화, 지킬것, 캐자리, 캐체력, 쓰러짐, 캐쿨] = [시?.재화 ?? m.재화.시작, 시?.지킬것 ?? m.지킬것.체력, 시?.자리 ?? m.캐릭터.자리, 캐체력최대, 0, 0];
   let 할: 할일 | null = null;
   let 지금 = 0;
   const 쿨: Record<string, number> = {};
@@ -56,7 +58,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
   const 셈 = m.웨이브.map(() => ({ 처치: 0, 새어나감: 0, 남은출현: 0, 새체력: 0 }));
   let 출현표: { 초: number; 웨이브: number; 종류: string; 길: string }[] = [];
   let 웨이브i = -1;
-  let 다음시작 = m.웨이브[0]!.시작초 ?? m.웨이브[0]!.쉬는초;
+  let 다음시작 = 시?.첫웨이브까지초 ?? m.웨이브[0]!.시작초 ?? m.웨이브[0]!.쉬는초;
   const 재현남은 = 재현 === undefined ? null : [...재현].sort((a, b) => (a.끝초 ?? a.초) - (b.끝초 ?? b.초));
 
   const 덮음표 = new Map<string, number>();
@@ -94,6 +96,14 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
   const 새탑 = (종류: string, 자: 점): 탑 => ({ 종류, 레벨: 0, 자리: 자, 자람: m.설치물종류[종류]!.자라는초, 쿨: 0, 유지: m.설치물종류[종류]!.유지?.체력 ?? Infinity });
   // 유지를 받는 탑 — 유지가 있고 지금 레벨이 유지없음이 아니다
   const 유지받나 = (t: 탑): boolean => m.설치물종류[t.종류]!.유지 !== undefined && m.설치물종류[t.종류]!.레벨[t.레벨]!.유지없음 !== true;
+  // 이어 흘리기 — 판에 놓인 설치물은 다 자란 것으로, 바닥 재화는 값을 못 읽어 가장 싼 보상으로 친다
+  const 싼보상 = Math.min(...Object.values(m.적종류).map((e) => e.보상).filter((v) => v > 0), Infinity);
+  for (const p of 시?.떨어진 ?? []) 떨어진.push({ 자리: p, 값: Number.isFinite(싼보상) ? 싼보상 : 1 });
+  for (const s of 시?.설치물 ?? []) {
+    const 종 = m.설치물종류[s.종류];
+    if (종 !== undefined) 탑들.push({ ...새탑(종.이름, s.자리), 레벨: Math.min(종.레벨.length, Math.max(1, Math.round(s.레벨))) - 1, 자람: 0, 유지: 종.유지 === undefined ? Infinity : 종.유지.체력 * Math.min(1, Math.max(0, s.유지 ?? 1)) });
+  }
+  const 손초 = (무엇: string): number => m.손.종류별?.[무엇 as 행동종류] ?? m.손.행동초;
   const 계획 = (r: 규칙, t: number): Omit<할일, '도착초' | '끝초'> & { 가능초?: number; 손초?: number } | null => {
     const { 무엇, 대상, 반경 } = r.행동;
     const 기 = (자: 점): 행동 => ({ 초: t, 행동: 무엇, ...(대상 === undefined ? {} : { 대상 }), 자리: [Math.round(자[0] * 10) / 10, Math.round(자[1] * 10) / 10] });
@@ -115,7 +125,8 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     }
     if (무엇 === '키우기') {
       const 종 = m.설치물종류[대상!]!;
-      const 고른 = 탑들.filter((x) => x.종류 === 종.이름 && x.레벨 + 1 < 종.레벨.length && 종.레벨[x.레벨 + 1]!.값 <= 재화).sort((a, b) => 덮음(b.자리, 종.레벨[b.레벨 + 1]!.사거리) - 덮음(a.자리, 종.레벨[a.레벨 + 1]!.사거리) || 거리(a.자리, 캐자리) - 거리(b.자리, 캐자리))[0];
+      const 먼저 = r.행동.고르기 === undefined ? 0 : r.행동.고르기 === '높은' ? -1 : 1;
+      const 고른 = 탑들.filter((x) => x.종류 === 종.이름 && x.레벨 + 1 < 종.레벨.length && 종.레벨[x.레벨 + 1]!.값 <= 재화).sort((a, b) => 먼저 * (a.레벨 - b.레벨) || 덮음(b.자리, 종.레벨[b.레벨 + 1]!.사거리) - 덮음(a.자리, 종.레벨[a.레벨 + 1]!.사거리) || 거리(a.자리, 캐자리) - 거리(b.자리, 캐자리))[0];
       if (고른 === undefined) return null;
       return { 자리: 고른.자리, 기록: 기(고른.자리), 효과: () => { const 값 = 종.레벨[고른.레벨 + 1]?.값; if (값 === undefined || 재화 < 값 || !탑들.includes(고른)) return false; 재화 -= 값; 고른.레벨 += 1; return true; } };
     }
@@ -159,6 +170,8 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       // 먹이도 기록한 자리에 가장 가까운 그 종류 탑에 준다
       if (x.행동 === '먹이') { const 탑 = 탑들.filter((t) => t.종류 === x.대상 && 유지받나(t)).sort((a, b) => 거리(a.자리, 자) - 거리(b.자리, 자))[0]; const 먹 = 탑 === undefined ? undefined : m.설치물종류[탑.종류]!.유지?.먹이; if (탑 === undefined || 먹 === undefined || 재화 < 먹.값) return false; 재화 -= 먹.값; 탑.유지 = Math.min(m.설치물종류[탑.종류]!.유지!.체력, 탑.유지 + 먹.양); return true; }
       if (x.행동 === '키우기') { const 탑 = 탑들.filter((t) => t.종류 === x.대상).sort((a, b) => 거리(a.자리, 자) - 거리(b.자리, 자))[0]; const 값 = 탑 === undefined ? undefined : m.설치물종류[탑.종류]!.레벨[탑.레벨 + 1]?.값; if (탑 === undefined || 값 === undefined || 재화 < 값) return false; 재화 -= 값; 탑.레벨 += 1; return true; }
+      // 한 번에 주운 자리들 — 그 자리마다 줍는 거리 안의 재화가 들어온다
+      if (x.행동 === '줍기' && x.자리들 !== undefined) { for (let i = 떨어진.length - 1; i >= 0; i -= 1) if (x.자리들.some((p) => 거리(떨어진[i]!.자리, p) <= m.재화.줍는거리)) 재화 += 떨어진.splice(i, 1)[0]!.값; return true; }
       const 계 = 계획(규, x.초);
       return 계 === null ? false : 계.효과();
     };
@@ -249,7 +262,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
         if (고른 !== null) {
           const 도착 = 지금 + 걷기(캐자리, 고른.자리) / m.캐릭터.걷기속도;
           // 쿨타임은 걷는 동안에도 돈다 — 도착 뒤 손 시간과 쿨타임이 끝나는 때 가운데 늦은 쪽
-          할 = { 도착초: 도착, 끝초: Math.max(도착 + Math.max(m.손.행동초, 고른.손초 ?? 0), 고른.가능초 ?? 0), 자리: 고른.자리, 기록: 고른.기록, 효과: 고른.효과 };
+          할 = { 도착초: 도착, 끝초: Math.max(도착 + Math.max(손초(고른.기록.행동), 고른.손초 ?? 0), 고른.가능초 ?? 0), 자리: 고른.자리, 기록: 고른.기록, 효과: 고른.효과 };
         }
       }
     }
