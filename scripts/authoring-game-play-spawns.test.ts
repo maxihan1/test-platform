@@ -181,6 +181,19 @@ describe('판 도중 새로 나온 것', () => {
     expect(부름).toBe(3);
   });
 
+  it('지도에 이름만 있고 값 파일이 없는 종류도 펼쳐 값 파일을 남긴다 — 지도에 없음으로는 안 센다', async () => {
+    const d = mkdtempSync(join(tmpdir(), 'spawns-'));
+    자리들.push(d);
+    const 판 = [...바탕, 것('/Enemies/Ghost(Clone)', '7')];
+    const g = 가짜([바탕, 판]);
+    const 고리 = 세기시작(g.game, 10, Date.now(), '지도 줄: Ghost 는 기지로 간다', d);
+    await 쉼(60);
+    const { 나온 } = await 고리.끝난다();
+    expect(g.펼친).toEqual(['//*[@id=7]']);
+    expect(나온!.지도에없음).toEqual([]);
+    expect(readdirSync(join(d, 'game-props'))).toEqual(['Ghost.json']);
+  });
+
   it('지도 글은 받아 온 지도와 안 올린 배운 줄을 합친다 — 자료 폴더가 없으면 빈 글', () => {
     const d = mkdtempSync(join(tmpdir(), 'spawns-'));
     자리들.push(d);

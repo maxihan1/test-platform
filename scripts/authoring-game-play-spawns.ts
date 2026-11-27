@@ -7,6 +7,7 @@ import type { Found, Game } from 'control-cli';
 
 import { 게임자리 } from './authoring-game.js';
 import { 종류 } from './authoring-game-bundles.js';
+import { 값파일있나 } from './authoring-game-bundles.js';
 import { 새종류펼치기, 펼칠상한 } from './authoring-game-play-expand.js';
 import { 화면그림인가 } from './authoring-game-watch-report.js';
 
@@ -176,8 +177,10 @@ export function 세기시작(게임: 셀게임, 간격ms: number, 시작: number
         나온.화면것.push(k);
         continue;
       }
-      if (지도에있나(지도, k)) continue;
-      나온.지도에없음.push(k);
+      // 지도에 이름만 있고 값 파일이 없는 종류도 펼친다 — #16054 지도는 이름만 적은 줄이 많아 이대로면 값 줄 막기를 비켜 간다
+      if (지도에있나(지도, k)) {
+        if (자료 === undefined || 값파일있나(자료, k)) continue;
+      } else 나온.지도에없음.push(k);
       await 새종류펼치기({ 나온, 종류: k, 찾음: f, 초, 펼칠까, 게임: 지킨 as unknown as Game, 장면: 지금장면 ?? 장면, 그침인가: (e) => e instanceof 그침, ...(자료 === undefined ? {} : { 자료 }), ...(덧 === undefined ? {} : { 덧 }) });
     }
   };
