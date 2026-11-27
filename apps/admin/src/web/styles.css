@@ -2683,6 +2683,14 @@ input[type='file']::file-selector-button {
   overflow-wrap: anywhere;
 }
 
+/* 프로젝트 줄 앞의 접힘 표시 — 지금 프로젝트만 ▾ 로 펼쳐 있다 */
+.set-nav-caret {
+  flex: none;
+  width: 1em;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
 .set-nav-sub {
   margin-left: auto;
   font-size: 12px;

@@ -4,7 +4,6 @@
 import { Fragment, useEffect, useState } from 'react';
 
 import { api, type SettingsProject, type SettingsServiceRow, type User, type UserRow } from './api.js';
-import { BTS이름 } from './btsName.js';
 import { Head } from './Head.js';
 import { 고른서비스를읽는다 } from './layout.js';
 import { 떠나기로했다, 주소덮기 } from './leaveGuard.js';
@@ -90,6 +89,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   const 서비스 = 서비스들.find((it) => it.prefix === 고른);
   const BTS자리 = 고른.endsWith('-bts');
   const 프로젝트 = 프로젝트들.find((it) => `project-${it.id}` === (BTS자리 ? 고른.slice(0, -'-bts'.length) : 고른));
+  // 메뉴는 지금 프로젝트 하나만 펼친다 — 고른 애플리케이션의 프로젝트, 프로젝트 화면이면 그 프로젝트, 계정 같은 곳이면 맨 위에서 보던 애플리케이션의 프로젝트
+  const 지금프로젝트 = 서비스?.projectId ?? 프로젝트?.id ?? 서비스들.find((it) => it.prefix === 헤더서비스)?.projectId;
   const 프로젝트줄 = 프로젝트줄들(프로젝트들, 서비스들);
   const 대기수 = users.data.items.filter((it) => it.isApproved === false).length;
   // 마법사의 「나가기」 — 보던 애플리케이션, 없으면 첫 프로젝트, 그것도 없으면 계정이다
@@ -127,7 +128,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
       <Head 제목={t('설정')} 부제={t('관리자만 볼 수 있는 화면입니다')} />
 
       <div className="screen set-layout">
-        <설정메뉴 프로젝트들={프로젝트줄} 서비스들={서비스들} 고른={고른} 계정수={users.data.items.length - 대기수} 대기수={대기수} />
+        <설정메뉴 프로젝트들={프로젝트줄} 서비스들={서비스들} 고른={고른} 고른프로젝트={프로젝트?.id} 지금프로젝트={지금프로젝트} 계정수={users.data.items.length - 대기수} 대기수={대기수} />
         <div className="set-main">
           {고른 === 'perf-agents' ? (
             <SettingsPerfAgents
@@ -195,12 +196,18 @@ function 설정메뉴({
   프로젝트들,
   서비스들,
   고른,
+  고른프로젝트,
+  지금프로젝트,
   계정수,
   대기수,
 }: {
   프로젝트들: 프로젝트줄[];
   서비스들: SettingsServiceRow[];
   고른: string;
+  /** 프로젝트 화면을 보고 있으면 그 번호 — 프로젝트 탭(기본 정보 · 연결 · API 서버)이 어느 것이든 같은 줄이 지금 자리다 */
+  고른프로젝트: number | undefined;
+  /** 펼칠 프로젝트 하나 */
+  지금프로젝트: number | undefined;
   계정수: number;
   대기수: number;
 }) {
@@ -211,30 +218,33 @@ function 설정메뉴({
     <nav className="set-nav" aria-label={t('설정 메뉴')}>
       <h2>{t('프로젝트')}</h2>
       {프로젝트들.length === 0 ? <p className="hint">{t('아직 프로젝트가 없습니다')}</p> : null}
-      {/* 애플리케이션은 제 프로젝트 아래에 들여 쓴다 — 나란히 두면 어느 프로젝트 것인지 안 보였다 (2026-10-20 ⑬-3) */}
-      {프로젝트들.map((it) => (
-        <Fragment key={it.id}>
-          <a href={`#/settings/project-${it.id}`} {...자리(`project-${it.id}`)}>
-            <span className="set-nav-name">{it.name}</span>
-            <span className="set-nav-sub">{t('애플리케이션 {수}개', { 수: it.앱수 })}</span>
-          </a>
-          {/* 묶음 이름을 프로젝트로 달아 화면 읽기에도 어느 프로젝트 것인지 들린다 */}
-          <div className="set-nav-tree" role="group" aria-label={it.name}>
-            <a href={`#/settings/project-${it.id}-bts`} {...자리(`project-${it.id}-bts`)}>
-              <span className="set-nav-name">{t('{bts} 연결', { bts: BTS이름 })}</span>
+      {/* 프로젝트는 다 보이고 지금 프로젝트 하나만 펼쳐 그 애플리케이션을 들여 쓴다 — 나란히 두면 어느 프로젝트 것인지 안 보였고(2026-10-20 ⑬-3), 다 펼치면 길었다 */}
+      {프로젝트들.map((it) => {
+        const 펼침 = it.id === 지금프로젝트;
+        return (
+          <Fragment key={it.id}>
+            <a href={`#/settings/project-${it.id}`} {...(it.id === 고른프로젝트 ? { 'aria-current': 'page' as const } : {})} aria-expanded={펼침}>
+              <span className="set-nav-caret" aria-hidden="true">{펼침 ? '▾' : '▸'}</span>
+              <span className="set-nav-name">{it.name}</span>
+              <span className="set-nav-sub">{t('애플리케이션 {수}개', { 수: it.앱수 })}</span>
             </a>
-            {서비스들
-              .filter((앱) => 앱.projectId === it.id)
-              .map((앱) => (
-                <a key={앱.id} href={`#/settings/${encodeURIComponent(앱.prefix)}`} {...자리(앱.prefix)}>
-                  <span className="set-nav-name">{앱.name}</span>
-                  {/* 접두사는 늘 둔다 — 주소와 케이스 번호에 쓰이는 이름이다. 비활성이면 곁에 그 사실을 더한다 */}
-                  <span className="set-nav-sub">{앱.isActive ? 앱.prefix : `${앱.prefix} · ${t('비활성')}`}</span>
-                </a>
-              ))}
-          </div>
-        </Fragment>
-      ))}
+            {/* 묶음 이름을 프로젝트로 달아 화면 읽기에도 어느 프로젝트 것인지 들린다 */}
+            {펼침 ? (
+              <div className="set-nav-tree" role="group" aria-label={it.name}>
+                {서비스들
+                  .filter((앱) => 앱.projectId === it.id)
+                  .map((앱) => (
+                    <a key={앱.id} href={`#/settings/${encodeURIComponent(앱.prefix)}`} {...자리(앱.prefix)}>
+                      <span className="set-nav-name">{앱.name}</span>
+                      {/* 접두사는 늘 둔다 — 주소와 케이스 번호에 쓰이는 이름이다. 비활성이면 곁에 그 사실을 더한다 */}
+                      <span className="set-nav-sub">{앱.isActive ? 앱.prefix : `${앱.prefix} · ${t('비활성')}`}</span>
+                    </a>
+                  ))}
+              </div>
+            ) : null}
+          </Fragment>
+        );
+      })}
       <a href="#/settings/project-new" className="set-nav-add" {...자리('project-new')}>
         {t('+ 프로젝트 추가')}
       </a>

@@ -93,7 +93,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     return render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리={자리} />);
   }
 
-  it('메뉴는 프로젝트마다 그 아래에 「BTS 연결」과 그 프로젝트의 애플리케이션이 들여 써 서고, 프로젝트 추가 · 애플리케이션 추가 · 계정이 뒤따른다', async () => {
+  const 셋 = () => {
     vi.spyOn(api, 'settingsProjects').mockResolvedValue({
       items: [
         { id: 1, name: '데모마켓' },
@@ -102,24 +102,87 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     });
     vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스, { ...둘째, projectId: 2, projectName: '사내 포털' }, { ...둘째, id: 3, prefix: 'ZSV', name: 'ZSV 애플리케이션' }] });
     vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+  };
+  const 링크들 = (메뉴: HTMLElement) => [...메뉴.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.closest('[role="group"]')?.getAttribute('aria-label') ?? null]);
+
+  it('메뉴는 프로젝트를 다 보이고 지금 프로젝트의 애플리케이션만 들여 써 펼친다 — 프로젝트 추가 · 애플리케이션 추가 · 계정이 뒤따르고 Issue Bunker 연결 줄은 없다', async () => {
+    셋();
     render(<Settings user={사람('admin')} onMeChanged={() => undefined} />);
     const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
 
-    const 링크들 = [...메뉴.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.closest('[role="group"]')?.getAttribute('aria-label') ?? null]);
-    expect(링크들).toEqual([
+    expect(링크들(메뉴)).toEqual([
       ['#/settings/project-1', null],
-      ['#/settings/project-1-bts', '데모마켓'],
       ['#/settings/ZST', '데모마켓'],
       ['#/settings/ZSV', '데모마켓'],
       ['#/settings/project-2', null],
-      ['#/settings/project-2-bts', '사내 포털'],
-      ['#/settings/ZSU', '사내 포털'],
       ['#/settings/project-new', null],
       ['#/settings/new', null],
       ['#/settings/users', null],
       ['#/settings/perf-agents', null],
     ]);
+    expect(메뉴.querySelector('a[href$="-bts"]')).toBeNull();
     expect([...메뉴.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['프로젝트', '사람', '성능 테스트']);
+  });
+
+  it('펼친 프로젝트는 ▾, 접힌 프로젝트는 ▸ 이고 오른쪽에 애플리케이션 수가 선다. 접힌 줄은 그 프로젝트 설정으로 가는 링크다', async () => {
+    셋();
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} />);
+    const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+
+    const 펼침 = 메뉴.querySelector('a[href="#/settings/project-1"]')!;
+    const 접힘 = 메뉴.querySelector('a[href="#/settings/project-2"]')!;
+    expect(펼침.querySelector('.set-nav-caret')?.textContent).toBe('▾');
+    expect(펼침.getAttribute('aria-expanded')).toBe('true');
+    expect(접힘.querySelector('.set-nav-caret')?.textContent).toBe('▸');
+    expect(접힘.getAttribute('aria-expanded')).toBe('false');
+    expect(펼침.querySelector('.set-nav-sub')?.textContent).toBe('애플리케이션 2개');
+    expect(접힘.querySelector('.set-nav-sub')?.textContent).toBe('애플리케이션 1개');
+  });
+
+  it('지금 프로젝트는 고른 애플리케이션의 프로젝트다', async () => {
+    셋();
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZSU" />);
+    const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+
+    expect(링크들(메뉴).slice(0, 3)).toEqual([
+      ['#/settings/project-1', null],
+      ['#/settings/project-2', null],
+      ['#/settings/ZSU', '사내 포털'],
+    ]);
+  });
+
+  it('프로젝트 화면이면 그 프로젝트를 펼치고 그 줄이 지금 자리다 — Issue Bunker 연결 화면도 같다', async () => {
+    vi.spyOn(btsApi, 'get').mockResolvedValue({
+      linked: false, baseUrl: null, btsProject: null, botUsername: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null, publicUrl: null,
+    });
+    셋();
+    const { unmount } = render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="project-2" />);
+    const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+    expect(링크들(메뉴).slice(0, 3)).toEqual([
+      ['#/settings/project-1', null],
+      ['#/settings/project-2', null],
+      ['#/settings/ZSU', '사내 포털'],
+    ]);
+    expect(메뉴.querySelector('a[href="#/settings/project-2"]')?.getAttribute('aria-current')).toBe('page');
+    unmount();
+
+    셋();
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="project-2-bts" />);
+    const 연결메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+    expect(연결메뉴.querySelector('a[href="#/settings/project-2"]')?.getAttribute('aria-current')).toBe('page');
+  });
+
+  it('계정 같은 화면이면 맨 위에서 보던 애플리케이션의 프로젝트를 펼친다', async () => {
+    셋();
+    고른서비스를적는다('ZSU');
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="users" />);
+    const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+
+    expect(링크들(메뉴).slice(0, 3)).toEqual([
+      ['#/settings/project-1', null],
+      ['#/settings/project-2', null],
+      ['#/settings/ZSU', '사내 포털'],
+    ]);
   });
 
   it('프로젝트 줄에 그 안의 애플리케이션 수가 선다', async () => {
