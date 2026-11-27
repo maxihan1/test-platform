@@ -146,7 +146,8 @@ function 변경요약(c: NonNullable<첫장['changes']>): string {
   const q = c.requirements;
   return 건수글(
     [
-      건('이슈', c.product.linked ? c.product.issues.length : 0),
+      // 본문은 배포가 없으면 이슈 표를 안 그린다 — 머리도 같이 안 센다
+      건('이슈', c.product.linked && c.product.deploys.length > 0 ? c.product.issues.length : 0),
       건('요구사항', q === null ? 0 : q.added.length + q.changed.length + q.removed.length),
       // 기대 결과 변경은 접혀 있어도 먼저 봐야 할 줄이다 — 케이스 건수 뒤에 따로 단다
       건('케이스', t === null ? 0 : t.modified.length + (t.flowChanged?.length ?? 0) + t.added.length + t.removed.length, 기대 > 0 ? ` (기대 결과 변경 ${기대})` : ''),

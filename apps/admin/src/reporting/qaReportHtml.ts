@@ -28,7 +28,7 @@ export const 리포트스타일 = `<style>
 .state.ok{ background:var(--pass-bg); color:var(--pass); }
 .first-page .sec{ font-size:15.5px; margin:26px 0 10px; padding-bottom:5px; border-bottom:1.5px solid var(--ink); }
 .first-page .sec:first-of-type{ margin-top:14px; }
-/* 접힌 절 — 절 머리를 누르면 편다. 머리 줄(제목 · 건수 · 상태 글자)은 summary 가 그리고 제목은 선을 내려놓는다 (스크립트 없이 도는 details 라 iframe 에서도 된다) */
+/* 접힌 절은 details 다 — 리포트 HTML 은 스크립트를 막은 iframe 에 실려도 펼 수 있어야 한다 */
 .fold-sec > summary{ list-style:none; cursor:pointer; display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 12px; margin:26px 0 10px; padding-bottom:5px; border-bottom:1.5px solid var(--ink); }
 .fold-sec > summary::-webkit-details-marker{ display:none; }
 .first-page .fold-sec > summary > .sec{ margin:0; padding:0; border:0; }
@@ -96,6 +96,8 @@ export const 리포트스타일 = `<style>
 .trend svg{ display:block; margin:4px 0; }
 .trend p{ font-size:12px; color:var(--ink-muted); }
 @media print{ .qa-table tr{ break-inside:avoid; } .sub,.part{ break-after:avoid; } .box-ai,.box-sign{ break-inside:avoid; } }
+/* 받은 HTML 을 인쇄해도 서류에서 두 절이 빠지면 안 된다 — 닫힌 details 는 그냥 두면 안 찍힌다 */
+@media print{ .fold-sec::details-content{ content-visibility:visible; } .fold-sec > summary::after{ content:none; } }
 /* 폰에서 HTML 을 열 때 — A4 폭(186mm)이면 옆으로 밀린다. 화면 폭에 맞추고 표는 칸 안에서 줄을 바꾼다 */
 @media screen and (max-width:760px){
   body{ font-size:14px; }

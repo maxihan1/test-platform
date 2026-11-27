@@ -91,7 +91,7 @@ describe('QA 리포트 첫 장 글', () => {
   });
 
   it('접힌 절 머리의 건수는 0 인 것을 빼고, 다 0 이면 「변경 없음」 · 「차이 없음」이다', () => {
-    const 재료 = 첫장재료(첫빌드);
+    const 재료 = 첫장재료({ ...첫빌드, product: { linked: true, deploys: [], issues: [{ key: 'DM-12', type: 'BUG', title: null, prs: [] }] } });
     재료.plan = { cases: [], e2e: [], compat: [], perf: [] };
     const 덩이들 = 첫장글(리포트(재료));
     expect(덩이들).toContainEqual({ 꼴: '절', 글: '3. 변경 사항', 접기: { 요약: '변경 없음' } });

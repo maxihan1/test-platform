@@ -126,6 +126,7 @@ describe('QA 리포트 HTML', () => {
   it('HTML 은 계획 대비 차이 절을 접어 두고 다음 절 앞에서 닫는다 — PDF 는 다 펼친다', () => {
     expect(html).toMatch(/<details class="fold-sec"><summary>\s*<h2 class="sec">3\. 계획 대비 차이<\/h2>\s*<span class="fold-sum">차이 없음<\/span><\/summary>[\s\S]*?<\/details>\s*<h2 class="sec">4\. 실패 분류<\/h2>/);
     expect(html.match(/<details class="fold-sec">/g)).toHaveLength(1);
+    expect(html).toContain('@media print{ .fold-sec::details-content{ content-visibility:visible; }');
     expect(renderQaReportHtml(재료(), 'PDF')).not.toContain('<details class="fold-sec">');
   });
 
