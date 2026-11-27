@@ -1,7 +1,7 @@
 // 게임 배우기의 곳(STAGE 줄) — 맵 정보 일곱 종류 검사 · 맵을 다 안 채운 곳 · 곳마다 깸 · 판 수 (도메인/게임 §3.10 「맵 파악」 「게임플레이」)
 // 장면 처음부터 있던 NavMesh · 막힘 오브젝트를 한 번도 안 열고 놓을 자리를 한 칸씩 찍어 봤다(#16053) — 곳마다 맵을 다 적어야 배우기가 끝난다
 import type { 지도줄 } from './authoring-game-find.js';
-import { type 판기록, 값찾기, 같나, 수로 } from './authoring-learn-check.js';
+import { type 판기록, 값찾기, 같나, 계산머리, 수로, 회고기록이름 } from './authoring-learn-check.js';
 
 /** 곳마다 data.맵 에 다 채워야 하는 종류 — 그 게임에 없는 종류는 { 없음: <이유> } */
 export const 맵종류 = ['걷기', '막힘', '놓기', '적', '지킬것', '자원', '출구'] as const;
@@ -47,8 +47,39 @@ export const 맵다됨 = (x: 줄): boolean => 맵종류.every((k) => 객체(칸(
 /** 가 본 곳(가봄 · 못깸) 가운데 맵 일곱 종류를 다 안 채운 곳의 열쇠 */
 export const 맵빈곳 = (줄들: readonly 줄[]): string[] => 곳줄들(줄들).filter((x) => (칸(x).상태 === '가봄' || 칸(x).상태 === '못깸') && !맵다됨(x)).map((x) => x.key);
 
-/** 곳마다 이만큼 해 보고도 못 깨면 「못깸」 + 까닭을 적고 다음 곳으로 간다 (2026-11-26 사용자) */
-export const 판상한 = 50;
+/**
+ * 한 곳을 이만큼 해 보고 못 깨면 그 곳은 이번에 더 안 하고 다음 맵을 해 본다. 그 곳은 게임플레이 단계에서 다시 깬다(2026-11-27 사용자 「5판동안 하고 못깨면 게임플레이 단계에서 깨는걸로」 · 「다음 맵을 시도」).
+ * 50판으로 끊던 것은 둘째 맵 하나에 세 시간이 넘었다. 못깸으로 닫지 않는다
+ */
+export const 넘김판 = 5;
+
+/** 계획이 쓸 계산 줄마다 지금 data JSON — 판 기록에 남겨 다음 계획 때 고쳤나를 본다 */
+export const 계산찍기 = (쓸것: readonly string[], 줄들: readonly 줄[]): Record<string, string> =>
+  Object.fromEntries(쓸것.filter((k) => k.startsWith(계산머리)).map((k) => [k, JSON.stringify(칸(줄들.find((x) => x.key === k && x.learned !== null)))]));
+
+/**
+ * 계획이 쓸 계산 줄 가운데, 그 줄을 쓴 가장 새 판이 기대를 깼는데 줄이 그때 그대로인 것 — 막을 까닭 글.
+ * 틀린 계산을 고치지 않고 근거로만 쓰며 판을 되풀이했다(2026-11-27 16060 둘째 맵 세 번 짐). 게임플레이 계획의 기대가 계산의 예측이라 기대 깨짐을 틀린 신호로 본다
+ */
+export function 계산안고침(쓸것: readonly string[], 줄들: readonly 줄[], 기록들: readonly 판기록[]): string | null {
+  const 지금 = 계산찍기(쓸것, 줄들);
+  for (const [k, 글] of Object.entries(지금)) {
+    const r = [...기록들].reverse().find((x) => x.값기록?.계산?.[k] !== undefined);
+    const 어 = r?.값기록?.어긋남;
+    if (r === undefined || 어 === undefined || 어 === null || r.값기록!.계산![k] !== 글) continue;
+    return `${k} 를 근거로 쓴 ${r.이름} 에서 기대 ${어.기대} 가 ${어.초.toFixed(0)}초에 깨졌다(${어.값이름} ${어.값}) — 계산이 판과 어디서 달랐나(입력한 레벨 · 수 · 길 · 빠진 피해)를 찾아 입력을 고치고 \`npx tsx scripts/authoring-game-calc.ts <입력>\` 로 다시 계산해 ${k} 줄을 고친 뒤 계획을 돌린다`;
+  }
+  return null;
+}
+
+/** 그 곳 회고 가운데 끝 n 개의 나아감이 그 앞 회고들의 가장 먼 나아감을 못 넘었으면 그 n 개. 앞 회고가 없거나 나아감을 못 읽었으면 견줄 수 없어 null */
+export function 곳안늚<T extends 줄>(줄들: readonly T[], 곳: string, n: number): T[] | null {
+  const 곳회고 = 줄들.filter((x) => x.kind === 'PLAY' && x.learned !== null && 회고기록이름(x.key) !== null && 칸(x).곳 === 곳).sort((a, b) => (a.key < b.key ? -1 : 1));
+  const 끝 = 곳회고.slice(-n);
+  const 앞 = 곳회고.slice(0, -n);
+  const 최대 = (들: T[]): number => Math.max(-Infinity, ...들.map((x) => 칸(x).나아감).filter((v): v is number => typeof v === 'number'));
+  return 앞.length === 0 || 끝.length < n || !Number.isFinite(최대(앞)) || 최대(끝) > 최대(앞) ? null : 끝;
+}
 
 type 결과조건 = string | { 이상: number } | { 이하: number };
 /** 깰 곳의 결과 자리 — 판이 끝난 순간 이 자리를 읽어 깸 · 짐을 가른다. 칸이 없으면 화면 글자 */
@@ -96,7 +127,8 @@ export function 곳셈(줄들: readonly 줄[], 기록들: readonly 판기록[]):
 export function 남은깰곳(줄들: readonly 줄[], 기록들: readonly 판기록[]): string[] {
   const 셈 = 곳셈(줄들, 기록들);
   if (셈.length === 0) return ['깰 곳(data.결과 가 있는 STAGE)이 없다'];
-  const 남은 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined);
+  // 넘김판을 해 본 곳은 이번에 더 안 한다 — 남은 것으로 세면 다음 맵이 없을 때 끝나지 않는다
+  const 남은 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 < 넘김판);
   return 남은.length === 0 ? [] : [`아직 못 깬 곳 ${남은.length}(${남은.slice(0, 5).map((x) => `${x.열쇠} ${x.판}판`).join(' · ')})`];
 }
 
@@ -121,7 +153,7 @@ export function 놀이막기(계획: { 곳?: string; 쓸것?: readonly string[] 
   const 셈 = 곳셈(줄들, 기록들).find((x) => x.열쇠 === 계획.곳);
   if (셈 === undefined) return `${계획.곳} 는 깰 곳이 아니다 — 그 STAGE 줄에 data.결과 { 주소, 칸?, 깸, 짐 } 을 먼저 적는다`;
   if (셈.못깸 !== undefined) return `${계획.곳} 는 못깸으로 적었다 — 아직 못 깬 다른 곳을 해 본다`;
-  if (셈.깸 === 0 && 셈.판 >= 판상한) return `${계획.곳} 를 ${셈.판}판 해 보고도 못 깼다 — 그 STAGE 줄에 data.상태 「못깸」과 data.까닭(왜 못 깼나)을 적고 다음 곳으로 간다`;
+  if (셈.깸 === 0 && 셈.판 >= 넘김판) return `${계획.곳} 를 ${셈.판}판 해 보고 못 깼다 — 다음 맵(아직 ${넘김판}판을 안 해 본 깰 곳)을 해 본다. 이 곳은 게임플레이 단계에서 다시 깬다`;
   // 배우기에서 파악한 맵을 쓰게 — 한 칸씩 찍어 보며 놓을 자리를 찾던 것을 되풀이하지 않게(#16053)
   const 맵 = new Set(곳맵(줄들, 계획.곳).map((x) => x.열쇠));
   const 쓸것 = 계획.쓸것 ?? [];

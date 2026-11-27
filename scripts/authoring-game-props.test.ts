@@ -104,6 +104,17 @@ describe('펼쳐읽기 · 묶음 칸', () => {
     expect(펼침.값).toEqual({});
     expect(펼침.칸없음).toBe(false);
   });
+
+  it('테스트 도구 부품(ControlCli.ControlCliId)은 게임 값이 아니다 — 그것뿐이면 칸없음이다(CGP Lobby · MenuCamera 가 Id 하나로 값 줄을 요구받았다)', async () => {
+    const 도구만 = {
+      components: async () => [{ name: 'Transform', type: 'UnityEngine.Transform' }, { name: 'ControlCliId', type: 'ControlCli.ControlCliId' }],
+      members: async () => ({ fields: [{ name: 'Id', type: 'String', value: '2022002159' }], properties: [], methods: [] }),
+      get: async () => 0,
+    } as unknown as Game;
+    const 펼침 = await 펼쳐읽기(도구만, '/Lobby');
+    expect(펼침.값).toEqual({});
+    expect(펼침.칸없음).toBe(true);
+  });
 });
 
 describe('펼쳐남기기 · 그침', () => {

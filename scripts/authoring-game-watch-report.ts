@@ -24,7 +24,8 @@ const 길점 = 8;
 // 펼치기 · 판 돌리기도 쓴다 — 지켜보기(판 돌리기를 부른다)에 두면 import 가 고리를 돈다
 /** 네트워크 틀(Netcode)이 모든 컴포넌트에 물려준 칸 — 게임 값이 아니다 */
 export const 틀칸 = /^(?:m_TargetIdBeingSynchronized|m_VarInit|IsLocalPlayer|IsOwner|IsOwnedByServer|IsServer|IsClient|IsHost|IsSpawned|HasAuthority|NetworkObjectId|OwnerClientId|NetworkBehaviourId.*|ServerIsHost|IsSessionOwner|HasNetworkObject|IsDestroying|enabled|isActiveAndEnabled)$/;
-export const 엔진것 = /^(?:UnityEngine|UnityEditor|Unity\.|TMPro|Cinemachine|DG\.)/;
+// ControlCli. 는 테스트 도구 SDK 부품(ControlCliId · ControlCliAxes)이라 게임 값이 아니다 — Id 하나로 값 줄을 요구받았다(2026-11-27 CGP Lobby · MenuCamera)
+export const 엔진것 = /^(?:UnityEngine|UnityEditor|Unity\.|TMPro|Cinemachine|DG\.|ControlCli\.)/;
 
 export const 이름만 = (경로: string): string => 경로.split('/').pop()!.replace(/\[-?\d+\]$/, '');
 /** 화면 그림(HUD · 창) 아래 것 — 판에서 움직이는 것이 아니다 */
