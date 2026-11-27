@@ -1,7 +1,7 @@
 // 데이터 묶음 칸 읽기와 종류별 값 파일 — 오브젝트의 묶음 칸(예 MonsterAI.TypeData)을 game-types.txt 의 칸 이름으로 get 점 경로로 읽는다 (게임 정보 먼저 쌓기)
 // 값 파일 `game-props/<종류>.json` 은 실행 중 읽은 값만 담는다. 빌드 데이터(game-build-data.json)는 전략 계산용이라 여기 섞지 않는다
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Game } from 'control-cli';
@@ -112,11 +112,31 @@ export function 값파일이름(종류: string): string {
 
 export const 값파일있나 = (자료: string, 종류: string): boolean => existsSync(join(자료, 게임자리.값파일, 값파일이름(종류)));
 
-/** 값 파일을 쓴다 — 이미 있으면 안 덮는다(첫 읽기가 정본). 못 써도 던지지 않고 까닭을 돌려준다 */
+const 값파일글상한 = 2_000_000;
+
+/** 그 종류의 값 파일이 치트(웨이브를 넘겨 본 값)로 남았나 */
+const 치트값인가 = (자료: string, 종류: string): boolean => {
+  try {
+    return (JSON.parse(안전히읽기(join(자료, 게임자리.값파일), 값파일이름(종류), 값파일글상한) ?? 'null') as { 치트?: unknown } | null)?.치트 === true;
+  } catch {
+    return false;
+  }
+};
+
+/** 치트로 처음 본 값 파일이 있는데 지금 읽기는 치트가 아니다 — 보통 판에서 다시 읽어 덮어야 치트 표시를 벗는다 */
+export const 치트값다시읽을까 = (자료: string, 종류: string, 치트인가: boolean): boolean => !치트인가 && 치트값인가(자료, 종류);
+
+/**
+ * 값 파일을 쓴다 — 이미 있으면 안 덮는다(첫 읽기가 정본). 다만 치트 값 위에는 치트 아닌 값이 덮는다.
+ * 못 써도 던지지 않고 까닭을 돌려준다
+ */
 export function 값파일쓰기(자료: string, 기록: 값파일, 가릴것: (글: string) => string = (글) => 글): string | null {
   try {
     mkdirSync(join(자료, 게임자리.값파일), { recursive: true, mode: 0o755 });
-    writeFileSync(join(자료, 게임자리.값파일, 값파일이름(기록.종류)), 가릴것(`${JSON.stringify(기록, null, 1)}\n`), { flag: 'wx', mode: 0o644 });
+    const 경로 = join(자료, 게임자리.값파일, 값파일이름(기록.종류));
+    // 자식이 심은 링크를 따라 쓰지 않게 지우고 wx 로 쓴다
+    if (기록.치트 !== true && 치트값인가(자료, 기록.종류)) rmSync(경로, { force: true });
+    writeFileSync(경로, 가릴것(`${JSON.stringify(기록, null, 1)}\n`), { flag: 'wx', mode: 0o644 });
     return null;
   } catch (e) {
     return (e as NodeJS.ErrnoException).code === 'EEXIST' ? null : e instanceof Error ? e.message : String(e);

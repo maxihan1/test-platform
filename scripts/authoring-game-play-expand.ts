@@ -1,7 +1,7 @@
 // 판 도중 처음 나온 종류를 펼쳐 값 파일로 남기는 한 걸음 — authoring-game-play-spawns 가 300줄을 넘어 떼어 냈다 (도메인/게임 §3.10 「조작 도우미」 「새로 나온 것」)
 import type { Found, Game } from 'control-cli';
 
-import { 값파일있나 } from './authoring-game-bundles.js';
+import { 값파일있나, 치트값다시읽을까 } from './authoring-game-bundles.js';
 import { 펼쳐남기기 } from './authoring-game-props.js';
 import type { 나온것 } from './authoring-game-play-spawns.js';
 import { 이름만 } from './authoring-game-watch-report.js';
@@ -14,12 +14,12 @@ import { 이름만 } from './authoring-game-watch-report.js';
 export const 펼칠상한 = 40;
 
 /**
- * 처음 보인 종류 하나를 펼친다 — 이미 값 파일이 있으면 건너뛰고, 상한을 넘으면 「안 펼침」으로 남긴다.
+ * 처음 보인 종류 하나를 펼친다 — 이미 값 파일이 있으면 건너뛰고(치트로 본 값을 보통 판에서 만났으면 다시 읽어 덮는다), 상한을 넘으면 「안 펼침」으로 남긴다.
  * 그침(판이 끝나 세기를 그쳤다)은 판 뒤에 명령을 더 보내지 않게 그대로 다시 던진다
  */
 export async function 새종류펼치기(o: { 나온: 나온것; 종류: string; 찾음: Found; 초: number; 펼칠까: boolean; 게임: Game; 장면: string | null; 자료?: string; 덧?: { 치트: true; call: string[] }; 그침인가: (e: unknown) => boolean }): Promise<void> {
   const { 나온, 종류, 찾음, 초 } = o;
-  if (o.자료 !== undefined && 값파일있나(o.자료, 종류)) {
+  if (o.자료 !== undefined && 값파일있나(o.자료, 종류) && !치트값다시읽을까(o.자료, 종류, o.덧 !== undefined)) {
     (나온.이미펼침 ??= []).push(종류);
     return;
   }

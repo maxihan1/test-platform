@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import type { Game } from 'control-cli';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { 값파일이름, 값파일있나, 값파일쓰기, 묶음읽기, 묶음타입, 종류, 종류표만들기, 종류표읽기 } from './authoring-game-bundles.js';
+import { 값파일이름, 값파일있나, 값파일쓰기, 치트값다시읽을까, 묶음읽기, 묶음타입, 종류, 종류표만들기, 종류표읽기 } from './authoring-game-bundles.js';
 
 let 폴더들: string[] = [];
 afterEach(() => {
@@ -138,6 +138,23 @@ describe('값 파일', () => {
     expect(값파일있나(d, 'Ghost')).toBe(true);
     expect(값파일쓰기(d, { ...기록, 칸: { a: 2 } })).toBeNull();
     expect(JSON.parse(readFileSync(join(d, 'game-props', 'Ghost.json'), 'utf8')).칸).toEqual({ a: 1 });
+  });
+
+  it('치트로 처음 본 값은 보통 판에서 읽은 값이 덮고, 보통 값은 치트 값이 안 덮는다', () => {
+    const d = 새폴더();
+    const 기록 = { 종류: 'Boss', 장면: 'Stage', 읽은때: 't', 출처: '실행 중' as const, 칸: { a: 1 }, 목록칸: [] };
+    const 치트 = { ...기록, 치트: true as const, call: ['a|b'] };
+    const 읽음 = (): { 칸: { a: number }; 치트?: true } => JSON.parse(readFileSync(join(d, 'game-props', 'Boss.json'), 'utf8'));
+    expect(값파일쓰기(d, 치트)).toBeNull();
+    expect(치트값다시읽을까(d, 'Boss', false)).toBe(true);
+    expect(치트값다시읽을까(d, 'Boss', true)).toBe(false);
+    expect(값파일쓰기(d, 치트)).toBeNull();
+    expect(값파일쓰기(d, { ...기록, 칸: { a: 2 } })).toBeNull();
+    expect(읽음()).toMatchObject({ 칸: { a: 2 } });
+    expect(읽음().치트).toBeUndefined();
+    expect(치트값다시읽을까(d, 'Boss', false)).toBe(false);
+    expect(값파일쓰기(d, { ...치트, 칸: { a: 3 } })).toBeNull();
+    expect(읽음().칸.a).toBe(2);
   });
 
   it('쓴 글에 가릴것을 적용하고, 못 쓰면 까닭을 돌려준다', () => {
