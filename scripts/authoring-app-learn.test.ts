@@ -131,6 +131,24 @@ describe('앱 배우기', () => {
     expect(거리들[1]!.차례).toBe(2);
   });
 
+  it('55% 정리 알림을 받은 뒤 끝낸 세션은 「스스로 끝냄」이 아니라 「정리 알림 뒤 끝냄」으로 알리고, 남았으면 새 세션이 잇는다', async () => {
+    const 크기 = JSON.stringify({ type: 'assistant', message: { id: '1', usage: { input_tokens: 560_000, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, output_tokens: 0 } } });
+    const { o, 거리들 } = 손([
+      (_, __, 먹기) => {
+        적기(줄('RULE', 'rule:가', 'app:.A/가'));
+        먹기(크기);
+        return undefined;
+      },
+      () => 적기(줄('RULE', 'rule:나', 'app:.A/나')),
+    ]);
+    crawl('app:.A/가', 'app:.A/나');
+    await 앱학습하기(o);
+    const 알린것 = vi.mocked(o.알린다).mock.calls.map((c) => c[0]).join('\n');
+    expect(알린것).toMatch(/세션 1 끝\(※ 정리 알림 뒤 끝냄/);
+    expect(알린것).toMatch(/세션 2 끝\(스스로 끝냄/);
+    expect(거리들).toHaveLength(2);
+  });
+
   it('빌드를 모르면 앞 실행이 남긴 빌드 파일을 지운다', async () => {
     쓰기('app-learn-build.txt', '58');
     const { o, 거리들 } = 손([() => (crawl('app:.A/가'), 적기(줄('RULE', 'rule:가', 'app:.A/가')))], { 빌드: async () => undefined });
