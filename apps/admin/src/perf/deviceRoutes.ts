@@ -60,9 +60,9 @@ export default async function perfDeviceRoutes(app: FastifyInstance): Promise<vo
     const 기기별 = cfg.devices.map((d) => ({ d, 줄: 줄들.filter((r) => r.serial === d.serial) }));
     const 회차들 = 기기별.map(({ d, 줄 }) => ({ serial: d.serial, 회차: 회차메모리(d.serial, 줄) }));
     return {
-      devices: 기기줄들(기기별, 실행),
+      devices: 기기줄들(기기별, 실행, cfg.intervalSec),
       metrics: 줄들.filter((r) => r.sec >= from).map((r) => ({
-        serial: r.serial, sec: r.sec, loop: r.loop, segment: r.segment, fps: r.fps, jankPct: r.jankPct, freezeCount: r.freezeCount, cpu: r.cpu, memMb: r.memMb, tempC: r.tempC, batteryPct: r.batteryPct,
+        serial: r.serial, sec: r.sec, loop: r.loop, segment: r.segment, fps: r.fps, jankPct: r.jankPct, freezeCount: r.freezeCount, cpu: r.cpu, memMb: r.memMb, tempC: r.tempC, batteryPct: r.batteryPct, thermalStatus: r.thermalStatus, gpu: r.gpu, vramMb: r.vramMb,
       })),
       segments: 기기별.flatMap(({ d, 줄 }) => 구간묶기(d.serial, 줄)),
       loops: 회차들.flatMap((x) => x.회차),

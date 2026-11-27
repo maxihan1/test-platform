@@ -81,7 +81,7 @@ async function 기기끝내기(runId: number, 끝: 끝): Promise<표.끝값 | nu
       const rows = await 기기줄읽기(runId);
       if (rows.length === 0) 오류 = '디바이스 측정값을 하나도 받지 못했습니다';
       else {
-        const targets = cfg.devices.flatMap((d) => 기기판정(d.serial, cfg.targets, 기기요약하기(rows.filter((r) => r.serial === d.serial)), d.launchMs));
+        const targets = cfg.devices.flatMap((d) => 기기판정(d.serial, cfg.targets, 기기요약하기(rows.filter((r) => r.serial === d.serial), cfg.intervalSec), d.launchMs));
         // 목표가 없어도 숫자를 한 줄도 안 보낸 기기가 통과로 세지면 안 된다
         const 빈기기 = cfg.devices.filter((d) => !rows.some((r) => r.serial === d.serial));
         if (빈기기.length > 0) await 표.로그(runId, `측정값을 받지 못한 디바이스 — ${빈기기.map((d) => `${d.model}(${d.serial})`).join(', ')}`, 'WARN');

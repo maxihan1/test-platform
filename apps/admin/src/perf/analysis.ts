@@ -3,7 +3,7 @@
 import type { PoolClient } from 'pg';
 
 import { 끝내기, 일만들기 } from './ai.js';
-import { 구간표별, 기기요약하기, 누수의심, 회차메모리 } from './deviceStats.js';
+import { 구간표별, 기기요약하기, 누수의심, 열상태바뀜, 회차끊김, 회차메모리 } from './deviceStats.js';
 import { 줄읽기 as 기기줄읽기 } from './deviceStore.js';
 import type { SecRow } from './judge.js';
 import { 페이지목표 } from './pageScript.js';
@@ -57,12 +57,14 @@ async function 기기재료(run: 표.실행행, 판정줄: unknown): Promise<unk
     devices: cfg.devices.map((d) => {
       const 내것 = rows.filter((r) => r.serial === d.serial);
       const 회차 = 회차메모리(d.serial, 내것);
+      const 끊김 = 회차끊김(내것, cfg.intervalSec);
       const 내판정 = 판정.filter((t) => t.scope === d.serial);
       return {
-        serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, summary: 기기요약하기(내것),
+        serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, spec: d.spec ?? null, summary: 기기요약하기(내것, cfg.intervalSec),
         verdict: 내판정.length === 0 ? null : 내판정.every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL',
         firstSec: 내것[0]?.sec ?? 0, lastSec: 내것[내것.length - 1]?.sec ?? 0,
-        segments: 구간표별(내것), loops: 회차.map(({ loop, maxMemMb }) => ({ loop, maxMemMb })), leak: 누수의심(d.serial, 회차, 메모리목표),
+        segments: 구간표별(내것), loops: 회차.map(({ loop, maxMemMb }) => ({ loop, maxMemMb, jankPerMin: 끊김.find((x) => x.loop === loop)?.jankPerMin ?? null })),
+        thermal: 열상태바뀜(내것), leak: 누수의심(d.serial, 회차, 메모리목표),
       };
     }),
   };

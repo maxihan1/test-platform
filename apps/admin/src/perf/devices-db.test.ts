@@ -149,7 +149,7 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     try {
       const 끝 = await 끝날때까지(await 만들기({ targets: [{ metric: 'AVG_FPS', op: '>=', value: 50, source: 'AI' }, { metric: 'LOW1_FPS', op: '>=', value: 25, source: 'AI' }] }, 1));
       expect(끝).toMatchObject({ status: 'DONE', verdict: 'FAIL' });
-      expect(끝.targets?.map((t) => [t.metric, t.measured, t.verdict])).toEqual([['AVG_FPS', 30, 'FAIL'], ['LOW1_FPS', 30, 'PASS']]);
+      expect(끝.targets?.map((t) => [t.metric, t.measured, t.verdict])).toEqual([['AVG_FPS', 30, 'FAIL'], ['LOW1_FPS', 30.3, 'PASS']]);
     } finally {
       f.상태.fps값 = 58;
     }
