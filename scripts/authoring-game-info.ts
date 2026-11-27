@@ -1,5 +1,5 @@
 // 정보 모으기 명령 — 5판 넘게 못 깬 곳에서 웨이브를 넘겨 가며 처음 나온 종류를 값 파일로 남긴다 (치트 표시 · 도메인/게임 §3.10 「게임플레이 근처에 정보 모으기」)
-// 쓰는 법: npx tsx scripts/authoring-game-info.ts <자료 폴더> <곳 열쇠> --call '<주소>|<컴포넌트.메서드>' [--call …] [--steps <n>] [--wait <초>]
+// 쓰는 법: npx tsx scripts/authoring-game-info.ts <자료 폴더> <곳 열쇠> --call '<주소>|<컴포넌트.메서드>[|<인자1>,<인자2>]' [--call …] [--steps <n>] [--wait <초>]
 // 함수 이름은 게임마다 다르다 — 게임을 배우는 AI 가 찾아 넘긴다. 이 명령 밖에서 call 을 부르는 길은 지침이 막는다
 // 잡은 디바이스에서 게임을 켜 둔 채 부른다. 값은 웨이브를 넘겨 본 것이라 값 파일과 기록에 치트 표시가 붙고 승패 근거로 못 쓴다
 import { pathToFileURL } from 'node:url';
@@ -38,6 +38,8 @@ const 쉼 = (ms: number): Promise<void> => new Promise((깨운다) => setTimeout
 export interface 부름 {
   주소: string;
   메서드: string;
+  /** 글자로 보낸다 — SDK 가 메서드 칸 타입으로 바꾼다. 없으면 인자 없는 메서드 */
+  인자?: string[];
 }
 export interface 깃발들 {
   자료: string;
@@ -47,14 +49,29 @@ export interface 깃발들 {
   대기초: number;
 }
 
-const 부름글 = (x: 부름): string => `${x.주소}|${x.메서드}`;
+const 부름글 = (x: 부름): string => `${x.주소}|${x.메서드}${x.인자 === undefined ? '' : `|${x.인자.join(',')}`}`;
 
-/** `--call '<주소>|<컴포넌트.메서드>'` — 주소 안에 `|` 가 있을 수 있어 마지막 것으로 가른다 */
+// 메서드 이름은 글자로 시작한다 — 「1.5」 같은 인자가 메서드로 읽히지 않게
+const 메서드꼴 = /^[\p{L}_$][\p{L}\p{N}_$]*(?:\.[\p{L}_$][\p{L}\p{N}_$]*)+$/u;
+
+/**
+ * `--call '<주소>|<컴포넌트.메서드>[|<인자1>,<인자2>]'` — 주소 안에 `|` 가 있을 수 있어 뒤에서부터 가른다.
+ * 맨 끝이 메서드 꼴이면 인자 없는 호출, 아니면 그 앞이 메서드이고 끝이 인자 목록이다(보스를 불러내는 `CheatSpawnFinalBoss(1)` 같은 것)
+ */
 function 부름읽기(글: string): 부름 | null {
-  const 자리 = 글.lastIndexOf('|');
-  const 주소 = 글.slice(0, 자리).trim();
-  const 메서드 = 글.slice(자리 + 1).trim();
-  return 자리 < 1 || 주소 === '' || !/^[\p{L}\p{N}_$]+(?:\.[\p{L}\p{N}_$]+)+$/u.test(메서드) ? null : { 주소, 메서드 };
+  const 끝자리 = 글.lastIndexOf('|');
+  if (끝자리 < 1) return null;
+  const 끝 = 글.slice(끝자리 + 1).trim();
+  if (메서드꼴.test(끝)) {
+    const 주소 = 글.slice(0, 끝자리).trim();
+    return 주소 === '' ? null : { 주소, 메서드: 끝 };
+  }
+  const 앞자리 = 글.lastIndexOf('|', 끝자리 - 1);
+  const 주소 = 글.slice(0, Math.max(앞자리, 0)).trim();
+  const 메서드 = 글.slice(앞자리 + 1, 끝자리).trim();
+  if (앞자리 < 1 || 주소 === '' || !메서드꼴.test(메서드)) return null;
+  const 인자 = 끝 === '' ? [] : 끝.split(',').map((x) => x.trim().replace(/^(["'])(.*)\1$/, '$2'));
+  return { 주소, 메서드, ...(인자.length === 0 ? {} : { 인자 }) };
 }
 
 /** 인자를 읽는다 — 틀리면 까닭 글 */
@@ -68,7 +85,7 @@ export function 깃발읽기(인자: readonly string[]): 깃발들 | string {
     const 값 = 인자[i + 1];
     if (x === '--call') {
       const 부 = 값 === undefined ? null : 부름읽기(값);
-      if (부 === null) return '--call 은 \'<주소>|<컴포넌트.메서드>\' 로 준다';
+      if (부 === null) return '--call 은 \'<주소>|<컴포넌트.메서드>\' 나 \'<주소>|<컴포넌트.메서드>|<인자1>,<인자2>\' 로 준다';
       부름들.push(부);
       i += 1;
     } else if (x === '--steps' || x === '--wait') {
@@ -105,7 +122,7 @@ export const 치트표시 = (부름들: readonly 부름[]): { 치트: true; call
 export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env, 길?: Link): Promise<number> {
   const 깃발 = 깃발읽기(인자);
   if (typeof 깃발 === 'string') {
-    console.error(`[정보 모으기] ${깃발}\n쓰는 법: npx tsx scripts/authoring-game-info.ts <자료 폴더> <곳 열쇠> --call '<주소>|<컴포넌트.메서드>' [--call …] [--steps <1~${최대단계}>] [--wait <초 1~${최대대기초}>]`);
+    console.error(`[정보 모으기] ${깃발}\n쓰는 법: npx tsx scripts/authoring-game-info.ts <자료 폴더> <곳 열쇠> --call '<주소>|<컴포넌트.메서드>[|<인자1>,<인자2>]' [--call …] [--steps <1~${최대단계}>] [--wait <초 1~${최대대기초}>]`);
     return 2;
   }
   const { 자료, 곳, 부름들, 단계, 대기초 } = 깃발;
@@ -158,7 +175,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     let 먹힘 = 0;
     for (const 부 of 부름들) {
       try {
-        await game.callMethod(부.주소, 부.메서드, []);
+        await game.callMethod(부.주소, 부.메서드, 부.인자 ?? []);
         먹힘 += 1;
       } catch (e) {
         못한것.push(`${n}단계 ${부름글(부)}: ${까닭(e)}`);

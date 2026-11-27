@@ -37,6 +37,15 @@ describe('깃발읽기', () => {
     expect(깃발읽기(['/자료', 'stage:둘째', '--call', '//*[@id=1] | //*[@id=2]|A.B'])).toMatchObject({ 부름들: [{ 주소: '//*[@id=1] | //*[@id=2]', 메서드: 'A.B' }], 단계: 10, 대기초: 3 });
   });
 
+  it('--call 은 쉼표로 나눈 인자도 받는다 — 주소에 |가 있어도, 인자가 1.5 꼴이어도 메서드로 안 읽는다', () => {
+    expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|M.CheatSpawnFinalBoss|1'])).toMatchObject({ 부름들: [{ 주소: '/M', 메서드: 'M.CheatSpawnFinalBoss', 인자: ['1'] }] });
+    expect(깃발읽기(['/자료', 'stage:둘째', '--call', '//*[@id=1] | //*[@id=2]|A.B|1.5, "x" ,true'])).toMatchObject({ 부름들: [{ 주소: '//*[@id=1] | //*[@id=2]', 메서드: 'A.B', 인자: ['1.5', 'x', 'true'] }] });
+    expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|M.Skip|'])).toMatchObject({ 부름들: [{ 주소: '/M', 메서드: 'M.Skip' }] });
+    expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|M.없는꼴|1,2'])).not.toBeTypeOf('string');
+    expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|메서드만|1'])).toContain('--call');
+    expect(깃발읽기(['/자료', 'stage:둘째', '--call', '/M|Skip|1'])).toContain('--call');
+  });
+
   it('틀린 인자는 까닭 글을 돌려준다', () => {
     const 틀림 = (인자: string[]): string => {
       const r = 깃발읽기(인자);
@@ -126,13 +135,13 @@ describe('실행', () => {
       if (c.cmd === 'members') return { ok: true, fields: [{ name: 'Hp', type: 'Int32', value: 30 }], properties: [], methods: [] };
       return { ok: true, value: null };
     });
-    expect(await 실행([자료, 'stage:둘째', '--call', '/M|M.Clear', '--call', '/M|M.Skip', '--steps', '2', '--wait', '1'], 트리, {}, 길)).toBe(0);
-    const 보냄 = (명령 as unknown as Record<string, unknown>[]).filter((c) => c.cmd === 'call').map((c) => `${c.target}|${c.method}`);
-    expect(보냄).toEqual(['/M|M.Clear', '/M|M.Skip', '/M|M.Clear', '/M|M.Skip']);
+    expect(await 실행([자료, 'stage:둘째', '--call', '/M|M.Clear', '--call', '/M|M.Skip|3,x', '--steps', '2', '--wait', '1'], 트리, {}, 길)).toBe(0);
+    const 보냄 = (명령 as unknown as Record<string, unknown>[]).filter((c) => c.cmd === 'call').map((c) => `${c.target}|${c.method}|${(c.args as string[]).join(',')}`);
+    expect(보냄).toEqual(['/M|M.Clear|', '/M|M.Skip|3,x', '/M|M.Clear|', '/M|M.Skip|3,x']);
     const 파일 = JSON.parse(readFileSync(join(자료, 'game-props', 'Ghost.json'), 'utf8')) as Record<string, unknown>;
-    expect(파일).toMatchObject({ 종류: 'Ghost', 출처: '실행 중', 치트: true, call: ['/M|M.Clear', '/M|M.Skip'], 칸: { 'Ghost.Hp': 30 } });
+    expect(파일).toMatchObject({ 종류: 'Ghost', 출처: '실행 중', 치트: true, call: ['/M|M.Clear', '/M|M.Skip|3,x'], 칸: { 'Ghost.Hp': 30 } });
     const 기록 = readFileSync(join(자료, 'game-play', readdirSync(join(자료, 'game-play')).find((x) => x.endsWith('-정보모으기.json'))!), 'utf8');
-    expect(JSON.parse(기록)).toMatchObject({ 함수: '정보모으기', 치트: true, call: ['/M|M.Clear', '/M|M.Skip'], 곳: 'stage:둘째' });
+    expect(JSON.parse(기록)).toMatchObject({ 함수: '정보모으기', 치트: true, call: ['/M|M.Clear', '/M|M.Skip|3,x'], 곳: 'stage:둘째' });
   }, 15_000);
 
   it('call 이 거듭 안 먹히면 그치고 1', async () => {
