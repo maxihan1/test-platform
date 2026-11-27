@@ -65,13 +65,16 @@ export const 계산찍기 = (쓸것: readonly string[], 줄들: readonly 줄[]):
 export function 계산안고침(쓸것: readonly string[], 줄들: readonly 줄[], 기록들: readonly 판기록[]): string | null {
   const 지금 = 계산찍기(쓸것, 줄들);
   for (const [k, 글] of Object.entries(지금)) {
-    const r = [...기록들].reverse().find((x) => x.값기록?.계산?.[k] !== undefined);
+    // 기대도 안 깨진 멈춤 · 치트 조각은 판 결과가 없다 — 그 앞의 진 판을 가리지 않게 건너뛴다
+    const 조각 = (x: 판기록): boolean => (x.멈춤 !== undefined || x.치트 === true) && (x.값기록?.어긋남 ?? null) === null;
+    const r = [...기록들].reverse().find((x) => x.값기록?.계산?.[k] !== undefined && !조각(x));
     if (r === undefined || r.값기록!.계산![k] !== 글) continue;
-    const 어 = r.값기록!.어긋남;
+    // 옛 기록 · 손으로 고친 기록은 어긋남 필드가 없을 수 있다
+    const 어 = r.값기록!.어긋남 ?? null;
     if (어 === null) {
       const 짐 = 못닿고짐(r, 줄들);
       if (짐 === null) continue;
-      return `${k} 를 근거로 쓴 ${r.이름} 가 목표 ${짐.값} ${짐.기준} · 실제 ${짐.닿은 ?? '못 읽음'} 에서 졌다 — 계산이 판과 어디서 달랐나(입력한 레벨 · 수 · 길 · 빠진 피해)를 찾아 입력을 고치고 \`npx tsx scripts/authoring-game-calc.ts <입력>\` 로 다시 계산해 ${k} 줄을 고친 뒤 계획을 돌린다`;
+      return `${k} 를 근거로 쓴 ${r.이름} 가 목표 ${짐.값} ${짐.기준} · 실제 ${짐.닿은} 에서 졌다 — 계산이 판과 어디서 달랐나(입력한 레벨 · 수 · 길 · 빠진 피해)를 찾아 입력을 고치고 \`npx tsx scripts/authoring-game-calc.ts <입력>\` 로 다시 계산해 ${k} 줄을 고친 뒤 계획을 돌린다`;
     }
     return `${k} 를 근거로 쓴 ${r.이름} 에서 기대 ${어.기대} 가 ${어.초.toFixed(0)}초에 깨졌다(${어.값이름} ${어.값}) — 계산이 판과 어디서 달랐나(입력한 레벨 · 수 · 길 · 빠진 피해)를 찾아 입력을 고치고 \`npx tsx scripts/authoring-game-calc.ts <입력>\` 로 다시 계산해 ${k} 줄을 고친 뒤 계획을 돌린다`;
   }
@@ -79,14 +82,15 @@ export function 계산안고침(쓸것: readonly string[], 줄들: readonly 줄[
 }
 
 /** 판이 목표에 못 닿고 짐으로 끝났으면 목표와 닿은 가장 큰 수 — 멈춤 · 치트 조각은 결과가 판 결과가 아니라 안 본다 */
-function 못닿고짐(r: 판기록, 줄들: readonly 줄[]): { 값: string; 기준: number; 닿은: number | null } | null {
+function 못닿고짐(r: 판기록, 줄들: readonly 줄[]): { 값: string; 기준: number; 닿은: number } | null {
   if (r.값기록 === undefined || r.멈춤 !== undefined || r.치트 === true) return null;
   const 계획 = 계획읽기(칸(줄들.find((x) => x.key === r.값기록!.계획 && x.learned !== null)));
   if (typeof 계획 === 'string' || 계획.곳 === undefined) return null;
   const 결 = 결과읽기(칸(곳줄들(줄들).find((x) => x.key === 계획.곳)));
   if (결 === null || typeof 결 === 'string' || 판결과(r, 결) !== '짐') return null;
   const 닿은 = 가장큰(r.값기록, 계획.목표.값);
-  return 닿은 !== null && 닿은 >= 계획.목표.기준 ? null : { ...계획.목표, 닿은 };
+  // 목표 값을 한 번도 못 읽었으면 계산 탓인지 주소 탓인지 모른다 — 계산을 고치라고 막지 않는다
+  return 닿은 === null || 닿은 >= 계획.목표.기준 ? null : { ...계획.목표, 닿은 };
 }
 
 /** 그 곳 회고 가운데 끝 n 개의 나아감이 그 앞 회고들의 가장 먼 나아감을 못 넘었으면 그 n 개. 앞 회고가 없거나 나아감을 못 읽었으면 견줄 수 없어 null */

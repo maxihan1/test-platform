@@ -106,7 +106,7 @@ export const 기대글 = (g: 기대): string => `${g.값} ${g.비교} ${g.기준
 /** 판 기록 json 가운데 이 검사가 읽는 칸 */
 export interface 값때 { 초: number; 값: Record<string, number | null>; 화면?: Record<string, number | null> }
 export interface 어긋남 { 초: number; 값이름: string; 값: number; 기대: string; 사진?: string }
-/** 계산 — 계획이 쓴 계산 줄(calc:)마다 그때의 data JSON. 기대가 깨졌는데 계산 줄이 그대로면 다음 계획을 막는다(authoring-learn-play 계산안고침) */
+/** 계산 — 계획이 쓴 계산 줄(calc:)마다 그때의 data JSON. 기대가 깨졌거나 목표에 못 닿고 졌는데 계산 줄이 그대로면 다음 계획을 막는다(authoring-learn-play 계산안고침) */
 export interface 값기록 { 계획: string; 볼값: 볼값[]; 간격ms: number; 때: 값때[]; 어긋남: 어긋남 | null; 화면다름: string[]; 계산?: Record<string, string> }
 export interface 끝글줄 { 주소: string; 경로: string; 글: string }
 /** 멈춤 — 판 중간 멈춤 순간의 볼값(authoring-game-play-stop) */
