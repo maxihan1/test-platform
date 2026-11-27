@@ -5,7 +5,6 @@ import type { Game } from 'control-cli';
 import { type 값기록, type 값때, type 기대, type 볼값, 기대글, 수로, 어긋난기대 } from './authoring-learn-check.js';
 
 export const 값간격ms = 2_000;
-const 이어실패한도 = 3;
 const 끝기다림ms = 3_000;
 /** 이만큼 지나면 첫 읽기에서 안 바뀐 값도 기대를 본다 — 판이 처음부터 기대를 깬 채 멈춰 있는 것까지 놓치지 않게. 앞 판 끝 화면은 함수 첫 동작(넘기기) 뒤 몇 초 안에 바뀐다 */
 export const 첫값유예ms = 10_000;
@@ -53,12 +52,14 @@ export function 화면다른것(때들: readonly 값때[], 볼: readonly 볼값[
   });
 }
 
-/** 바로 한 번 읽고 간격마다 다시 읽는다. 읽기가 던져도 함수는 계속 돈다 — 세 번 이어 다 못 읽으면 그친다 */
+/**
+ * 바로 한 번 읽고 함수가 끝날 때까지 간격마다 다시 읽는다. 읽기가 던져도 함수는 계속 돈다.
+ * 못 읽어도 그치지 않는다 — 새 판으로 장면이 바뀌는 5초 동안 세 번 못 읽고 그쳐 그 판 기록 · 기대 감시가 다 끊겼다(2026-11-27 16094 맵판 · 끝막기판)
+ */
 export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: readonly 볼값[], 기대들: readonly 기대[], 시작: number, 간격ms = 값간격ms): 값읽는고리 {
   const 기록: 값기록 = { 계획, 볼값: [...볼], 간격ms, 때: [], 어긋남: null, 화면다름: [] };
   let 사진: Buffer | undefined;
   let 서있다 = true;
-  let 이어 = 0;
   let 첫못함: string | null = null;
   let 깨운다: (() => void) | undefined;
   // 볼값마다 처음 읽힌 값 — 그 값에서 바뀌기 전(첫값유예ms 안)에는 그 값의 기대를 안 본다. 첫 읽기는 앞 판 끝 화면일 수 있다(#16054 · #16058 세계수 0 을 새 판 값으로 읽고 0초에 멈췄다).
@@ -66,7 +67,7 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
   const 처음: Record<string, number> = {};
   const 움직인 = new Set<string>();
   const 고리 = (async (): Promise<void> => {
-    for (let 첫 = true; 서있다 && 이어 < 이어실패한도; 첫 = false) {
+    for (let 첫 = true; 서있다; 첫 = false) {
       if (!첫) {
         await new Promise<void>((다음) => {
           const 시계 = setTimeout(다음, 간격ms);
@@ -82,7 +83,6 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       // 끝난다가 기록을 돌려준 뒤 늦게 끝난 읽기다 — 저장된 기록 · 마지막 화면 찍기와 엇갈리지 않게 버린다
       if (!서있다) return;
       첫못함 ??= r.못함;
-      이어 = Object.values(r.값).every((v) => v === null) ? 이어 + 1 : 0;
       기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }) });
       for (const [k, v] of Object.entries(r.값)) {
         if (v === null) continue;
