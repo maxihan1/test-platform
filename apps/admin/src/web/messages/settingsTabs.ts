@@ -5,6 +5,7 @@ export const 설정탭말: Record<string, string> = {
   '애플리케이션 설정': 'Application settings',
   '저장 안 한 변경 있음': 'Unsaved changes',
   '알림 · 연동': 'Notifications and links',
+  '프로젝트 설정': 'Project settings',
 
   // 탭 상태 한 줄
   '테스트 저장소 비어 있음': 'Tests repository is empty',

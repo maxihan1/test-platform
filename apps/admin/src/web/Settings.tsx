@@ -9,11 +9,10 @@ import { 고른서비스를읽는다 } from './layout.js';
 import { 떠나기로했다, 주소덮기 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
-import { SettingsBts } from './SettingsBts.js';
 import { PendingSection } from './SettingsPending.js';
 import { SettingsPerfAgents } from './SettingsPerfAgents.js';
 import { SettingsPerfDummy } from './SettingsPerfDummy.js';
-import { ProjectPanel } from './SettingsProject.js';
+import { ProjectPanel, type 프로젝트탭 } from './SettingsProject.js';
 import { ServicePanel } from './SettingsService.js';
 import { UserSection } from './SettingsUser.js';
 import { SettingsWizard } from './SettingsWizard.js';
@@ -76,8 +75,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   // 주소에 자리가 없으면 맨 위에서 고른 서비스로 연다. 그 서비스가 목록에 없으면 첫 서비스다 (점검 N13)
   const 헤더서비스 = 서비스들.find((it) => it.prefix === 고른서비스를읽는다())?.prefix;
   // 프로젝트 자리는 접두사 모양(대문자·숫자)에 안 걸리게 `project-` 로 시작한다 — 대문자로 바꾸기 전에 먼저 가른다
-  // `project-<번호>-bts` 는 그 프로젝트의 BTS 연결 화면이다 (도메인/BTS §8.15)
-  const 프로젝트자리 = 자리 !== undefined && /^project-(new|\d+(-bts)?)$/i.test(자리);
+  // `project-<번호>-bts` · `-api` 는 그 프로젝트 설정의 Issue Bunker 연결 · API 서버 탭이다 (도메인/BTS §8.15)
+  const 프로젝트자리 = 자리 !== undefined && /^project-(new|\d+(-bts|-api)?)$/i.test(자리);
   const 고른 =
     자리 === undefined
       ? (헤더서비스 ?? 서비스들[0]?.prefix ?? 'new')
@@ -87,8 +86,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
           ? 자리
           : 자리.toUpperCase();
   const 서비스 = 서비스들.find((it) => it.prefix === 고른);
-  const BTS자리 = 고른.endsWith('-bts');
-  const 프로젝트 = 프로젝트들.find((it) => `project-${it.id}` === (BTS자리 ? 고른.slice(0, -'-bts'.length) : 고른));
+  const 프로젝트탭: 프로젝트탭 = 고른.endsWith('-bts') ? 'bts' : 고른.endsWith('-api') ? 'api' : 'basic';
+  const 프로젝트 = 프로젝트들.find((it) => `project-${it.id}` === 고른.replace(/-(bts|api)$/, ''));
   // 메뉴는 지금 프로젝트 하나만 펼친다 — 고른 애플리케이션의 프로젝트, 프로젝트 화면이면 그 프로젝트, 계정 같은 곳이면 맨 위에서 보던 애플리케이션의 프로젝트
   const 지금프로젝트 = 서비스?.projectId ?? 프로젝트?.id ?? 서비스들.find((it) => it.prefix === 헤더서비스)?.projectId;
   const 프로젝트줄 = 프로젝트줄들(프로젝트들, 서비스들);
@@ -165,10 +164,16 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
           ) : 프로젝트자리 ? (
             프로젝트 === undefined ? (
               <div className="empty">{t('그 프로젝트를 찾지 못했습니다')}</div>
-            ) : BTS자리 ? (
-              <SettingsBts row={프로젝트} services={서비스들} onDone={() => void services.reload()} />
             ) : (
-              <ProjectPanel key={`${프로젝트.id}-${판}`} row={프로젝트} projects={프로젝트들} services={서비스들} onDone={() => void 프로젝트다시()} />
+              <ProjectPanel
+                key={`${프로젝트.id}-${판}`}
+                row={프로젝트}
+                projects={프로젝트들}
+                services={서비스들}
+                탭={프로젝트탭}
+                onDone={() => void 프로젝트다시()}
+                onBts저장={() => void services.reload()}
+              />
             )
           ) : 서비스 === undefined ? (
             <div className="empty">{t('그 애플리케이션을 찾지 못했습니다')}</div>
