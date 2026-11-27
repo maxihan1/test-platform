@@ -70,5 +70,7 @@ describe('게임플레이 다음 판 막기', () => {
     const 다섯째 = 'stage:다섯째 맵';
     const 들 = 바탕(깰곳(다섯째), 줄('CALC', 'calc:다섯째 맵', { 곳: 다섯째 }), 계획('trial:다섯째', undefined, 다섯째), 줄('ASK', 'ask:보스', {}, 'GUESS'));
     expect(배움막기(자료, 300, 'trial:다섯째', 들 as never, [])).toMatchObject({ 계획: 'trial:다섯째' });
+    const 다른곳한판 = 바탕(계획('trial:다음'), 줄('ASK', 'ask:보스', {}, 'GUESS'), 회고(9, 1, '믿은것', 다섯째));
+    expect(배움막기(자료, 300, 'trial:다음', 다른곳한판 as never, [])).toMatchObject({ 막음: expect.stringContaining(`${곳} 에서 ${안늚판상한}판 이어 나아감이 안 늘었다`) });
   });
 });
