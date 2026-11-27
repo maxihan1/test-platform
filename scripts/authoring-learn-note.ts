@@ -14,6 +14,7 @@ import { type 판기록, 계획읽기, 나아감자리, 나아감열쇠, 대봄�
 import { 결과읽기, 곳셈, 맵검사, 넘김판 } from './authoring-learn-play.js';
 import { 놀이시작뒤 } from './authoring-learn-io.js';
 import { 회고채우기 } from './authoring-learn-retro.js';
+import { 시뮬불가검사 } from './authoring-learn-sim.js';
 import { type 지도, 글자들, 빠진게임글 } from './authoring-learn-map.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -52,7 +53,7 @@ function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 
     if (열쇠 === 나아감열쇠 && 나아감자리(l.data) === null) return `${열쇠} — data 에 얼마나 나아갔나를 읽을 자리를 { 주소, 칸? } 로 적는다(깬 맵 수 · 레벨 · 해금 수)`;
     const 상태 = 객체(l.data).상태;
     if (x.kind === 'STAGE' && 상태 !== undefined && !(상태 === '가봄' || 상태 === '안감' || ((상태 === '못감' || 상태 === '못깸') && typeof 객체(l.data).까닭 === 'string'))) return `${열쇠} — data.상태 는 가봄 · 안감 · 못감 · 못깸이다(못감 · 못깸은 data.까닭)`;
-    const 곳틀림 = x.kind === 'STAGE' ? (맵검사(l.data, 기록들) ?? (typeof 결과읽기(l.data) === 'string' ? (결과읽기(l.data) as string) : null)) : null;
+    const 곳틀림 = x.kind === 'STAGE' ? (맵검사(l.data, 기록들) ?? (typeof 결과읽기(l.data) === 'string' ? (결과읽기(l.data) as string) : null) ?? 시뮬불가검사(열쇠, l.data, 찾기)) : null;
     if (곳틀림 !== null) return `${열쇠} — ${곳틀림}`;
     if (x.kind === 'STAGE' && 상태 === '못깸') {
       // 못 깨면 넘어가는 길로 쓰지 않게 — 그 곳을 넘김판만큼 해 봐야 못깸이다(2026-11-26 사용자 「깨게 만들어야지」 · 11-27 50판을 뺌)

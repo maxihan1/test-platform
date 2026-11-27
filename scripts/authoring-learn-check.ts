@@ -87,7 +87,7 @@ const 살기만하면 = (g: 기대): boolean => (g.비교 === '>=' && g.기준 <
  * 계산 없이 심는 자리만 바꿔 판을 돌리던 것(Cats Go! 둘째 맵 48판)을 막는다. 게임 배우기 단계의 계획에는 걸지 않는다
  */
 export function 놀이계획검사(계획: Pick<계획, '기대' | '쓸것'>): string | null {
-  if (!(계획.쓸것 ?? []).some((k) => k.startsWith(계산머리))) return `게임플레이 계획의 data.쓸것 에 계산 줄 열쇠(${계산머리}<이름>)를 하나 이상 적는다 — scripts/authoring-game-calc.ts 로 버틸 수 있나 · 예산 · 자리를 계산해 CALC 줄로 올린 뒤 그 줄을 쓴다`;
+  if (!(계획.쓸것 ?? []).some((k) => k.startsWith(계산머리))) return `게임플레이 계획의 data.쓸것 에 계산 줄 열쇠(${계산머리}<이름>)를 하나 이상 적는다 — scripts/authoring-game-calc.ts 로 시뮬(적이 오는 곳) · 자리를 계산해 CALC 줄로 올린 뒤 그 줄을 쓴다`;
   if (계획.기대.every(살기만하면)) return '게임플레이 계획의 data.기대 에 예측 숫자를 하나 이상 적는다(예: 5웨이브 끝에 세계수 40 이상) — 「>= 1」 처럼 지는 순간에만 깨지는 기대는 계산이 맞았는지 못 가른다';
   return null;
 }
