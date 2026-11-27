@@ -1,11 +1,11 @@
-// 케이스 목록 맥락의 재료를 DB 에서 읽는다 — 표준 기획서 지금 판 · 지도 ① ② · 서비스 지도 (도메인/카탈로그 §8.1 「맥락」)
+// 케이스 목록 맥락의 재료를 DB 에서 읽는다 — 표준 기획서 현재 버전 · 지도 ① ② · 서비스 지도 (도메인/카탈로그 §8.1 「맥락」)
 // context.ts 가 300줄에 닿아 DB 읽기만 떼어 냈다. 판단은 context.ts 의 순수 함수가 한다
 
 import type { PrdItem } from '@platform/kit';
 
 import { 맥락짓기, type 맥락표, type 종류 } from './context.js';
 
-/** 그 서비스의 지도 ① ② 와 표준 기획서 지금 판. 서비스 · 판이 없으면 빈 표다 */
+/** 그 서비스의 지도 ① ② 와 표준 기획서 현재 버전. 서비스 · 판이 없으면 빈 표다 */
 export async function 맥락읽기(prefix: string): Promise<맥락표> {
   const { pool } = await import('../db/index.js');
   const [판, 요구, 화면, 서버, 끝점] = await Promise.all([

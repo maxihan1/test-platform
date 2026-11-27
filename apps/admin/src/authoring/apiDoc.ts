@@ -1,4 +1,4 @@
-// API 애플리케이션 작성 요청의 판 · 대상 서버 판정과 집기 칸 (도메인/API §3.8 「작성」 · 도메인/작성 §7 「AUTHOR API 문서 판」)
+// API 애플리케이션 작성 요청의 판 · 대상 서버 판정과 집기 칸 (도메인/API §3.8 「작성」 · 도메인/작성 §7 「AUTHOR API 문서 버전」)
 
 import type { ApiAuth, ApiDocRef } from '@platform/kit';
 
@@ -45,7 +45,7 @@ export async function API칸판정(본문: Record<string, unknown>, 서비스: n
 }
 
 /**
- * 재실행 · 이어서 작성 — API 애플리케이션 작성 원본의 env 를 물려받아 다시 판정한다. 안 물려받으면 집기 응답의 target 이 빈다 (§7 「AUTHOR API 문서 판」).
+ * 재실행 · 이어서 작성 — API 애플리케이션 작성 원본의 env 를 물려받아 다시 판정한다. 안 물려받으면 집기 응답의 target 이 빈다 (§7 「AUTHOR API 문서 버전」).
  * 화면 애플리케이션과 케이스 고치기(EDIT — 자식 없이 고쳐 env 가 없다)는 빈 객체다
  */
 export async function 재실행API(서비스: number, 원본: { kind: string; env: string | null }): Promise<{ env?: string } | { error: 'BAD_ENV' }> {
@@ -69,7 +69,7 @@ export interface API대상 {
 
 /**
  * 집기 응답의 API 칸 — API 애플리케이션의 작성 · 재실행 행에만 target · apiDoc 을 싣는다. 그 밖은 빈 객체다.
- * 재실행 행은 자료가 없어 원본(`sourceId`)의 API 문서 판 자료를 읽는다. env 는 재실행 행이 물려받아 제 칸에 있다
+ * 재실행 행은 자료가 없어 원본(`sourceId`)의 API 문서 버전 자료를 읽는다. env 는 재실행 행이 물려받아 제 칸에 있다
  */
 export async function 집기API칸(
   서비스: number,

@@ -1,4 +1,4 @@
-// 서비스 가이드 HTTP 라우트 — 지금 판 · 변경 기록 · 글 저장 · 파일 더하기 · 빼기 · 내려받기 · 열기 (도메인/작성 §7 「서비스 가이드 통로」)
+// 서비스 가이드 HTTP 라우트 — 현재 버전 · 변경 기록 · 글 저장 · 파일 더하기 · 빼기 · 내려받기 · 열기 (도메인/작성 §7 「서비스 가이드 통로」)
 // 배정과 권한(보기 작성 read · 고치기 작성 write)은 문(auth/gate.ts)이 ?service= 로 이미 봤다. 여기서는 그 서비스 것만 읽고 쓴다
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';

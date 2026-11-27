@@ -1,4 +1,4 @@
-// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 · 조작 맵 · 앱 조작 맵 · 앱 배운 것 (도메인/작성 §7 「표준 기획서 통로」 · 「앱 조작 맵 통로」 · 「앱 배운 것 통로」 · 도메인/게임 §7)
+// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 현재 버전 · 기준 버전 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 · 조작 맵 · 앱 조작 맵 · 앱 배운 것 (도메인/작성 §7 「표준 기획서 통로」 · 「앱 조작 맵 통로」 · 「앱 배운 것 통로」 · 도메인/게임 §7)
 // 서비스 경계는 문이 요청 번호로 봤다. 여기서는 맥 계정 · 집은 쪽 · 도는 중인지를 본다(authoring/agentRoutes.ts 와 같은 문턱)
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -59,7 +59,7 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
   app.get<경로>('/authoring/requests/:id/prd', async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
-    // 기준 판은 반영 요청이 바뀐 항목과 옛 문장(설계가 바뀐 종류)을 알려고 읽는다 — 화면의 「반영 안 됨」과 같은 기준이다.
+    // 기준 버전은 반영 요청이 바뀐 항목과 옛 문장(설계가 바뀐 종류)을 알려고 읽는다 — 화면의 「반영 안 됨」과 같은 기준이다.
     // 반영 요청은 집을 때 적은 판을 읽는다 — 그 사이 사람이 저장한 판까지 넣으면 병합 뒤에도 그 고침이 「반영 안 됨」으로 남는다
     const 적은판 = 행.params.prdApply === true ? await 읽은판(행.id) : null;
     const [판, base] = await Promise.all([적은판 === null ? 지금판(행.serviceId) : 판하나(행.serviceId, 적은판), 기준판(행.serviceId)]);

@@ -94,7 +94,7 @@ describe('안옮김뒤', () => {
     expect(건것.mock.calls.every((c) => (c as unknown[])[1] === undefined || ((c as unknown[])[1] as RequestInit).method !== 'POST')).toBe(true);
   });
 
-  it('고친 번호만 지금 판에 합쳐 올리고 머리 줄에 번호를 단다. 원장은 고친 문장으로 다시 짓는다', async () => {
+  it('고친 번호만 현재 버전에 합쳐 올리고 머리 줄에 번호를 단다. 원장은 고친 문장으로 다시 짓는다', async () => {
     let 몸: { baseVersion?: number; items?: { reqId: string; text: string }[] } = {};
     vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
       if (init?.method !== 'POST') return 답(200, { version: 3, items: 판 });

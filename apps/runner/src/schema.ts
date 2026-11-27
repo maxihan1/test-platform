@@ -25,7 +25,7 @@ const apiAuths = z
   )
   .optional();
 
-// 케이스가 만들어진 판 원문. 모양 확인은 kit 몫이라 판 번호만 본다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
+// 케이스가 만들어진 판 원문. 모양 확인은 kit 몫이라 버전 번호만 본다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
 const apiDoc = z.object({ version: z.number().int().min(1), doc: z.record(z.string(), z.unknown()) }).optional();
 
 // 판 원문이 5MB 까지라 Fastify 기본 상한(1MiB)이면 413 이 난다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)

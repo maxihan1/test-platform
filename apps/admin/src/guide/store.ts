@@ -1,4 +1,4 @@
-// 서비스 가이드 판 · 첨부 표를 읽고 쓴다. 바꿀 때마다 새 판이고 옛 판 · 뺀 파일은 지우지 않는다 (도메인/작성 §3.6 「★ 서비스 가이드」)
+// 서비스 가이드 버전 · 첨부 표를 읽고 쓴다. 바꿀 때마다 새 버전이고 이전 버전 · 뺀 파일은 지우지 않는다 (도메인/작성 §3.6 「★ 서비스 가이드」)
 
 import type { GuideFile, GuideSection, GuideVersionRow, ServiceGuide } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
@@ -138,7 +138,7 @@ const 앞글 = (앞: 판행 | null): 글셋 => ({ intro: 앞?.intro ?? '', polic
 const 낡았나 = (앞: 판행 | null, baseVersion: number): 낡음 | null =>
   baseVersion === (앞?.version ?? 0) ? null : { error: 'GUIDE_STALE', latest: 앞?.version ?? 0 };
 
-/** 글 저장. 파일 목록은 지금 판 것을 물려받는다. 글이 지금 판과 같으면 새 판을 안 만든다 */
+/** 글 저장. 파일 목록은 현재 버전 것을 물려받는다. 글이 현재 버전과 같으면 새 버전을 안 만든다 */
 export async function 글저장(서비스: number, baseVersion: number, 글: 글셋, 사람: 저장하는사람): Promise<{ version: number } | 낡음> {
   return 잠그고(서비스, async (손) => {
     const 앞 = await 지금판행(손, 서비스);
@@ -151,7 +151,7 @@ export async function 글저장(서비스: number, baseVersion: number, 글: 글
 }
 
 /**
- * 파일 더하기. 잠금 → 낡은 판 · 개수 → 파일 행 → 디스크 쓰기 → 새 판 행 → 커밋 (§7).
+ * 파일 더하기. 잠금 → 낡은 판 · 개수 → 파일 행 → 디스크 쓰기 → 새 버전 행 → 커밋 (§7).
  * 어디서든 실패하면 되돌리고 쓴 디스크 파일을 지운다 — 판이 안 가리키는 파일은 아무도 못 열고 지우지도 못한다
  */
 export async function 파일더하기(
@@ -187,7 +187,7 @@ export async function 파일더하기(
   }
 }
 
-/** 파일 빼기. 행 · 디스크 파일은 지우지 않는다 — 옛 판이 가리킨다 */
+/** 파일 빼기. 행 · 디스크 파일은 지우지 않는다 — 이전 버전이 가리킨다 */
 export async function 파일빼기(서비스: number, baseVersion: number, 파일: number, 사람: 저장하는사람): Promise<{ version: number } | 낡음 | 없음> {
   return 잠그고(서비스, async (손) => {
     const 앞 = await 지금판행(손, 서비스);

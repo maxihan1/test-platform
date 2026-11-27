@@ -42,7 +42,7 @@ describe('초안적용', () => {
     expect(r2.items.find((x) => x.reqId === 'MKW-REQ-003')!.basis[0]!.from.length).toBeLessThanOrEqual(상한.근거자리);
   });
 
-  it('요구 문장에 지금 판의 기능 묶음 이름이 들었으면 이슈 제목이 아니라 그 묶음에 넣는다 — 긴 이름이 먼저다', () => {
+  it('요구 문장에 현재 버전의 기능 묶음 이름이 들었으면 이슈 제목이 아니라 그 묶음에 넣는다 — 긴 이름이 먼저다', () => {
     const 판: PrdItem[] = [...지금, { reqId: 'MKW-REQ-009', feature: '주문', text: '주문은 결제 뒤에 만든다', basis: [{ from: '기획서', quote: '결제' }], status: 'CONFIRMED' }];
     const r = 초안적용(판, 9, 'MKW', [{ key: 'draft:7', card: 카드([줄({ text: '“주문 내역” 화면에서 「1개월」 버튼을 누르면 최근 1개월 주문만 보인다' })]), picked: new Set([0]) }], 시각);
     if ('error' in r) throw new Error(r.detail);

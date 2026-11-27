@@ -115,7 +115,7 @@ describe('한 건 한 줄과 상세 창의 맥락', () => {
     expect(within(칸).getByText('ZCL-REQ-003')).toBeTruthy();
   });
 
-  it('줄의 이름 버튼을 누르면 목록을 덮는 가운데 상세 창이 열린다 (2026-11-27 시안 C 2판)', async () => {
+  it('줄의 이름 버튼을 누르면 목록을 덮는 가운데 상세 창이 열린다 (2026-11-27 시안 C 2차)', async () => {
     그리기();
     const 칸 = await 서랍열기('ZCL-FN-001');
     expect(칸.id).toBe('case-pane');

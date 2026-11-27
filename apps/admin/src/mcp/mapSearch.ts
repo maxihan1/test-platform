@@ -33,7 +33,7 @@ export async function 지도찾기(사람: 사용자, service: string, 찾을것
     // 판을 먼저 본다 — PRD 에서 지운 요구도 req_case 연결이 남을 수 있어, 연결만 보면 지난 요구를 지금 요구로 믿게 된다
     const 판 = await 지금판(번호);
     if (판 === null) return 없음(`${service} 표준 기획서가 아직 없다`);
-    if (!판.items.some((i) => i.reqId === 찾을것.reqId)) return 없음(`${찾을것.reqId} 는 지금 PRD 판에 없는 요구다`);
+    if (!판.items.some((i) => i.reqId === 찾을것.reqId)) return 없음(`${찾을것.reqId} 는 지금 PRD 버전에 없는 요구다`);
     const r = await pool.query<{ tc_id: string }>(
       `SELECT DISTINCT r.tc_id FROM req_case r JOIN test_case t ON t.tc_id = r.tc_id AND t.is_active
         WHERE r.service_id = $1 AND r.req_id = $2 ORDER BY r.tc_id LIMIT $3 OFFSET $4`,

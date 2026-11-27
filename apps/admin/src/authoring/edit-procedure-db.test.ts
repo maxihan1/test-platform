@@ -98,7 +98,7 @@ describe.skipIf(process.env.DATABASE_URL === undefined)('프로시저 안 케이
       expect(칸.accounts?.map((a) => a.env)).toEqual(['qa']);
     });
 
-    it('집기가 읽은 판을 안 적는다 — 지금 판이 아니라 기준 판으로 돈다', async () => {
+    it('집기가 읽은 버전을 안 적는다 — 현재 버전이 아니라 기준 버전으로 돈다', async () => {
       const p = await pool();
       await p.query(`INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name) VALUES ($1, 1, '[]', 0, 'PERSON', 'xeq', 'xeq')`, [서비스]);
       try {

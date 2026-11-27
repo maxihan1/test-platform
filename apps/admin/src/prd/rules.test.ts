@@ -1,4 +1,4 @@
-// 표준 기획서 새 판 짓기 규칙 — 번호 · checkSince · byPerson · 옮기기 합치기 · 반영 안 됨 (도메인/작성 §7 「표준 기획서 통로」)
+// 표준 기획서 새 버전 짓기 규칙 — 번호 · checkSince · byPerson · 옮기기 합치기 · 반영 안 됨 (도메인/작성 §7 「표준 기획서 통로」)
 
 import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
@@ -65,7 +65,7 @@ describe('현재 동작 칸', () => {
     }
   });
 
-  it('사람 편집이 칸을 안 보내면 확인 필요인 동안 앞 판 것을 물려받고, 확정하면 뗀다', () => {
+  it('사람 편집이 칸을 안 보내면 확인 필요인 동안 이전 버전 것을 물려받고, 확정하면 뗀다', () => {
     const 앞 = { version: 1, items: [{ ...확인({ observed: 본것 }), checkSince: 시각 }], lastNo: 1 };
     const 그대로 = 사람판(앞, [확인()], 'MKT', 시각);
     expect('error' in 그대로 ? null : 그대로.items[0]?.observed).toEqual(본것);
@@ -116,7 +116,7 @@ describe('사람판', () => {
     expect(r.items.map((x) => [x.reqId, x.fromIssues ?? null])).toEqual([['MKT-REQ-001', null], ['MKT-REQ-002', ['DM-3']]]);
   });
 
-  it('지금 판에 없는 번호는 PRD_REUSED — 되돌리기의 옛 번호만 받는다', () => {
+  it('현재 버전에 없는 번호는 PRD_REUSED — 되돌리기의 옛 번호만 받는다', () => {
     expect(사람판(앞, [항목('MKT-REQ-002')], 'MKT', 시각)).toEqual({ error: 'PRD_REUSED', detail: 'MKT-REQ-002' });
     expect(사람판(앞, [항목('MKT-REQ-002')], 'MKT', 시각, new Set(['MKT-REQ-002']))).toMatchObject({
       items: [{ reqId: 'MKT-REQ-002', byPerson: true }],
@@ -127,7 +127,7 @@ describe('사람판', () => {
     expect(사람판({ ...앞, lastNo: 999 }, [새것()], 'MKT', 시각)).toEqual({ error: 'PRD_FULL', detail: '1000' });
   });
 
-  it('바꾼 항목에만 byPerson 을 달고 안 바꾼 항목은 앞 판 값을 물려준다', () => {
+  it('바꾼 항목에만 byPerson 을 달고 안 바꾼 항목은 이전 버전 값을 물려준다', () => {
     const 고친앞 = { ...앞, items: [항목('MKT-REQ-001', { byPerson: true }), 항목('MKT-REQ-003')] };
     const r = 사람판(고친앞, [항목('MKT-REQ-001'), 항목('MKT-REQ-003', { text: '고침' })], 'MKT', 시각);
     expect(r).toMatchObject({ items: [{ byPerson: true }, { text: '고침', byPerson: true }] });
@@ -141,7 +141,7 @@ describe('사람판', () => {
     expect('error' in r ? null : r.items[0]).not.toHaveProperty('byPerson');
   });
 
-  it('checkSince — 확인 필요로 바뀌면 이번 시각, 계속 확인 필요면 앞 판 값, 확정이면 없다', () => {
+  it('checkSince — 확인 필요로 바뀌면 이번 시각, 계속 확인 필요면 이전 버전 값, 확정이면 없다', () => {
     const r = 사람판(
       앞,
       [항목('MKT-REQ-001', { status: 'NEEDS_CHECK' }), 항목('MKT-REQ-004', { status: 'NEEDS_CHECK', text: '고침' })],
@@ -169,7 +169,7 @@ describe('옮기기판', () => {
     expect('error' in r ? null : r.items[1]).not.toHaveProperty('byPerson');
   });
 
-  it('받은 판 뒤에 사람이 지운 번호는 되살리지 않고, 사람이 더한 항목은 남긴다', () => {
+  it('받은 버전 뒤에 사람이 지운 번호는 되살리지 않고, 사람이 더한 항목은 남긴다', () => {
     const 지금판 = { version: 2, lastNo: 4, items: [항목('MKT-REQ-001'), 항목('MKT-REQ-004', { byPerson: true as const })] };
     const r = 옮기기판(받은판, 지금판, [항목('MKT-REQ-001'), 항목('MKT-REQ-002'), 새것()], 'MKT', 시각);
     expect(r).toMatchObject({
@@ -196,7 +196,7 @@ describe('옮기기판', () => {
     });
   });
 
-  it('화면이 맞음 번호는 사람이 고친 항목이어도 덮어 확정 · byPerson 으로 쓰고, 안 바뀐 번호는 지금 판 그대로다 — keptByPerson 에 안 넣는다', () => {
+  it('화면이 맞음 번호는 사람이 고친 항목이어도 덮어 확정 · byPerson 으로 쓰고, 안 바뀐 번호는 현재 버전 그대로다 — keptByPerson 에 안 넣는다', () => {
     const 화면근거 = [{ from: '화면', ref: '/join', quote: '실행 RUN 42 실패 — 사람이 화면이 맞다고 판정' }];
     const 확인중 = 항목('MKT-REQ-002', { status: 'NEEDS_CHECK', checkSince: '2026-10-01T00:00:00.000Z' });
     const 지금판 = { ...받은판, version: 2, items: [항목('MKT-REQ-001', { text: '사람 고침', byPerson: true as const }), 확인중, 항목('MKT-REQ-003', { text: '사람 고침', byPerson: true as const })] };
@@ -217,7 +217,7 @@ describe('옮기기판', () => {
     });
   });
 
-  it('화면이 맞음 번호라도 받은 판 그대로 온 항목은 에이전트가 안 고친 것이다 — 그 사이 사람이 고친 지금 것을 남긴다', () => {
+  it('화면이 맞음 번호라도 받은 버전 그대로 온 항목은 에이전트가 안 고친 것이다 — 그 사이 사람이 고친 지금 것을 남긴다', () => {
     const 지금판 = { ...받은판, version: 2, items: [항목('MKT-REQ-001'), 항목('MKT-REQ-002', { text: '그 사이 사람 고침', byPerson: true as const }), 항목('MKT-REQ-003')] };
     const r = 옮기기판(받은판, 지금판, 받은판.items, 'MKT', 시각, new Set(['MKT-REQ-001', 'MKT-REQ-002']));
     expect(r).toMatchObject({ keptByPerson: [], items: 지금판.items });

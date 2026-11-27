@@ -18,7 +18,7 @@ import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
 export async function 집기(서비스: number, 집는이: string): Promise<요청 | null> {
   const pool = await db();
   const r = await pool.query<행>(
-    // 읽은 판 — 작성 · 재실행 · 반영 요청 실행만 적는다. 케이스 고치기(그 다시 적용은 params.edits)와 머지는 표준 기획서를 안 읽는다. 프로시저 안 케이스의 삭제(procDelete)는 지금 판이 아니라 기준 판으로 돈다.
+    // 읽은 버전 — 작성 · 재실행 · 반영 요청 실행만 적는다. 케이스 고치기(그 다시 적용은 params.edits)와 머지는 표준 기획서를 안 읽는다. 프로시저 안 케이스의 삭제(procDelete)는 현재 버전이 아니라 기준 버전으로 돈다.
     // 표준 기획서가 없으면 비운다 (도메인/작성 §7 「표준 기획서 통로」)
     `WITH RECURSIVE ${열린반영식('$1')}
      UPDATE authoring_request
@@ -36,7 +36,7 @@ export async function 집기(서비스: number, 집는이: string): Promise<요�
                  -- 이어받는 줄은 보관 폴더가 있는 에이전트만 — 원본을 집었던 쪽이다. 아무도 안 집었으면 폴더가 없어 누구나 (§7 「이어하기」)
                  AND (줄.resume_from IS NULL
                       OR COALESCE((SELECT 멈춘것.claimed_by FROM authoring_request 멈춘것 WHERE 멈춘것.id = 줄.resume_from), $2) = $2)
-                 -- 반영은 앞 반영이 병합 · 폐기될 때까지 기다린다 — 기준 판이 하나라 둘이 같이 돌면 병합 뒤 「반영 안 됨」이 틀어진다 (PRD-F9-20).
+                 -- 반영은 앞 반영이 병합 · 폐기될 때까지 기다린다 — 기준 버전이 하나라 둘이 같이 돌면 병합 뒤 「반영 안 됨」이 틀어진다 (PRD-F9-20).
                  -- 사슬은 반영 요청만 담아 다른 줄은 늘 통과한다. 병합(MERGE)은 자기 PR 을 닫는 일이라 기다리지 않는다
                  AND (줄.kind = 'MERGE'
                       OR NOT EXISTS (SELECT 1 FROM 열린반영 앞, 사슬 내것 WHERE 내것.id = 줄.id AND 앞.root_id < 내것.root_id))

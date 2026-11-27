@@ -68,7 +68,7 @@ printf '{"permissions":{"allow":["Bash(*)"]}}\n' > "$HOME/.claude/settings.json"
 # 부품은 호스트 uid 소유 0755 — 자식 uid 가 부품에 못 쓴다(쓰면 다음에 켤 때 root 가 그 코드를 돌린다)
 chown "$HOST_UID:$HOST_GID" /repo/node_modules
 chmod 755 /repo/node_modules
-# lock 이 바뀌었으면 부품을 다시 맞춘다 — 볼륨은 처음 한 번만 채워져 옛 판이 남는다 (2026-09-23 계획 검토)
+# lock 이 바뀌었으면 부품을 다시 맞춘다 — 볼륨은 처음 한 번만 채워져 이전 버전이 남는다 (2026-09-23 계획 검토)
 new_sha=$(sha256sum /repo/package-lock.json | cut -d' ' -f1)
 old_sha=$(cat /repo/node_modules/.lock-sha256 2>/dev/null || true)
 if [ "$new_sha" != "$old_sha" ]; then

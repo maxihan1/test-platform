@@ -192,7 +192,7 @@ export async function findRun(
 
   return {
     ...toRun(row),
-    // API 애플리케이션 실행만 찬다 — 실행 시작 때 견준 문서 판 · 한 줄 (도메인/API §3.8 「실행 시작 때 견주기」)
+    // API 애플리케이션 실행만 찬다 — 실행 시작 때 견준 문서 버전 · 한 줄 (도메인/API §3.8 「실행 시작 때 견주기」)
     apiDocVersion: row.api_doc_version,
     apiDocNote: row.api_doc_note,
     items: items.rows.map((r) => ({ ...toItem(r, 비밀들.get(Number(r.exec_id))), rerun: 다시실행칸으로(r), failure: 이유.get(Number(r.history_id)) ?? null })),

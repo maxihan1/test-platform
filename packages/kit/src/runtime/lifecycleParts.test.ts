@@ -108,7 +108,7 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
     expect(폰.보낸).toEqual([]);
   });
 
-  it('옛판에서올리기 는 지우고 앞 빌드를 깔아 할일을 돌린 뒤 지금 판을 덮어 깔고 켠다 — 할일의 값을 돌려준다', async () => {
+  it('옛판에서올리기 는 지우고 앞 빌드를 깔아 할일을 돌린 뒤 현재 버전을 덮어 깔고 켠다 — 할일의 값을 돌려준다', async () => {
     vi.stubEnv('PLATFORM_APP', '/apk/new.apk');
     vi.stubEnv('PLATFORM_APP_PREVIOUS', '/apk/old.apk');
     const 폰 = 가짜폰();
@@ -137,7 +137,7 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
     expect(폰.보낸).toEqual([]);
   });
 
-  it('할일이 던지면 지금 판을 덮어 깔아 두고 그 오류를 그대로 던진다 — 그것도 못 깔면 까닭을 덧붙이고, 서명 주소는 싣지 않는다', async () => {
+  it('할일이 던지면 현재 버전을 덮어 깔아 두고 그 오류를 그대로 던진다 — 그것도 못 깔면 까닭을 덧붙이고, 서명 주소는 싣지 않는다', async () => {
     vi.stubEnv('PLATFORM_APP', 'https://admin/apk?sig=secret');
     vi.stubEnv('PLATFORM_APP_PREVIOUS', '/apk/old.apk');
     const 폰 = 가짜폰();

@@ -13,7 +13,7 @@ type 경로 = { Params: { id: string } };
 // 애플리케이션 번호는 문(auth/scope.ts 번호로)과 같은 규칙인 정수()로 읽는다
 const 번호 = (글: unknown): number | null => (typeof 글 === 'string' ? 정수(글) : null);
 
-// 판 번호는 INTEGER 라 그 상한도 본다 — 넘으면 Postgres 범위 초과가 잡히지 않은 500 이 된다
+// 버전 번호는 INTEGER 라 그 상한도 본다 — 넘으면 Postgres 범위 초과가 잡히지 않은 500 이 된다
 const 판번호 = (글: unknown): number | null => {
   const n = 번호(글);
   return n !== null && n <= 2_147_483_647 ? n : null;

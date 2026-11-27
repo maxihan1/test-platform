@@ -88,7 +88,7 @@ describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () =>
 });
 
 describe('PRD 관리 — 고치기', () => {
-  it('고친 요구는 번호를 그대로 두고 판 전체를 지금 판 번호와 함께 보낸다', async () => {
+  it('고친 요구는 번호를 그대로 두고 판 전체를 현재 버전 번호와 함께 보낸다', async () => {
     await 펴서고치기(/MKT-REQ-032/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '아이디 칸에는 12자까지 들어간다' } });
     fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'CONFIRMED' } });
@@ -203,7 +203,7 @@ describe('PRD 관리 — 고치기', () => {
     expect(저장.mock.calls[0]![2].map((x) => x.reqId)).toEqual([아이디.reqId, 아이디칸.reqId, 잠금.reqId]);
   });
 
-  it('요구사항 추가는 번호 없이 맨 뒤에 붙이고, 기능 묶음은 지금 판의 것을 고를 수 있다', async () => {
+  it('요구사항 추가는 번호 없이 맨 뒤에 붙이고, 기능 묶음은 현재 버전의 것을 고를 수 있다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     const 칸 = screen.getByRole('heading', { name: '새 요구사항' }).parentElement!;

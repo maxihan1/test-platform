@@ -1,6 +1,6 @@
 // PRD 채점 명령 — 정답지 기준 포착률 · 확인 필요 비율을 찍고, 서비스 사이 칸 겹침에 쓸 번호표를 쓴다 (⑧ 일괄 시험 eval)
 // 실행: npx tsx scripts/eval-prd.ts <정답지 기획서.md> <prd.json> [--대응표 <대응표.md>] [--표 <요구사항 표>] [--번호표 <쓸 파일.json>]
-// prd.json 은 그 서비스의 지금 판 items 다 — 로그인 없이 DB 에서 뽑는다(접두사만 바꾼다).
+// prd.json 은 그 서비스의 현재 버전 items 다 — 로그인 없이 DB 에서 뽑는다(접두사만 바꾼다).
 //   psql "$DATABASE_URL" -At -c "SELECT v.items FROM prd_version v JOIN service s ON s.id = v.service_id WHERE s.prefix = 'MKT' ORDER BY v.version DESC LIMIT 1" > /abs/mkt-prd.json
 // 「PRD 관리」 응답(GET /api/prd)을 저장한 파일도 받는다 — items 를 꺼내 쓴다
 // 칸 겹침은 case-consistency.ts 에 번호표를 세 번째 조각으로 준다: <폴더>,<표>,<번호표.json>

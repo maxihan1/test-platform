@@ -1,5 +1,5 @@
 // 휴대폰 껍데기 — 위 줄(위치 단추 · 알림 종 · 내 동그라미) · 본문 · 아래 탭 다섯 · 전체 메뉴판 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
-// 2026-10-30 부터 휴대폰에서도 모든 메뉴가 열린다 — 앞 판은 결과 확인 밖의 화면을 「PC 에서 여세요」 안내로 막았다
+// 2026-10-30 부터 휴대폰에서도 모든 메뉴가 열린다 — 이전 버전은 결과 확인 밖의 화면을 「PC 에서 여세요」 안내로 막았다
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -75,7 +75,7 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
         {service === null ? (
           <span className="ph-app-none">{t('애플리케이션 없음')}</span>
         ) : (
-          // PC 위치 카드와 같은 두 이름이다 — 프로젝트도 여기서 바꾼다 (2026-11-05 · 앞 판은 「전체」 메뉴판에 숨어 있었다)
+          // PC 위치 카드와 같은 두 이름이다 — 프로젝트도 여기서 바꾼다 (2026-11-05 · 이전 버전은 「전체」 메뉴판에 숨어 있었다)
           <button
             type="button"
             className="ph-app"

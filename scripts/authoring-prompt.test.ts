@@ -129,11 +129,11 @@ describe('줄프롬프트 — 진행 메모 (도메인/작성 §7 「이어하�
 describe('줄프롬프트 — 표준 기획서 절 (도메인/작성 §3.6 「★ 표준 기획서」 「옮기기」)', () => {
   const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
 
-  it('지금 판 경로 · 판 번호 · 결과 자리 · 원본 원장 · 원장 다시 만들기 명령과 참고 파일을 싣는다', () => {
+  it('현재 버전 경로 · 버전 번호 · 결과 자리 · 원본 원장 · 원장 다시 만들기 명령과 참고 파일을 싣는다', () => {
     const 입력 = { 지금판: '/w/자료/prd-current.json', 결과: '/w/자료/out/prd.json', 판: 3, 항목수: 41, 원본: { 사본: '/w/자료/source-ledger.json', 요약: '요구 172' }, 자료폴더: '/w/자료' };
     const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, undefined, undefined, undefined, 입력);
     expect(글).toContain('--- 표준 기획서 ---');
-    expect(글).toContain('판 3 · 항목 41');
+    expect(글).toContain('버전 3 · 항목 41');
     expect(글).toContain('/w/자료/prd-current.json');
     expect(글).toContain('/w/자료/out/prd.json');
     expect(글).toContain('/w/자료/source-ledger.json — 요구 172');
@@ -168,10 +168,10 @@ describe('줄프롬프트 — 반영 절 (도메인/작성 §3.6 「사람이 �
 describe('줄프롬프트 — 서비스 가이드 절 (§3.6 「★ 서비스 가이드」)', () => {
   const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
 
-  it('판이 있으면 판 번호 · guide.md 자리 · 요약 자리 · 참고 파일을 싣는다', () => {
+  it('버전이 있으면 버전 번호 · guide.md 자리 · 요약 자리 · 참고 파일을 싣는다', () => {
     const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, { 판: 4, 글: '/w/자료/guide/guide.md' });
     expect(글).toContain('--- 서비스 가이드 ---');
-    expect(글).toContain('(판 4): /w/자료/guide/guide.md');
+    expect(글).toContain('(버전 4): /w/자료/guide/guide.md');
     expect(글).toContain('`docs/cases/MKT.guide.md`');
     expect(글).toContain('references/guide.md');
     expect(글).toContain('기대값의 근거가 아니다');
@@ -179,7 +179,7 @@ describe('줄프롬프트 — 서비스 가이드 절 (§3.6 「★ 서비스 �
 
   it('판이 0 이어도 요약 자리를 알린다 — 「배운 것」은 가이드가 없어도 쌓인다 (PRD-F11-05)', () => {
     const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, { 판: 0, 글: '/w/자료/guide/guide.md' });
-    expect(글).toContain('서비스 가이드가 없다(판 0).');
+    expect(글).toContain('서비스 가이드가 없다(버전 0).');
     expect(글).not.toContain('/w/자료/guide/guide.md');
     expect(글).toContain('`docs/cases/MKT.guide.md`');
   });

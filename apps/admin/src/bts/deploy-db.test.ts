@@ -259,7 +259,7 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
     expect((await 초안들()).slice(2).map((x) => x.keys)).toEqual([['XBN-4'], ['XBN-4']]);
   });
 
-  it('맡은 버그의 딸린 케이스가 다 통과하면 「재검증 통과」로 닫는다 — 한 번만 · 보낼 때 판 번호를 읽는다', async () => {
+  it('맡은 버그의 딸린 케이스가 다 통과하면 「재검증 통과」로 닫는다 — 한 번만 · 보낼 때 버전 번호를 읽는다', async () => {
     const 다른곳 = await createRun({
       origin: 'SCHEDULED',
       triggeredBy: 'xbn-admin',

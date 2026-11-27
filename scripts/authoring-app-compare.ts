@@ -126,14 +126,14 @@ export interface 맞대기재료 {
   범위: 맞대기범위;
 }
 
-/** 갈래를 적어야 하는 항목 번호 — 이어 작성 · 반영은 맡은 요구, 이번 결과가 있으면 그 항목, 없으면 지금 판(화면만은 이번 결과뿐이다) */
+/** 갈래를 적어야 하는 항목 번호 — 이어 작성 · 반영은 맡은 요구, 이번 결과가 있으면 그 항목, 없으면 현재 버전(화면만은 이번 결과뿐이다) */
 function 볼항목(r: 맞대기재료, 모두: ReadonlyMap<string, 옮긴항목>): string[] {
   if (r.범위.맡은요구 !== undefined) return r.범위.맡은요구.filter((n) => 모두.has(n));
   if (r.결과 !== null) return r.결과.flatMap((i) => [i.reqId ?? i.임시].filter(글인가));
   return r.범위.화면만 === true ? [] : r.지금판.map((i) => i.reqId);
 }
 
-/** 아직 표에도 PRD 에도 안 이은 요구 종류 확인 줄 — 앞 작성이 이은 줄(data.요구 가 지금 판에 있다) · 안 옮기기로 한 줄은 뺀다 */
+/** 아직 표에도 PRD 에도 안 이은 요구 종류 확인 줄 — 앞 작성이 이은 줄(data.요구 가 현재 버전에 있다) · 안 옮기기로 한 줄은 뺀다 */
 export function 빠진줄들(r: 맞대기재료): 앱배운줄[] {
   if (r.범위.맡은요구 !== undefined) return [];
   const 있는번호 = new Set(r.지금판.map((i) => i.reqId));

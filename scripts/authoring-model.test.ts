@@ -107,7 +107,7 @@ describe('CLI 최신화', () => {
     expect(업데이트인자('^2')).toBeNull();
   });
 
-  it('버전 글에서 판 번호를 뽑는다', () => {
+  it('버전 글에서 버전 번호를 뽑는다', () => {
     expect(버전뽑기('2.1.280 (Claude Code)\n')).toBe('2.1.280');
     expect(버전뽑기('command not found')).toBeNull();
   });

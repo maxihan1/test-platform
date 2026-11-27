@@ -111,7 +111,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
     },
   });
   // 새 작성은 가운데 창 마법사다 — 목록이 뒤에 보여 지금 어디서 무엇을 하는지 잃지 않는다 (2026-11-11 사용자 시안 WizardB.
-  // 앞 판 2026-10-20 WEB-F5-04 는 오른쪽 서랍 한 폼에 칸이 다 있어 무엇부터 채울지 몰랐다)
+  // 이전 버전 2026-10-20 WEB-F5-04 는 오른쪽 서랍 한 폼에 칸이 다 있어 무엇부터 채울지 몰랐다)
   const [마법사, set마법사] = useState(false);
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
   const [방금, set방금] = useState<number | null>(null);

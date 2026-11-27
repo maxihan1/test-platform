@@ -1,4 +1,4 @@
-// 표준 기획서 HTTP 라우트 — 지금 판 · 판 이력 · 저장 · 되돌리기 (도메인/작성 §7 「표준 기획서 통로」)
+// 표준 기획서 HTTP 라우트 — 현재 버전 · 버전 기록 · 저장 · 되돌리기 (도메인/작성 §7 「표준 기획서 통로」)
 // 배정과 권한(보기 작성 read · 고치기 작성 write)은 문(auth/gate.ts)이 ?service= 로 이미 봤다. 여기서는 그 서비스 것만 읽고 쓴다
 
 import type { PrdItem } from '@platform/kit';
@@ -35,7 +35,7 @@ export function 누가(req: FastifyRequest): 저장하는사람 {
   return { username: req.user?.username ?? '알 수 없음', displayName: req.user?.displayName ?? '알 수 없음' };
 }
 
-/** 판 번호 칸. 0 은 「아직 표준 기획서가 없다」 */
+/** 버전 번호 칸. 0 은 「아직 표준 기획서가 없다」 */
 export function 판번호(값: unknown): number | null {
   return typeof 값 === 'number' && Number.isSafeInteger(값) && 값 >= 0 ? 값 : null;
 }

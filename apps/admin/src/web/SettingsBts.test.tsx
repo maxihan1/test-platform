@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 설정 › BTS 연결 화면 검사 (도메인/BTS §8.15 · 시안 B 3판) — 불러온 상태 고르기 · 저장하고 자동 설정 · 막힌 것 · 배포 한 줄 · 연결 해제
+// 설정 › BTS 연결 화면 검사 (도메인/BTS §8.15 · 시안 B 3차) — 불러온 상태 고르기 · 저장하고 자동 설정 · 막힌 것 · 배포 한 줄 · 연결 해제
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';

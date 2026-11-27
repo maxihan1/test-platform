@@ -1,4 +1,4 @@
-// 작성 에이전트의 표준 기획서 통로 — 맥 계정 · 집은 쪽 · 도는 중 문턱과 옮기기 결과 · 집기가 적는 읽은 판 (도메인/작성 §7 「표준 기획서 통로」)
+// 작성 에이전트의 표준 기획서 통로 — 맥 계정 · 집은 쪽 · 도는 중 문턱과 옮기기 결과 · 집기가 적는 읽은 버전 (도메인/작성 §7 「표준 기획서 통로」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -84,7 +84,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
     expect([올림.statusCode, 올림.json()]).toEqual([409, { error: 'NOT_RUNNING', detail: 'DONE' }]);
   });
 
-  it('지금 판을 읽고, 올리면 AGENT 판이 서고 요청의 읽은 판이 그 판이 된다 — 사람이 고친 항목은 남긴다', async () => {
+  it('현재 버전을 읽고, 올리면 AGENT 판이 서고 요청의 읽은 버전이 그 판이 된다 — 사람이 고친 항목은 남긴다', async () => {
     const id = await 요청넣기('AUTHOR', 'RUNNING');
     expect((await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}/prd` })).json()).toEqual({ version: 0, items: [], base: null });
 
@@ -137,7 +137,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
     const 변경 = await q<{ changes: unknown }>('SELECT changes FROM prd_version WHERE service_id = $1 AND version = 3', [서비스]);
     expect(변경.rows[0]!.changes).toEqual([{ kind: 'EDIT', reqId: 'XPG-REQ-001', text: '2만원 이상 무료 배송', asset: null, tcId: 'XPG-FN-001' }]);
 
-    // 안 바뀐 번호는 지금 판 그대로 — 새 판이 서지 않는다
+    // 안 바뀐 번호는 현재 버전 그대로 — 새 버전이 서지 않는다
     const 또 = await app.inject({
       method: 'POST',
       url: `/api/authoring/requests/${id}/prd`,
@@ -146,7 +146,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
     expect(또.json()).toEqual({ version: 3, keptByPerson: [] });
   });
 
-  it('기준 판(마지막으로 병합된 작성이 읽은 판)을 같이 싣는다 — 반영 요청이 바뀐 항목과 옛 문장을 안다', async () => {
+  it('기준 버전(마지막으로 병합된 작성이 읽은 버전)을 같이 싣는다 — 반영 요청이 바뀐 항목과 옛 문장을 안다', async () => {
     await 사람저장(서비스, 접두사, 0, [항목('5만원 이상 무료 배송')], 사람);
     const 앞작성 = await 요청넣기('AUTHOR', 'DONE');
     await q('UPDATE authoring_request SET prd_version = 1 WHERE id = $1', [앞작성]);
@@ -173,7 +173,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
     expect((await app.inject({ method: 'GET', url: `/api/authoring/requests/${작성}/prd` })).json()).toMatchObject({ version: 2 });
   });
 
-  it('집기가 작성 · 재실행에만 지금 판을 적고 케이스 고치기와 그 다시 적용은 비운다', async () => {
+  it('집기가 작성 · 재실행에만 현재 버전을 적고 케이스 고치기와 그 다시 적용은 비운다', async () => {
     const 작성 = await 요청넣기('AUTHOR', 'PENDING');
     expect((await 집기(서비스, 에이전트))?.id).toBe(작성);
     expect(await 읽은판(작성)).toBeNull();

@@ -106,10 +106,10 @@ describe('지시문', () => {
     expect(글).toContain('note-output.json');
   });
 
-  it('처음 판이면 다섯을 다 쓰라 하고, 지금 노트가 있으면 안 닿은 문서는 빼라 한다', () => {
-    expect(글).toContain('처음 판이다');
+  it('처음 버전이면 다섯을 다 쓰라 하고, 지금 노트가 있으면 안 닿은 문서는 빼라 한다', () => {
+    expect(글).toContain('처음 버전이다');
     const 있음 = 노트지시문({ ...자료, current: { version: 2, savedAt: '', docs: [] } }, '/w', false);
-    expect(있음).not.toContain('처음 판이다');
+    expect(있음).not.toContain('처음 버전이다');
     expect(있음).toContain('docs 에 넣지 않는다');
   });
 

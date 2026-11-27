@@ -1,4 +1,4 @@
-// API 문서 판 · 커버리지 DB 읽기 쓰기 (도메인/API §3.8 · §7 · 공통/4-데이터모델 「API 테스트 표」)
+// API 문서 버전 · 커버리지 DB 읽기 쓰기 (도메인/API §3.8 · §7 · 공통/4-데이터모델 「API 테스트 표」)
 
 import { 지문, 커버리지틀 } from './doc.js';
 
@@ -48,7 +48,7 @@ export async function 판목록(serviceId: number) {
   }));
 }
 
-/** 판 원문. 판 번호가 없으면 마지막 판. 없으면 null */
+/** 판 원문. 버전 번호가 없으면 마지막 버전. 없으면 null */
 export async function 판원문(
   serviceId: number,
   version?: number,
@@ -66,7 +66,7 @@ export async function 판원문(
 export type 받은곳 = { source: 'URL'; env: string } | { source: 'FILE'; fileName: string | null };
 
 /**
- * 마지막 판과 지문이 다를 때만 판을 올린다. 같으면 created=false 와 마지막 판 번호.
+ * 마지막 버전과 지문이 다를 때만 판을 올린다. 같으면 created=false 와 마지막 버전 번호.
  * 서비스 행을 잠가 같은 애플리케이션의 두 저장이 같은 번호를 만들지 않게 한다
  */
 export async function 판올리기(
@@ -107,7 +107,7 @@ export async function 판올리기(
 }
 
 /**
- * 마지막 판 기준 API × 응답 코드. 받은 적은 지금 활성인 케이스의 api_call_seen 줄만 센다 — 지운 케이스가 덮은 것으로 남지 않게.
+ * 마지막 버전 기준 API × 응답 코드. 받은 적은 지금 활성인 케이스의 api_call_seen 줄만 센다 — 지운 케이스가 덮은 것으로 남지 않게.
  * 실행을 못 보는 사람이면 lastRunId 를 비운다(도메인/인증 §7 — 대시보드 coverage 와 같은 갈림)
  */
 export async function 커버리지(serviceId: number, 실행보임: boolean) {

@@ -263,7 +263,7 @@ describe('POST /execute', () => {
     });
   });
 
-  describe('API 문서 판 (도메인/러너 §5.2 「API 케이스 실행」)', () => {
+  describe('API 문서 버전 (도메인/러너 §5.2 「API 케이스 실행」)', () => {
     const 보낸다 = (apiDoc: unknown) =>
       서버().inject({
         method: 'POST',
@@ -281,8 +281,8 @@ describe('POST /execute', () => {
     });
 
     it.each([
-      ['판 번호가 0', { version: 0, doc: {} }],
-      ['판 번호가 정수가 아니다', { version: 1.5, doc: {} }],
+      ['버전 번호가 0', { version: 0, doc: {} }],
+      ['버전 번호가 정수가 아니다', { version: 1.5, doc: {} }],
       ['원문이 객체가 아니다', { version: 1, doc: '{}' }],
     ])('%s 이면 400 이다', async (_이름, 판) => {
       expect((await 보낸다(판)).statusCode).toBe(400);
@@ -576,7 +576,7 @@ describe('POST /execute-scenario — 입구 검사', () => {
     }));
   });
 
-  it('케이스 부품의 API 문서 판을 버리지 않고 실행에 넘긴다', async () => {
+  it('케이스 부품의 API 문서 버전을 버리지 않고 실행에 넘긴다', async () => {
     const 판 = { version: 2, doc: { openapi: '3.1.0', paths: {} } };
     const res = await 보냄(요청({ parts: [{ ...케이스('todo/TODO-001.spec.ts'), apiDoc: 판 }] }));
 
@@ -584,7 +584,7 @@ describe('POST /execute-scenario — 입구 검사', () => {
     expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({ parts: [expect.objectContaining({ apiDoc: 판 })] }));
   });
 
-  it('파일로 뺄 API 문서 판 원문은 조립 목록 크기에 안 센다 — 자식에 넘기는 것은 경로뿐이다', async () => {
+  it('파일로 뺄 API 문서 버전 원문은 조립 목록 크기에 안 센다 — 자식에 넘기는 것은 경로뿐이다', async () => {
     const 큰판 = { version: 2, doc: { openapi: '3.1.0', paths: {}, info: { description: 'x'.repeat(200_000) } } };
     const res = await 보냄(요청({ parts: [{ ...케이스('todo/TODO-001.spec.ts'), apiDoc: 큰판 }] }));
 

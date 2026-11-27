@@ -1,4 +1,4 @@
-// 표준 기획서 새 판을 짓는 규칙 — 본문 검사 · 번호 매기기 · checkSince · byPerson · 옮기기 합치기 · 반영 안 됨 (도메인/작성 §7 「표준 기획서 통로」)
+// 표준 기획서 새 버전을 짓는 규칙 — 본문 검사 · 번호 매기기 · checkSince · byPerson · 옮기기 합치기 · 반영 안 됨 (도메인/작성 §7 「표준 기획서 통로」)
 // DB 없이 도는 순수 함수만 둔다. 잠금 · 넣기는 store.ts 가 한다
 
 import type { PrdBasis, PrdItem, PrdStatus } from '@platform/kit';
@@ -135,7 +135,7 @@ export function 화면이맞음건인가(params: Record<string, unknown>, runId:
   return [...화면칸들(params), ...고침칸].some((칸) => 칸?.runId === runId && 칸?.tcId === tcId);
 }
 
-/** 판 통째가 같은가 — 같으면 새 판을 안 만든다(옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게) */
+/** 판 통째가 같은가 — 같으면 새 버전을 안 만든다(옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게) */
 export function 판같나(a: PrdItem[], b: PrdItem[]): boolean {
   return (
     a.length === b.length &&
@@ -147,8 +147,8 @@ export function 판같나(a: PrdItem[], b: PrdItem[]): boolean {
 }
 
 /**
- * 앞 판에 견줘 서버가 매기는 표시를 단다.
- * checkSince — 확인 필요로 바뀌면 이번 시각, 계속 확인 필요면 앞 판 값. byPerson — 사람이 바꿨으면 true, 안 바꿨으면 앞 판 값
+ * 이전 버전에 견줘 서버가 매기는 표시를 단다.
+ * checkSince — 확인 필요로 바뀌면 이번 시각, 계속 확인 필요면 이전 버전 값. byPerson — 사람이 바꿨으면 true, 안 바꿨으면 이전 버전 값
  */
 function 표시달기(항목: 들어온항목 & { reqId: string }, 앞것: PrdItem | undefined, 지금: string, 사람: boolean, 되돌림 = false): PrdItem {
   const 결과: PrdItem = {
@@ -165,7 +165,7 @@ function 표시달기(항목: 들어온항목 & { reqId: string }, 앞것: PrdIt
   // 옮기기 항목은 사람 것을 앞에서 걸러 내 여기 오지 않는다 — 옮기기가 만든 항목에는 byPerson 을 안 단다
   if (사람 && (앞것 === undefined || !내용같나(항목, 앞것) || 앞것.byPerson === true)) 결과.byPerson = true;
   // 어느 BTS 이슈에서 왔는지는 사람이 저장해도 남긴다 — 롤백이 이 꼬리표로 되돌릴 항목을 찾는다(도메인/BTS 「롤백 바퀴」).
-  // 되돌리기는 되돌리는 판의 꼬리표를 쓴다 — 초안 전 판으로 되돌린 항목에 지금 판의 꼬리표가 남으면 롤백이 그 항목을 초안 것으로 본다
+  // 되돌리기는 되돌리는 판의 꼬리표를 쓴다 — 초안 전 판으로 되돌린 항목에 현재 버전의 꼬리표가 남으면 롤백이 그 항목을 초안 것으로 본다
   const 꼬리 = 되돌림 ? 항목.fromIssues : 앞것?.fromIssues;
   if (꼬리 !== undefined) 결과.fromIssues = 꼬리;
   return 결과;
@@ -199,8 +199,8 @@ function 새번호주기(
 const 번호차례 = (a: PrdItem, b: PrdItem) => 번호수(a.reqId) - 번호수(b.reqId);
 
 /**
- * 사람이 저장한 새 판(PUT · 되돌리기). 지금 판에 없는 번호는 PRD_REUSED — 고정 번호가 다른 요구에 붙지 않게.
- * 되돌리기는 옛 판에 있던 번호라 지금 판에 없어도 받는다(`옛번호` — 그 판의 같은 요구를 되살리는 것이다)
+ * 사람이 저장한 새 버전(PUT · 되돌리기). 현재 버전에 없는 번호는 PRD_REUSED — 고정 번호가 다른 요구에 붙지 않게.
+ * 되돌리기는 이전 버전에 있던 번호라 현재 버전에 없어도 받는다(`옛번호` — 그 판의 같은 요구를 되살리는 것이다)
  */
 export function 사람판(
   앞: 앞판 | null,
@@ -223,11 +223,11 @@ export function 사람판(
 }
 
 /**
- * 옮기기(에이전트)가 올린 새 판. 거절하지 않고 합친다 —
- * 지금 판에서 사람이 고친 항목(byPerson)은 사람 것을 남기고, 받은 판 뒤에 사람이 지운 번호는 되살리지 않는다.
+ * 옮기기(에이전트)가 올린 새 버전. 거절하지 않고 합친다 —
+ * 현재 버전에서 사람이 고친 항목(byPerson)은 사람 것을 남기고, 받은 버전 뒤에 사람이 지운 번호는 되살리지 않는다.
  * 둘 다 문서와 달랐던 번호를 keptByPerson 으로 돌려준다 — PR 본문 머리에 실린다.
- * 「화면이 맞음」 번호(`화면번호`)는 다르다 — 지금 판과 요구가 달라졌으면 사람 것이어도 보낸 것을 확정 · byPerson 으로 쓰고,
- * 같으면 지금 판 그대로다. 사람이 화면이 맞다고 판정했으므로 keptByPerson 에 넣지 않는다 (§7 에이전트 `POST …/:id/prd`)
+ * 「화면이 맞음」 번호(`화면번호`)는 다르다 — 현재 버전과 요구가 달라졌으면 사람 것이어도 보낸 것을 확정 · byPerson 으로 쓰고,
+ * 같으면 현재 버전 그대로다. 사람이 화면이 맞다고 판정했으므로 keptByPerson 에 넣지 않는다 (§7 에이전트 `POST …/:id/prd`)
  */
 export function 옮기기판(
   받은판: 앞판 | null,
@@ -250,12 +250,12 @@ export function 옮기기판(
     const 사람것 = 지금것들.get(항목.reqId);
     if (사람것 === undefined) {
       if (!받은것들.has(항목.reqId)) return { error: 'PRD_REUSED', detail: 항목.reqId };
-      남김.add(항목.reqId); // 받은 판 뒤에 사람이 지웠다
+      남김.add(항목.reqId); // 받은 버전 뒤에 사람이 지웠다
       continue;
     }
     if (화면번호.has(항목.reqId)) {
       const { reqId, feature, text, basis } = 항목;
-      // 받은 판과 같으면 에이전트가 안 고친 번호다 — 그 사이 사람이 고친 지금 것을 받은 판 사본으로 덮지 않는다
+      // 받은 버전과 같으면 에이전트가 안 고친 번호다 — 그 사이 사람이 고친 지금 것을 받은 버전 사본으로 덮지 않는다
       const 받은것 = 받은것들.get(reqId);
       const 안고침 = 요구같나(항목, 사람것) || (받은것 !== undefined && 요구같나(항목, 받은것));
       화면것들.push(안고침 ? 사람것 : { reqId, feature, text, basis, status: 'CONFIRMED', byPerson: true });

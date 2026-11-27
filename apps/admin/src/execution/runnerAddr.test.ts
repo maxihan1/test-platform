@@ -28,7 +28,7 @@ describe('프로시저못도는러너인가', () => {
     expect(await 프로시저못도는러너인가(await 러너({ ok: true, playwrightVersion: '1.63.0', procedure: true }))).toBe(false);
   });
 
-  it('답했는데 그 칸이 없으면 앞 판 러너다 — 프로시저를 못 돈다', async () => {
+  it('답했는데 그 칸이 없으면 이전 버전 러너다 — 프로시저를 못 돈다', async () => {
     expect(await 프로시저못도는러너인가(await 러너({ ok: true, playwrightVersion: '1.63.0' }))).toBe(true);
   });
 

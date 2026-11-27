@@ -71,7 +71,7 @@ describe('배울것고르기', () => {
     const 줄들: 줄재료[] = [
       ['RULE', 'rule:가', '가', { text: 'ㄱ', belief: 'CONFIRMED', build: '59' }, ' · 근거 CG-REQ-001'],
       ['RULE', 'rule:나', '나', { text: 'ㄱ', belief: 'SEEN', build: '59' }, ' · 근거 CG-REQ-002'],
-      ['DATA', 'item:다', '다', { text: 'ㄱ', belief: 'CONFIRMED', build: '59' }, ' · 기획서 {"값":1} · 근거 CG-REQ-003, CG-REQ-001 · 기획서가 바뀜(CG-REQ-003) — 지금 판으로 다시 올린다'],
+      ['DATA', 'item:다', '다', { text: 'ㄱ', belief: 'CONFIRMED', build: '59' }, ' · 기획서 {"값":1} · 근거 CG-REQ-003, CG-REQ-001 · 기획서가 바뀜(CG-REQ-003) — 현재 버전으로 다시 올린다'],
       ['DATA', 'item:라', '라', undefined, ' · 근거 CG-REQ-004 · 거친 케이스 없음'],
       ['RULE', 'rule:마', '마', { text: 'ㄱ', belief: 'CONFIRMED', build: '58' }, ' · 근거 CG-REQ-005'],
       ['RULE', 'rule:바', '바', { text: 'ㄱ', belief: 'GAME_TEXT', build: '59' }, ' · 근거 CG-REQ-007'],
@@ -232,7 +232,7 @@ describe('배운 줄 적기', () => {
   });
 
   it('기획서에서 온 줄에는 근거를 안 싣는다 — 실으면 서버가 「기획서가 바뀜」을 비워 다음 세션이 옛 값을 못 본다. 배운 종류 줄은 앞 근거에 더한다', () => {
-    const m = 지도([['DATA', 'item:검', '검', undefined, ' · 기획서 {"값":1} · 근거 R-12 · 기획서가 바뀜(R-12) — 지금 판으로 다시 올린다'], ['RULE', 'rule:가', '가', 배움, ' · 근거 R-1']]);
+    const m = 지도([['DATA', 'item:검', '검', undefined, ' · 기획서 {"값":1} · 근거 R-12 · 기획서가 바뀜(R-12) — 현재 버전으로 다시 올린다'], ['RULE', 'rule:가', '가', 배움, ' · 근거 R-1']]);
     const r = 합치기(m, [], [{ ...규칙('item:검'), kind: 'DATA', reqIds: ['R-12'] }, { ...규칙('rule:가'), reqIds: ['R-2'] }, { ...규칙('rule:새'), reqIds: ['R-3'] }]);
     if (typeof r === 'string') throw new Error(r);
     expect(r.elements.map((e) => (e as { reqIds?: string[] }).reqIds)).toEqual([undefined, ['R-1', 'R-2'], ['R-3']]);

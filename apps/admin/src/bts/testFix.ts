@@ -193,7 +193,7 @@ export const 걸린까닭들 = ['EXPECTED_CHANGED', 'VERIFY_FEWER', 'MUTATION_MI
 export type 걸린까닭 = (typeof 걸린까닭들)[number];
 
 // 작성 에이전트 끝내기 result.testFix — 고친 곳 한 줄 · 마지막 전체 돌려 보기에서 실제로 돈 횟수 · 자동 병합 판정 (도메인/BTS §7).
-// autoMerge · held 는 둘이 같이 오고 autoMerge 는 held 가 빌 때만 true — 판정 칸 없이 온 앞 판 에이전트는 「재지 못함」으로 친다(걸린까닭읽기)
+// autoMerge · held 는 둘이 같이 오고 autoMerge 는 held 가 빌 때만 true — 판정 칸 없이 온 이전 버전 에이전트는 「재지 못함」으로 친다(걸린까닭읽기)
 const 결과틀 = z
   .object({ summary: z.string().max(요약상한), reruns: z.number().int().min(0), autoMerge: z.boolean().optional(), held: z.array(z.enum(걸린까닭들)).max(걸린까닭들.length).optional() })
   .refine((v) => (v.held === undefined ? v.autoMerge === undefined : v.autoMerge === (v.held.length === 0)));
@@ -206,7 +206,7 @@ export function 걸린까닭읽기(결과: unknown): 걸린까닭[] {
 
 /**
  * 「테스트 수정」 고침 줄(params.testFix — 재실행 · 이어서 작성은 원본 것을 물려받는다)이고 꼴이 맞을 때만.
- * 게임 실패 자동 수정 줄은 cases 칸이 없으면 받고(앞 판 에이전트), 있으면 케이스 끝 꼴일 때만 받는다 — 틀린 줄을 받으면 읽는 쪽이 칸 전체를 못 읽어 모든 줄이 고쳐진 것으로 나뉜다(gameFixShared.ts)
+ * 게임 실패 자동 수정 줄은 cases 칸이 없으면 받고(이전 버전 에이전트), 있으면 케이스 끝 꼴일 때만 받는다 — 틀린 줄을 받으면 읽는 쪽이 칸 전체를 못 읽어 모든 줄이 고쳐진 것으로 나뉜다(gameFixShared.ts)
  */
 export function 테스트수정결과맞나(params: unknown, 값: unknown): boolean {
   if (게임고침인가(params)) {

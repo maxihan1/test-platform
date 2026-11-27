@@ -164,7 +164,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         // 지원 패드는 PC 게임만 받는다 — 값은 DRAFT 를 세울 때 같은 묶음으로 애플리케이션에 남긴다 (도메인/작성 §7)
         const 패드 = await 패드판정(req.body?.gamePads, 서비스);
         if (패드.error !== undefined) return reply.code(400).send({ error: 패드.error });
-        // API 애플리케이션은 판 하나와 대상 서버를 받고 역방향 칸을 안 받는다 (§7 「AUTHOR API 문서 판」)
+        // API 애플리케이션은 판 하나와 대상 서버를 받고 역방향 칸을 안 받는다 (§7 「AUTHOR API 문서 버전」)
         const api = await API칸판정(req.body, 서비스);
         if ('error' in api) return reply.code(400).send({ error: api.error });
         // API 판 자료 한 행도 개수 상한에 센다

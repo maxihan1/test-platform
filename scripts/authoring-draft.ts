@@ -106,7 +106,7 @@ async function 초안건(
   const prd = await 부른다(주소기지, 토큰, `/authoring/requests/${것.id}/prd`);
   if (prd.status !== 200) return void (await 손.끝내기({ status: 'FAILED', error: `지금 PRD 를 못 받았다 (${prd.status})` }));
   const 판몸 = prd.몸 as { version?: unknown; items?: unknown } | null;
-  // 서버가 이 판으로 요구 번호를 견준다 — 도는 사이 새 판이 저장돼도 자식이 본 판과 맞춘다
+  // 서버가 이 판으로 요구 번호를 견준다 — 도는 사이 새 버전이 저장돼도 자식이 본 판과 맞춘다
   const 판번호 = typeof 판몸?.version === 'number' ? 판몸.version : 0;
 
   await 손.단계('PRD 초안 쓰는 중 — 작업 폴더를 만드는 중');

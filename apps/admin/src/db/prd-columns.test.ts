@@ -1,11 +1,11 @@
-// 표준 기획서 판 표의 짝 제약과 작성 요청의 읽은 판 외래 키를 지키는 검사 (공통/4-데이터모델 「표준 기획서 · 지도 · 화면 기록 표」)
+// 표준 기획서 버전 표의 짝 제약과 작성 요청의 읽은 버전 외래 키를 지키는 검사 (공통/4-데이터모델 「표준 기획서 · 지도 · 화면 기록 표」)
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XPV';
 
-describe.skipIf(연결 === undefined)('표준 기획서 판 칸', () => {
+describe.skipIf(연결 === undefined)('표준 기획서 버전 칸', () => {
   let 서비스 = 0;
   let 요청 = 0;
 
@@ -57,7 +57,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 판 칸', () => {
     await 판넣기(2, 'PERSON', null);
   });
 
-  it('작성 요청의 읽은 판은 그 서비스에 있는 판만 가리킨다', async () => {
+  it('작성 요청의 읽은 버전은 그 서비스에 있는 버전만 가리킨다', async () => {
     await expect(q('UPDATE authoring_request SET prd_version = 99 WHERE id = $1', [요청])).rejects.toThrow(
       /authoring_request_prd_version_fkey/,
     );

@@ -1,4 +1,4 @@
-// API 애플리케이션 작성 요청 — 만들기 거절 · 판 자료 한 행 · 재실행 · 이어 작성이 env 를 물려받기 · 집기 응답의 target · apiDoc · 바뀐 API 만 다시 작성 (도메인/작성 §7 「AUTHOR API 문서 판」)
+// API 애플리케이션 작성 요청 — 만들기 거절 · 판 자료 한 행 · 재실행 · 이어 작성이 env 를 물려받기 · 집기 응답의 target · apiDoc · 바뀐 API 만 다시 작성 (도메인/작성 §7 「AUTHOR API 문서 버전」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -170,7 +170,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     }
   });
 
-  it('바뀐 API 만 다시 작성 요청 — 집기가 apiApply 와 새 판을 싣고, 재실행은 apiApply 를 물려받고, 본문으로 실으면 400 BAD_API_APPLY', async () => {
+  it('바뀐 API 만 다시 작성 요청 — 집기가 apiApply 와 새 버전을 싣고, 재실행은 apiApply 를 물려받고, 본문으로 실으면 400 BAD_API_APPLY', async () => {
     await 치우기();
     const 새문서 = { ...문서, paths: { ...문서.paths, '/v1/devices': { post: { responses: { '201': { description: '됨' } } } } } };
     await q("INSERT INTO api_doc_version (service_id, version, source, file_name, fingerprint, doc) VALUES ($1, 2, 'FILE', 'b.json', 'xaw2', $2)", [서비스, JSON.stringify(새문서)]);
@@ -179,7 +179,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     const { pool } = await import('../db/index.js');
     const 손 = await pool.connect();
     const id = await 다시작성넣기(손, 준비, { 누가: 맥, 이름: '맥' }).finally(() => 손.release());
-    if (id === null) throw new Error('새 판 자료를 못 달았다');
+    if (id === null) throw new Error('새 버전 자료를 못 달았다');
     const 세움 = { id };
     const apiApply = { fromVersion: 1, toVersion: 2, operations: [{ method: 'POST', path: '/v1/devices', change: 'NEW', breaking: false, notes: [], tcIds: [] }] };
     const 집은 = (await 집기()).json<Record<string, unknown>>();

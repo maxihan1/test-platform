@@ -15,7 +15,7 @@ describe('화면변경', () => {
     expect(화면변경(지금, [항목('MK-REQ-001', '옛 문장'), 지금.items[1]!], 화면)).toEqual([{ kind: 'CONFIRM', reqId: 'MK-REQ-001', text: null, asset: null, tcId: 'MK-FN-001' }]);
   });
 
-  it('다른 번호도 바뀌었거나 더하고 지웠으면 null — 화면이 앞 판과 견준다', () => {
+  it('다른 번호도 바뀌었거나 더하고 지웠으면 null — 화면이 이전 버전과 견준다', () => {
     expect(화면변경(지금, [항목('MK-REQ-001', '새 문장'), 항목('MK-REQ-002', '바뀜')], 화면)).toBeNull();
     expect(화면변경(지금, [항목('MK-REQ-001', '새 문장'), 지금.items[1]!, 항목('MK-REQ-003', '더함')], 화면)).toBeNull();
     expect(화면변경(지금, [항목('MK-REQ-001', '새 문장')], 화면)).toBeNull();

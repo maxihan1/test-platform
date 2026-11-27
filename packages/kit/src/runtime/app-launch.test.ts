@@ -195,7 +195,7 @@ describe('openApp 켜기', () => {
     expect(앱.deleteSession).toHaveBeenCalledTimes(1);
   });
 
-  it('폰에 판 번호가 같은 옛 앱이 남아 있으면 지우고 넘긴 APK 를 깐 뒤 켠다 — Appium 은 판이 같으면 안 깐다 (2026-11-21 BRM 정식 실행 21177)', async () => {
+  it('폰에 버전 번호가 같은 옛 앱이 남아 있으면 지우고 넘긴 APK 를 깐 뒤 켠다 — Appium 은 판이 같으면 안 깐다 (2026-11-21 BRM 정식 실행 21177)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const 부름: string[] = [];
     const execute = vi.fn(async (script: string, args: Record<string, unknown> = {}) => {

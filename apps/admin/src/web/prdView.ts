@@ -43,7 +43,7 @@ export type 반영종류 = 'changed' | 'added' | 'removed';
 
 /**
  * 보낼 판. 번호가 있으면 그 항목을 바꾸거나(새것) 지우고(null), 번호가 없으면 맨 뒤에 더한다.
- * 저장은 늘 판 전체다 — 서버가 앞 판과 견줘 번호 · checkSince · byPerson 을 매긴다 (도메인/작성 §7 PUT /api/prd)
+ * 저장은 늘 판 전체다 — 서버가 이전 버전과 견줘 번호 · checkSince · byPerson 을 매긴다 (도메인/작성 §7 PUT /api/prd)
  */
 export function 고친판(items: PrdItem[], reqId: string | null, 새것: PrdItemDraft | null): PrdItemDraft[] {
   if (reqId === null) return 새것 === null ? items : [...items, 새것];

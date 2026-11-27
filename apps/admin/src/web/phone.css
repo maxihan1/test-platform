@@ -212,7 +212,7 @@
   height: 20px;
 }
 
-/* 지금 탭은 대표색 글자 · 600 이다 (화면공통 §8 「대표색」 · 2026-10-30 — 앞 판은 윗막대) */
+/* 지금 탭은 대표색 글자 · 600 이다 (화면공통 §8 「대표색」 · 2026-10-30 — 이전 버전은 윗막대) */
 .ph-tabs > a[aria-current='page'],
 .ph-tabs > button[aria-expanded='true'] {
   color: var(--link);

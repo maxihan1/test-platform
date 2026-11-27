@@ -152,7 +152,7 @@ describe('API 문서', () => {
     expect(within(기록).getByRole('group', { name: '버전 2 원문' })).toBeTruthy();
   });
 
-  it('「바뀐 API 만 다시 작성」은 견줄 앞 버전이 있을 때만 서고 결정 필요 목록으로 보낸다 (시안 11판 · WEB-F7-18)', async () => {
+  it('「바뀐 API 만 다시 작성」은 견줄 앞 버전이 있을 때만 서고 결정 필요 목록으로 보낸다 (11차 시안 · WEB-F7-18)', async () => {
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
     expect((await screen.findByRole('link', { name: '변경된 API 만 다시 작성' })).getAttribute('href')).toBe('#/authoring?todo=1');
     cleanup();

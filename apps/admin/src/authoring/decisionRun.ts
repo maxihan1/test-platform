@@ -97,7 +97,7 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
       // 반려한 뿌리는 방금 폐기했다 — 뒤 요청이 기다릴 앞 일이 아니다
       const 앞것 = 열린.filter((id) => !준.반려.some((x) => x.rootId === id));
       const 결정 = () => ({ decision: { after: [...앞것], count } });
-      // 문장이 바뀌었거나 화면이 맞음을 골랐으면 바뀐 요구도 같이 다시 만든다 — 기준 판이 하나라 나눠 넣으면 병합 뒤 「반영 안 됨」이 틀어진다
+      // 문장이 바뀌었거나 화면이 맞음을 골랐으면 바뀐 요구도 같이 다시 만든다 — 기준 버전이 하나라 나눠 넣으면 병합 뒤 「반영 안 됨」이 틀어진다
       if (준.요구다시 !== null || 준.화면.length > 0 || 판?.문장바뀜 === true) {
         const 지금시각 = new Date().toISOString();
         const 화면칸 = 준.화면.map((x) => ({ ...x.칸, byName: 사람.displayName, at: 지금시각 }));

@@ -107,7 +107,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     expect([r.statusCode, r.json()]).toEqual([200, { version: 1 }]);
   });
 
-  it('판 이력 · 그 판 통째 · 되돌리기', async () => {
+  it('버전 기록 · 그 판 통째 · 되돌리기', async () => {
     await 부르기('PUT', '/prd', { baseVersion: 0, items: [항목('20개까지', { status: 'NEEDS_CHECK' })] });
     expect((await 부르기('PUT', '/prd', { baseVersion: 1, items: [항목('20개까지', { reqId: 'XPR-REQ-001' })] })).json()).toEqual({ version: 2 });
 
@@ -144,7 +144,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     expect(행.rows[0]?.params).toEqual({ prdApply: true });
   });
 
-  it('워드는 지금 판을 싣고 그 서비스 테스트 계정 비밀번호를 가린다 · 판이 없으면 404 · docx · xlsx 말고는 400', async () => {
+  it('워드는 현재 버전을 싣고 그 서비스 테스트 계정 비밀번호를 가린다 · 판이 없으면 404 · docx · xlsx 말고는 400', async () => {
     const 없음 = await 부르기('GET', '/prd/export?format=docx');
     expect([없음.statusCode, 없음.json()]).toEqual([404, { error: 'NOT_FOUND' }]);
     const 엑셀 = await 부르기('GET', '/prd/export?format=xlsx');

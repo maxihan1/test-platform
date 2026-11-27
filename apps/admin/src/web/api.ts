@@ -112,7 +112,7 @@ export type 케이스축 = (typeof 케이스축들)[number];
 
 export interface CaseReq {
   reqId: string;
-  /** PRD 지금 판에 없는 번호(옛 표의 원본 번호)면 null */
+  /** PRD 현재 버전에 없는 번호(옛 표의 원본 번호)면 null */
   text: string | null;
   axis: 케이스축;
 }
@@ -547,12 +547,12 @@ export interface FailureCase {
   tcId: string;
   tcName: string;
   devices: FailureDevice[];
-  /** 그 케이스가 지도 ① 로 덮는 요구. text 가 null 이면 표준 기획서 지금 판에 없는 번호 */
+  /** 그 케이스가 지도 ① 로 덮는 요구. text 가 null 이면 표준 기획서 현재 버전에 없는 번호 */
   reqs: { reqId: string; text: string | null }[];
   judgment: FailureJudgment;
   /** BTS 를 이은 프로젝트만 칸이 있다. null 이면 올리지 않은 케이스(흔들림으로 닫힘) (도메인/BTS §7) */
   bts?: FailureBts | null;
-  /** Issue Bunker 「테스트 수정」으로 고쳐 다시 실행에서 통과한 카드 — 「수정 후 통과」 (도메인/BTS §7 · §8.15 B). 앞 판 서버는 칸이 없다 */
+  /** Issue Bunker 「테스트 수정」으로 고쳐 다시 실행에서 통과한 카드 — 「수정 후 통과」 (도메인/BTS §7 · §8.15 B). 이전 버전 서버는 칸이 없다 */
   autoFix?: 카드자동수정 | null;
   /** 게임 실패 자동 수정이 아직 돌거나 통과 못 하고 끝난 카드 — 카드는 실패 그대로이고 판정 줄 위에 한 줄을 더한다 (도메인/게임 §3.10 「실패 자동 수정」 7) */
   autoFixing?: 카드자동수정중 | null;

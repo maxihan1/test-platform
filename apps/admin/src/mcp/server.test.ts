@@ -206,7 +206,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-TP-001' })).json()).toEqual({ cases: [{ tcId: 'XMC-TP-001', reqs: [], screens: [], procId: 'XMC-TP-001', procName: '글쓰기', procSeq: 2 }] });
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-FN-002' })).글).toContain('NOT_FOUND');
     expect((await 도구('map_search', { service: 'XMC', reqId: 'XMC-REQ-002' })).json()).toEqual({ cases: [], empty: 'XMC-REQ-002 를 덮는 살아 있는 케이스가 아직 없다' });
-    expect((await 도구('map_search', { service: 'XMC', reqId: 'XMC-REQ-999' })).글).toContain('NOT_FOUND — XMC-REQ-999 는 지금 PRD 판에 없는 요구다');
+    expect((await 도구('map_search', { service: 'XMC', reqId: 'XMC-REQ-999' })).글).toContain('NOT_FOUND — XMC-REQ-999 는 지금 PRD 버전에 없는 요구다');
     expect((await 도구('map_search', { service: 'XMC', url: '/nowhere' })).json()).toMatchObject({ cases: [], empty: expect.stringContaining('/nowhere') });
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMCB-FN-001' })).글).toContain('FORBIDDEN');
     expect((await 도구('map_search', { service: 'XMC', url: 'login', page: 1 })).json()).toEqual({ cases: [], empty: 'page 1 에는 더 없다' });

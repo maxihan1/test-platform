@@ -12,7 +12,7 @@ import { 걸린글, 시험막힘 } from './trialView.js';
 import { PLATFORM_LABEL, Verdict } from './ui.js';
 import { type 디바이스칸, type 시험줄, type 시험항목, useTrialQueue } from './useTrialQueue.js';
 
-/** 실행 창이 지금 보이는 것 — 값을 고치는 창 · 시험 실행 중 · 완료 (시안 7판 ② ④ ⑥) */
+/** 실행 창이 지금 보이는 것 — 값을 고치는 창 · 시험 실행 중 · 완료 (7차 시안 ② ④ ⑥) */
 export type 창보기 = 'edit' | 'running' | 'done';
 
 /** 시험 큐가 받는 항목 — 프로시저에 든 줄은 번호와 자동 포함 여부를 달아 큐가 같은 프로시저를 한 번만 걸게 한다 */
@@ -42,7 +42,7 @@ export function use여러건시험(옵션: {
   const [중단묻기, set중단묻기] = useState(false);
   const [시작시각, set시작시각] = useState(0);
 
-  // 다 돌았다 — 같은 창이 완료 모양이 된다. 중단을 묻는 사이 끝났으면 묻기를 닫는다 (시안 7판 ⑤)
+  // 다 돌았다 — 같은 창이 완료 모양이 된다. 중단을 묻는 사이 끝났으면 묻기를 닫는다 (7차 시안 ⑤)
   useEffect(() => {
     if (큐.도는중) return;
     set중단묻기(false);

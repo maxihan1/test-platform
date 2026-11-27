@@ -18,7 +18,7 @@ import { message } from './ui.js';
 async function 한건이었나(요청: 실행요청, runId: number, attachedTo: number | null | undefined): Promise<boolean> {
   if (attachedTo != null) return true;
   if (요청.repeat !== 1) return false;
-  // 못 읽으면 실행 기록으로 옮긴다 — 앞 판의 길이다
+  // 못 읽으면 실행 기록으로 옮긴다 — 이전 버전의 길이다
   return api.run(runId).then((r) => r.origin === 'SINGLE', () => false);
 }
 
@@ -52,7 +52,7 @@ export function useRunStart() {
       // 그 실행의 결과 화면으로 간다 — 뒤로 가면 떠난 목록의 조건이 그대로다 (도메인/실행 §8.7 「목록 화면과 결과 화면을 따로」)
       // 결과 화면에서 걸었으면(「Fail N건 다시 실행」) 그 화면이 쥔 목록 조건을 넘긴다 — 「← 실행 기록」이 같은 목록으로 돌아간다
       window.location.hash = 실행결과주소(runId, { 목록: 목록조건읽기() });
-      // 옮긴 뒤에도 진행 창을 바로 연다 — 앞 판은 알약 「N/12 완료」를 눌러야 열려 시험에서 못 찾았다 (점검표 B7 · §8.16 ⑤)
+      // 옮긴 뒤에도 진행 창을 바로 연다 — 이전 버전은 알약 「N/12 완료」를 눌러야 열려 시험에서 못 찾았다 (점검표 B7 · §8.16 ⑤)
       지켜본다({ runId, 열림: true });
       return true;
     } catch (err) {

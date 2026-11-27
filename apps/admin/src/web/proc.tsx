@@ -26,7 +26,7 @@ export function 대표결과(row: CaseRow, 마지막: LastMap): LastResult | und
   return 돈것.find((r) => r.status === 'FAIL') ?? 돈것.find((r) => r.status === 'NA') ?? 돈것[0];
 }
 
-/** Pass 는 점과 글자로 조용하게, Fail 만 채운 배지다. 목록이 초록 배지로 차면 실패가 묻힌다 (2026-11-24 사용자 · 시안 5판) */
+/** Pass 는 점과 글자로 조용하게, Fail 만 채운 배지다. 목록이 초록 배지로 차면 실패가 묻힌다 (2026-11-24 사용자 · 5차 시안) */
 export function 판정표시({ 결과 }: { 결과: 결과 }) {
   const t = use말();
   if (결과.status === 'FAIL') return <span className="verdict v-fail">{t(STATUS_LABEL.FAIL)}</span>;

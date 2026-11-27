@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 고르기 바의 「PC N건 실행」 · 「모바일 N건 실행」 · 「모두 실행」과 실행 창의 디바이스 체크칸 (도메인/실행 §8.10 · 시안 8판 ① ② ③)
+// 고르기 바의 「PC N건 실행」 · 「모바일 N건 실행」 · 「모두 실행」과 실행 창의 디바이스 체크칸 (도메인/실행 §8.10 · 8차 시안 ① ② ③)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';

@@ -42,9 +42,9 @@ export const 본것같나 = (a: PrdObserved | undefined, b: PrdObserved | undefi
   a === b || (a !== undefined && b !== undefined && a.text === b.text && a.proposal === b.proposal && a.where === b.where && a.build === b.build && a.count === b.count);
 
 /**
- * 확인 필요 항목에 달 현재 동작 — 보낸 것이 없으면 `물려줄것`(앞 판이 확인 필요였을 때)의 값을 물려받는다.
+ * 확인 필요 항목에 달 현재 동작 — 보낸 것이 없으면 `물려줄것`(이전 버전이 확인 필요였을 때)의 값을 물려받는다.
  * 부르는 쪽은 사람이 요구를 그대로 두고 저장할 때만 물려준다 — 사람 편집 화면은 이 칸을 안 보내고, 문장을 고치면 옛 관찰은 새 문장과 안 맞는다.
- * 옮기기(에이전트)는 지금 판 항목을 칸째 되돌려 보내므로 보낸 것만 쓴다 — 빼고 보내면 낡은 관찰이 지워진다. 확정 항목에는 부르지 않는다
+ * 옮기기(에이전트)는 현재 버전 항목을 칸째 되돌려 보내므로 보낸 것만 쓴다 — 빼고 보내면 낡은 관찰이 지워진다. 확정 항목에는 부르지 않는다
  */
 export function 본것물려받기(보낸것: PrdObserved | undefined, 물려줄것: PrdItem | undefined): { observed?: PrdObserved } {
   const 본것 = 보낸것 ?? (물려줄것?.status === 'NEEDS_CHECK' ? 물려줄것.observed : undefined);

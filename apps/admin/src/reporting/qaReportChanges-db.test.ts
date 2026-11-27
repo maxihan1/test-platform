@@ -74,7 +74,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
     await 항목(실행.이번, 'XQC-FN-006', { sha: 'f', commit: 'c2' });
     await pool.query(`INSERT INTO run_case_bug (run_id, tc_id, marked_by, marked_by_name) VALUES ($1, 'XQC-FN-002', 'xqc-b', '판정한 사람')`, [실행.이번]);
 
-    // PRD 판 — 앞 빌드 때 1판, 이번 빌드 때 2판
+    // PRD 버전 — 앞 빌드 때 버전 1, 이번 빌드 때 버전 2
     for (const [v, at, items] of [
       [1, '2026-10-30T00:00:00Z', [{ reqId: 'XQC-REQ-001', text: '로그인한다' }, { reqId: 'XQC-REQ-002', text: '로그아웃한다' }]],
       [2, '2026-11-03T00:00:00Z', [{ reqId: 'XQC-REQ-001', text: '두 단계로 로그인한다' }, { reqId: 'XQC-REQ-003', text: '비밀번호를 바꾼다' }]],

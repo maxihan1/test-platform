@@ -148,7 +148,7 @@ export async function 편집처리(
   도는번호.add(것.id);
   let 자리: 사본 | null = null;
   try {
-    // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 옛 판일 수 있다
+    // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 이전 버전일 수 있다
     const 메인 = 진짜main묻기(판.원천);
     if ('까닭' in 메인) return void (await 손.끝내기({ status: 'FAILED', error: 메인.까닭 }));
     const 만든것 = await 사본만들기(것.id, 판.바탕, 판.원천, 판.원격주소, 메인.sha, 자식);
@@ -182,7 +182,7 @@ async function 고치고올리기(손: 보고손, 판: 고칠자리, edits: 고�
   const 계산 = 편집계산(케이스들, 읽기(join('docs', 'cases', `${판.서비스}.md`))[0] ?? null, edits);
   if ('사유' in 계산) return 실패(계산.사유);
 
-  // 올리는 것은 tests/** · docs/cases/*.md 뿐 — 판정 규칙은 cases-only.mjs 가 정본이고 켤 때 고정한 판으로 본다
+  // 올리는 것은 tests/** · docs/cases/*.md 뿐 — 판정 규칙은 cases-only.mjs 가 정본이고 켤 때 고정한 버전으로 본다
   const 파일들 = [...계산.쓰기.keys(), ...계산.지우기];
   const 거부 = 푸시거부사유(판.판정(파일들, 기준, 자리.트리, 깃환경), 파일들);
   if (거부 !== null) return 실패(거부);

@@ -50,7 +50,7 @@ export function PrdList({
   const [q, setQ] = useState(() => 주소조건().get('q') ?? '');
   // 맨 PRD 는 애플리케이션을 `service=` 로 단다 — 요구 번호 주소는 번호의 접두사가 그 몫을 한다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
   use주소조건(여기 === undefined ? '#/prd' : PRD항목주소(여기), { ...(q === '' ? {} : { q }), ...(여기 === undefined && service !== '' ? { service } : {}) });
-  // 판을 받은 뒤에 그려지므로 처음 값에서 바로 찾는다. 지금 판에 없는 번호면 아무것도 안 연다
+  // 판을 받은 뒤에 그려지므로 처음 값에서 바로 찾는다. 현재 버전에 없는 번호면 아무것도 안 연다
   const 여기것 = 여기 === undefined ? undefined : now.items.find((x) => x.reqId === 여기);
   const [연줄, set연줄] = useState<string | null>(여기것?.reqId ?? null);
   const [정리, set정리] = useState<string | null>(null);

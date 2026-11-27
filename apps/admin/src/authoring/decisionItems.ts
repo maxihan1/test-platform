@@ -142,7 +142,7 @@ export type 확인결정 =
 
 /**
  * 결정 버전의 항목 — 고른 번호만 확정 · 사람이 고친 것으로 바꾸고 checkSince 를 뺀다. 문장 변경 · 문구 선택 · 직접 입력은 요구 문장을 바꾼다.
- * 근거는 그대로 둔다 — 사람이 고친 것(byPerson)이라 다음 옮기기가 덮지 않는다. 고른 번호가 지금 판에서 확인 필요가 아니면 null
+ * 근거는 그대로 둔다 — 사람이 고친 것(byPerson)이라 다음 옮기기가 덮지 않는다. 고른 번호가 현재 버전에서 확인 필요가 아니면 null
  */
 export function 결정판(지금: PrdItem[], 결정들: 확인결정[]): { items: PrdItem[]; changes: 판변경[]; 문장바뀜: boolean } | null {
   const 고른 = new Map(결정들.map((x) => [x.reqId, x]));

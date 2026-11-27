@@ -6,7 +6,7 @@ import { 넘음, 로드요약, 목표, 비교값, 숫자칸, 클글자 } from '.
 import { 올라가는값 } from './ui.js';
 import { 초글자 } from './perfRunView.js';
 
-/** 표 위 숫자 칸 줄 — 측정 하나를 한눈에 (시안 11판 「페이지 성능」 · WEB-F7-16). 칸 이름은 표와 같은 업계 말(LCP · FCP)이다 */
+/** 표 위 숫자 칸 줄 — 측정 하나를 한눈에 (11차 시안 「페이지 성능」 · WEB-F7-16). 칸 이름은 표와 같은 업계 말(LCP · FCP)이다 */
 export function PerfPagesTiles({ 줄들 }: { 줄들: PageRow[] }) {
   const t = use말();
   const 칸 = 숫자칸(줄들);

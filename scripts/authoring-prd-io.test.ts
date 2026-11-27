@@ -1,4 +1,4 @@
-// 표준 기획서 껍데기 검사 — 지금 판 받아 두기 · 결과 읽기 · 비밀값 · 올린 뒤 임시 번호 바꿔 적기 · 못 올리면 거절
+// 표준 기획서 껍데기 검사 — 현재 버전 받아 두기 · 결과 읽기 · 비밀값 · 올린 뒤 임시 번호 바꿔 적기 · 못 올리면 거절
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -36,7 +36,7 @@ const 결과쓰기 = (몸: unknown) => {
 const 올리기 = (원본: 원장 | { 없음: string } = 원장하나, 비밀 = {}, 앞판: typeof 앞 = 앞) => 옮기기올리기(서버, 'MKT', 7, 자리, 앞판, 원본, 비밀, null, 'mkt');
 
 describe('판받기', () => {
-  it('지금 판을 자료 폴더에 두고 프롬프트 재료와 앞 판을 돌려준다 · 서비스 지도도 같이 받는다', async () => {
+  it('현재 버전을 자료 폴더에 두고 프롬프트 재료와 이전 버전을 돌려준다 · 서비스 지도도 같이 받는다', async () => {
     const 건것: string[] = [];
     vi.stubGlobal('fetch', async (url: string) => (건것.push(url), 답(200, { version: 2, items: [있던] })));
     const r = await 판받기(서버, 'MKT', 7, 자리.자료);
@@ -49,14 +49,14 @@ describe('판받기', () => {
     expect(JSON.parse(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8'))).toEqual({ version: 2, items: [있던] });
   });
 
-  it('기준 판을 같이 받는다 — 반영 계획의 옛 문장이라 같은 손으로 가리고, 지금 판 파일에는 안 싣는다', async () => {
+  it('기준 버전을 같이 받는다 — 반영 계획의 옛 문장이라 같은 손으로 가리고, 현재 버전 파일에는 안 싣는다', async () => {
     vi.stubGlobal('fetch', async () => 답(200, { version: 3, items: [있던], base: { version: 2, items: [{ ...있던, text: '비번은 pass1234 이다' }] } }));
     const r = await 판받기(서버, 'MKT', 7, 자리.자료, ['pass1234']);
     expect('기준판' in r && r.기준판).toEqual({ version: 2, items: [{ ...있던, text: '비번은 •••••• 이다' }] });
     expect(JSON.parse(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8'))).not.toHaveProperty('base');
   });
 
-  it('역방향 비밀번호는 날 글자와 이스케이프 꼴 둘 다 가려 쓰고, 원장을 만들 앞 판 항목도 가린 것이다', async () => {
+  it('역방향 비밀번호는 날 글자와 이스케이프 꼴 둘 다 가려 쓰고, 원장을 만들 이전 버전 항목도 가린 것이다', async () => {
     vi.stubGlobal('fetch', async () => 답(200, { version: 1, items: [{ ...있던, text: '비번은 pa"ss1234 이다' }] }));
     const r = await 판받기(서버, 'MKT', 7, 자리.자료, ['pa"ss1234']);
     const 글 = readFileSync(join(자리.자료, 'prd-current.json'), 'utf8');
@@ -72,7 +72,7 @@ describe('판받기', () => {
     expect(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8')).not.toContain('admin-pw-77');
   });
 
-  it('지금 판 · 기준 판에 남은 「비밀번호: 값」 꼴도 같은 손으로 가린다 — 결과 파일만 가리면 문장 짝짓기가 같은 요구를 새 요구로 본다 (PRD-F9-23)', async () => {
+  it('현재 버전 · 기준 버전에 남은 「비밀번호: 값」 꼴도 같은 손으로 가린다 — 결과 파일만 가리면 문장 짝짓기가 같은 요구를 새 요구로 본다 (PRD-F9-23)', async () => {
     const 꼴 = { ...있던, text: '관리자 비밀번호: Admin!234 로 로그인' };
     vi.stubGlobal('fetch', async () => 답(200, { version: 3, items: [꼴], base: { version: 2, items: [꼴] } }));
     const r = await 판받기(서버, 'MKT', 7, 자리.자료);
@@ -191,7 +191,7 @@ describe('옮기기올리기', () => {
     expect(몸.items?.[0]?.basis?.[0]?.quote).toBe('관리자 비밀번호: ••••••');
   });
 
-  it('지금 판에 합쳐 올리고 저장된 판에서 새 번호를 읽어 표 · 결과 파일의 임시 번호를 바꾸고 원장을 그 판으로 만든다', async () => {
+  it('현재 버전에 합쳐 올리고 저장된 버전에서 새 번호를 읽어 표 · 결과 파일의 임시 번호를 바꾸고 원장을 그 판으로 만든다', async () => {
     const 남이더한 = { ...있던, reqId: 'MKT-REQ-002', feature: '장바구니', text: '장바구니는 20개까지' };
     const 새것 = { reqId: 'MKT-REQ-004', feature: '회원가입', text: '닉네임은 필수', basis: [{ from: '기획서.docx', ref: 'REQ-2', quote: '닉네임 필수' }], status: 'CONFIRMED' };
     let 몸: { baseVersion?: number; items?: Record<string, unknown>[] } = {};
@@ -233,7 +233,7 @@ describe('옮기기올리기', () => {
     expect(r.줄.at(-1)).toBe('⚠️ 옮기기 대조 없음 — 화면.pdf(PDF)');
   });
 
-  it('지금 판을 못 읽거나 서버가 거절하거나 올린 판을 다시 못 읽거나 새 항목을 못 찾으면 거절하고 대조 줄은 남긴다', async () => {
+  it('현재 버전을 못 읽거나 서버가 거절하거나 올린 버전을 다시 못 읽거나 새 항목을 못 찾으면 거절하고 대조 줄은 남긴다', async () => {
     결과쓰기({ items: [] });
     vi.stubGlobal('fetch', async () => 답(500));
     expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toEqual({

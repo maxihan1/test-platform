@@ -3,7 +3,7 @@
 //   npm run check:ledger -- <ledger.json> <표.md> [--tests <폴더>] [--agent]   빠짐 · 형식 오류 · 칸 번호 어긋남(--agent 면 설계 칸 빠짐 · 설계 거절 형식 오류도, --tests 까지 주면 기법 어긋남도)이 있으면 종료 코드 1
 //   npm run ledger:number -- <ledger.json> <표.md>                 칸마다 tcId 를, 프로시저 절의 빈 칸에 프로시저 번호를 매겨 표를 고쳐 쓴다. 칸 재료가 없으면 종료 코드 2
 //   npm run ledger:design -- <ledger.json>                         설계 목록(요구마다 경계 · 예외 칸)과 요약을 찍는다
-//   npm run prd:ledger -- <자료 폴더>                              작성 자식 — 표준 기획서 지금 판 + 결과 파일로 원장 사본(ledger.json)을 다시 만든다
+//   npm run prd:ledger -- <자료 폴더>                              작성 자식 — 표준 기획서 현재 버전 + 결과 파일로 원장 사본(ledger.json)을 다시 만든다
 
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -152,7 +152,7 @@ if (명령 === '뽑기') {
     process.exit(1);
   }
   const 옮긴 = 옮긴몸 === undefined ? null : 옮긴것읽기(옮긴몸, 재료.접두사);
-  if (옮긴 !== null && '사유' in 옮긴) console.log(`결과 파일을 못 읽었다 — ${옮긴.사유}. 지금 판만으로 만든다`);
+  if (옮긴 !== null && '사유' in 옮긴) console.log(`결과 파일을 못 읽었다 — ${옮긴.사유}. 현재 버전만으로 만든다`);
   if (옮긴 !== null && !('사유' in 옮긴) && 옮긴.버림.length > 0) console.log(`버린 항목(모양 · 상한 · 겹친 번호): ${옮긴.버림.join(' · ')}`);
   // 번호 없이 온 새 항목의 임시 번호를 파일에 적어 굳힌다 — 그대로 두면 파일을 고칠 때마다 차례가 밀려 표가 엉뚱한 요구를 가리킨다
   const 자동 = 옮긴 !== null && !('사유' in 옮긴) ? (옮긴.자동 ?? []) : [];

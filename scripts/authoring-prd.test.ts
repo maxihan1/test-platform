@@ -114,13 +114,13 @@ describe('판합치기', () => {
     expect(r.items.map((i) => [i.reqId, i.text]).at(-1)).toEqual([undefined, '아이디는 4자 이상']);
   });
 
-  it('지금 판에 없는 번호는 새 항목으로 돌리고 알린다', () => {
+  it('현재 버전에 없는 번호는 새 항목으로 돌리고 알린다', () => {
     const r = 판합치기(지금, 옮김([항목('새 규칙', ['REQ-MEM-011'], { reqId: 'MKT-REQ-099' })]));
     expect(r.items.at(-1)).not.toHaveProperty('reqId');
     expect(r.모르는번호).toEqual(['MKT-REQ-099']);
   });
 
-  it('기준 판에만 있던 번호(그 사이 지워짐)는 번호를 단 채 새 항목 앞에 보낸다 — 서버가 되살리지 않는다', () => {
+  it('기준 버전에만 있던 번호(그 사이 지워짐)는 번호를 단 채 새 항목 앞에 보낸다 — 서버가 되살리지 않는다', () => {
     const r = 판합치기(지금, 옮김([항목('새 규칙', ['REQ-MEM-011']), 항목('지워진 요구', ['REQ-MEM-004'], { reqId: 'MKT-REQ-004' })]), new Set(['MKT-REQ-004']));
     expect(r.items.map((i) => i.reqId)).toEqual(['MKT-REQ-001', 'MKT-REQ-002', 'MKT-REQ-003', 'MKT-REQ-004', undefined]);
     expect(r.모르는번호).toEqual([]);
@@ -209,7 +209,7 @@ describe('임시 번호 — 새 항목은 자식이 표에 적을 자리 번호�
     expect('items' in r && r.자동).toEqual([[1, 'MKT-NEW-005']]);
   });
 
-  it('판합치기 — 지금 판에 없는 번호는 떼고 새 임시 번호를 단다(뗀 번호를 쓰면 main 표의 옛 줄까지 바뀐다) · 문장이 같은 기존 항목은 번호를 물려받으며 임시 번호를 들고 간다', () => {
+  it('판합치기 — 현재 버전에 없는 번호는 떼고 새 임시 번호를 단다(뗀 번호를 쓰면 main 표의 옛 줄까지 바뀐다) · 문장이 같은 기존 항목은 번호를 물려받으며 임시 번호를 들고 간다', () => {
     const 지금 = [있던(1, '아이디는 4자 이상')];
     const r = 판합치기(지금, 옮김([{ ...항목('아이디는 4자 이상', ['REQ-MEM-001']), 임시: 'MKT-NEW-001' }, 항목('새 규칙', ['REQ-MEM-011'], { reqId: 'MKT-REQ-099' })]));
     expect(r.items.map((i) => [i.reqId, i.임시])).toEqual([['MKT-REQ-001', 'MKT-NEW-001'], [undefined, 'MKT-NEW-002']]);

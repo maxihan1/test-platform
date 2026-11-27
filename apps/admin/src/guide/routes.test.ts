@@ -82,7 +82,7 @@ describe.skipIf(연결 === undefined)('서비스 가이드 API', () => {
     expect((await 부르기('GET', '/guide/versions')).json()).toEqual([]);
   });
 
-  it('글 저장은 새 판이고 같은 글이면 지금 판 번호, 낡은 판이면 409 GUIDE_STALE', async () => {
+  it('글 저장은 새 버전이고 같은 글이면 현재 버전 번호, 낡은 판이면 409 GUIDE_STALE', async () => {
     expect((await 글저장(0, { intro: '테스트 주문은 qa- 로 시작' })).json()).toEqual({ version: 1 });
     expect((await 글저장(1, { intro: '테스트 주문은 qa- 로 시작' })).json()).toEqual({ version: 1 });
     const 늦음 = await 글저장(0, { rules: '결제는 테스트 카드만' });
@@ -107,7 +107,7 @@ describe.skipIf(연결 === undefined)('서비스 가이드 API', () => {
     expect((await 올리기('section=intro&baseVersion=0&name=a.md', '')).json()).toEqual({ error: 'EMPTY_BODY' });
   });
 
-  it('파일 더하기 · 빼기는 판마다 하나이고 변경 기록이 앞 판과 견줘 보인다. 뺀 파일도 디스크와 내려받기에 남는다', async () => {
+  it('파일 더하기 · 빼기는 판마다 하나이고 변경 기록이 이전 버전과 견줘 보인다. 뺀 파일도 디스크와 내려받기에 남는다', async () => {
     await 글저장(0, { intro: '소개' });
     const 더함 = await 올리기(`section=policy&baseVersion=1&name=${encodeURIComponent('정책 문서.md')}`, '# 정책');
     expect(더함.statusCode).toBe(201);
@@ -136,7 +136,7 @@ describe.skipIf(연결 === undefined)('서비스 가이드 API', () => {
     expect((await 부르기('GET', `/guide/files/${String(fileId)}/text`)).json()).toEqual({ text: '# 정책' });
   });
 
-  it('지금 판 파일이 20개면 409 GUIDE_FULL 이고 디스크에 남는 파일이 없다', async () => {
+  it('현재 버전 파일이 20개면 409 GUIDE_FULL 이고 디스크에 남는 파일이 없다', async () => {
     for (let i = 0; i < 20; i++) expect((await 올리기(`section=rules&baseVersion=${String(i)}&name=r${String(i)}.txt`, 'x')).statusCode).toBe(201);
     expect((await 올리기('section=rules&baseVersion=20&name=r20.txt', 'x')).json()).toEqual({ error: 'GUIDE_FULL' });
     expect(await readdir(join(뿌리, 'service-guide', String(서비스)))).toHaveLength(20);
@@ -155,7 +155,7 @@ describe.skipIf(연결 === undefined)('서비스 가이드 API', () => {
     expect((await q<{ n: number }>('SELECT count(*)::int AS n FROM service_guide_file WHERE service_id = $1', [서비스])).rows[0]!.n).toBe(0);
   });
 
-  it('INTEGER 를 넘는 판 번호는 없는 판이라 404', async () => {
+  it('INTEGER 를 넘는 버전 번호는 없는 판이라 404', async () => {
     expect((await 부르기('GET', '/guide/versions/9999999999')).statusCode).toBe(404);
   });
 
@@ -225,7 +225,7 @@ describe.skipIf(연결 === undefined)('서비스 가이드 API', () => {
       return Number(r.rows[0]!.id);
     };
 
-    it('지금 판을 사람 이름 · 크기 없이 주고 파일은 지금 판 것만 내려준다', async () => {
+    it('현재 버전을 사람 이름 · 크기 없이 주고 파일은 현재 버전 것만 내려준다', async () => {
       await 글저장(0, { rules: '훑지 말 것: /admin' });
       const 남김 = (await 올리기('section=intro&baseVersion=1&name=a.md', 'A')).json<{ fileId: number }>();
       const 뺌 = (await 올리기('section=intro&baseVersion=2&name=b.md', 'B')).json<{ fileId: number }>();

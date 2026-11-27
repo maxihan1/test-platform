@@ -30,7 +30,7 @@ export interface 자료 {
  * (서버가 역방향 원본의 재실행을 409 로 막지만 에이전트는 서버를 믿지 않는다)
  */
 export function 입력만(자료들: 자료[]): 자료[] {
-  // API 문서 판은 받을 파일이 아니다 — 판 원문은 집기 응답의 apiDoc 으로 따로 온다 (도메인/API §3.8 「작성」)
+  // API 문서 버전은 받을 파일이 아니다 — 판 원문은 집기 응답의 apiDoc 으로 따로 온다 (도메인/API §3.8 「작성」)
   return 자료들.filter((자) => (자.role ?? 'INPUT') === 'INPUT' && 자.kind !== 'API_DOC');
 }
 

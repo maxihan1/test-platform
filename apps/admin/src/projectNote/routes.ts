@@ -1,4 +1,4 @@
-// 노트 고치기 결과를 받는 통로 — 바뀐 문서만 받아 앞 판에 겹치고 새 판 하나를 만든다 (도메인/BTS §7 「POST /api/authoring/requests/:id/note」)
+// 노트 고치기 결과를 받는 통로 — 바뀐 문서만 받아 이전 버전에 겹치고 새 버전 하나를 만든다 (도메인/BTS §7 「POST /api/authoring/requests/:id/note」)
 
 import type { FastifyInstance } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
@@ -52,7 +52,7 @@ export default async function projectNoteRoutes(app: FastifyInstance): Promise<v
     const 손 = await (await db()).connect();
     try {
       await 손.query('BEGIN');
-      // 프로젝트 행을 잠가 저장을 한 줄로 세운다 — 판 번호를 읽고 넣는 사이에 다른 저장이 끼면 둘이 같은 번호를 노린다(PK 가 마지막 그물)
+      // 프로젝트 행을 잠가 저장을 한 줄로 세운다 — 버전 번호를 읽고 넣는 사이에 다른 저장이 끼면 둘이 같은 번호를 노린다(PK 가 마지막 그물)
       await 손.query('SELECT 1 FROM project WHERE id = $1 FOR UPDATE', [projectId]);
       // 요청 행도 잠그고 다시 본다 — 그냥 읽으면 끝내기가 같은 때 STOPPED 로 바꾸고 커밋해도 이 저장은 RUNNING 을 보고 끝난 일의 판을 만든다.
       // 잠그면 끝내기가 먼저면 끝난 상태를 읽고, 이쪽이 먼저면 끝내기가 이 커밋을 기다린다

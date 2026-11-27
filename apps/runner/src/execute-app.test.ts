@@ -185,7 +185,7 @@ describe('execute 가 자식에게 넘기는 API 인증 (API-F1-04)', () => {
   });
 });
 
-describe('execute 가 자식에게 넘기는 API 문서 판 (API-F1-05)', () => {
+describe('execute 가 자식에게 넘기는 API 문서 버전 (API-F1-05)', () => {
   let 폴더: string;
   let 옛산출물: string | undefined;
 

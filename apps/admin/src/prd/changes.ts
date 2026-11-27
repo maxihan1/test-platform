@@ -17,8 +17,8 @@ export interface 판변경 {
 }
 
 /**
- * 화면이 맞음 번호 가운데 지금 판에서 바뀐 것 — 문장이 바뀌었으면 EDIT, 확인 필요가 확정만 됐으면 CONFIRM.
- * 없거나 다른 번호도 바뀌었으면(더함 · 지움 포함) null — changes 가 차면 화면이 그것만 적어 다른 번호의 고침이 안 보인다(화면이 앞 판과 견준다)
+ * 화면이 맞음 번호 가운데 현재 버전에서 바뀐 것 — 문장이 바뀌었으면 EDIT, 확인 필요가 확정만 됐으면 CONFIRM.
+ * 없거나 다른 번호도 바뀌었으면(더함 · 지움 포함) null — changes 가 차면 화면이 그것만 적어 다른 번호의 고침이 안 보인다(화면이 이전 버전과 견준다)
  */
 export function 화면변경(지금: 앞판 | null, items: PrdItem[], 화면번호: ReadonlyMap<string, string>): 판변경[] | null {
   const 앞것들 = new Map((지금?.items ?? []).map((x) => [x.reqId, x]));

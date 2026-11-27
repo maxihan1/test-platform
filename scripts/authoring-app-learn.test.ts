@@ -191,7 +191,7 @@ describe('프롬프트', () => {
     expect(글).toContain('npx tsx scripts/authoring-app-learn-note.ts /자료');
     expect(글).toContain('npx tsx scripts/authoring-app-find.ts /자료 --check');
     expect(글).toContain('2번 이상');
-    expect(글).not.toMatch(/표준 기획서 지금 판|prd-current/);
+    expect(글).not.toMatch(/표준 기획서 현재 버전|prd-current/);
   });
 
   it('다음 세션은 쪽지를, 이어 작성은 맡은 줄만 싣는다', () => {

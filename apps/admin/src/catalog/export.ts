@@ -19,7 +19,7 @@ export interface ExportCase
   lastResult?: { status: ItemStatus; at: string } | null;
   /** 반영된 보류 입력이 있으면 그 작성 요청의 뿌리와 넣은 사람 */
   filledBy?: { rootId: number; by: string } | null;
-  /** 맥락 — 지도 ① 과 표준 기획서 지금 판 (카탈로그 §8.1 「맥락」). 요구 문장은 싣지 않는다 */
+  /** 맥락 — 지도 ① 과 표준 기획서 현재 버전 (카탈로그 §8.1 「맥락」). 요구 문장은 싣지 않는다 */
   feature?: string | null;
   reqIds?: string[];
 }

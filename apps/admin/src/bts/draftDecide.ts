@@ -7,7 +7,7 @@ import type { 판변경 } from '../prd/changes.js';
 import { 상한, 새번호 } from '../prd/rules.js';
 import { 초안다시세우기, type 초안E2E, type 초안줄 } from './draft.js';
 
-/** 카드의 줄 하나 — 초안 줄에 지금 판의 문장을 붙인다. 수정 · 삭제 줄의 번호가 지금 판에 없으면 gone(그 사이 사람이 지웠다) */
+/** 카드의 줄 하나 — 초안 줄에 현재 버전의 문장을 붙인다. 수정 · 삭제 줄의 번호가 현재 버전에 없으면 gone(그 사이 사람이 지웠다) */
 export type 초안카드줄 = 초안줄 & { oldText: string | null; gone: boolean };
 
 export interface 초안카드 {
@@ -112,7 +112,7 @@ export function 초안적용(지금: PrdItem[], lastNo: number, 접두사: strin
         마지막 += 1;
         const reqId = 새번호(접두사, 마지막);
         if (reqId === null) return { error: 'BAD_PICK', detail: key };
-        // 요구 문장에 든 지금 판의 기능 묶음에 넣는다 — 이슈 제목을 묶음 이름으로 쓰면 PRD 목차에 문장이 묶음으로 섰다(DMO-REQ-141 · 도메인/작성 §3.6 「목차」 규칙 3).
+        // 요구 문장에 든 현재 버전의 기능 묶음에 넣는다 — 이슈 제목을 묶음 이름으로 쓰면 PRD 목차에 문장이 묶음으로 섰다(DMO-REQ-141 · 도메인/작성 §3.6 「목차」 규칙 3).
         // 맞는 묶음이 없을 때만 이슈 제목이고, 목차가 「정리 필요」로 띄워 사람이 옮긴다. PRD 의 기능 이름 상한에 맞춰 자른다
         const feature = (든묶음(지금, 줄.text) ?? 제목.get(줄.issueKeys[0]!) ?? 줄.issueKeys[0]!).slice(0, 상한.기능묶음);
         판.set(reqId, { reqId, feature, text: 줄.text, basis: [근거], status: 고름 ? 'CONFIRMED' : 'NEEDS_CHECK', ...(고름 ? {} : { checkSince: 시각 }), byPerson: true, fromIssues: 줄.issueKeys });

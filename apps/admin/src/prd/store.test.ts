@@ -1,4 +1,4 @@
-// 표준 기획서 판 저장소 — 판 이력 · 낡은 판 거절 · 되돌리기 · 옮기기 · 기준 판 (도메인/작성 §3.6 「★ 표준 기획서」)
+// 표준 기획서 버전 저장소 — 버전 기록 · 낡은 판 거절 · 되돌리기 · 옮기기 · 기준 버전 (도메인/작성 §3.6 「★ 표준 기획서」)
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -53,7 +53,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     await q('DELETE FROM service WHERE id = $1', [서비스]);
   });
 
-  it('저장마다 새 판이고 낡은 판으로 저장하면 PRD_STALE', async () => {
+  it('저장마다 새 버전이고 낡은 판으로 저장하면 PRD_STALE', async () => {
     const s = await 저장소();
     expect(await s.사람저장(서비스, 접두사, 0, [새것('20개까지')], 사람)).toEqual({ version: 1 });
     expect(await s.사람저장(서비스, 접두사, 0, [새것('30개까지')], 사람)).toEqual({ error: 'PRD_STALE', latest: 1 });
@@ -65,7 +65,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     ]);
   });
 
-  it('DB 에서 읽은 판을 그대로 다시 보내면 새 판을 안 만든다. 기획서가 없을 때 빈 목록도 판을 안 만든다', async () => {
+  it('DB 에서 읽은 버전을 그대로 다시 보내면 새 버전을 안 만든다. 기획서가 없을 때 빈 목록도 판을 안 만든다', async () => {
     const s = await 저장소();
     expect(await s.사람저장(서비스, 접두사, 0, [], 사람)).toEqual({ version: 0 });
     const 요청 = await 요청넣기('AUTHOR');
@@ -76,7 +76,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     expect(await s.사람저장(서비스, 접두사, 1, 지금!.items, 사람)).toEqual({ version: 1 });
   });
 
-  it('되돌리기도 새 판이다 — 되돌린 판은 옛 판 항목을 복사한다', async () => {
+  it('되돌리기도 새 버전이다 — 되돌린 판은 이전 버전 항목을 복사한다', async () => {
     const s = await 저장소();
     await s.사람저장(서비스, 접두사, 0, [새것('20개까지', 'NEEDS_CHECK')], 사람);
     expect(await s.사람저장(서비스, 접두사, 1, [{ ...새것('20개까지'), reqId: 'XPS-REQ-001' }], 사람)).toEqual({ version: 2 });
@@ -87,7 +87,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     expect(await s.되돌리기(서비스, 접두사, 3, 99, 사람)).toBeNull();
   });
 
-  it('옮기기는 AGENT 판을 넣고 요청의 읽은 판을 바꾼다. 끝난 요청이면 NOT_RUNNING', async () => {
+  it('옮기기는 AGENT 판을 넣고 요청의 읽은 버전을 바꾼다. 끝난 요청이면 NOT_RUNNING', async () => {
     const s = await 저장소();
     const 요청 = await 요청넣기('AUTHOR');
     expect(await s.옮기기(요청, 서비스, 접두사, 0, [새것('20개까지')], 사람)).toEqual({ version: 1, keptByPerson: [] });
@@ -98,7 +98,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     expect(await s.옮기기(끝난것, 서비스, 접두사, 1, [], 사람)).toEqual({ error: 'NOT_RUNNING', detail: 'DONE' });
   });
 
-  it('기준 판은 가장 최근에 병합된 반영이 병합한 작성 실행이 읽은 판이다. 없으면 전부 반영 안 됨', async () => {
+  it('기준 버전은 가장 최근에 병합된 반영이 병합한 작성 실행이 읽은 버전이다. 없으면 전부 반영 안 됨', async () => {
     const s = await 저장소();
     await s.사람저장(서비스, 접두사, 0, [새것('20개까지')], 사람);
     expect(await s.기준판(서비스)).toBeNull();
@@ -119,7 +119,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
   it.each([
     ['바뀐 API 다시 작성', { apiApply: { fromVersion: 1, toVersion: 2, operations: [] } }],
     ['프로시저 안 케이스 삭제', { procDelete: { cases: ['XPS-FN-001'] } }],
-  ])('%s 의 병합은 기준 판을 앞당기지 않는다 — 기획서를 안 다뤄서 그 사이 고친 요구가 반영 안 됨으로 남는다', async (_이름, params) => {
+  ])('%s 의 병합은 기준 버전을 앞당기지 않는다 — 기획서를 안 다뤄서 그 사이 고친 요구가 반영 안 됨으로 남는다', async (_이름, params) => {
     const s = await 저장소();
     await s.사람저장(서비스, 접두사, 0, [새것('20개까지')], 사람);
     const 첫작성 = await 요청넣기('AUTHOR', { status: 'DONE', prd: 1 });

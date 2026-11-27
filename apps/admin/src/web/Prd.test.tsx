@@ -217,7 +217,7 @@ describe('PRD 관리 — 전체 요구', () => {
     expect(screen.getByRole('button', { name: /MKT-REQ-031/ }).getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('지금 판에 없는 번호로 오면 아무 서랍도 열지 않는다', async () => {
+  it('현재 버전에 없는 번호로 오면 아무 서랍도 열지 않는다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} 여기="MKT-REQ-999" />);
     await screen.findByRole('button', { name: /MKT-REQ-031/ });
     expect(screen.queryByRole('dialog')).toBeNull();

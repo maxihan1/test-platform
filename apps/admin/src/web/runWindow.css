@@ -50,7 +50,7 @@
   font-weight: 600;
 }
 
-/* 닫기 × — 앞 판은 Esc 로만 닫혔다 (점검표 D5) */
+/* 닫기 × — 이전 버전은 Esc 로만 닫혔다 (점검표 D5) */
 .frame-x {
   margin-left: auto;
   flex: none;

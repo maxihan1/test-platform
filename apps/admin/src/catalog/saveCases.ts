@@ -67,7 +67,7 @@ export async function save(
         JSON.stringify(spec.expectedSchema),
         // 지우면 '{}' 로 덮어야 다시 스캔한 결과가 코드와 같다 — 비워 두면 옛 기법이 남는다
         spec.techniques ?? [],
-        // 케이스가 만들어진 API 문서 판. 실행이 이 판 원문을 러너에 싣는다 (도메인/API §3.8 「응답 모양 확인」)
+        // 케이스가 만들어진 API 문서 버전. 실행이 이 판 원문을 러너에 싣는다 (도메인/API §3.8 「응답 모양 확인」)
         spec.apiDoc ?? null,
         // 게임 요소 열쇠도 기법처럼 지우면 '{}' 로 덮는다 — game_element_case 는 스캔이 이 값에서 다시 채운다 (도메인/게임 §3.10)
         spec.elements ?? [],

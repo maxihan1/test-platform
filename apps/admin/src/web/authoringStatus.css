@@ -84,7 +84,7 @@
 .status-steps li.fail { color: var(--fail-text); font-weight: 600; }
 .status-steps li.fail .m { border-color: var(--fail); background: var(--fail-soft); color: var(--fail-text); }
 
-/* 시작 모달 — 세로로 쌓고 도는 칸은 대표색 고리에 맥박 (DESIGN.md 원칙 4 「실행 중 표시」 · 시안 11판 「새 작성 · 접수」) */
+/* 시작 모달 — 세로로 쌓고 도는 칸은 대표색 고리에 맥박 (DESIGN.md 원칙 4 「실행 중 표시」 · 11차 시안 「새 작성 · 접수」) */
 .status-steps.v { grid-auto-flow: row; gap: 8px; }
 .status-steps.v li { display: flex; align-items: center; gap: 8px; text-align: left; font-size: 13px; }
 .status-steps.v li::before { display: none; }

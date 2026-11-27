@@ -213,7 +213,7 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
   if (b.devices.some((d) => d.where === 'LOCAL') && 내컴퓨터러너() === undefined) return 나쁨('이 서버에는 내 컴퓨터 러너(LOCAL_RUNNER_URL)가 연결되어 있지 않습니다');
 
   const { 목록, PC들 } = await 기기와PC(PC);
-  // PC 게임에 폰, 폰 앱에 PC 를 고르면 거절한다. 폰은 목록을 못 읽어도 막지 않는다 — 잡기가 가른다(앞 판 그대로)
+  // PC 게임에 폰, 폰 앱에 PC 를 고르면 거절한다. 폰은 목록을 못 읽어도 막지 않는다 — 잡기가 가른다(이전 버전 그대로)
   const 어긋남 = b.devices.find((d) => (PC ? !PC들.has(d.serial) : PC들.has(d.serial)));
   if (어긋남 !== undefined) return 나쁨(PC ? `Device VISION 의 Windows PC 가 아닙니다: ${어긋남.serial}` : `Windows PC 는 PC 게임만 잽니다: ${어긋남.serial}`);
   // 다른 실행이 PC 를 쓰는 중이면 기다리지 않는다 — 시작할 때 다시 잡고 못 잡으면 오류로 끝낸다

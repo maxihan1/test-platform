@@ -196,11 +196,11 @@ async function 노트건(
     const 몸 = 출력읽기(글);
     if ('까닭' in 몸) return void (await 손.끝내기({ status: 'FAILED', error: `노트 출력이 맞지 않는다 — ${몸.까닭}` }));
 
-    await 손.단계('노트 고치는 중 — 새 판을 저장하는 중');
+    await 손.단계('노트 고치는 중 — 새 버전을 저장하는 중');
     const 답 = await 부른다(주소기지, 토큰, `/authoring/requests/${것.id}/note`, { method: 'POST', body: 몸 });
     if (답.status === 201) return void (await 손.끝내기({ status: 'DONE', result: { version: (답.몸 as { version?: unknown } | null)?.version } }));
     const 까닭 = (답.몸 as { error?: unknown; detail?: unknown } | null) ?? {};
-    // 앞 판은 서버가 그대로 둔다. 409 NOT_RUNNING 은 누가 이미 행을 닫았다 — 끝내기도 받아 주지 않는다
+    // 이전 버전은 서버가 그대로 둔다. 409 NOT_RUNNING 은 누가 이미 행을 닫았다 — 끝내기도 받아 주지 않는다
     if (답.status === 409) return void console.error(`[노트] ${것.id}번 이미 끝난 요청이라 노트를 올리지 못했다`);
     await 손.끝내기({ status: 'FAILED', error: `노트를 저장하지 못했습니다 — ${typeof 까닭.detail === 'string' ? 까닭.detail : `서버가 ${답.status} 를 냈다`}` });
   } finally {

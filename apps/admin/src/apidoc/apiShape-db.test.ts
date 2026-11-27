@@ -110,7 +110,7 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
 
     expect(await 케이스판('XASS-FN-001')).toEqual({});
     expect(await 케이스판('XAS-FN-002')).toEqual({ 사유: '케이스에 API 문서 버전이 적혀 있지 않습니다' });
-    // 없는 판은 담아 두지 않는다 — 방금 올린 판 1 을 읽는다
+    // 없는 판은 담아 두지 않는다 — 방금 올린 버전 1 을 읽는다
     expect(await 케이스판('XAS-FN-001')).toEqual({ apiDoc: { version: 1, doc: 문서('1') } });
   });
 
@@ -155,7 +155,7 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
     expect(await 받은줄()).toEqual([]);
   });
 
-  it('기준 서버 실행은 문서가 다르면 판을 올리고 그 판 번호를 실행에 박제한다', async () => {
+  it('기준 서버 실행은 문서가 다르면 버전을 올리고 그 버전 번호를 실행에 박제한다', async () => {
     내줄것 = { 코드: 200, 글: JSON.stringify(문서('2')) };
     const { runId } = await 실행('stg');
     await 실행문서견주기(runId);

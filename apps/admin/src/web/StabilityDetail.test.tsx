@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 안정화 지표 오류 상세 화면 검사 (도메인/안정화 §8.19 「상세」 · 시안 6판 Detail6)
+// 안정화 지표 오류 상세 화면 검사 (도메인/안정화 §8.19 「상세」 · 6차 시안 Detail6)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';

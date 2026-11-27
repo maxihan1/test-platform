@@ -22,7 +22,7 @@ export interface 시험감 {
   /** 가릴 비밀값을 고를 명세 — 프로시저는 케이스마다 하나 */
   명세: 시험명세[];
   stepTitles?: string[];
-  /** 요청에 더 실을 칸이나 러너에 안 보낼 사유 — API 애플리케이션 케이스의 문서 판. 프로시저(Android 앱 · 게임)에는 없다 */
+  /** 요청에 더 실을 칸이나 러너에 안 보낼 사유 — API 애플리케이션 케이스의 문서 버전. 프로시저(Android 앱 · 게임)에는 없다 */
   판?: () => Promise<Partial<ExecuteRequest> | { 사유: string }>;
 }
 

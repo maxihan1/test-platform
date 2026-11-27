@@ -17,7 +17,7 @@ export const 실행말: Record<string, string> = {
   // 테스트 실행 (실행 창)
   '실행 안 함': 'Not run',
 
-  // 시작 확인 · 시험 실행 중 · 중단 확인 · 완료 (실행 창 · 시안 7판 ③-1 ④ ⑤ ⑥)
+  // 시작 확인 · 시험 실행 중 · 중단 확인 · 완료 (실행 창 · 7차 시안 ③-1 ④ ⑤ ⑥)
   '시험 실행을 시작할까요?': 'Start a trial run?',
   '정식 실행을 시작할까요?': 'Start a run?',
   '시험 실행 시작': 'Start trial run',
@@ -469,7 +469,7 @@ export const 실행말: Record<string, string> = {
   '환경 문제로 닫힘': 'Closed: environment problem',
   '중복으로 닫힘': 'Closed: duplicate',
   '재검증 통과로 닫힘': 'Closed: passed recheck',
-  // 정식 실행 진행 창 맨 위 띠 · 화면 카드 (RunProgressModal.tsx · RunLiveCards.tsx · 시안 7판 ⑦)
+  // 정식 실행 진행 창 맨 위 띠 · 화면 카드 (RunProgressModal.tsx · RunLiveCards.tsx · 7차 시안 ⑦)
   '정식 실행': 'Run',
   '완료되면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN {번호}': 'When it ends, it is saved to run history and you can make a report · RUN {번호}',
   '완료되면 RUN {번호} 결과에 다시 실행으로 추가됩니다': 'When it ends, it is added to RUN {번호} results as a rerun',
