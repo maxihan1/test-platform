@@ -86,6 +86,16 @@ describe('QA 리포트 첫 장 글', () => {
     expect(글).toContain('제목 기록 없음');
     expect(글).toContain('테스트 커밋 aaaaaaa → 기록 없음');
     expect(글).toContain('PRD 버전 3 → 4');
+    expect(덩이들).toContainEqual({ 꼴: '절', 글: '3. 변경 사항', 접기: { 요약: '이슈 1 · 요구사항 1 · 케이스 2 (기대 결과 변경 1)' } });
+    expect(덩이들).toContainEqual({ 꼴: '절', 글: '4. 계획 대비 차이', 접기: { 요약: '실행에 안 담김 1 · 실행하지 않은 E2E 시나리오 1' } });
+  });
+
+  it('접힌 절 머리의 건수는 0 인 것을 빼고, 다 0 이면 「변경 없음」 · 「차이 없음」이다', () => {
+    const 재료 = 첫장재료({ ...첫빌드, product: { linked: true, deploys: [], issues: [{ key: 'DM-12', type: 'BUG', title: null, prs: [] }] } });
+    재료.plan = { cases: [], e2e: [], compat: [], perf: [] };
+    const 덩이들 = 첫장글(리포트(재료));
+    expect(덩이들).toContainEqual({ 꼴: '절', 글: '3. 변경 사항', 접기: { 요약: '변경 없음' } });
+    expect(덩이들).toContainEqual({ 꼴: '절', 글: '4. 계획 대비 차이', 접기: { 요약: '차이 없음' } });
   });
 
   it('Blocked 는 Not tested 뒤 괄호로 세고 계획 대비 차이에 막은 케이스 번호를, 앞 흐름만 바뀐 케이스는 「선행 케이스 변경」으로 강조 없이 적는다', () => {

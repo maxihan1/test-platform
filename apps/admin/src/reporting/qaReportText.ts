@@ -21,8 +21,8 @@ export interface 표줄 {
 }
 
 export type 덩이 =
-  /** 상자 — 남은 리스크는 AI 상자, 승인은 점선 상자로 절 몸을 감싼다(HTML) */
-  | { 꼴: '절'; 글: string; 상자?: 'AI' | '승인' }
+  /** 상자 — 남은 리스크는 AI 상자, 승인은 점선 상자로 절 몸을 감싼다(HTML). 접기 — HTML 응답만 절을 접어 두고 머리에 요약(건수)을 단다(PDF · 워드는 다 펼친다) */
+  | { 꼴: '절'; 글: string; 상자?: 'AI' | '승인'; 접기?: { 요약: string } }
   | { 꼴: '소절'; 글: string }
   /** 「비기능 검증」 구분 머리 — 기능 구획과 비기능 구획 사이 띠 */
   | { 꼴: '구분'; 글: string }
@@ -136,11 +136,33 @@ function 까닭글(c: 까닭 | null): string {
   return `${무엇} (작성 요청 #${c.requestId})${c.prUrl === null ? '' : `\n${c.prUrl}`}`;
 }
 
+// 접힌 절 머리의 건수 — 0 인 것은 빼고, 다 0 이면 빈 말 하나. 펼치지 않아도 볼 것이 있는지 알게 한다
+const 건 = (이름: string, n: number, 꼬리 = ''): string | null => (n > 0 ? `${이름} ${n}${꼬리}` : null);
+const 건수글 = (줄: (string | null)[], 없음: string): string => 줄.filter((x) => x !== null).join(' · ') || 없음;
+
+function 변경요약(c: NonNullable<첫장['changes']>): string {
+  const t = c.tests !== null && c.tests.recorded ? c.tests : null;
+  const 기대 = t === null ? 0 : t.modified.filter((x) => x.expected).length;
+  const q = c.requirements;
+  return 건수글(
+    [
+      // 본문은 배포가 없으면 이슈 표를 안 그린다 — 머리도 같이 안 센다
+      건('이슈', c.product.linked && c.product.deploys.length > 0 ? c.product.issues.length : 0),
+      건('요구사항', q === null ? 0 : q.added.length + q.changed.length + q.removed.length),
+      // 기대 결과 변경은 접혀 있어도 먼저 봐야 할 줄이다 — 케이스 건수 뒤에 따로 단다
+      건('케이스', t === null ? 0 : t.modified.length + (t.flowChanged?.length ?? 0) + t.added.length + t.removed.length, 기대 > 0 ? ` (기대 결과 변경 ${기대})` : ''),
+      건('사람 확인', c.confirmed.length),
+    ],
+    '변경 없음',
+  );
+}
+
 function 변경사항(s: 첫장): 덩이[] {
   const c = s.changes;
   // 빌드 없는 리포트는 견줄 빌드가 없어 절을 통째로 그리지 않는다 (§3.17 「변경 사항」)
   if (c === null) return [];
-  const 덩이들: 덩이[] = [{ 꼴: '절', 글: '변경 사항' }, { 꼴: '소절', 글: '제품' }];
+  // 표가 길어 아래 절(실패 분류 · 남은 리스크 · 승인)이 멀어진다 — 화면에서는 접어 두고 필요할 때 편다
+  const 덩이들: 덩이[] = [{ 꼴: '절', 글: '변경 사항', 접기: { 요약: 변경요약(c) } }, { 꼴: '소절', 글: '제품' }];
   const p = c.product;
   if (!p.linked) 덩이들.push({ 꼴: '글', 글: 'Issue Bunker 미연결' });
   else if (p.deploys.length === 0) 덩이들.push({ 꼴: '글', 글: '연결된 배포 없음' });
@@ -215,7 +237,17 @@ function 미실행까닭(x: 첫장['plan']['cases'][number]['notRun'][number]): 
 }
 
 function 계획대비차이(s: 첫장): 덩이[] {
-  const 덩이들: 덩이[] = [{ 꼴: '절', 글: '계획 대비 차이' }];
+  const 요약 = 건수글(
+    [
+      건('Not tested', s.plan.cases.reduce((n, c) => n + c.notRun.length, 0)),
+      건('실행에 안 담김', s.plan.cases.reduce((n, c) => n + c.notIncluded.length, 0)),
+      건('실행하지 않은 E2E 시나리오', s.plan.e2e.length),
+      건('실행하지 않은 호환성 세트', s.plan.compat.length),
+      건('실행하지 않은 성능 시나리오', s.plan.perf.length),
+    ],
+    '차이 없음',
+  );
+  const 덩이들: 덩이[] = [{ 꼴: '절', 글: '계획 대비 차이', 접기: { 요약 } }];
   for (const c of s.plan.cases) {
     덩이들.push({ 꼴: '글', 글: `${종류이름[c.kind]} — 활성 케이스 ${c.planned}건 중 ${c.ran}건 실행` });
     const 줄: 표줄[] = [

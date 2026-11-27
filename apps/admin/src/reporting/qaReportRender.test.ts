@@ -123,6 +123,13 @@ describe('QA 리포트 HTML', () => {
     expect([...차례].sort((a, b) => a - b)).toEqual(차례);
   });
 
+  it('HTML 은 계획 대비 차이 절을 접어 두고 다음 절 앞에서 닫는다 — PDF 는 다 펼친다', () => {
+    expect(html).toMatch(/<details class="fold-sec"><summary>\s*<h2 class="sec">3\. 계획 대비 차이<\/h2>\s*<span class="fold-sum">차이 없음<\/span><\/summary>[\s\S]*?<\/details>\s*<h2 class="sec">4\. 실패 분류<\/h2>/);
+    expect(html.match(/<details class="fold-sec">/g)).toHaveLength(1);
+    expect(html).toContain('@media print{ .fold-sec::details-content{ content-visibility:visible; }');
+    expect(renderQaReportHtml(재료(), 'PDF')).not.toContain('<details class="fold-sec">');
+  });
+
   it('추적표 · 화면별 · 흐름 한 줄에 케이스 판정을 적고 실패 케이스는 증적 카드로 그린다', () => {
     expect(html).toContain('<span>XQ-FN-001</span><span class="chip c-fail">Fail</span>');
     expect(html).toContain('요구사항에 안 걸린 케이스');

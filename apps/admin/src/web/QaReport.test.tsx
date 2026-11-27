@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { ApiError, type User } from './api.js';
-import { QaReport } from './QaReport.js';
+import { QaReport, 문서칸 } from './QaReport.js';
 import { qaReportApi, type 리포트응답 } from './qaReportApi.js';
 import { 물음누름 } from './startConfirm.fixture.js';
 
@@ -144,5 +144,13 @@ describe('QA 리포트 보기', () => {
     render(<QaReport id={40} user={사람()} />);
     fireEvent.change(await screen.findByLabelText('버전'), { target: { value: '31' } });
     expect(window.location.hash).toBe('#/qa-reports/31');
+  });
+
+  it('본문 높이는 문서 내용 높이로 맞춘다 — 펼친 절을 다시 접으면 창 높이에 묶이지 않고 줄어든다', () => {
+    render(<문서칸 src="/api/qa-reports/31/file?format=HTML" />);
+    const 틀 = screen.getByTitle('리포트 본문') as HTMLIFrameElement;
+    Object.defineProperty(틀, 'contentDocument', { value: { documentElement: { scrollHeight: 2000 }, body: { scrollHeight: 1400 } } });
+    fireEvent.load(틀);
+    expect(틀.style.height).toBe('1400px');
   });
 });

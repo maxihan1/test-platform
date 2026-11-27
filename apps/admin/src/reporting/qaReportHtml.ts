@@ -28,6 +28,13 @@ export const 리포트스타일 = `<style>
 .state.ok{ background:var(--pass-bg); color:var(--pass); }
 .first-page .sec{ font-size:15.5px; margin:26px 0 10px; padding-bottom:5px; border-bottom:1.5px solid var(--ink); }
 .first-page .sec:first-of-type{ margin-top:14px; }
+/* 접힌 절은 details 다 — 리포트 HTML 은 스크립트를 막은 iframe 에 실려도 펼 수 있어야 한다 */
+.fold-sec > summary{ list-style:none; cursor:pointer; display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 12px; margin:26px 0 10px; padding-bottom:5px; border-bottom:1.5px solid var(--ink); }
+.fold-sec > summary::-webkit-details-marker{ display:none; }
+.first-page .fold-sec > summary > .sec{ margin:0; padding:0; border:0; }
+.fold-sum{ font-size:12.5px; color:var(--ink-muted); }
+.fold-sec > summary::after{ content:'펼치기 ▾'; margin-left:auto; font-size:12px; font-weight:600; color:var(--chrome); }
+.fold-sec[open] > summary::after{ content:'접기 ▴'; }
 .doc .sec.part{ font-weight:600; font-size:17px; margin:30px 0 8px; padding:8px 12px; border-bottom:0; background:var(--chip); border-left:4px solid var(--chrome); border-radius:2px; }
 .sub{ font-size:13.5px; font-weight:600; margin:16px 0 6px; padding-left:8px; border-left:3px solid var(--rule); }
 .tbl{ border:1px solid var(--rule); border-radius:6px; overflow:hidden; margin:6px 0 12px; }
@@ -89,6 +96,8 @@ export const 리포트스타일 = `<style>
 .trend svg{ display:block; margin:4px 0; }
 .trend p{ font-size:12px; color:var(--ink-muted); }
 @media print{ .qa-table tr{ break-inside:avoid; } .sub,.part{ break-after:avoid; } .box-ai,.box-sign{ break-inside:avoid; } }
+/* 받은 HTML 을 인쇄해도 서류에서 두 절이 빠지면 안 된다 — 닫힌 details 는 그냥 두면 안 찍힌다 */
+@media print{ .fold-sec::details-content{ content-visibility:visible; } .fold-sec > summary::after{ content:none; } }
 /* 폰에서 HTML 을 열 때 — A4 폭(186mm)이면 옆으로 밀린다. 화면 폭에 맞추고 표는 칸 안에서 줄을 바꾼다 */
 @media screen and (max-width:760px){
   body{ font-size:14px; }
@@ -182,22 +191,25 @@ export function 덩이로(d: 덩이, 절꼴 = 'sec'): string[] {
   }
 }
 
-// 남은 리스크는 AI 상자, 승인은 점선 상자 — 절 머리 뒤 덩이들을 다음 절까지 감싼다
-export function 첫장(덩이들: 덩이[]): string[] {
+// 남은 리스크는 AI 상자, 승인은 점선 상자 — 절 머리 뒤 덩이들을 다음 절까지 감싼다.
+// 접는 절은 HTML 응답에서만 details 로 감싼다 — 닫힌 details 는 인쇄되지 않아 PDF 에서는 다 펼친다
+export function 첫장(덩이들: 덩이[], 접나 = false): string[] {
   const 줄: string[] = [];
-  let 상자: string | null = null;
+  let 닫을 = '';
   for (const d of 덩이들) {
     if (d.꼴 === '절') {
-      if (상자 !== null) 줄.push('</div>');
-      줄.push(...덩이로(d));
-      상자 = d.상자 === 'AI' ? 'box-ai' : d.상자 === '승인' ? 'box-sign' : null;
+      줄.push(닫을);
+      const 접음 = 접나 && d.접기 !== undefined;
+      줄.push(...(접음 ? [`<details class="fold-sec"><summary>`, ...덩이로(d), `<span class="fold-sum">${안전(d.접기?.요약 ?? '')}</span></summary>`] : 덩이로(d)));
+      const 상자 = d.상자 === 'AI' ? 'box-ai' : d.상자 === '승인' ? 'box-sign' : null;
       if (상자 !== null) 줄.push(`<div class="${상자}">`);
+      닫을 = (상자 === null ? '' : '</div>') + (접음 ? '</details>' : '');
       continue;
     }
     줄.push(...덩이로(d));
   }
-  if (상자 !== null) 줄.push('</div>');
-  return 줄;
+  줄.push(닫을);
+  return 줄.filter((x) => x !== '');
 }
 
 export function renderQaReportHtml(재료: 문서재료, format: 'HTML' | 'PDF'): string {
@@ -223,7 +235,7 @@ export function renderQaReportHtml(재료: 문서재료, format: 'HTML' | 'PDF')
     `  <span class="state ${승인됨 ? 'ok' : 'draft'}">${승인됨 ? '승인됨' : '승인 전'}</span>`,
     `</header>`,
     `<section class="first-page">`,
-    ...첫장(첫장글(r)),
+    ...첫장(첫장글(r), format === 'HTML'),
     `</section>`,
     ...구획,
     ...카드.부록,
