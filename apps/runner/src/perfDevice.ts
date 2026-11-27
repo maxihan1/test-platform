@@ -21,13 +21,13 @@ export interface PerfDeviceDeps {
   초ms?: number;
   /** 이만큼 아무도 새 줄을 받아 가지 않으면 기록기를 스스로 멈춘다 */
   잊힘ms?: number;
-  /** 게임 SDK 에 ping 한 번 — 답이 없으면 던진다. 테스트가 가짜를 넣는다 */
-  게임응답?: (serial: string) => Promise<void>;
+  /** 내 컴퓨터 포트로 이은 게임 SDK 에 ping 한 번 — 답이 없으면 던진다. 테스트가 가짜를 넣는다 */
+  게임에묻는다?: (port: number) => Promise<void>;
 }
 
-const 기본게임응답 = async (serial: string): Promise<void> => {
-  const { Game, usbLink } = await import('control-cli');
-  await new Game(usbLink(serial)).ping();
+const 기본게임에묻는다 = async (port: number): Promise<void> => {
+  const { Game, tcpLink } = await import('control-cli');
+  await new Game(tcpLink(port)).ping();
 };
 
 // 게임이 켜진 뒤 SDK 가 답할 때까지 기다리는 한도 — 무거운 게임은 로딩이 1분을 넘기도 한다
@@ -55,7 +55,7 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
   const 초ms = deps.초ms ?? 1000;
   // admin 은 5초마다 받아 간다. 2분 넘게 안 오면 admin 이 이 기록기를 잊은 것이다
   const 잊힘ms = deps.잊힘ms ?? 120_000;
-  const 게임응답 = deps.게임응답 ?? 기본게임응답;
+  const 게임에묻는다 = deps.게임에묻는다 ?? 기본게임에묻는다;
   const 기록기들 = new Map<string, 기록기>();
   // 기록기를 만드는 동안(await 사이)에도 같은 폰이 두 번 잡히지 않게 serial 로 먼저 잡는다
   const 재는중 = new Set<string>();
@@ -128,23 +128,36 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
   }
 
   // 켠 때부터 SDK 가 처음 답할 때까지(ms). 한도 안에 답이 없으면 null — 측정은 계속한다
-  async function 게임이답할때까지(serial: string, 켬: number): Promise<number | null> {
-    while (now() - 켬 < 게임응답한도ms) {
-      try {
-        await 게임응답(serial);
-        return now() - 켬;
-      } catch {
-        await 대기(초ms / 2);
+  // 켠 때부터 SDK 가 처음 답할 때까지(ms)를 r.launchMs 에 채운다. 시작 요청은 먼저 답한다 — admin 이 켜기를 60초에 끊는다.
+  // 포트는 adb 가 고른 빈 포트다 — 13100 을 그대로 쓰면 같은 러너의 다른 폰 게임 연결을 빼앗는다
+  async function 게임실행시간을잰다(r: 기록기, 켬: number): Promise<void> {
+    let port: number | null = null;
+    try {
+      const 받은 = (await adb(['-s', r.serial, 'forward', 'tcp:0', 'tcp:13100'])).trim();
+      if (!/^\d+$/.test(받은)) throw new Error(`adb forward 가 포트를 주지 않았다: ${받은}`);
+      port = Number(받은);
+      while (!r.멈춤 && now() - 켬 < 게임응답한도ms) {
+        try {
+          await 게임에묻는다(port);
+          r.launchMs = now() - 켬;
+          return;
+        } catch {
+          await 대기(초ms / 2);
+        }
       }
+      if (!r.멈춤) console.warn(`[runner] 기기 ${r.serial} 게임이 ${게임응답한도ms / 1000}초 안에 SDK 로 답하지 않아 앱 실행 시간을 못 쟀다`);
+    } catch (err) {
+      console.warn(`[runner] 기기 ${r.serial} 게임 실행 시간을 못 쟀다: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      if (port !== null) await adb(['-s', r.serial, 'forward', '--remove', `tcp:${port}`]).catch(() => undefined);
     }
-    console.warn(`[runner] 기기 ${serial} 게임이 ${게임응답한도ms / 1000}초 안에 SDK 로 답하지 않아 앱 실행 시간을 못 쟀다`);
-    return null;
   }
 
   async function 끊는다(r: 기록기): Promise<void> {
     r.멈춤 = true;
     if (r.타이머 !== undefined) clearInterval(r.타이머);
     await r.읽는중;
+    await r.게임실행;
     if (r.녹화자식 !== undefined) {
       // 로컬 adb 만 끊으면 폰의 screenrecord 가 계속 돌 수 있어 SIGINT(mp4 마무리)를 폰에도 보낸다
       // 이름 정확 일치로 끈다 — `-f` 무늬는 그 무늬가 든 폰 쪽 셸 자신도 걸린다(CLAUDE.md §5). 한 폰에 기록기는 하나라 다른 녹화를 끌 일이 없다
@@ -189,17 +202,20 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
       try {
         await sh(r, 'am', 'force-stop', pkg);
         const 컴포넌트 = 컴포넌트를읽는다(await sh(r, 'cmd', 'package', 'resolve-activity', '--brief', pkg));
-        // 무거운 앱은 10초를 넘겨 뜨기도 한다
-        const 켬 = now();
-        if (컴포넌트 !== null) r.launchMs = totalTime을읽는다(await adb(['-s', serial, 'shell', 'am', 'start', '-W', '-n', 컴포넌트], 30_000));
-        if (컴포넌트 !== null && game === true) r.launchMs = await 게임이답할때까지(serial, 켬);
+        if (컴포넌트 !== null && game === true) {
+          // 게임은 첫 화면(스플래시)이 아니라 SDK 가 답할 때까지라 -W 로 기다리지 않고 켠다. 잰 값은 읽기가 도는 동안 채운다
+          const 켬 = now();
+          await sh(r, 'am', 'start', '-n', 컴포넌트);
+          r.게임실행 = 게임실행시간을잰다(r, 켬);
+        } else if (컴포넌트 !== null) {
+          // 무거운 앱은 10초를 넘겨 뜨기도 한다
+          r.launchMs = totalTime을읽는다(await adb(['-s', serial, 'shell', 'am', 'start', '-W', '-n', 컴포넌트], 30_000));
+        }
       } catch (err) {
         console.warn(`[runner] 기기 ${serial} 앱 실행 시간을 못 쟀다: ${err instanceof Error ? err.message : String(err)}`);
       }
 
       r.시작ms = now();
-      // 게임 응답을 몇 분 기다렸을 수 있다 — 그 시간을 「아무도 안 받아 갔다」로 세면 첫 읽기에서 스스로 멈춘다
-      r.마지막조회 = now();
       기록기들.set(r.recId, r);
       읽기를시작한다(r);
       if (record) r.녹화루프 = 녹화한다(r);

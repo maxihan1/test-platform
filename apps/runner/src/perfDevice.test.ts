@@ -264,13 +264,30 @@ describe('화면 녹화', () => {
 });
 
 describe('게임 앱 실행 시간', () => {
-  it('game 이면 켠 때부터 SDK 가 ping 에 처음 답할 때까지다 — am start 의 첫 화면(스플래시)이 아니다', async () => {
+  function 게임폰() {
+    const 폰 = 가짜Adb({ 게임: true });
+    const 원래 = 폰.adb.getMockImplementation()!;
+    폰.adb.mockImplementation(async (args: string[]) => {
+      const 줄 = args.join(' ');
+      if (줄.endsWith('forward tcp:0 tcp:13100')) {
+        폰.호출.push(줄);
+        return '54321\n';
+      }
+      return 원래(args);
+    });
+    return 폰;
+  }
+
+  it('시작은 바로 답하고, 켠 때부터 SDK 가 ping 에 처음 답할 때까지를 나중에 채운다 — 첫 화면(스플래시)이 아니다', async () => {
     let 시각 = 0;
     let 물음 = 0;
+    const 물은포트: number[] = [];
+    const 폰 = 게임폰();
     const app = 서버({
-      adb: 가짜Adb({ 게임: true }).adb,
+      adb: 폰.adb,
       now: () => 시각,
-      게임응답: async () => {
+      게임에묻는다: async (port) => {
+        물은포트.push(port);
         시각 += 1500;
         물음 += 1;
         if (물음 < 3) throw new Error('ECONNREFUSED');
@@ -278,22 +295,33 @@ describe('게임 앱 실행 시간', () => {
     });
     const res = await 시작(app, { ...시작본문, game: true });
     expect(res.statusCode).toBe(201);
-    const { launchMs } = (await app.inject({ method: 'GET', url: `/perf/device/${res.json<{ recId: string }>().recId}` })).json<{ launchMs: number | null }>();
-    expect(launchMs).toBe(4500);
+    const recId = res.json<{ recId: string }>().recId;
+    await vi.waitFor(async () => {
+      const 답 = (await app.inject({ method: 'GET', url: `/perf/device/${recId}` })).json<{ launchMs: number | null }>();
+      expect(답.launchMs).toBe(4500);
+    });
+    expect(폰.호출.some((c) => c.endsWith(`am start -n ${앱}/.Main`))).toBe(true);
+    expect(폰.호출.some((c) => c.includes('am start -W'))).toBe(false);
+    // 13100 을 그대로 쓰면 같은 러너의 다른 폰 게임 연결을 빼앗는다 — adb 가 고른 빈 포트로 묻고 끝나면 푼다
+    expect(물은포트.every((p) => p === 54321)).toBe(true);
+    await vi.waitFor(() => expect(폰.호출).toContain(`-s ${시리얼} forward --remove tcp:54321`));
   });
 
   it('SDK 가 한도 안에 답하지 않으면 실행 시간은 null 이고 측정은 선다', async () => {
     let 시각 = 0;
+    const 폰 = 게임폰();
     const app = 서버({
-      adb: 가짜Adb({ 게임: true }).adb,
+      adb: 폰.adb,
       now: () => 시각,
-      게임응답: async () => {
+      잊힘ms: 1e9,
+      게임에묻는다: async () => {
         시각 += 60_000;
         throw new Error('ECONNREFUSED');
       },
     });
     const res = await 시작(app, { ...시작본문, game: true });
     expect(res.statusCode).toBe(201);
+    await vi.waitFor(() => expect(폰.호출).toContain(`-s ${시리얼} forward --remove tcp:54321`));
     const { launchMs } = (await app.inject({ method: 'GET', url: `/perf/device/${res.json<{ recId: string }>().recId}` })).json<{ launchMs: number | null }>();
     expect(launchMs).toBeNull();
   });

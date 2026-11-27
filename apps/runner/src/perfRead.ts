@@ -48,6 +48,8 @@ export interface 기록기 {
   읽는중?: Promise<void>;
   녹화자식?: 녹화자식;
   녹화루프?: Promise<void>;
+  // 게임 실행 시간을 재는 중(SDK ping 되풀이) — 멈출 때 기다린다
+  게임실행?: Promise<void>;
   이전gfx?: 프레임수 & { sec: number };
   이전cpu?: 틱;
   이전표시?: number;
