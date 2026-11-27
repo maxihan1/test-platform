@@ -2,24 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import type { UserRow } from './api.js';
 import {
-  계정못보내는이유,
   계정요약,
   권한경고,
   마지막운영계정인가,
-  서비스못보내는이유,
   설정오류문장,
   접두사사유,
   웹훅칸,
-  탭상태,
-  탭필요한것,
-  type 탭입력,
   프로젝트줄들,
   type 프로젝트줄,
 } from './settingsView.js';
-
-function 계정(username: string, role: 'member' | 'admin', isActive = true): UserRow {
-  return { username, displayName: username, role, dashboard: 'read', isActive, projects: [] };
-}
+import { 계정 } from './settingsView.fixture.js';
 
 describe('접두사 (SPEC §2 · §8.8)', () => {
   it('대문자로 시작하는 영문·숫자를 받는다', () => {
@@ -124,118 +116,6 @@ describe('마지막 운영 계정 (SPEC §7 · §8.8)', () => {
   });
 });
 
-describe('애플리케이션을 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살려 두고 사유를 말한다)', () => {
-  const 채운것 = {
-    새것: true,
-    prefix: 'PAY',
-    name: '결제 애플리케이션',
-    testsDir: 'pay',
-    envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test' }],
-    제외: '',
-  };
-
-  it('다 채웠으면 이유가 없다', () => {
-    expect(서비스못보내는이유(채운것, 'ko')).toBe(null);
-  });
-
-  it('대상 서버가 하나도 없어도 보낼 수 있다. 나중에 더하면 된다', () => {
-    expect(서비스못보내는이유({ ...채운것, envs: [] }, 'ko')).toBe(null);
-  });
-
-  it('접두사가 비었으면 그것을 말한다. 「이름과 폴더」라고 엉뚱한 칸을 가리키지 않는다', () => {
-    const 이유 = 서비스못보내는이유({ ...채운것, prefix: '' }, 'ko');
-    expect(이유).toContain('접두사');
-  });
-
-  it('고칠 때는 접두사를 안 본다. 그 칸은 잠겨 있다', () => {
-    expect(서비스못보내는이유({ ...채운것, 새것: false, prefix: '' }, 'ko')).toBe(null);
-  });
-
-  it('접두사 모양이 틀리면 모양을 말한다', () => {
-    expect(서비스못보내는이유({ ...채운것, prefix: 'pay' }, 'ko')).toContain('대문자');
-  });
-
-  it('이름이 비면 그것을 말한다', () => {
-    expect(서비스못보내는이유({ ...채운것, name: '' }, 'ko')).toContain('이름');
-  });
-
-  it('테스트 폴더가 비면 그것을 말한다', () => {
-    expect(서비스못보내는이유({ ...채운것, testsDir: '' }, 'ko')).toContain('폴더');
-  });
-
-  it('키가 같은 대상 서버 줄이 둘이면 막는다. 키가 줄을 가르는 이름이라 서버가 400 을 낸다', () => {
-    const 두줄 = [{ env: 'qa', baseUrl: 'https://qa.pay.test' }, { env: 'qa', baseUrl: 'https://qa2.pay.test' }];
-    expect(서비스못보내는이유({ ...채운것, envs: 두줄 }, 'ko')).toBe('같은 키의 대상 서버가 둘 있습니다. 키를 다르게 적어 주세요');
-  });
-
-  it('빈 대상 서버 줄이 있으면 막는다. 그대로 보내면 서버가 400 을 내고 어느 칸인지 모른다', () => {
-    const 이유 = 서비스못보내는이유({ ...채운것, envs: [{ env: '', baseUrl: '' }] }, 'ko');
-    expect(이유).toContain('대상 서버');
-  });
-
-  it('키만 있고 주소가 비어도 막는다', () => {
-    expect(서비스못보내는이유({ ...채운것, envs: [{ env: 'qa', baseUrl: '' }] }, 'ko')).toContain('대상 서버');
-  });
-
-
-  it('명암비가 낮은 것은 막지 않는다. 그건 경고이지 오류가 아니다', () => {
-    expect(서비스못보내는이유({ ...채운것 }, 'ko')).toBe(null);
-  });
-
-  it('탐색 제외 경로는 빈 줄 · 앞뒤 공백 · 끝의 / 를 봐준다', () => {
-    expect(서비스못보내는이유({ ...채운것, 제외: '/daejeon/\n\n  /gyeongnam  ' }, 'ko')).toBe(null);
-  });
-
-  it('/ 로 시작하지 않거나 셸 글자가 든 줄은 그 줄을 짚어 말한다', () => {
-    expect(서비스못보내는이유({ ...채운것, 제외: '/ok\ndaejeon' }, 'ko')).toContain('「daejeon」');
-    expect(서비스못보내는이유({ ...채운것, 제외: '/a;rm' }, 'ko')).toContain('/ 로 시작');
-  });
-
-  it('경로가 너무 길거나 너무 많으면 한도를 말한다', () => {
-    expect(서비스못보내는이유({ ...채운것, 제외: `/${'a'.repeat(100)}` }, 'ko')).toContain('100자');
-    const 스물하나 = Array.from({ length: 21 }, (_, i) => `/p${i}`).join('\n');
-    expect(서비스못보내는이유({ ...채운것, 제외: 스물하나 }, 'ko')).toContain('20개');
-  });
-
-  it('영어로도 낸다', () => {
-    expect(서비스못보내는이유({ ...채운것, 제외: 'daejeon' }, 'en')).toContain('"daejeon"');
-  });
-
-  it('역할 계정 이름은 서버 BAD_ROLE 과 같은 규칙으로 먼저 짚는다 — 앞뒤 공백은 봐준다', () => {
-    const 역할 = (...이름들: string[]) => ({ ...채운것, envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test', 역할들: 이름들.map((role) => ({ role })) }] });
-    expect(서비스못보내는이유(역할(' 관리자 ', '판매자'), 'ko')).toBe(null);
-    expect(서비스못보내는이유(역할('가'.repeat(41)), 'ko')).toContain('40자');
-    expect(서비스못보내는이유(역할(...Array.from({ length: 21 }, (_, i) => `역할${String(i)}`)), 'ko')).toContain('20개');
-    expect(서비스못보내는이유(역할('관리자', '관리자 '), 'ko')).toContain('중복됩니다');
-    expect(서비스못보내는이유(역할('일반 회원'), 'en')).toContain('"Regular user"');
-  });
-});
-
-describe('계정을 아직 못 보내는 이유', () => {
-  it('다 채웠으면 이유가 없다', () => {
-    expect(계정못보내는이유({ username: 'kim', displayName: '김철수', 새것: true }, 'ko')).toBe(null);
-  });
-
-  it('아이디가 비면 그것을 말한다', () => {
-    expect(계정못보내는이유({ username: '', displayName: '김철수', 새것: true }, 'ko')).toContain('아이디');
-  });
-
-  it('이름이 비면 그것을 말한다', () => {
-    expect(계정못보내는이유({ username: 'kim', displayName: '', 새것: true }, 'ko')).toContain('이름');
-  });
-
-  it('아이디 모양이 서버 규칙과 다르면 보내기 전에 서버와 같은 말로 알린다', () => {
-    for (const 틀린것 of ['Admin', 'k', '-kim', 'kim lee', 'a'.repeat(33)]) {
-      expect(계정못보내는이유({ username: 틀린것, displayName: '김철수', 새것: true }, 'ko'), 틀린것).toBe(
-        '아이디는 영문 소문자 · 숫자 · 마침표(.) · 밑줄(_) · 하이픈(-)으로 2~32자입니다',
-      );
-    }
-  });
-
-  it('이미 있는 계정을 고칠 때는 아이디 칸이 잠겨 있어 모양을 따지지 않는다', () => {
-    expect(계정못보내는이유({ username: 'Admin', displayName: '김철수', 새것: false }, 'ko')).toBe(null);
-  });
-});
 
 describe('서버가 낸 오류를 사람 말로 (SPEC §8.8)', () => {
   it('접두사가 겹치면 무엇을 고쳐야 하는지 말한다', () => {
@@ -320,64 +200,3 @@ describe('권한 묶음 경고 (도메인/인증 §3.5 · §8.8)', () => {
   });
 });
 
-describe('애플리케이션 설정 탭 상태 한 줄과 「필요한 것」 (SPEC §8.8 · 2026-11-27)', () => {
-  const 입력: 탭입력 = { testsRepo: 'https://github.com/x/y', envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }], 피그마있나: false, 웹훅있나: false };
-
-  it('기본 정보 — 테스트 저장소가 비면 주의, 아니면 입력 완료', () => {
-    expect(탭상태('basic', 입력, 'ko')).toEqual({ 글: '✓ 입력 완료', 톤: 'ok' });
-    expect(탭상태('basic', { ...입력, testsRepo: '  ' }, 'ko')).toEqual({ 글: '테스트 저장소 비어 있음', 톤: 'warn' });
-  });
-
-  it('실행 — 주소가 있는 대상 서버가 없으면 주의, 있으면 서버 수와 계정 수(아이디가 적힌 일반 회원 + 역할 계정)', () => {
-    expect(탭상태('run', { ...입력, envs: [] }, 'ko')).toEqual({ 글: '대상 서버 없음', 톤: 'warn' });
-    // 주소를 아직 안 적은 줄은 서버로 세지 않는다
-    expect(탭상태('run', { ...입력, envs: [{ env: 'qa', baseUrl: '' }] }, 'ko')).toEqual({ 글: '대상 서버 없음', 톤: 'warn' });
-    const envs: 탭입력['envs'] = [
-      { env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'member', 역할들: [{ role: '관리자', loginId: 'admin' }, { role: '판매자', loginId: 'seller' }, { role: '구매자', loginId: ' ' }, { role: '손님', loginId: null }] },
-      { env: 'stg', baseUrl: 'https://stg.example.com', loginId: '  ' },
-    ];
-    expect(탭상태('run', { ...입력, envs }, 'ko')).toEqual({ 글: '✓ 서버 2개 · 계정 3개', 톤: 'ok' });
-  });
-
-  it('테스트 작성 — 피그마 토큰이 있으면 통과색, 없으면 흐린색', () => {
-    expect(탭상태('author', 입력, 'ko')).toEqual({ 글: '피그마 토큰 없음', 톤: 'dim' });
-    expect(탭상태('author', { ...입력, 피그마있나: true }, 'ko')).toEqual({ 글: '✓ 피그마 토큰 설정됨', 톤: 'ok' });
-  });
-
-  it('알림 · 연동 — Slack 웹훅이 있으면 통과색, 없으면 흐린색', () => {
-    expect(탭상태('link', 입력, 'ko')).toEqual({ 글: 'Slack 없음', 톤: 'dim' });
-    expect(탭상태('link', { ...입력, 웹훅있나: true }, 'ko')).toEqual({ 글: '✓ Slack 설정됨', 톤: 'ok' });
-  });
-
-  it('실행 탭 필요한 것 — 대상 서버 주소(필수)와 테스트 계정(로그인이 있으면)', () => {
-    const 목록 = 탭필요한것('run', { ...입력, envs: [] }, 'ko');
-    expect(목록.map((it) => [it.이름, it.필수, it.됨])).toEqual([
-      ['대상 서버 주소', true, false],
-      ['테스트 계정', false, false],
-    ]);
-    const 채움 = 탭필요한것('run', { ...입력, envs: [{ env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'member' }] }, 'ko');
-    expect(채움.map((it) => it.됨)).toEqual([true, true]);
-  });
-
-  it('테스트 작성 탭 필요한 것 — 테스트 저장소 · 실서비스 서버가 아닌 대상 서버 · 피그마 토큰', () => {
-    expect(탭필요한것('author', 입력, 'ko').map((it) => [it.이름, it.필수, it.됨])).toEqual([
-      ['테스트 저장소', true, true],
-      ['실서비스 서버가 아닌 대상 서버', true, true],
-      ['피그마 토큰', false, false],
-    ]);
-  });
-
-  it('실서비스 서버로 체크한 줄(이름이 prod 이면 미리 체크)만 있으면 서버가 아닌 대상 서버는 없는 것이다', () => {
-    const 실서비스만 = (envs: 탭입력['envs']) => 탭필요한것('author', { ...입력, envs }, 'ko')[1]?.됨;
-    expect(실서비스만([{ env: 'qa', baseUrl: 'https://qa.example.com', isProd: true }])).toBe(false);
-    expect(실서비스만([{ env: 'prod', baseUrl: 'https://example.com' }])).toBe(false);
-    expect(실서비스만([{ env: 'prod', baseUrl: 'https://example.com' }, { env: 'qa', baseUrl: 'https://qa.example.com' }])).toBe(true);
-    // 주소가 없는 줄은 서버가 아니다
-    expect(실서비스만([{ env: 'qa', baseUrl: '' }])).toBe(false);
-  });
-
-  it('영어로도 같은 판단을 내고 글만 영어다', () => {
-    expect(탭상태('run', { ...입력, envs: [] }, 'en').글).toBe('No target servers');
-    expect(탭상태('run', 입력, 'en').글).toBe('✓ 1 servers · 0 accounts');
-  });
-});
