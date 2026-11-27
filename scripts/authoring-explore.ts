@@ -12,6 +12,7 @@ import { type 맵행, 경로, 맵행읽기, 목표풀기, 출발고르기 } from
 import { type 돌린결과, type 보고손, 부른다 } from './authoring-io.js';
 import { 끝낼상태 } from './authoring-progress.js';
 import { 계정섞였나 } from './authoring-reverse.js';
+import { 게임맵거절행, 팝업빼기 } from './authoring-route-reject.js';
 import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 
 export interface 탐색목표 {
@@ -172,7 +173,6 @@ export async function 맵올리기(통로: 화면통로, 자료: string, 비밀:
   } catch {
     return { 줄: `조작 맵: ${게임자리.새맵행} 을 JSON 으로 못 읽어 안 올림`, 틀림: `${게임자리.새맵행} 을 JSON 으로 못 읽었다` };
   }
-  const 팝업빼기 = (v: unknown) => (Array.isArray(v) ? v.filter((x) => (x as { kind?: unknown } | null)?.kind !== 'POPUP') : v);
   const 쓸빌드 = 올릴빌드(빌드);
   const 빌드없는행 = (r: unknown): r is Record<string, unknown> => {
     const 행 = typeof r === 'object' && r !== null ? (r as Record<string, unknown>) : null;
@@ -297,7 +297,8 @@ export function 실행(인자: string[]): number {
     return 1;
   }
   const 맵 = 맵행읽기(자료);
-  const 못지남 = [...체크포인트(목표들, 맵?.행들 ?? null), ...(맵?.틀림 ? [맵.틀림] : [])];
+  const 거절 = 맵?.틀림 ? null : 게임맵거절행(안전히읽기(자료, 게임자리.새맵행, 4_000_000));
+  const 못지남 = [...체크포인트(목표들, 맵?.행들 ?? null), ...(맵?.틀림 ? [맵.틀림] : []), ...(거절 === null ? [] : [거절])];
   for (const 줄 of 못지남) console.log(`못 지남: ${줄}`);
   console.log(못지남.length === 0 ? 탐색줄(목표들, []) : `[탐색 플레이] 체크포인트를 못 지났다 — ${String(못지남.length)}건을 고친다`);
   return 못지남.length === 0 ? 0 : 1;

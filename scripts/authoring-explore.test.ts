@@ -316,6 +316,19 @@ describe('실행 — 자식이 첫 세션을 끝내기 전에 스스로 검사',
     쓰기('game-route.json', { rows: [상점행] });
     expect(실행([자료])).toBe(0);
   });
+
+  it('서버가 거절할 행이 있으면 경로 검색이 빼도 1 이고 그 자리를 짚는다 — 돌발 팝업 행도 본다 (2026-11-27 #16095)', () => {
+    쓰기('game-route.txt', 맵);
+    쓰기('game-explore.json', { 목표: [목표({ 기능: '상점', 열쇠: ['game:Main/Canvas/Shop'] })] });
+    const 끝빈칸 = { kind: 'SETUP', fromKey: '골드 · 보석을 채운다 ', action: '재화 있음', status: 'OK' };
+    const 팝업 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Event', action: '/Canvas/Event/Close\n닫기', status: 'OK' };
+    쓰기('game-route.json', { rows: [상점행, 끝빈칸, 팝업] });
+    expect(실행([자료])).toBe(1);
+    expect(console.log).toHaveBeenCalledWith(expect.stringMatching(/^못 지남: game-route\.json 에 서버가 거절할 행이 있다 — rows\.1\.fromKey · rows\.2\.action /));
+    const 맞는팝업 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Event', action: '/Canvas/Event/Close', status: 'OK' };
+    쓰기('game-route.json', { rows: [상점행, 맞는팝업], remove: [{ kind: 'POPUP', fromKey: 'game:Main/Canvas/Event', action: '/Canvas/Event/Close' }] });
+    expect(실행([자료])).toBe(0);
+  });
 });
 
 describe('돌발팝업값 — 작성 돌려 보기의 PLATFORM_GAME_POPUPS', () => {

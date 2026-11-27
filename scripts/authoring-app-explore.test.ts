@@ -208,4 +208,17 @@ describe('실행 — 자식이 탐색 세션을 끝내기 전에 스스로 검�
     expect(실행([자료])).toBe(1);
     expect(console.log).toHaveBeenCalledWith('못 지남: app-route.json 을 JSON 으로 못 읽었다');
   });
+
+  it('서버가 거절할 줄이 있으면 경로 검색이 빼도 1 이고 그 자리를 짚는다 (2026-11-27 #16095)', () => {
+    크롤쓰기();
+    쓰기('app-explore.json', { 목표: [목표({ 출발: 홈 })], 계정비우기: '함' });
+    const 가운데점 = { kind: 'SETUP', fromKey: '두 번째 사용자가 투표 글 · 열람 주의 글을 쓴다', action: '글 셋 있음', toKey: 알림, status: 'OK' };
+    const 까닭만 = { kind: 'MOVE', fromKey: 홈, action: '「설정」 누르기', toKey: 글쓰기, status: 'OK', reason: '왜' };
+    쓰기('app-route.json', { rows: [...이번.rows, 가운데점, 까닭만] });
+    expect(실행([자료])).toBe(1);
+    expect(console.log).toHaveBeenCalledWith(expect.stringMatching(/^못 지남: app-route\.json 에 서버가 거절할 줄이 있다 — rows\.2\.fromKey · rows\.3\.reason /));
+    쓰기('app-route.json', { rows: [...이번.rows, 이번.rows[1]] });
+    expect(실행([자료])).toBe(1);
+    expect(console.log).toHaveBeenCalledWith(expect.stringMatching(/^못 지남: app-route\.json 에 서버가 거절할 줄이 있다 — rows\.2\.action /));
+  });
 });

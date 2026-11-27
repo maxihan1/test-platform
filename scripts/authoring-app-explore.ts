@@ -13,6 +13,7 @@ import type { 탐색단계 } from './authoring-explore.js';
 import { 부른다 } from './authoring-io.js';
 import { 거절말고 } from './authoring-prd-io.js';
 import { 안해본진행불가 } from './authoring-check-app-held.js';
+import { 앱맵거절줄 } from './authoring-route-reject.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 화면통로, 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
 
@@ -59,7 +60,7 @@ export function 목표표읽기(글: string | null): 앱목표표 | string {
 }
 
 /** 탐색 맵 — 받은 맵 글 · crawl 결과 줄 · 이번 작성이 적은 줄(이 차례로 얹는다 — 같은 줄이면 AI 가 적은 것이 이긴다) */
-/** 틀림 — 이번 줄 파일을 못 읽었다(깨진 JSON · 4MB 넘음). 그 줄 없이 본 결과라 「경로 확보」가 다 빠져 보인다 */
+/** 틀림 — 이번 줄 파일을 못 읽었다(깨진 JSON · 4MB 넘음 — 그 줄 없이 본 결과라 「경로 확보」가 다 빠져 보인다) · 또는 서버가 거절할 줄이 있다(그 줄만 빠지고 나머지는 줄들에 든다) */
 export interface 탐색맵 { 줄들: 맵줄[]; 크롤화면: Set<string>; 이번화면: Set<string>; 틀림: string | null }
 
 export function 탐색맵읽기(자료: string): 탐색맵 | { 못읽음: string } {
@@ -82,7 +83,7 @@ export function 탐색맵읽기(자료: string): 탐색맵 | { 못읽음: string
   const 이번줄 = Array.isArray((이번 as { rows?: unknown } | null)?.rows) ? ((이번 as { rows: Record<string, unknown>[] }).rows) : [];
   const 이번화면 = new Set(이번줄.filter((r) => r?.kind === 'MOVE' || r?.kind === 'SETUP').map((r) => r.toKey).filter(글인가));
   const 줄들 = 새줄더하기(새줄더하기(받은?.줄들 ?? [], { rows: 크롤맵줄(색인).줄들 }), 이번 ?? {});
-  return { 줄들, 크롤화면, 이번화면, 틀림: 받은?.틀림 ?? null };
+  return { 줄들, 크롤화면, 이번화면, 틀림: 받은?.틀림 ?? (이번 === null ? null : 앱맵거절줄(이번)) };
 }
 
 const 자르기 = (글: string, 상한: number) => (글.length > 상한 ? `${글.slice(0, 상한)}…` : 글);
