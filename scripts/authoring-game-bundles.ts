@@ -1,5 +1,6 @@
 // 데이터 묶음 칸 읽기와 종류별 값 파일 — 오브젝트의 묶음 칸(예 MonsterAI.TypeData)을 game-types.txt 의 칸 이름으로 get 점 경로로 읽는다 (게임 정보 먼저 쌓기)
 // 값 파일 `game-props/<종류>.json` 은 실행 중 읽은 값만 담는다. 빌드 데이터(game-build-data.json)는 전략 계산용이라 여기 섞지 않는다
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -103,8 +104,11 @@ export interface 값파일 {
   call?: string[];
 }
 
-/** 종류 이름 → 파일 이름 — 경로 글자는 `_` 로 */
-export const 값파일이름 = (종류: string): string => `${종류.replace(/[^\p{L}\p{N}_.-]+/gu, '_').replace(/^\.+/, '_').slice(0, 80) || '_'}.json`;
+/** 종류 이름 → 파일 이름 — 경로 글자는 `_` 로. 글자를 바꾸거나 잘랐으면 원래 종류의 짧은 해시를 붙인다(`Enemy Fast` 와 `Enemy_Fast` 가 한 파일로 접히지 않게) */
+export function 값파일이름(종류: string): string {
+  const 글자 = 종류.replace(/[^\p{L}\p{N}_.-]+/gu, '_').replace(/^\.+/, '_').slice(0, 80) || '_';
+  return `${글자 === 종류 ? 글자 : `${글자}-${createHash('sha1').update(종류).digest('hex').slice(0, 6)}`}.json`;
+}
 
 export const 값파일있나 = (자료: string, 종류: string): boolean => existsSync(join(자료, 게임자리.값파일, 값파일이름(종류)));
 

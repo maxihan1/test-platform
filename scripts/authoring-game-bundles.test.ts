@@ -111,10 +111,23 @@ describe('묶음읽기', () => {
 describe('값 파일', () => {
   it('종류 이름이 경로 글자를 품어도 폴더 밖으로 못 나간다', () => {
     expect(값파일이름('Ghost')).toBe('Ghost.json');
-    expect(값파일이름('../../etc/x')).toBe('__.._etc_x.json');
-    expect(값파일이름('..')).toBe('_.json');
-    expect(값파일이름('')).toBe('_.json');
+    for (const 나쁜 of ['../../etc/x', '..', '']) expect(값파일이름(나쁜)).toMatch(/^[\p{L}\p{N}_.-]+-[0-9a-f]{6}\.json$/u);
+    expect(값파일이름('../../etc/x')).not.toContain('/');
     expect(종류('/Enemies/Ghost(Clone)[3]')).toBe('Ghost');
+  });
+
+  it('글자를 바꾸면 같아지는 다른 종류는 다른 파일이다', () => {
+    expect(값파일이름('Enemy Fast')).not.toBe(값파일이름('Enemy_Fast'));
+    expect(값파일이름('Enemy_Fast')).toBe('Enemy_Fast.json');
+    const 긴 = 'K'.repeat(100);
+    expect(값파일이름(`${긴}a`)).not.toBe(값파일이름(`${긴}b`));
+  });
+
+  it('값파일있나 도 같은 이름 규칙이다 — 접힌 이름의 다른 종류는 없는 것으로 본다', () => {
+    const d = 새폴더();
+    expect(값파일쓰기(d, { 종류: 'Enemy Fast', 장면: null, 읽은때: 't', 출처: '실행 중', 칸: {}, 목록칸: [] })).toBeNull();
+    expect(값파일있나(d, 'Enemy Fast')).toBe(true);
+    expect(값파일있나(d, 'Enemy_Fast')).toBe(false);
   });
 
   it('처음 쓴 값이 정본이라 다시 써도 안 덮는다', () => {
