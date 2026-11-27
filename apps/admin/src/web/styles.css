@@ -2687,8 +2687,8 @@ input[type='file']::file-selector-button {
 .set-nav-caret {
   flex: none;
   width: 1em;
-  font-size: 11px;
-  color: var(--ink-faint);
+  font-size: 13px;
+  color: var(--ink-muted);
 }
 
 .set-nav-sub {
@@ -3772,6 +3772,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 .set-env-login input {
   width: auto;
   flex: 1 1 180px;
+}
+
+/* 체크 상자까지 180px 를 먹으면 「실서비스 서버」 글자가 한 자씩 꺾인다 */
+.set-env-login .check-inline input {
+  flex: none;
 }
 
 /* API 인증 줄의 「비밀값을 입력해 주세요」도 칸 옆에 끼지 않고 아래 한 줄을 다 쓴다 */
