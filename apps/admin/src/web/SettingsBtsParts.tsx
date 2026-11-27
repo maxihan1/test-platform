@@ -129,9 +129,10 @@ export function 코드저장소구획({ 앱들, 저장소, 바꾼다 }: { 앱들
                   onChange={(e) => 바꾼다(앱.id, 줄들.map((it, j) => (j === i ? { ...it, name: e.target.value } : it)))} />
                 <input type="url" value={줄.url} aria-label={t('{앱} 저장소 {번호} 주소', { 앱: 앱.name, 번호: i + 1 })} placeholder="https://github.com/…"
                   onChange={(e) => 바꾼다(앱.id, 줄들.map((it, j) => (j === i ? { ...it, url: e.target.value } : it)))} />
-                <button type="button" className="btn ghost icon" aria-label={t('{앱} 저장소 {번호} 제거', { 앱: 앱.name, 번호: i + 1 })}
+                {/* 기호 대신 글자다 — 설정의 다른 빼기 버튼과 같다(도메인/인증 §8.8 「빼기 버튼은 글자로 쓴다」) */}
+                <button type="button" className="btn ghost" aria-label={t('{앱} 저장소 {번호} 제거', { 앱: 앱.name, 번호: i + 1 })}
                   onClick={() => 바꾼다(앱.id, 줄들.filter((_, j) => j !== i))}>
-                  −
+                  {t('삭제')}
                 </button>
               </div>
             ))}
