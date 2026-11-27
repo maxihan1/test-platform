@@ -37,8 +37,9 @@ export function 문서칸({ src }: { src: string }) {
   const 맞춘다 = () => {
     const 문서 = 틀.current?.contentDocument;
     if (틀.current === null || 문서 === null || 문서 === undefined) return;
+    // body 를 잰다 — documentElement 는 지금 칸 높이 아래로 안 줄어 펼친 절을 다시 접어도 빈칸이 남는다
     const 높이 = () => {
-      if (틀.current !== null) 틀.current.style.height = `${String(문서.documentElement.scrollHeight)}px`;
+      if (틀.current !== null) 틀.current.style.height = `${String(문서.body.scrollHeight)}px`;
     };
     높이();
     지켜봄.current?.disconnect();
