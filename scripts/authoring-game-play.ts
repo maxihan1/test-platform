@@ -7,12 +7,13 @@ import { pathToFileURL } from 'node:url';
 import { gameLink, openGame } from '@platform/kit/game';
 import { Game, flatten, type Command, type Link } from 'control-cli';
 
+import { 판에치트달기 } from './authoring-game-cheat-mark.js';
 import { 기본화면초, 부를준비 } from './authoring-game-play-call.js';
 import { 멈추기, 풀기 } from './authoring-game-play-freeze.js';
 import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
 import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
 import { type 나온것, 세기시작, 지도글 } from './authoring-game-play-spawns.js';
-import { 막는글, 안적은새것 } from './authoring-game-play-gate.js';
+import { 막힘글 } from './authoring-game-play-gate.js';
 import { type 멈춤보고, 멈춤보기시작 } from './authoring-game-play-stop.js';
 import { 값읽기시작 } from './authoring-game-play-values.js';
 import { 결과글 } from './authoring-game-state.js';
@@ -64,6 +65,8 @@ export interface 조작결과 {
   출발?: number | null;
   /** 부르기 직전 · 도중에 바뀐 · 끝난 순간의 장면 이름 — 맵 정보는 본 장면에만 적는다(authoring-learn-play 맵검사) */
   장면들?: string[];
+  /** 정보 모으기(authoring-game-info)가 웨이브를 넘긴 판에서 이어 부른 기록 — 곳셈이 판으로 안 센다 */
+  치트?: true;
   /** 판 중간 멈춤 — 계획의 기대가 깨졌거나 처음 보는 오브젝트가 나와 함수를 끊고 게임을 멈췄다 */
   멈춤?: 멈춤보고;
   멈춤사진?: Buffer;
@@ -136,7 +139,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 간격ms = !돌릴까 || 덧?.도중화면ms === undefined || 덧.도중화면ms <= 0 ? 0 : 간격정하기(덧.도중화면ms, 한도ms);
   const 찍기 = 간격ms === 0 ? null : 찍기시작(맨게임, 간격ms, 시작);
   // 10판 확인처럼 화면을 끈 판은 원래 속도만 본다 — 세기도 같이 끈다
-  const 세기 = 간격ms === 0 ? null : 세기시작(맨게임, 간격ms, 시작, 지도글(덧?.자료));
+  const 세기 = 간격ms === 0 ? null : 세기시작(맨게임, 간격ms, 시작, 지도글(덧?.자료), 덧?.자료);
   await 세기?.준비;
   const 출발자리 = 덧?.출발;
   const 출발 = 출발자리 === undefined ? undefined : 수로(await 해본다('나아감 읽기', () => (출발자리.칸 === undefined ? 맨게임.text(출발자리.주소) : 맨게임.get(출발자리.주소, 출발자리.칸))));
@@ -147,13 +150,15 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   // 계획으로 해 볼 때만 — 걸리면 넘음을 거절해 함수를 끊고 아래에서 멈춘다
   let 판멈춤: (왜: string) => void = () => {};
   let 멈춘까닭: string | null = null;
+  // 한도로 끝난 뒤 AI 가 회고를 쓰는 동안 판이 흘러 졌다(16054) — 학습 세션이면 --freeze 가 없어도 멈춘 채 돌려준다
+  let 한도끝 = false;
   const 멈춰보기 = 읽기 === null ? null : 멈춤보기시작(맨게임, 시작, { 값: 읽기.지금, 나온: () => 세기?.지금() ?? null, 로그앞: 앞.로그 }, (왜) => ((멈춘까닭 = 왜), 판멈춤(왜)));
   let 값: unknown;
   let 오류: string | undefined = 돌릴까 ? undefined : '멈춰 둔 게임을 못 풀어 함수를 부르지 않았다 — `npx control-cli -s=g timescale-set 1` 로 풀고 다시 부른다';
   let 시계: NodeJS.Timeout | undefined;
   try {
     const 넘음 = new Promise<never>((_, 거절) => {
-      시계 = setTimeout(() => 거절(new Error(`제한 시간 ${한도ms / 1000}초를 넘겼습니다 — 함수를 나누거나 --max 를 늘립니다`)), 한도ms);
+      시계 = setTimeout(() => ((한도끝 = true), 거절(new Error(`제한 시간 ${한도ms / 1000}초를 넘겼습니다 — 함수를 나누거나 --max 를 늘립니다`))), 한도ms);
       const 끊음 = (): void => 거절(new Error('밖에서 명령을 끊었습니다'));
       판멈춤 = (왜) => 거절(new Error(`판 중간 멈춤 — ${왜}. 게임을 멈춰 뒀다(아래 멈춤 보고)`));
       if (끊김?.aborted === true) 끊음();
@@ -170,7 +175,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   세기?.그친다();
   읽기?.그친다();
   멈춰보기?.그친다();
-  const 멈춤 = (덧?.멈춤 === true || 멈춘까닭 !== null) && 돌릴까 ? await 멈추기(맨게임, 덧?.자료, 배율, 배율바꿈, 해본다) : null;
+  const 멈춤 = (덧?.멈춤 === true || 멈춘까닭 !== null || (한도끝 && 배우는중인가(덧?.자료))) && 돌릴까 ? await 멈추기(맨게임, 덧?.자료, 배율, 배율바꿈, 해본다) : null;
   막음 = true;
   for (const 끝 = Date.now() + 답기다림ms; 보내는중 > 0 && Date.now() < 끝; ) await 쉼(50);
   try {
@@ -235,9 +240,9 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const { 이름, 넘길, 환경, 비밀들, 자료 } = 것;
   // 학습 세션에서 계획 없이 --max 도 안 줬으면 짧은 재기다 — 기본 90초를 60초로 줄인다
   const 초 = 배우는중인가(자료) && 것.계획 === undefined && !것.초준 ? Math.min(것.초, 계획없이초) : 것.초;
-  const 안적은 = 안적은새것(자료);
-  if (안적은 !== null) {
-    console.error(막는글(안적은));
+  const 막힘 = 막힘글(자료);
+  if (막힘 !== null) {
+    console.error(막힘);
     return 2;
   }
   // 학습 세션만 — 앞 회고 · 계획 · 손만 고친 되풀이 · 다섯 번 안 늚을 본다
@@ -263,6 +268,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     process.off('SIGTERM', 끊음);
     process.off('SIGINT', 끊음);
   }
+  판에치트달기(자료, r);
   const 기록 = 기록남기기(자료, 이름, 넘길, r, 비밀들);
   const 글 = [
     `[조작 도우미] ${이름} ${r.오류 === undefined ? '끝' : '멈춤'} · ${(r.걸린ms / 1000).toFixed(1)}초${기록 === null ? '' : ` · 기록 ${기록}.json${r.화면 === undefined ? '' : ' · 끝 화면 .jpg'}`}`,

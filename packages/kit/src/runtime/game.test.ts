@@ -61,6 +61,26 @@ describe('openGame', () => {
     return { game: await openGame({}, link, 안쉼), 보낸 };
   };
 
+  it('findAll · components · members 는 케이스가 읽기만 하는 명령으로 보내고, 메서드 부르기는 케이스 꼴에 없다', async () => {
+    const { game, 보낸 } = await 손가락게임((cmd) => {
+      if (cmd.cmd === 'find-all') return { ok: true, found: [{ path: '/Ghost(Clone)[0]' }, { path: '/Ghost(Clone)[1]' }] };
+      if (cmd.cmd === 'components') return { ok: true, components: [{ name: 'MonsterAI', type: 'Crawler.MonsterAI' }] };
+      if (cmd.cmd === 'members') return { ok: true, fields: [{ name: 'TypeData', type: 'MonsterTypeData' }], properties: [], methods: [] };
+      return undefined;
+    });
+    const 케이스: GameDriver = game;
+    expect((await 케이스.findAll('Ghost(Clone)')).map((f) => f.path)).toEqual(['/Ghost(Clone)[0]', '/Ghost(Clone)[1]']);
+    expect(await 케이스.components('/Ghost(Clone)[0]')).toEqual([{ name: 'MonsterAI', type: 'Crawler.MonsterAI' }]);
+    expect((await 케이스.members('/Ghost(Clone)[0]', 'MonsterAI')).fields).toEqual([{ name: 'TypeData', type: 'MonsterTypeData' }]);
+    expect(보낸).toEqual([
+      { cmd: 'find-all', target: 'Ghost(Clone)' },
+      { cmd: 'components', target: '/Ghost(Clone)[0]' },
+      { cmd: 'members', target: '/Ghost(Clone)[0]', component: 'MonsterAI' },
+    ]);
+    // @ts-expect-error 케이스는 게임 메서드를 부르지 않는다
+    expect(케이스.callMethod).toBeTypeOf('function');
+  });
+
   it('touchDown 은 주소로 손가락을 눌러 두고 번호를 돌려준다 — touchUp 으로 뗐으면 정리 단계가 더 보내지 않는다', async () => {
     const { game, 보낸 } = await 손가락게임();
     const 케이스: GameDriver = game;

@@ -8,15 +8,13 @@ import type { 띄운결과 } from './authoring-explore.js';
 import { 게임자리, 요소상한 } from './authoring-game.js';
 import { 적은줄들, 지금지도 } from './authoring-game-find.js';
 import { 멈춤표시읽기, 멈춤표시지우기 } from './authoring-game-freeze.js';
-import { 안적은새것 } from './authoring-game-play-gate.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
 import { 배우는중에, 배우는중지우기, 배움올리기, 상태쓰기, 상태읽기, 케이스시작적기 } from './authoring-learn-io.js';
 import { 물음트리, 오늘글 } from './authoring-game-tree.js';
 import { type 배울것, 배울것고르기, 배울것없나, 쪽지글, 쪽지열쇠 } from './authoring-learn-map.js';
 import { 판기록들 } from './authoring-learn-check.js';
 import { 인수인계 } from './authoring-learn-handoff.js';
-import { 남은깰곳 } from './authoring-learn-play.js';
-import { 남은배울것 } from './authoring-learn-retro.js';
+import { 끝조건남은것 } from './authoring-learn-left.js';
 import { type 세션거리, type 학습결과, type 학습손, 못뜬것은끊김, 이음글 } from './authoring-learn-tail.js';
 import { 끝낼상태 } from './authoring-progress.js';
 import { 계정섞였나 } from './authoring-reverse.js';
@@ -212,8 +210,7 @@ async function 배우고(o: 학습손): Promise<학습결과> {
       if (!r.스스로) continue;
       const 그만 = 안전히읽기(o.자료, 게임자리.그만, 1_000)?.trim() ?? '';
       const 지도 = 지금지도(o.자료);
-      const 안적은 = 안적은새것(o.자료, false);
-      const 남은것 = 그만 !== '' || 지도 === null ? [] : 상태.단계 === undefined ? 남은배울것(지도, 오늘글(지금()), 빌드, 안적은 === null ? [] : [...안적은.이름들, ...안적은.처음]) : 남은깰곳(지도.줄들, 판기록들(o.자료));
+      const 남은것 = 그만 !== '' || 지도 === null ? [] : 끝조건남은것(o.자료, 상태.단계 !== undefined, 지도, 지금(), 빌드);
       if (지도 === null) break;
       if (남은것.length === 0) {
         o.알린다(`${상태.단계 ?? '게임 배우기'}를 끝낸다 — ${그만 || '남은 것이 없다'}${상태.단계 === undefined ? ' · 게임플레이로 넘어간다' : ''}`);

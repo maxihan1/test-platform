@@ -89,7 +89,7 @@ export function 실패함수들(err: unknown): string[] {
 }
 
 /** 케이스가 부르는 게임 동작 — 오류 목록(errors) · 패드 읽기(pad)는 동작이 아니라 뺀다 */
-export const 적을동작 = ['find', 'click', 'drag', 'type', 'text', 'get', 'waitFor', 'waitForValue', 'layout', 'touchDown', 'touchUp', 'key', 'keyDown', 'keyUp', 'mouseMove', 'scroll', 'restart'] as const;
+export const 적을동작 = ['find', 'findAll', 'click', 'drag', 'type', 'text', 'get', 'components', 'members', 'waitFor', 'waitForValue', 'layout', 'touchDown', 'touchUp', 'key', 'keyDown', 'keyUp', 'mouseMove', 'scroll', 'restart'] as const;
 
 /** 화면 파일 함수가 부르는 Appium 드라이버 명령 — 요소 명령(click · getText)은 늘 $ · $$ 로 찾은 요소에 부르니 찾기에서 잡힌다 */
 export const 적을앱명령 = ['$', '$$', 'execute', 'url', 'back', 'keys', 'action', 'actions', 'performActions', 'waitUntil', 'switchContext', 'activateApp', 'terminateApp', 'hideKeyboard', 'pressKeyCode'] as const;

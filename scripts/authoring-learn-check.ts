@@ -19,6 +19,8 @@ export const 나아감 = '나아감';
 /** 깰 곳의 결과 자리를 칸으로 읽을 때 에이전트가 볼값에 더하는 이름 */
 export const 결과이름 = '결과';
 export const 회고머리 = 'play:';
+/** 전략 계산 줄(CALC)의 열쇠 머리 — `authoring-game-calc.ts` 가 이 열쇠로 줄 초안을 낸다 */
+export const 계산머리 = 'calc:';
 const 기록이름꼴 = /^\d{17}-[^/\\]+$/;
 export const 까닭들 = ['손', '믿은것', '몰랐던것', '됨'] as const;
 const 비교들: readonly string[] = ['>=', '<=', '==', '>', '<'];
@@ -74,6 +76,19 @@ export function 계획읽기(data: unknown): 계획 | string {
   return { 볼값: 볼 as 볼값[], 기대: 기대들 as 기대[], 목표: { 값: 목표.값 as string, 기준: 목표.기준 as number }, ...(d.곳 === undefined ? {} : { 곳: d.곳 as string }), ...(d.쓸것 === undefined ? {} : { 쓸것: d.쓸것 as string[] }) };
 }
 
+/** 지는 순간에만 깨지는 기대 — 「>= 1」 · 「> 0」 처럼 살아만 있으면 맞는 것. 예측 숫자가 아니다 */
+const 살기만하면 = (g: 기대): boolean => (g.비교 === '>=' && g.기준 <= 1) || (g.비교 === '>' && g.기준 < 1);
+
+/**
+ * 게임플레이 단계의 계획 조건 — 계산 줄(`calc:`)을 쓸것에 달고, 기대에 예측 숫자(「5웨이브 끝에 세계수 40 이상」)가 하나는 있어야 한다.
+ * 계산 없이 심는 자리만 바꿔 판을 돌리던 것(Cats Go! 둘째 맵 48판)을 막는다. 게임 배우기 단계의 계획에는 걸지 않는다
+ */
+export function 놀이계획검사(계획: Pick<계획, '기대' | '쓸것'>): string | null {
+  if (!(계획.쓸것 ?? []).some((k) => k.startsWith(계산머리))) return `게임플레이 계획의 data.쓸것 에 계산 줄 열쇠(${계산머리}<이름>)를 하나 이상 적는다 — scripts/authoring-game-calc.ts 로 버틸 수 있나 · 예산 · 자리를 계산해 CALC 줄로 올린 뒤 그 줄을 쓴다`;
+  if (계획.기대.every(살기만하면)) return '게임플레이 계획의 data.기대 에 예측 숫자를 하나 이상 적는다(예: 5웨이브 끝에 세계수 40 이상) — 「>= 1」 처럼 지는 순간에만 깨지는 기대는 계산이 맞았는지 못 가른다';
+  return null;
+}
+
 const 견줌 = (a: number, 비: 비교, b: number): boolean => (비 === '>=' ? a >= b : 비 === '<=' ? a <= b : 비 === '>' ? a > b : 비 === '<' ? a < b : a === b);
 
 /** 이 때의 값들에서 처음 어긋난 기대 — 문이 안 열렸거나 값을 못 읽었으면 안 본다 */
@@ -94,7 +109,7 @@ export interface 어긋남 { 초: number; 값이름: string; 값: number; 기대
 export interface 값기록 { 계획: string; 볼값: 볼값[]; 간격ms: number; 때: 값때[]; 어긋남: 어긋남 | null; 화면다름: string[] }
 export interface 끝글줄 { 주소: string; 경로: string; 글: string }
 /** 멈춤 — 판 중간 멈춤 순간의 볼값(authoring-game-play-stop) */
-export interface 판기록 { 이름: string; 값?: unknown; 값기록?: 값기록; 끝글?: 끝글줄[]; 장면들?: string[]; 멈춤?: { 초: number; 값: Record<string, number | null> } }
+export interface 판기록 { 이름: string; 값?: unknown; 값기록?: 값기록; 끝글?: 끝글줄[]; 장면들?: string[]; 멈춤?: { 초: number; 값: Record<string, number | null> }; 치트?: true }
 
 /** 자료 폴더의 판 기록 — 지켜보기 · 새것 글은 뺀다. 이름순이 시간순이다 */
 export function 판기록들(자료: string): 판기록[] {
@@ -108,7 +123,7 @@ export function 판기록들(자료: string): 판기록[] {
   return 이름들.flatMap((x) => {
     try {
       const 몸 = 객체(JSON.parse(readFileSync(join(폴더, x), 'utf8')));
-      return [{ 이름: x.slice(0, -5), 값: 몸.값, ...(몸.값기록 === undefined ? {} : { 값기록: 몸.값기록 as 값기록 }), ...(Array.isArray(몸.끝글) ? { 끝글: 몸.끝글 as 끝글줄[] } : {}), ...(Array.isArray(몸.장면들) ? { 장면들: (몸.장면들 as unknown[]).filter(글인가) } : {}), ...(객체(몸.멈춤).값 === undefined ? {} : { 멈춤: 몸.멈춤 as NonNullable<판기록['멈춤']> }) }];
+      return [{ 이름: x.slice(0, -5), 값: 몸.값, ...(몸.값기록 === undefined ? {} : { 값기록: 몸.값기록 as 값기록 }), ...(Array.isArray(몸.끝글) ? { 끝글: 몸.끝글 as 끝글줄[] } : {}), ...(Array.isArray(몸.장면들) ? { 장면들: (몸.장면들 as unknown[]).filter(글인가) } : {}), ...(객체(몸.멈춤).값 === undefined ? {} : { 멈춤: 몸.멈춤 as NonNullable<판기록['멈춤']> }), ...(몸.치트 === true ? { 치트: true as const } : {}) }];
     } catch {
       return [];
     }

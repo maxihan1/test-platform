@@ -7,6 +7,7 @@ import type { Command, Link } from 'control-cli';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 게임자료환경 } from './authoring-check-game.js';
+import { 멈춤표시쓰기, 멈춤표시읽기 } from './authoring-game-freeze.js';
 import { 인자읽기, 실행 } from './authoring-game-watch.js';
 import { type 자리, type 표본, 요약, 이름만, 자리묶기, 화면그림인가 } from './authoring-game-watch-report.js';
 
@@ -163,6 +164,36 @@ describe('실행', () => {
     expect(await 실행(['--sec', '2', '--shots', '1'], t, 환경, 가짜([]))).toBe(0);
     expect(찍힘.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/도중 화면 \d+장\(1초 간격/);
   }, 20_000);
+
+  it('학습 세션이면 멈춰 있던 판을 풀고 보고 끝에 다시 멈추고, 학습 세션이 아니면 흐르게 둔다', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const 판 = (학습: boolean): { 길: Link; 배율: () => number; 자료: string } => {
+      const t = 트리();
+      const d = join(t, 'data');
+      mkdirSync(d);
+      if (학습) writeFileSync(join(d, 'game-learning.now'), '1');
+      멈춤표시쓰기(d, 1);
+      let 배율 = 0;
+      const 길 = (async (c: Command) => {
+        const cmd = c as unknown as Record<string, unknown>;
+        if (cmd.cmd === 'timescale-get') return { ok: true, timeScale: 배율 };
+        if (cmd.cmd === 'timescale-set') {
+          배율 = Number(cmd.scale);
+          return { ok: true };
+        }
+        return 가짜([])(c);
+      }) as unknown as Link;
+      return { 길, 배율: () => 배율, 자료: t };
+    };
+    const 학습 = 판(true);
+    expect(await 실행(['--sec', '1'], 학습.자료, { [게임자료환경]: join(학습.자료, 'data') }, 학습.길)).toBe(0);
+    expect(학습.배율()).toBe(0);
+    expect(멈춤표시읽기(join(학습.자료, 'data'))?.배율).toBe(1);
+    const 시험 = 판(false);
+    expect(await 실행(['--sec', '1'], 시험.자료, { [게임자료환경]: join(시험.자료, 'data') }, 시험.길)).toBe(0);
+    expect(시험.배율()).toBe(1);
+    expect(멈춤표시읽기(join(시험.자료, 'data'))).toBeNull();
+  });
 
   it('잡은 디바이스가 없으면 2', async () => {
     const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
