@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { 맵줄검사 } from '../apps/admin/src/prd/appRoute.js';
 import { 맞대기못지남, 앱맞대기자리, 앱쓸것없나, 이번기록들 } from './authoring-app-compare.js';
 import { 앱크롤올리기, 올릴빌드, 크롤맵줄, 크롤색인상한 } from './authoring-app-crawl-route.js';
 import { type 맵줄, 경로, 맵줄읽기, 새맵줄이름, 새줄더하기, 출발고르기 } from './authoring-app-route.js';
@@ -82,7 +83,29 @@ export function 탐색맵읽기(자료: string): 탐색맵 | { 못읽음: string
   const 이번줄 = Array.isArray((이번 as { rows?: unknown } | null)?.rows) ? ((이번 as { rows: Record<string, unknown>[] }).rows) : [];
   const 이번화면 = new Set(이번줄.filter((r) => r?.kind === 'MOVE' || r?.kind === 'SETUP').map((r) => r.toKey).filter(글인가));
   const 줄들 = 새줄더하기(새줄더하기(받은?.줄들 ?? [], { rows: 크롤맵줄(색인).줄들 }), 이번 ?? {});
-  return { 줄들, 크롤화면, 이번화면, 틀림: 받은?.틀림 ?? null };
+  return { 줄들, 크롤화면, 이번화면, 틀림: 받은?.틀림 ?? (이번 === null ? null : 서버거절줄(이번)) };
+}
+
+const 거절자리상한 = 20;
+
+/**
+ * 서버 올리기 검사(appRoute.ts 맵줄검사)를 그대로 돌린다. 경로 검색은 꼴이 틀린 줄을 말없이 빼서 여기서 안 짚으면
+ * 탐색을 다 마친 뒤 체크포인트의 올리기가 400 으로 작성을 멈춘다(2026-11-27 #16095 — fromKey 의 「 · 」).
+ * 서버는 첫 자리만 말해 줄마다 따로 돌려 틀린 자리를 다 모은다. 줄이 다 맞을 때만 본문 전체(겹친 줄 · remove)를 본다
+ */
+function 서버거절줄(몸: unknown): string | null {
+  const 줄들 = (몸 as { rows?: unknown } | null)?.rows;
+  const 자리들 = Array.isArray(줄들)
+    ? 줄들.flatMap((x, i) => {
+        const r = 맵줄검사({ rows: [x] });
+        return 'error' in r ? [r.detail.replace(/^rows\.0/, `rows.${String(i)}`)] : [];
+      })
+    : [];
+  const 전체 = 자리들.length === 0 ? 맵줄검사(몸) : null;
+  if (전체 !== null && 'error' in 전체) 자리들.push(전체.detail);
+  if (자리들.length === 0) return null;
+  const 보기 = 자리들.slice(0, 거절자리상한).join(' · ') + (자리들.length > 거절자리상한 ? ` 외 ${String(자리들.length - 거절자리상한)}개` : '');
+  return `${새맵줄이름} 에 서버가 거절할 줄이 있다 — ${보기} (글 칸에 「 · 」 「 → 」 · 줄바꿈 · 앞뒤 빈칸 · 끝의 「·」 「→」를 못 쓴다. 「까닭」은 진행 불가 줄에만, 같은 줄(종류 · 출발 · 동작)은 한 번만. 칸 규칙은 docs/spec/도메인/작성.md §7 「앱 조작 맵 통로」)`;
 }
 
 const 자르기 = (글: string, 상한: number) => (글.length > 상한 ? `${글.slice(0, 상한)}…` : 글);
