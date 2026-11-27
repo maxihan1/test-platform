@@ -5,8 +5,8 @@ import { 명령종류, 바퀴줄, 시간재기 } from './authoring-game-play-tim
 
 describe('명령 시간 재기', () => {
   it('cmd 이름으로 읽기 · 입력 · 기타를 나눈다', () => {
-    expect(['get', 'text', 'find-by-name', 'find-at', 'screenshot', 'logs'].map(명령종류)).toEqual(Array(6).fill('읽기'));
-    expect(['key-down', 'click', 'swipe', 'tilt'].map(명령종류)).toEqual(Array(4).fill('입력'));
+    expect(['get', 'text', 'find-by-name', 'find-at', 'find-all', 'screenshot', 'logs', 'errors', 'events'].map(명령종류)).toEqual(Array(9).fill('읽기'));
+    expect(['key-down', 'click', 'swipe', 'tilt', 'drag', 'input-reset'].map(명령종류)).toEqual(Array(6).fill('입력'));
     expect(['timescale-set', 'static-set', 'invoke'].map(명령종류)).toEqual(Array(3).fill('기타'));
   });
 

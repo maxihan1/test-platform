@@ -5,8 +5,8 @@ export interface 시간표 { 읽기ms: number; 입력ms: number; 기타ms: numbe
 
 type 종류 = '읽기' | '입력' | '기타';
 
-const 읽기명령 = new Set(['get', 'text', 'tree', 'components', 'members', 'static-get', 'scenes', 'layout', 'timescale-get', 'pref-get', 'logs', 'screenshot']);
-const 입력명령 = new Set(['key', 'key-down', 'key-up', 'click', 'tap', 'touch-down', 'touch-move', 'touch-up', 'pad', 'mouse-move', 'pointer', 'swipe', 'scroll', 'long-press', 'type', 'tilt']);
+const 읽기명령 = new Set(['get', 'text', 'tree', 'components', 'members', 'static-get', 'scenes', 'layout', 'timescale-get', 'pref-get', 'logs', 'errors', 'events', 'screenshot']);
+const 입력명령 = new Set(['key', 'key-down', 'key-up', 'click', 'tap', 'touch-down', 'touch-move', 'touch-up', 'pad', 'mouse-move', 'pointer', 'swipe', 'scroll', 'long-press', 'type', 'tilt', 'drag', 'input-reset']);
 
 export function 명령종류(cmd: unknown): 종류 {
   const 이름 = String(cmd);

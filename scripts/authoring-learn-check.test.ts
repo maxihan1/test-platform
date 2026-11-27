@@ -137,6 +137,11 @@ describe('계획 숫자 읽기 — 2초마다 읽고 처음 어긋난 순간 사
     const 기록 = (await 안적음.끝난다()).기록;
     expect(기록.서있음).toBeUndefined();
     expect(기록.때[0]).not.toHaveProperty('위치');
+    // 위치 주소 · 칸을 틀리게 적었으면 삼키지 않고 못함으로 알린다
+    const 틀린게임 = { get: async (_주소: string, 칸: string) => { if (칸 === 'Transform.positon') throw new Error('그런 칸이 없다'); return 50; }, text: async () => '', screenshot: async () => Buffer.from('jpg') };
+    const 틀림 = 값읽기시작(틀린게임 as never, 'trial:첫 맵', [{ 이름: '세계수', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }], [], Date.now(), 5, { 주소: '/Player', 칸: 'Transform.positon' });
+    await new Promise((끝) => setTimeout(끝, 20));
+    expect((await 틀림.끝난다()).못함).toContain('위치: 그런 칸이 없다');
   });
 
   it('위치 값은 객체 · 배열 · 글 어느 것이든 세 수로 바꾸고 못 바꾸면 null', () => {
@@ -233,6 +238,11 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     const 없음 = 회고채우기(`play:${기록이름}`, { text: '짐', belief: 'SEEN', data: { 까닭: '손', 다음: 'trial:첫 맵' } }, 찾기(들), [{ 이름: 기록이름, 값기록: 값기록('trial:첫 맵', []) }]);
     expect((없음 as { data: Record<string, unknown> }).data).not.toHaveProperty('시간표');
     expect((없음 as { data: Record<string, unknown> }).data).not.toHaveProperty('서있음');
+    // AI 가 지어 적은 수는 기록에 없으면 버린다
+    const 지어냄 = 회고채우기(`play:${기록이름}`, { text: '짐', belief: 'SEEN', data: { 까닭: '손', 다음: 'trial:첫 맵', 서있음: 0.1, 시간표: { 읽기초: 1 }, 끝값: { 웨이브: 9 } } }, 찾기(들), [{ 이름: 기록이름, 값기록: 값기록('trial:첫 맵', []) }]);
+    expect((지어냄 as { data: Record<string, unknown> }).data).not.toHaveProperty('서있음');
+    expect((지어냄 as { data: Record<string, unknown> }).data).not.toHaveProperty('시간표');
+    expect((지어냄 as { data: Record<string, unknown> }).data).not.toHaveProperty('끝값');
   });
 
   it('학습 세션에서만 막는다 — 앞 회고 · 60초 넘는 계획 없는 부르기 · 나아감 줄 · 다섯 번 안 늚', () => {

@@ -83,6 +83,7 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
   let 사진: Buffer | undefined;
   let 서있다 = true;
   let 첫못함: string | null = null;
+  let 위치못함: string | null = null;
   let 깨운다: (() => void) | undefined;
   // 볼값마다 처음 읽힌 값 — 그 값에서 바뀌기 전(첫값유예ms 안)에는 그 값의 기대를 안 본다. 첫 읽기는 앞 판 끝 화면일 수 있다(#16054 · #16058 세계수 0 을 새 판 값으로 읽고 0초에 멈췄다).
   // 값마다 따로 본다 — 웨이브가 먼저 바뀌어도 세계수는 아직 앞 판 값일 수 있다
@@ -101,12 +102,17 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
         if (!서있다) return;
       }
       const 초 = (Date.now() - 시작) / 1000;
-      const r = await 한번읽기(게임, 볼);
-      // 위치는 값 읽기가 느려져도 못 읽으면 null — 서 있던 비율은 둘 다 읽힌 쌍만 센다
-      const 자리 = 위치 === undefined ? undefined : await 게임.get(위치.주소, 위치.칸).then(세수로, () => null);
+      // 위치는 숫자와 같이 읽는다 — 뒤에 따로 읽으면 기대 확인 · 어긋난 순간 사진이 늦고 위치 간격도 흔들린다
+      const [r, 위치답] = await Promise.all([
+        한번읽기(게임, 볼),
+        위치 === undefined ? undefined : 게임.get(위치.주소, 위치.칸).then((v) => ({ v: 세수로(v), 못함: null }), (e: unknown) => ({ v: null, 못함: 까닭(e) })),
+      ]);
+      // 못 읽거나 세 수로 못 바꾸면 null — 서 있던 비율은 둘 다 읽힌 쌍만 센다. 까닭은 못함으로 알린다(주소 · 칸을 틀리게 적었을 수 있다)
+      const 자리 = 위치답?.v;
+      if (위치답 !== undefined && 위치답.v === null) 위치못함 ??= 위치답.못함 ?? '세 수로 못 바꿨다';
       // 끝난다가 기록을 돌려준 뒤 늦게 끝난 읽기다 — 저장된 기록 · 마지막 화면 찍기와 엇갈리지 않게 버린다
       if (!서있다) return;
-      첫못함 ??= r.못함;
+      첫못함 ??= r.못함 ?? (위치못함 === null ? null : `위치: ${위치못함}`);
       기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }), ...(자리 === undefined ? {} : { 위치: 자리 }) });
       for (const [k, v] of Object.entries(r.값)) {
         if (v === null) continue;
