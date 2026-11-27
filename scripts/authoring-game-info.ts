@@ -21,7 +21,6 @@ import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
 import { 잡은폰 } from './authoring-run3-game.js';
 
-/** 이 판 수를 넘게 해 보고도 못 깬 곳에서만 연다 — 그 전에는 플레이하며 나온 것을 읽는 길이 먼저다 */
 /** 맵 시도 수(넘김판)와 같다 — 그 판 수를 하고도 못 깬 곳에서 다음 맵으로 넘기기 전에 한 번 연다 */
 export const 열림판수 = 넘김판;
 const 기본단계 = 10;
@@ -116,6 +115,8 @@ export function 열림조건(줄들: Parameters<typeof 곳셈>[0], 기록들: re
   const 셈 = 곳셈(줄들, 기록들).find((x) => x.열쇠 === 곳);
   if (셈 === undefined) return { 열림: false, 까닭: `${곳} 는 깰 곳이 아니다 — 그 STAGE 줄에 data.결과 가 있어야 판 수를 센다` };
   if (셈.깸 > 0) return { 열림: false, 까닭: `${곳} 는 이미 깼다(${셈.판}판 중 ${셈.깸}) — 웨이브를 넘기지 않고 플레이하며 읽는다` };
+  // 한 번이면 된다 — 지침이 call 을 막는 예외는 다음 맵으로 넘기기 전 한 번이다
+  if (셈.정보 === true) return { 열림: false, 까닭: `${곳} 는 이미 정보 모으기를 했거나 못 하는 이유를 적었다 — 다음 맵을 해 본다` };
   if (셈.판 < 열림판수) return { 열림: false, 까닭: `${곳} 는 ${셈.판}판 해 봤다 — ${열림판수}판을 해 보고도 못 깬 곳에서만 연다. 먼저 플레이하며 나온 것을 읽는다` };
   return { 열림: true, 곳판: 셈 };
 }
@@ -176,6 +177,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   await 세기.준비;
   let 이어실패 = 0;
   let 돈단계 = 0;
+  // 먹힌 단계만 센다 — 함수 이름이 틀려 다 안 먹혔는데 정보 모으기를 한 것으로 치면 다음 맵이 열린다
+  let 먹힌단계 = 0;
   for (let n = 1; n <= 단계 && 이어실패 < 이어실패한도; n += 1) {
     let 먹힘 = 0;
     for (const 부 of 부름들) {
@@ -187,6 +190,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       }
     }
     돈단계 = n;
+    if (먹힘 > 0) 먹힌단계 += 1;
     이어실패 = 먹힘 === 0 ? 이어실패 + 1 : 0;
     await 쉼(대기초 * 1000);
   }
@@ -200,7 +204,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     if (표시못씀 !== null) 못한것.push(`치트 표시 파일 쓰기: ${표시못씀}`);
   }
   const r: 조작결과 & { 치트: true; call: string[]; 곳: string } = {
-    값: { 정보모으기: { 곳, 단계: 돈단계 } }, 걸린ms: Date.now() - 시작, 로그: [], 게임오류: [], 알림: [], 못한것, 배율: 풀림.배율, 배율바꿈: false, 통신오류: null, 입력못놓음: false,
+    값: { 정보모으기: { 곳, 단계: 먹힌단계, 돈단계 } }, 걸린ms: Date.now() - 시작, 로그: [], 게임오류: [], 알림: [], 못한것, 배율: 풀림.배율, 배율바꿈: false, 통신오류: null, 입력못놓음: false,
     도중화면: [], 도중간격ms: 0, 알림말: 풀림.알림말, 멈춘채: false, ...(셈.나온 === null ? {} : { 나온것: 셈.나온 }), ...표시, 곳,
   };
   const 기록 = 기록남기기(자료, '정보모으기', 인자, r, 비밀들);
