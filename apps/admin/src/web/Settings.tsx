@@ -166,7 +166,9 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
               <div className="empty">{t('그 프로젝트를 찾지 못했습니다')}</div>
             ) : (
               <ProjectPanel
-                key={`${프로젝트.id}-${판}`}
+                // 저장마다 다시 그리지 않는다 — 다시 그리면 다른 탭(Issue Bunker 연결 · API 서버)에 적던 값이 같이 사라진다.
+                // 이름 · 대표 칸은 비밀값이 아니라 적은 그대로 남아도 저장된 값과 같다
+                key={프로젝트.id}
                 row={프로젝트}
                 projects={프로젝트들}
                 services={서비스들}
