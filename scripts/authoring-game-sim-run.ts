@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 
 import { 곳격자, 길내기 } from './authoring-game-path.js';
 import { type 모델, type 규칙, type 점, 문턱넣기 } from './authoring-game-sim-input.js';
-import { type 걷는거리, type 시뮬결과, type 행동, 돌리기, 엔진판 } from './authoring-game-sim.js';
+import { type 걷는거리, type 시뮬결과, type 행동, 돌리기, 엔진판, 원안길이 } from './authoring-game-sim.js';
 import { 지금지도 } from './authoring-game-find.js';
 import { type 판기록, 판기록들 } from './authoring-learn-check.js';
 import { 놀이시작뒤 } from './authoring-learn-io.js';
@@ -105,6 +105,10 @@ export function 찾기(m: 모델, 걷기?: 걷는거리): 찾기결과 | { 틀�
   return { 가장, 가장멀리: 멀리!, 이긴수, 전체 };
 }
 
+/** 설치물 종류마다 놓기 자리 차례 — 엔진이 놓기에서 고르는 것과 같은 순서(첫 레벨 사거리로 길을 많이 덮는 자리부터). 판 함수가 빈 자리 가운데 앞의 것에 놓는다 */
+export const 자리차례 = (m: 모델): Record<string, 점[]> =>
+  Object.fromEntries(Object.values(m.설치물종류).map((t) => [t.이름, [...m.자리후보].sort((a, b) => Object.values(m.길).reduce((합, 길) => 합 + 원안길이(길, { 중심: b, 반지름: t.레벨[0]!.사거리 }) - 원안길이(길, { 중심: a, 반지름: t.레벨[0]!.사거리 }), 0))]));
+
 /** 입력 파일 해시 — 게이트가 시뮬 줄을 낸 뒤 입력이 바뀌었나 본다 */
 export const 해시 = (글: string): string => createHash('sha256').update(글).digest('hex').slice(0, 16);
 
@@ -135,7 +139,7 @@ export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일�
   const 안 = 찾음.가장 ?? 찾음.가장멀리;
   const 보스 = m.웨이브.some((w) => w.보스);
   줄글.push(`정책 ${m.정책들.length} × 문턱 조합 ${찾음.전체 / m.정책들.length} = ${찾음.전체}번 돌려 ${찾음.이긴수}번 이김`, `${찾음.가장 === null ? '가장 멀리 간 안' : '고른 안'} — 정책 ${안.정책번호 + 1} · 문턱 ${JSON.stringify(안.문턱)}${찾음.가장 === null ? '' : ` · 여유 ${안.여유.toFixed(2)}${안.여유 < 여유기준 ? '(여유 없음 — 손이 조금 늦어도 진다)' : ''}`}`, ...웨이브글(안.결과));
-  if (찾음.가장 !== null) 줄글.push('판 함수 인자로 넘길 정책(이대로 넘긴다 — 조작 도우미가 같은지 본다)', JSON.stringify(안.정책));
+  if (찾음.가장 !== null) 줄글.push('판 함수 인자로 넘길 것(이대로 넘긴다 — 조작 도우미가 정책이 같은지 본다 · 놓기는 자리차례 가운데 빈 앞자리에)', JSON.stringify({ 정책: 안.정책, 자리차례: 자리차례(m) }));
   const 마지막 = 안.결과.웨이브.at(-1);
   const 글 = 찾음.가장 === null ? `이기는 안 없음 — 가장 멀리 간 안도 ${짐글(안.결과)}` : `이기는 안 있음 — ${m.웨이브.length}웨이브${보스 ? '와 보스' : ''}까지 · 마지막 지킬것 ${마지막?.끝지킬것 ?? '?'} · 여유 ${안.여유.toFixed(2)}(${찾음.이긴수}/${찾음.전체} 이김)`;
   return {
