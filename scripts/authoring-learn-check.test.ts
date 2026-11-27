@@ -3,9 +3,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 값읽기시작, 화면다른것 } from './authoring-game-play-values.js';
+import { 값읽기시작, 첫값유예ms, 화면다른것 } from './authoring-game-play-values.js';
 import { 지도읽기 } from './authoring-game-find.js';
 import { type 판기록, 계획읽기, 놀이계획검사, 대봄검사, 수로, 어긋난기대, 판기록들 } from './authoring-learn-check.js';
 import { 합치기 } from './authoring-learn-note.js';
@@ -118,11 +118,25 @@ describe('계획 숫자 읽기 — 2초마다 읽고 처음 어긋난 순간 사
       screenshot: async () => (찍음 += 1, Buffer.from('jpg')),
     };
     const 고리 = 값읽기시작(게임 as never, 'trial:첫 맵', [{ 이름: '세계수', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }], [{ 값: '세계수', 비교: '>=', 기준: 50 }], Date.now(), 5);
-    await new Promise((끝) => setTimeout(끝, 60));
+    await vi.waitFor(() => expect(고리.지금().때.length).toBeGreaterThanOrEqual(4));
     const r = await 고리.끝난다();
     expect(r.기록.때.slice(0, 4).map((x) => x.값.세계수)).toEqual([0, 0, 0, 100]);
     expect(r.기록.어긋남).toBeNull();
     expect(찍음).toBe(0);
+  });
+
+  it('값마다 따로 본다 — 웨이브가 먼저 바뀌어도 아직 앞 판 값인 세계수는 안 본다. 10초가 지나면 안 바뀐 값도 본다', async () => {
+    const 볼값들 = [{ 이름: '세계수', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }, { 이름: '웨이브', 주소: '/Wave', 칸: 'Wave.Now' }];
+    const 기대 = [{ 값: '세계수', 비교: '>=' as const, 기준: 50 }];
+    let 웨이브 = 0;
+    const 게임 = { get: async (_주소: string, 칸: string) => (칸 === 'Wave.Now' ? (웨이브 += 1) : 0), text: async () => '', screenshot: async () => Buffer.from('jpg') };
+    const 막 = 값읽기시작(게임 as never, 'trial:첫 맵', 볼값들, 기대, Date.now(), 5);
+    await vi.waitFor(() => expect(막.지금().때.length).toBeGreaterThanOrEqual(3));
+    expect((await 막.끝난다()).기록.어긋남).toBeNull();
+    // 처음부터 기대를 깬 채 멈춘 판 — 10초 뒤에는 잡는다
+    const 멈춘 = 값읽기시작(게임 as never, 'trial:첫 맵', 볼값들, 기대, Date.now() - 첫값유예ms, 5);
+    await vi.waitFor(() => expect(멈춘.지금().어긋남).not.toBeNull());
+    expect((await 멈춘.끝난다()).기록.어긋남).toMatchObject({ 값이름: '세계수', 값: 0 });
   });
 
   it('화면 글자의 서식 태그 안 숫자는 안 읽는다 — #16052 웨이브가 늘 600 이었다', () => {
