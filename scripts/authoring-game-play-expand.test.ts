@@ -23,7 +23,7 @@ const 게임 = (): Game =>
     get: async () => 40,
   }) as unknown as Game;
 const 새나온 = (): 나온것 => ({ 간격ms: 1000, 처음: {}, 장면바뀜: [], 센때: [], 첫초: {}, 화면것: [], 지도에없음: [], 처음지도에없음: [], 펼침: [], 안펼침: [] });
-const 찾음 = { path: '/Pool/Boss(Clone)', id: 7 } as Found;
+const 찾음 = { path: '/Pool/Boss(Clone)', id: 7 } as unknown as Found;
 const 기록 = { 종류: 'Boss', 장면: 'Stage', 읽은때: 't', 출처: '실행 중' as const, 칸: { 'MonsterHP.MaxHP': 1 }, 목록칸: [] };
 
 describe('새종류펼치기 · 치트 값 다시 읽기', () => {
