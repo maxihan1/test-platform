@@ -76,7 +76,8 @@ export function 회고없는판(기록들: readonly 판기록[], 줄들: readonl
  * 나아감은 곳 안에서만 견준다 — 맵을 옮기면 웨이브가 1 로 돌아가 「안 늚」이 됐다(#16053)
  */
 export function 손막힘(줄들: readonly 줄[]): { 계획들: string[]; 어디서들: string[] } | null {
-  const 회고 = 회고줄들(줄들);
+  // 나아감을 한 번도 못 읽은 회고는 판에 못 들어간 부르기다 — 해 본 판으로 세면 새 작전을 한 번도 못 해 보고 막혔다(2026-11-27 작성 16097 7초 별꽃판)
+  const 회고 = 회고줄들(줄들).filter((x) => typeof 칸(x).나아감 === 'number');
   if (회고.length <= 손상한) return null;
   const 끝셋 = 회고.slice(-손상한);
   const 곳 = 칸(끝셋[0]).곳;

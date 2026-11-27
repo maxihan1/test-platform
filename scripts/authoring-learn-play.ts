@@ -93,9 +93,12 @@ function 못닿고짐(r: 판기록, 줄들: readonly 줄[]): { 값: string; 기�
   return 닿은 === null || 닿은 >= 계획.목표.기준 ? null : { ...계획.목표, 닿은 };
 }
 
-/** 그 곳 회고 가운데 끝 n 개의 나아감이 그 앞 회고들의 가장 먼 나아감을 못 넘었으면 그 n 개. 앞 회고가 없거나 나아감을 못 읽었으면 견줄 수 없어 null */
+/**
+ * 그 곳 회고 가운데 끝 n 개의 나아감이 그 앞 회고들의 가장 먼 나아감을 못 넘었으면 그 n 개. 앞 회고가 없거나 나아감을 못 읽었으면 견줄 수 없어 null.
+ * 나아감을 한 번도 못 읽은 회고(판에 못 들어간 부르기)는 판이 아니라 안 센다
+ */
 export function 곳안늚<T extends 줄>(줄들: readonly T[], 곳: string, n: number): T[] | null {
-  const 곳회고 = 줄들.filter((x) => x.kind === 'PLAY' && x.learned !== null && 회고기록이름(x.key) !== null && 칸(x).곳 === 곳).sort((a, b) => (a.key < b.key ? -1 : 1));
+  const 곳회고 = 줄들.filter((x) => x.kind === 'PLAY' && x.learned !== null && 회고기록이름(x.key) !== null && 칸(x).곳 === 곳 && typeof 칸(x).나아감 === 'number').sort((a, b) => (a.key < b.key ? -1 : 1));
   const 끝 = 곳회고.slice(-n);
   const 앞 = 곳회고.slice(0, -n);
   const 최대 = (들: T[]): number => Math.max(-Infinity, ...들.map((x) => 칸(x).나아감).filter((v): v is number => typeof v === 'number'));
