@@ -68,12 +68,12 @@ describe('깃발읽기', () => {
 describe('열림조건', () => {
   const 줄들 = [곳줄('stage:둘째'), 계획줄, 줄('stage:메뉴', { 상태: '가봄' })] as never;
 
-  it(`판 수가 ${열림판수} 를 넘고 아직 못 깬 곳만 연다`, () => {
-    expect(열림조건(줄들, 판들(열림판수 + 1), 'stage:둘째')).toMatchObject({ 열림: true, 곳판: { 판: 열림판수 + 1, 깸: 0 } });
+  it(`${열림판수}판을 해 보고도 못 깬 곳만 연다`, () => {
+    expect(열림조건(줄들, 판들(열림판수), 'stage:둘째')).toMatchObject({ 열림: true, 곳판: { 판: 열림판수, 깸: 0 } });
   });
 
   it('판 수가 5 이하이면 판 수와 함께 까닭을 돌려준다', () => {
-    expect(열림조건(줄들, 판들(열림판수), 'stage:둘째')).toEqual({ 열림: false, 까닭: expect.stringContaining(`${열림판수}판 해 봤다`) });
+    expect(열림조건(줄들, 판들(열림판수 - 1), 'stage:둘째')).toEqual({ 열림: false, 까닭: expect.stringContaining(`${열림판수 - 1}판 해 봤다`) });
     expect(열림조건(줄들, [], 'stage:둘째')).toMatchObject({ 열림: false });
   });
 
@@ -122,7 +122,7 @@ describe('실행', () => {
   });
 
   it('열리면 단계마다 call 을 차례로 보내고, 나온 종류를 값 파일로 남기며 치트 표시를 붙인다', async () => {
-    const { 자료, 트리 } = 자료만들기(6);
+    const { 자료, 트리 } = 자료만들기(열림판수);
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const 명령: Command[] = [];
     let 목록 = 0;
@@ -148,7 +148,7 @@ describe('실행', () => {
   }, 15_000);
 
   it('call 이 거듭 안 먹히면 그치고 1', async () => {
-    const { 자료, 트리 } = 자료만들기(6);
+    const { 자료, 트리 } = 자료만들기(열림판수);
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const 명령: Command[] = [];
     const 길 = 가짜(명령, (c) => {

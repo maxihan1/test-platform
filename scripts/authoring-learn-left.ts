@@ -5,6 +5,7 @@ import { 안적은새것 } from './authoring-game-play-gate.js';
 import { 곳정보남음, 이름글, 값빠짐찾기, 값파일들 } from './authoring-game-values.js';
 import { 열린물음, 오늘글 } from './authoring-game-tree.js';
 import { 판기록들 } from './authoring-learn-check.js';
+import { 놀이시작뒤 } from './authoring-learn-io.js';
 import { 남은깰곳 } from './authoring-learn-play.js';
 import { 남은배울것 } from './authoring-learn-retro.js';
 
@@ -13,7 +14,7 @@ export function 끝조건남은것(자료: string, 게임플레이: boolean, 지
   const 오늘 = 오늘글(지금);
   if (게임플레이) {
     const 열린 = 열린물음(지도, 오늘, 빌드).length;
-    return [...남은깰곳(지도.줄들, 판기록들(자료)), ...곳정보남음(지도.줄들, 자료), ...(열린 === 0 ? [] : [`열린 물음 ${열린}`])];
+    return [...남은깰곳(지도.줄들, 놀이시작뒤(자료, 판기록들(자료))), ...곳정보남음(지도.줄들, 자료), ...(열린 === 0 ? [] : [`열린 물음 ${열린}`])];
   }
   const 안적은 = 안적은새것(자료, false);
   // 값 파일이 있는 종류는 안적은새것이 이름 글자로 안 보니, 값 줄이 없는 종류가 남았는지는 여기서 따로 본다

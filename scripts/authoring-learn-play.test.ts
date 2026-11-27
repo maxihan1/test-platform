@@ -95,8 +95,14 @@ describe('게임플레이 — 곳마다 깰 때까지', () => {
     expect(놀이막기({ 곳: 'stage:랭킹 창' }, 지도줄 as never, [])).toContain('깰 곳이 아니다');
     const 넷째 = { 곳: 'stage:넷째 맵', 쓸것: ['stage:넷째 맵#걷기'] };
     expect(놀이막기(넷째, 지도줄 as never, 판들(넘김판 - 1))).toBeNull();
-    expect(놀이막기(넷째, 지도줄 as never, 판들(넘김판))).toContain(`stage:넷째 맵 를 ${넘김판}판 해 보고 못 깼다 — 다음 맵`);
-    expect(남은깰곳(지도줄 as never, 판들(넘김판)).join('\n')).not.toContain('stage:넷째 맵');
+    // 다음 맵으로 넘기기 전에 그 곳에서 정보 모으기를 한 번 한다 — 같은 판 수에서 맵이 먼저 닫혀 16094 · 16097 이 정보 모으기에 한 번도 못 닿았다
+    expect(놀이막기(넷째, 지도줄 as never, 판들(넘김판))).toContain(`stage:넷째 맵 를 ${넘김판}판 해 보고 못 깼다 — 다음 맵으로 넘기기 전에 이 곳에서 정보 모으기를 한 번 한다`);
+    expect(남은깰곳(지도줄 as never, 판들(넘김판)).join('\n')).toContain('정보 모으기 남은 곳 1(stage:넷째 맵)');
+    const 모음: 판기록 = { 이름: '20261126070000000-정보모으기', 값: { 정보모으기: { 곳: 'stage:넷째 맵', 단계: 3 } }, 치트: true };
+    expect(놀이막기(넷째, 지도줄 as never, [...판들(넘김판), 모음])).toContain(`stage:넷째 맵 를 ${넘김판}판 해 보고 못 깼다 — 다음 맵(`);
+    expect(남은깰곳(지도줄 as never, [...판들(넘김판), 모음]).join('\n')).not.toContain('stage:넷째 맵');
+    const 못모음 = 지도줄.map((x) => (x.key === 'stage:넷째 맵' ? 깰곳('stage:넷째 맵', { 정보못모음: '웨이브 넘기는 함수가 없다' }) : x));
+    expect(놀이막기(넷째, 못모음 as never, 판들(넘김판))).toContain('다음 맵(');
     expect(남은깰곳(지도줄 as never, 판들(넘김판 - 1)).join('\n')).toContain('stage:넷째 맵');
     expect(곳안늚(회고들([3, 3, 2, 3, 3, 1]) as never, 'stage:넷째 맵', 5)).not.toBeNull();
     expect(곳안늚(회고들([3, 3, 2, 3, 3, 1]) as never, 'stage:셋째 맵', 5)).toBeNull();

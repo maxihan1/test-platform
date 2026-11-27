@@ -7,7 +7,7 @@ import { type 배운것, 요소종류 } from '../apps/admin/src/prd/gameKinds.js
 import { 근거들, 바뀜, 적은줄들, 지금지도, 지도읽기 } from './authoring-game-find.js';
 import { 게임자리, 글받기, 요소상한, 지도상한 } from './authoring-game.js';
 import { 부른다 } from './authoring-io.js';
-import { 판기록들 } from './authoring-learn-check.js';
+import { 판기록들, 회고기록이름 } from './authoring-learn-check.js';
 import { 글자들, 사람줄 } from './authoring-learn-map.js';
 import { 곳글, 곳셈 } from './authoring-learn-play.js';
 import { 옮김읽기, 이을번호 } from './authoring-learn-prd.js';
@@ -29,6 +29,11 @@ export interface 학습상태 {
   남은화면?: string[];
   /** 게임 배우기가 끝나 곳마다 깨 보는 단계 — 없으면 게임 배우기 단계다. 조작 도우미 · 적는 명령도 이것을 읽는다 */
   단계?: '게임플레이';
+  /**
+   * 게임플레이를 다시 시작한 때(판 기록 이름과 같은 UTC 17자리 `YYYYMMDDhhmmssSSS`) — 이보다 앞선 판 기록 · 회고는 곳마다 판 수 · 세 판 안 늚 · 손 세 번에 안 센다.
+   * 지도 · 판 기록 파일은 그대로 둔다. 판 함수를 고쳐 다시 깨 볼 때 감시하는 사람이 적는다(2026-11-27 사용자)
+   */
+  놀이시작?: string;
 }
 
 /** 이름 — 앱 배우기는 같은 꼴을 다른 파일(app-learn.json)에 쓴다 */
@@ -47,10 +52,21 @@ export function 상태읽기(자료: string, 이름: string = 게임자리.학�
       열쇠: Array.isArray(몸.열쇠) ? 몸.열쇠.filter((k): k is string => typeof k === 'string') : [],
       ...(Array.isArray(몸.남은화면) ? { 남은화면: 몸.남은화면.filter((k): k is string => typeof k === 'string') } : {}),
       ...(몸.단계 === '게임플레이' ? { 단계: 몸.단계 } : {}),
+      ...(typeof 몸.놀이시작 === 'string' && /^\d{17}$/.test(몸.놀이시작) ? { 놀이시작: 몸.놀이시작 } : {}),
     };
   } catch {
     return 없음;
   }
+}
+/** 다시 시작한 때 뒤의 판 기록만 — 다시 시작하지 않았으면 그대로 */
+export function 놀이시작뒤<T extends { 이름: string }>(자료: string | undefined, 기록들: readonly T[]): T[] {
+  const 시작 = 자료 === undefined ? undefined : 상태읽기(자료).놀이시작;
+  return 시작 === undefined ? [...기록들] : 기록들.filter((r) => r.이름 >= 시작);
+}
+/** 다시 시작한 때 앞의 회고 줄(play:<기록 이름>)을 뺀 지도 줄 — 다른 줄은 그대로 */
+export function 놀이회고뒤<T extends { key: string }>(자료: string | undefined, 줄들: readonly T[]): T[] {
+  const 시작 = 자료 === undefined ? undefined : 상태읽기(자료).놀이시작;
+  return 시작 === undefined ? [...줄들] : 줄들.filter((x) => (회고기록이름(x.key) ?? 시작) >= 시작);
 }
 export const 상태쓰기 = (자료: string, 상태: 학습상태, 이름: string = 게임자리.학습): void => 새로쓰기(join(자료, 이름), JSON.stringify(상태));
 
@@ -147,7 +163,7 @@ export async function 학습끝줄(통로: 화면통로, 자료: string, 비밀:
   if (상태.쓴ms === 0) return 상태.안함 === undefined ? [] : [`게임 학습: 안 함 — ${상태.안함}`];
   const 올림 = 안전히읽기(자료, 게임자리.배운글, 요소상한) === null ? { 열쇠: [], 못올림: [] } : await 배움올리기(통로, 자료, 비밀);
   const 지도 = 지금지도(자료);
-  const 곳들 = 상태.단계 === undefined || 지도 === null ? [] : 곳셈(지도.줄들, 판기록들(자료));
+  const 곳들 = 상태.단계 === undefined || 지도 === null ? [] : 곳셈(지도.줄들, 놀이시작뒤(자료, 판기록들(자료)));
   return [
     `게임 학습: 세션 ${상태.세션}번 · ${Math.round(상태.쓴ms / 분)}분 — 시험: ${상태.시험 ?? '못 봄'}`,
     ...(상태.단계 === undefined ? [] : [`게임플레이: ${곳들.length === 0 ? '깰 곳을 못 적음' : 곳들.map(곳글).join(' · ')}`]),

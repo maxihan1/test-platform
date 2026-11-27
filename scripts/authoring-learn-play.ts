@@ -49,9 +49,9 @@ export const 맵빈곳 = (줄들: readonly 줄[]): string[] => 곳줄들(줄들)
 
 /**
  * 한 곳을 이만큼 해 보고 못 깨면 그 곳은 이번에 더 안 하고 다음 맵을 해 본다. 그 곳은 게임플레이 단계에서 다시 깬다(2026-11-27 사용자 「5판동안 하고 못깨면 게임플레이 단계에서 깨는걸로」 · 「다음 맵을 시도」).
- * 50판으로 끊던 것은 둘째 맵 하나에 세 시간이 넘었다. 못깸으로 닫지 않는다
+ * 50판으로 끊던 것은 둘째 맵 하나에 세 시간이 넘었다. 못깸으로 닫지 않는다. 5판은 맵마다 쓸 수단을 다 못 써 보고 넘어가 10판으로 올렸다(2026-11-27 사용자)
  */
-export const 넘김판 = 5;
+export const 넘김판 = 10;
 
 /** 계획이 쓸 계산 줄마다 지금 data JSON — 판 기록에 남겨 다음 계획 때 고쳤나를 본다 */
 export const 계산찍기 = (쓸것: readonly string[], 줄들: readonly 줄[]): Record<string, string> =>
@@ -126,7 +126,8 @@ export function 판결과(기록: 판기록, 결: 결과): '깸' | '짐' | null 
   return 맞나(결.깸) ? '깸' : 맞나(결.짐) ? '짐' : null;
 }
 
-export interface 곳판 { 열쇠: string; 판: number; 깸: number; 못깸?: string }
+/** 정보 — 그 곳에서 정보 모으기를 했거나(웨이브를 한 단계라도 넘긴 기록) 못 하는 이유(STAGE data.정보못모음)를 적었다 */
+export interface 곳판 { 열쇠: string; 판: number; 깸: number; 못깸?: string; 정보?: true }
 
 /** 계획 줄이 적은 곳 — 판 기록의 계획에서 곳을 찾는다 */
 export const 계획곳 = (줄들: readonly 줄[], 계획: string): unknown => 칸(줄들.find((x) => x.key === 계획 && x.learned !== null)).곳;
@@ -140,7 +141,8 @@ export function 곳셈(줄들: readonly 줄[], 기록들: readonly 판기록[]):
     // 정보 모으기가 웨이브를 넘긴 판(치트)이 이어진 기록도 판이 아니다 — 넘긴 웨이브가 깸으로 읽힌다
     const 들 = 기록들.flatMap((r) => (r.값기록 !== undefined && r.멈춤 === undefined && r.치트 !== true && 계획곳(줄들, r.값기록.계획) === x.key ? [판결과(r, 결)] : [])).filter((v) => v !== null);
     const d = 칸(x);
-    return [{ 열쇠: x.key, 판: 들.length, 깸: 들.filter((v) => v === '깸').length, ...(d.상태 === '못깸' && 글인가(d.까닭) ? { 못깸: d.까닭 } : {}) }];
+    const 모음 = 기록들.some((r) => { const 정 = 객체(객체(r.값).정보모으기); return 정.곳 === x.key && typeof 정.단계 === 'number' && 정.단계 > 0; }) || 글인가(d.정보못모음);
+    return [{ 열쇠: x.key, 판: 들.length, 깸: 들.filter((v) => v === '깸').length, ...(d.상태 === '못깸' && 글인가(d.까닭) ? { 못깸: d.까닭 } : {}), ...(모음 ? { 정보: true as const } : {}) }];
   });
 }
 
@@ -150,7 +152,12 @@ export function 남은깰곳(줄들: readonly 줄[], 기록들: readonly 판기�
   if (셈.length === 0) return ['깰 곳(data.결과 가 있는 STAGE)이 없다'];
   // 넘김판을 해 본 곳은 이번에 더 안 한다 — 남은 것으로 세면 다음 맵이 없을 때 끝나지 않는다
   const 남은 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 < 넘김판);
-  return 남은.length === 0 ? [] : [`아직 못 깬 곳 ${남은.length}(${남은.slice(0, 5).map((x) => `${x.열쇠} ${x.판}판`).join(' · ')})`];
+  // 넘김판을 하고도 못 깬 곳은 정보 모으기를 한 번 해야 넘어간다 — 같은 판 수에서 맵이 먼저 닫혀 정보 모으기에 한 번도 못 닿았다(2026-11-27 16094 · 16097)
+  const 모을곳 = 셈.filter((x) => x.깸 === 0 && x.못깸 === undefined && x.판 >= 넘김판 && x.정보 !== true);
+  return [
+    ...(남은.length === 0 ? [] : [`아직 못 깬 곳 ${남은.length}(${남은.slice(0, 5).map((x) => `${x.열쇠} ${x.판}판`).join(' · ')})`]),
+    ...(모을곳.length === 0 ? [] : [`정보 모으기 남은 곳 ${모을곳.length}(${모을곳.slice(0, 5).map((x) => x.열쇠).join(' · ')})`]),
+  ];
 }
 
 /** 곳의 맵 정보 — 그 곳 STAGE 의 맵 종류(`<곳>#<종류>`, 없음이 아닌 것)와 data.곳 이 그 곳인 줄(계획 · 회고 빼고) */
@@ -174,6 +181,9 @@ export function 놀이막기(계획: { 곳?: string; 쓸것?: readonly string[] 
   const 셈 = 곳셈(줄들, 기록들).find((x) => x.열쇠 === 계획.곳);
   if (셈 === undefined) return `${계획.곳} 는 깰 곳이 아니다 — 그 STAGE 줄에 data.결과 { 주소, 칸?, 깸, 짐 } 을 먼저 적는다`;
   if (셈.못깸 !== undefined) return `${계획.곳} 는 못깸으로 적었다 — 아직 못 깬 다른 곳을 해 본다`;
+  if (셈.깸 === 0 && 셈.판 >= 넘김판 && 셈.정보 !== true) {
+    return `${계획.곳} 를 ${셈.판}판 해 보고 못 깼다 — 다음 맵으로 넘기기 전에 이 곳에서 정보 모으기를 한 번 한다(\`npx tsx scripts/authoring-game-info.ts <자료 폴더> ${계획.곳} --call '<주소>|<컴포넌트.메서드>'\` · 지침 「${넘김판}판 해 보고도 못 깨면」). 웨이브를 넘기는 함수가 없어 못 하면 그 STAGE 줄 data.정보못모음 에 이유를 적는다`;
+  }
   if (셈.깸 === 0 && 셈.판 >= 넘김판) return `${계획.곳} 를 ${셈.판}판 해 보고 못 깼다 — 다음 맵(아직 ${넘김판}판을 안 해 본 깰 곳)을 해 본다. 이 곳은 게임플레이 단계에서 다시 깬다`;
   // 배우기에서 파악한 맵을 쓰게 — 한 칸씩 찍어 보며 놓을 자리를 찾던 것을 되풀이하지 않게(#16053)
   const 맵 = new Set(곳맵(줄들, 계획.곳).map((x) => x.열쇠));
