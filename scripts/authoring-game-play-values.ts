@@ -59,6 +59,9 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
   let 이어 = 0;
   let 첫못함: string | null = null;
   let 깨운다: (() => void) | undefined;
+  // 볼값마다 처음 읽힌 값 — 이것에서 하나라도 바뀌기 전에는 기대를 안 본다. 첫 읽기는 앞 판 끝 화면일 수 있다(#16054 · #16058 세계수 0 을 새 판 값으로 읽고 0초에 멈췄다)
+  const 처음: Record<string, number> = {};
+  let 움직임 = false;
   const 고리 = (async (): Promise<void> => {
     for (let 첫 = true; 서있다 && 이어 < 이어실패한도; 첫 = false) {
       if (!첫) {
@@ -78,7 +81,12 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       첫못함 ??= r.못함;
       이어 = Object.values(r.값).every((v) => v === null) ? 이어 + 1 : 0;
       기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }) });
-      const g = 기록.어긋남 === null ? 어긋난기대(기대들, r.값) : null;
+      for (const [k, v] of Object.entries(r.값)) {
+        if (v === null) continue;
+        처음[k] ??= v;
+        if (처음[k] !== v) 움직임 = true;
+      }
+      const g = 기록.어긋남 === null && 움직임 ? 어긋난기대(기대들, r.값) : null;
       if (g === null) continue;
       기록.어긋남 = { 초, 값이름: g.값, 값: r.값[g.값]!, 기대: 기대글(g) };
       // 같은 순간 — 숫자를 읽은 바로 뒤에 찍는다. 못 찍어도 숫자는 남는다

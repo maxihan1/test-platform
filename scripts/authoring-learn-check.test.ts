@@ -109,6 +109,22 @@ describe('계획 숫자 읽기 — 2초마다 읽고 처음 어긋난 순간 사
     expect(화면다른것([{ 초: 0, 값: { 가: 3 }, 화면: { 가: 3 } }], [{ 이름: '가', 주소: 'a', 칸: 'b', 화면: 'c' }])).toEqual([]);
   });
 
+  it('첫 읽기 값이 안 바뀐 동안은 기대를 안 본다 — 앞 판 끝 화면(세계수 0)을 새 판 값으로 읽고 0초에 멈췄다(#16054 · #16058)', async () => {
+    const 읽을값 = [0, 0, 0, 100, 90, 80, 70, 60];
+    let 찍음 = 0;
+    const 게임 = {
+      get: async () => 읽을값.shift() ?? 60,
+      text: async () => '',
+      screenshot: async () => (찍음 += 1, Buffer.from('jpg')),
+    };
+    const 고리 = 값읽기시작(게임 as never, 'trial:첫 맵', [{ 이름: '세계수', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }], [{ 값: '세계수', 비교: '>=', 기준: 50 }], Date.now(), 5);
+    await new Promise((끝) => setTimeout(끝, 60));
+    const r = await 고리.끝난다();
+    expect(r.기록.때.slice(0, 4).map((x) => x.값.세계수)).toEqual([0, 0, 0, 100]);
+    expect(r.기록.어긋남).toBeNull();
+    expect(찍음).toBe(0);
+  });
+
   it('화면 글자의 서식 태그 안 숫자는 안 읽는다 — #16052 웨이브가 늘 600 이었다', () => {
     expect(수로('<font-weight="600">2/6</font-weight>')).toBe(2);
     expect(수로('<color=red>3</color><size=14>6</size>')).toBe(3);

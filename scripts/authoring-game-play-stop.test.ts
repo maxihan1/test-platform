@@ -74,10 +74,12 @@ describe('판 중간 멈춤', () => {
     const 자료 = 폴더();
     const 명령: string[] = [];
     let 배율 = 1;
+    // 첫 읽기 값에서 바뀐 뒤부터 기대를 본다 — 첫 읽기는 앞 판 끝 화면일 수 있다
+    const 세계수 = [40];
     const 길 = (async (c: Command) => {
       const cmd = c as unknown as Record<string, unknown>;
       명령.push(String(cmd.cmd));
-      if (cmd.cmd === 'get') return { ok: true, value: 20 };
+      if (cmd.cmd === 'get') return { ok: true, value: 세계수.shift() ?? 20 };
       if (cmd.cmd === 'timescale') return { ok: true, scale: 배율 };
       if (cmd.cmd === 'timescale-set') return ((배율 = Number(cmd.scale)), { ok: true });
       if (cmd.cmd === 'logs') return { ok: true, last: 0, logs: [] };
@@ -90,7 +92,7 @@ describe('판 중간 멈춤', () => {
     void 판.finally(() => (끝 = true));
     for (let i = 0; i < 60 && !끝; i += 1) await vi.advanceTimersByTimeAsync(1_000);
     const r = await 판;
-    expect(r.오류).toContain('판 중간 멈춤 — 기대 세계수 >= 30 가 0초에 깨짐(세계수 20)');
+    expect(r.오류).toContain('판 중간 멈춤 — 기대 세계수 >= 30 가 2초에 깨짐(세계수 20)');
     expect(r.걸린ms).toBeLessThan(15_000);
     expect(배율).toBe(0);
     expect(r.멈춤).toMatchObject({ 값: { 세계수: 20 } });
