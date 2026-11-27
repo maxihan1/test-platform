@@ -114,7 +114,7 @@ const 종류별: Record<string, { 역할?: string; 화면: string; 규칙: strin
     규칙: [
       '재료에 kind "DEVICE" 가 있으면 기기 성능 측정이다 — 아래 「기기 측정」 규칙을 따르고 markers 를 낸다.',
       '기기 측정: title 은 측정 결과 한 줄, items 는 1~10개다. 재료의 기기별 summary(평균 GPU 사용률 avgGpu 포함) · verdict · 구간마다(segments) · 회차별 메모리 최대와 스터터(분당 — loops.maxMemMb · loops.jankPerMin) · 열 상태가 바뀐 초(thermal — 0~6, 1 이상이면 열 제한) · PC 사양(spec) · 메모리 누수 의심(leak)으로만 말한다.',
-      '기기 측정 항목은 「FPS 급락: …」 「배터리 온도 초과: …」 「로딩 증가: …」 「메모리 누수 의심: …」 「끊김 증가: …」 「열 제한: …」 꼴이다. leak 이 있으면 회차마다 늘어난 MB(perLoopMb)와 목표를 넘을 때까지 남은 회차(loopsToLimit)를 그대로 쓴다.',
+      '기기 측정 항목은 「FPS 급락: …」 「배터리 온도 초과: …」 「로딩 증가: …」 「메모리 누수 의심: …」 「스터터 증가: …」 「열 제한: …」 꼴이다. leak 이 있으면 회차마다 늘어난 MB(perLoopMb)와 목표를 넘을 때까지 남은 회차(loopsToLimit)를 그대로 쓴다.',
       '1회차에만 끊김이 몰리면(loops.jankPerMin) 「셰이더 컴파일 의심」을 쓸 수 있다. FPS 가 떨어질 때 GPU 사용률이 100% 가까우면 GPU 쪽 병목이다.',
       'markers 는 「AI가 표시한 장면」이다 — 급락 · 초과 · 증가 시점을 { serial, sec, label } 로 20개까지 고른다. serial 은 재료의 기기, sec 는 그 기기의 firstSec~lastSec 안이어야 한다. 재료로 시점을 알 수 없으면 만들지 않는다.',
       '재료에 kind "PAGE" 가 있으면 페이지 단독 측정이다 — 아래 「페이지 측정」 규칙만 따르고 pages 를 낸다. 없으면 서버 부하 실행이다.',

@@ -141,4 +141,15 @@ describe.skipIf(연결 === undefined)('대시보드 프로젝트 요약', () => 
     expect(perf.game).toMatchObject({ serviceName: 'XDPG', device: 'Galaxy S21', avgFps: 58, freezeCount: 2, maxTempC: 38.4, launchMs: 1200, pc: false });
     expect(perf.app).toBeNull();
   });
+
+  it('PC 게임(game_platform windows)이면 게임 성능에 pc 가 true 다 — 화면이 배터리 온도 대신 스터터를 보인다', async () => {
+    await pool.query(`UPDATE service SET game_platform = 'windows' WHERE id = $1`, [게임.id]);
+    try {
+      const { perf } = await 프로젝트요약읽기([웹, 게임], [웹.id]);
+      expect(perf.game).toMatchObject({ serviceName: 'XDPG', pc: true });
+      expect(perf.game).toHaveProperty('jankPerMin');
+    } finally {
+      await pool.query(`UPDATE service SET game_platform = 'android' WHERE id = $1`, [게임.id]);
+    }
+  });
 });

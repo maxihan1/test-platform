@@ -141,7 +141,8 @@ export async function 프로젝트요약읽기(서비스들: 볼서비스[], 작
   const 페이지들 = await 페이지줄(페이지실행.map((r) => Number(r.id)));
   const 종류 = new Map(서비스들.map((s) => [s.id, s.kind]));
   const 기기실행 = (k: 앱종류) => 성능.filter((r) => r.kind === 'DEVICE' && 종류.get(Number(r.service_id)) === k);
-  const PC들 = new Set((await pool.query<{ id: string }>(`SELECT id FROM service WHERE id = ANY($1::bigint[]) AND game_platform = 'windows'`, [ids])).rows.map((r) => Number(r.id)));
+  // 게임 측정이 있을 때만 PC 게임인지 묻는다 — 웹 · API 만 있는 프로젝트에 조회를 하나 더 붙이지 않는다
+  const PC들 = 기기실행('GAME').length === 0 ? new Set<number>() : new Set((await pool.query<{ id: string }>(`SELECT id FROM service WHERE id = ANY($1::bigint[]) AND game_platform = 'windows'`, [ids])).rows.map((r) => Number(r.id)));
   const [게임숫자들, 앱최근, 부하최근] = await Promise.all([
     Promise.all(기기실행('GAME').map(async (r) => [Number(r.service_id), await 기기숫자(r, 이름.get(Number(r.service_id)) ?? '', PC들.has(Number(r.service_id)))] as const)),
     (async () => { const r = 가장최근(기기실행('APP')); return r === null ? null : 기기숫자(r, 이름.get(Number(r.service_id)) ?? ''); })(),
