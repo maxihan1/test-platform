@@ -325,6 +325,9 @@ describe('실행 — 자식이 첫 세션을 끝내기 전에 스스로 검사',
     쓰기('game-route.json', { rows: [상점행, 끝빈칸, 팝업] });
     expect(실행([자료])).toBe(1);
     expect(console.log).toHaveBeenCalledWith(expect.stringMatching(/^못 지남: game-route\.json 에 서버가 거절할 행이 있다 — rows\.1\.fromKey · rows\.2\.action /));
+    const 맞는팝업 = { kind: 'POPUP', fromKey: 'game:Main/Canvas/Event', action: '/Canvas/Event/Close', status: 'OK' };
+    쓰기('game-route.json', { rows: [상점행, 맞는팝업], remove: [{ kind: 'POPUP', fromKey: 'game:Main/Canvas/Event', action: '/Canvas/Event/Close' }] });
+    expect(실행([자료])).toBe(0);
   });
 });
 
