@@ -53,7 +53,7 @@ function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 
     if (열쇠 === 나아감열쇠 && 나아감자리(l.data) === null) return `${열쇠} — data 에 얼마나 나아갔나를 읽을 자리를 { 주소, 칸? } 로 적는다(깬 맵 수 · 레벨 · 해금 수)`;
     const 상태 = 객체(l.data).상태;
     if (x.kind === 'STAGE' && 상태 !== undefined && !(상태 === '가봄' || 상태 === '안감' || ((상태 === '못감' || 상태 === '못깸') && typeof 객체(l.data).까닭 === 'string'))) return `${열쇠} — data.상태 는 가봄 · 안감 · 못감 · 못깸이다(못감 · 못깸은 data.까닭)`;
-    const 곳틀림 = x.kind === 'STAGE' ? (맵검사(l.data, 기록들) ?? (typeof 결과읽기(l.data) === 'string' ? (결과읽기(l.data) as string) : null) ?? 시뮬불가검사(열쇠, l.data, 찾기)) : null;
+    const 곳틀림 = x.kind === 'STAGE' ? (맵검사(l.data, 기록들) ?? (typeof 결과읽기(l.data) === 'string' ? (결과읽기(l.data) as string) : null) ?? 시뮬불가검사(열쇠, l.data, 찾기, 객체(l.data).시뮬불가 === undefined ? 0 : (곳셈([...지금.줄들.filter((y) => !이번.has(y.key)), ...줄들.map((y) => ({ kind: y.kind as string, key: y.key as string, learned: y.learned as 배운것 | null }))], 기록들).find((y) => y.열쇠 === 열쇠)?.깸 ?? 0))) : null;
     if (곳틀림 !== null) return `${열쇠} — ${곳틀림}`;
     if (x.kind === 'STAGE' && 상태 === '못깸') {
       // 못 깨면 넘어가는 길로 쓰지 않게 — 그 곳을 넘김판만큼 해 봐야 못깸이다(2026-11-26 사용자 「깨게 만들어야지」 · 11-27 50판을 뺌)

@@ -120,6 +120,10 @@ export const 짐글 = (r: Pick<시뮬결과, '짐'>): string => (r.짐 === undef
  * 결과는 CALC 줄 data 에 그대로 실리니 판마다 늘어나는 예상 · 행동기록은 안 싣는다(게이트가 다시 돌려 얻는다)
  */
 export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일글: string, 파일: string): { 글: string; 줄글: string[]; 결과: Record<string, unknown>; 입력요약: Record<string, unknown> } | { 틀림: string } {
+  // 유지 값은 판 · 지도 규칙에서 잰 값이어야 한다 — 근거 줄이 지도에 있나 본다(16102 는 지침 예시 숫자를 베껴 깬 맵까지 이기는 안이 없다고 냈다)
+  const 지도 = 자료 === undefined ? null : 지금지도(자료);
+  const 없는근거 = 지도 === null ? [] : Object.values(모델.설치물종류).flatMap((t) => (t.유지 === undefined || 지도.줄들.some((x) => x.key === t.유지!.근거 && x.learned !== null) ? [] : [t.유지.근거]));
+  if (없는근거.length > 0) return { 틀림: `유지 근거 ${없는근거.join(' · ')} 가 지도에 없다 — 유지 값은 그 게임에서 잰 값이고, 잰 지도 줄 열쇠를 근거로 적는다(지침 예시 숫자를 쓰지 않는다)` };
   const 잰 = 자료 === undefined ? { 행동초: 행동초첫값 } : 손재기(자료, 모델.곳);
   // 지어낸 빠른 손을 막는다 — 잰 값보다 빠르게 적었으면 잰 값
   const m: 모델 = { ...모델, 손: { 행동초: Math.max(모델.손.행동초, 잰.행동초) } };

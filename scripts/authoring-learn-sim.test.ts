@@ -54,7 +54,7 @@ const 지도쓰기 = (들: 줄[]): void => {
 const 계획 = { 곳, 쓸것: ['calc:가'], 볼값: [{ 이름: '웨이브', 주소: '/w' }, { 이름: '세계수', 주소: '/t' }] };
 const 정책 = (c: 줄): unknown => (c.learned!.data.결과 as { 정책: unknown }).정책;
 const 판쓰기 = (이름: string, 행동기록: unknown[], 계산: Record<string, string>, 어긋남: unknown = null, 웨이브 = 3): void =>
-  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false, 행동기록 }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [{ 초: 0, 값: { 웨이브 } }], 어긋남, 화면다름: [], 계산 } }));
+  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false, 행동기록 }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [{ 초: 0, 값: { 웨이브: 1 } }, { 초: 2, 값: { 웨이브 } }], 어긋남, 화면다름: [], 계산 } }));
 const 막기 = (계: typeof 계획, 들: 줄[], ...남은: [string, Parameters<typeof 시뮬막기>[3], unknown[]]) => 시뮬막기(계, 들 as never, ...남은);
 const 기록들 = async () => (await import('./authoring-learn-check.js')).판기록들(자료);
 
@@ -108,6 +108,24 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들(), [정책(다시)])).toMatchObject({ 막음: expect.stringContaining('행동기록을 안 돌려줬다') });
   });
 
+  it('유지 근거가 지도에 없는 열쇠면 계산이 받지 않는다 — 지침 예시 숫자를 베낀 값을 막는다(16102)', () => {
+    const 유지입력 = (근거: string) => 입력({ 설치물종류: [{ 이름: '탑', 유지: { 체력: 50, 초당감소: 0.01, 다하면: '멈춤', 근거 }, 레벨: [{ 값: 0, 사거리: 3, 공격력: 5, 간격: 2 }] }] });
+    지도쓰기([곳줄(), 계획줄, 줄('RULE', 'rule:식물 유지', { 곳 })]);
+    const 경로 = join(자료, 'game-calc', '유.json');
+    const 글 = (x: Record<string, unknown>) => (writeFileSync(경로, JSON.stringify(x)), JSON.stringify(x));
+    expect(시뮬(유지입력('rule:없는 줄'), { 경로, 글: 글(유지입력('rule:없는 줄')) })).toMatchObject({ 틀림: expect.stringContaining('rule:없는 줄') });
+    expect(시뮬(유지입력('rule:식물 유지'), { 경로, 글: 글(유지입력('rule:식물 유지')) })).not.toHaveProperty('틀림');
+  });
+
+  it('판에 못 들어간 계획 판(행동기록이 비고 값이 한 번도 안 움직임)은 마지막 판으로 안 쳐 그 곳을 잠그지 않는다(16100 첫 맵 · 둘째 맵)', async () => {
+    const c = 계산줄('가', 입력());
+    지도쓰기([곳줄(), 계획줄, c]);
+    판쓰기('20261128000000000-판', [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 도착초: 0, 끝초: 1.5 }], { 'calc:가': JSON.stringify(c.learned!.data) });
+    const 다시 = 계산줄('가', 입력());
+    판쓰기('20261128000100000-정책판', [], { 'calc:가': JSON.stringify(다시.learned!.data) }, null, 1);
+    expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들(), [정책(다시)])).toHaveProperty('기대');
+  });
+
   it('판이 시뮬과 어긋났으면 그 판 행동기록으로 재현해 같은 웨이브(±1)에서 져야 다음 판이 돈다', async () => {
     const c = 계산줄('가', 입력());
     지도쓰기([곳줄(), 계획줄, c]);
@@ -133,6 +151,7 @@ describe('시뮬불가 — 판 없이 넘기고 다른 맵을 다 돈 뒤 한 �
     const 이김 = 계산줄('나', 입력());
     const 찾기 = (k: string) => [짐, 이김].find((x) => x.key === k) as never;
     expect(시뮬불가검사(곳, 불가곳(짐).learned!.data, 찾기)).toBeNull();
+    expect(시뮬불가검사(곳, 불가곳(짐).learned!.data, 찾기, 2)).toContain('판에서 2판 깬 적이 있다');
     expect(시뮬불가검사(곳, 불가곳(이김).learned!.data, 찾기)).toContain('이기는 안이 있다');
     expect(시뮬불가검사('stage:다른', 불가곳(짐).learned!.data, 찾기)).toContain('시뮬 CALC 줄이 아니다');
     expect(시뮬불가검사(곳, { 시뮬불가: { 계산: 'calc:가' } }, 찾기)).toContain('data.시뮬불가 는');
