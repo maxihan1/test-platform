@@ -118,6 +118,16 @@ describe('멈춰 가며 하기', () => {
     expect(시험판.배율()).toBe(1);
   });
 
+  it('학습 세션에서 계획으로 부른 판은 함수가 스스로 끝나도 멈춘 채 돌려준다 — 회고를 적는 동안 판이 혼자 흘러 졌다(16098 첫 맵 5/6 세계수 49)', async () => {
+    const 학습 = 새자료();
+    writeFileSync(join(학습, 'game-learning.now'), '1');
+    const g = 가짜(1);
+    const r = await 돌린다(g.길, 읽기만, {}, 5_000, undefined, { 자료: 학습, 볼: { 계획: 'trial:가', 볼값: [], 기대: [] } });
+    expect(r.오류).toBeUndefined();
+    expect(g.배율()).toBe(0);
+    expect(멈춤표시읽기(학습)?.배율).toBe(1);
+  });
+
   it('표시의 풀 값이 0 이면 풀 것이 없다 — 표시를 지우고 판이 안 흐른다고 알린다', async () => {
     const d = 새자료();
     멈춤표시쓰기(d, 0);

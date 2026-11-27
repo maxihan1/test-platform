@@ -116,6 +116,28 @@ describe('계획 숫자 읽기 — 2초마다 읽고 처음 어긋난 순간 사
     expect(화면다른것([{ 초: 0, 값: { 가: 3 }, 화면: { 가: 3 } }], [{ 이름: '가', 주소: 'a', 칸: 'b', 화면: 'c' }])).toEqual([]);
   });
 
+  it('판을 연 뒤 곧 장면이 바뀌면 그 앞 읽기(앞 판 결과 화면 값)는 버리고, 한참 뒤 바뀐 장면은 버리지 않는다', async () => {
+    const 가짜 = (): { get: () => Promise<number>; text: () => Promise<string>; screenshot: () => Promise<Buffer>; scenes: () => Promise<{ active: string }> } => {
+      let n = 0;
+      return {
+        get: async () => (n < 3 ? -4 : 50),
+        text: async () => (n < 3 ? '웨이브 6' : '웨이브 1'),
+        screenshot: async () => Buffer.from('jpg'),
+        scenes: async () => ({ active: n++ < 3 ? 'Stage2' : 'Stage3' }),
+      };
+    };
+    const 볼 = 계획읽기(계획data) as Exclude<ReturnType<typeof 계획읽기>, string>;
+    const 새판 = 값읽기시작(가짜() as never, 'trial:셋째', 볼.볼값, 볼.기대, Date.now(), 5);
+    await new Promise((끝) => setTimeout(끝, 60));
+    const r = await 새판.끝난다();
+    expect(r.기록.때.length).toBeGreaterThan(0);
+    expect(r.기록.때.every((t) => t.값.웨이브 === 1 && t.값.세계수 === 50)).toBe(true);
+    expect(r.기록.어긋남).toBeNull();
+    const 늦게 = 값읽기시작(가짜() as never, 'trial:셋째', 볼.볼값, 볼.기대, Date.now() - 60_000, 5);
+    await new Promise((끝) => setTimeout(끝, 60));
+    expect((await 늦게.끝난다()).기록.때.some((t) => t.값.웨이브 === 6)).toBe(true);
+  });
+
   it('위치를 적으면 2초마다 같이 읽고, 서 있던 비율은 이웃한 두 읽기의 가로 거리(높이 뺌)가 0.3 미만인 쌍의 비율이다', async () => {
     const 자리 = [[0, 0, 0], [0.1, 5, 0.1], [3, 0, 0], [3, 0, 0.2]];
     let n = 0;

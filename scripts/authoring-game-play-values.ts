@@ -10,10 +10,12 @@ export const 서있음거리 = 0.3;
 const 끝기다림ms = 3_000;
 /** 이만큼 지나면 첫 읽기에서 안 바뀐 값도 기대를 본다 — 판이 처음부터 기대를 깬 채 멈춰 있는 것까지 놓치지 않게. 앞 판 끝 화면은 함수 첫 동작(넘기기) 뒤 몇 초 안에 바뀐다 */
 export const 첫값유예ms = 10_000;
+/** 판을 연 뒤 이 안에 장면이 바뀌면 그 앞 읽기는 앞 판 결과 화면이라 버린다(첫 값). 판이 끝나 결과 장면으로 가는 것은 이보다 늦어 버리지 않는다 */
+export const 앞판장면ms = 20_000;
 
 const 까닭 = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
-type 읽을게임 = Pick<Game, 'get' | 'text' | 'screenshot'>;
+type 읽을게임 = Pick<Game, 'get' | 'text' | 'screenshot'> & Partial<Pick<Game, 'scenes'>>;
 
 export interface 값읽는고리 {
   그친다: () => void;
@@ -89,6 +91,11 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
   // 값마다 따로 본다 — 웨이브가 먼저 바뀌어도 세계수는 아직 앞 판 값일 수 있다
   const 처음: Record<string, number> = {};
   const 움직인 = new Set<string>();
+  // 새 판을 여는 부르기는 앞 판 결과 화면에서 시작한다 — 장면이 바뀌기 전 읽기가 기록에 남아 나아감이 부풀었다(16098 셋째 맵 첫 읽기 웨이브 6 · 세계수 -4)
+  let 첫장면: string | null = null;
+  let 장면바뀜 = false;
+  // 옛 SDK 는 장면을 못 읽는다 — 못 읽으면 버리지 않는다
+  const 장면읽기 = (): Promise<string | null> => (게임.scenes === undefined ? Promise.resolve(null) : 게임.scenes().then((x) => (typeof x.active === 'string' ? x.active : null), () => null));
   const 고리 = (async (): Promise<void> => {
     for (let 첫 = true; 서있다; 첫 = false) {
       if (!첫) {
@@ -103,9 +110,10 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       }
       const 초 = (Date.now() - 시작) / 1000;
       // 위치는 숫자와 같이 읽는다 — 뒤에 따로 읽으면 기대 확인 · 어긋난 순간 사진이 늦고 위치 간격도 흔들린다
-      const [r, 위치답] = await Promise.all([
+      const [r, 위치답, 장면] = await Promise.all([
         한번읽기(게임, 볼),
         위치 === undefined ? undefined : 게임.get(위치.주소, 위치.칸).then((v) => ({ v: 세수로(v), 못함: null }), (e: unknown) => ({ v: null, 못함: 까닭(e) })),
+        장면바뀜 ? Promise.resolve(null) : 장면읽기(),
       ]);
       // 못 읽거나 세 수로 못 바꾸면 null — 서 있던 비율은 둘 다 읽힌 쌍만 센다. 까닭은 못함으로 알린다(주소 · 칸을 틀리게 적었을 수 있다)
       const 자리 = 위치답?.v;
@@ -113,6 +121,19 @@ export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: reado
       // 끝난다가 기록을 돌려준 뒤 늦게 끝난 읽기다 — 저장된 기록 · 마지막 화면 찍기와 엇갈리지 않게 버린다
       if (!서있다) return;
       첫못함 ??= r.못함 ?? (위치못함 === null ? null : `위치: ${위치못함}`);
+      if (장면 !== null && !장면바뀜) {
+        첫장면 ??= 장면;
+        if (장면 !== 첫장면) {
+          장면바뀜 = true;
+          if (초 * 1000 < 앞판장면ms) {
+            기록.때 = [];
+            기록.어긋남 = null;
+            사진 = undefined;
+            for (const k of Object.keys(처음)) delete 처음[k];
+            움직인.clear();
+          }
+        }
+      }
       기록.때.push({ 초, 값: r.값, ...(Object.keys(r.화면).length === 0 ? {} : { 화면: r.화면 }), ...(자리 === undefined ? {} : { 위치: 자리 }) });
       for (const [k, v] of Object.entries(r.값)) {
         if (v === null) continue;
