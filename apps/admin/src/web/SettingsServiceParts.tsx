@@ -42,7 +42,7 @@ export function 비밀칸(p: {
             </button>
             {p.설정됨 ? (
               // 지우는 길도 빈 칸을 저장하는 것이다 — 서버가 「빈 글자 = 지움」으로 받는다. 저장 전에 「변경 취소」로 물릴 수 있다
-              <button className="btn ghost set-del" aria-label={t('{이름} 삭제', { 이름: p.이름 })} onClick={() => p.바꾼다('')}>
+              <button className="btn ghost" aria-label={t('{이름} 삭제', { 이름: p.이름 })} onClick={() => p.바꾼다('')}>
                 {t('삭제')}
               </button>
             ) : null}

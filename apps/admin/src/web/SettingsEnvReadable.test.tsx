@@ -81,7 +81,6 @@ describe('대상 서버 편집기 — 기호만 있던 단추를 글자로', () 
       const 단추 = screen.getByRole('button', { name: 이름 });
       expect(단추.textContent).toBe(글자);
       expect(단추.className).toContain('ghost');
-      expect(단추.className).toContain('set-del');
     }
     expect(document.body.textContent).not.toContain('−');
   });
@@ -120,6 +119,5 @@ describe('Slack 웹훅 · 피그마 토큰 단추', () => {
     expect(screen.getByRole('button', { name: '피그마 토큰 변경' }).textContent).toBe('변경');
     const 삭제 = screen.getByRole('button', { name: '피그마 토큰 삭제' });
     expect(삭제.textContent).toBe('삭제');
-    expect(삭제.className).toContain('set-del');
   });
 });

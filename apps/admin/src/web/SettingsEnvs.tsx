@@ -140,7 +140,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
               onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, baseUrl: e.target.value } : v)))}
             />
             <button
-              className="btn ghost set-del"
+              className="btn ghost"
               aria-label={t('대상 서버 {번호} 삭제', { 번호: i + 1 })}
               onClick={() => onChange(envs.filter((_, k) => k !== i))}
             >

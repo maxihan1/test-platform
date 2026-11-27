@@ -156,7 +156,7 @@ export function 준비칸({ 줄: r, 번호, 고친다 }: { 줄: 준비줄; 번�
         />
         <span>{t('초')}</span>
       </span>
-      <button className="btn ghost set-del" aria-label={t('대상 서버 {번호} 테스트 데이터 준비 삭제', { 번호 })} onClick={() => 고친다(준비편집으로(null))}>
+      <button className="btn ghost" aria-label={t('대상 서버 {번호} 테스트 데이터 준비 삭제', { 번호 })} onClick={() => 고친다(준비편집으로(null))}>
         {t('삭제')}
       </button>
       <div className="hint">{t('테스트 데이터 준비 주소는 실행할 때마다 먼저 호출해 테스트 데이터를 처음 상태로 초기화합니다. 같은 주소를 넣은 애플리케이션은 한 번에 하나씩 실행합니다')}</div>
