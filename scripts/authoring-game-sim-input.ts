@@ -3,16 +3,19 @@
 
 export type 점 = readonly [number, number];
 export type 비교 = '>=' | '<=' | '>' | '<' | '==';
-export const 상태이름들 = ['지킬것체력', '지킬것비율', '재화', '캐릭터체력비율', '웨이브', '지킬것둘레적수', '캐릭터둘레적수', '캐릭터둘레재화수', '지킬것가까운적거리'] as const;
+export const 상태이름들 = ['지킬것체력', '지킬것비율', '재화', '캐릭터체력비율', '웨이브', '지킬것둘레적수', '캐릭터둘레적수', '캐릭터둘레재화수', '지킬것가까운적거리', '유지최저비율'] as const;
 export type 상태이름 = (typeof 상태이름들)[number];
-export const 행동종류들 = ['아이템', '회복', '공격', '키우기', '놓기', '줍기', '이동'] as const;
+export const 행동종류들 = ['아이템', '회복', '공격', '키우기', '놓기', '먹이', '줍기', '이동'] as const;
 export type 행동종류 = (typeof 행동종류들)[number];
 
-export interface 적종류 { 이름: string; 체력: number; 속도: number; 닿으면피해: number; 보상: number; 공격?: { 사거리: number; 피해: number; 간격: number } }
+/** 끝초당피해 — 길 끝에 닿으면 사라지지 않고 서서 죽을 때까지 지킬것을 초당 이만큼 깎는다(닿으면피해는 닿는 순간 한 번) */
+export interface 적종류 { 이름: string; 체력: number; 속도: number; 닿으면피해: number; 보상: number; 끝초당피해?: number; 공격?: { 사거리: number; 피해: number; 간격: number } }
 export interface 출현 { 종류: string; 수: number; 간격: number; 길: string; 처음초: number }
 export interface 웨이브 { 이름: string; 쉬는초: number; 시작초?: number; 출현: 출현[]; 보스: boolean }
-export interface 레벨 { 값: number; 사거리: number; 공격력: number; 간격: number; 타깃수: number; 범위: number; 둔화?: { 배율: number; 초: number }; 기절?: number }
-export interface 설치물종류 { 이름: string; 자라는초: number; 레벨: 레벨[] }
+export interface 레벨 { 값: number; 사거리: number; 공격력: number; 간격: number; 타깃수: number; 범위: number; 둔화?: { 배율: number; 초: number }; 기절?: number; 유지없음?: true }
+/** 유지 — 놓은 뒤 체력이 초당감소만큼 줄고 다하면 멈추거나 사라진다. 먹이(재화 · 손 시간)로 다시 채운다. 유지없음 레벨은 안 준다 */
+export interface 유지 { 체력: number; 초당감소: number; 다하면: '멈춤' | '사라짐'; 먹이?: { 값: number; 양: number; 초: number } }
+export interface 설치물종류 { 이름: string; 자라는초: number; 레벨: 레벨[]; 유지?: 유지 }
 export interface 아이템 { 이름: string; 쿨타임: number; 사거리: number; 범위: number; 피해: number; 기절?: number; 개수?: number }
 export interface 회복수단 { 이름: string; 대상: '캐릭터' | '지킬것'; 값: number; 양: number; 쿨타임: number }
 export interface 캐릭터 { 자리: 점; 걷기속도: number; 체력?: number; 쓰러지면초: number; 공격?: { 사거리: number; 공격력: number; 간격: number } }
@@ -61,10 +64,10 @@ function 이름표<T extends { 이름: string }>(들: T[], 무엇: string): Reco
 
 function 레벨읽기(v: unknown, 어디: string): 레벨 {
   const x = 객체(v);
-  요구(수(x.값) && 양수(x.사거리) && 수(x.공격력) && 양수(x.간격) && 없거나(x.타깃수, 양수) && 없거나(x.범위, 수) && 없거나(x.기절, 양수), `${어디} 는 { 값, 사거리, 공격력, 간격(0 보다 큼, 초), 타깃수?, 범위?(맞은 자리 둘레도 맞힘), 둔화? { 배율, 초 }, 기절?(초) } 이다`);
+  요구(수(x.값) && 양수(x.사거리) && 수(x.공격력) && 양수(x.간격) && 없거나(x.타깃수, 양수) && 없거나(x.범위, 수) && 없거나(x.기절, 양수) && 없거나(x.유지없음, (y) => y === true), `${어디} 는 { 값, 사거리, 공격력, 간격(0 보다 큼, 초), 타깃수?, 범위?(맞은 자리 둘레도 맞힘), 둔화? { 배율, 초 }, 기절?(초), 유지없음?: true } 이다`);
   const 둔 = 객체(x.둔화);
   요구(x.둔화 === undefined || (수(둔.배율) && 둔.배율 >= 0 && 둔.배율 < 1 && 양수(둔.초)), `${어디}.둔화 는 { 배율(0 이상 1 미만 · 느려진 속도 비율), 초 } 이다`);
-  return { 값: x.값 as number, 사거리: x.사거리 as number, 공격력: x.공격력 as number, 간격: x.간격 as number, 타깃수: (x.타깃수 as number | undefined) ?? 1, 범위: (x.범위 as number | undefined) ?? 0, ...(x.둔화 === undefined ? {} : { 둔화: { 배율: 둔.배율 as number, 초: 둔.초 as number } }), ...(x.기절 === undefined ? {} : { 기절: x.기절 as number }) };
+  return { 값: x.값 as number, 사거리: x.사거리 as number, 공격력: x.공격력 as number, 간격: x.간격 as number, 타깃수: (x.타깃수 as number | undefined) ?? 1, 범위: (x.범위 as number | undefined) ?? 0, ...(x.둔화 === undefined ? {} : { 둔화: { 배율: 둔.배율 as number, 초: 둔.초 as number } }), ...(x.기절 === undefined ? {} : { 기절: x.기절 as number }), ...(x.유지없음 === true ? { 유지없음: true as const } : {}) };
 }
 
 function 규칙읽기(v: unknown, 어디: string): 규칙 {
@@ -95,8 +98,8 @@ export function 입력읽기(입력: Record<string, unknown>): 모델 | { 틀림
     const 적 = 이름표(목록(입력.적종류).map((v, i) => {
       const x = 객체(v);
       const 공 = 객체(x.공격);
-      요구(글(x.이름) && 양수(x.체력) && 양수(x.속도) && 수(x.닿으면피해) && 수(x.보상) && (x.공격 === undefined || (양수(공.사거리) && 수(공.피해) && 양수(공.간격))), `적종류 ${i + 1}번은 { 이름, 체력, 속도(길 단위/초), 닿으면피해(지킬것을 깎는 양), 보상, 공격? { 사거리, 피해, 간격 } } 이다`);
-      return { 이름: x.이름 as string, 체력: x.체력 as number, 속도: x.속도 as number, 닿으면피해: x.닿으면피해 as number, 보상: x.보상 as number, ...(x.공격 === undefined ? {} : { 공격: { 사거리: 공.사거리 as number, 피해: 공.피해 as number, 간격: 공.간격 as number } }) };
+      요구(글(x.이름) && 양수(x.체력) && 양수(x.속도) && 수(x.닿으면피해) && 수(x.보상) && 없거나(x.끝초당피해, 양수) && (x.공격 === undefined || (양수(공.사거리) && 수(공.피해) && 양수(공.간격))), `적종류 ${i + 1}번은 { 이름, 체력, 속도(길 단위/초), 닿으면피해(닿는 순간 지킬것을 깎는 양), 보상, 끝초당피해?(길 끝에 서서 죽을 때까지 초당 깎는 양), 공격? { 사거리, 피해, 간격 } } 이다`);
+      return { 이름: x.이름 as string, 체력: x.체력 as number, 속도: x.속도 as number, 닿으면피해: x.닿으면피해 as number, 보상: x.보상 as number, ...(x.끝초당피해 === undefined ? {} : { 끝초당피해: x.끝초당피해 as number }), ...(x.공격 === undefined ? {} : { 공격: { 사거리: 공.사거리 as number, 피해: 공.피해 as number, 간격: 공.간격 as number } }) };
     }), '적종류');
     const 웨이브들 = 목록(입력.웨이브).map((v, i) => {
       const x = 객체(v);
@@ -111,8 +114,11 @@ export function 입력읽기(입력: Record<string, unknown>): 모델 | { 틀림
     요구(웨이브들.length > 0, '웨이브 는 하나 이상 적은 목록이다');
     const 설치 = 이름표(목록(입력.설치물종류).map((v, i) => {
       const x = 객체(v);
-      요구(글(x.이름) && 목록(x.레벨).length > 0 && 없거나(x.자라는초, (y) => 수(y) && y >= 0), `설치물종류 ${i + 1}번은 { 이름, 자라는초?(놓고 때리기 시작할 때까지), 레벨: [{ … }] } 이다`);
-      return { 이름: x.이름 as string, 자라는초: (x.자라는초 as number | undefined) ?? 0, 레벨: 목록(x.레벨).map((l, j) => 레벨읽기(l, `설치물종류 ${x.이름 as string} 레벨 ${j + 1}`)) };
+      요구(글(x.이름) && 목록(x.레벨).length > 0 && 없거나(x.자라는초, (y) => 수(y) && y >= 0), `설치물종류 ${i + 1}번은 { 이름, 자라는초?(놓고 때리기 시작할 때까지), 레벨: [{ … }], 유지? } 이다`);
+      const 유 = 객체(x.유지);
+      const 먹 = 객체(유.먹이);
+      요구(x.유지 === undefined || (양수(유.체력) && 양수(유.초당감소) && (유.다하면 === '멈춤' || 유.다하면 === '사라짐') && (유.먹이 === undefined || (수(먹.값) && 양수(먹.양) && 수(먹.초) && 먹.초 >= 0))), `설치물종류 ${String(x.이름)} 의 유지 는 { 체력, 초당감소, 다하면(멈춤 · 사라짐), 먹이?: { 값(드는 재화), 양(채우는 체력), 초(먹이는 데 드는 손 시간) } } 이다`);
+      return { 이름: x.이름 as string, 자라는초: (x.자라는초 as number | undefined) ?? 0, 레벨: 목록(x.레벨).map((l, j) => 레벨읽기(l, `설치물종류 ${x.이름 as string} 레벨 ${j + 1}`)), ...(x.유지 === undefined ? {} : { 유지: { 체력: 유.체력 as number, 초당감소: 유.초당감소 as number, 다하면: 유.다하면 as 유지['다하면'], ...(유.먹이 === undefined ? {} : { 먹이: { 값: 먹.값 as number, 양: 먹.양 as number, 초: 먹.초 as number } }) } }) };
     }), '설치물종류');
     const 캐 = 객체(입력.캐릭터);
     const 캐공 = 객체(캐.공격);
@@ -144,7 +150,8 @@ export function 입력읽기(입력: Record<string, unknown>): 모델 | { 틀림
     요구(빠진.length === 0, `정책이 쓴 문턱 ${빠진.map((k) => `$${k}`).join(' · ')} 의 후보가 문턱후보 에 없다`);
     for (const r of 정책들.flat()) {
       const 대 = r.행동.대상;
-      if (r.행동.무엇 === '놓기' || r.행동.무엇 === '키우기') 요구(대 !== undefined && 설치[대] !== undefined, `${r.행동.무엇} 의 대상은 설치물종류 이름이다(${대 ?? '없음'})`);
+      if (r.행동.무엇 === '놓기' || r.행동.무엇 === '키우기' || r.행동.무엇 === '먹이') 요구(대 !== undefined && 설치[대] !== undefined, `${r.행동.무엇} 의 대상은 설치물종류 이름이다(${대 ?? '없음'})`);
+      if (r.행동.무엇 === '먹이') 요구(설치[대!]?.유지?.먹이 !== undefined, `먹이 의 대상 ${대!} 에 유지.먹이 가 없다`);
       if (r.행동.무엇 === '아이템') 요구(대 !== undefined && 아이템들[대] !== undefined, `아이템 의 대상은 아이템 이름이다(${대 ?? '없음'})`);
       if (r.행동.무엇 === '회복') 요구(대 !== undefined && 회복들[대] !== undefined, `회복 의 대상은 회복 이름이다(${대 ?? '없음'})`);
       if (r.행동.무엇 === '공격') 요구(캐.공격 !== undefined, '공격 규칙은 캐릭터.공격 이 있어야 한다');
