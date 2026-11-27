@@ -5,7 +5,9 @@ import { createHash } from 'node:crypto';
 import { 곳격자, 길내기, 맨쌍글 } from './authoring-game-path.js';
 import { type 모델, type 규칙, type 점, 문턱넣기 } from './authoring-game-sim-input.js';
 import { type 걷는거리, type 시뮬결과, type 행동, 돌리기, 엔진판, 원안길이 } from './authoring-game-sim.js';
-import { 지금지도 } from './authoring-game-find.js';
+import { type 지도줄, 지금지도 } from './authoring-game-find.js';
+import { 게임자리 } from './authoring-game.js';
+import { 안전히읽기 } from './authoring-screens-keep-io.js';
 import { type 판기록, 판기록들 } from './authoring-learn-check.js';
 import { 놀이시작뒤 } from './authoring-learn-io.js';
 import { 계획곳 } from './authoring-learn-play.js';
@@ -109,6 +111,30 @@ export function 찾기(m: 모델, 걷기?: 걷는거리): 찾기결과 | { 틀�
 export const 자리차례 = (m: 모델): Record<string, 점[]> =>
   Object.fromEntries(Object.values(m.설치물종류).map((t) => [t.이름, [...m.자리후보].sort((a, b) => Object.values(m.길).reduce((합, 길) => 합 + 원안길이(길, { 중심: b, 반지름: t.레벨[0]!.사거리 }) - 원안길이(길, { 중심: a, 반지름: t.레벨[0]!.사거리 }), 0))]));
 
+/** 측정 값을 담지 않는 줄 종류 — 유지 근거로 받지 않는다(곳 · 계획 · 회고 · 물음 · 목표 · 계산 줄을 적어 근거를 채우지 못하게) */
+const 빌드머리 = '빌드 데이터:';
+const 근거아닌종류 = new Set(['STAGE', 'TRIAL', 'PLAY', 'ASK', 'GOAL', 'CALC', 'KIND']);
+export const 빌드글 = (자료: string): string | null => 안전히읽기(자료, 게임자리.빌드데이터, 200_000_000);
+
+/**
+ * 유지 값이 잰 값인지 — 근거가 측정 줄(규칙 · 시간 · 값 줄 따위)의 지도 열쇠이거나 `빌드 데이터:<타입 이름>`(빌드 데이터에 그 이름이 있다)이어야 한다.
+ * 16102 는 지침 본보기 숫자를 베끼고 마지막 레벨 유지없음을 빠뜨려 깬 맵까지 이기는 안이 없다고 냈다. 지도를 못 읽으면 근거를 못 봐 안 받는다
+ */
+export function 근거틀림(m: 모델, 줄들: readonly Pick<지도줄, 'kind' | 'key' | 'learned'>[] | null, 빌드: string | null): string | null {
+  const 근거들 = Object.values(m.설치물종류).flatMap((t) => (t.유지 === undefined ? [] : [t.유지.근거]));
+  if (근거들.length === 0) return null;
+  if (줄들 === null) return '지도를 못 읽어 유지 근거를 못 봤다 — 자료 폴더의 game-calc 안에서 다시 계산한다';
+  const 틀린 = 근거들.filter((k) => {
+    if (k.startsWith(빌드머리)) {
+      const 이름 = k.slice(빌드머리.length).trim();
+      return 빌드 === null || 이름 === '' || !빌드.includes(이름);
+    }
+    const 줄 = 줄들.find((x) => x.key === k && x.learned !== null);
+    return 줄 === undefined || 근거아닌종류.has(줄.kind);
+  });
+  return 틀린.length === 0 ? null : `유지 근거 ${틀린.join(' · ')} 가 잰 값의 출처가 아니다 — 판 · 지도에서 잰 값이면 그 측정 줄(규칙 · 시간 · 값 줄) 열쇠, 빌드 데이터면 「빌드 데이터:<타입 이름>」을 적는다(곳 · 계획 · 계산 줄은 안 받는다 · 지침 본보기 숫자를 쓰지 않는다)`;
+}
+
 /** 입력 파일 해시 — 게이트가 시뮬 줄을 낸 뒤 입력이 바뀌었나 본다 */
 export const 해시 = (글: string): string => createHash('sha256').update(글).digest('hex').slice(0, 16);
 
@@ -120,6 +146,10 @@ export const 짐글 = (r: Pick<시뮬결과, '짐'>): string => (r.짐 === undef
  * 결과는 CALC 줄 data 에 그대로 실리니 판마다 늘어나는 예상 · 행동기록은 안 싣는다(게이트가 다시 돌려 얻는다)
  */
 export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일글: string, 파일: string): { 글: string; 줄글: string[]; 결과: Record<string, unknown>; 입력요약: Record<string, unknown> } | { 틀림: string } {
+  if (자료 !== undefined) {
+    const 틀 = 근거틀림(모델, 지금지도(자료)?.줄들 ?? null, 빌드글(자료));
+    if (틀 !== null) return { 틀림: 틀 };
+  }
   const 잰 = 자료 === undefined ? { 행동초: 행동초첫값 } : 손재기(자료, 모델.곳);
   // 지어낸 빠른 손을 막는다 — 잰 값보다 빠르게 적었으면 잰 값
   const m: 모델 = { ...모델, 손: { 행동초: Math.max(모델.손.행동초, 잰.행동초) } };

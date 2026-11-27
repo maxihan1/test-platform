@@ -8,7 +8,7 @@ export { type 원, 원안길이 } from './authoring-game-sim-geo.js';
 
 export type { 점 } from './authoring-game-sim-input.js';
 /** 엔진이 바뀌면 올린다 — 게이트가 다른 엔진으로 낸 시뮬 줄을 다시 돌리게 */
-export const 엔진판 = 2;
+export const 엔진판 = 3;
 export const 칸초 = 0.1;
 export const 예상간격초 = 2;
 /** 이만큼 흘러도 안 끝나면 짐으로 끊는다 — 적이 기절만 되풀이하는 입력이 끝나지 않게 */

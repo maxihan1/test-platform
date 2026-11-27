@@ -14,7 +14,8 @@ export interface 출현 { 종류: string; 수: number; 간격: number; 길: stri
 export interface 웨이브 { 이름: string; 쉬는초: number; 시작초?: number; 출현: 출현[]; 보스: boolean }
 export interface 레벨 { 값: number; 사거리: number; 공격력: number; 간격: number; 타깃수: number; 범위: number; 둔화?: { 배율: number; 초: number }; 기절?: number; 유지없음?: true }
 /** 유지 — 놓은 뒤 체력이 초당감소만큼 줄고 다하면 멈추거나 사라진다. 먹이(재화 · 손 시간)로 다시 채운다. 유지없음 레벨은 안 준다 */
-export interface 유지 { 체력: number; 초당감소: number; 다하면: '멈춤' | '사라짐'; 먹이?: { 값: number; 양: number; 초: number } }
+/** 근거 — 이 값을 잰 지도 줄 열쇠. 지침 예시 숫자를 베껴 깬 맵까지 「이기는 안 없음」이 됐다(16102) */
+export interface 유지 { 체력: number; 초당감소: number; 다하면: '멈춤' | '사라짐'; 먹이?: { 값: number; 양: number; 초: number }; 근거: string }
 export interface 설치물종류 { 이름: string; 자라는초: number; 레벨: 레벨[]; 유지?: 유지 }
 export interface 아이템 { 이름: string; 쿨타임: number; 사거리: number; 범위: number; 피해: number; 기절?: number; 개수?: number }
 export interface 회복수단 { 이름: string; 대상: '캐릭터' | '지킬것'; 값: number; 양: number; 쿨타임: number }
@@ -117,8 +118,8 @@ export function 입력읽기(입력: Record<string, unknown>): 모델 | { 틀림
       요구(글(x.이름) && 목록(x.레벨).length > 0 && 없거나(x.자라는초, (y) => 수(y) && y >= 0), `설치물종류 ${i + 1}번은 { 이름, 자라는초?(놓고 때리기 시작할 때까지), 레벨: [{ … }], 유지? } 이다`);
       const 유 = 객체(x.유지);
       const 먹 = 객체(유.먹이);
-      요구(x.유지 === undefined || (양수(유.체력) && 양수(유.초당감소) && (유.다하면 === '멈춤' || 유.다하면 === '사라짐') && (유.먹이 === undefined || (수(먹.값) && 양수(먹.양) && 수(먹.초) && 먹.초 >= 0))), `설치물종류 ${String(x.이름)} 의 유지 는 { 체력, 초당감소, 다하면(멈춤 · 사라짐), 먹이?: { 값(드는 재화), 양(채우는 체력), 초(먹이는 데 드는 손 시간) } } 이다`);
-      return { 이름: x.이름 as string, 자라는초: (x.자라는초 as number | undefined) ?? 0, 레벨: 목록(x.레벨).map((l, j) => 레벨읽기(l, `설치물종류 ${x.이름 as string} 레벨 ${j + 1}`)), ...(x.유지 === undefined ? {} : { 유지: { 체력: 유.체력 as number, 초당감소: 유.초당감소 as number, 다하면: 유.다하면 as 유지['다하면'], ...(유.먹이 === undefined ? {} : { 먹이: { 값: 먹.값 as number, 양: 먹.양 as number, 초: 먹.초 as number } }) } }) };
+      요구(x.유지 === undefined || (양수(유.체력) && 양수(유.초당감소) && (유.다하면 === '멈춤' || 유.다하면 === '사라짐') && (유.먹이 === undefined || (수(먹.값) && 양수(먹.양) && 수(먹.초) && 먹.초 >= 0)) && 글(유.근거)), `설치물종류 ${String(x.이름)} 의 유지 는 { 체력, 초당감소, 다하면(멈춤 · 사라짐), 먹이?: { 값(드는 재화), 양(채우는 체력), 초(먹이는 데 드는 손 시간) }, 근거(이 값을 잰 지도 줄 열쇠) } 이다 — 지침 예시 숫자를 쓰지 않는다`);
+      return { 이름: x.이름 as string, 자라는초: (x.자라는초 as number | undefined) ?? 0, 레벨: 목록(x.레벨).map((l, j) => 레벨읽기(l, `설치물종류 ${x.이름 as string} 레벨 ${j + 1}`)), ...(x.유지 === undefined ? {} : { 유지: { 체력: 유.체력 as number, 초당감소: 유.초당감소 as number, 다하면: 유.다하면 as 유지['다하면'], ...(유.먹이 === undefined ? {} : { 먹이: { 값: 먹.값 as number, 양: 먹.양 as number, 초: 먹.초 as number } }), 근거: 유.근거 as string } }) };
     }), '설치물종류');
     const 캐 = 객체(입력.캐릭터);
     const 캐공 = 객체(캐.공격);
