@@ -100,6 +100,17 @@ def 쓰기(폴더, 이름, 글):
     os.replace(임시, os.path.join(폴더, 이름))
 
 
+def 파일표만들기(files, 표=None):
+    """이름 → 파일 표. 압축 묶음(data.unity3d)에 든 파일까지 펼친다. 외부 참조(globalgamemanagers.assets)가 묶음 안에 있는 빌드가 있다. 이름이 겹치면 먼저 본 것.
+    SerializedFile 의 files 는 오브젝트 표(번호 → 오브젝트)라 펼치지 않는다"""
+    표 = {} if 표 is None else 표
+    for k, v in files.items():
+        표.setdefault(os.path.basename(k), v)
+        if type(v).__name__ in ('BundleFile', 'WebFile'):
+            파일표만들기(v.files, 표)
+    return 표
+
+
 def 스크립트찾기(o, 파일들, 캐시):
     d = o.read_typetree(check_read=False)
     sp = d['m_Script']
@@ -122,7 +133,7 @@ def 읽기(데이터, 자료):
     from UnityPy.helpers.TypeTreeGenerator import TypeTreeGenerator
 
     env = UnityPy.load(데이터)
-    파일들 = {os.path.basename(k): v for k, v in env.files.items()}
+    파일들 = 파일표만들기(env.files)
     묶음 = {}
     캐시 = {}
     for o in env.objects:
@@ -217,6 +228,20 @@ def 자체검사():
     assert dll이름('Assembly-CSharp') == 'Assembly-CSharp.dll'
     assert dll이름('Assembly-CSharp.dll') == 'Assembly-CSharp.dll'
     assert dll이름('Game.DLL') == 'Game.DLL'
+
+    class BundleFile:
+        def __init__(self, files):
+            self.files = files
+    class SerializedFile(BundleFile):
+        pass
+    안 = SerializedFile({1: object()})
+    겹침 = object()
+    표 = 파일표만들기({
+        '/x/Cats Go_Data/data.unity3d': BundleFile({'globalgamemanagers.assets': 안, 'app.info': 겹침}),
+        '/x/Cats Go_Data/app.info': 'top',
+    })
+    assert 표['globalgamemanagers.assets'] is 안, '묶음 안 파일도 이름으로 찾는다'
+    assert 표['app.info'] is 겹침 and 'data.unity3d' in 표, '이름이 겹치면 먼저 본 것'
 
     대상 = tempfile.mkdtemp(prefix='build-data-check-')
     try:
