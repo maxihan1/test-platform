@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type 세션거리, type 학습손, 못뜬것은끊김, 학습번호들, 학습하기 } from './authoring-learn.js';
 import { 배움올리기, 학습끝줄 } from './authoring-learn-io.js';
-import { 맵종류 } from './authoring-learn-play.js';
+import { 맵종류, 넘김판 } from './authoring-learn-play.js';
 import { 배울종류 } from './authoring-learn-map.js';
 import { 학습프롬프트 } from './authoring-learn-prompt.js';
 import type { 돌린결과 } from './authoring-spawn.js';
@@ -587,12 +587,12 @@ describe('학습프롬프트', () => {
     expect(학습프롬프트(재료, { 배울것, 남은분: 30, 놓음: true, 못올림: [], 부분: false, 차례: 1 })).not.toContain('**물음 트리**');
   });
 
-  it('게임플레이 — 단계 표지를 바꾸고, 깰 곳 · 쓸것 · 다섯 판 뒤 다음 맵을 알리고(판 수 50 은 없다), 튜토리얼 차례는 안 준다', () => {
+  it(`게임플레이 — 단계 표지를 바꾸고, 깰 곳 · 쓸것 · ${넘김판}판 뒤 정보 모으기 뒤 다음 맵을 알리고(판 수 50 은 없다), 튜토리얼 차례는 안 준다`, () => {
     const 글 = 학습프롬프트(재료, { 배울것, 남은분: 0, 놓음: false, 못올림: [], 부분: false, 차례: 4, 단계: '게임플레이' });
     expect(글).toContain('[단계] 게임플레이');
     expect(글).not.toContain('[단계] 게임 배우기');
     expect(글).toContain('`data.쓸것`(그 곳 맵 정보 하나 이상)');
-    expect(글).toContain('5판 해 보고 못 깨면 그 곳은 이번에 더 안 하고 다음 맵'); expect(글).not.toContain('50판');
+    expect(글).toContain(`${넘김판}판 해 보고 못 깨면 그 곳에서 정보 모으기를 한 번 하고 나서 다음 맵`); expect(글).not.toContain('50판');
     expect(글).toContain('깰 곳마다 깨거나 못깸으로 적을 때까지');
     expect(글).not.toContain('튜토리얼 끝까지');
   });

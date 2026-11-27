@@ -9,7 +9,7 @@ import { 게임자리, 요소상한 } from './authoring-game.js';
 import { 적은줄들, 지금지도 } from './authoring-game-find.js';
 import { 멈춤표시읽기, 멈춤표시지우기 } from './authoring-game-freeze.js';
 import { 시험감고르기, 시험답읽기, 시험줄, 채점하기 } from './authoring-learn-exam.js';
-import { 배우는중에, 배우는중지우기, 배움올리기, 상태쓰기, 상태읽기, 케이스시작적기 } from './authoring-learn-io.js';
+import { 배우는중에, 배우는중지우기, 배움올리기, 놀이시작뒤, 상태쓰기, 상태읽기, 케이스시작적기 } from './authoring-learn-io.js';
 import { 물음트리, 오늘글 } from './authoring-game-tree.js';
 import { type 배울것, 배울것고르기, 배울것없나, 쪽지글, 쪽지열쇠 } from './authoring-learn-map.js';
 import { 판기록들 } from './authoring-learn-check.js';
@@ -175,7 +175,7 @@ async function 배우고(o: 학습손): Promise<학습결과> {
   // 앞 세션이 해 본 것 · 회고 · 계획을 기계가 모아 쪽지 위에 둔다 — 첫 세션은 모을 것이 없다
   const 인수 = (): { 인수?: string[] } => {
     const 지도 = 상태.세션 === 0 || 부분 ? null : 지금지도(o.자료);
-    const 줄 = 지도 === null ? [] : 인수인계(지도, 판기록들(o.자료), 오늘글(지금()), 빌드);
+    const 줄 = 지도 === null ? [] : 인수인계(지도, 놀이시작뒤(o.자료, 판기록들(o.자료)), 오늘글(지금()), 빌드);
     return 줄.length === 0 ? {} : { 인수: 줄 };
   };
   const 배우기 = (b: 배울것, 틀림?: true, 이음?: string): Promise<세션끝> =>

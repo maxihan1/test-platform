@@ -1,4 +1,4 @@
-// 정보 모으기 명령 — 5판 넘게 못 깬 곳에서 웨이브를 넘겨 가며 처음 나온 종류를 값 파일로 남긴다 (치트 표시 · 도메인/게임 「게임 배우기」 「게임 정보 먼저 쌓기」 ③)
+// 정보 모으기 명령 — 맵 시도 수만큼 해 보고도 못 깬 곳에서 웨이브를 넘겨 가며 처음 나온 종류를 값 파일로 남긴다 (치트 표시 · 도메인/게임 「게임 배우기」 「게임 정보 먼저 쌓기」 ③)
 // 쓰는 법: npx tsx scripts/authoring-game-info.ts <자료 폴더> <곳 열쇠> --call '<주소>|<컴포넌트.메서드>[|<인자1>,<인자2>]' [--call …] [--steps <n>] [--wait <초>]
 // 함수 이름은 게임마다 다르다 — 게임을 배우는 AI 가 찾아 넘긴다. 이 명령 밖에서 call 을 부르는 길은 지침이 막는다
 // 잡은 디바이스에서 게임을 켜 둔 채 부른다. 값은 웨이브를 넘겨 본 것이라 값 파일과 기록에 치트 표시가 붙고 승패 근거로 못 쓴다
@@ -11,17 +11,18 @@ import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 치트표시쓰기 } from './authoring-game-cheat-mark.js';
 import { 정리알림, 지금지도 } from './authoring-game-find.js';
 import { 기록남기기 } from './authoring-game-play-log.js';
-import { type 곳판, 곳셈 } from './authoring-learn-play.js';
+import { type 곳판, 곳셈, 넘김판 } from './authoring-learn-play.js';
 import { 풀기 } from './authoring-game-play-freeze.js';
 import { type 조작결과 } from './authoring-game-play.js';
 import { 나온것줄, 세기시작, 지도글 } from './authoring-game-play-spawns.js';
 import { 판기록들, type 판기록 } from './authoring-learn-check.js';
+import { 놀이시작뒤 } from './authoring-learn-io.js';
 import { 비밀가리기 } from './authoring-reverse.js';
 import { 게임환경, 돌발팝업값 } from './authoring-run3-env.js';
 import { 잡은폰 } from './authoring-run3-game.js';
 
-/** 이 판 수를 넘게 해 보고도 못 깬 곳에서만 연다 — 그 전에는 플레이하며 나온 것을 읽는 길이 먼저다 */
-export const 열림판수 = 5;
+/** 맵 시도 수(넘김판)와 같다 — 그 판 수를 하고도 못 깬 곳에서 다음 맵으로 넘기기 전에 한 번 연다 */
+export const 열림판수 = 넘김판;
 const 기본단계 = 10;
 const 최대단계 = 100;
 const 기본대기초 = 3;
@@ -109,12 +110,14 @@ export function 깃발읽기(인자: readonly string[]): 깃발들 | string {
 
 export type 열림 = { 열림: true; 곳판: 곳판 } | { 열림: false; 까닭: string };
 
-/** 열림 조건 — 그 곳의 판 수가 5 를 넘고 아직 못 깼을 때만. 아니면 까닭 */
+/** 열림 조건 — 그 곳을 열림판수만큼 하고도 아직 못 깼을 때만. 아니면 까닭 */
 export function 열림조건(줄들: Parameters<typeof 곳셈>[0], 기록들: readonly 판기록[], 곳: string): 열림 {
   const 셈 = 곳셈(줄들, 기록들).find((x) => x.열쇠 === 곳);
   if (셈 === undefined) return { 열림: false, 까닭: `${곳} 는 깰 곳이 아니다 — 그 STAGE 줄에 data.결과 가 있어야 판 수를 센다` };
   if (셈.깸 > 0) return { 열림: false, 까닭: `${곳} 는 이미 깼다(${셈.판}판 중 ${셈.깸}) — 웨이브를 넘기지 않고 플레이하며 읽는다` };
-  if (셈.판 <= 열림판수) return { 열림: false, 까닭: `${곳} 는 ${셈.판}판 해 봤다 — ${열림판수}판을 넘게 해 보고도 못 깬 곳에서만 연다. 먼저 플레이하며 나온 것을 읽는다` };
+  // 한 번이면 된다 — 지침이 call 을 막는 예외는 다음 맵으로 넘기기 전 한 번이다
+  if (셈.정보 === true) return { 열림: false, 까닭: `${곳} 는 이미 정보 모으기를 했거나 못 하는 이유를 적었다 — 다음 맵을 해 본다` };
+  if (셈.판 < 열림판수) return { 열림: false, 까닭: `${곳} 는 ${셈.판}판 해 봤다 — ${열림판수}판을 해 보고도 못 깬 곳에서만 연다. 먼저 플레이하며 나온 것을 읽는다` };
   return { 열림: true, 곳판: 셈 };
 }
 
@@ -134,7 +137,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     console.error('[정보 모으기] 게임 지도를 못 읽었다 — 자료 폴더가 맞는지 본다');
     return 2;
   }
-  const 열림 = 열림조건(지도.줄들, 판기록들(자료), 곳);
+  const 열림 = 열림조건(지도.줄들, 놀이시작뒤(자료, 판기록들(자료)), 곳);
   if (!열림.열림) {
     console.error(`[정보 모으기] 안 연다 — ${열림.까닭}`);
     return 2;
@@ -174,6 +177,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   await 세기.준비;
   let 이어실패 = 0;
   let 돈단계 = 0;
+  // 먹힌 단계만 센다 — 함수 이름이 틀려 다 안 먹혔는데 정보 모으기를 한 것으로 치면 다음 맵이 열린다
+  let 먹힌단계 = 0;
   for (let n = 1; n <= 단계 && 이어실패 < 이어실패한도; n += 1) {
     let 먹힘 = 0;
     for (const 부 of 부름들) {
@@ -185,6 +190,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       }
     }
     돈단계 = n;
+    if (먹힘 > 0) 먹힌단계 += 1;
     이어실패 = 먹힘 === 0 ? 이어실패 + 1 : 0;
     await 쉼(대기초 * 1000);
   }
@@ -198,7 +204,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     if (표시못씀 !== null) 못한것.push(`치트 표시 파일 쓰기: ${표시못씀}`);
   }
   const r: 조작결과 & { 치트: true; call: string[]; 곳: string } = {
-    값: { 정보모으기: { 곳, 단계: 돈단계 } }, 걸린ms: Date.now() - 시작, 로그: [], 게임오류: [], 알림: [], 못한것, 배율: 풀림.배율, 배율바꿈: false, 통신오류: null, 입력못놓음: false,
+    값: { 정보모으기: { 곳, 단계: 먹힌단계, 돈단계 } }, 걸린ms: Date.now() - 시작, 로그: [], 게임오류: [], 알림: [], 못한것, 배율: 풀림.배율, 배율바꿈: false, 통신오류: null, 입력못놓음: false,
     도중화면: [], 도중간격ms: 0, 알림말: 풀림.알림말, 멈춘채: false, ...(셈.나온 === null ? {} : { 나온것: 셈.나온 }), ...표시, 곳,
   };
   const 기록 = 기록남기기(자료, '정보모으기', 인자, r, 비밀들);

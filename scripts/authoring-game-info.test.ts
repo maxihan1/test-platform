@@ -1,4 +1,4 @@
-// 정보 모으기 명령 검사 — 인자 읽기 · 열림 조건(5판 넘고 못 깬 곳만) · 치트 표시 · call 이 단계마다 나가고 값 파일에 치트가 붙는지 (게임 정보 먼저 쌓기)
+// 정보 모으기 명령 검사 — 인자 읽기 · 열림 조건(맵 시도 수만큼 하고도 못 깬 곳만) · 치트 표시 · call 이 단계마다 나가고 값 파일에 치트가 붙는지 (게임 정보 먼저 쌓기)
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -68,13 +68,15 @@ describe('깃발읽기', () => {
 describe('열림조건', () => {
   const 줄들 = [곳줄('stage:둘째'), 계획줄, 줄('stage:메뉴', { 상태: '가봄' })] as never;
 
-  it(`판 수가 ${열림판수} 를 넘고 아직 못 깬 곳만 연다`, () => {
-    expect(열림조건(줄들, 판들(열림판수 + 1), 'stage:둘째')).toMatchObject({ 열림: true, 곳판: { 판: 열림판수 + 1, 깸: 0 } });
+  it(`${열림판수}판을 해 보고도 못 깬 곳만 연다`, () => {
+    expect(열림조건(줄들, 판들(열림판수), 'stage:둘째')).toMatchObject({ 열림: true, 곳판: { 판: 열림판수, 깸: 0 } });
   });
 
-  it('판 수가 5 이하이면 판 수와 함께 까닭을 돌려준다', () => {
-    expect(열림조건(줄들, 판들(열림판수), 'stage:둘째')).toEqual({ 열림: false, 까닭: expect.stringContaining(`${열림판수}판 해 봤다`) });
+  it(`판 수가 ${열림판수}판이 안 되거나 이미 정보 모으기를 했으면 까닭을 돌려준다`, () => {
+    expect(열림조건(줄들, 판들(열림판수 - 1), 'stage:둘째')).toEqual({ 열림: false, 까닭: expect.stringContaining(`${열림판수 - 1}판 해 봤다`) });
     expect(열림조건(줄들, [], 'stage:둘째')).toMatchObject({ 열림: false });
+    const 모음 = { 이름: '20261126070000000-정보모으기', 값: { 정보모으기: { 곳: 'stage:둘째', 단계: 3 } }, 치트: true as const };
+    expect(열림조건(줄들, [...판들(열림판수), 모음], 'stage:둘째')).toEqual({ 열림: false, 까닭: expect.stringContaining('이미 정보 모으기를 했') });
   });
 
   it('이미 깬 곳 · 깰 곳이 아닌 곳은 안 연다', () => {
@@ -112,7 +114,7 @@ describe('실행', () => {
       return 부르면(cmd);
     }) as unknown as Link;
 
-  it('5판 이하이면 안 열고 call 도 안 보낸다', async () => {
+  it(`${열림판수}판이 안 되면 안 열고 call 도 안 보낸다`, async () => {
     const { 자료, 트리 } = 자료만들기(3);
     const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
     const 명령: Command[] = [];
@@ -122,7 +124,7 @@ describe('실행', () => {
   });
 
   it('열리면 단계마다 call 을 차례로 보내고, 나온 종류를 값 파일로 남기며 치트 표시를 붙인다', async () => {
-    const { 자료, 트리 } = 자료만들기(6);
+    const { 자료, 트리 } = 자료만들기(열림판수);
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const 명령: Command[] = [];
     let 목록 = 0;
@@ -148,7 +150,7 @@ describe('실행', () => {
   }, 15_000);
 
   it('call 이 거듭 안 먹히면 그치고 1', async () => {
-    const { 자료, 트리 } = 자료만들기(6);
+    const { 자료, 트리 } = 자료만들기(열림판수);
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const 명령: Command[] = [];
     const 길 = 가짜(명령, (c) => {
@@ -161,5 +163,8 @@ describe('실행', () => {
     expect(await 실행([자료, 'stage:둘째', '--call', '/M|M.없음', '--steps', '10', '--wait', '1'], 트리, {}, 길)).toBe(1);
     expect((명령 as unknown as Record<string, unknown>[]).filter((c) => c.cmd === 'call')).toHaveLength(2);
     expect(JSON.parse(readFileSync(join(자료, 'game-cheat.json'), 'utf8'))).toMatchObject({ 장면: 'S' });
+    // 하나도 안 먹혔으면 정보 모으기를 한 것으로 안 친다 — 다음 맵이 열리면 안 된다
+    const 기록 = JSON.parse(readFileSync(join(자료, 'game-play', readdirSync(join(자료, 'game-play')).find((x) => x.endsWith('-정보모으기.json'))!), 'utf8')) as { 값: unknown };
+    expect(기록.값).toMatchObject({ 정보모으기: { 단계: 0, 돈단계: 2 } });
   }, 15_000);
 });

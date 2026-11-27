@@ -66,6 +66,13 @@ describe('게임플레이 다음 판 막기', () => {
     expect(배움막기(자료, 300, 'trial:다음', 바탕(계획('trial:다음')) as never, [])).toMatchObject({ 계획: 'trial:다음' });
   });
 
+  it('게임플레이를 다시 시작했으면 그 앞 회고는 세 판 안 늚에 안 센다 — 판 함수를 고쳐 다시 깨 볼 때', () => {
+    const 들 = 바탕(계획('trial:다음'), 줄('ASK', 'ask:보스', {}, 'GUESS'));
+    expect(배움막기(자료, 300, 'trial:다음', 들 as never, [])).toMatchObject({ 막음: expect.stringContaining('안 늘었다') });
+    writeFileSync(join(자료, 'game-learn.json'), JSON.stringify({ 쓴ms: 1, 세션: 1, 끝: false, 열쇠: [], 단계: '게임플레이', 놀이시작: '20261127000000000' }));
+    expect(배움막기(자료, 300, 'trial:다음', 들 as never, [])).toMatchObject({ 계획: 'trial:다음' });
+  });
+
   it('새 계획이 다른 곳이면 앞 곳의 안 늚으로 막지 않는다 — 16094 넷째 맵 5판 뒤 다섯째 맵 첫 계획이 막혀 상관없는 물음을 어디서에 달았다', () => {
     const 다섯째 = 'stage:다섯째 맵';
     const 들 = 바탕(깰곳(다섯째), 줄('CALC', 'calc:다섯째 맵', { 곳: 다섯째 }), 계획('trial:다섯째', undefined, 다섯째), 줄('ASK', 'ask:보스', {}, 'GUESS'));
