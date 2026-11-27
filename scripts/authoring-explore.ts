@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { 조작행검사 } from '../apps/admin/src/prd/gameRoute.js';
 import { 올릴빌드 } from './authoring-app-crawl-route.js';
 import { 삭제요청읽기 } from './authoring-apply-proc.js';
 import { 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
@@ -284,6 +285,35 @@ export async function 세션띄우기(o: {
   return 펴기(둘, 앞);
 }
 
+const 거절자리상한 = 20;
+
+/**
+ * 서버 올리기 검사(gameRoute.ts 조작행검사)를 그대로 돌린다. 경로 검색은 꼴이 틀린 행을 말없이 빼서 여기서 안 짚으면
+ * 체크포인트의 올리기가 400 으로 작성을 멈추고, 돌발 팝업 행은 끝 보고에서 말없이 빠진다(2026-11-27 앱 #16095 와 같은 종류).
+ * 서버는 첫 자리만 말해 행마다 따로 돌려 틀린 자리를 다 모은다. 행이 다 맞을 때만 본문 전체(겹친 행 · remove)를 본다
+ */
+function 서버거절행(글: string | null): string | null {
+  let 몸: unknown;
+  try {
+    몸 = JSON.parse(글 ?? 'null');
+  } catch {
+    return null; // 맵행읽기가 그 까닭을 이미 짚는다
+  }
+  if (몸 === null) return null;
+  const 행들 = (몸 as { rows?: unknown }).rows;
+  const 자리들 = Array.isArray(행들)
+    ? 행들.flatMap((x, i) => {
+        const r = 조작행검사({ rows: [x] });
+        return 'error' in r ? [r.detail.replace(/^rows\.0/, `rows.${String(i)}`)] : [];
+      })
+    : [];
+  const 전체 = 자리들.length === 0 ? 조작행검사(몸) : null;
+  if (전체 !== null && 'error' in 전체) 자리들.push(전체.detail);
+  if (자리들.length === 0) return null;
+  const 보기 = 자리들.slice(0, 거절자리상한).join(' · ') + (자리들.length > 거절자리상한 ? ` 외 ${String(자리들.length - 거절자리상한)}개` : '');
+  return `${게임자리.새맵행} 에 서버가 거절할 행이 있다 — ${보기} (글 칸에 줄바꿈 · 앞뒤 빈칸을 못 쓰고 한도를 넘으면 안 된다. 같은 행(종류 · 출발 · 동작)은 한 번만. 칸 규칙은 docs/spec/도메인/게임.md §7 「조작 맵」)`;
+}
+
 /** 0 지남 · 1 못 지남 · 2 부를 수 없음 — 자식이 첫 세션을 끝내기 전에 부른다. 맵은 올리지 않고 자료 폴더의 행으로 본다 */
 export function 실행(인자: string[]): number {
   const [자료] = 인자;
@@ -297,7 +327,8 @@ export function 실행(인자: string[]): number {
     return 1;
   }
   const 맵 = 맵행읽기(자료);
-  const 못지남 = [...체크포인트(목표들, 맵?.행들 ?? null), ...(맵?.틀림 ? [맵.틀림] : [])];
+  const 거절 = 맵?.틀림 ? null : 서버거절행(안전히읽기(자료, 게임자리.새맵행, 4_000_000));
+  const 못지남 = [...체크포인트(목표들, 맵?.행들 ?? null), ...(맵?.틀림 ? [맵.틀림] : []), ...(거절 === null ? [] : [거절])];
   for (const 줄 of 못지남) console.log(`못 지남: ${줄}`);
   console.log(못지남.length === 0 ? 탐색줄(목표들, []) : `[탐색 플레이] 체크포인트를 못 지났다 — ${String(못지남.length)}건을 고친다`);
   return 못지남.length === 0 ? 0 : 1;
