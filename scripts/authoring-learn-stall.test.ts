@@ -41,9 +41,10 @@ describe('곳막힘', () => {
 describe('게임플레이 다음 판 막기', () => {
   const 볼값 = [{ 이름: '웨이브', 주소: 'WaveText' }];
   const 다맵 = Object.fromEntries(맵종류.map((k) => [k, { 없음: '이 맵에는 없다' }]));
-  const 계획 = (key: string, 어디서?: string) => 줄('TRIAL', key, { 볼값, 기대: [{ 값: '웨이브', 비교: '>=', 기준: 6 }], 목표: { 값: '웨이브', 기준: 6 }, 곳, 쓸것: ['calc:셋째 맵', `${곳}#걷기`], ...(어디서 === undefined ? {} : { 어디서 }) });
+  const 계획 = (key: string, 어디서?: string, 어느곳 = 곳) => 줄('TRIAL', key, { 볼값, 기대: [{ 값: '웨이브', 비교: '>=', 기준: 6 }], 목표: { 값: '웨이브', 기준: 6 }, 곳: 어느곳, 쓸것: [`calc:${어느곳.slice('stage:'.length)}`, `${어느곳}#걷기`], ...(어디서 === undefined ? {} : { 어디서 }) });
+  const 깰곳 = (어느곳: string) => 줄('STAGE', 어느곳, { 상태: '가봄', 장면: 'BossRoom3', 맵: { ...다맵, 걷기: { 주소: '/NavMesh', 값: [[0, 0]], 본때: 'x' } }, 결과: { 주소: 'ResultText', 깸: '승 리', 짐: '패 배' } });
   const 바탕 = (...더: object[]) => [
-    줄('STAGE', 곳, { 상태: '가봄', 장면: 'BossRoom3', 맵: { ...다맵, 걷기: { 주소: '/NavMesh', 값: [[0, 0]], 본때: 'x' } }, 결과: { 주소: 'ResultText', 깸: '승 리', 짐: '패 배' } }),
+    깰곳(곳),
     줄('GOAL', 'goal:나아감', { 주소: 'WaveText' }),
     줄('CALC', 'calc:셋째 맵', { 곳 }),
     ...나아감들(3, 3, 2, 3),
@@ -63,5 +64,11 @@ describe('게임플레이 다음 판 막기', () => {
     const 풀기 = 바탕(계획('trial:다음', 'ask:보스'), 줄('ASK', 'ask:보스', {}, 'GUESS'));
     expect(배움막기(자료, 300, 'trial:다음', 풀기 as never, [])).toMatchObject({ 계획: 'trial:다음' });
     expect(배움막기(자료, 300, 'trial:다음', 바탕(계획('trial:다음')) as never, [])).toMatchObject({ 계획: 'trial:다음' });
+  });
+
+  it('새 계획이 다른 곳이면 앞 곳의 안 늚으로 막지 않는다 — 16094 넷째 맵 5판 뒤 다섯째 맵 첫 계획이 막혀 상관없는 물음을 어디서에 달았다', () => {
+    const 다섯째 = 'stage:다섯째 맵';
+    const 들 = 바탕(깰곳(다섯째), 줄('CALC', 'calc:다섯째 맵', { 곳: 다섯째 }), 계획('trial:다섯째', undefined, 다섯째), 줄('ASK', 'ask:보스', {}, 'GUESS'));
+    expect(배움막기(자료, 300, 'trial:다섯째', 들 as never, [])).toMatchObject({ 계획: 'trial:다섯째' });
   });
 });
