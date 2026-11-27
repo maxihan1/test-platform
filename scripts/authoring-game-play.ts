@@ -14,6 +14,7 @@ import { 기록남기기, 덧줄, 몇줄 } from './authoring-game-play-log.js';
 import { type 도중화면, 간격정하기, 찍기시작 } from './authoring-game-play-shots.js';
 import { type 나온것, 세기시작, 지도글 } from './authoring-game-play-spawns.js';
 import { 막힘글 } from './authoring-game-play-gate.js';
+import { type 시간표, 시간재기 } from './authoring-game-play-time.js';
 import { type 멈춤보고, 멈춤보기시작 } from './authoring-game-play-stop.js';
 import { 값읽기시작 } from './authoring-game-play-values.js';
 import { 결과글 } from './authoring-game-state.js';
@@ -70,6 +71,8 @@ export interface 조작결과 {
   /** 판 중간 멈춤 — 계획의 기대가 깨졌거나 처음 보는 오브젝트가 나와 함수를 끊고 게임을 멈췄다 */
   멈춤?: 멈춤보고;
   멈춤사진?: Buffer;
+  /** 판 함수가 보낸 명령의 종류별 시간과 기다림 — 함수가 돌았으면 명령이 0 이어도 남는다 */
+  시간표?: 시간표;
 }
 
 export interface 덧 {
@@ -96,13 +99,14 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   let 배율바꿈 = false;
   let 통신오류: string | null = null;
   let 입력못놓음 = false;
+  const 재 = 시간재기();
   const 문: Link = async (cmd: Command) => {
     if (막음) return new Promise<never>(() => {});
     const c = cmd as unknown as Record<string, unknown>;
     if (c.cmd === 'timescale-set' || (c.cmd === 'static-set' && String(c.prop).endsWith('timeScale'))) 배율바꿈 = true;
     보내는중 += 1;
     try {
-      return await 길(cmd);
+      return await 재.재서(c.cmd, () => 길(cmd));
     } catch (e) {
       통신오류 ??= 까닭(e);
       throw e;
@@ -134,6 +138,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   const 버려진 = (e: unknown): void => void 못한것.push(`기다리지 않은 일이 던짐: ${까닭(e)}`);
   process.on('unhandledRejection', 버려진);
   const 시작 = Date.now();
+  재.켠다(시작);
   // 멈춰 둔 게임을 못 풀었으면 함수를 부르지 않는다 — 안 흐르는 판에서 한도까지 돌다 「넘겼습니다」로 끝나면 까닭이 묻힌다
   const 돌릴까 = !풀림.멈춘채;
   const 간격ms = !돌릴까 || 덧?.도중화면ms === undefined || 덧.도중화면ms <= 0 ? 0 : 간격정하기(덧.도중화면ms, 한도ms);
@@ -146,7 +151,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
   // 옛 SDK 는 장면을 못 읽는다 — 못 읽어도 조작은 하고 못한것에도 안 적는다
   const 장면읽기 = (): Promise<string | null> => 맨게임.scenes().then((x) => (typeof x.active === 'string' ? x.active : null), () => null);
   const 첫장면 = await 장면읽기();
-  const 읽기 = !돌릴까 || 덧?.볼 === undefined ? null : 값읽기시작(맨게임, 덧.볼.계획, 덧.볼.볼값, 덧.볼.기대, 시작);
+  const 읽기 = !돌릴까 || 덧?.볼 === undefined ? null : 값읽기시작(맨게임, 덧.볼.계획, 덧.볼.볼값, 덧.볼.기대, 시작, undefined, 덧.볼.위치);
   // 계획으로 해 볼 때만 — 걸리면 넘음을 거절해 함수를 끊고 아래에서 멈춘다
   let 판멈춤: (왜: string) => void = () => {};
   let 멈춘까닭: string | null = null;
@@ -221,6 +226,7 @@ export async function 돌린다(길: Link, 함수: (game: unknown) => unknown, �
     입력못놓음,
     도중화면: 찍기?.장들 ?? [],
     도중간격ms: 간격ms,
+    ...(돌릴까 ? { 시간표: 재.끝낸다(시작 + 걸린ms) } : {}),
     ...(멈춤?.멈춘뒤배율 === undefined ? {} : { 멈춘뒤배율: 멈춤.멈춘뒤배율 }),
     알림말: [...풀림.알림말, ...(멈춤?.알림말 ?? [])],
     멈춘채: 풀림.멈춘채,

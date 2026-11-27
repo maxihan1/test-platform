@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 값읽기시작, 첫값유예ms, 화면다른것 } from './authoring-game-play-values.js';
+import { 값읽기시작, 서있던비율, 세수로, 첫값유예ms, 화면다른것 } from './authoring-game-play-values.js';
 import { 지도읽기 } from './authoring-game-find.js';
 import { type 판기록, 계획읽기, 놀이계획검사, 대봄검사, 수로, 어긋난기대, 판기록들 } from './authoring-learn-check.js';
 import { 합치기 } from './authoring-learn-note.js';
@@ -81,6 +81,13 @@ describe('계획 · 기대', () => {
     expect(계획읽기({ ...계획data, 볼값: [...계획data.볼값, { 이름: '나아감', 주소: 'x' }] })).toContain('겹친다');
   });
 
+  it('위치는 { 주소, 칸 } 이어야 하고 안 적어도 된다', () => {
+    expect(계획읽기({ ...계획data, 위치: { 주소: '/Player', 칸: 'Transform.position' } })).toMatchObject({ 위치: { 주소: '/Player', 칸: 'Transform.position' } });
+    expect(계획읽기(계획data)).not.toHaveProperty('위치');
+    expect(계획읽기({ ...계획data, 위치: { 주소: '/Player' } })).toContain('data.위치');
+    expect(계획읽기({ ...계획data, 위치: '/Player' })).toContain('data.위치');
+  });
+
   it('까지 · 부터 문이 열린 때만 본다', () => {
     const 기대들 = (계획읽기(계획data) as { 기대: Parameters<typeof 어긋난기대>[0] }).기대;
     expect(어긋난기대(기대들, { 세계수: 42, 웨이브: 1 })).toMatchObject({ 값: '세계수' });
@@ -107,6 +114,43 @@ describe('계획 숫자 읽기 — 2초마다 읽고 처음 어긋난 순간 사
     expect(r.사진?.toString()).toBe('jpg');
     expect(r.기록.화면다름).toEqual(['세계수']);
     expect(화면다른것([{ 초: 0, 값: { 가: 3 }, 화면: { 가: 3 } }], [{ 이름: '가', 주소: 'a', 칸: 'b', 화면: 'c' }])).toEqual([]);
+  });
+
+  it('위치를 적으면 2초마다 같이 읽고, 서 있던 비율은 이웃한 두 읽기의 가로 거리(높이 뺌)가 0.3 미만인 쌍의 비율이다', async () => {
+    const 자리 = [[0, 0, 0], [0.1, 5, 0.1], [3, 0, 0], [3, 0, 0.2]];
+    let n = 0;
+    const 게임 = {
+      get: async (주소: string) => (주소 === '/Player' ? 자리[Math.min(n++, 자리.length - 1)] : 7),
+      text: async () => '웨이브 1',
+      screenshot: async () => Buffer.from('jpg'),
+    };
+    const 고리 = 값읽기시작(게임 as never, 'trial:첫 맵', [{ 이름: '세계수', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }], [], Date.now(), 5, { 주소: '/Player', 칸: 'Transform.position' });
+    await new Promise((끝) => setTimeout(끝, 60));
+    const r = await 고리.끝난다();
+    expect(r.기록.때.length).toBeGreaterThanOrEqual(4);
+    expect(r.기록.때.slice(0, 4).map((t) => t.위치)).toEqual(자리);
+    expect(r.기록.서있음).toBeGreaterThan(0.5);
+    expect(서있던비율([{ 초: 0, 값: {}, 위치: [0, 0, 0] }, { 초: 2, 값: {}, 위치: [0.1, 9, 0.1] }, { 초: 4, 값: {}, 위치: null }, { 초: 6, 값: {}, 위치: [0, 0, 0] }, { 초: 8, 값: {}, 위치: [5, 0, 0] }])).toBe(0.5);
+    expect(서있던비율([{ 초: 0, 값: {} }, { 초: 2, 값: {} }])).toBeNull();
+    const 안적음 = 값읽기시작(게임 as never, 'trial:첫 맵', [{ 이름: '세계수', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }], [], Date.now(), 5);
+    await new Promise((끝) => setTimeout(끝, 20));
+    const 기록 = (await 안적음.끝난다()).기록;
+    expect(기록.서있음).toBeUndefined();
+    expect(기록.때[0]).not.toHaveProperty('위치');
+    // 위치 주소 · 칸을 틀리게 적었으면 삼키지 않고 못함으로 알린다
+    const 틀린게임 = { get: async (_주소: string, 칸: string) => { if (칸 === 'Transform.positon') throw new Error('그런 칸이 없다'); return 50; }, text: async () => '', screenshot: async () => Buffer.from('jpg') };
+    const 틀림 = 값읽기시작(틀린게임 as never, 'trial:첫 맵', [{ 이름: '세계수', 주소: '/Lumikantle', 칸: 'Lumikantle.HP' }], [], Date.now(), 5, { 주소: '/Player', 칸: 'Transform.positon' });
+    await new Promise((끝) => setTimeout(끝, 20));
+    expect((await 틀림.끝난다()).못함).toContain('위치: 그런 칸이 없다');
+  });
+
+  it('위치 값은 객체 · 배열 · 글 어느 것이든 세 수로 바꾸고 못 바꾸면 null', () => {
+    expect(세수로({ x: 1, y: 2, z: 3 })).toEqual([1, 2, 3]);
+    expect(세수로([1, 2, 3])).toEqual([1, 2, 3]);
+    expect(세수로('(1.0, -2.5, 3.0)')).toEqual([1, -2.5, 3]);
+    expect(세수로('(1, 2)')).toBeNull();
+    expect(세수로({ x: 1 })).toBeNull();
+    expect(세수로(null)).toBeNull();
   });
 
   it('첫 읽기 값이 안 바뀐 동안은 기대를 안 본다 — 앞 판 끝 화면(세계수 0)을 새 판 값으로 읽고 0초에 멈췄다(#16054 · #16058)', async () => {
@@ -184,6 +228,23 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     expect(회고없는판(기록들, [...들, 줄('PLAY', `play:${기록이름}`, {})] as never)).toBeNull();
   });
 
+  it('회고에는 기록에서 읽은 시간표 · 서 있던 비율 · 볼값마다 마지막으로 읽힌 끝값이 채워진다', () => {
+    const 기 = { ...값기록('trial:첫 맵', [{ 초: 0, 값: { 웨이브: 1, 세계수: 60 } }, { 초: 2, 값: { 웨이브: 3, 세계수: null } }]), 볼값: [{ 이름: '웨이브', 주소: 'w' }, { 이름: '세계수', 주소: 's' }, { 이름: '없음', 주소: 'n' }], 서있음: 0.4567 };
+    const 기록들: 판기록[] = [{ 이름: 기록이름, 값기록: 기, 시간표: { 읽기ms: 70_400, 입력ms: 49_600, 기타ms: 200, 기다림ms: 120_499 } }];
+    const 들 = [계획줄];
+    const r = 회고채우기(`play:${기록이름}`, { text: '짐', belief: 'SEEN', data: { 까닭: '손', 다음: 'trial:첫 맵' } }, 찾기(들), 기록들);
+    expect(r).toMatchObject({ data: { 시간표: { 읽기초: 70, 입력초: 50, 기타초: 0, 기다림초: 120 }, 서있음: 0.46, 끝값: { 웨이브: 3, 세계수: 60 } } });
+    expect((r as { data: Record<string, unknown> }).data.끝값).not.toHaveProperty('없음');
+    const 없음 = 회고채우기(`play:${기록이름}`, { text: '짐', belief: 'SEEN', data: { 까닭: '손', 다음: 'trial:첫 맵' } }, 찾기(들), [{ 이름: 기록이름, 값기록: 값기록('trial:첫 맵', []) }]);
+    expect((없음 as { data: Record<string, unknown> }).data).not.toHaveProperty('시간표');
+    expect((없음 as { data: Record<string, unknown> }).data).not.toHaveProperty('서있음');
+    // AI 가 지어 적은 수는 기록에 없으면 버린다
+    const 지어냄 = 회고채우기(`play:${기록이름}`, { text: '짐', belief: 'SEEN', data: { 까닭: '손', 다음: 'trial:첫 맵', 서있음: 0.1, 시간표: { 읽기초: 1 }, 끝값: { 웨이브: 9 } } }, 찾기(들), [{ 이름: 기록이름, 값기록: 값기록('trial:첫 맵', []) }]);
+    expect((지어냄 as { data: Record<string, unknown> }).data).not.toHaveProperty('서있음');
+    expect((지어냄 as { data: Record<string, unknown> }).data).not.toHaveProperty('시간표');
+    expect((지어냄 as { data: Record<string, unknown> }).data).not.toHaveProperty('끝값');
+  });
+
   it('학습 세션에서만 막는다 — 앞 회고 · 60초 넘는 계획 없는 부르기 · 나아감 줄 · 다섯 번 안 늚', () => {
     const 지도 = 지도읽기('').줄들;
     expect(배움막기(자료, 300, undefined, 지도, [])).toBeNull();
@@ -195,6 +256,9 @@ describe('회고 · 다음 해 보기 막기 · 끝 조건', () => {
     expect(배움막기(자료, 300, 'trial:없음', 들, [])).toMatchObject({ 막음: expect.stringContaining('TRIAL') });
     const 해볼 = 배움막기(자료, 300, 'trial:첫 맵', 들, []);
     expect(해볼).toMatchObject({ 계획: 'trial:첫 맵', 볼값: [{ 이름: '세계수' }, { 이름: '웨이브' }, { 이름: '나아감', 주소: 'ClearCount' }] });
+    const 위치계획 = [{ ...계획줄, learned: { ...계획줄.learned, data: { ...계획data, 위치: { 주소: '/Player', 칸: 'Transform.position' } } } }, 나아감줄].map((x) => ({ ...x, name: x.key, line: '' })) as never as typeof 지도;
+    expect(배움막기(자료, 300, 'trial:첫 맵', 위치계획, [])).toMatchObject({ 위치: { 주소: '/Player', 칸: 'Transform.position' } });
+    expect(해볼).not.toHaveProperty('위치');
     expect(배움막기(자료, 300, 'trial:첫 맵', 들, [{ 이름: 기록이름, 값기록: 값기록('trial:첫 맵', []) }])).toMatchObject({ 막음: expect.stringContaining(`play:${기록이름}`) });
     // 처음 한 번은 센 것이 없어 늘어난 것으로 친다 — 그 뒤 다섯 번 안 늘면 끝
     // 해 본 판(값기록이 든 기록)이 새로 생길 때만 센다 — 붙지 못해 기록이 안 남은 부르기는 안 센다
