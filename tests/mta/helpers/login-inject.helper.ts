@@ -106,6 +106,25 @@ async function 새토큰(아이디: string, 암호: string): Promise<받은토�
   return { ...앱, token: 토큰.access_token };
 }
 
+export function 토큰버리기(아이디: string, 암호: string): void {
+  토큰들.delete(`${아이디}\n${암호}`);
+}
+
+async function 토큰살아있나(토큰: string): Promise<boolean> {
+  const res = await fetch(new URL('/api/v1/accounts/verify_credentials', `https://${서버}`), {
+    headers: { authorization: `Bearer ${토큰}` },
+    signal: AbortSignal.timeout(전체한도),
+  });
+  return res.status !== 401 && res.status !== 403;
+}
+
+export async function 살아있는토큰받기(아이디: string, 암호: string): Promise<받은토큰> {
+  const 받음 = await 토큰받기(아이디, 암호);
+  if (await 토큰살아있나(받음.token)) return 받음;
+  토큰버리기(아이디, 암호);
+  return 토큰받기(아이디, 암호);
+}
+
 export function 토큰받기(아이디: string, 암호: string): Promise<받은토큰> {
   const 열쇠 = `${아이디}\n${암호}`;
   const 있음 = 토큰들.get(열쇠);
@@ -123,7 +142,7 @@ export function 로그인된채켜기<칸 extends string>(아이디칸: 칸, 암
     const 아이디 = params[아이디칸];
     const 암호 = params[암호칸];
     if (!아이디 || !암호) throw new Error(`${아이디칸} · ${암호칸} 값이 비어 로그인된 채로 켜지 않는다`);
-    const 받음 = await 토큰받기(아이디, 암호);
+    const 받음 = await 살아있는토큰받기(아이디, 암호);
     return { activity: '.QaLoginActivity', extras: { server: 서버, token: 받음.token, clientId: 받음.clientId, clientSecret: 받음.clientSecret } };
   };
 }
