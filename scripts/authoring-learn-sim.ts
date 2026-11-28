@@ -6,9 +6,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { 지도줄 } from './authoring-game-find.js';
-import { type 규칙, type 따라갈, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가 } from '@platform/kit/gameplay';
+import { type 규칙, type 따라갈, type 모델, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가 } from '@platform/kit/gameplay';
 import { 격자걷기, 근거틀림, 빌드글, 손넣기, 손재기, 판재현, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
-import { 어긋남글 } from './authoring-game-sim-compare.js';
+import { 어긋남글, 지속초, 판값들 } from './authoring-game-sim-compare.js';
 import { type 기대, type 볼값, type 값기록, type 판기록, 계산머리, 판기록들 } from './authoring-learn-check.js';
 import { 계획곳, 곳셈, 곳줄들, 못닿고짐, 시뮬불가읽기 } from './authoring-learn-play.js';
 
@@ -146,12 +146,14 @@ export function 시뮬불가재현(열쇠: string, data: unknown, 줄들: readon
   if (s === null) return null;
   const 이름들 = [s.입력.볼값연결.웨이브, s.입력.볼값연결.지킬것].filter((x): x is string => x !== undefined);
   const 판 = 불가.재현안맞음 === undefined ? 마지막판(줄들, 기록들, 열쇠, 이름들) : 기록들.find((r) => r.이름 === 불가.재현안맞음 && r.값기록 !== undefined && 계획곳(줄들, r.값기록.계획) === 열쇠);
-  if (판 === undefined) return 불가.재현안맞음 === undefined ? null : `data.시뮬불가.재현안맞음 ${불가.재현안맞음} 은 이 곳(${열쇠})을 계획으로 돈 판 기록이 아니다`;
+  if (불가.재현안맞음 !== undefined && 판 === undefined) return `data.시뮬불가.재현안맞음 ${불가.재현안맞음} 은 이 곳(${열쇠})을 계획으로 돈 판 기록이 아니다`;
+  // 그 곳 판이 하나도 없으면 견줄 것이 없다 — 판이 있으면 입력을 읽어 가장 새 판은 재현으로, 모든 판은 버틴 때로 견준다
+  if (!기록들.some((r) => r.값기록 !== undefined && 계획곳(줄들, r.값기록.계획) === 열쇠)) return null;
   let 글: string;
   try {
     글 = readFileSync(join(자료, s.입력.파일), 'utf8');
   } catch (e) {
-    return `${불가.계산} 의 입력 파일 ${s.입력.파일} 을 못 읽어 판 ${판.이름} 재현을 못 본다(${e instanceof Error ? e.message : String(e)}) — 입력을 ${자료}/game-calc/ 에 두고 다시 계산해 줄을 고친다`;
+    return `${불가.계산} 의 입력 파일 ${s.입력.파일} 을 못 읽어 그 곳 판과 견주지 못한다(${e instanceof Error ? e.message : String(e)}) — 입력을 ${자료}/game-calc/ 에 두고 다시 계산해 줄을 고친다`;
   }
   if (해시(글) !== s.입력.해시) return `${불가.계산} 를 낸 뒤 입력 파일 ${s.입력.파일} 이 바뀌었다 — 다시 계산해 찍힌 줄로 고친다`;
   let m: ReturnType<typeof 입력읽기>;
@@ -162,10 +164,28 @@ export function 시뮬불가재현(열쇠: string, data: unknown, 줄들: readon
   }
   if ('틀림' in m) return `${불가.계산} 의 입력이 틀렸다 — ${m.틀림}`;
   const 잰m = 손넣기(m, 손재기(자료, 열쇠));
-  const 재 = 판재현(잰m, 격자걷기(자료, 잰m).걷기, 기록들, 판);
+  const 재 = 판 === undefined ? null : 판재현(잰m, 격자걷기(자료, 잰m).걷기, 기록들, 판);
   const 어긋 = 재 !== null && 재.비교.본수 > 0 && !재.비교.맞음;
-  if (불가.재현안맞음 !== undefined) return 어긋 ? null : `판 ${판.이름} 재현이 판과 맞는다(또는 견줄 값이 없다) — 재현안맞음이 아니다`;
-  return 어긋 ? `시뮬불가는 판과 맞는 모델로만 받는다 — ${재현틀림글(판.이름, 재!.비교.어긋남!)}` : null;
+  if (불가.재현안맞음 !== undefined) return 어긋 ? null : `판 ${판!.이름} 재현이 판과 맞는다(또는 견줄 값이 없다) — 재현안맞음이 아니다`;
+  if (어긋) return `시뮬불가는 판과 맞는 모델로만 받는다 — ${재현틀림글(판!.이름, 재!.비교.어긋남!)}`;
+  const 짐 = 객체(객체(s.결과).짐);
+  const 버팀 = typeof 짐.웨이브 === 'string' && typeof 짐.초 === 'number' ? 더버틴판(열쇠, 줄들, 기록들, m, { 웨이브: 짐.웨이브, 초: 짐.초 }) : null;
+  return 버팀 === null ? null : `판 ${버팀.이름} 은 ${버팀.웨이브}웨이브 ${버팀.초}초까지 지킬것이 ${버팀.지킬것} 남았는데 시뮬 최선(${불가.계산})은 ${String(짐.웨이브)} ${String(짐.초)}초에 진다 — 시뮬이 판보다 비관적이라 시뮬불가로 받지 않는다. 그 판에 행동기록이 없으면 재현으로는 못 짚으니 지도 규칙 · 빌드 데이터에서 출현 · 체력 · 공격 값을 다시 재서 입력을 고친다`;
+}
+
+/**
+ * 시뮬 최선이 진 때보다 판에서 지킬것을 더 오래 지킨 판 — 행동기록이 없는 옛 판도 값기록(웨이브 · 지킬것)으로 본다. 치트 판은 뺀다.
+ * 16104 넷째 맵은 시뮬 최선이 1웨이브 59.3초에 진다고 닫았는데 밤새 돈 판은 79초까지 세계수 25 를 지켰다(다섯째 맵 74.1초 · 판 126초)
+ */
+function 더버틴판(열쇠: string, 줄들: readonly 줄[], 기록들: readonly 판기록[], m: 모델, 짐: { 웨이브: string; 초: number }): { 이름: string; 웨이브: number; 초: number; 지킬것: number } | null {
+  const 진 = m.웨이브.findIndex((w) => w.이름 === 짐.웨이브) + 1;
+  if (진 === 0) return null;
+  for (const r of 기록들) {
+    if (r.값기록 === undefined || r.치트 === true || 계획곳(줄들, r.값기록.계획) !== 열쇠) continue;
+    const 산 = 판값들([{ 값기록: r.값기록, 따라감: r.따라감 }], m.볼값연결).filter((x) => (x.지킬것 ?? 0) > 0 && x.웨이브 !== undefined).at(-1);
+    if (산 !== undefined && (산.웨이브! > 진 || (산.웨이브 === 진 && 산.초 > 짐.초 + Math.max(지속초, 짐.초 * 0.1)))) return { 이름: r.이름, 웨이브: 산.웨이브!, 초: 산.초, 지킬것: 산.지킬것! };
+  }
+  return null;
 }
 
 /**

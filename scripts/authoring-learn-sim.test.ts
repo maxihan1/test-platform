@@ -225,7 +225,17 @@ describe('시뮬불가 — 판 없이 넘기고 다른 맵을 다 돈 뒤 한 �
     writeFileSync(join(자료, 'game-calc', '가.json'), '{}');
     expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain('입력 파일 game-calc/가.json 이 바뀌었다');
     rmSync(join(자료, 'game-calc', '가.json'));
-    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain('입력 파일 game-calc/가.json 을 못 읽어');
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain('입력 파일 game-calc/가.json 을 못 읽어 그 곳 판과 견주지 못한다');
+  });
+
+  it('행동기록이 없는 옛 판이라도 시뮬 최선이 진 때보다 지킬것을 더 오래 지켰으면 시뮬불가를 받지 않는다 — 16104 넷째 맵 시뮬 59.3초 · 판 79초', async () => {
+    const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));
+    const 진초 = (짐.learned!.data.결과 as { 짐: { 초: number } }).짐.초;
+    const 들 = [불가곳(짐), 계획줄, 짐];
+    판쓰기('20261127000000000-옛판', [], { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(40, 99));
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain(`판 20261127000000000-옛판 은 1웨이브 40초까지 지킬것이 5 남았는데 시뮬 최선(calc:가)은 1웨이브 ${진초}초에 진다`);
+    판쓰기('20261127000000000-옛판', [], { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(40, 진초));
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toBeNull();
   });
 
   it('고쳐도 재현이 안 맞으면 재현안맞음으로 닫는다 — 그 판 재현이 정말 어긋나야 받고, 이길 수 있는 계산이어도 받는다', async () => {
