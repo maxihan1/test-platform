@@ -1,5 +1,5 @@
-// 시뮬레이션 엔진의 길 계산 — 두 점 거리 · 길이 원 안을 지나는 길이 · 누적 길이 · 길 위 자리 (authoring-game-sim.ts 가 300줄을 넘어 떼어 냈다)
-import type { 점 } from './authoring-game-sim-input.js';
+// 시뮬레이션 엔진의 길 계산 — 두 점 거리 · 길이 원 안을 지나는 길이 · 누적 길이 · 길 위 자리 (sim.ts 가 300줄을 넘어 떼어 냈다)
+import type { 점 } from './simInput.js';
 
 export interface 원 { 중심: 점; 반지름: number }
 export const 거리 = (a: 점, b: 점): number => Math.hypot(a[0] - b[0], a[1] - b[1]);

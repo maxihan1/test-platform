@@ -1,4 +1,4 @@
-// 게임플레이 진행 조건 — 시뮬 줄 · 이김 · 입력 해시 · 끝 웨이브 · 다시 돌리기 · 정책 인자 · 손 시간 · 행동기록 · 재현 · 기계가 넣는 기대 · 시뮬불가
+// 게임플레이 진행 조건 — 시뮬 줄 · 이김 · 입력 해시 · 끝 웨이브 · 다시 돌리기 · 따라갈 순서 · 손 시간 · 행동기록 · 재현 · 기계가 넣는 기대 · 시뮬불가
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -54,58 +54,74 @@ const 지도쓰기 = (들: 줄[]): void => {
 const 계획 = { 곳, 쓸것: ['calc:가'], 볼값: [{ 이름: '웨이브', 주소: '/w' }, { 이름: '세계수', 주소: '/t' }] };
 const 정책 = (c: 줄): unknown => (c.learned!.data.결과 as { 정책: unknown }).정책;
 const 판쓰기 = (이름: string, 행동기록: unknown[], 계산: Record<string, string>, 어긋남: unknown = null, 웨이브 = 3): void =>
-  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false, 행동기록 }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [{ 초: 0, 값: { 웨이브: 1 } }, { 초: 2, 값: { 웨이브 } }], 어긋남, 화면다름: [], 계산 } }));
-const 막기 = (계: typeof 계획, 들: 줄[], ...남은: [string, Parameters<typeof 시뮬막기>[3], unknown[]]) => 시뮬막기(계, 들 as never, ...남은);
+  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false }, 따라감: { 행동기록, 다시계산: [] }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [{ 초: 0, 값: { 웨이브: 1 } }, { 초: 2, 값: { 웨이브 } }], 어긋남, 화면다름: [], 계산 } }));
+const 막기 = (계: typeof 계획, 들: 줄[], 자: string, 기: Parameters<typeof 시뮬막기>[3]) => 시뮬막기(계, 들 as never, 자, 기);
 const 기록들 = async () => (await import('./authoring-learn-check.js')).판기록들(자료);
 
 describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
-  it('이긴 시뮬 줄 · 같은 입력 · 정책 인자가 있으면 웨이브마다 기대를 더해 돌리고, 하나라도 빠지면 막는다', async () => {
+  it('이긴 시뮬 줄 · 같은 입력이면 웨이브마다 기대와 조작 도우미가 따라갈 순서를 내고, 시뮬 줄이 없으면 막는다', async () => {
     const c = 계산줄('가', 입력());
     const 들 = [곳줄(), 계획줄, c];
-    expect(막기({ ...계획, 쓸것: [] }, 들, 자료, [], [])).toMatchObject({ 막음: expect.stringContaining('시뮬레이션으로 이기는 안이 있어야') });
-    expect(막기(계획, 들, 자료, [], [])).toMatchObject({ 막음: expect.stringContaining('고른 정책이 없다') });
-    const r = 막기(계획, 들, 자료, await 기록들(), [{ 정책: 정책(c) }]);
-    expect(r).toEqual({ 기대: [1, 2, 3].map((k) => ({ 값: '세계수', 비교: '>=', 기준: 4, 부터: { 값: '웨이브', 기준: k }, 까지: { 값: '웨이브', 기준: k } })) });
-    expect(막기(계획, [곳줄({ 맵: { 적: { 없음: '적이 안 온다' } } }), 계획줄], 자료, [], [])).toBeNull();
+    expect(막기({ ...계획, 쓸것: [] }, 들, 자료, [])).toMatchObject({ 막음: expect.stringContaining('시뮬레이션으로 이기는 안이 있어야') });
+    const r = 막기(계획, 들, 자료, await 기록들());
+    expect(r).toMatchObject({ 기대: [1, 2, 3].map((k) => ({ 값: '세계수', 비교: '>=', 기준: 4, 부터: { 값: '웨이브', 기준: k }, 까지: { 값: '웨이브', 기준: k } })), 따라갈: { 정책: 정책(c), 버금: expect.any(Array), 모델: { 곳, 손: { 행동초: 0.5 } } } });
+    expect(막기(계획, [곳줄({ 맵: { 적: { 없음: '적이 안 온다' } } }), 계획줄], 자료, [])).toBeNull();
   });
 
   it('이기는 안이 없다고 나온 줄 · 입력이 바뀐 줄 · 줄 글자만 이김으로 고친 줄은 막는다', () => {
     const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));
-    expect(막기(계획, [곳줄(), 계획줄, 짐], 자료, [], [정책(짐)])).toMatchObject({ 막음: expect.stringContaining('이기는 안이 없다') });
+    expect(막기(계획, [곳줄(), 계획줄, 짐], 자료, [])).toMatchObject({ 막음: expect.stringContaining('이기는 안이 없다') });
     const 고친 = { ...짐, learned: { ...짐.learned!, data: { ...짐.learned!.data, 결과: { ...(짐.learned!.data.결과 as object), 이김: true } } } };
-    expect(막기(계획, [곳줄(), 계획줄, 고친], 자료, [], [정책(짐)])).toMatchObject({ 막음: expect.stringContaining('다시 돌리니') });
+    expect(막기(계획, [곳줄(), 계획줄, 고친], 자료, [])).toMatchObject({ 막음: expect.stringContaining('다시 돌리니') });
     const 이김줄 = 계산줄('가', 입력());
     const 손지어냄 = 입력({ 손: { 행동초: 9 } });
     const 느림 = 계산줄('가', 손지어냄);
     expect(느림.learned!.data.결과).toMatchObject({ 이김: false });
     const 빠른손 = { ...느림, learned: { ...느림.learned!, data: { ...느림.learned!.data, 결과: { ...(이김줄.learned!.data.결과 as object) } } } };
-    expect(막기(계획, [곳줄(), 계획줄, 빠른손], 자료, [], [정책(이김줄)])).toMatchObject({ 막음: expect.stringContaining('다시 돌리니') });
+    expect(막기(계획, [곳줄(), 계획줄, 빠른손], 자료, [])).toMatchObject({ 막음: expect.stringContaining('다시 돌리니') });
     const 지은정책 = [{ 조건: [], 행동: { 무엇: '놓기', 대상: '탑' } }, { 조건: [], 행동: { 무엇: '줍기' } }];
     const 정책바꿈 = { ...이김줄, learned: { ...이김줄.learned!, data: { ...이김줄.learned!.data, 결과: { ...(이김줄.learned!.data.결과 as object), 정책: 지은정책 } } } };
     writeFileSync(join(자료, 'game-calc', '가.json'), JSON.stringify(입력()));
-    expect(막기(계획, [곳줄(), 계획줄, 정책바꿈], 자료, [], [{ 정책: 지은정책 }])).toMatchObject({ 막음: expect.stringContaining('정책 후보') });
+    expect(막기(계획, [곳줄(), 계획줄, 정책바꿈], 자료, [])).toMatchObject({ 막음: expect.stringContaining('입력 파일의 규칙으로 만든 것이 아니다') });
     const c = 계산줄('가', 입력());
     writeFileSync(join(자료, 'game-calc', '가.json'), JSON.stringify(입력({ 재화: { 시작: 1 } })));
-    expect(막기(계획, [곳줄(), 계획줄, c], 자료, [], [정책(c)])).toMatchObject({ 막음: expect.stringContaining('바뀌었다') });
+    expect(막기(계획, [곳줄(), 계획줄, c], 자료, [])).toMatchObject({ 막음: expect.stringContaining('바뀌었다') });
   });
 
   it('끝 웨이브 · 보스까지 넣어야 한다 — 보스가 없으면 STAGE 끝웨이브 수만큼', () => {
     const 보스없음 = 계산줄('가', 입력({ 웨이브: [웨(), 웨()] }));
-    expect(막기(계획, [곳줄(), 계획줄, 보스없음], 자료, [], [정책(보스없음)])).toMatchObject({ 막음: expect.stringContaining('보스 웨이브') });
-    expect(막기(계획, [곳줄({ 끝웨이브: { 수: 2, 출처: '빌드 데이터' } }), 계획줄, 보스없음], 자료, [], [정책(보스없음)])).toHaveProperty('기대');
-    expect(막기(계획, [곳줄({ 끝웨이브: { 수: 6, 출처: '빌드 데이터' } }), 계획줄, 보스없음], 자료, [], [정책(보스없음)])).toMatchObject({ 막음: expect.stringContaining('끝웨이브 6') });
+    expect(막기(계획, [곳줄(), 계획줄, 보스없음], 자료, [])).toMatchObject({ 막음: expect.stringContaining('보스 웨이브') });
+    expect(막기(계획, [곳줄({ 끝웨이브: { 수: 2, 출처: '빌드 데이터' } }), 계획줄, 보스없음], 자료, [])).toHaveProperty('기대');
+    expect(막기(계획, [곳줄({ 끝웨이브: { 수: 6, 출처: '빌드 데이터' } }), 계획줄, 보스없음], 자료, [])).toMatchObject({ 막음: expect.stringContaining('끝웨이브 6') });
   });
 
-  it('판을 하나 더 돌면 그 판 손 시간으로 다시 시뮬해야 하고, 판 함수가 행동기록을 안 돌려주면 막는다', async () => {
+  it('판을 하나 더 돌면 그 판 손 시간으로 다시 시뮬해야 하고, 판에 행동기록이 없으면 막는다', async () => {
     const c = 계산줄('가', 입력());
     지도쓰기([곳줄(), 계획줄, c]);
     판쓰기('20261128000000000-판', [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 도착초: 0, 끝초: 1.5 }], { 'calc:가': JSON.stringify(c.learned!.data) });
-    expect(막기(계획, [곳줄(), 계획줄, c], 자료, await 기록들(), [정책(c)])).toMatchObject({ 막음: expect.stringContaining('다시 안 돌렸다') });
+    expect(막기(계획, [곳줄(), 계획줄, c], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('다시 안 돌렸다') });
     const 다시 = 계산줄('가', 입력());
     expect((다시.learned!.data.결과 as { 손: unknown }).손).toEqual({ 행동초: 1.5, 기록: '20261128000000000-판' });
-    expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들(), [정책(다시)])).toHaveProperty('기대');
+    expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들())).toHaveProperty('기대');
     판쓰기('20261128000100000-판', [], { 'calc:가': JSON.stringify(다시.learned!.data) });
-    expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들(), [정책(다시)])).toMatchObject({ 막음: expect.stringContaining('행동기록을 안 돌려줬다') });
+    expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('에 행동기록이 없다') });
+  });
+
+  it('행동기록은 조작 도우미가 남긴 것(따라감)을 먼저 읽고, 버금 순서는 입력 규칙으로 만든 것만 따라갈 것에 싣는다', async () => {
+    const { 판행동기록, 행동기록읽기 } = await import('./authoring-game-sim-run.js');
+    const 옛 = [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 끝초: 1 }];
+    const 새 = [{ 초: 0, 행동: '줍기', 자리: [8, 1], 자리들: [[6, 1], [8, 1]], 시작초: 0.2, 도착초: 2, 끝초: 2, 됨: true, 걸음: 3 }];
+    expect(행동기록읽기({ 이름: 'ㄱ', 값: { 행동기록: 옛 } })).toEqual(옛);
+    expect(행동기록읽기({ 이름: 'ㄱ', 값: { 행동기록: 옛 }, 따라감: { 행동기록: 새 } })).toEqual(새);
+    expect(행동기록읽기({ 이름: 'ㄱ', 값: { 이김: true } })).toBeNull();
+    // 시간 한도를 넘어 이어 한 판은 앞 기록의 행동부터 읽는다
+    const 이은판들 = [{ 이름: '20261128000000000-판', 따라감: { 행동기록: 옛 } }, { 이름: '20261128000700000-판', 따라감: { 행동기록: 새, 이어: '20261128000000000-판' } }];
+    expect(판행동기록(이은판들, 이은판들[1]!)!.map((x) => x.행동)).toEqual(['놓기', '줍기']);
+    expect(판행동기록(이은판들, 이은판들[0]!)!.map((x) => x.행동)).toEqual(['놓기']);
+    const c = 계산줄('가', 입력());
+    const 놓기 = { 조건: [], 행동: { 무엇: '놓기', 대상: '탑' } };
+    const 버금넣음 = { ...c, learned: { ...c.learned!, data: { ...c.learned!.data, 결과: { ...(c.learned!.data.결과 as object), 버금: [[놓기], [{ 조건: [], 행동: { 무엇: '줍기' } }], '틀린 것'] } } } };
+    expect(막기(계획, [곳줄(), 계획줄, 버금넣음], 자료, [])).toMatchObject({ 따라갈: { 버금: [[놓기]] } });
   });
 
   it('유지 근거가 지도에 없는 열쇠면 계산이 받지 않는다 — 지침 예시 숫자를 베낀 값을 막는다(16102)', () => {
@@ -125,9 +141,9 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     const 결과 = { 주소: '/결과', 깸: '승리', 짐: '패배' };
     const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));
     const 들 = [곳줄({ 결과 }), 계획줄, 짐];
-    expect(막기(계획, 들, 자료, [], [정책(짐)])).toMatchObject({ 막음: expect.stringContaining('다음 맵으로 간다') });
+    expect(막기(계획, 들, 자료, [])).toMatchObject({ 막음: expect.stringContaining('다음 맵으로 간다') });
     writeFileSync(join(자료, 'game-play', '20261127000000000-판.json'), JSON.stringify({ 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [], 어긋남: null, 화면다름: [] }, 끝글: [{ 주소: '/결과', 경로: '', 글: '승리' }] }));
-    expect(막기(계획, 들, 자료, [], [정책(짐)])).toMatchObject({ 막음: expect.stringContaining('1판 깬 적이 있다') });
+    expect(막기(계획, 들, 자료, [])).toMatchObject({ 막음: expect.stringContaining('1판 깬 적이 있다') });
   });
 
   it('판에 못 들어간 계획 판(행동기록이 비고 값이 한 번도 안 움직임)은 마지막 판으로 안 쳐 그 곳을 잠그지 않는다(16100 첫 맵 · 둘째 맵)', async () => {
@@ -136,7 +152,7 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     판쓰기('20261128000000000-판', [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 도착초: 0, 끝초: 1.5 }], { 'calc:가': JSON.stringify(c.learned!.data) });
     const 다시 = 계산줄('가', 입력());
     판쓰기('20261128000100000-정책판', [], { 'calc:가': JSON.stringify(다시.learned!.data) }, null, 1);
-    expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들(), [정책(다시)])).toHaveProperty('기대');
+    expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들())).toHaveProperty('기대');
   });
 
   it('판이 시뮬과 어긋났으면 그 판 행동기록으로 재현해 같은 웨이브(±1)에서 져야 다음 판이 돈다', async () => {
@@ -145,13 +161,13 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     const 어긋남 = { 초: 12, 값이름: '세계수', 값: 0, 기대: '세계수 >= 4' };
     판쓰기('20261128000000000-판', [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 도착초: 6, 끝초: 7.5 }], { 'calc:가': JSON.stringify(c.learned!.data) }, 어긋남, 1);
     const 안맞춤 = 계산줄('가', 입력());
-    expect(막기(계획, [곳줄(), 계획줄, 안맞춤], 자료, await 기록들(), [정책(안맞춤)])).toMatchObject({ 막음: expect.stringContaining('재현: { 기록: "20261128000000000-판" }') });
+    expect(막기(계획, [곳줄(), 계획줄, 안맞춤], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('재현: { 기록: "20261128000000000-판" }') });
     const 맞춤 = 계산줄('가', 입력({ 재현: { 기록: '20261128000000000-판' } }));
     expect(맞춤.learned!.data.결과).toMatchObject({ 재현: { 이김: false, 웨이브수: 0 } });
-    expect(막기(계획, [곳줄(), 계획줄, 맞춤], 자료, await 기록들(), [정책(맞춤)])).toHaveProperty('기대');
+    expect(막기(계획, [곳줄(), 계획줄, 맞춤], 자료, await 기록들())).toHaveProperty('기대');
     판쓰기('20261128000100000-판', [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 끝초: 0.1 }], { 'calc:가': JSON.stringify(맞춤.learned!.data) }, 어긋남, 1);
     const 못맞춤 = 계산줄('가', 입력({ 재현: { 기록: '20261128000100000-판' } }));
-    expect(막기(계획, [곳줄(), 계획줄, 못맞춤], 자료, await 기록들(), [정책(못맞춤)])).toMatchObject({ 막음: expect.stringContaining('시뮬이 판 20261128000100000-판 을 못 맞춘다') });
+    expect(막기(계획, [곳줄(), 계획줄, 못맞춤], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('시뮬이 판 20261128000100000-판 을 못 맞춘다') });
   });
 });
 

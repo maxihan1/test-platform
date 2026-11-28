@@ -11,6 +11,7 @@
     "./runtime": "./src/runtime/index.ts",
     "./app": "./src/runtime/app.ts",
     "./game": "./src/runtime/game.ts",
+    "./gameplay": "./src/gameplay/index.ts",
     "./scenario": "./src/runtime/scenario.ts",
     "./protocol": "./src/runtime/protocol.ts",
     "./parts": "./src/parts.ts"

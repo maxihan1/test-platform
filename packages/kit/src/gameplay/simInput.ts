@@ -21,7 +21,13 @@ export interface 아이템 { 이름: string; 쿨타임: number; 사거리: numbe
 export interface 회복수단 { 이름: string; 대상: '캐릭터' | '지킬것'; 값: number; 양: number; 쿨타임: number }
 export interface 캐릭터 { 자리: 점; 걷기속도: number; 체력?: number; 쓰러지면초: number; 공격?: { 사거리: number; 공격력: number; 간격: number } }
 export interface 조건 { 값: 상태이름; 반경?: number; 비교: 비교; 기준: number | string }
-export interface 규칙 { 조건: 조건[]; 행동: { 무엇: 행동종류; 대상?: string; 자리?: 점; 반경?: number } }
+/** 고르기 — 키우기가 여럿 가운데 무엇부터 키우나. 높은 = 레벨이 높은 것부터(하나를 끝까지 몰아 키운다) · 낮은 = 낮은 것부터(고루). 없으면 길을 많이 덮는 것부터 */
+export interface 규칙 { 조건: 조건[]; 행동: { 무엇: 행동종류; 대상?: string; 자리?: 점; 반경?: number; 고르기?: '높은' | '낮은' } }
+/**
+ * 판 중간에서 이어 흘릴 때의 상태 — 순서대로 하기(follow.ts)가 판에서 읽어 넣는다. 입력 파일에는 없다.
+ * 레벨은 놓은 직후가 1 · 유지는 남은 비율(0~1 · 못 읽으면 가득) · 떨어진은 바닥에 떨어진 재화 자리
+ */
+export interface 시작상태 { 지킬것: number; 재화: number; 자리: 점; 설치물: { 종류: string; 레벨: number; 자리: 점; 유지?: number }[]; 떨어진: 점[]; 첫웨이브까지초: number }
 export interface 모델 {
   곳: string;
   지킬것: { 체력: number; 자리: 점 };
@@ -34,11 +40,13 @@ export interface 모델 {
   아이템: Record<string, 아이템>;
   회복: Record<string, 회복수단>;
   재화: { 시작: number; 초당: number; 줍기: boolean; 줍는거리: number };
-  손: { 행동초: number };
+  /** 종류별 — 판에서 잰 종류마다 손 시간(없는 종류는 행동초). 입력 파일에는 못 적는다 */
+  손: { 행동초: number; 종류별?: Partial<Record<행동종류, number>> };
   볼값연결: { 웨이브?: string; 지킬것?: string; 재화?: string };
   정책들: 규칙[][];
   문턱후보: Record<string, number[]>;
   재현?: { 기록: string };
+  시작?: 시작상태;
 }
 
 const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
@@ -74,14 +82,14 @@ function 레벨읽기(v: unknown, 어디: string): 레벨 {
 function 규칙읽기(v: unknown, 어디: string): 규칙 {
   const x = 객체(v);
   const 행 = 객체(x.행동);
-  요구(Array.isArray(x.조건) && (행동종류들 as readonly unknown[]).includes(행.무엇) && 없거나(행.대상, 글) && 없거나(행.자리, 점인가) && 없거나(행.반경, 양수), `${어디} 는 { 조건: [{ 값, 반경?, 비교, 기준 }], 행동: { 무엇(${행동종류들.join(' · ')}), 대상?, 자리?, 반경? } } 이다`);
+  요구(Array.isArray(x.조건) && (행동종류들 as readonly unknown[]).includes(행.무엇) && 없거나(행.대상, 글) && 없거나(행.자리, 점인가) && 없거나(행.반경, 양수) && 없거나(행.고르기, (y) => y === '높은' || y === '낮은'), `${어디} 는 { 조건: [{ 값, 반경?, 비교, 기준 }], 행동: { 무엇(${행동종류들.join(' · ')}), 대상?, 자리?, 반경?, 고르기?(키우기 — 높은 · 낮은) } } 이다`);
   const 조건들 = 목록(x.조건).map((c, i) => {
     const y = 객체(c);
     요구((상태이름들 as readonly unknown[]).includes(y.값) && ['>=', '<=', '>', '<', '=='].includes(y.비교 as string) && (수(y.기준) || (글(y.기준) && y.기준.startsWith('$'))) && 없거나(y.반경, 양수), `${어디}.조건 ${i + 1}번은 { 값(${상태이름들.join(' · ')}), 반경?(둘레 수를 셀 거리), 비교(>= · <= · > · < · ==), 기준(수나 $문턱이름) } 이다`);
     요구(!String(y.값).includes('둘레') || 양수(y.반경), `${어디}.조건 ${i + 1}번 ${String(y.값)} 은 반경이 있어야 센다`);
     return { 값: y.값 as 상태이름, 비교: y.비교 as 비교, 기준: y.기준 as number | string, ...(y.반경 === undefined ? {} : { 반경: y.반경 as number }) };
   });
-  return { 조건: 조건들, 행동: { 무엇: 행.무엇 as 행동종류, ...(행.대상 === undefined ? {} : { 대상: 행.대상 as string }), ...(행.자리 === undefined ? {} : { 자리: 행.자리 as 점 }), ...(행.반경 === undefined ? {} : { 반경: 행.반경 as number }) } };
+  return { 조건: 조건들, 행동: { 무엇: 행.무엇 as 행동종류, ...(행.대상 === undefined ? {} : { 대상: 행.대상 as string }), ...(행.자리 === undefined ? {} : { 자리: 행.자리 as 점 }), ...(행.반경 === undefined ? {} : { 반경: 행.반경 as number }), ...(행.고르기 === undefined ? {} : { 고르기: 행.고르기 as '높은' | '낮은' }) } };
 }
 
 /** 입력 JSON 을 모델로 — 틀리면 무엇이 틀렸나 한 줄 */

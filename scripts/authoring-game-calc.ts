@@ -4,9 +4,9 @@
 import { readFileSync } from 'node:fs';
 import { basename, dirname, relative } from 'node:path';
 
-import { 입력읽기 } from './authoring-game-sim-input.js';
+import { type 원, type 점, 원안길이, 입력읽기 } from '@platform/kit/gameplay';
+
 import { 시뮬계산 } from './authoring-game-sim-run.js';
-import { type 원, type 점, 원안길이 } from './authoring-game-sim.js';
 
 export { 원안길이, type 원, type 점 };
 
@@ -81,10 +81,23 @@ export function 줄초안(r: 계산결과, 입력: Record<string, unknown>): Rec
   return { kind: 'CALC', key: `calc:${r.이름}`, name: r.이름, learned: { text, belief: 'GUESS', data: { 입력: r.입력요약, 결과: r.결과, ...(글인가(입력.곳) ? { 곳: 입력.곳 } : {}), ...(빌드데이터썼나 ? { 출처: '빌드 데이터' } : {}) } } };
 }
 
+/**
+ * 케이스의 작전 함수에 넣을 순서자료 — 시뮬 입력 그대로 · 고른 순서 · 버금 순서 · 잰 손. 이기는 안이 있는 시뮬 결과만 낸다.
+ * 케이스는 정식 실행에서 kit `순서대로`(`@platform/kit/parts`)로 배울 때와 같은 방식으로 판을 한다(2026-11-28 사용자 「케이스도 같은 방식」)
+ */
+export function 순서자료(r: 계산결과, 입력: Record<string, unknown>): Record<string, unknown> | null {
+  if (r.결과.계산 !== '시뮬' || r.결과.이김 !== true) return null;
+  const { 재현: _재현, ...남은 } = 입력;
+  const { 기록: _기록, ...손 } = 객체(r.결과.손);
+  return { 입력: 남은, 정책: r.결과.정책, 버금: r.결과.버금, 손 };
+}
+
 function 실행(): void {
-  const 파일 = process.argv[2];
+  const 인자 = process.argv.slice(2);
+  const 케이스 = 인자.includes('--case');
+  const 파일 = 인자.find((x) => x !== '--case');
   if (파일 === undefined) {
-    process.stderr.write('쓰는 법: npx tsx scripts/authoring-game-calc.ts <입력 JSON 파일>\n');
+    process.stderr.write('쓰는 법: npx tsx scripts/authoring-game-calc.ts <입력 JSON 파일> [--case — 케이스 작전 함수에 넣을 순서자료만 찍는다]\n');
     process.exit(2);
   }
   let 입력: unknown;
@@ -100,6 +113,15 @@ function 실행(): void {
   if ('틀림' in r) {
     process.stderr.write(`입력이 틀렸다 — ${r.틀림}\n`);
     process.exit(2);
+  }
+  if (케이스) {
+    const 자료 = 순서자료(r, 객체(입력));
+    if (자료 === null) {
+      process.stderr.write(`순서자료를 못 낸다 — ${r.글}. 이기는 안이 있는 시뮬 입력에만 쓴다\n`);
+      process.exit(2);
+    }
+    process.stdout.write(`${JSON.stringify(자료)}\n`);
+    return;
   }
   process.stdout.write(`${r.줄글.join('\n')}\n결론: ${r.글}\n지도 CALC 줄 초안\n${JSON.stringify(줄초안(r, 객체(입력)))}\n`);
 }

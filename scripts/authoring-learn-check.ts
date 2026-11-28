@@ -113,7 +113,8 @@ export interface 어긋남 { 초: number; 값이름: string; 값: number; 기대
 export interface 값기록 { 계획: string; 볼값: 볼값[]; 간격ms: number; 때: 값때[]; 어긋남: 어긋남 | null; 화면다름: string[]; 계산?: Record<string, string>; 서있음?: number }
 export interface 끝글줄 { 주소: string; 경로: string; 글: string }
 /** 멈춤 — 판 중간 멈춤 순간의 볼값(authoring-game-play-stop) */
-export interface 판기록 { 이름: string; 값?: unknown; 값기록?: 값기록; 끝글?: 끝글줄[]; 장면들?: string[]; 멈춤?: { 초: number; 값: Record<string, number | null> }; 치트?: true; 시간표?: 시간표 }
+/** 따라감 — 순서대로 하기(kit gameplay)가 남긴 행동기록 · 다시 계산 · 끝. 함수가 끊겨도(멈춤 · 한도) 남는다 */
+export interface 판기록 { 이름: string; 값?: unknown; 값기록?: 값기록; 끝글?: 끝글줄[]; 장면들?: string[]; 멈춤?: { 초: number; 값: Record<string, number | null> }; 치트?: true; 시간표?: 시간표; 따라감?: unknown }
 
 /** 자료 폴더의 판 기록 — 지켜보기 · 새것 글은 뺀다. 이름순이 시간순이다 */
 export function 판기록들(자료: string): 판기록[] {
@@ -127,7 +128,7 @@ export function 판기록들(자료: string): 판기록[] {
   return 이름들.flatMap((x) => {
     try {
       const 몸 = 객체(JSON.parse(readFileSync(join(폴더, x), 'utf8')));
-      return [{ 이름: x.slice(0, -5), 값: 몸.값, ...(몸.값기록 === undefined ? {} : { 값기록: 몸.값기록 as 값기록 }), ...(Array.isArray(몸.끝글) ? { 끝글: 몸.끝글 as 끝글줄[] } : {}), ...(Array.isArray(몸.장면들) ? { 장면들: (몸.장면들 as unknown[]).filter(글인가) } : {}), ...(객체(몸.멈춤).값 === undefined ? {} : { 멈춤: 몸.멈춤 as NonNullable<판기록['멈춤']> }), ...(몸.치트 === true ? { 치트: true as const } : {}), ...(수인가(객체(몸.시간표).기다림ms) ? { 시간표: 몸.시간표 as 시간표 } : {}) }];
+      return [{ 이름: x.slice(0, -5), 값: 몸.값, ...(몸.값기록 === undefined ? {} : { 값기록: 몸.값기록 as 값기록 }), ...(Array.isArray(몸.끝글) ? { 끝글: 몸.끝글 as 끝글줄[] } : {}), ...(Array.isArray(몸.장면들) ? { 장면들: (몸.장면들 as unknown[]).filter(글인가) } : {}), ...(객체(몸.멈춤).값 === undefined ? {} : { 멈춤: 몸.멈춤 as NonNullable<판기록['멈춤']> }), ...(몸.치트 === true ? { 치트: true as const } : {}), ...(수인가(객체(몸.시간표).기다림ms) ? { 시간표: 몸.시간표 as 시간표 } : {}), ...(몸.따라감 === undefined ? {} : { 따라감: 몸.따라감 }) }];
     } catch {
       return [];
     }
