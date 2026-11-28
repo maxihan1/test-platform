@@ -3,12 +3,11 @@
 import type { 모델, 규칙, 조건, 점, 시작상태, 행동종류 } from './simInput.js';
 import { type 찾은안, 나은가, 돌려보기, 점수 } from './simSearch.js';
 import type { 걷는거리, 시뮬결과 } from './sim.js';
+import { 반응행동 } from './habit.js';
 import { 누적길이, 칠적 } from './simGeo.js';
 
 /** 웨이브마다 지킬것이 시뮬 예측의 이 비율 아래로 내려가면 판이 시뮬과 어긋난 것이다(첫 값) — 기계가 넣는 기대와 판 도중 다시 계산이 같이 쓴다 */
 export const 기대여유 = 0.8;
-/** 판을 보고 그때그때 하는 동작 — 순서표에 안 넣고 조건으로 넘긴다(적이 어디 있는지는 판에서만 안다) */
-export const 반응행동: ReadonlySet<string> = new Set(['공격', '아이템', '회복']);
 
 const 거리 = (a: 점, b: 점): number => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
@@ -165,18 +164,4 @@ export function 반응고르기(정책: readonly 규칙[], 본: 본것, m: 모�
     if (고른 !== null) return { 규칙: r, 자리: 고른.적.자리, 설자리: 고른.설자리 };
   }
   return null;
-}
-
-/** 가까운 것부터 한 바퀴 — 지금 자리에서 가장 가까운 것, 거기서 또 가장 가까운 것 차례로 */
-export function 가까운순(들: readonly 점[], 어디서: 점): 점[] {
-  const 남은 = [...들];
-  const 차례: 점[] = [];
-  let 지금 = 어디서;
-  while (남은.length > 0) {
-    let 가 = 0;
-    for (let i = 1; i < 남은.length; i += 1) if (거리(남은[i]!, 지금) < 거리(남은[가]!, 지금)) 가 = i;
-    지금 = 남은.splice(가, 1)[0]!;
-    차례.push(지금);
-  }
-  return 차례;
 }
