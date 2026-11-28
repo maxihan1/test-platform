@@ -4,9 +4,10 @@
 import { readFileSync } from 'node:fs';
 import { basename, dirname, relative } from 'node:path';
 
-import { type 원, type 점, 원안길이, 입력읽기 } from '@platform/kit/gameplay';
+import { type 원, type 점, 기본세계글, 원안길이, 입력읽기 } from '@platform/kit/gameplay';
 
-import { 시뮬계산 } from './authoring-game-sim-run.js';
+import { 줄맞춘입력 } from './authoring-game-sim-fit.js';
+import { 세계넣기, 시뮬계산 } from './authoring-game-sim-run.js';
 
 export { 원안길이, type 원, type 점 };
 
@@ -29,10 +30,13 @@ const 목록 = (v: unknown, 이름: string): unknown[] | string => (Array.isArra
 export const 자료폴더 = (파일: string): string | undefined => (basename(dirname(파일)) === 'game-calc' ? dirname(dirname(파일)) : undefined);
 
 export function 시뮬(입력: Record<string, unknown>, 파일?: { 경로: string; 글: string }): 계산결과 | 입력틀림 {
-  const m = 입력읽기(입력);
+  // 게임 세계 코드(입력의 세계 — 같은 폴더의 파일)를 읽어 넣는다. 없으면 본보기 세계
+  const 넣음 = 세계넣기(입력, 파일 === undefined ? undefined : dirname(파일.경로));
+  if ('틀림' in 넣음) return 넣음;
+  const m = 입력읽기(넣음.입력);
   if ('틀림' in m) return m;
   const 자료 = 파일 === undefined ? undefined : 자료폴더(파일.경로);
-  const r = 시뮬계산(m, 자료, 파일?.글 ?? JSON.stringify(입력), 파일 === undefined ? '' : 자료 === undefined ? 파일.경로 : relative(자료, 파일.경로));
+  const r = 시뮬계산(m, 자료, 파일?.글 ?? JSON.stringify(입력), 파일 === undefined ? '' : 자료 === undefined ? 파일.경로 : relative(자료, 파일.경로), 넣음.입력, 넣음.세계);
   return '틀림' in r ? r : { 이름: '시뮬', ...r };
 }
 
@@ -87,7 +91,10 @@ export function 줄초안(r: 계산결과, 입력: Record<string, unknown>): Rec
  */
 export function 순서자료(r: 계산결과, 입력: Record<string, unknown>): Record<string, unknown> | null {
   if (r.결과.계산 !== '시뮬' || r.결과.이김 !== true) return null;
-  const { 재현: _재현, ...남은 } = 입력;
+  // 숫자 맞추기로 맞춘 값을 넣은 입력을 싣는다 — 케이스도 같은 값으로 판을 한다
+  const 맞춘 = 줄맞춘입력(입력, r.결과.맞춘값);
+  if ('틀림' in 맞춘) return null;
+  const { 재현: _재현, 맞추기: _맞추기, ...남은 } = 맞춘.입력;
   const { 기록: _기록, ...손 } = 객체(r.결과.손);
   return { 입력: 남은, 정책: r.결과.정책, 버금: r.결과.버금, 손 };
 }
@@ -95,9 +102,14 @@ export function 순서자료(r: 계산결과, 입력: Record<string, unknown>): 
 function 실행(): void {
   const 인자 = process.argv.slice(2);
   const 케이스 = 인자.includes('--case');
+  // 본보기 게임 세계 코드 — AI 가 game-calc/<게임>.world.js 로 저장해 그 게임과 다른 곳만 고친다
+  if (인자.includes('--world')) {
+    process.stdout.write(`${기본세계글}\n`);
+    return;
+  }
   const 파일 = 인자.find((x) => x !== '--case');
   if (파일 === undefined) {
-    process.stderr.write('쓰는 법: npx tsx scripts/authoring-game-calc.ts <입력 JSON 파일> [--case — 케이스 작전 함수에 넣을 순서자료만 찍는다]\n');
+    process.stderr.write('쓰는 법: npx tsx scripts/authoring-game-calc.ts <입력 JSON 파일> [--case — 케이스 작전 함수에 넣을 순서자료만 찍는다] · --world — 본보기 게임 세계 코드를 찍는다\n');
     process.exit(2);
   }
   let 입력: unknown;
@@ -115,7 +127,9 @@ function 실행(): void {
     process.exit(2);
   }
   if (케이스) {
-    const 자료 = 순서자료(r, 객체(입력));
+    // 케이스(러너)는 작성 폴더 파일을 못 읽는다 — 게임 세계 코드를 글로 넣어 싣는다
+    const 넣음 = 세계넣기(객체(입력), dirname(파일));
+    const 자료 = '틀림' in 넣음 ? null : 순서자료(r, 넣음.입력);
     if (자료 === null) {
       process.stderr.write(`순서자료를 못 낸다 — ${r.글}. 이기는 안이 있는 시뮬 입력에만 쓴다\n`);
       process.exit(2);
