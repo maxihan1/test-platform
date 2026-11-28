@@ -1,6 +1,6 @@
 // 게임 맵 훑기 — 맵에 들어간 뒤 캐릭터를 세워 둔 채 게임 NavMeshAgent 에 목적지만 넣어 칸마다 갈 수 있나 묻고, 못 심는 곳 오브젝트의 모양을 읽어 자료 폴더에 남긴다 (도메인/게임 §3.10 「맵 파악」)
 // 쓰는 법: npx tsx scripts/authoring-game-nav.ts <자료 폴더> <곳 열쇠> <캐릭터 주소> [--막음 '<선택자>']… [--상한 <칸 수>]
-// 2026-11-29 사용자 — 손이 곧게 가다 막히고(셋째 맵 이동 0/8) 격자가 대부분 모름(둘째 맵 3038칸 중 2718)이었다. SDK 를 안 고치고 지금 빌드로 된다(11-29 둘째 맵 시험 · 한 번 0.2~0.5초 · 캐릭터는 안 움직임)
+// 2026-11-29 사용자 — 손이 곧게 가다 막히고(셋째 맵 이동 0/8) 격자가 대부분 모름(둘째 맵 3038칸 중 2718)이었다. SDK 를 안 고치고 지금 빌드로 된다(11-29 둘째 맵 · 칸 1922개 4분 50초 · 두 번 같은 결과)
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -73,7 +73,7 @@ const 쉬기 = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, m
 
 /**
  * 게임에 맵을 묻는다 — 캐릭터의 NavMeshAgent 를 멈춰 두고 칸 가운데를 목적지로 넣어, 게임이 옮긴 목적지가 칸 안이고 길이 끝까지 나면 열린 칸.
- * 끝나면 길을 지우고 멈춤을 처음 값으로 되돌린다. 캐릭터는 움직이지 않는다(판을 하는 것이 아니라 지도를 보는 것이다)
+ * 끝나면 길을 지우고 멈춤을 처음 값으로 되돌린다. 판을 하는 것이 아니라 지도를 보는 것이다 — 그래도 캐릭터가 옮겨지면 풀림에 남긴다
  */
 export async function 게임훑기(game: Pick<Game, 'call' | 'findAll'>, 곳: string, 캐릭터: string, 막음들: readonly string[], 상한 = 기본상한, 한도ms = 훑기한도ms): Promise<맵훑기 | { 틀림: string }> {
   const 읽기 = async (target: string, prop: string): Promise<unknown> => ((await game.call({ cmd: 'get', target, prop }).catch(() => ({ ok: false }))) as { value?: unknown }).value;
@@ -86,13 +86,17 @@ export async function 게임훑기(game: Pick<Game, 'call' | 'findAll'>, 곳: st
   // 멈추지 않았으면 캐릭터가 목적지마다 걸어가 판을 바꾼다 — 묻지 않는다
   if ((await 읽기(캐릭터, 'NavMeshAgent.isStopped')) !== true) return { 틀림: `${캐릭터} 의 NavMeshAgent.isStopped 를 못 켰다 — 캐릭터가 움직이므로 묻지 않는다` };
   try {
-    // 멈춤이 풀리면(게임이 다시 켬) 캐릭터가 마지막 목적지로 걷는다 — 몇 칸마다 보고 다시 멈추고 기록한다(11-29 둘째 맵 5분 훑기에 캐릭터가 15 옮겨 갔다)
+    // 멈춤이 풀리거나 캐릭터가 옮겨지면 몇 칸마다 보고 다시 멈추고 기록한다 — 11-29 둘째 맵 5분 훑기 두 번에 멈춤은 안 풀렸는데 캐릭터가 15 쯤 옮겨져 있었다(이유 모름 · 두 번의 맵 결과는 칸 하나까지 같았다).
+    // 게임 시간을 0 으로 멈추면 길 계산도 멈춰 안 된다(같은 날 시험 · 13초에 열린 칸 4)
     const 풀림: 맵훑기['풀림'] = [];
     let 물은수 = 0;
     const 묻기 = async (i: number, j: number): Promise<boolean> => {
-      if ((물은수 += 1) % 멈춤보기칸 === 0 && (await 읽기(캐릭터, 'NavMeshAgent.isStopped')) !== true) {
-        풀림.push({ 물은수, 초: Math.round((Date.now() - 시작때) / 100) / 10, 자리: 벡(await 읽기(캐릭터, 'Transform.position')) ?? 처음 });
-        await 쓰기('NavMeshAgent.isStopped', 'true').catch(() => undefined);
+      if ((물은수 += 1) % 멈춤보기칸 === 0) {
+        const [멈춤지금, 자리] = [await 읽기(캐릭터, 'NavMeshAgent.isStopped'), 벡(await 읽기(캐릭터, 'Transform.position')) ?? 처음];
+        if (멈춤지금 !== true || Math.hypot(자리[0] - 처음[0], 자리[2] - 처음[2]) > 옮김한도) {
+          풀림.push({ 물은수, 초: Math.round((Date.now() - 시작때) / 100) / 10, 자리, 멈춤: 멈춤지금 === true });
+          if (멈춤지금 !== true) await 쓰기('NavMeshAgent.isStopped', 'true').catch(() => undefined);
+        }
       }
       const [x, z] = [(i + 0.5) * 칸크기, (j + 0.5) * 칸크기];
       const 옮긴 = 벡(await 쓰기('NavMeshAgent.destination', `[${x},${처음[1]},${z}]`).catch(() => null));
@@ -156,7 +160,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   }
   mkdirSync(join(자료, 'game-nav'), { recursive: true });
   writeFileSync(훑기파일(자료, 곳), JSON.stringify(r));
-  if (r.풀림 !== undefined) console.log(`[맵 훑기] 묻는 동안 멈춤이 ${r.풀림.length}번 풀려 다시 멈췄다(처음 ${r.풀림[0]!.초}초 · 자리 ${r.풀림[0]!.자리.join(',')}) — 캐릭터가 그 사이 걸었을 수 있다. 판이 흐르는 동안(카운트다운 · 웨이브) 게임이 멈춤을 푸는지 본다`);
+  if (r.풀림 !== undefined) console.log(`[맵 훑기] 묻는 동안 캐릭터가 ${r.풀림.length}번 옮겨졌거나 멈춤이 풀렸다(처음 ${r.풀림[0]!.초}초 · 자리 ${r.풀림[0]!.자리.join(',')} · 멈춤 ${r.풀림[0]!.멈춤 ? '그대로' : '풀림'}) — 맵 지도는 같지만 판이 바뀌었을 수 있다`);
   console.log(`[맵 훑기] ${곳} — 열린 칸 ${r.열림.length} · 막힌 칸 ${r.막힘.length}${r.끊김 ? ' · 상한이나 한도에 닿아 다 못 물었다(나머지는 모름으로 둔다 · --상한 을 올려 다시 부른다)' : ''} · 못 심는 곳 ${r.못심음.length} → ${훑기파일(자료, 곳)}`);
   return 0;
 }

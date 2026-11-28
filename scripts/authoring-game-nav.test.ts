@@ -95,7 +95,7 @@ describe('게임에 묻기', () => {
   it('묻는 동안 게임이 멈춤을 풀면 다시 멈추고 언제 풀렸는지 남긴다', async () => {
     const r = (await 게임훑기(가짜게임({ 풀기: 5 }).game, '곳', '/고양이', [])) as 맵훑기;
     expect(r.열림).toHaveLength(13);
-    expect(r.풀림).toEqual([{ 물은수: 20, 초: expect.any(Number), 자리: [0.5, 1, 0.5] }]);
+    expect(r.풀림).toEqual([{ 물은수: 20, 초: expect.any(Number), 자리: [0.5, 1, 0.5], 멈춤: false }]);
   });
 
   it('캐릭터 칸이 벽 옆이라 안 열리면 둘레 칸에서 시작하고, 둘레도 다 막혔으면 남기지 않는다', async () => {
