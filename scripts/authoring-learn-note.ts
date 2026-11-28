@@ -14,7 +14,7 @@ import { type 판기록, 계획읽기, 나아감자리, 나아감열쇠, 대봄�
 import { 결과읽기, 곳셈, 맵검사, 넘김판 } from './authoring-learn-play.js';
 import { 놀이시작뒤 } from './authoring-learn-io.js';
 import { 회고채우기 } from './authoring-learn-retro.js';
-import { 시뮬불가검사 } from './authoring-learn-sim.js';
+import { 시뮬불가검사, 시뮬불가재현 } from './authoring-learn-sim.js';
 import { type 지도, 글자들, 빠진게임글 } from './authoring-learn-map.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { 새로쓰기, 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -29,7 +29,9 @@ const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' &
  * 판 기록으로 대 본다 — 「확인」은 판 기록 전부에서 값을 읽어 맞아야(지도 검증), 회고 줄은 칸이 맞아야 받고 기록에서 읽은 것을 채운다,
  * 계획 · 나아감 · 갈 곳 줄은 꼴을 본다. 틀리면 까닭 글. 회고 줄의 배운 것은 채운 것으로 바꾼다 (도메인/게임 §3.10 「지도 검증」 · 「회고」)
  */
-function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 줄들: Record<string, unknown>[], 기록들: readonly 판기록[], 놀이기록: readonly 판기록[]): string | null {
+/** 재현틀림 — 시뮬불가를 받기 전에 그 곳 판을 재현해 본다(자료 폴더에서 계산 입력을 읽어서 · 없으면 안 본다) */
+type 재현틀림 = (열쇠: string, data: unknown, 줄들: readonly { kind: string; key: string; learned: 배운것 | null }[]) => string | null;
+function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 줄들: Record<string, unknown>[], 기록들: readonly 판기록[], 놀이기록: readonly 판기록[], 재현?: 재현틀림): string | null {
   const 지금 = 얹기(서버지도, 적은줄들(JSON.stringify({ elements: 앞 })));
   const 이번 = new Map(줄들.map((x) => [x.key as string, x]));
   const 찾기 = (k: string): { kind: string; key: string; learned: 배운것 } | undefined => {
@@ -55,7 +57,7 @@ function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 
     if (열쇠 === 나아감열쇠 && 나아감자리(l.data) === null) return `${열쇠} — data 에 얼마나 나아갔나를 읽을 자리를 { 주소, 칸? } 로 적는다(깬 맵 수 · 레벨 · 해금 수)`;
     const 상태 = 객체(l.data).상태;
     if (x.kind === 'STAGE' && 상태 !== undefined && !(상태 === '가봄' || 상태 === '안감' || ((상태 === '못감' || 상태 === '못깸') && typeof 객체(l.data).까닭 === 'string'))) return `${열쇠} — data.상태 는 가봄 · 안감 · 못감 · 못깸이다(못감 · 못깸은 data.까닭)`;
-    const 곳틀림 = x.kind === 'STAGE' ? (맵검사(l.data, 기록들) ?? (typeof 결과읽기(l.data) === 'string' ? (결과읽기(l.data) as string) : null) ?? 시뮬불가검사(열쇠, l.data, 찾기, 객체(l.data).시뮬불가 === undefined ? 0 : (곳셈(합, 기록들).find((y) => y.열쇠 === 열쇠)?.깸 ?? 0))) : null;
+    const 곳틀림 = x.kind === 'STAGE' ? (맵검사(l.data, 기록들) ?? (typeof 결과읽기(l.data) === 'string' ? (결과읽기(l.data) as string) : null) ?? 시뮬불가검사(열쇠, l.data, 찾기, 객체(l.data).시뮬불가 === undefined ? 0 : (곳셈(합, 기록들).find((y) => y.열쇠 === 열쇠)?.깸 ?? 0)) ?? (객체(l.data).시뮬불가 === undefined ? null : (재현?.(열쇠, l.data, 합) ?? null))) : null;
     if (곳틀림 !== null) return `${열쇠} — ${곳틀림}`;
     if (x.kind === 'STAGE' && 상태 === '못깸') {
       // 못 깨면 넘어가는 길로 쓰지 않게 — 그 곳을 넘김판만큼 해 봐야 못깸이다(2026-11-26 사용자 「깨게 만들어야지」 · 11-27 50판을 뺌)
@@ -74,7 +76,7 @@ function 기록대보기(서버지도: 지도, 앞: readonly { key: string }[], 
 }
 
 /** 앞에 적은 줄에 합친다 — 같은 열쇠는 새것이 이긴다. 틀리면 까닭 글(아무것도 안 적는다 — 한 줄이 틀리면 서버가 통째로 거절한다) */
-export function 합치기(서버지도: 지도, 앞: readonly { key: string }[], 새: unknown, 기록들: readonly 판기록[] = [], 놀이기록: readonly 판기록[] = 기록들): { elements: { key: string }[]; 수: number } | string {
+export function 합치기(서버지도: 지도, 앞: readonly { key: string }[], 새: unknown, 기록들: readonly 판기록[] = [], 놀이기록: readonly 판기록[] = 기록들, 재현?: 재현틀림): { elements: { key: string }[]; 수: number } | string {
   const 줄들 = (Array.isArray(새) ? 새 : [새]) as Record<string, unknown>[];
   for (const x of 줄들) {
     if (typeof x !== 'object' || x === null || typeof x.key !== 'string') return '줄마다 kind · key · name · learned 를 적는다';
@@ -82,7 +84,7 @@ export function 합치기(서버지도: 지도, 앞: readonly { key: string }[],
     // value 는 기획서 값이다 — 본 값은 learned.data 에 적는다
     if (Object.hasOwn(x, 'value')) return `${x.key} — value 는 기획서 값이라 싣지 않는다. 잰 값은 learned.data 에 적는다`;
   }
-  const 대본 = 기록대보기(서버지도, 앞, 줄들, 기록들, 놀이기록);
+  const 대본 = 기록대보기(서버지도, 앞, 줄들, 기록들, 놀이기록, 재현);
   if (대본 !== null) return 대본;
   const 합 = new Map(앞.map((e) => [e.key, e]));
   const 서버줄 = new Map(서버지도.줄들.map((x) => [x.key, x]));
@@ -125,7 +127,8 @@ export function 실행(인자: string[], 입력: string, env: NodeJS.ProcessEnv 
     console.error('[배운 줄] 안 받음 — 테스트 계정 비밀번호가 들어 있다');
     return 1;
   }
-  const r = 합치기(지도읽기(지도글), 적은줄들(안전히읽기(자료, 게임자리.배운글, 요소상한)), 새, 판기록들(자료), 놀이시작뒤(자료, 판기록들(자료)));
+  const 기록들 = 판기록들(자료);
+  const r = 합치기(지도읽기(지도글), 적은줄들(안전히읽기(자료, 게임자리.배운글, 요소상한)), 새, 기록들, 놀이시작뒤(자료, 기록들), (열쇠, data, 줄들) => 시뮬불가재현(열쇠, data, 줄들, 자료, 기록들));
   if (typeof r === 'string') {
     console.error(`[배운 줄] 안 받음 — 아무것도 안 적었다: ${r}`);
     return 1;

@@ -9,6 +9,7 @@ import { 게임자리 } from './authoring-game.js';
 import { 안전히읽기 } from './authoring-screens-keep-io.js';
 import { type 판기록, 판기록들 } from './authoring-learn-check.js';
 import { 놀이시작뒤 } from './authoring-learn-io.js';
+import { type 재현비교, 비교표글, 어긋남글, 재현비교하기, 판값들 } from './authoring-game-sim-compare.js';
 import { 계획곳 } from './authoring-learn-play.js';
 
 export { type 잰손, 손넣기, 손셈, 행동초첫값 };
@@ -17,7 +18,7 @@ const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' &
 const 수 = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const 점읽기 = (v: unknown): 점 | undefined => (Array.isArray(v) && v.length >= 2 && 수(v[0]) && 수(v.at(-1)) ? [v[0], v.at(-1) as number] : undefined);
 
-/** 판의 행동기록 — 순서대로 하기가 남긴 것(따라감.행동기록)이 먼저, 없으면 판 함수가 돌려준 값.행동기록(옛 판). 틀린 항목은 버린다 */
+/** 판의 행동기록 — 순서대로 하기가 남긴 것(따라감.행동기록)이 먼저, 없으면 판 함수가 돌려준 값.행동기록(옛 판). 틀린 항목은 버린다. 옛 판 함수는 안 된 행동을 안됨: true 로 적었다 */
 export function 행동기록읽기(r: 판기록): 행동[] | null {
   const 들 = 객체(r.따라감).행동기록 ?? 객체(r.값).행동기록;
   if (!Array.isArray(들)) return null;
@@ -26,7 +27,7 @@ export function 행동기록읽기(r: 판기록): 행동[] | null {
     if (!수(x.초) || typeof x.행동 !== 'string') return [];
     const 자 = 점읽기(x.자리);
     const 자들 = Array.isArray(x.자리들) ? x.자리들.map(점읽기).filter((p): p is 점 => p !== undefined) : undefined;
-    return [{ 초: x.초, 행동: x.행동, ...(typeof x.대상 === 'string' ? { 대상: x.대상 } : {}), ...(자 === undefined ? {} : { 자리: 자 }), ...(자들 === undefined ? {} : { 자리들: 자들 }), ...(수(x.시작초) ? { 시작초: x.시작초 } : {}), ...(수(x.도착초) ? { 도착초: x.도착초 } : {}), ...(수(x.끝초) ? { 끝초: x.끝초 } : {}), ...(typeof x.됨 === 'boolean' ? { 됨: x.됨 } : {}), ...(수(x.걸음) ? { 걸음: x.걸음 } : {}) }];
+    return [{ 초: x.초, 행동: x.행동, ...(typeof x.대상 === 'string' ? { 대상: x.대상 } : {}), ...(자 === undefined ? {} : { 자리: 자 }), ...(자들 === undefined ? {} : { 자리들: 자들 }), ...(수(x.시작초) ? { 시작초: x.시작초 } : {}), ...(수(x.도착초) ? { 도착초: x.도착초 } : {}), ...(수(x.끝초) ? { 끝초: x.끝초 } : {}), ...(typeof x.됨 === 'boolean' ? { 됨: x.됨 } : x.안됨 === true ? { 됨: false } : {}), ...(수(x.걸음) ? { 걸음: x.걸음 } : {}), ...(수(x.값) ? { 값: x.값 } : {}) }];
   });
 }
 
@@ -36,6 +37,22 @@ export function 판행동기록(기록들: readonly 판기록[], r: 판기록): 
   const 앞이름 = 객체(r.따라감).이어;
   const 앞 = typeof 앞이름 === 'string' ? 기록들.find((x) => x.이름 === 앞이름 && x.이름 < r.이름) : undefined;
   return 내것 === null || 앞 === undefined ? 내것 : [...(판행동기록(기록들, 앞) ?? []), ...내것];
+}
+
+/** 이어 부른 판이면 앞 조각부터 — 재현 비교가 조각마다 값기록 시계를 맞춘다 */
+export function 판조각들(기록들: readonly 판기록[], r: 판기록): 판기록[] {
+  const 앞이름 = 객체(r.따라감).이어;
+  const 앞 = typeof 앞이름 === 'string' ? 기록들.find((x) => x.이름 === 앞이름 && x.이름 < r.이름) : undefined;
+  return 앞 === undefined ? [r] : [...판조각들(기록들, 앞), r];
+}
+
+/** 그 판을 재현해(행동기록을 그 시각에 그대로) 판 값기록과 같은 시각끼리 견준다. 행동기록이 없으면 null · 볼값을 못 이으면 비교.본수 0 */
+export function 판재현(m: 모델, 걷기: 걷는거리 | undefined, 기록들: readonly 판기록[], r: 판기록): { 결과: 시뮬결과; 행: 행동[]; 비교: 재현비교 } | null {
+  const 행 = 판행동기록(기록들, r);
+  if (행 === null || 행.length === 0) return null;
+  const 결과 = 돌리기(m, [], 걷기, 행);
+  const 조각들 = 판조각들(기록들, r).flatMap((x) => (x.값기록 === undefined ? [] : [{ 값기록: x.값기록, 따라감: x.따라감 }]));
+  return { 결과, 행, 비교: 재현비교하기(판값들(조각들, m.볼값연결), 결과, m.볼값연결, 행, m.지킬것.체력) };
 }
 
 /**
@@ -117,16 +134,25 @@ export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일�
   const 잰: 잰손 = 자료 === undefined ? { 행동초: 행동초첫값 } : 손재기(자료, 모델.곳);
   const m = 손넣기(모델, 잰);
   const 걸음 = 자료 === undefined ? { 걷기: undefined, 글: '자료 폴더 밖 입력이라 곧은 거리로 걸었다' } : 격자걷기(자료, m);
-  let 재현: { 기록: string; 이김: boolean; 웨이브수: number; 짐?: 시뮬결과['짐'] } | undefined;
+  let 재현: { 기록: string; 이김: boolean; 웨이브수: number; 짐?: 시뮬결과['짐']; 맞음?: boolean; 어긋남?: 재현비교['어긋남'] } | undefined;
   const 줄글: string[] = [...(자료 === undefined ? ['이 입력은 <자료 폴더>/game-calc/ 밖에 있다 — 이 줄로는 판이 안 돈다(조작 도우미가 그 자리에서 입력을 다시 읽는다). 입력을 그 폴더로 옮겨 다시 계산한다'] : []), `손 — ${손글({ ...잰, 행동초: m.손.행동초 })} · ${걸음.글}`];
   if (m.재현 !== undefined) {
     const 판들 = 자료 === undefined ? [] : 판기록들(자료);
     const 판 = 판들.find((r) => r.이름 === m.재현!.기록);
-    const 행 = 판 === undefined ? null : 판행동기록(판들, 판);
-    if (행 === null || 행.length === 0) return { 틀림: `재현.기록 ${m.재현.기록} 판 기록에 행동기록이 없다 — 순서대로 하기가 남긴 행동기록을 그대로 따라 돌린다` };
-    const r = 돌리기(m, [], 걸음.걷기, 행);
-    재현 = { 기록: m.재현.기록, 이김: r.이김, 웨이브수: r.웨이브.length, ...(r.짐 === undefined ? {} : { 짐: r.짐 }) };
-    줄글.push(`재현 ${m.재현.기록} — 판 행동기록 ${행.length}개를 그대로 했다 → ${r.이김 ? '이김' : 짐글(r)}`, ...웨이브글(r));
+    const 재 = 판 === undefined ? null : 판재현(m, 걸음.걷기, 판들, 판);
+    if (재 === null) return { 틀림: `재현.기록 ${m.재현.기록} 판 기록에 행동기록이 없다 — 순서대로 하기가 남긴 행동기록을 그대로 따라 돌린다` };
+    const { 결과: r, 행, 비교 } = 재;
+    재현 = { 기록: m.재현.기록, 이김: r.이김, 웨이브수: r.웨이브.length, ...(r.짐 === undefined ? {} : { 짐: r.짐 }), ...(비교.본수 === 0 ? {} : { 맞음: 비교.맞음, ...(비교.어긋남 === null ? {} : { 어긋남: 비교.어긋남 }) }) };
+    줄글.push(
+      `재현 ${m.재현.기록} — 판 행동기록 ${행.length}개를 그대로 했다 → ${r.이김 ? '이김' : 짐글(r)}`,
+      ...웨이브글(r),
+      비교.본수 === 0
+        ? '재현 비교 — 판 값기록을 시뮬과 못 이었다(볼값연결 이름이 그 판 계획의 볼값 이름과 같아야 한다) · 웨이브 수로만 견준다'
+        : 비교.맞음
+          ? `재현 비교 — 판과 맞는다(${비교.본수}번 견줌)`
+          : `재현 비교 — 판과 어긋난다: ${어긋남글(비교.어긋남!)}. 재현이 맞을 때까지 아래 순서는 믿을 수 없다(게이트가 판을 막는다)`,
+      ...비교표글(비교),
+    );
   }
   const 찾음 = 찾기(m, 걸음.걷기);
   if ('틀림' in 찾음) return 찾음;
@@ -143,7 +169,7 @@ export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일�
   const 낮은 = Math.min(...안.결과.웨이브.map((w) => w.끝지킬것));
   const 글 = 찾음.가장 === null ? `이기는 안 없음 — 가장 멀리 간 순서도 ${짐글(안.결과)}` : `이기는 안 있음 — ${m.웨이브.length}웨이브${보스 ? '와 보스' : ''}까지 · 가장 낮은 지킬것 ${낮은} · ${느린글}(${찾음.이긴수}/${찾음.전체} 이김)`;
   return {
-    글: 재현 === undefined ? 글 : `${글} · 재현 ${재현.기록} ${재현.이김 ? '이김' : `${재현.짐?.웨이브 ?? '?'} 에서 짐`}`,
+    글: 재현 === undefined ? 글 : `${글} · 재현 ${재현.기록} ${재현.이김 ? '이김' : `${재현.짐?.웨이브 ?? '?'} 에서 짐`}${재현.맞음 === undefined ? '' : 재현.맞음 ? ' · 판과 맞음' : ` · 판과 어긋남(${재현.어긋남!.초}초 ${재현.어긋남!.값})`}`,
     줄글,
     결과: { 계산: '시뮬', 이김: 찾음.가장 !== null, 정책: 안.정책, 문턱: 안.문턱, 느려도이김: 안.느려도이김, 버금: 찾음.버금.filter((x) => x.결과.이김).map((x) => x.정책), 이긴수: 찾음.이긴수, 전체: 찾음.전체, 웨이브: 안.결과.웨이브, ...(안.결과.짐 === undefined ? {} : { 짐: 안.결과.짐 }), 손: { ...잰, 행동초: m.손.행동초 }, ...(재현 === undefined ? {} : { 재현 }) },
     입력요약: { 파일, 해시: 해시(파일글), 엔진판, 웨이브수: m.웨이브.length, 보스, 볼값연결: m.볼값연결 },

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { 시뮬, 줄초안 } from './authoring-game-calc.js';
 import { 곳글, 곳셈, 남은깰곳, 놀이막기 } from './authoring-learn-play.js';
-import { 시뮬막기, 시뮬불가검사 } from './authoring-learn-sim.js';
+import { 시뮬막기, 시뮬불가검사, 시뮬불가재현 } from './authoring-learn-sim.js';
 
 let 자료: string;
 beforeEach(() => {
@@ -55,9 +55,12 @@ const 지도쓰기 = (들: 줄[]): void => {
 };
 const 계획 = { 곳, 쓸것: ['calc:가'], 볼값: [{ 이름: '웨이브', 주소: '/w' }, { 이름: '세계수', 주소: '/t' }] };
 const 정책 = (c: 줄): unknown => (c.learned!.data.결과 as { 정책: unknown }).정책;
-const 판쓰기 = (이름: string, 행동기록: unknown[], 계산: Record<string, string>, 어긋남: unknown = null, 웨이브 = 3): void =>
-  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false }, 따라감: { 행동기록, 다시계산: [] }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [{ 초: 0, 값: { 웨이브: 1 } }, { 초: 2, 값: { 웨이브 } }], 어긋남, 화면다름: [], 계산 } }));
+const 판쓰기 = (이름: string, 행동기록: unknown[], 계산: Record<string, string>, 어긋남: unknown = null, 웨이브 = 3, 때: unknown[] = [{ 초: 0, 값: { 웨이브: 1 } }, { 초: 2, 값: { 웨이브 } }]): void =>
+  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false }, 따라감: { 행동기록, 다시계산: [] }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때, 어긋남, 화면다름: [], 계산 } }));
 const 막기 = (계: typeof 계획, 들: 줄[], 자: string, 기: Parameters<typeof 시뮬막기>[3]) => 시뮬막기(계, 들 as never, 자, 기);
+// 재현 시뮬은 7.5초에 놓은 탑이 슬라임을 한 번만 때려 10초쯤 세계수 5 를 다 잃고 진다
+const 늦게놓음 = [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 도착초: 6, 끝초: 7.5 }];
+const 세계수때 = (끝초: number, 진초: number) => Array.from({ length: 끝초 / 2 + 1 }, (_, i) => ({ 초: i * 2, 값: { 웨이브: 1, 세계수: i * 2 >= 진초 ? 0 : 5 } }));
 const 기록들 = async () => (await import('./authoring-learn-check.js')).판기록들(자료);
 
 describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
@@ -170,25 +173,55 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(막기(계획, [곳줄(), 계획줄, 다시], 자료, await 기록들())).toHaveProperty('기대');
   });
 
-  it('판이 시뮬과 어긋났으면 그 판 행동기록으로 재현해 같은 웨이브(±1)에서 져야 다음 판이 돈다', async () => {
+  it('앞 판을 재현해 매 순간 판과 맞으면 기대가 깨진 판이어도 다음 판이 돈다(재현 칸을 안 넣어도)', async () => {
     const c = 계산줄('가', 입력());
     지도쓰기([곳줄(), 계획줄, c]);
-    const 어긋남 = { 초: 12, 값이름: '세계수', 값: 0, 기대: '세계수 >= 4' };
-    판쓰기('20261128000000000-판', [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 도착초: 6, 끝초: 7.5 }], { 'calc:가': JSON.stringify(c.learned!.data) }, 어긋남, 1);
-    const 안맞춤 = 계산줄('가', 입력());
-    expect(막기(계획, [곳줄(), 계획줄, 안맞춤], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('재현: { 기록: "20261128000000000-판" }') });
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(c.learned!.data) }, { 초: 10, 값이름: '세계수', 값: 0, 기대: '세계수 >= 4' }, 1, 세계수때(10, 10));
+    expect(막기(계획, [곳줄(), 계획줄, 계산줄('가', 입력())], 자료, await 기록들())).toHaveProperty('기대');
+    const 재현 = 계산줄('가', 입력({ 재현: { 기록: '20261128000000000-판' } }));
+    expect(재현.learned!.data.결과).toMatchObject({ 재현: { 이김: false, 웨이브수: 0, 맞음: true } });
+  });
+
+  it('재현이 판과 어긋나면 처음 어긋난 값 · 때 · 고칠 곳을 보여 주며 막는다 — 판은 30초를 버텼는데 재현은 10초에 진다', async () => {
+    const c = 계산줄('가', 입력());
+    지도쓰기([곳줄(), 계획줄, c]);
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(c.learned!.data) }, null, 1, 세계수때(30, 99));
+    const r = 막기(계획, [곳줄(), 계획줄, 계산줄('가', 입력())], 자료, await 기록들());
+    expect(r).toMatchObject({ 막음: expect.stringContaining('판 20261128000000000-판 을 재현하니 판과 어긋난다 — 10초 판 길이') });
+    expect(r).toMatchObject({ 막음: expect.stringContaining('시뮬은 10초에 져 끝났는데 판은 30초까지 돌았다') });
+    expect(r).toMatchObject({ 막음: expect.stringContaining('고칠 곳: 적종류(체력') });
+    const 재현 = 계산줄('가', 입력({ 재현: { 기록: '20261128000000000-판' } }));
+    expect(재현.learned!.data.결과).toMatchObject({ 재현: { 맞음: false, 어긋남: { 초: 10, 값: '끝' } } });
+    expect(재현.learned!.text).toContain('판과 어긋남(10초 끝)');
+  });
+
+  it('판 값기록을 시뮬과 못 이으면(볼값 이름이 다르다) 어긋난 판만 재현 칸과 웨이브 수로 견준다', async () => {
+    const c = 계산줄('가', 입력());
+    지도쓰기([곳줄(), 계획줄, c]);
+    const 어긋남 = { 초: 12, 값이름: '나무', 값: 0, 기대: '나무 >= 4' };
+    const 다른이름 = [{ 초: 0, 값: { 나무: 5 } }, { 초: 2, 값: { 나무: 5 } }];
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(c.learned!.data) }, 어긋남, 1, 다른이름);
+    expect(막기(계획, [곳줄(), 계획줄, 계산줄('가', 입력())], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('재현: { 기록: "20261128000000000-판" }') });
     const 맞춤 = 계산줄('가', 입력({ 재현: { 기록: '20261128000000000-판' } }));
     expect(맞춤.learned!.data.결과).toMatchObject({ 재현: { 이김: false, 웨이브수: 0 } });
+    expect(맞춤.learned!.data.결과).not.toHaveProperty('재현.맞음');
     expect(막기(계획, [곳줄(), 계획줄, 맞춤], 자료, await 기록들())).toHaveProperty('기대');
-    판쓰기('20261128000100000-판', [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 끝초: 0.1 }], { 'calc:가': JSON.stringify(맞춤.learned!.data) }, 어긋남, 1);
-    const 못맞춤 = 계산줄('가', 입력({ 재현: { 기록: '20261128000100000-판' } }));
-    expect(막기(계획, [곳줄(), 계획줄, 못맞춤], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('시뮬이 판 20261128000100000-판 을 못 맞춘다') });
   });
 });
 
 describe('시뮬불가 — 판 없이 넘기고 다른 맵을 다 돈 뒤 한 번 다시 본다', () => {
   const 결과 = { 주소: '/결과', 깸: '승리', 짐: '패배' };
   const 불가곳 = (짐: 줄, 다시봄?: true) => 곳줄({ 결과, 시뮬불가: { 계산: 짐.key, 웨이브: '1웨이브', 모자람: '초당 피해 3 모자람', ...(다시봄 ? { 다시봄 } : {}) } });
+
+  it('시뮬불가는 그 곳 판이 있으면 그 판을 재현해 맞는 모델로만 받는다 — 검사 안 받은 시뮬이 판에서 버틴 맵을 1웨이브에 진다고 닫았다(16104 넷째~여덟째)', async () => {
+    const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));
+    const 들 = [불가곳(짐), 계획줄, 짐];
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, [])).toBeNull();
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(30, 99));
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain('시뮬불가는 판과 맞는 모델로만 받는다 — 판 20261128000000000-판 을 재현하니 판과 어긋난다 — 10초 판 길이');
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(10, 10));
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toBeNull();
+  });
 
   it('적는 명령은 그 곳의 진 시뮬 줄을 가리켜야 받는다', () => {
     const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));

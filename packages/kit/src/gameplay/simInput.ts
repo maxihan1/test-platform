@@ -27,6 +27,17 @@ export interface 규칙 { 조건: 조건[]; 행동: { 무엇: 행동종류; 대�
  * 판 중간에서 이어 흘릴 때의 상태 — 순서대로 하기(follow.ts)가 판에서 읽어 넣는다. 입력 파일에는 없다.
  * 레벨은 놓은 직후가 1 · 유지는 남은 비율(0~1 · 못 읽으면 가득) · 떨어진은 바닥에 떨어진 재화 자리
  */
+/** 시뮬 결과 — sim.ts 가 낸다(여기 두는 것은 sim.ts 가 300줄을 넘지 않게) */
+/** 자리들 — 한 번에 주운 자리들(순서대로 하기가 이어진 줍기를 한 단계로 묶는다). 시작초 — 걷기 시작한 때(앞 행동이 끝난 뒤 읽고 고르는 데 든 시간이 초와 시작초 사이다). 걸음 — 그 행동을 하러 걸은 거리. 값 — 그 행동에 드는 재화(놓기 · 키우기 · 먹이) */
+export interface 행동 { 초: number; 행동: string; 대상?: string; 자리?: 점; 자리들?: 점[]; 시작초?: number; 도착초?: number; 끝초?: number; 됨?: boolean; 걸음?: number; 값?: number }
+export interface 웨이브결과 { 이름: string; 처치: number; 새어나감: number; 끝지킬것: number; 끝재화: number; 끝초: number }
+export interface 시뮬결과 {
+  이김: boolean;
+  웨이브: 웨이브결과[];
+  짐?: { 웨이브: string; 초: number; 새어나간체력: number; 쥔재화: number; 시간넘음?: true };
+  예상: { 초: number; 값: Record<string, number> }[];
+  행동기록: 행동[];
+}
 export interface 시작상태 { 지킬것: number; 재화: number; 자리: 점; 설치물: { 종류: string; 레벨: number; 자리: 점; 유지?: number }[]; 떨어진: 점[]; 첫웨이브까지초: number }
 export interface 모델 {
   곳: string;
@@ -44,7 +55,8 @@ export interface 모델 {
   재화: { 시작: number; 초당: number; 줍기: boolean; 줍는거리: number };
   /** 종류별 — 판에서 잰 종류마다 손 시간(없는 종류는 행동초). 입력 파일에는 못 적는다 */
   손: { 행동초: number; 종류별?: Partial<Record<행동종류, number>> };
-  볼값연결: { 웨이브?: string; 지킬것?: string; 재화?: string };
+  /** 처치 — 재현 비교가 판에서 올라간 처치 수와 견준다(판 값이 누적이든 웨이브마다 0 으로 돌아가든) */
+  볼값연결: { 웨이브?: string; 지킬것?: string; 재화?: string; 처치?: string };
   정책들: 규칙[][];
   문턱후보: Record<string, number[]>;
   재현?: { 기록: string };
@@ -183,7 +195,7 @@ export function 입력읽기(입력: Record<string, unknown>): 모델 | { 틀림
       아이템: 아이템들, 회복: 회복들,
       재화: { 시작: 재.시작 as number, 초당: (재.초당 as number | undefined) ?? 0, 줍기: 재.줍기 === true, 줍는거리: (재.줍는거리 as number | undefined) ?? 1 },
       손: { 행동초: (손.행동초 as number | undefined) ?? 0 },
-      볼값연결: { ...(글(연.웨이브) ? { 웨이브: 연.웨이브 } : {}), ...(글(연.지킬것) ? { 지킬것: 연.지킬것 } : {}), ...(글(연.재화) ? { 재화: 연.재화 } : {}) },
+      볼값연결: { ...(글(연.웨이브) ? { 웨이브: 연.웨이브 } : {}), ...(글(연.지킬것) ? { 지킬것: 연.지킬것 } : {}), ...(글(연.재화) ? { 재화: 연.재화 } : {}), ...(글(연.처치) ? { 처치: 연.처치 } : {}) },
       정책들, 문턱후보,
       ...(입력.재현 === undefined ? {} : { 재현: { 기록: 재현.기록 as string } }),
     };

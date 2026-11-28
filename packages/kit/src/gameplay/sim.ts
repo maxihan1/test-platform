@@ -2,28 +2,18 @@
 // 웨이브 체력 합만 견주던 계산은 「버틴다」고 해 놓고 판은 1~2웨이브에서 졌다(작성 16094 · 16097 · 16098) — 출현 빠르기 · 걷는 시간 · 자라는 시간 · 줍는 시간을 다 넣는다
 // 게임을 모른다. 같은 입력이면 늘 같은 결과라(무작위 없음) 게이트가 다시 돌려 확인한다
 import { 거리, 길위자리, 누적길이, 원안길이 } from './simGeo.js';
-import type { 모델, 규칙, 상태이름, 행동종류, 점 } from './simInput.js';
+import type { 모델, 규칙, 상태이름, 행동종류, 점, 행동, 시뮬결과, 웨이브결과 } from './simInput.js';
 
 export { type 원, 원안길이 } from './simGeo.js';
 
-export type { 점 } from './simInput.js';
+export type { 점, 행동, 웨이브결과, 시뮬결과 } from './simInput.js';
 /** 엔진이 바뀌면 올린다 — 게이트가 다른 엔진으로 낸 시뮬 줄을 다시 돌리게 */
-export const 엔진판 = 5;
+export const 엔진판 = 6;
 export const 칸초 = 0.1;
 export const 예상간격초 = 2;
 /** 이만큼 흘러도 안 끝나면 짐으로 끊는다 — 적이 기절만 되풀이하는 입력이 끝나지 않게 */
 export const 최대초 = 3600;
 
-/** 자리들 — 한 번에 주운 자리들(순서대로 하기가 이어진 줍기를 한 단계로 묶는다). 시작초 — 걷기 시작한 때(앞 행동이 끝난 뒤 읽고 고르는 데 든 시간이 초와 시작초 사이다). 걸음 — 그 행동을 하러 걸은 거리. 값 — 그 행동에 드는 재화(놓기 · 키우기 · 먹이) */
-export interface 행동 { 초: number; 행동: string; 대상?: string; 자리?: 점; 자리들?: 점[]; 시작초?: number; 도착초?: number; 끝초?: number; 됨?: boolean; 걸음?: number; 값?: number }
-export interface 웨이브결과 { 이름: string; 처치: number; 새어나감: number; 끝지킬것: number; 끝재화: number; 끝초: number }
-export interface 시뮬결과 {
-  이김: boolean;
-  웨이브: 웨이브결과[];
-  짐?: { 웨이브: string; 초: number; 새어나간체력: number; 쥔재화: number; 시간넘음?: true };
-  예상: { 초: number; 값: Record<string, number> }[];
-  행동기록: 행동[];
-}
 /** 놓인 설치물 둘레 못 놓는 반경 — 설치물이 있는 입력에는 늘 있다(입력읽기가 막는다). 0.5 는 설치물이 없는 입력의 자리값이다 */
 export const 둘레반경 = (m: Pick<모델, '설치물둘레'>): number => m.설치물둘레?.반경 ?? 0.5;
 /** 두 점 사이를 걷는 거리 — 시뮬을 부르는 쪽이 격자 길찾기로 준다. 없으면 곧은 거리 */
@@ -177,7 +167,8 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       if (x.행동 === '먹이') { const 탑 = 탑들.filter((t) => t.종류 === x.대상 && 유지받나(t)).sort((a, b) => 거리(a.자리, 자) - 거리(b.자리, 자))[0]; const 먹 = 탑 === undefined ? undefined : m.설치물종류[탑.종류]!.유지?.먹이; if (탑 === undefined || 먹 === undefined || 재화 < 먹.값) return false; 재화 -= 먹.값; 탑.유지 = Math.min(m.설치물종류[탑.종류]!.유지!.체력, 탑.유지 + 먹.양); return true; }
       if (x.행동 === '키우기') { const 탑 = 탑들.filter((t) => t.종류 === x.대상).sort((a, b) => 거리(a.자리, 자) - 거리(b.자리, 자))[0]; const 값 = 탑 === undefined ? undefined : m.설치물종류[탑.종류]!.레벨[탑.레벨 + 1]?.값; if (탑 === undefined || 값 === undefined || 재화 < 값) return false; 재화 -= 값; 탑.레벨 += 1; return true; }
       // 한 번에 주운 자리들 — 그 자리마다 줍는 거리 안의 재화가 들어온다
-      if (x.행동 === '줍기' && x.자리들 !== undefined) { for (let i = 떨어진.length - 1; i >= 0; i -= 1) if (x.자리들.some((p) => 거리(떨어진[i]!.자리, p) <= m.재화.줍는거리)) 재화 += 떨어진.splice(i, 1)[0]!.값; return true; }
+      // 판에서 주운 자리마다 그 자리에 가장 가까운 시뮬 바닥 재화 하나를 줍는다 — 시뮬에서 적이 죽는 자리는 판과 달라 줍는거리로 맞추면 거의 못 줍는다(16104 둘째 맵 재현 재화 0)
+      if (x.행동 === '줍기' && x.자리들 !== undefined) { for (const p of x.자리들) { const i = 떨어진.reduce((b, d, j) => (b < 0 || 거리(d.자리, p) < 거리(떨어진[b]!.자리, p) ? j : b), -1); if (i >= 0) 재화 += 떨어진.splice(i, 1)[0]!.값; } return true; }
       const 계 = 계획(규, x.초);
       return 계 === null ? false : 계.효과();
     };
@@ -283,7 +274,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     }
     if (Math.abs(지금 / 예상간격초 - Math.round(지금 / 예상간격초)) < 1e-6) {
       const 연 = m.볼값연결;
-      예상.push({ 초: 지금, 값: { ...(연.웨이브 === undefined ? {} : { [연.웨이브]: 웨이브i + 1 }), ...(연.지킬것 === undefined ? {} : { [연.지킬것]: Math.round(지킬것 * 10) / 10 }), ...(연.재화 === undefined ? {} : { [연.재화]: Math.round(재화 * 10) / 10 }) } });
+      예상.push({ 초: 지금, 값: { ...(연.웨이브 === undefined ? {} : { [연.웨이브]: 웨이브i + 1 }), ...(연.처치 === undefined ? {} : { [연.처치]: 셈.reduce((a, s) => a + s.처치, 0) }), ...(연.지킬것 === undefined ? {} : { [연.지킬것]: Math.round(지킬것 * 10) / 10 }), ...(연.재화 === undefined ? {} : { [연.재화]: Math.round(재화 * 10) / 10 }) } });
     }
     if (지킬것 <= 0) return { 이김: false, 웨이브: 결과웨이브, 짐: { 웨이브: m.웨이브[웨이브i]?.이름 ?? '시작 전', 초: 지금, 새어나간체력: Math.round(셈[웨이브i]?.새체력 ?? 0), 쥔재화: Math.round(재화) }, 예상, 행동기록: 기록 };
     // 웨이브 끝 — 다 나왔고 그 웨이브 적이 없다. 시작초로 겹쳐 나온 웨이브도 앞에서부터 차례로 닫는다

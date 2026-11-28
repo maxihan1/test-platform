@@ -84,7 +84,7 @@ export function 화면다른것(때들: readonly 값때[], 볼: readonly 볼값[
  * 못 읽어도 그치지 않는다 — 새 판으로 장면이 바뀌는 5초 동안 세 번 못 읽고 그쳐 그 판 기록 · 기대 감시가 다 끊겼다(2026-11-27 16094 맵판 · 끝막기판)
  */
 export function 값읽기시작(게임: 읽을게임, 계획: string, 볼: readonly 볼값[], 기대들: readonly 기대[], 시작: number, 간격ms = 값간격ms, 위치?: { 주소: string; 칸: string }, 시작장면: string | null = null): 값읽는고리 {
-  const 기록: 값기록 = { 계획, 볼값: [...볼], 간격ms, 때: [], 어긋남: null, 화면다름: [] };
+  const 기록: 값기록 = { 계획, 볼값: [...볼], 간격ms, 때: [], 어긋남: null, 화면다름: [], 시작때: 시작 };
   let 사진: Buffer | undefined;
   let 서있다 = true;
   let 첫못함: string | null = null;
