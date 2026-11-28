@@ -152,7 +152,7 @@ export function 재현비교하기(판: readonly 판값[], r: Pick<시뮬결과,
 }
 
 /**
- * 판과 재현의 오차 — 같은 시각 값마다 차이를 허용 차이로 나눈 것의 판 값 줄당 평균(1 이하면 대체로 허용 안), 재현이 먼저 끝난 뒤의 판 값 줄은 하나에 3.
+ * 판과 재현의 오차 — 같은 시각 값마다 차이를 허용 차이로 나눈 것의 평균(1 아래면 대체로 허용 안), 재현이 먼저 끝난 뒤의 판 값 줄은 하나에 3.
  * 숫자 맞추기가 이 값이 가장 작은 숫자를 찾는다(어긋남 하나를 짚는 재현비교하기와 달리 얼마나 가까운지를 잰다)
  */
 export function 재현오차(판: readonly 판값[], r: Pick<시뮬결과, '예상'>, 연결: 모델['볼값연결'], 지킬것최대: number): number {
@@ -166,10 +166,9 @@ export function 재현오차(판: readonly 판값[], r: Pick<시뮬결과, '예�
       continue;
     }
     const s = 시뮬[Math.min(시뮬.length - 1, Math.round(p.초 / 예상간격초))]!;
-    for (const k of 비교이름들) {
-      const [a, b] = [p[k], s[k]];
-      if (a !== undefined && b !== undefined) 합 += Math.abs(a - b) / 허용(k, a, b, 지킬것최대);
-    }
+    // 견준 값 수로 나눈다 — 값마다 허용 안이면 줄이 1 아래다
+    const 들 = 비교이름들.flatMap((k) => (p[k] !== undefined && s[k] !== undefined ? [Math.abs(p[k] - s[k]) / 허용(k, p[k], s[k], 지킬것최대)] : []));
+    if (들.length > 0) 합 += 들.reduce((x, y) => x + y, 0) / 들.length;
   }
   return 합 / 판.length;
 }
