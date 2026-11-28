@@ -105,7 +105,8 @@ export function 격자걷기(자료: string, m: 모델): { 걷기: 걷는거리;
       let d = 표.get(열쇠);
       if (d === undefined) {
         const r = 길내기(g, a, b);
-        d = '길이' in r ? r.길이 : 곧은(a, b) * 3;
+        // 길이 없으면 못 간다 — 곧은 거리 × 3 으로 치면 물 건너 섬에도 닿아 그곳 적을 쳤다(2026-11-28 16105 첫 맵). 판에서 걸은 칸은 막힘을 덮으니 실제로 건넌 다리는 열려 있다
+        d = '길이' in r ? r.길이 : Infinity;
         표.set(열쇠, d);
       }
       return d;
