@@ -40,7 +40,8 @@ export interface 시뮬결과 {
   예상: { 초: number; 값: Record<string, number> }[];
   행동기록: 행동[];
 }
-export interface 시작상태 { 지킬것: number; 재화: number; 자리: 점; 설치물: { 종류: string; 레벨: number; 자리: 점; 유지?: number }[]; 떨어진: 점[]; 첫웨이브까지초: number }
+/** 적 — 웨이브 도중 이어 흘릴 때 판에서 읽은 적. 첫 웨이브가 시작할 때 그 길의 진행 거리에 바로 선다 */
+export interface 시작상태 { 지킬것: number; 재화: number; 자리: 점; 설치물: { 종류: string; 레벨: number; 자리: 점; 유지?: number }[]; 떨어진: 점[]; 첫웨이브까지초: number; 적?: { 종류: string; 길: string; 진행: number }[] }
 export interface 모델 {
   곳: string;
   지킬것: { 체력: number; 자리: 점 };

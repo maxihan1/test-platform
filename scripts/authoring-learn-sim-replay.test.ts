@@ -1,5 +1,5 @@
 // 게임플레이 진행 조건의 재현 비교 · 숫자 맞추기 · 게임 세계 코드 — 앞 판 재현이 매 순간 맞아야 다음 판 · 시뮬불가 받기 · 맞춘 값 · 세계 파일 해시
-import { rmSync, writeFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -19,6 +19,17 @@ describe('앞 판 재현이 매 순간 맞아야 다음 판이 돈다', () => {
     expect(막기(계획, [곳줄(), 계획줄, 계산줄('가', 입력())], 자료, await 기록들())).toHaveProperty('기대');
     const 재현 = 계산줄('가', 입력({ 재현: { 기록: '20261128000000000-판' } }));
     expect(재현.learned!.data.결과).toMatchObject({ 재현: { 이김: false, 웨이브수: 0, 맞음: true } });
+  });
+
+  it('앞 판에서 판 함수 적() 이 화면 밖 적을 못 읽었으면(조작 도우미가 남긴 적못봄) 재현보다 먼저 막고 판 함수를 고치라고 한다 — 16105 첫 맵', async () => {
+    const c = 계산줄('가', 입력());
+    지도쓰기([곳줄(), 계획줄, c]);
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(c.learned!.data) }, null, 1, 세계수때(10, 10));
+    const 파일 = join(자료, 'game-play', '20261128000000000-판.json');
+    const 판 = JSON.parse(readFileSync(파일, 'utf8')) as { 따라감: Record<string, unknown> };
+    판.따라감.적못봄 = { 초: 96, 남은적: 1, 이어진초: 15.2 };
+    writeFileSync(파일, JSON.stringify(판));
+    expect(막기(계획, [곳줄(), 계획줄, 계산줄('가', 입력())], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('96초부터 웨이브 중 남은 적 1 인데 판 함수 적() 이 15.2초 넘게 0 을 돌려줬다') });
   });
 
   it('재현이 판과 어긋나면 처음 어긋난 값 · 때 · 고칠 곳을 보여 주며 막는다 — 판은 30초를 버텼는데 재현은 10초에 진다', async () => {
