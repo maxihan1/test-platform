@@ -133,13 +133,13 @@ export function 격자짓기(걷기값: unknown, 막힘값: unknown, 칠들: rea
   return g;
 }
 
-/** 판 기록 하나가 그 곳을 적은 계획으로 한 것이면 칠할 것, 아니면 null. 못감은 판 함수가 돌려준 값의 `못감: [[x,z],…]` */
+/** 판 기록 하나가 그 곳을 적은 계획으로 한 것이면 칠할 것, 아니면 null. 못감은 순서대로 하기가 남긴 `따라감.못감`(걷기가 못 닿은 자리), 없으면 판 함수가 돌려준 값의 `못감: [[x,z],…]` */
 export function 기록칠(r: 판기록, 줄들: Parameters<typeof 계획곳>[0], 곳: string, 면: 평면 = 'xz'): 칠 | null {
   if (r.값기록 === undefined || 계획곳(줄들, r.값기록.계획) !== 곳) return null;
   // 옛 기록 · 덜 쓴 기록은 때가 없을 수 있다
   const 때들 = Array.isArray(r.값기록.때) ? r.값기록.때 : [];
   const 걸음 = 때들.flatMap((때) => { const q = 때.위치 == null ? null : 좌표읽기(때.위치, 면); return q === null ? [] : [q]; });
-  const 못 = 객체(r.값).못감;
+  const 못 = 객체(r.따라감).못감 ?? 객체(r.값).못감;
   return { 걸음, 못감: Array.isArray(못) ? 못.flatMap((p) => { const q = 좌표읽기(p, 면); return q === null ? [] : [q]; }) : [] };
 }
 

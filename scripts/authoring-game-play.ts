@@ -251,8 +251,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   }
   if (막 === null && 것.계획 !== undefined) console.error('[조작 도우미] 학습 세션이 아니라 --plan 을 안 쓴다 — 볼값을 안 읽는다');
   // 시뮬이 고른 순서가 있으면 판은 조작 도우미가 그 순서대로 한다 — 판 함수는 손동작만 돌려준다. 행동기록은 여기 것이라 함수가 끊겨도 남는다
-  // 멈춰 둔 판을 이어 부르면 앞 기록에 이어 붙인다(시간 한도를 넘는 판은 여러 번에 나눠 돈다)
-  const 따라감: 따라간기록 | undefined = 막?.따라갈 === undefined ? undefined : 새기록(자료 !== undefined && 멈춤표시읽기(자료) !== null ? 판기록들(자료).at(-1) : undefined);
+  // 멈춰 둔 판을 같은 계획으로 이어 부르면 앞 기록에 이어 붙인다(시간 한도를 넘는 판은 여러 번에 나눠 돈다)
+  const 따라감: 따라간기록 | undefined = 막?.따라갈 === undefined ? undefined : 새기록(자료 !== undefined && 멈춤표시읽기(자료) !== null ? 판기록들(자료).filter((r) => r.값기록?.계획 === 것.계획).at(-1) : undefined);
   const 함수 = 따라감 === undefined ? 것.함수 : 순서대로함수(것.함수, 막!.따라갈!, 따라감);
   let r: 조작결과;
   // 셸이 한도에서 끊으면 SIGTERM 이 온다 — 눌러 둔 입력을 놓고 끝낸다
