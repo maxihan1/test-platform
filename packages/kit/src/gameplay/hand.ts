@@ -14,9 +14,11 @@ const 가운데 = (들: number[]): number => Math.round([...들].sort((a, b) => 
 
 /**
  * 행동기록에서 손을 잰다 — 행동 하나에 든 초는 고르고 읽는 데 든 시간(초 → 시작초)과 도착해서 끝낼 때까지(도착초 → 끝초)의 합이고, 가운데 값을 쓴다.
- * 종류별은 그 종류가 셋 이상일 때만, 걷는 속도는 걸은 시간이 3초 이상일 때만 낸다. 잴 것이 없으면 null
+ * 종류별은 그 종류가 셋 이상일 때만, 걷는 속도는 걸은 시간이 3초 이상일 때만 낸다. 잴 것이 없으면 null.
+ * 안 된 행동(됨: false)은 안 잰다 — 시뮬에서는 안 된 행동이 없어 판이 실패를 기다린 시간이 손으로 잡힌다(16104 놓기 16.22초로 깬 맵이 「0 이김」)
  */
-export function 손셈(들: readonly 행동[]): Omit<잰손, '기록'> | null {
+export function 손셈(모든: readonly 행동[]): Omit<잰손, '기록'> | null {
+  const 들 = 모든.filter((x) => x.됨 !== false);
   const 초들 = 들.flatMap((x) => (x.끝초 === undefined ? [] : [{ 종류: x.행동, 초: x.끝초 - (x.도착초 ?? x.초) + ((x.시작초 ?? x.초) - x.초) }])).filter((v) => v.초 >= 0);
   if (초들.length === 0) return null;
   const 종류별: Partial<Record<행동종류, number>> = {};
