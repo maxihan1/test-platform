@@ -151,6 +151,29 @@ export function 재현비교하기(판: readonly 판값[], r: Pick<시뮬결과,
   return { 맞음: false, 본수: 판.length, 어긋남: 어, 표 };
 }
 
+/**
+ * 판과 재현의 오차 — 같은 시각 값마다 차이를 허용 차이로 나눈 것의 판 값 줄당 평균(1 이하면 대체로 허용 안), 재현이 먼저 끝난 뒤의 판 값 줄은 하나에 3.
+ * 숫자 맞추기가 이 값이 가장 작은 숫자를 찾는다(어긋남 하나를 짚는 재현비교하기와 달리 얼마나 가까운지를 잰다)
+ */
+export function 재현오차(판: readonly 판값[], r: Pick<시뮬결과, '예상'>, 연결: 모델['볼값연결'], 지킬것최대: number): number {
+  const 시뮬 = 시뮬값들(r, 연결);
+  if (판.length === 0 || 시뮬.length === 0) return 0;
+  const 끝 = 시뮬.at(-1)!.초;
+  let 합 = 0;
+  for (const p of 판) {
+    if (p.초 > 끝 + 예상간격초 / 2) {
+      합 += 3;
+      continue;
+    }
+    const s = 시뮬[Math.min(시뮬.length - 1, Math.round(p.초 / 예상간격초))]!;
+    for (const k of 비교이름들) {
+      const [a, b] = [p[k], s[k]];
+      if (a !== undefined && b !== undefined) 합 += Math.abs(a - b) / 허용(k, a, b, 지킬것최대);
+    }
+  }
+  return 합 / 판.length;
+}
+
 /** 한 줄 — 계산 출력 · 게이트 막음 글이 같이 쓴다 */
 export const 어긋남글 = (a: 어긋남): string =>
   `${둥(a.초)}초 ${a.값 === '끝' ? '판 길이' : a.값}${a.값 === '끝' ? '' : `: 판 ${a.판} · 시뮬 ${a.시뮬}`}${a.앞행동 === null ? '' : ` (그 앞 행동 ${a.앞행동})`} — 판에서 잰 값: ${a.잰값} — 고칠 곳: ${a.고칠곳}`;

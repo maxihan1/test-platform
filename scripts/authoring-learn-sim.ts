@@ -9,6 +9,7 @@ import type { 지도줄 } from './authoring-game-find.js';
 import { type 규칙, type 따라갈, type 모델, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가 } from '@platform/kit/gameplay';
 import { 격자걷기, 근거틀림, 빌드글, 손넣기, 손재기, 판재현, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
 import { 어긋남글, 지속초, 판값들 } from './authoring-game-sim-compare.js';
+import { 줄맞춘입력 } from './authoring-game-sim-fit.js';
 import { type 기대, type 볼값, type 값기록, type 판기록, 계산머리, 판기록들 } from './authoring-learn-check.js';
 import { 계획곳, 곳셈, 곳줄들, 못닿고짐, 시뮬불가읽기 } from './authoring-learn-play.js';
 
@@ -98,7 +99,10 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   // 판을 하나 더 돌면 손 시간이 바뀐다 — 그 판으로 다시 시뮬해야 다음 판이 돈다
   const 잰 = 손재기(자료, 곳);
   if (!이어판 && (잰.기록 ?? null) !== (s.결과.손.기록 ?? null)) return { 막음: `${s.열쇠} 는 판 ${잰.기록 ?? '없음'} 을 돈 뒤 다시 안 돌렸다(그 판의 손 시간이 안 들어갔다) — 같은 입력으로 다시 계산해 줄을 고친다` };
-  const m = 입력읽기(객체(JSON.parse(글)));
+  // 줄의 맞춘값(숫자 맞추기)을 입력에 넣어 읽는다 — 입력 맞추기의 경로 · 범위 안이어야 하고, 아래 재현이 맞아야 쓴다
+  const 맞춘 = 줄맞춘입력(객체(JSON.parse(글)), 객체(s.결과).맞춘값);
+  if ('틀림' in 맞춘) return { 막음: `${s.열쇠} — ${맞춘.틀림}` };
+  const m = 입력읽기(맞춘.입력);
   if ('틀림' in m) return { 막음: `${s.열쇠} 의 입력이 틀렸다 — ${m.틀림}` };
   const 근 = 근거틀림(m, 줄들, 빌드글(자료));
   if (근 !== null) return { 막음: `${s.열쇠} — ${근}` };
@@ -106,7 +110,7 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   const 잰m = 손넣기(m, 잰);
   const 걷기 = 격자걷기(자료, 잰m).걷기;
   const 줄순서 = (v: unknown): 규칙[] | null => {
-    const x = 입력읽기({ ...객체(JSON.parse(글)), 정책: undefined, 정책들: [v], 문턱후보: {} });
+    const x = 입력읽기({ ...맞춘.입력, 정책: undefined, 정책들: [v], 문턱후보: {} });
     return '틀림' in x || !입력정책인가(m, x.정책들[0]!) ? null : x.정책들[0]!;
   };
   const 정책 = 줄순서(s.결과.정책);
@@ -158,7 +162,8 @@ export function 시뮬불가재현(열쇠: string, data: unknown, 줄들: readon
   if (해시(글) !== s.입력.해시) return `${불가.계산} 를 낸 뒤 입력 파일 ${s.입력.파일} 이 바뀌었다 — 다시 계산해 찍힌 줄로 고친다`;
   let m: ReturnType<typeof 입력읽기>;
   try {
-    m = 입력읽기(객체(JSON.parse(글)));
+    const 맞춘 = 줄맞춘입력(객체(JSON.parse(글)), 객체(s.결과).맞춘값);
+    m = '틀림' in 맞춘 ? 맞춘 : 입력읽기(맞춘.입력);
   } catch (e) {
     return `${불가.계산} 의 입력 파일 ${s.입력.파일} 이 JSON 이 아니다(${e instanceof Error ? e.message : String(e)})`;
   }

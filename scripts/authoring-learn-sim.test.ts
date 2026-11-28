@@ -195,6 +195,22 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(재현.learned!.text).toContain('판과 어긋남(10초 끝)');
   });
 
+  it('맞추기에 적은 못 잰 값은 그 곳 판들의 재현에 맞춰 줄에 싣고, 게이트는 그 값을 범위 안일 때만 넣어 따라갈 모델을 만든다', async () => {
+    const 맞출입력 = 입력({ 재화: { 시작: 0, 초당: 0 }, 볼값연결: { 웨이브: '웨이브', 지킬것: '세계수', 재화: '고기' }, 맞추기: { '재화.초당': [0, 3] } });
+    const c = 계산줄('가', 맞출입력);
+    지도쓰기([곳줄(), 계획줄, c]);
+    // 판에서는 고기가 초당 1 씩 올랐고 10초에 졌다
+    const 때 = Array.from({ length: 6 }, (_, i) => ({ 초: i * 2, 값: { 웨이브: 1, 세계수: i * 2 >= 10 ? 0 : 5, 고기: i * 2 } }));
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(c.learned!.data) }, null, 1, 때);
+    const 맞춘 = 계산줄('가', 맞출입력);
+    const 값 = (맞춘.learned!.data.결과 as { 맞춘값: Record<string, number> }).맞춘값['재화.초당']!;
+    expect(Math.abs(값 - 1)).toBeLessThan(0.1);
+    expect(맞춘.learned!.data.결과).toMatchObject({ 맞추기: { 판: ['20261128000000000-판'], 빠짐: [] } });
+    expect(막기(계획, [곳줄(), 계획줄, 맞춘], 자료, await 기록들())).toMatchObject({ 따라갈: { 모델: { 재화: { 초당: 값 } } } });
+    const 고친 = { ...맞춘, learned: { ...맞춘.learned!, data: { ...맞춘.learned!.data, 결과: { ...(맞춘.learned!.data.결과 as object), 맞춘값: { '재화.초당': 9 } } } } };
+    expect(막기(계획, [곳줄(), 계획줄, 고친], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('범위 밖') });
+  });
+
   it('판 값기록을 시뮬과 못 이으면(볼값 이름이 다르다) 어긋난 판만 재현 칸과 웨이브 수로 견준다', async () => {
     const c = 계산줄('가', 입력());
     지도쓰기([곳줄(), 계획줄, c]);

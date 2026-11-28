@@ -6,6 +6,7 @@ import { basename, dirname, relative } from 'node:path';
 
 import { type 원, type 점, 원안길이, 입력읽기 } from '@platform/kit/gameplay';
 
+import { 줄맞춘입력 } from './authoring-game-sim-fit.js';
 import { 시뮬계산 } from './authoring-game-sim-run.js';
 
 export { 원안길이, type 원, type 점 };
@@ -87,7 +88,10 @@ export function 줄초안(r: 계산결과, 입력: Record<string, unknown>): Rec
  */
 export function 순서자료(r: 계산결과, 입력: Record<string, unknown>): Record<string, unknown> | null {
   if (r.결과.계산 !== '시뮬' || r.결과.이김 !== true) return null;
-  const { 재현: _재현, ...남은 } = 입력;
+  // 숫자 맞추기로 맞춘 값을 넣은 입력을 싣는다 — 케이스도 같은 값으로 판을 한다
+  const 맞춘 = 줄맞춘입력(입력, r.결과.맞춘값);
+  if ('틀림' in 맞춘) return null;
+  const { 재현: _재현, 맞추기: _맞추기, ...남은 } = 맞춘.입력;
   const { 기록: _기록, ...손 } = 객체(r.결과.손);
   return { 입력: 남은, 정책: r.결과.정책, 버금: r.결과.버금, 손 };
 }

@@ -3,13 +3,14 @@
 import { createHash } from 'node:crypto';
 
 import { 곳격자, 길내기, 맨쌍글 } from './authoring-game-path.js';
-import { type 걷는거리, type 모델, type 시뮬결과, type 잰손, type 점, type 행동, 느린손배, 돌리기, 손넣기, 손셈, 순서표, 엔진판, 정책글, 찾기, 표글, 행동초첫값 } from '@platform/kit/gameplay';
+import { type 걷는거리, type 모델, type 시뮬결과, type 잰손, type 점, type 행동, 느린손배, 돌리기, 손넣기, 손셈, 순서표, 엔진판, 입력읽기, 정책글, 찾기, 표글, 행동초첫값 } from '@platform/kit/gameplay';
 import { type 지도줄, 지금지도 } from './authoring-game-find.js';
 import { 게임자리 } from './authoring-game.js';
 import { 안전히읽기 } from './authoring-screens-keep-io.js';
 import { type 판기록, 판기록들 } from './authoring-learn-check.js';
 import { 놀이시작뒤 } from './authoring-learn-io.js';
 import { type 재현비교, 비교표글, 어긋남글, 재현비교하기, 판값들 } from './authoring-game-sim-compare.js';
+import { type 맞출판, type 맞춘결과, 맞출값읽기, 맞출판수, 맞춘글, 맞춘입력, 숫자맞추기 } from './authoring-game-sim-fit.js';
 import { 계획곳 } from './authoring-learn-play.js';
 
 export { type 잰손, 손넣기, 손셈, 행동초첫값 };
@@ -44,6 +45,24 @@ export function 판조각들(기록들: readonly 판기록[], r: 판기록): 판
   const 앞이름 = 객체(r.따라감).이어;
   const 앞 = typeof 앞이름 === 'string' ? 기록들.find((x) => x.이름 === 앞이름 && x.이름 < r.이름) : undefined;
   return 앞 === undefined ? [r] : [...판조각들(기록들, 앞), r];
+}
+
+/** 숫자 맞추기에 쓸 판 — 그 곳을 계획으로 돈 판 가운데 행동기록과 시뮬과 이을 값기록이 있는 가장 새 판들(이어 부른 판은 끝 조각 하나로 · 치트 판은 빼고) */
+export function 맞출판들(자료: string, m: 모델): 맞출판[] {
+  const 지도 = 지금지도(자료);
+  if (지도 === null) return [];
+  const 기록들 = 판기록들(자료);
+  const 이어진 = new Set(기록들.map((r) => 객체(r.따라감).이어).filter((x): x is string => typeof x === 'string'));
+  return 기록들
+    .flatMap((r): 맞출판[] => {
+      if (r.값기록 === undefined || r.치트 === true || 이어진.has(r.이름) || 계획곳(지도.줄들, r.값기록.계획) !== m.곳) return [];
+      const 행 = 판행동기록(기록들, r);
+      if (행 === null || 행.length === 0) return [];
+      const 조각들 = 판조각들(기록들, r).flatMap((x) => (x.값기록 === undefined ? [] : [{ 값기록: x.값기록, 따라감: x.따라감 }]));
+      const 판 = 판값들(조각들, m.볼값연결, Math.max(...행.map((x) => x.끝초 ?? x.초)));
+      return 판.length === 0 ? [] : [{ 이름: r.이름, 판, 행 }];
+    })
+    .slice(-맞출판수);
 }
 
 /** 그 판을 재현해(행동기록을 그 시각에 그대로) 판 값기록과 같은 시각끼리 견준다. 행동기록이 없으면 null · 볼값을 못 이으면 비교.본수 0 */
@@ -133,10 +152,21 @@ export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일�
     if (틀 !== null) return { 틀림: 틀 };
   }
   const 잰: 잰손 = 자료 === undefined ? { 행동초: 행동초첫값 } : 손재기(자료, 모델.곳);
-  const m = 손넣기(모델, 잰);
+  let m = 손넣기(모델, 잰);
   const 걸음 = 자료 === undefined ? { 걷기: undefined, 글: '자료 폴더 밖 입력이라 곧은 거리로 걸었다' } : 격자걷기(자료, m);
+  // 맞추기에 적은 못 잰 값은 그 곳 판들의 재현 오차가 가장 작은 값으로 바꿔 넣고 계산한다 — 맞춘 값은 줄에 남아 게이트 · 케이스가 같은 값을 쓴다
+  const 원입력 = JSON.parse(파일글) as Record<string, unknown>;
+  const 맞출들 = 맞출값읽기(원입력);
+  if ('틀림' in 맞출들) return 맞출들;
+  let 맞춤: 맞춘결과 | undefined;
+  if (맞출들.length > 0) {
+    맞춤 = 숫자맞추기(원입력, 맞출들, 자료 === undefined ? [] : 맞출판들(자료, 모델), 잰, 걸음.걷기);
+    const 맞춘모델 = 입력읽기(맞춘입력(원입력, 맞출들, 맞춤.값));
+    if ('틀림' in 맞춘모델) return 맞춘모델;
+    m = 손넣기(맞춘모델, 잰);
+  }
   let 재현: { 기록: string; 이김: boolean; 웨이브수: number; 짐?: 시뮬결과['짐']; 맞음?: boolean; 어긋남?: 재현비교['어긋남'] } | undefined;
-  const 줄글: string[] = [...(자료 === undefined ? ['이 입력은 <자료 폴더>/game-calc/ 밖에 있다 — 이 줄로는 판이 안 돈다(조작 도우미가 그 자리에서 입력을 다시 읽는다). 입력을 그 폴더로 옮겨 다시 계산한다'] : []), `손 — ${손글({ ...잰, 행동초: m.손.행동초 })} · ${걸음.글}`];
+  const 줄글: string[] = [...(자료 === undefined ? ['이 입력은 <자료 폴더>/game-calc/ 밖에 있다 — 이 줄로는 판이 안 돈다(조작 도우미가 그 자리에서 입력을 다시 읽는다). 입력을 그 폴더로 옮겨 다시 계산한다'] : []), `손 — ${손글({ ...잰, 행동초: m.손.행동초 })} · ${걸음.글}`, ...(맞춤 === undefined ? [] : 맞춘글(맞출들, 맞춤))];
   if (m.재현 !== undefined) {
     const 판들 = 자료 === undefined ? [] : 판기록들(자료);
     const 판 = 판들.find((r) => r.이름 === m.재현!.기록);
@@ -172,7 +202,7 @@ export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일�
   return {
     글: 재현 === undefined ? 글 : `${글} · 재현 ${재현.기록} ${재현.이김 ? '이김' : `${재현.짐?.웨이브 ?? '?'} 에서 짐`}${재현.맞음 === undefined ? '' : 재현.맞음 ? ' · 판과 맞음' : ` · 판과 어긋남(${재현.어긋남!.초}초 ${재현.어긋남!.값})`}`,
     줄글,
-    결과: { 계산: '시뮬', 이김: 찾음.가장 !== null, 정책: 안.정책, 문턱: 안.문턱, 느려도이김: 안.느려도이김, 버금: 찾음.버금.filter((x) => x.결과.이김).map((x) => x.정책), 이긴수: 찾음.이긴수, 전체: 찾음.전체, 웨이브: 안.결과.웨이브, ...(안.결과.짐 === undefined ? {} : { 짐: 안.결과.짐 }), 손: { ...잰, 행동초: m.손.행동초 }, ...(재현 === undefined ? {} : { 재현 }) },
+    결과: { 계산: '시뮬', 이김: 찾음.가장 !== null, 정책: 안.정책, 문턱: 안.문턱, 느려도이김: 안.느려도이김, 버금: 찾음.버금.filter((x) => x.결과.이김).map((x) => x.정책), 이긴수: 찾음.이긴수, 전체: 찾음.전체, 웨이브: 안.결과.웨이브, ...(안.결과.짐 === undefined ? {} : { 짐: 안.결과.짐 }), 손: { ...잰, 행동초: m.손.행동초 }, ...(재현 === undefined ? {} : { 재현 }), ...(맞춤 === undefined ? {} : { 맞춘값: 맞춤.값, 맞추기: { 판: 맞춤.판, 처음오차: 맞춤.처음오차, 끝오차: 맞춤.끝오차, 빠짐: 맞춤.빠짐 } }) },
     입력요약: { 파일, 해시: 해시(파일글), 엔진판, 웨이브수: m.웨이브.length, 보스, 볼값연결: m.볼값연결 },
   };
 }
