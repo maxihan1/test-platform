@@ -71,9 +71,10 @@ const 깬판수 = (줄들: readonly 줄[], 자료: string, 곳: string): number 
 
 /**
  * 게임플레이 계획을 돌리기 전에 본다 — 막을 까닭 글, 통과면 계획에 더할 기대와 조작 도우미가 따라갈 것, 시뮬이 필요 없는 곳이면 null.
- * 판 함수 인자는 안 본다 — 판은 조작 도우미가 시뮬 순서대로 하고 판 함수는 손동작만 돌려준다
+ * 판 함수 인자는 안 본다 — 판은 조작 도우미가 시뮬 순서대로 하고 판 함수는 손동작만 돌려준다.
+ * 이어판이면(시간 한도에서 멈춘 판을 같은 계획으로 이어 부른다) 손 시간을 다시 재라 · 앞 판을 재현하라는 조건을 안 건다 — 같은 판의 뒤쪽이라 판이 끝난 뒤에 본다
  */
-export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[]; 볼값: readonly 볼값[] }, 줄들: readonly 줄[], 자료: string, 기록들: readonly 판기록[]): { 막음: string } | { 기대: 기대[]; 따라갈: 따라갈 } | null {
+export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[]; 볼값: readonly 볼값[] }, 줄들: readonly 줄[], 자료: string, 기록들: readonly 판기록[], 이어판 = false): { 막음: string } | { 기대: 기대[]; 따라갈: 따라갈 } | null {
   if (계획.곳 === undefined) return null;
   const 곳 = 계획.곳;
   const 곳줄 = 곳줄들(줄들).find((x) => x.key === 곳);
@@ -97,7 +98,7 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   if (끝 !== null) return { 막음: 끝 };
   // 판을 하나 더 돌면 손 시간이 바뀐다 — 그 판으로 다시 시뮬해야 다음 판이 돈다
   const 잰 = 손재기(자료, 곳);
-  if ((잰.기록 ?? null) !== (s.결과.손.기록 ?? null)) return { 막음: `${s.열쇠} 는 판 ${잰.기록 ?? '없음'} 을 돈 뒤 다시 안 돌렸다(그 판의 손 시간이 안 들어갔다) — 같은 입력으로 다시 계산해 줄을 고친다` };
+  if (!이어판 && (잰.기록 ?? null) !== (s.결과.손.기록 ?? null)) return { 막음: `${s.열쇠} 는 판 ${잰.기록 ?? '없음'} 을 돈 뒤 다시 안 돌렸다(그 판의 손 시간이 안 들어갔다) — 같은 입력으로 다시 계산해 줄을 고친다` };
   const m = 입력읽기(객체(JSON.parse(글)));
   if ('틀림' in m) return { 막음: `${s.열쇠} 의 입력이 틀렸다 — ${m.틀림}` };
   const 근 = 근거틀림(m, 줄들, 빌드글(자료));
@@ -115,7 +116,7 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   // 판이 시뮬과 어긋났으면 그 판을 재현해야 한다 — 시뮬이 그 판을 못 맞추면 무엇을 잘못 읽었는지 아직 모른다
   const 앞판 = 마지막판(줄들, 기록들, 곳, [s.입력.볼값연결.웨이브, s.입력.볼값연결.지킬것].filter((x): x is string => x !== undefined));
   const 앞시뮬 = 앞판 === undefined ? false : Object.values(앞판.값기록!.계산 ?? {}).some((v) => v.includes('"계산":"시뮬"'));
-  if (앞판 !== undefined && 앞시뮬) {
+  if (!이어판 && 앞판 !== undefined && 앞시뮬) {
     const 행 = 판행동기록(기록들, 앞판) ?? [];
     if (행.length === 0) return { 막음: `판 ${앞판.이름} 에 행동기록이 없다 — 판 함수가 손동작을 돌려줘 조작 도우미가 순서대로 했는지 본다(행동기록은 조작 도우미가 남긴다 · 시뮬과 비교하고 재현하는 데 쓴다)` };
     const 어긋 = 앞판.값기록!.어긋남 !== null || 못닿고짐(앞판, 줄들) !== null;

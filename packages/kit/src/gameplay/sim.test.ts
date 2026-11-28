@@ -140,7 +140,7 @@ describe('캐릭터 판단 — 정책', () => {
       문턱후보: { 거리: [1, 8] },
     }));
     const r = 찾기(m);
-    expect(r).toMatchObject({ 이긴수: 1, 전체: 2, 가장: { 문턱: { 거리: 8 }, 느려도이김: true } });
+    expect(r).toMatchObject({ 가장: { 문턱: { 거리: 8 }, 느려도이김: true, 결과: { 이김: true } } });
   });
 
   it('재현은 정책 대신 판 행동기록을 그 시각에 그대로 한다', () => {
@@ -221,6 +221,15 @@ describe('판 중간에서 이어 흘리기 · 종류별 손 시간 · 키우기
     const 낮은 = 키운자리('낮은');
     expect(낮은[0]).not.toBe(낮은[1]);
     expect(입력읽기(입력('아무거나'))).toMatchObject({ 틀림: expect.stringContaining('고르기') });
+  });
+
+  it('재현은 판에서 안 된 행동(됨: false)의 효과를 안 낸다 — 안 놓인 놓기가 재현에서 놓이면 재현이 판보다 멀리 간다', () => {
+    const m = 모델로(기본());
+    const 놓기 = { 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1] as const, 끝초: 0.1 };
+    expect(돌리기(m, [], undefined, [{ ...놓기, 됨: true }]).웨이브[0]).toMatchObject({ 처치: 1, 새어나감: 0 });
+    const 안됨 = 돌리기(m, [], undefined, [{ ...놓기, 됨: false }]);
+    expect(안됨.웨이브[0]).toMatchObject({ 처치: 0, 새어나감: 1 });
+    expect(안됨.행동기록[0]).toMatchObject({ 행동: '놓기', 됨: false });
   });
 
   it('재현의 줍기는 한 번에 주운 자리들 둘레의 재화를 다 넣는다', () => {
