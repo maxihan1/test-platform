@@ -3,11 +3,11 @@
 // 게이트는 AI 가 적은 줄 글자를 믿지 않는다. 입력 파일 해시 · 엔진판을 보고 고른 정책으로 다시 돌려 이김을 확인한다
 // 판은 조작 도우미가 그 순서대로 한다(kit gameplay 의 따라가기) — 여기서 따라갈 것(모델 · 고른 순서 · 버금 순서)을 넘긴다
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import type { 지도줄 } from './authoring-game-find.js';
 import { type 규칙, type 따라갈, type 모델, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가 } from '@platform/kit/gameplay';
-import { 격자걷기, 근거틀림, 빌드글, 손넣기, 손재기, 판재현, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
+import { 격자걷기, 근거틀림, 빌드글, 세계넣기, 손넣기, 손재기, 판재현, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
 import { 어긋남글, 지속초, 판값들 } from './authoring-game-sim-compare.js';
 import { 줄맞춘입력 } from './authoring-game-sim-fit.js';
 import { type 기대, type 볼값, type 값기록, type 판기록, 계산머리, 판기록들 } from './authoring-learn-check.js';
@@ -24,7 +24,7 @@ interface 시뮬줄 {
   열쇠: string;
   곳: string;
   결과: { 이김: boolean; 정책: unknown[]; 버금?: unknown; 손: { 행동초: number; 기록?: string } };
-  입력: { 파일: string; 해시: string; 엔진판: number; 웨이브수: number; 보스: boolean; 볼값연결: { 웨이브?: string; 지킬것?: string } };
+  입력: { 파일: string; 해시: string; 엔진판: number; 웨이브수: number; 보스: boolean; 볼값연결: { 웨이브?: string; 지킬것?: string }; 세계?: { 파일: string; 해시: string } };
 }
 
 /** 계산기 `시뮬` 이 낸 CALC 줄이면 읽은 것, 아니면 null */
@@ -99,8 +99,11 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   // 판을 하나 더 돌면 손 시간이 바뀐다 — 그 판으로 다시 시뮬해야 다음 판이 돈다
   const 잰 = 손재기(자료, 곳);
   if (!이어판 && (잰.기록 ?? null) !== (s.결과.손.기록 ?? null)) return { 막음: `${s.열쇠} 는 판 ${잰.기록 ?? '없음'} 을 돈 뒤 다시 안 돌렸다(그 판의 손 시간이 안 들어갔다) — 같은 입력으로 다시 계산해 줄을 고친다` };
+  // 게임 세계 코드를 다시 읽는다 — 줄을 낸 뒤 바뀌었으면 줄의 계산을 못 믿는다
+  const 넣음 = 세계읽고견주기(s, 글, 자료);
+  if (typeof 넣음 === 'string') return { 막음: `${s.열쇠} — ${넣음}` };
   // 줄의 맞춘값(숫자 맞추기)을 입력에 넣어 읽는다 — 입력 맞추기의 경로 · 범위 안이어야 하고, 아래 재현이 맞아야 쓴다
-  const 맞춘 = 줄맞춘입력(객체(JSON.parse(글)), 객체(s.결과).맞춘값);
+  const 맞춘 = 줄맞춘입력(넣음, 객체(s.결과).맞춘값);
   if ('틀림' in 맞춘) return { 막음: `${s.열쇠} — ${맞춘.틀림}` };
   const m = 입력읽기(맞춘.입력);
   if ('틀림' in m) return { 막음: `${s.열쇠} 의 입력이 틀렸다 — ${m.틀림}` };
@@ -134,6 +137,14 @@ export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[];
   return { 기대: 다시.웨이브.map((w, i) => ({ 값: 지킬것, 비교: '>=' as const, 기준: Math.round(w.끝지킬것 * 기대여유 * 10) / 10, 부터: { 값: 웨이브이름, 기준: i + 1 }, 까지: { 값: 웨이브이름, 기준: i + 1 } })), 따라갈: { 모델: 잰m, 정책, 버금, 걷기 } };
 }
 
+/** 입력 글에 게임 세계 코드를 넣는다 — 세계 파일을 다시 읽어 줄의 해시와 같아야 한다(다르면 까닭 글) */
+function 세계읽고견주기(s: 시뮬줄, 글: string, 자료: string): Record<string, unknown> | string {
+  const 넣음 = 세계넣기(객체(JSON.parse(글)), dirname(join(자료, s.입력.파일)));
+  if ('틀림' in 넣음) return 넣음.틀림;
+  if ((넣음.세계?.해시 ?? null) !== (s.입력.세계?.해시 ?? null)) return `줄을 낸 뒤 게임 세계 코드(${넣음.세계?.파일 ?? s.입력.세계?.파일 ?? '없음'})가 바뀌었다 — 다시 계산해 찍힌 줄로 고친다`;
+  return 넣음.입력;
+}
+
 const 재현틀림글 = (판이름: string, a: Parameters<typeof 어긋남글>[0]): string =>
   `판 ${판이름} 을 재현하니 판과 어긋난다 — ${어긋남글(a)}. 고칠 곳의 값만 판에서 잰 값으로 고치고(다른 값을 비틀어 맞추지 않는다) 시뮬 입력에 재현: { 기록: "${판이름}" } 을 넣어 다시 계산하면 전체 표가 나온다. 고쳐도 안 맞으면(엔진이 그 규칙을 못 나타낸다) 그 STAGE data.시뮬불가 에 재현안맞음: "${판이름}" 을 달아 닫고 다음 맵으로 간다`;
 
@@ -162,7 +173,9 @@ export function 시뮬불가재현(열쇠: string, data: unknown, 줄들: readon
   if (해시(글) !== s.입력.해시) return `${불가.계산} 를 낸 뒤 입력 파일 ${s.입력.파일} 이 바뀌었다 — 다시 계산해 찍힌 줄로 고친다`;
   let m: ReturnType<typeof 입력읽기>;
   try {
-    const 맞춘 = 줄맞춘입력(객체(JSON.parse(글)), 객체(s.결과).맞춘값);
+    const 넣음 = 세계읽고견주기(s, 글, 자료);
+    if (typeof 넣음 === 'string') return `${불가.계산} — ${넣음}`;
+    const 맞춘 = 줄맞춘입력(넣음, 객체(s.결과).맞춘값);
     m = '틀림' in 맞춘 ? 맞춘 : 입력읽기(맞춘.입력);
   } catch (e) {
     return `${불가.계산} 의 입력 파일 ${s.입력.파일} 이 JSON 이 아니다(${e instanceof Error ? e.message : String(e)})`;

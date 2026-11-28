@@ -1,6 +1,8 @@
 // 게임플레이 시뮬레이션 입력 — AI 가 빌드 데이터 · 지도로 채운 JSON 을 읽어 엔진 모델로 바꾸고 틀린 칸을 알린다 (도메인/게임 §3.10 「게임 정보 먼저 쌓기」 ④)
 // 엔진은 게임을 모른다. 적 · 웨이브 · 설치물 · 캐릭터 · 아이템 · 회복 · 재화 · 정책은 게임마다 AI 가 채우고, 여기는 형태만 본다
 
+import { 세계만들기, 세계틀읽기 } from './world.js';
+
 export type 점 = readonly [number, number];
 export type 비교 = '>=' | '<=' | '>' | '<' | '==';
 export const 상태이름들 = ['지킬것체력', '지킬것비율', '재화', '캐릭터체력비율', '웨이브', '지킬것둘레적수', '캐릭터둘레적수', '캐릭터둘레재화수', '지킬것가까운적거리', '유지최저비율'] as const;
@@ -61,6 +63,8 @@ export interface 모델 {
   문턱후보: Record<string, number[]>;
   재현?: { 기록: string };
   시작?: 시작상태;
+  /** 게임 세계 코드 글 — 계산기가 입력의 세계(파일 이름)를 읽어 넣는다. 없으면 본보기 세계(world.ts) */
+  세계글?: string;
 }
 
 const 객체 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
@@ -185,7 +189,7 @@ export function 입력읽기(입력: Record<string, unknown>): 모델 | { 틀림
     const 연 = 객체(입력.볼값연결);
     const 재현 = 객체(입력.재현);
     요구(입력.재현 === undefined || 글(재현.기록), '재현 은 { 기록: <판 기록 이름> } 이다');
-    return {
+    const 모: 모델 = {
       곳: 입력.곳 as string,
       지킬것: { 체력: 지.체력 as number, 자리: 지.자리 as 점 },
       길, 적종류: 적, 웨이브: 웨이브들, 설치물종류: 설치,
@@ -198,7 +202,19 @@ export function 입력읽기(입력: Record<string, unknown>): 모델 | { 틀림
       볼값연결: { ...(글(연.웨이브) ? { 웨이브: 연.웨이브 } : {}), ...(글(연.지킬것) ? { 지킬것: 연.지킬것 } : {}), ...(글(연.재화) ? { 재화: 연.재화 } : {}), ...(글(연.처치) ? { 처치: 연.처치 } : {}) },
       정책들, 문턱후보,
       ...(입력.재현 === undefined ? {} : { 재현: { 기록: 재현.기록 as string } }),
+      ...(글(입력.세계글) ? { 세계글: 입력.세계글 } : {}),
     };
+    // 게임 세계 코드는 읽고 한 번 만들어 본다 — 틀린 코드를 1500번 도는 순서 찾기에서야 알지 않게
+    if (모.세계글 !== undefined) {
+      const 틀 = 세계틀읽기(모.세계글);
+      요구(!('틀림' in 틀), '틀림' in 틀 ? 틀.틀림 : '');
+      try {
+        세계만들기(모).읽기();
+      } catch (e) {
+        요구(false, `게임 세계 코드 — ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    return 모;
   } catch (e) {
     if (e instanceof 틀림) return { 틀림: e.message };
     throw e;

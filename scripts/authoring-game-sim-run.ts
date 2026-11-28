@@ -1,6 +1,8 @@
 // 시뮬레이션 돌리기 — 손 시간 · 걷는 속도는 판 기록에서 재고, 걷는 거리는 격자 길찾기로 내고, 순서 찾기(kit gameplay)가 고른 순서를 줄로 낸다 (도메인/게임 §3.10 「게임 정보 먼저 쌓기」 ④)
 // 계산기(authoring-game-calc.ts 의 `시뮬`) · 게이트(authoring-learn-sim.ts)가 같이 쓴다. 엔진 · 순서 찾기 · 순서대로 하기는 케이스도 쓰게 `packages/kit/src/gameplay` 에 있다
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { 곳격자, 길내기, 맨쌍글 } from './authoring-game-path.js';
 import { type 걷는거리, type 모델, type 시뮬결과, type 잰손, type 점, type 행동, 느린손배, 돌리기, 손넣기, 손셈, 순서표, 엔진판, 입력읽기, 정책글, 찾기, 표글, 행동초첫값 } from '@platform/kit/gameplay';
@@ -135,6 +137,24 @@ export function 근거틀림(m: 모델, 줄들: readonly Pick<지도줄, 'kind' 
   return `유지 · 설치물둘레 근거 ${틀린.join(' · ')} 가 잰 값의 출처가 아니다 — 판 · 지도에서 잰 값이면 그 측정 줄(규칙 · 시간 · 값 줄) 열쇠, 빌드 데이터면 「빌드 데이터:<타입 이름>」을 적는다(곳 · 계획 · 계산 줄은 안 받는다 · 지침 본보기 숫자를 쓰지 않는다)`;
 }
 
+/**
+ * 입력의 세계(게임 세계 코드 파일 이름 — 입력 파일과 같은 폴더)를 읽어 세계글로 넣는다. 세계가 없으면 그대로(본보기 세계).
+ * 파일 이름만 받는다 — 폴더를 넘나들어 작성 폴더 밖 파일을 읽지 못하게. 해시는 줄에 남겨 게이트가 줄을 낸 뒤 세계 코드가 바뀌었나 본다
+ */
+export function 세계넣기(입력: Record<string, unknown>, 입력폴더: string | undefined): { 입력: Record<string, unknown>; 세계?: { 파일: string; 해시: string } } | { 틀림: string } {
+  if (입력.세계 === undefined) return { 입력 };
+  if (typeof 입력.세계 !== 'string' || !/^[^/\\]+\.js$/.test(입력.세계) || 입력.세계.startsWith('.')) return { 틀림: '세계 는 입력 파일과 같은 폴더에 둔 게임 세계 코드 파일 이름이다(예: "catsgo.world.js" — 폴더를 넘나들지 않는다)' };
+  if (입력폴더 === undefined) return { 틀림: '세계 파일은 입력 파일과 같은 폴더에서 읽는다 — 입력을 파일로 준다' };
+  let 글: string;
+  try {
+    글 = readFileSync(join(입력폴더, 입력.세계), 'utf8');
+  } catch (e) {
+    return { 틀림: `세계 파일 ${입력.세계} 을 못 읽었다 — ${e instanceof Error ? e.message : String(e)}` };
+  }
+  const { 세계: _세계, ...남은 } = 입력;
+  return { 입력: { ...남은, 세계글: 글 }, 세계: { 파일: 입력.세계, 해시: 해시(글) } };
+}
+
 /** 입력 파일 해시 — 게이트가 시뮬 줄을 낸 뒤 입력이 바뀌었나 본다 */
 export const 해시 = (글: string): string => createHash('sha256').update(글).digest('hex').slice(0, 16);
 
@@ -146,7 +166,7 @@ const 손글 = (잰: 잰손): string => `행동 하나 ${잰.행동초}초${잰.
  * 계산기의 `시뮬` — 입력 파일이 `<자료 폴더>/game-calc/<이름>.json` 이면 손 시간 · 격자 · 재현 기록을 그 자료 폴더에서 읽는다.
  * 결과는 CALC 줄 data 에 그대로 실리니 판마다 늘어나는 예상 · 행동기록은 안 싣는다(게이트가 다시 돌려 얻는다)
  */
-export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일글: string, 파일: string): { 글: string; 줄글: string[]; 결과: Record<string, unknown>; 입력요약: Record<string, unknown> } | { 틀림: string } {
+export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일글: string, 파일: string, 넣은입력?: Record<string, unknown>, 세계?: { 파일: string; 해시: string }): { 글: string; 줄글: string[]; 결과: Record<string, unknown>; 입력요약: Record<string, unknown> } | { 틀림: string } {
   if (자료 !== undefined) {
     const 틀 = 근거틀림(모델, 지금지도(자료)?.줄들 ?? null, 빌드글(자료));
     if (틀 !== null) return { 틀림: 틀 };
@@ -155,7 +175,7 @@ export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일�
   let m = 손넣기(모델, 잰);
   const 걸음 = 자료 === undefined ? { 걷기: undefined, 글: '자료 폴더 밖 입력이라 곧은 거리로 걸었다' } : 격자걷기(자료, m);
   // 맞추기에 적은 못 잰 값은 그 곳 판들의 재현 오차가 가장 작은 값으로 바꿔 넣고 계산한다 — 맞춘 값은 줄에 남아 게이트 · 케이스가 같은 값을 쓴다
-  const 원입력 = JSON.parse(파일글) as Record<string, unknown>;
+  const 원입력 = 넣은입력 ?? (JSON.parse(파일글) as Record<string, unknown>);
   const 맞출들 = 맞출값읽기(원입력);
   if ('틀림' in 맞출들) return 맞출들;
   let 맞춤: 맞춘결과 | undefined;
@@ -203,6 +223,6 @@ export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일�
     글: 재현 === undefined ? 글 : `${글} · 재현 ${재현.기록} ${재현.이김 ? '이김' : `${재현.짐?.웨이브 ?? '?'} 에서 짐`}${재현.맞음 === undefined ? '' : 재현.맞음 ? ' · 판과 맞음' : ` · 판과 어긋남(${재현.어긋남!.초}초 ${재현.어긋남!.값})`}`,
     줄글,
     결과: { 계산: '시뮬', 이김: 찾음.가장 !== null, 정책: 안.정책, 문턱: 안.문턱, 느려도이김: 안.느려도이김, 버금: 찾음.버금.filter((x) => x.결과.이김).map((x) => x.정책), 이긴수: 찾음.이긴수, 전체: 찾음.전체, 웨이브: 안.결과.웨이브, ...(안.결과.짐 === undefined ? {} : { 짐: 안.결과.짐 }), 손: { ...잰, 행동초: m.손.행동초 }, ...(재현 === undefined ? {} : { 재현 }), ...(맞춤 === undefined ? {} : { 맞춘값: 맞춤.값, 맞추기: { 판: 맞춤.판, 처음오차: 맞춤.처음오차, 끝오차: 맞춤.끝오차, 빠짐: 맞춤.빠짐 } }) },
-    입력요약: { 파일, 해시: 해시(파일글), 엔진판, 웨이브수: m.웨이브.length, 보스, 볼값연결: m.볼값연결 },
+    입력요약: { 파일, 해시: 해시(파일글), 엔진판, 웨이브수: m.웨이브.length, 보스, 볼값연결: m.볼값연결, ...(세계 === undefined ? {} : { 세계 }) },
   };
 }
