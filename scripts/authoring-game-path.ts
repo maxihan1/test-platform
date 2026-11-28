@@ -1,6 +1,6 @@
 // 게임 맵 격자 길찾기 — 지도의 걷기 · 막힘과 판 기록의 걸은 칸 · 못감으로 곳마다 격자를 칠하고 거쳐 갈 점을 낸다 (도메인/게임 §3.10 「맵 파악」)
 // 쓰는 법: npx tsx scripts/authoring-game-path.ts <자료 폴더> <곳 열쇠> <가로,세로> <가로,세로>(3D 는 x,z · 2D 는 x,y) — 거쳐 갈 점 JSON 한 줄([[x,z],…])과 요약 한 줄을 찍는다. 길이 없으면 1, 인자 · 지도가 틀리면 2
-// 판 함수는 이 점들을 인자로 받아 따라가기만 한다. 격자는 저장하지 않고 부를 때마다 새로 지어, 새 못감과 새로 걸은 칸이 다음 부름부터 저절로 들어간다
+// 판에서는 조작 도우미가 같은 격자의 거쳐 갈 점마다 판 함수 걷기를 부른다(kit followWalk). 격자는 저장하지 않고 부를 때마다 새로 지어, 새 못감과 새로 걸은 칸이 다음 부름부터 저절로 들어간다
 import { 지금지도 } from './authoring-game-find.js';
 import { type 판기록, 판기록들 } from './authoring-learn-check.js';
 import { 계획곳, 곳줄들 } from './authoring-learn-play.js';
@@ -189,6 +189,26 @@ export function 꺾임점(길: ReadonlyArray<{ i: number; j: number }>): 점[] {
     const b = 점들[k + 1]!;
     return (p[0] - a[0]) * (b[1] - p[1]) - (p[1] - a[1]) * (b[0] - p[0]) !== 0;
   });
+}
+
+/** 거쳐 갈 점 줄이기 — 앞 점에서 막힘 칸 · 격자 밖을 안 지나고 곧게 닿는 가장 먼 점으로 건너뛴다(8방향 격자 길은 비스듬히 가면 칸마다 꺾인다 · 판의 손이 칸마다 멈췄다) */
+export function 곧게펴기(g: 격자, 점들: readonly 점[]): 점[] {
+  const 트임 = (a: 점, b: 점): boolean => {
+    const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (칸크기 / 4));
+    for (let k = 1; k < n; k += 1) {
+      const [i, j] = [Math.floor((a[0] + ((b[0] - a[0]) * k) / n) / 칸크기), Math.floor((a[1] + ((b[1] - a[1]) * k) / n) / 칸크기)];
+      if (!안인가(g, i, j) || g.칸[칸번호(g, i, j)] === 막힘) return false;
+    }
+    return true;
+  };
+  const 남긴: 점[] = 점들.length === 0 ? [] : [점들[0]!];
+  for (let k = 0; k < 점들.length - 1; ) {
+    let 먼 = k + 1;
+    for (let m = 점들.length - 1; m > k + 1; m -= 1) if (트임(점들[k]!, 점들[m]!)) { 먼 = m; break; }
+    남긴.push(점들[먼]!);
+    k = 먼;
+  }
+  return 남긴;
 }
 
 const 길이 = (점들: readonly 점[]): number => 점들.reduce((합, p, k) => (k === 0 ? 합 : 합 + Math.hypot(p[0] - 점들[k - 1]![0], p[1] - 점들[k - 1]![1])), 0);

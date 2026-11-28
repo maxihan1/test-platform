@@ -8,7 +8,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import { 막음안, 훑기파일, type 맵훑기 } from './authoring-game-nav-file.js';
 import { 게임훑기, 모양읽기, 번져채우기 } from './authoring-game-nav.js';
-import { 걸음됨, 격자짓기, 길내기, 막힘, 모름, type 격자 } from './authoring-game-path.js';
+import { 걸음됨, 격자짓기, 곧게펴기, 길내기, 막힘, 모름, type 격자 } from './authoring-game-path.js';
 import { 순서자료 } from './authoring-game-calc.js';
 import { 못심는곳빼기 } from './authoring-game-sim-run.js';
 
@@ -153,5 +153,18 @@ describe('못 심는 곳 자리후보 빼기', () => {
     const r = { 이름: '시뮬', 글: '', 줄글: [], 결과: { 계산: '시뮬', 이김: true, 정책: [], 버금: [], 손: { 행동초: 0.5 }, 자리후보: [[5, 1]] }, 입력요약: {} };
     expect(순서자료(r, { 곳: 'stage:시험', 자리후보: [[5, 1], [3, 3]] })).toMatchObject({ 입력: { 자리후보: [[5, 1]] } });
     expect(순서자료({ ...r, 결과: { ...r.결과, 자리후보: undefined } }, { 곳: 'stage:시험', 자리후보: [[5, 1], [3, 3]] })).toMatchObject({ 입력: { 자리후보: [[5, 1], [3, 3]] } });
+  });
+});
+
+describe('거쳐 갈 점 곧게 펴기', () => {
+  it('막힘 칸을 안 지나면 먼 점으로 건너뛰고, 막힘을 돌아가는 길은 꺾임을 남긴다', () => {
+    const g = 격자짓기([[0, 0], [10, 10]], { 사각형: [[4, 0], [5.9, 6.9]] }, []) as 격자;
+    // 비스듬히 칸마다 꺾인 길도 앞이 트였으면 한 번에 간다
+    expect(곧게펴기(g, [[0.5, 9.5], [1.5, 8.5], [2.5, 8.5], [3.5, 7.5], [4.5, 7.5], [9.5, 9.5]])).toEqual([[0.5, 9.5], [9.5, 9.5]]);
+    const 돌아감 = 길내기(g, [0.5, 0.5], [9.5, 0.5]);
+    const 편 = 곧게펴기(g, '점들' in 돌아감 ? 돌아감.점들 : []);
+    expect(편.length).toBeGreaterThan(2);
+    expect(편[0]).toEqual([0.5, 0.5]);
+    expect(편.at(-1)).toEqual([9.5, 0.5]);
   });
 });
