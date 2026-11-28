@@ -57,13 +57,15 @@ describe('못 심는 곳 모양', () => {
 
 describe('게임에 묻기', () => {
   // 가짜 게임 — 걸을 수 없는 목적지는 가장 가까운 걸을 곳으로 옮기고, 멈춤 값을 기억한다
-  const 가짜게임 = (덧: { 자리?: number[]; 멈춤됨?: boolean; 늦음?: boolean } = {}) => {
+  const 가짜게임 = (덧: { 자리?: number[]; 멈춤됨?: boolean; 늦음?: boolean; 풀기?: number } = {}) => {
     const 부름: string[] = [];
     let 멈춤 = false;
     const game = {
       call: async (c: Record<string, unknown>) => {
         부름.push(`${String(c.cmd)} ${String(c.prop ?? c.method ?? '')}`);
         if (c.cmd === 'set' && c.prop === 'NavMeshAgent.destination') {
+          // 풀기 번째 목적지에서 게임이 멈춤을 푼다
+          if (부름.filter((x) => x.endsWith('destination')).length === 덧.풀기) 멈춤 = false;
           const [x, y, z] = JSON.parse(String(c.value)) as number[];
           return { ok: true, value: 열림인가(Math.floor(x!), Math.floor(z!)) ? [x!, y!, z!] : [Math.min(4.5, Math.max(0.5, x!)), y!, 2.5] };
         }
@@ -88,6 +90,12 @@ describe('게임에 묻기', () => {
     expect(부름[0]).toBe('get Transform.position');
     expect(부름.slice(-2)).toEqual(['call NavMeshAgent.ResetPath', 'set NavMeshAgent.isStopped']);
     expect(await 게임훑기({ call: async () => ({ ok: false }), findAll: async () => [] } as never, '곳', '/없음', [])).toMatchObject({ 틀림: expect.stringContaining('NavMeshAgent') });
+  });
+
+  it('묻는 동안 게임이 멈춤을 풀면 다시 멈추고 언제 풀렸는지 남긴다', async () => {
+    const r = (await 게임훑기(가짜게임({ 풀기: 5 }).game, '곳', '/고양이', [])) as 맵훑기;
+    expect(r.열림).toHaveLength(13);
+    expect(r.풀림).toEqual([{ 물은수: 20, 초: expect.any(Number), 자리: [0.5, 1, 0.5] }]);
   });
 
   it('캐릭터 칸이 벽 옆이라 안 열리면 둘레 칸에서 시작하고, 둘레도 다 막혔으면 남기지 않는다', async () => {

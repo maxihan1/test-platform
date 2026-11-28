@@ -16,6 +16,8 @@ import { 잡은폰 } from './authoring-run3-game.js';
 export const 기본상한 = 2500;
 /** 이만큼 지나면 묻기를 그만두고 여기까지 남긴다(첫 값 · 셸 한도 10분에 남기고 되돌릴 시간을 남긴다) */
 export const 훑기한도ms = 8 * 60_000;
+/** 이만큼 물을 때마다 멈춤이 풀렸나 본다(첫 값) */
+export const 멈춤보기칸 = 20;
 /** 목적지를 게임이 이보다 멀리 옮기면 그 칸은 걸을 곳이 아니다(칸 반 변) */
 const 옮김한도 = 칸크기 / 2;
 
@@ -84,7 +86,14 @@ export async function 게임훑기(game: Pick<Game, 'call' | 'findAll'>, 곳: st
   // 멈추지 않았으면 캐릭터가 목적지마다 걸어가 판을 바꾼다 — 묻지 않는다
   if ((await 읽기(캐릭터, 'NavMeshAgent.isStopped')) !== true) return { 틀림: `${캐릭터} 의 NavMeshAgent.isStopped 를 못 켰다 — 캐릭터가 움직이므로 묻지 않는다` };
   try {
+    // 멈춤이 풀리면(게임이 다시 켬) 캐릭터가 마지막 목적지로 걷는다 — 몇 칸마다 보고 다시 멈추고 기록한다(11-29 둘째 맵 5분 훑기에 캐릭터가 15 옮겨 갔다)
+    const 풀림: 맵훑기['풀림'] = [];
+    let 물은수 = 0;
     const 묻기 = async (i: number, j: number): Promise<boolean> => {
+      if ((물은수 += 1) % 멈춤보기칸 === 0 && (await 읽기(캐릭터, 'NavMeshAgent.isStopped')) !== true) {
+        풀림.push({ 물은수, 초: Math.round((Date.now() - 시작때) / 100) / 10, 자리: 벡(await 읽기(캐릭터, 'Transform.position')) ?? 처음 });
+        await 쓰기('NavMeshAgent.isStopped', 'true').catch(() => undefined);
+      }
       const [x, z] = [(i + 0.5) * 칸크기, (j + 0.5) * 칸크기];
       const 옮긴 = 벡(await 쓰기('NavMeshAgent.destination', `[${x},${처음[1]},${z}]`).catch(() => null));
       if (옮긴 === null || Math.hypot(옮긴[0] - x, 옮긴[2] - z) > 옮김한도) return false;
@@ -106,7 +115,7 @@ export async function 게임훑기(game: Pick<Game, 'call' | 'findAll'>, 곳: st
         if (모양 !== null) 못심음.push(모양);
       }
     }
-    return { 곳, 칸크기, ...채움, 못심음, 캐릭터, 때: new Date().toISOString() };
+    return { 곳, 칸크기, ...채움, 못심음, 캐릭터, 때: new Date().toISOString(), ...(풀림.length === 0 ? {} : { 풀림 }) };
   } finally {
     await game.call({ cmd: 'call', target: 캐릭터, method: 'NavMeshAgent.ResetPath' }).catch(() => undefined);
     await 쓰기('NavMeshAgent.isStopped', String(멈춤)).catch(() => undefined);
@@ -147,6 +156,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   }
   mkdirSync(join(자료, 'game-nav'), { recursive: true });
   writeFileSync(훑기파일(자료, 곳), JSON.stringify(r));
+  if (r.풀림 !== undefined) console.log(`[맵 훑기] 묻는 동안 멈춤이 ${r.풀림.length}번 풀려 다시 멈췄다(처음 ${r.풀림[0]!.초}초 · 자리 ${r.풀림[0]!.자리.join(',')}) — 캐릭터가 그 사이 걸었을 수 있다. 판이 흐르는 동안(카운트다운 · 웨이브) 게임이 멈춤을 푸는지 본다`);
   console.log(`[맵 훑기] ${곳} — 열린 칸 ${r.열림.length} · 막힌 칸 ${r.막힘.length}${r.끊김 ? ' · 상한이나 한도에 닿아 다 못 물었다(나머지는 모름으로 둔다 · --상한 을 올려 다시 부른다)' : ''} · 못 심는 곳 ${r.못심음.length} → ${훑기파일(자료, 곳)}`);
   return 0;
 }

@@ -8,7 +8,8 @@ type 점 = readonly [number, number];
 /** 못 심는 곳 하나 — 돌린 상자(중심 · 반 변 · y 축 각도) 또는 원 */
 export type 막음모양 = { 중심: 점; 반: 점; 각: number } | { 중심: 점; 반지름: number };
 /** 자료 폴더에 남기는 맵 훑기 — 열림 · 막힘은 칸 번호(i, j · 칸크기 단위), 끊김이면 다 못 물은 것(나머지는 모름으로 둔다) */
-export interface 맵훑기 { 곳: string; 칸크기: number; 열림: Array<[number, number]>; 막힘: Array<[number, number]>; 끊김: boolean; 못심음: 막음모양[]; 캐릭터: string; 때: string }
+/** 풀림 — 묻는 동안 멈춤이 풀려 다시 멈춘 때(몇 번째 물음 · 초 · 그때 캐릭터 자리 x,y,z) */
+export interface 맵훑기 { 곳: string; 칸크기: number; 열림: Array<[number, number]>; 막힘: Array<[number, number]>; 끊김: boolean; 못심음: 막음모양[]; 캐릭터: string; 때: string; 풀림?: Array<{ 물은수: number; 초: number; 자리: readonly number[] }> }
 
 /** 곳 열쇠를 파일 이름으로 — 바꾼 글자가 겹쳐도(stage:1 · stage 1) 다른 파일이 되게 열쇠 해시를 붙인다 */
 export const 훑기파일 = (자료: string, 곳: string): string => join(자료, 'game-nav', `${곳.replace(/[^\p{L}\p{N}_-]+/gu, '_')}-${createHash('sha256').update(곳).digest('hex').slice(0, 8)}.json`);
