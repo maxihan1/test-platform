@@ -5,6 +5,7 @@ import type { 모델, 규칙, 점, 시작상태 } from './simInput.js';
 import { 정책글 } from './simSearch.js';
 import { 손셈 } from './hand.js';
 import { type 걷는거리, type 시뮬결과, type 행동, 둘레반경 } from './sim.js';
+import { 떨어진눈 } from './followEyes.js';
 import { type 단계, 가까운순, 기대여유, 다시고르기, 반응고르기, 반응행동, 순서표, 예상값, 이어모델, 표글 } from './followPlan.js';
 
 /** 순서표가 비었을 때 다시 계산하는 간격 · 그동안 쉬는 길이(첫 값) — 할 것이 없는데 판을 계속 읽지 않게 */
@@ -47,7 +48,7 @@ export interface 다시계산 { 초: number; 까닭: string; 웨이브: number; 
  * 시작때는 이번 부르기가 판에 들어간 시각(epoch ms · 판 상태가 처음부터 읽혔으면 부르기 시작) — 재현 비교가 판 값기록(그쪽 시작때)과 시계를 맞춘다.
  * 못감은 걷기가 못 닿은 자리 — 길찾기 격자가 다음부터 그 칸을 피한다. 이어웨이브 · 쓴개수 · 못놓음은 이어 붙일 때 앞 부르기에서 넘겨받는 것(어느 웨이브까지 갔나 · 아이템을 몇 개 썼나 · 놓기가 안 된 자리 — 판 끝까지 그 둘레를 뺀다)
  */
-export interface 따라간기록 { 행동기록: 행동[]; 다시계산: 다시계산[]; 끝?: '이김' | '짐'; 이어?: string; 시작초?: number; 걸린초?: number; 못감?: 점[]; 이어웨이브?: number; 쓴개수?: Record<string, number>; 못놓음?: 점[]; 시작때?: number; 적못봄?: { 초: number; 남은적: number; 이어진초: number }; 맞추기판?: string }
+export interface 따라간기록 { 행동기록: 행동[]; 다시계산: 다시계산[]; 끝?: '이김' | '짐'; 이어?: string; 시작초?: number; 걸린초?: number; 못감?: 점[]; 이어웨이브?: number; 쓴개수?: Record<string, number>; 못놓음?: 점[]; 시작때?: number; 적못봄?: { 초: number; 남은적: number; 이어진초: number }; 떨어진못봄?: { 초: number; 남은적: number; 이어진초: number }; 맞추기판?: string }
 export interface 따라가기덧 { 지금?: () => number; 쉼?: (ms: number) => Promise<void>; 알림?: (글: string) => void }
 
 const 둥 = (v: number): number => Math.round(v * 100) / 100;
@@ -97,6 +98,17 @@ export async function 따라가기(손: 손, 갈: 따라갈, 기록: 따라간�
   // 같은 웨이브에서 이어 읽은 동안만 센다(읽기 사이가 5초 넘게 벌면 다시 센다). 출현 틈이 적못봄초 넘는 웨이브는 안 나온 적만 남은 때가 있어 안 본다
   let 빈: { 때: number; 웨이브: number; 앞: number } | null = null;
   const 출현틈 = (w: number): number => Math.max(0, ...(갈.모델.웨이브[w - 1]?.출현 ?? []).flatMap((o) => [o.처음초, o.수 > 1 ? o.간격 : 0]));
+  // 바닥 재화 읽기 — 줍는 게임에서 적을 잡았는데 재화는 안 늘고 떨어진() 이 이어 0 이면 화면 밖 바닥 재화를 못 읽는 것이다(followEyes.ts · 게이트가 다음 판을 막는다)
+  const 떨눈 = 떨어진눈(갈.모델.재화.줍기);
+  const 떨어진읽기 = async (): Promise<점[]> => {
+    const 들 = await 손.떨어진();
+    const 본 = 떨눈(상태, 들.length, t());
+    if (본 !== null) {
+      기록.떨어진못봄 = 본;
+      알림(`[순서] ${본.초}초부터 적을 잡았는데 재화는 안 늘고 판 함수 떨어진() 이 ${본.이어진초}초 넘게 0 을 돌려준다 — 화면(카메라) 밖 바닥 재화를 못 읽는다. 바닥 재화는 카메라와 상관없이 다 찾아 월드 좌표로 읽는다`);
+    }
+    return 들;
+  };
   const 적읽기 = async (): Promise<점[]> => {
     const 적 = await 손.적();
     const 지금초 = t();
@@ -131,7 +143,7 @@ export async function 따라가기(손: 손, 갈: 따라갈, 기록: 따라간�
 
   const 다시 = async (왜: string): Promise<void> => {
     const 앞시각 = 지금();
-    그림 = { 설치물: await 손.설치물(), 떨어진: await 손.떨어진() };
+    그림 = { 설치물: await 손.설치물(), 떨어진: await 떨어진읽기() };
     // 웨이브 중이면 적을 읽어 그 자리에서 잇는다 — 안 읽으면 남은 적이 길 처음에서 새로 나온다고 친다(16105 첫 맵 다시 계산 15번이 다 「이김」)
     const 본적 = 상태.웨이브중 ? await 적읽기() : undefined;
     // 이 판에서 잰 손이 있으면 그것으로 — 첫 값은 첫 웨이브만 쓴다
@@ -167,7 +179,7 @@ export async function 따라가기(손: 손, 갈: 따라갈, 기록: 따라간�
     const 시작초 = t();
     const 머리 = { 초, 행동: 단.행동, ...(단.대상 === undefined ? {} : { 대상: 단.대상 }) };
     if (단.행동 === '줍기') {
-      const 것 = 가까운순(await 손.떨어진(), 상태.자리).slice(0, 단.개수 ?? 1);
+      const 것 = 가까운순(await 떨어진읽기(), 상태.자리).slice(0, 단.개수 ?? 1);
       // 주울 것이 없으면 한 것이 없다 — 기록에 안 남기고(0초짜리 줍기가 손 시간을 끌어내린다) 다음 단계로 간다
       if (것.length === 0) return true;
       const 됨 = await 손.줍기!(것);
@@ -246,7 +258,7 @@ export async function 따라가기(손: 손, 갈: 따라갈, 기록: 따라간�
       const 모자란 = 단;
       표.unshift(모자란);
       단 = undefined;
-      const 바닥 = 손.줍기 === undefined ? [] : await 손.떨어진();
+      const 바닥 = 손.줍기 === undefined ? [] : await 떨어진읽기();
       const 바닥열쇠 = `${상태.재화}|${바닥.map((p) => p.join(',')).join(' ')}`;
       const 뒤 = 표.findIndex((s, i) => i > 0 && s.초 <= 지난 && (s.값 ?? 0) <= 상태.재화);
       if (바닥.length > 0 && 바닥열쇠 !== 주운열쇠) [주운열쇠, 단] = [바닥열쇠, { 초: 모자란.초, 행동: '줍기', 개수: Math.min(바닥.length, Math.max(1, Math.ceil((모자란.값! - 상태.재화) / 한개값))) }];
