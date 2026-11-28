@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 막음안, 훑기읽기 } from './authoring-game-nav-file.js';
-import { 곳격자, 길내기, 맨쌍글 } from './authoring-game-path.js';
+import { 곧게펴기, 곳격자, 길내기, 맨쌍글 } from './authoring-game-path.js';
 import { type 걷는거리, type 모델, type 시뮬결과, type 잰손, type 점, type 행동, 느린손배, 돌리기, 빌드머리, 손넣기, 손셈, 순서표, 엔진판, 입력읽기, 기본세계글, 정책글, 세계오류면, 찾기, 표글, 행동초첫값 } from '@platform/kit/gameplay';
 import { type 지도줄, 지금지도 } from './authoring-game-find.js';
 import { 게임자리 } from './authoring-game.js';
@@ -106,6 +106,7 @@ export function 격자걷기(자료: string, m: 모델): { 걷기: 걷는거리;
   const 곧은: 걷는거리 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
   if (typeof g === 'string') return { 걷기: 곧은, 글: `격자를 못 지어 곧은 거리로 걸었다 — ${g}` };
   const 표 = new Map<string, number>();
+  const 길표 = new Map<string, 점[] | null>();
   return {
     글: ['걷는 거리는 격자 길찾기', ...맨쌍글(g)].join(' · '),
     걷기: (a, b) => {
@@ -119,8 +120,12 @@ export function 격자걷기(자료: string, m: 모델): { 걷기: 걷는거리;
       }
       return d;
     },
-    // 판에서 손이 같은 길로 걷게 거쳐 갈 점을 낸다(2026-11-29 사용자 — 손이 곧게 가다 막혔다 · kit followWalk)
-    길: (a, b) => { const r = 길내기(g, a, b); return '점들' in r ? r.점들 : null; },
+    // 판에서 손이 같은 길로 걷게 거쳐 갈 점을 낸다(2026-11-29 사용자 — 손이 곧게 가다 막혔다 · kit followWalk). 8방향 격자 길은 비스듬히 가면 칸마다 꺾여 손이 칸마다 멈춘다 — 막힘 없이 곧게 닿는 점까지 건너뛴다
+    길: (a, b) => {
+      const 열쇠 = `${a.join(',')}>${b.join(',')}`;
+      if (!길표.has(열쇠)) { const r = 길내기(g, a, b); 길표.set(열쇠, '점들' in r ? 곧게펴기(g, r.점들) : null); }
+      return 길표.get(열쇠)!;
+    },
   };
 }
 

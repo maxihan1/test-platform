@@ -191,6 +191,26 @@ export function 꺾임점(길: ReadonlyArray<{ i: number; j: number }>): 점[] {
   });
 }
 
+/** 거쳐 갈 점 줄이기 — 앞 점에서 막힘 칸 · 격자 밖을 안 지나고 곧게 닿는 가장 먼 점으로 건너뛴다(8방향 격자 길은 비스듬히 가면 칸마다 꺾인다 · 판의 손이 칸마다 멈췄다) */
+export function 곧게펴기(g: 격자, 점들: readonly 점[]): 점[] {
+  const 트임 = (a: 점, b: 점): boolean => {
+    const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (칸크기 / 4));
+    for (let k = 1; k < n; k += 1) {
+      const [i, j] = [Math.floor((a[0] + ((b[0] - a[0]) * k) / n) / 칸크기), Math.floor((a[1] + ((b[1] - a[1]) * k) / n) / 칸크기)];
+      if (!안인가(g, i, j) || g.칸[칸번호(g, i, j)] === 막힘) return false;
+    }
+    return true;
+  };
+  const 남긴: 점[] = 점들.length === 0 ? [] : [점들[0]!];
+  for (let k = 0; k < 점들.length - 1; ) {
+    let 먼 = k + 1;
+    for (let m = 점들.length - 1; m > k + 1; m -= 1) if (트임(점들[k]!, 점들[m]!)) { 먼 = m; break; }
+    남긴.push(점들[먼]!);
+    k = 먼;
+  }
+  return 남긴;
+}
+
 const 길이 = (점들: readonly 점[]): number => 점들.reduce((합, p, k) => (k === 0 ? 합 : 합 + Math.hypot(p[0] - 점들[k - 1]![0], p[1] - 점들[k - 1]![1])), 0);
 
 export type 길결과 = { 점들: 점[]; 길이: number; 요약: string } | { 틀림: string; 길없음?: true };
