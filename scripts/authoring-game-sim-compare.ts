@@ -11,6 +11,7 @@ export type 판값 = { 초: number } & Partial<Record<비교이름, number>>;
 /** 한 번 부른 판 조각 — 시간 한도로 나눠 이어 부른 판은 조각이 여럿이다 */
 export interface 판조각 { 값기록: 값기록; 따라감?: unknown }
 export interface 어긋남 { 초: number; 값: 비교이름 | '끝'; 판: number | null; 시뮬: number | null; 앞행동: string | null; 고칠곳: string; 잰값: string }
+/** 본수 — 시뮬과 이은 판 값 줄 수(0 이면 볼값을 못 이은 것이다) */
 export interface 재현비교 { 맞음: boolean; 본수: number; 어긋남: 어긋남 | null; 표: { 초: number; 판: 판값; 시뮬: 판값 }[] }
 
 /** 이만큼 이어서 어긋나야 어긋남이다(첫 값) — 웨이브가 넘어가는 순간 · 손 시간 흔들림으로 한두 번 다른 것은 넘긴다 */
@@ -36,9 +37,10 @@ const 둥 = (v: number): number => Math.round(v * 10) / 10;
 
 /**
  * 판 조각들을 순서대로 하기 시계로 옮긴다. 조각마다 값기록 시계와 순서대로 하기 시계의 차이는 둘의 시작때(epoch ms)로 재고,
- * 시작때가 없는 옛 기록은 값이 처음 읽힌 때를 순서대로 하기가 시작한 때로 본다(판에 들어가기 전에는 볼값이 비어 있다). 순서대로 하기가 끝난 뒤(결과 화면) 값은 버린다
+ * 시작때가 없는 옛 기록은 값이 처음 읽힌 때를 순서대로 하기가 시작한 때로 본다(판에 들어가기 전에는 볼값이 비어 있다). 순서대로 하기가 끝난 뒤(결과 화면) 값은 버린다 —
+ * 따라감이 없는 옛 판 함수 기록은 끝을 몰라 마지막 행동이 끝난 때(행동끝)에서 자른다(결과 화면 값이 남아 「판이 더 오래 돌았다」로 잘못 짚지 않게)
  */
-export function 판값들(조각들: readonly 판조각[], 연결: 모델['볼값연결']): 판값[] {
+export function 판값들(조각들: readonly 판조각[], 연결: 모델['볼값연결'], 행동끝 = Infinity): 판값[] {
   const 이름표 = 비교이름들.flatMap((k) => (연결[k] === undefined ? [] : [[k, 연결[k]!] as const]));
   const 줄들: 판값[] = [];
   let 앞처치: number | null = null;
@@ -49,7 +51,7 @@ export function 판값들(조각들: readonly 판조각[], 연결: 모델['볼�
     if (읽힌.length === 0) continue;
     const 차 = 수(따.시작때) && 수(조각.값기록.시작때) ? (따.시작때 - 조각.값기록.시작때) / 1000 : 읽힌[0]!.초;
     const 앞초 = 수(따.시작초) ? 따.시작초 : 0;
-    const 끝초 = 수(따.걸린초) ? 앞초 + 따.걸린초 : Infinity;
+    const 끝초 = 수(따.걸린초) ? 앞초 + 따.걸린초 : 행동끝;
     for (const t of 읽힌) {
       const 초 = 둥(앞초 + t.초 - 차);
       if (초 < 앞초 - 0.5 || 초 > 끝초 + 0.5) continue;
@@ -61,7 +63,8 @@ export function 판값들(조각들: readonly 판조각[], 연결: 모델['볼�
           줄[k] = v;
           continue;
         }
-        if (앞처치 !== null && v > 앞처치) 처치누적 += v - 앞처치;
+        // 줄었으면 웨이브마다 0 으로 돌아간 것이다 — 그 사이 다시 올라간 만큼(v)을 더한다(2초 사이에 0 을 못 볼 수 있다)
+        if (앞처치 !== null) 처치누적 += v >= 앞처치 ? v - 앞처치 : v;
         앞처치 = v;
         줄.처치 = 처치누적;
       }
@@ -81,20 +84,26 @@ export const 시뮬값들 = (r: Pick<시뮬결과, '예상'>, 연결: 모델['�
 
 const 행동글 = (x: 행동, 지금: number): string => `${x.행동}${x.대상 === undefined ? '' : ` ${x.대상}`}${x.자리 === undefined ? '' : ` (${x.자리[0]},${x.자리[1]})`}${x.자리들 === undefined ? '' : ` ${x.자리들.length}개`} ${x.됨 === false ? '안 됨' : '됨'} · ${둥(지금 - (x.끝초 ?? x.초))}초 전`;
 
-/** 어긋남이 시작되기 전 마지막으로 맞던 때부터 어긋난 때까지 판에서 잰 것 — AI 가 짐작 대신 이 값으로 입력을 고친다 */
-function 잰값글(이름: 비교이름 | '끝', 판: readonly 판값[], 시뮬: readonly 판값[], 행동들: readonly 행동[], 부터: number, 까지: number): string {
-  const 판때 = (t: number): 판값 | undefined => [...판].reverse().find((x) => x.초 <= t + 0.01) ?? 판[0];
-  const 시때 = (t: number): 판값 | undefined => 시뮬[Math.min(시뮬.length - 1, Math.max(0, Math.round(t / 예상간격초)))];
-  const 사이 = 행동들.filter((x) => x.됨 !== false && (x.끝초 ?? x.초) > 부터 && (x.끝초 ?? x.초) <= 까지);
-  const [a, b, c, d] = [판때(부터), 판때(까지), 시때(부터), 시때(까지)];
-  if (이름 === '재화' || 이름 === '끝') {
-    const 쓴 = 사이.reduce((s, x) => s + (x.값 ?? 0), 0);
-    const 주운 = 사이.filter((x) => x.행동 === '줍기').reduce((s, x) => s + (x.자리들?.length ?? 1), 0);
+/**
+ * 판에서 잰 것 — 견주기 시작한 때부터 어긋난 때까지 판과 재현 시뮬 양쪽의 재화 변화 · 들어온 재화(2초마다 오른 합) · 쓴 재화(내린 합) · 처치, 판의 줍기 개수.
+ * AI 가 짐작 대신 이 값으로 입력을 고친다(16104 첫 맵 — 고기 둘을 줍고 판은 8 오르고 시뮬은 2 올라 고기 하나 값이 다르다 · 둘째 맵 — 처치가 판 10 · 시뮬 6 이라 처치 빠르기가 다르다)
+ */
+function 잰값글(이름: 비교이름, 판: readonly 판값[], 시뮬: readonly 판값[], 판행동: readonly 행동[], 까지: number): string {
+  const 부터 = 판[0]!.초;
+  const 사이 = (들: readonly 판값[]): 판값[] => 들.filter((x) => x.초 >= 부터 - 1 && x.초 <= 까지 + 0.01);
+  const 줄 = (들: readonly 판값[], 줍기: string): string => {
+    const [a, b] = [들[0], 들.at(-1)];
     const 처치 = a?.처치 !== undefined && b?.처치 !== undefined ? ` · 처치 ${b.처치 - a.처치}` : '';
-    const 들어온 = a?.재화 !== undefined && b?.재화 !== undefined ? b.재화 - a.재화 + 쓴 : null;
-    return `${둥(부터)}~${둥(까지)}초 판: 재화 ${a?.재화 ?? '?'} → ${b?.재화 ?? '?'} · 쓴 재화 ${쓴} · 들어온 재화 ${들어온 ?? '?'} · 줍기 ${주운}개${처치} / 시뮬: 재화 ${c?.재화 ?? '?'} → ${d?.재화 ?? '?'}`;
-  }
-  return `${둥(부터)}~${둥(까지)}초 ${이름} 판 ${a?.[이름] ?? '?'} → ${b?.[이름] ?? '?'} · 시뮬 ${c?.[이름] ?? '?'} → ${d?.[이름] ?? '?'}`;
+    if (이름 !== '재화') return `${이름} ${a?.[이름] ?? '?'} → ${b?.[이름] ?? '?'}${처치}`;
+    let [오른, 내린] = [0, 0];
+    for (let k = 1; k < 들.length; k += 1) {
+      const [x, y] = [들[k - 1]!.재화, 들[k]!.재화];
+      if (x !== undefined && y !== undefined) [오른, 내린] = y > x ? [오른 + y - x, 내린] : [오른, 내린 + x - y];
+    }
+    return `재화 ${a?.재화 ?? '?'} → ${b?.재화 ?? '?'} · 들어온 재화 ${둥(오른)} · 쓴 재화 ${둥(내린)}${줍기}${처치}`;
+  };
+  const 주운 = 판행동.filter((x) => x.됨 !== false && x.행동 === '줍기' && (x.끝초 ?? x.초) > 부터 && (x.끝초 ?? x.초) <= 까지).reduce((s, x) => s + (x.자리들?.length ?? 1), 0);
+  return `${둥(부터)}~${둥(까지)}초 판: ${줄(사이(판), ` · 줍기 ${주운}개`)} / 시뮬: ${줄(사이(시뮬), '')}`;
 }
 
 /**
@@ -103,32 +112,32 @@ function 잰값글(이름: 비교이름 | '끝', 판: readonly 판값[], 시뮬:
  */
 export function 재현비교하기(판: readonly 판값[], r: Pick<시뮬결과, '예상' | '이김'>, 연결: 모델['볼값연결'], 행동들: readonly 행동[], 지킬것최대: number): 재현비교 {
   const 시뮬 = 시뮬값들(r, 연결);
-  const 시뮬끝 = 시뮬.at(-1)?.초 ?? 0;
+  if (시뮬.length === 0) return { 맞음: true, 본수: 0, 어긋남: null, 표: [] };
+  const 시뮬끝 = 시뮬.at(-1)!.초;
   const 짝 = 판.filter((p) => p.초 <= 시뮬끝 + 예상간격초 / 2).map((p) => ({ p, s: 시뮬[Math.min(시뮬.length - 1, Math.round(p.초 / 예상간격초))]! }));
-  const 후보: { 초: number; 이름: 비교이름 | '끝'; 판: number | null; 시뮬: number | null; 맞던때: number }[] = [];
+  const 후보: { 초: number; 이름: 비교이름 | '끝'; 판: number | null; 시뮬: number | null }[] = [];
   for (const 이름 of 비교이름들) {
     let 시작: (typeof 짝)[number] | null = null;
-    let 맞던때 = 0;
     for (const x of 짝) {
       const [a, b] = [x.p[이름], x.s[이름]];
       if (a === undefined || b === undefined) continue;
       if (Math.abs(a - b) <= 허용(이름, a, b, 지킬것최대)) {
-        [시작, 맞던때] = [null, x.p.초];
+        시작 = null;
         continue;
       }
       시작 ??= x;
       if (x.p.초 - 시작.p.초 >= 지속초) {
-        후보.push({ 초: 시작.p.초, 이름, 판: 시작.p[이름]!, 시뮬: 시작.s[이름]!, 맞던때 });
+        후보.push({ 초: 시작.p.초, 이름, 판: 시작.p[이름]!, 시뮬: 시작.s[이름]! });
         break;
       }
     }
   }
   const 판끝 = 판.at(-1)?.초 ?? 0;
-  if (판끝 > 시뮬끝 + 지속초) 후보.push({ 초: 시뮬끝, 이름: '끝', 판: null, 시뮬: null, 맞던때: 0 });
+  if (판끝 > 시뮬끝 + 지속초) 후보.push({ 초: 시뮬끝, 이름: '끝', 판: null, 시뮬: null });
   const 첫 = 후보.sort((a, b) => a.초 - b.초)[0];
   const 표때 = new Set(짝.filter((x, i) => i === 0 || Math.floor(x.p.초 / 20) > Math.floor(짝[i - 1]!.p.초 / 20) || x.p.초 === 첫?.초).map((x) => x.p.초));
   const 표 = 짝.filter((x) => 표때.has(x.p.초)).map((x) => ({ 초: x.p.초, 판: x.p, 시뮬: x.s }));
-  if (첫 === undefined) return { 맞음: true, 본수: 짝.length, 어긋남: null, 표 };
+  if (첫 === undefined) return { 맞음: true, 본수: 판.length, 어긋남: null, 표 };
   const 앞 = [...행동들].reverse().find((x) => (x.끝초 ?? x.초) <= 첫.초);
   const 어: 어긋남 = {
     초: 첫.초,
@@ -137,9 +146,9 @@ export function 재현비교하기(판: readonly 판값[], r: Pick<시뮬결과,
     시뮬: 첫.시뮬,
     앞행동: 앞 === undefined ? null : 행동글(앞, 첫.초),
     고칠곳: 고칠곳[첫.이름],
-    잰값: 첫.이름 === '끝' ? `시뮬은 ${둥(시뮬끝)}초에 ${r.이김 ? '이겨' : '져'} 끝났는데 판은 ${둥(판끝)}초까지 돌았다` : 잰값글(첫.이름, 판, 시뮬, 행동들, 첫.맞던때, 첫.초),
+    잰값: 첫.이름 === '끝' ? `시뮬은 ${둥(시뮬끝)}초에 ${r.이김 ? '이겨' : '져'} 끝났는데 판은 ${둥(판끝)}초까지 돌았다` : 잰값글(첫.이름, 판, 시뮬, 행동들, 첫.초),
   };
-  return { 맞음: false, 본수: 짝.length, 어긋남: 어, 표 };
+  return { 맞음: false, 본수: 판.length, 어긋남: 어, 표 };
 }
 
 /** 한 줄 — 계산 출력 · 게이트 막음 글이 같이 쓴다 */

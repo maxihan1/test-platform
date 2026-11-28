@@ -56,7 +56,7 @@ const 지도쓰기 = (들: 줄[]): void => {
 const 계획 = { 곳, 쓸것: ['calc:가'], 볼값: [{ 이름: '웨이브', 주소: '/w' }, { 이름: '세계수', 주소: '/t' }] };
 const 정책 = (c: 줄): unknown => (c.learned!.data.결과 as { 정책: unknown }).정책;
 const 판쓰기 = (이름: string, 행동기록: unknown[], 계산: Record<string, string>, 어긋남: unknown = null, 웨이브 = 3, 때: unknown[] = [{ 초: 0, 값: { 웨이브: 1 } }, { 초: 2, 값: { 웨이브 } }]): void =>
-  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false }, 따라감: { 행동기록, 다시계산: [] }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때, 어긋남, 화면다름: [], 계산 } }));
+  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false }, 따라감: { 행동기록, 다시계산: [], 걸린초: Math.max(0, ...(때 as { 초: number }[]).map((t) => t.초)) }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때, 어긋남, 화면다름: [], 계산 } }));
 const 막기 = (계: typeof 계획, 들: 줄[], 자: string, 기: Parameters<typeof 시뮬막기>[3]) => 시뮬막기(계, 들 as never, 자, 기);
 // 재현 시뮬은 7.5초에 놓은 탑이 슬라임을 한 번만 때려 10초쯤 세계수 5 를 다 잃고 진다
 const 늦게놓음 = [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 도착초: 6, 끝초: 7.5 }];
@@ -221,6 +221,24 @@ describe('시뮬불가 — 판 없이 넘기고 다른 맵을 다 돈 뒤 한 �
     expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain('시뮬불가는 판과 맞는 모델로만 받는다 — 판 20261128000000000-판 을 재현하니 판과 어긋난다 — 10초 판 길이');
     판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(10, 10));
     expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toBeNull();
+    // 입력 파일이 없거나 줄을 낸 뒤 바뀌었으면 재현을 못 보니 받지 않는다
+    writeFileSync(join(자료, 'game-calc', '가.json'), '{}');
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain('입력 파일 game-calc/가.json 이 바뀌었다');
+    rmSync(join(자료, 'game-calc', '가.json'));
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain('입력 파일 game-calc/가.json 을 못 읽어');
+  });
+
+  it('고쳐도 재현이 안 맞으면 재현안맞음으로 닫는다 — 그 판 재현이 정말 어긋나야 받고, 이길 수 있는 계산이어도 받는다', async () => {
+    const 이김 = 계산줄('가', 입력());
+    const 안맞음 = (기록: string) => ({ 결과, 시뮬불가: { 계산: 이김.key, 웨이브: '1웨이브', 모자람: '재현이 판과 안 맞음(10초 판 길이)', 재현안맞음: 기록 } });
+    const 들 = [곳줄(안맞음('20261128000000000-판')), 계획줄, 이김];
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(이김.learned!.data) }, null, 1, 세계수때(30, 99));
+    const 찾기 = (k: string) => 들.find((x) => x.key === k) as never;
+    expect(시뮬불가검사(곳, 안맞음('20261128000000000-판'), 찾기, 2)).toBeNull();
+    expect(시뮬불가재현(곳, 안맞음('20261128000000000-판'), 들 as never, 자료, await 기록들())).toBeNull();
+    expect(시뮬불가재현(곳, 안맞음('20261128009900000-없는판'), 들 as never, 자료, await 기록들())).toContain('이 곳(stage:시험)을 계획으로 돈 판 기록이 아니다');
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(이김.learned!.data) }, null, 1, 세계수때(10, 10));
+    expect(시뮬불가재현(곳, 안맞음('20261128000000000-판'), 들 as never, 자료, await 기록들())).toContain('재현안맞음이 아니다');
   });
 
   it('적는 명령은 그 곳의 진 시뮬 줄을 가리켜야 받는다', () => {

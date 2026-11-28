@@ -133,12 +133,13 @@ export function 판결과(기록: 판기록, 결: 결과): '깸' | '짐' | null 
 export interface 곳판 { 열쇠: string; 판: number; 깸: number; 못깸?: string; 정보?: true; 시뮬불가?: { 글: string; 다시봄: boolean } }
 
 /** STAGE data.시뮬불가 — 없으면 null, 형태가 틀리면 까닭 글 */
-export function 시뮬불가읽기(data: unknown): { 계산: string; 웨이브: string; 모자람: string; 다시봄: boolean } | null | string {
+/** 재현안맞음 — 고칠 곳을 판에서 잰 값으로 고쳐도 그 판 재현이 안 맞을 때 그 판 기록 이름(엔진 · 게임 코드가 그 규칙을 못 나타낸다). 맵을 닫고 감시 세션이 비교 표를 보고 고친다 */
+export function 시뮬불가읽기(data: unknown): { 계산: string; 웨이브: string; 모자람: string; 다시봄: boolean; 재현안맞음?: string } | null | string {
   const v = 객체(data).시뮬불가;
   if (v === undefined) return null;
   const x = 객체(v);
-  if (!글인가(x.계산) || !x.계산.startsWith(계산머리) || !글인가(x.웨이브) || !글인가(x.모자람) || (x.다시봄 !== undefined && x.다시봄 !== true)) return `data.시뮬불가 는 { 계산: <${계산머리}시뮬 줄 열쇠>, 웨이브: <진 웨이브>, 모자람: <무엇이 얼마 모자랐나>, 다시봄?: true(다른 맵을 다 돈 뒤 다시 시뮬해도 불가) } 이다`;
-  return { 계산: x.계산, 웨이브: x.웨이브, 모자람: x.모자람, 다시봄: x.다시봄 === true };
+  if (!글인가(x.계산) || !x.계산.startsWith(계산머리) || !글인가(x.웨이브) || !글인가(x.모자람) || (x.다시봄 !== undefined && x.다시봄 !== true) || (x.재현안맞음 !== undefined && !글인가(x.재현안맞음))) return `data.시뮬불가 는 { 계산: <${계산머리}시뮬 줄 열쇠>, 웨이브: <진 웨이브>, 모자람: <무엇이 얼마 모자랐나>, 다시봄?: true(다른 맵을 다 돈 뒤 다시 시뮬해도 불가), 재현안맞음?: <판 기록 이름>(고쳐도 그 판 재현이 안 맞음) } 이다`;
+  return { 계산: x.계산, 웨이브: x.웨이브, 모자람: x.모자람, 다시봄: x.다시봄 === true, ...(글인가(x.재현안맞음) ? { 재현안맞음: x.재현안맞음 } : {}) };
 }
 
 /** 계획 줄이 적은 곳 — 판 기록의 계획에서 곳을 찾는다 */

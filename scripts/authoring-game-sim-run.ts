@@ -27,7 +27,7 @@ export function 행동기록읽기(r: 판기록): 행동[] | null {
     if (!수(x.초) || typeof x.행동 !== 'string') return [];
     const 자 = 점읽기(x.자리);
     const 자들 = Array.isArray(x.자리들) ? x.자리들.map(점읽기).filter((p): p is 점 => p !== undefined) : undefined;
-    return [{ 초: x.초, 행동: x.행동, ...(typeof x.대상 === 'string' ? { 대상: x.대상 } : {}), ...(자 === undefined ? {} : { 자리: 자 }), ...(자들 === undefined ? {} : { 자리들: 자들 }), ...(수(x.시작초) ? { 시작초: x.시작초 } : {}), ...(수(x.도착초) ? { 도착초: x.도착초 } : {}), ...(수(x.끝초) ? { 끝초: x.끝초 } : {}), ...(typeof x.됨 === 'boolean' ? { 됨: x.됨 } : x.안됨 === true ? { 됨: false } : {}), ...(수(x.걸음) ? { 걸음: x.걸음 } : {}), ...(수(x.값) ? { 값: x.값 } : {}) }];
+    return [{ 초: x.초, 행동: x.행동, ...(typeof x.대상 === 'string' ? { 대상: x.대상 } : {}), ...(자 === undefined ? {} : { 자리: 자 }), ...(자들 === undefined ? {} : { 자리들: 자들 }), ...(수(x.시작초) ? { 시작초: x.시작초 } : {}), ...(수(x.도착초) ? { 도착초: x.도착초 } : {}), ...(수(x.끝초) ? { 끝초: x.끝초 } : {}), ...(typeof x.됨 === 'boolean' ? { 됨: x.됨 } : x.안됨 === true ? { 됨: false } : {}), ...(수(x.걸음) ? { 걸음: x.걸음 } : {}) }];
   });
 }
 
@@ -52,7 +52,8 @@ export function 판재현(m: 모델, 걷기: 걷는거리 | undefined, 기록들
   if (행 === null || 행.length === 0) return null;
   const 결과 = 돌리기(m, [], 걷기, 행);
   const 조각들 = 판조각들(기록들, r).flatMap((x) => (x.값기록 === undefined ? [] : [{ 값기록: x.값기록, 따라감: x.따라감 }]));
-  return { 결과, 행, 비교: 재현비교하기(판값들(조각들, m.볼값연결), 결과, m.볼값연결, 행, m.지킬것.체력) };
+  const 행동끝 = Math.max(...행.map((x) => x.끝초 ?? x.초));
+  return { 결과, 행, 비교: 재현비교하기(판값들(조각들, m.볼값연결, 행동끝), 결과, m.볼값연결, 행, m.지킬것.체력) };
 }
 
 /**

@@ -166,9 +166,9 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       // 먹이도 기록한 자리에 가장 가까운 그 종류 탑에 준다
       if (x.행동 === '먹이') { const 탑 = 탑들.filter((t) => t.종류 === x.대상 && 유지받나(t)).sort((a, b) => 거리(a.자리, 자) - 거리(b.자리, 자))[0]; const 먹 = 탑 === undefined ? undefined : m.설치물종류[탑.종류]!.유지?.먹이; if (탑 === undefined || 먹 === undefined || 재화 < 먹.값) return false; 재화 -= 먹.값; 탑.유지 = Math.min(m.설치물종류[탑.종류]!.유지!.체력, 탑.유지 + 먹.양); return true; }
       if (x.행동 === '키우기') { const 탑 = 탑들.filter((t) => t.종류 === x.대상).sort((a, b) => 거리(a.자리, 자) - 거리(b.자리, 자))[0]; const 값 = 탑 === undefined ? undefined : m.설치물종류[탑.종류]!.레벨[탑.레벨 + 1]?.값; if (탑 === undefined || 값 === undefined || 재화 < 값) return false; 재화 -= 값; 탑.레벨 += 1; return true; }
-      // 한 번에 주운 자리들 — 그 자리마다 줍는 거리 안의 재화가 들어온다
-      // 판에서 주운 자리마다 그 자리에 가장 가까운 시뮬 바닥 재화 하나를 줍는다 — 시뮬에서 적이 죽는 자리는 판과 달라 줍는거리로 맞추면 거의 못 줍는다(16104 둘째 맵 재현 재화 0)
-      if (x.행동 === '줍기' && x.자리들 !== undefined) { for (const p of x.자리들) { const i = 떨어진.reduce((b, d, j) => (b < 0 || 거리(d.자리, p) < 거리(떨어진[b]!.자리, p) ? j : b), -1); if (i >= 0) 재화 += 떨어진.splice(i, 1)[0]!.값; } return true; }
+      // 판에서 주운 자리마다 그 둘레(줍는거리 세 배 · 적어도 3)의 가장 가까운 시뮬 바닥 재화 하나를 줍고, 없으면 판에서 주운 것이니 가장 싼 보상으로 친다
+      // 시뮬에서 적이 죽는 자리 · 때는 판과 달라 줍는거리로만 맞추면 거의 못 줍는다(16104 둘째 맵 재현 재화 0) — 멀리 있는 것을 끌어오거나 판에서 주운 것을 잃지 않게
+      if (x.행동 === '줍기' && x.자리들 !== undefined) { const 둘레 = Math.max(3, m.재화.줍는거리 * 3); for (const p of x.자리들) { const i = 떨어진.reduce((b, d, j) => (거리(d.자리, p) <= 둘레 && (b < 0 || 거리(d.자리, p) < 거리(떨어진[b]!.자리, p)) ? j : b), -1); 재화 += i >= 0 ? 떨어진.splice(i, 1)[0]!.값 : Number.isFinite(싼보상) ? 싼보상 : 1; } return true; }
       const 계 = 계획(규, x.초);
       return 계 === null ? false : 계.효과();
     };
