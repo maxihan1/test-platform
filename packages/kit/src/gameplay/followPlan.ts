@@ -3,6 +3,7 @@
 import type { 모델, 규칙, 조건, 점, 시작상태, 행동종류 } from './simInput.js';
 import { type 찾은안, 나은가, 돌려보기, 점수 } from './simSearch.js';
 import type { 걷는거리, 시뮬결과 } from './sim.js';
+import { 누적길이, 칠적 } from './simGeo.js';
 
 /** 웨이브마다 지킬것이 시뮬 예측의 이 비율 아래로 내려가면 판이 시뮬과 어긋난 것이다(첫 값) — 기계가 넣는 기대와 판 도중 다시 계산이 같이 쓴다 */
 export const 기대여유 = 0.8;
@@ -131,11 +132,18 @@ function 조건값(c: 조건, 본: 본것, m: 모델): number {
   }
 }
 
+/** 반응 공격 · 아이템이 안 된 자리 둘레 이 반경 안의 적은 그 웨이브 동안 안 겨눈다(첫 값 · 판에서 닿았다고 보는 거리와 같다) */
+export const 못친반경 = 1.5;
+
 /**
  * 지금 할 반응 동작 — 순서의 위에서부터 조건이 맞고 할 수 있는 첫 반응 규칙. 쿨은 이름마다 다시 쓸 수 있는 초(공격은 '공격'), 쓴개수는 아이템마다 쓴 수.
- * 공격 · 아이템은 지킬것에 가장 가까운 적 자리(규칙에 반경이 있으면 지킬것 둘레 그 안)를 겨눈다
+ * 공격 · 아이템은 시뮬과 같은 함수(simGeo 칠적)로 겨눈다 — 읽은 적 자리를 가장 가까운 길 위 지점으로 옮겨 남은 길을 세고(길이 없으면 지킬것까지 거리), 칠 자리에 걸어서 못 가는 적은 건너뛴다.
+ * 자리는 겨눈 적, 설자리는 거기까지 걸어갈 자리다. 못친은 이 웨이브에 반응이 안 된 적 자리(그 둘레 못친반경 안 적은 뺀다)
  */
-export function 반응고르기(정책: readonly 규칙[], 본: 본것, m: 모델, 지금초: number, 쿨: Readonly<Record<string, number>>, 쓴개수: Readonly<Record<string, number>>): { 규칙: 규칙; 자리?: 점 } | null {
+export function 반응고르기(정책: readonly 규칙[], 본: 본것, m: 모델, 지금초: number, 쿨: Readonly<Record<string, number>>, 쓴개수: Readonly<Record<string, number>>, 걷기: 걷는거리 = 거리, 못친: readonly 점[] = []): { 규칙: 규칙; 자리?: 점; 설자리?: 점 } | null {
+  const 길이 = Object.fromEntries(Object.entries(m.길).map(([k, 길]) => [k, 누적길이(길).at(-1) ?? 0]));
+  const 적 = 본.적.filter((p) => !못친.some((q) => 거리(p, q) <= 못친반경)).map((p) => { const 곳 = 길에대기(m.길, p); return { 자리: p, 남은: 곳 === null ? 거리(p, m.지킬것.자리) : 길이[곳.길]! - 곳.진행 }; });
+  const 갈수 = (p: 점): boolean => Number.isFinite(걷기(본.자리, p));
   for (const r of 정책) {
     const { 무엇, 대상, 반경 } = r.행동;
     if (!반응행동.has(무엇) || !r.조건.every((c) => 맞나(조건값(c, 본, m), c.비교, c.기준 as number))) continue;
@@ -146,8 +154,9 @@ export function 반응고르기(정책: readonly 규칙[], 본: 본것, m: 모�
       return { 규칙: r };
     }
     if (무엇 === '아이템' && (쓴개수[대상!] ?? 0) >= (m.아이템[대상!]!.개수 ?? Infinity)) continue;
-    const 겨눌 = 본.적.filter((p) => 반경 === undefined || 거리(p, m.지킬것.자리) <= 반경).sort((a, b) => 거리(a, m.지킬것.자리) - 거리(b, m.지킬것.자리))[0];
-    if (겨눌 !== undefined) return { 규칙: r, 자리: 겨눌 };
+    const 사거리 = 무엇 === '공격' ? m.캐릭터.공격!.사거리 : m.아이템[대상!]!.사거리;
+    const 고른 = 칠적(적.filter((e) => 반경 === undefined || 거리(e.자리, m.지킬것.자리) <= 반경), 본.자리, 사거리, 갈수);
+    if (고른 !== null) return { 규칙: r, 자리: 고른.적.자리, 설자리: 고른.설자리 };
   }
   return null;
 }
