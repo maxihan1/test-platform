@@ -68,6 +68,12 @@ describe('게임 세계 코드', () => {
     expect((globalThis as Record<string, unknown>).세계탈출).toBeUndefined();
   });
 
+  it('판 도중 다시 계산이 넘기는 시작 적을 안 세우는 세계(옛 본보기를 복사한 파일)는 받지 않는다', () => {
+    const 옛 = 고친세계('        if (웨이브i === 0 && 시 && 시.적) for', '        if (false) for');
+    expect(입력읽기(기본({ 세계글: 옛 }))).toMatchObject({ 틀림: expect.stringContaining('시작글의 적') });
+    expect(입력읽기(기본({ 세계글: 기본세계글 }))).not.toHaveProperty('틀림');
+  });
+
   it('세계가 돌다 던지면 어느 함수가 몇 초에 던졌는지 붙여 던진다', () => {
     const 던짐 = 고친세계('    흘리기(t, 캐x, 캐z) {', "    흘리기(t, 캐x, 캐z) { if (t >= 5) throw new Error('5초 넘음');");
     expect(() => 한판({ 세계글: 던짐 })).toThrow('게임 세계 코드 흘리기 가 5초에 던졌다 — 5초 넘음');

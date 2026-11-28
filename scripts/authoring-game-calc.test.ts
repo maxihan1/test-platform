@@ -83,6 +83,7 @@ describe('시뮬', () => {
       상태: async () => (상태들.length > 1 ? 상태들.shift()! : 상태들[0]!),
       설치물: async () => [],
       떨어진: async () => [],
+      적: async () => [],
       걷기: async (자리: readonly [number, number]) => (부름.push(`걷기 ${자리.join(',')}`), true),
       놓기: async (종류: string, 자리: readonly [number, number]) => (부름.push(`놓기 ${종류} ${자리.join(',')}`), true),
     };

@@ -55,8 +55,8 @@ export const 지도쓰기 = (들: 줄[]): void => {
 };
 export const 계획 = { 곳, 쓸것: ['calc:가'], 볼값: [{ 이름: '웨이브', 주소: '/w' }, { 이름: '세계수', 주소: '/t' }] };
 export const 정책 = (c: 줄): unknown => (c.learned!.data.결과 as { 정책: unknown }).정책;
-export const 판쓰기 = (이름: string, 행동기록: unknown[], 계산: Record<string, string>, 어긋남: unknown = null, 웨이브 = 3, 때: unknown[] = [{ 초: 0, 값: { 웨이브: 1 } }, { 초: 2, 값: { 웨이브 } }]): void =>
-  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false }, 따라감: { 행동기록, 다시계산: [], 걸린초: Math.max(0, ...(때 as { 초: number }[]).map((t) => t.초)) }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때, 어긋남, 화면다름: [], 계산 } }));
+export const 판쓰기 = (이름: string, 행동기록: unknown[], 계산: Record<string, string>, 어긋남: unknown = null, 웨이브 = 3, 때: unknown[] = [{ 초: 0, 값: { 웨이브: 1 } }, { 초: 2, 값: { 웨이브 } }], 덧따라감: Record<string, unknown> = {}): void =>
+  writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값: { 이김: false }, 따라감: { 행동기록, 다시계산: [], 걸린초: Math.max(0, ...(때 as { 초: number }[]).map((t) => t.초)), ...덧따라감 }, 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때, 어긋남, 화면다름: [], 계산 } }));
 export const 막기 = (계: typeof 계획, 들: 줄[], 자: string, 기: Parameters<typeof 시뮬막기>[3]) => 시뮬막기(계, 들 as never, 자, 기);
 // 재현 시뮬은 7.5초에 놓은 탑이 슬라임을 한 번만 때려 10초쯤 세계수 5 를 다 잃고 진다
 export const 늦게놓음 = [{ 초: 0, 행동: '놓기', 대상: '탑', 자리: [5, 1], 도착초: 6, 끝초: 7.5 }];

@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 
 import type { 지도줄 } from './authoring-game-find.js';
 import { type 규칙, type 따라갈, type 모델, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가, 세계오류면 } from '@platform/kit/gameplay';
-import { 격자걷기, 근거틀림, 빌드글, 세계넣기, 손넣기, 손재기, 판재현, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
+import { 격자걷기, 근거틀림, 빌드글, 세계넣기, 손넣기, 손재기, 판재현, 판조각들, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
 import { 어긋남글, 지속초, 판값들 } from './authoring-game-sim-compare.js';
 import { 줄맞춘입력 } from './authoring-game-sim-fit.js';
 import { type 기대, type 볼값, type 값기록, type 판기록, 계산머리, 판기록들 } from './authoring-learn-check.js';
@@ -125,6 +125,9 @@ function 시뮬막기안(계획: { 곳?: string; 쓸것?: readonly string[]; 볼
   // 앞 판을 재현해 매 순간 판과 맞아야 한다 — 맞기 전에는 시뮬이 찾은 순서를 믿지 않는다(2026-11-28 사용자 「근본 원인을 파악해」 · 규칙 하나가 판과 달라 판을 통째로 진 뒤 사람이 찾던 일을 기계가 짚는다)
   const 앞판 = 마지막판(줄들, 기록들, 곳, [s.입력.볼값연결.웨이브, s.입력.볼값연결.지킬것].filter((x): x is string => x !== undefined));
   const 앞시뮬 = 앞판 === undefined ? false : Object.values(앞판.값기록!.계산 ?? {}).some((v) => v.includes('"계산":"시뮬"'));
+  // 앞 판에서 판 함수 적() 이 화면 밖 적을 못 읽었으면 그 판의 다시 계산 · 반응 동작은 믿을 수 없다 — 판 함수부터 고친다(16105 첫 맵)
+  const 못봄 = !이어판 && 앞판 !== undefined ? 적못봄글(기록들, 앞판) : null;
+  if (못봄 !== null) return { 막음: 못봄 };
   if (!이어판 && 앞판 !== undefined && 앞시뮬) {
     const 재 = 판재현(잰m, 걷기, 기록들, 앞판);
     if (재 === null) return { 막음: `판 ${앞판.이름} 에 행동기록이 없다 — 판 함수가 손동작을 돌려줘 조작 도우미가 순서대로 했는지 본다(행동기록은 조작 도우미가 남긴다 · 시뮬과 비교하고 재현하는 데 쓴다)` };
@@ -146,6 +149,13 @@ function 세계읽고견주기(s: 시뮬줄, 글: string, 자료: string): Recor
   if ('틀림' in 넣음) return 넣음.틀림;
   if ((넣음.세계?.해시 ?? null) !== (s.입력.세계?.해시 ?? null)) return `줄을 낸 뒤 게임 세계 코드(${넣음.세계?.파일 ?? s.입력.세계?.파일 ?? '없음'})가 바뀌었다 — 다시 계산해 찍힌 줄로 고친다`;
   return 넣음.입력;
+}
+
+/** 판(이어 부른 조각 포함)에서 조작 도우미가 남긴 「적 못 봄」 — 없으면 null */
+function 적못봄글(기록들: readonly 판기록[], 판: 판기록): string | null {
+  const 본 = 판조각들(기록들, 판).map((x) => 객체(객체(x.따라감).적못봄)).find((x) => typeof x.초 === 'number');
+  if (본 === undefined) return null;
+  return `판 ${판.이름} 에서 ${String(본.초)}초부터 웨이브 중 남은 적 ${String(본.남은적)} 인데 판 함수 적() 이 ${String(본.이어진초)}초 넘게 0 을 돌려줬다 — 화면(카메라) 밖 적을 못 읽는다. 적() 은 카메라와 상관없이 적 오브젝트를 다 찾아(find-all 의 화면 좌표로 거르지 않는다) 하나하나 월드 좌표(Transform.position 같은 위치 값)로 읽게 판 함수를 고치고, 학습 상태 놀이시작 을 지금 시각으로 적은 뒤 다시 판을 돈다`;
 }
 
 const 재현틀림글 = (판이름: string, a: Parameters<typeof 어긋남글>[0]): string =>
