@@ -7,6 +7,7 @@ export * from './hand.js';
 export * from './habit.js';
 export * from './followPlan.js';
 export * from './follow.js';
+export * from './followWalk.js';
 export * from './followEntry.js';
 export * from './followEyes.js';
 export * from './play.js';

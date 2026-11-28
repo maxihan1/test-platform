@@ -99,8 +99,8 @@ export function 못심는곳빼기(자료: string, m: 모델): { 모델: 모델;
   return { 모델: 남은.length === m.자리후보.length ? m : { ...m, 자리후보: 남은 }, 뺀: m.자리후보.length - 남은.length };
 }
 
-/** 격자 길찾기로 걷는 거리 — 칸 쌍마다 한 번만 찾는다. 격자를 못 지으면 곧은 거리 */
-export function 격자걷기(자료: string, m: 모델): { 걷기: 걷는거리; 글: string } {
+/** 격자 길찾기로 걷는 거리와 거쳐 갈 점 — 칸 쌍마다 한 번만 찾는다. 격자를 못 지으면 곧은 거리(길은 없다 · 조작 도우미가 곧게 간다) */
+export function 격자걷기(자료: string, m: 모델): { 걷기: 걷는거리; 글: string; 길?: (a: 점, b: 점) => readonly 점[] | null } {
   const 덧: 점[] = [m.지킬것.자리, m.캐릭터.자리, ...m.자리후보, ...Object.values(m.길).flat()];
   const g = 곳격자(자료, m.곳, 덧);
   const 곧은: 걷는거리 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -119,6 +119,8 @@ export function 격자걷기(자료: string, m: 모델): { 걷기: 걷는거리;
       }
       return d;
     },
+    // 판에서 손이 같은 길로 걷게 거쳐 갈 점을 낸다(2026-11-29 사용자 — 손이 곧게 가다 막혔다 · kit followWalk)
+    길: (a, b) => { const r = 길내기(g, a, b); return '점들' in r ? r.점들 : null; },
   };
 }
 
