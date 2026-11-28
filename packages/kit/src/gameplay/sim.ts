@@ -8,7 +8,7 @@ export { type 원, 원안길이 } from './simGeo.js';
 
 export type { 점 } from './simInput.js';
 /** 엔진이 바뀌면 올린다 — 게이트가 다른 엔진으로 낸 시뮬 줄을 다시 돌리게 */
-export const 엔진판 = 4;
+export const 엔진판 = 5;
 export const 칸초 = 0.1;
 export const 예상간격초 = 2;
 /** 이만큼 흘러도 안 끝나면 짐으로 끊는다 — 적이 기절만 되풀이하는 입력이 끝나지 않게 */
@@ -24,6 +24,8 @@ export interface 시뮬결과 {
   예상: { 초: number; 값: Record<string, number> }[];
   행동기록: 행동[];
 }
+/** 놓인 설치물 둘레 못 놓는 반경 — 설치물이 있는 입력에는 늘 있다(입력읽기가 막는다). 0.5 는 설치물이 없는 입력의 자리값이다 */
+export const 둘레반경 = (m: Pick<모델, '설치물둘레'>): number => m.설치물둘레?.반경 ?? 0.5;
 /** 두 점 사이를 걷는 거리 — 시뮬을 부르는 쪽이 격자 길찾기로 준다. 없으면 곧은 거리 */
 export type 걷는거리 = (a: 점, b: 점) => number;
 
@@ -112,7 +114,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
       const 종 = m.설치물종류[대상!]!;
       const 첫 = 종.레벨[0]!;
       if (재화 < 첫.값) return null;
-      const 빈 = m.자리후보.filter((p) => !탑들.some((x) => 거리(x.자리, p) < 0.5));
+      const 빈 = m.자리후보.filter((p) => !탑들.some((x) => 거리(x.자리, p) < 둘레반경(m)));
       // 같은 덮음이면 자리후보에 적은 차례 — 같은 입력이면 순서표의 놓기 자리가 늘 같다
       const 고른 = 빈.map((p) => ({ p, 덮: 덮음(p, 첫.사거리) })).sort((a, b) => b.덮 - a.덮)[0];
       if (고른 === undefined) return null;

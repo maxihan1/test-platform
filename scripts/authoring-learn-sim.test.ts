@@ -14,6 +14,7 @@ beforeEach(() => {
   자료 = mkdtempSync(join(tmpdir(), 'learn-sim-'));
   mkdirSync(join(자료, 'game-calc'));
   mkdirSync(join(자료, 'game-play'));
+  writeFileSync(join(자료, 'game-build-data.json'), JSON.stringify({ PlaceData: { Radius: 0.5 } }));
 });
 afterEach(() => rmSync(자료, { recursive: true, force: true }));
 
@@ -26,6 +27,7 @@ const 입력 = (덧: Record<string, unknown> = {}): Record<string, unknown> => (
   적종류: [{ 이름: '슬라임', 체력: 10, 속도: 1, 닿으면피해: 5, 보상: 1 }],
   웨이브: [웨(), 웨(), 웨(true)],
   설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 5, 간격: 2 }] }],
+  설치물둘레: { 반경: 0.5, 근거: '빌드 데이터:PlaceData' },
   자리후보: [[5, 1]],
   캐릭터: { 자리: [5, 1], 걷기속도: 1 },
   재화: { 시작: 0 },
@@ -124,6 +126,17 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(막기(계획, [곳줄(), 계획줄, 버금넣음], 자료, [])).toMatchObject({ 따라갈: { 버금: [[놓기]] } });
   });
 
+  it('설치물둘레 근거도 지도 · 빌드 데이터에 없으면 받지 않고, 빌드 데이터 근거는 지도 없이도 본다', () => {
+    const 경로 = join(자료, 'game-calc', '둘레.json');
+    const 둘레입력 = (근거: string) => 입력({ 설치물둘레: { 반경: 1.8, 근거 } });
+    const 글 = (x: Record<string, unknown>) => (writeFileSync(경로, JSON.stringify(x)), JSON.stringify(x));
+    expect(시뮬(둘레입력('빌드 데이터:PlaceData'), { 경로, 글: 글(둘레입력('빌드 데이터:PlaceData')) })).not.toHaveProperty('틀림');
+    expect(시뮬(둘레입력('rule:식물 둘레'), { 경로, 글: 글(둘레입력('rule:식물 둘레')) })).toMatchObject({ 틀림: expect.stringContaining('지도를 못 읽어') });
+    지도쓰기([곳줄(), 계획줄, 줄('RULE', 'rule:식물 둘레', { 곳 })]);
+    expect(시뮬(둘레입력('rule:식물 둘레'), { 경로, 글: 글(둘레입력('rule:식물 둘레')) })).not.toHaveProperty('틀림');
+    expect(시뮬(둘레입력('rule:없는 줄'), { 경로, 글: 글(둘레입력('rule:없는 줄')) })).toMatchObject({ 틀림: expect.stringContaining('설치물둘레 근거 rule:없는 줄') });
+  });
+
   it('유지 근거가 지도에 없는 열쇠면 계산이 받지 않는다 — 지침 예시 숫자를 베낀 값을 막는다(16102)', () => {
     const 유지입력 = (근거: string) => 입력({ 설치물종류: [{ 이름: '탑', 유지: { 체력: 50, 초당감소: 0.01, 다하면: '멈춤', 근거 }, 레벨: [{ 값: 0, 사거리: 3, 공격력: 5, 간격: 2 }] }] });
     지도쓰기([곳줄(), 계획줄, 줄('RULE', 'rule:식물 유지', { 곳 })]);
@@ -132,7 +145,7 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(시뮬(유지입력('rule:없는 줄'), { 경로, 글: 글(유지입력('rule:없는 줄')) })).toMatchObject({ 틀림: expect.stringContaining('rule:없는 줄') });
     expect(시뮬(유지입력('rule:식물 유지'), { 경로, 글: 글(유지입력('rule:식물 유지')) })).not.toHaveProperty('틀림');
     expect(시뮬(유지입력(곳), { 경로, 글: 글(유지입력(곳)) })).toMatchObject({ 틀림: expect.stringContaining('잰 값의 출처가 아니다') });
-    writeFileSync(join(자료, 'game-build-data.json'), JSON.stringify({ PlantData: { Upkeep: 50 } }));
+    writeFileSync(join(자료, 'game-build-data.json'), JSON.stringify({ PlantData: { Upkeep: 50 }, PlaceData: { Radius: 0.5 } }));
     expect(시뮬(유지입력('빌드 데이터:PlantData'), { 경로, 글: 글(유지입력('빌드 데이터:PlantData')) })).not.toHaveProperty('틀림');
     expect(시뮬(유지입력('빌드 데이터:없는타입'), { 경로, 글: 글(유지입력('빌드 데이터:없는타입')) })).toMatchObject({ 틀림: expect.any(String) });
   });
