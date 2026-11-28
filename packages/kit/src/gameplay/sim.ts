@@ -46,7 +46,8 @@ const 맞나 = (a: number, 비: string, b: number): boolean => (비 === '>=' ? a
 export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는거리 = 거리, 재현?: readonly 행동[]): 시뮬결과 {
   const 적들: 적[] = [];
   const 탑들: 탑[] = [];
-  const 떨어진: { 자리: 점; 값: number }[] = [];
+  /** 줍기만 — 판에서 읽은 바닥 재화. 캐릭터가 둘레에 서 있어도 판에서 안 주워진 채 있던 것이라 줍기 행동으로만 줍는다 */
+  const 떨어진: { 자리: 점; 값: number; 줍기만?: true }[] = [];
   const 캐체력최대 = m.캐릭터.체력 ?? Infinity;
   const 시 = m.시작;
   let [재화, 지킬것, 캐자리, 캐체력, 쓰러짐, 캐쿨] = [시?.재화 ?? m.재화.시작, 시?.지킬것 ?? m.지킬것.체력, 시?.자리 ?? m.캐릭터.자리, 캐체력최대, 0, 0];
@@ -101,7 +102,9 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
   const 유지받나 = (t: 탑): boolean => m.설치물종류[t.종류]!.유지 !== undefined && m.설치물종류[t.종류]!.레벨[t.레벨]!.유지없음 !== true;
   // 이어 흘리기 — 판에 놓인 설치물은 다 자란 것으로, 바닥 재화는 값을 못 읽어 가장 싼 보상으로 친다
   const 싼보상 = Math.min(...Object.values(m.적종류).map((e) => e.보상).filter((v) => v > 0), Infinity);
-  for (const p of 시?.떨어진 ?? []) 떨어진.push({ 자리: p, 값: Number.isFinite(싼보상) ? 싼보상 : 1 });
+  // 16104 둘째 맵은 고양이 옆 고기를 0초에 주운 셈이라 다시 계산마다 못 할 키우기를 또 냈다(41초 동안 28번 · 판에서는 고기가 그대로 있었다)
+  for (const p of 시?.떨어진 ?? []) 떨어진.push({ 자리: p, 값: Number.isFinite(싼보상) ? 싼보상 : 1, 줍기만: true });
+  const 주워담기 = (곳: 점, 다: boolean): void => { for (let i = 떨어진.length - 1; i >= 0; i -= 1) if ((다 || 떨어진[i]!.줍기만 !== true) && 거리(떨어진[i]!.자리, 곳) <= m.재화.줍는거리) 재화 += 떨어진.splice(i, 1)[0]!.값; };
   for (const s of 시?.설치물 ?? []) {
     const 종 = m.설치물종류[s.종류];
     if (종 !== undefined) 탑들.push({ ...새탑(종.이름, s.자리), 레벨: Math.min(종.레벨.length, Math.max(1, Math.round(s.레벨))) - 1, 자람: 0, 유지: 종.유지 === undefined ? Infinity : 종.유지.체력 * Math.min(1, Math.max(0, s.유지 ?? 1)) });
@@ -136,7 +139,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     if (무엇 === '줍기') {
       const 고른 = 떨어진.filter((d) => 반경 === undefined || 거리(d.자리, 캐자리) <= 반경).sort((a, b) => 거리(a.자리, 캐자리) - 거리(b.자리, 캐자리))[0];
       if (고른 === undefined) return null;
-      return { 자리: 고른.자리, 기록: 기(고른.자리), 효과: () => true };
+      return { 자리: 고른.자리, 기록: 기(고른.자리), 효과: () => (주워담기(캐자리, true), true) };
     }
     if (무엇 === '이동') {
       const 곳 = r.행동.자리 ?? m.지킬것.자리;
@@ -250,7 +253,7 @@ export function 돌리기(m: 모델, 정책: readonly 규칙[], 걷기: 걷는�
     }
     for (let i = 적들.length - 1; i >= 0; i -= 1) if (적들[i]!.체력 <= 0) 적들.splice(i, 1);
     재화 += m.재화.초당 * 칸초;
-    for (let i = 떨어진.length - 1; i >= 0; i -= 1) if (거리(떨어진[i]!.자리, 캐자리) <= m.재화.줍는거리) 재화 += 떨어진.splice(i, 1)[0]!.값;
+    주워담기(캐자리, false);
     // 캐릭터 — 할 일이 없으면 고르고, 도착 · 끝 시각이 됐으면 옮기고 한다. 고른 칸에 바로 끝나는 일(걷지 않고 손 0)은 그 칸에 한다. 재현이면 기록의 다음 행동을 그 시각에
     if (할 === null && 쓰러짐 <= 지금) {
       if (재현남은 !== null) {
