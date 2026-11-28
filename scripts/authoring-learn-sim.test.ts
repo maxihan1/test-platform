@@ -103,13 +103,16 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(시뮬(유지입력('빌드 데이터:없는타입'), { 경로, 글: 글(유지입력('빌드 데이터:없는타입')) })).toMatchObject({ 틀림: expect.any(String) });
   });
 
-  it('캐릭터 근거도 빌드 데이터에 없는 타입이면 받지 않는다 — 빌드 데이터 근거는 판에서 잰 걷기속도로 안 덮여 지어낸 값을 막아야 한다', () => {
-    const 캐입력 = (근거: string) => 입력({ 캐릭터: { 자리: [5, 1], 걷기속도: 8, 근거 } });
-    writeFileSync(join(자료, 'game-build-data.json'), JSON.stringify({ CatfyData: { WalkSpeed: 8 }, PlaceData: { Radius: 0.5 } }));
+  it('캐릭터 근거는 빌드 데이터에 그 이름의 타입이 있고 걷기속도가 그 타입의 값일 때만 받는다 — 빌드 데이터 근거는 판에서 잰 걷기속도로 안 덮여 지어낸 값을 막아야 한다', () => {
+    const 캐입력 = (근거: string, 걷기속도 = 8) => 입력({ 캐릭터: { 자리: [5, 1], 걷기속도, 근거 } });
+    writeFileSync(join(자료, 'game-build-data.json'), JSON.stringify({ PlayerData: { CatfyData: { WalkSpeed: 8 } }, PlaceData: { Radius: 0.5 } }));
     const 경로 = join(자료, 'game-calc', '캐.json');
     const 글 = (x: Record<string, unknown>) => (writeFileSync(경로, JSON.stringify(x)), JSON.stringify(x));
-    expect(시뮬(캐입력('빌드 데이터:CatfyData'), { 경로, 글: 글(캐입력('빌드 데이터:CatfyData')) })).not.toHaveProperty('틀림');
-    expect(시뮬(캐입력('빌드 데이터:없는타입'), { 경로, 글: 글(캐입력('빌드 데이터:없는타입')) })).toMatchObject({ 틀림: expect.stringContaining('캐릭터 근거') });
+    const 돌림 = (x: Record<string, unknown>) => 시뮬(x, { 경로, 글: 글(x) });
+    expect(돌림(캐입력('빌드 데이터:CatfyData'))).not.toHaveProperty('틀림');
+    expect(돌림(캐입력('빌드 데이터:없는타입'))).toMatchObject({ 틀림: expect.stringContaining('캐릭터 근거') });
+    expect(돌림(캐입력('빌드 데이터:Speed'))).toMatchObject({ 틀림: expect.stringContaining('캐릭터 근거') });
+    expect(돌림(캐입력('빌드 데이터:CatfyData', 20))).toMatchObject({ 틀림: expect.stringContaining('걷기속도 20') });
   });
 
   it('판에서 깬 적이 있는 곳의 진 시뮬 줄은 시뮬불가가 아니라 「값을 다시 재라」를 맞추기 판의 이유로 단다(16102 첫 맵)', () => {
