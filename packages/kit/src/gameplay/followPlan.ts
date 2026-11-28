@@ -69,12 +69,14 @@ export function 이어모델(m: 모델, 판: 본판): 모델 | null {
   const 머리 = 남은[0];
   if (머리 === undefined) return null;
   const 전체 = 머리.출현.reduce((a, o) => a + o.수, 0);
-  const 읽은 = 판.웨이브중 && 판.적 !== undefined ? 판.적.flatMap((p) => { const 곳 = 길에대기(m.길, p); return 곳 === null ? [] : [곳]; }) : null;
+  // 남은 적 수를 모르면 읽은 적을 안 쓴다 — 안 나온 수를 셀 수 없어 그 웨이브를 다 지워 버린다
+  const 읽은 = 판.웨이브중 && 판.적 !== undefined && 판.남은적 !== undefined ? 판.적.flatMap((p) => { const 곳 = 길에대기(m.길, p); return 곳 === null ? [] : [곳]; }) : null;
   // 출현 차례 — 몇 번째 출현 묶음의 적인가. 아직 안 나온 것은 차례의 끝이다
   const 차례 = 머리.출현.flatMap((o, k) => Array.from({ length: o.수 }, (_, n) => ({ k, 초: o.처음초 + n * o.간격 }))).sort((a, b) => a.초 - b.초);
-  const 나올 = 읽은 === null ? 판.남은적 : Math.min(전체, Math.max(0, (판.남은적 ?? 읽은.length) - 읽은.length));
+  // 안 나온 수 — 남은 적이 웨이브를 넘어 세어도(다음 웨이브까지 세는 게임) 이 웨이브에서 읽은 것을 뺀 것보다 많을 수 없다
+  const 나올 = 읽은 === null ? 판.남은적 : Math.min(Math.max(0, 전체 - 읽은.length), Math.max(0, 판.남은적! - 읽은.length));
   const 안나온 = 읽은 === null || 나올 === undefined ? [] : 차례.slice(차례.length - 나올);
-  const 줄인 = !판.웨이브중 || 나올 === undefined || 나올 >= 전체
+  const 줄인 = !판.웨이브중 || 나올 === undefined || (읽은 === null && 나올 >= 전체)
     ? 머리
     : { ...머리, 출현: 머리.출현.map((o, k) => ({ ...o, 수: 읽은 === null ? Math.max(1, Math.ceil((o.수 * 나올) / 전체)) : 안나온.filter((x) => x.k === k).length, 처음초: 0 })) };
   const 웨이브 = [줄인, ...남은.slice(1)].map((w) => (w.시작초 === undefined ? w : { ...w, 시작초: Math.max(0, w.시작초 - 판.초) }));
