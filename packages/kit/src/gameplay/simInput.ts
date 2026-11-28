@@ -31,7 +31,8 @@ export interface 규칙 { 조건: 조건[]; 행동: { 무엇: 행동종류; 대�
  */
 /** 시뮬 결과 — sim.ts 가 낸다(여기 두는 것은 sim.ts 가 300줄을 넘지 않게) */
 /** 자리들 — 한 번에 주운 자리들(순서대로 하기가 이어진 줍기를 한 단계로 묶는다). 시작초 — 걷기 시작한 때(앞 행동이 끝난 뒤 읽고 고르는 데 든 시간이 초와 시작초 사이다). 걸음 — 그 행동을 하러 걸은 거리. 값 — 그 행동에 드는 재화(놓기 · 키우기 · 먹이) */
-export interface 행동 { 초: number; 행동: string; 대상?: string; 자리?: 점; 자리들?: 점[]; 시작초?: number; 도착초?: number; 끝초?: number; 됨?: boolean; 걸음?: number; 값?: number }
+/** 닿음 — false 면 판에서 그 자리에 못 닿아 행동을 못 했다(땅이 막은 것이 아니다 · 순서대로 하기가 남긴다) */
+export interface 행동 { 초: number; 행동: string; 대상?: string; 자리?: 점; 자리들?: 점[]; 시작초?: number; 도착초?: number; 끝초?: number; 됨?: boolean; 걸음?: number; 값?: number; 닿음?: false }
 export interface 웨이브결과 { 이름: string; 처치: number; 새어나감: number; 끝지킬것: number; 끝재화: number; 끝초: number }
 export interface 시뮬결과 {
   이김: boolean;

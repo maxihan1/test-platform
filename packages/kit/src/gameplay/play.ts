@@ -1,6 +1,7 @@
 // 케이스의 작전 함수가 부르는 순서대로 하기 — 계산기가 낸 순서자료로 판을 시뮬 순서대로 하고 어긋나면 그 자리에서 다시 계산한다 (도메인/게임 §3.10 「배운 것을 PRD · 테스트로」)
 // 배울 때 조작 도우미가 하는 것과 같은 코드다(follow.ts) — 정식 실행에서도 같은 방식으로 게임해야 10판을 이긴다(2026-11-28 사용자 「케이스도 같은 방식」)
-import { type 손, 따라가기, 새기록, 손읽기 } from './follow.js';
+import { type 손, 따라가기 } from './follow.js';
+import { 새기록, 손읽기 } from './followEntry.js';
 import { type 잰손, 손넣기 } from './hand.js';
 import { 입력읽기 } from './simInput.js';
 
@@ -22,5 +23,7 @@ export async function 순서대로(손: 손, 자료: 순서자료): Promise<{ �
   if (typeof 읽은 === 'string') throw new Error(읽은);
   const 기록 = 새기록();
   const r = await 따라가기(읽은, { 모델: 자료.손 === undefined ? 본 : 손넣기(본, 자료.손), 정책: 본.정책들[0]!, 버금 }, 기록);
+  // 케이스는 판에 들어간 뒤에 부른다 — 판 상태를 못 읽으면 판 함수가 잘못 들어간 것이라 그대로 실패로 알린다
+  if ('못들어감' in r) throw new Error(r.못들어감);
   return { ...r, 행동수: 기록.행동기록.length, 다시계산수: 기록.다시계산.length };
 }

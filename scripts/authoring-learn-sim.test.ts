@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { 시뮬 } from './authoring-game-calc.js';
+import { 판기록들 } from './authoring-learn-check.js';
 import { 곳글, 곳셈, 남은깰곳, 놀이막기 } from './authoring-learn-play.js';
 import { 시뮬불가검사 } from './authoring-learn-sim.js';
 import { 계산줄, 계획, 계획줄, 곳, 곳줄, 기록들, 막기, 웨, 입력, 자료, 정책, 줄, 지도쓰기, 판쓰기 } from './authoring-learn-sim-fake.js';
@@ -20,17 +21,17 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(막기(계획, [곳줄({ 맵: { 적: { 없음: '적이 안 온다' } } }), 계획줄], 자료, [])).toBeNull();
   });
 
-  it('이기는 안이 없다고 나온 줄 · 입력이 바뀐 줄 · 줄 글자만 이김으로 고친 줄은 막는다', () => {
+  it('이기는 안이 없다고 나온 줄 · 다시 돌리니 지는 줄은 맞추기 판으로 열고, 입력이 바뀐 줄 · 입력 규칙이 아닌 정책은 막는다', () => {
     const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));
-    expect(막기(계획, [곳줄(), 계획줄, 짐], 자료, [])).toMatchObject({ 막음: expect.stringContaining('이기는 안이 없다') });
+    expect(막기(계획, [곳줄(), 계획줄, 짐], 자료, [])).toMatchObject({ 따라갈: { 맞추기판: expect.stringContaining('이기는 안이 없다') } });
     const 고친 = { ...짐, learned: { ...짐.learned!, data: { ...짐.learned!.data, 결과: { ...(짐.learned!.data.결과 as object), 이김: true } } } };
-    expect(막기(계획, [곳줄(), 계획줄, 고친], 자료, [])).toMatchObject({ 막음: expect.stringContaining('다시 돌리니') });
+    expect(막기(계획, [곳줄(), 계획줄, 고친], 자료, [])).toMatchObject({ 따라갈: { 맞추기판: expect.stringContaining('다시 돌리니') } });
     const 이김줄 = 계산줄('가', 입력());
     const 손지어냄 = 입력({ 손: { 행동초: 9 } });
     const 느림 = 계산줄('가', 손지어냄);
     expect(느림.learned!.data.결과).toMatchObject({ 이김: false });
     const 빠른손 = { ...느림, learned: { ...느림.learned!, data: { ...느림.learned!.data, 결과: { ...(이김줄.learned!.data.결과 as object) } } } };
-    expect(막기(계획, [곳줄(), 계획줄, 빠른손], 자료, [])).toMatchObject({ 막음: expect.stringContaining('다시 돌리니') });
+    expect(막기(계획, [곳줄(), 계획줄, 빠른손], 자료, [])).toMatchObject({ 따라갈: { 맞추기판: expect.stringContaining('다시 돌리니') } });
     const 지은정책 = [{ 조건: [], 행동: { 무엇: '놓기', 대상: '탑' } }, { 조건: [], 행동: { 무엇: '줍기' } }];
     const 정책바꿈 = { ...이김줄, learned: { ...이김줄.learned!, data: { ...이김줄.learned!.data, 결과: { ...(이김줄.learned!.data.결과 as object), 정책: 지은정책 } } } };
     writeFileSync(join(자료, 'game-calc', '가.json'), JSON.stringify(입력()));
@@ -102,13 +103,22 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     expect(시뮬(유지입력('빌드 데이터:없는타입'), { 경로, 글: 글(유지입력('빌드 데이터:없는타입')) })).toMatchObject({ 틀림: expect.any(String) });
   });
 
-  it('판에서 깬 적이 있는 곳의 진 시뮬 줄은 시뮬불가가 아니라 「값을 다시 재라」로 막는다(16102 첫 맵)', () => {
+  it('판에서 깬 적이 있는 곳의 진 시뮬 줄은 시뮬불가가 아니라 「값을 다시 재라」를 맞추기 판의 이유로 단다(16102 첫 맵)', () => {
     const 결과 = { 주소: '/결과', 깸: '승리', 짐: '패배' };
     const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));
     const 들 = [곳줄({ 결과 }), 계획줄, 짐];
-    expect(막기(계획, 들, 자료, [])).toMatchObject({ 막음: expect.stringContaining('다음 맵으로 간다') });
+    expect(막기(계획, 들, 자료, [])).toMatchObject({ 따라갈: { 맞추기판: expect.stringContaining('맞추기 판 기록으로 재현') } });
     writeFileSync(join(자료, 'game-play', '20261127000000000-판.json'), JSON.stringify({ 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [], 어긋남: null, 화면다름: [] }, 끝글: [{ 주소: '/결과', 경로: '', 글: '승리' }] }));
-    expect(막기(계획, 들, 자료, [])).toMatchObject({ 막음: expect.stringContaining('1판 깬 적이 있다') });
+    expect(막기(계획, 들, 자료, [])).toMatchObject({ 따라갈: { 맞추기판: expect.stringContaining('1판 깬 적이 있다') } });
+  });
+
+  it('맞추기 판은 깬 것만 곳마다 판 수(10판 상한)에 센다 — 깸이 판 수보다 많지 않게', () => {
+    const 결과 = { 주소: '/결과', 깸: '승리', 짐: '패배' };
+    const 판 = (이름: string, 글: string, 맞추기?: string) => writeFileSync(join(자료, 'game-play', `${이름}.json`), JSON.stringify({ 값기록: { 계획: 'trial:가', 볼값: [], 간격ms: 2000, 때: [], 어긋남: null, 화면다름: [] }, 끝글: [{ 주소: '/결과', 경로: '', 글 }], ...(맞추기 === undefined ? {} : { 따라감: { 행동기록: [], 다시계산: [], 맞추기판: 맞추기 } }) }));
+    판('20261128000000000-판', '패배');
+    판('20261128000100000-판', '패배', '이기는 안 없음');
+    판('20261128000200000-판', '승리', '재현 어긋남');
+    expect(곳셈([곳줄({ 결과 }), 계획줄] as never, 판기록들(자료)).find((x) => x.열쇠 === 곳)).toMatchObject({ 판: 2, 깸: 1 });
   });
 
   it('판에 못 들어간 계획 판(행동기록이 비고 값이 한 번도 안 움직임)은 마지막 판으로 안 쳐 그 곳을 잠그지 않는다(16100 첫 맵 · 둘째 맵)', async () => {
