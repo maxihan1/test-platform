@@ -45,7 +45,8 @@ export function 판행동기록(기록들: readonly 판기록[], r: 판기록): 
 export function 손재기(자료: string, 곳: string): 잰손 {
   const 지도 = 지금지도(자료);
   if (지도 === null) return { 행동초: 행동초첫값 };
-  const 판들 = [...놀이시작뒤(자료, 판기록들(자료))].reverse().filter((r) => r.값기록 !== undefined && (행동기록읽기(r)?.length ?? 0) > 0);
+  // 안 된 행동만 있는 판은 잴 것이 없다 — 그 판을 고르면 앞 판에서 잰 값을 두고 첫 값으로 돌아간다
+  const 판들 = [...놀이시작뒤(자료, 판기록들(자료))].reverse().filter((r) => r.값기록 !== undefined && 손셈(행동기록읽기(r) ?? []) !== null);
   const 판 = 판들.find((r) => 계획곳(지도.줄들, r.값기록!.계획) === 곳) ?? 판들[0];
   const 잰 = 판 === undefined ? null : 손셈(행동기록읽기(판)!);
   return 잰 === null ? { 행동초: 행동초첫값 } : { ...잰, 기록: 판!.이름 };
@@ -79,22 +80,22 @@ const 근거아닌종류 = new Set(['STAGE', 'TRIAL', 'PLAY', 'ASK', 'GOAL', 'CA
 export const 빌드글 = (자료: string): string | null => 안전히읽기(자료, 게임자리.빌드데이터, 200_000_000);
 
 /**
- * 유지 값이 잰 값인지 — 근거가 측정 줄(규칙 · 시간 · 값 줄 따위)의 지도 열쇠이거나 `빌드 데이터:<타입 이름>`(빌드 데이터에 그 이름이 있다)이어야 한다.
- * 16102 는 지침 본보기 숫자를 베끼고 마지막 레벨 유지없음을 빠뜨려 깬 맵까지 이기는 안이 없다고 냈다. 지도를 못 읽으면 근거를 못 봐 안 받는다
+ * 유지 · 설치물둘레 값이 잰 값인지 — 근거가 측정 줄(규칙 · 시간 · 값 줄 따위)의 지도 열쇠이거나 `빌드 데이터:<타입 이름>`(빌드 데이터에 그 이름이 있다)이어야 한다.
+ * 16102 는 지침 본보기 숫자를 베끼고 마지막 레벨 유지없음을 빠뜨려 깬 맵까지 이기는 안이 없다고 냈다. 지도 열쇠 근거는 지도를 못 읽으면 못 봐 안 받는다
  */
 export function 근거틀림(m: 모델, 줄들: readonly Pick<지도줄, 'kind' | 'key' | 'learned'>[] | null, 빌드: string | null): string | null {
-  const 근거들 = Object.values(m.설치물종류).flatMap((t) => (t.유지 === undefined ? [] : [t.유지.근거]));
-  if (근거들.length === 0) return null;
-  if (줄들 === null) return '지도를 못 읽어 유지 근거를 못 봤다 — 자료 폴더의 game-calc 안에서 다시 계산한다';
+  const 근거들 = [...Object.values(m.설치물종류).flatMap((t) => (t.유지 === undefined ? [] : [t.유지.근거])), ...(m.설치물둘레 === undefined ? [] : [m.설치물둘레.근거])];
   const 틀린 = 근거들.filter((k) => {
     if (k.startsWith(빌드머리)) {
       const 이름 = k.slice(빌드머리.length).trim();
       return 빌드 === null || 이름 === '' || !빌드.includes(이름);
     }
-    const 줄 = 줄들.find((x) => x.key === k && x.learned !== null);
+    const 줄 = 줄들?.find((x) => x.key === k && x.learned !== null);
     return 줄 === undefined || 근거아닌종류.has(줄.kind);
   });
-  return 틀린.length === 0 ? null : `유지 근거 ${틀린.join(' · ')} 가 잰 값의 출처가 아니다 — 판 · 지도에서 잰 값이면 그 측정 줄(규칙 · 시간 · 값 줄) 열쇠, 빌드 데이터면 「빌드 데이터:<타입 이름>」을 적는다(곳 · 계획 · 계산 줄은 안 받는다 · 지침 본보기 숫자를 쓰지 않는다)`;
+  if (틀린.length === 0) return null;
+  if (줄들 === null && 틀린.some((k) => !k.startsWith(빌드머리))) return `지도를 못 읽어 유지 · 설치물둘레 근거 ${틀린.join(' · ')} 를 못 봤다 — 자료 폴더의 game-calc 안에서 다시 계산한다`;
+  return `유지 · 설치물둘레 근거 ${틀린.join(' · ')} 가 잰 값의 출처가 아니다 — 판 · 지도에서 잰 값이면 그 측정 줄(규칙 · 시간 · 값 줄) 열쇠, 빌드 데이터면 「빌드 데이터:<타입 이름>」을 적는다(곳 · 계획 · 계산 줄은 안 받는다 · 지침 본보기 숫자를 쓰지 않는다)`;
 }
 
 /** 입력 파일 해시 — 게이트가 시뮬 줄을 낸 뒤 입력이 바뀌었나 본다 */
