@@ -79,11 +79,11 @@ export function 문턱격자(m: 모델): Record<string, number[]> {
   return 격자;
 }
 
-interface 후보 { 틀: 규칙[]; 문턱: Record<string, number> }
+export interface 후보 { 틀: 규칙[]; 문턱: Record<string, number> }
 const 고르기들 = [undefined, '높은', '낮은'] as const;
 
 /** 하나만 바꾼 이웃 — 문턱 하나를 격자의 옆 값으로 · 키우기 대상 고르기를 다른 것으로 · 규칙 하나를 다른 자리로 · 규칙 하나를 빼기 · 풀에 있는 규칙 하나를 넣기 */
-function 이웃들(c: 후보, 격자: Readonly<Record<string, number[]>>, 풀: readonly 규칙[]): 후보[] {
+export function 이웃들(c: 후보, 격자: Readonly<Record<string, number[]>>, 풀: readonly 규칙[]): 후보[] {
   const 들: 후보[] = [];
   const 쓰는 = new Set(c.틀.flatMap((r) => r.조건.map((x) => x.기준)).filter((x): x is string => typeof x === 'string').map((x) => x.slice(1)));
   for (const [k, 값들] of Object.entries(격자)) {

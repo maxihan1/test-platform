@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { type 모델, 입력읽기 } from './simInput.js';
 import { 손넣기, 손셈 } from './hand.js';
 import { 돌리기 } from './sim.js';
-import { 나은가, 모델규칙, 문턱격자, 입력정책인가, 점수, 정책글, 찾기 } from './simSearch.js';
+import { 나은가, 모델규칙, 문턱격자, 이웃들, 입력정책인가, 점수, 정책글, 찾기 } from './simSearch.js';
 
 const 기본 = (덧: Record<string, unknown> = {}): Record<string, unknown> => ({
   계산: '시뮬',
@@ -67,6 +67,18 @@ describe('순서 찾기', () => {
     const r = 찾은(모델로(기본({ 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] })));
     expect(r.가장).toBeNull();
     expect(r.가장멀리.결과.짐).toMatchObject({ 웨이브: '1웨이브' });
+  });
+
+  it('이웃은 하나만 바꾼 것이다 — 풀의 규칙을 넣고 · 규칙을 빼고 · 자리를 옮기고 · 쓰는 문턱만 옆 값으로 · 키우기 고르기를 바꾼다', () => {
+    const 놓기 = { 조건: [], 행동: { 무엇: '놓기' as const, 대상: '탑' } };
+    const 키우기 = { 조건: [{ 값: '재화' as const, 비교: '>=' as const, 기준: '$모음' }], 행동: { 무엇: '키우기' as const, 대상: '탑' } };
+    const 줍기 = { 조건: [], 행동: { 무엇: '줍기' as const } };
+    const 꼴 = (틀: { 행동: { 무엇: string; 고르기?: string } }[]) => 틀.map((r) => `${r.행동.무엇}${r.행동.고르기 ?? ''}`).join('>');
+    const 것들 = 이웃들({ 틀: [놓기, 키우기], 문턱: { 모음: 5, 안씀: 1 } }, { 모음: [4, 5, 8], 안씀: [1, 2] }, [놓기, 키우기, 줍기]);
+    const 틀꼴 = 것들.map((c) => 꼴(c.틀));
+    expect(틀꼴).toEqual(expect.arrayContaining(['줍기>놓기>키우기', '놓기>줍기>키우기', '놓기>키우기>줍기', '키우기>놓기', '놓기', '키우기', '놓기>키우기높은', '놓기>키우기낮은']));
+    expect(것들.filter((c) => 꼴(c.틀) === '놓기>키우기').map((c) => c.문턱)).toEqual([{ 모음: 4, 안씀: 1 }, { 모음: 8, 안씀: 1 }]);
+    expect(이웃들({ 틀: [놓기], 문턱: {} }, {}, [놓기]).length).toBe(0);
   });
 
   it('문턱은 AI 후보에 엔진이 더한다 — 재화는 모델의 값표, 비율과 마릿수는 정해 둔 값', () => {
