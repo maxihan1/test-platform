@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 
 import type { 지도줄 } from './authoring-game-find.js';
 import { type 규칙, type 따라갈, type 모델, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가, 세계오류면 } from '@platform/kit/gameplay';
-import { 격자걷기, 근거틀림, 빌드글, 세계넣기, 손넣기, 손재기, 판재현, 판조각들, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
+import { 격자걷기, 근거틀림, 못심는곳빼기, 빌드글, 세계넣기, 손넣기, 손재기, 판재현, 판조각들, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
 import { 어긋남글, 지속초, 판값들 } from './authoring-game-sim-compare.js';
 import { 줄맞춘입력 } from './authoring-game-sim-fit.js';
 import { type 기대, type 볼값, type 값기록, type 판기록, 계산머리, 판기록들 } from './authoring-learn-check.js';
@@ -117,7 +117,7 @@ function 시뮬막기안(계획: { 곳?: string; 쓸것?: readonly string[]; 볼
   const 근 = 근거틀림(m, 줄들, 빌드글(자료));
   if (근 !== null) return { 막음: `${s.열쇠} — ${근}` };
   // 줄 글자는 믿지 않는다 — 손은 잰 값, 순서는 입력 파일의 규칙으로 만든 것이어야 한다(엔진이 자리 · 문턱 · 키우기 대상을 바꿔 찾은 것)
-  const 잰m = 손넣기(m, 잰);
+  const 잰m = 손넣기(못심는곳빼기(자료, m).모델, 잰);
   const 걷기 = 격자걷기(자료, 잰m).걷기;
   const 줄순서 = (v: unknown): 규칙[] | null => {
     const x = 입력읽기({ ...맞춘.입력, 정책: undefined, 정책들: [v], 문턱후보: {} });
