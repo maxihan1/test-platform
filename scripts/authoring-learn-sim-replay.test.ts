@@ -28,14 +28,16 @@ describe('앞 판 재현이 매 순간 맞아야 다음 판이 돈다', () => {
     expect(막기(계획, [곳줄(), 계획줄, 계산줄('가', 입력())], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('96초부터 웨이브 중 남은 적 1 인데 판 함수 적() 이 15.2초 넘게 0 을 돌려줬다') });
   });
 
-  it('재현이 판과 어긋나면 처음 어긋난 값 · 때 · 고칠 곳을 보여 주며 막는다 — 판은 30초를 버텼는데 재현은 10초에 진다', async () => {
+  it('재현이 판과 어긋나면 처음 어긋난 값 · 때 · 고칠 곳을 이유로 맞추기 판을 열고, 맞추기 판을 다 쓰면 막는다 — 판은 30초를 버텼는데 재현은 10초에 진다', async () => {
     const c = 계산줄('가', 입력());
     지도쓰기([곳줄(), 계획줄, c]);
     판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(c.learned!.data) }, null, 1, 세계수때(30, 99));
     const r = 막기(계획, [곳줄(), 계획줄, 계산줄('가', 입력())], 자료, await 기록들());
-    expect(r).toMatchObject({ 막음: expect.stringContaining('판 20261128000000000-판 을 재현하니 판과 어긋난다 — 10초 판 길이') });
-    expect(r).toMatchObject({ 막음: expect.stringContaining('시뮬은 10초에 져 끝났는데 판은 30초까지 돌았다') });
-    expect(r).toMatchObject({ 막음: expect.stringContaining('고칠 곳: 적종류(체력') });
+    expect(r).toMatchObject({ 따라갈: { 맞추기판: expect.stringContaining('판 20261128000000000-판 을 재현하니 판과 어긋난다 — 10초 판 길이') } });
+    expect(r).toMatchObject({ 따라갈: { 맞추기판: expect.stringContaining('시뮬은 10초에 져 끝났는데 판은 30초까지 돌았다') } });
+    expect(r).toMatchObject({ 따라갈: { 맞추기판: expect.stringContaining('고칠 곳: 적종류(체력') } });
+    for (const 이름 of ['20261128000100000-맞추기', '20261128000200000-맞추기']) 판쓰기(이름, [], {}, null, 1, 세계수때(30, 99), { 맞추기판: '자료 모으기' });
+    expect(막기(계획, [곳줄(), 계획줄, 계산줄('가', 입력())], 자료, await 기록들())).toMatchObject({ 막음: expect.stringContaining('맞추기 판 2판을 다 썼다') });
     const 재현 = 계산줄('가', 입력({ 재현: { 기록: '20261128000000000-판' } }));
     expect(재현.learned!.data.결과).toMatchObject({ 재현: { 맞음: false, 어긋남: { 초: 10, 값: '끝' } } });
     expect(재현.learned!.text).toContain('판과 어긋남(10초 끝)');
@@ -132,6 +134,15 @@ describe('시뮬불가는 판과 맞는 모델로만 받는다', () => {
     판쓰기('20261127000000000-옛판', [], { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(40, 99));
     expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain(`판 20261127000000000-옛판 은 1웨이브 40초까지 지킬것이 5 남았는데 시뮬 최선(calc:가)은 1웨이브 ${진초}초에 진다`);
     판쓰기('20261127000000000-옛판', [], { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(40, 진초));
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toBeNull();
+  });
+
+  it('새 방식 판(맞추기 판)의 재현이 맞으면 행동기록 없는 옛 판이 더 오래 버텼어도 시뮬불가를 받는다 — 모델이 판으로 확인됐다', async () => {
+    const 짐 = 계산줄('가', 입력({ 지킬것: { 체력: 4, 자리: [10, 0] }, 설치물종류: [{ 이름: '탑', 레벨: [{ 값: 0, 사거리: 3, 공격력: 1, 간격: 2 }] }] }));
+    const 들 = [불가곳(짐), 계획줄, 짐];
+    판쓰기('20261127000000000-옛판', [], { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(40, 99));
+    expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toContain('20261127000000000-옛판 은 1웨이브 40초까지');
+    판쓰기('20261128000000000-판', 늦게놓음, { 'calc:가': JSON.stringify(짐.learned!.data) }, null, 1, 세계수때(10, 10), { 맞추기판: '이기는 안 없음' });
     expect(시뮬불가재현(곳, 불가곳(짐).learned!.data, 들 as never, 자료, await 기록들())).toBeNull();
   });
 

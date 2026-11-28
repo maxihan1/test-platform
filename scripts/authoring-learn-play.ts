@@ -152,11 +152,13 @@ export function 곳셈(줄들: readonly 줄[], 기록들: readonly 판기록[]):
     if (결 === null || typeof 결 === 'string') return [];
     // 판 중간 멈춤으로 끝난 기록은 판이 아니다 — 결과를 수로 읽는 곳은 도는 중의 값도 깸 · 짐 어느 한쪽에 걸린다.
     // 정보 모으기가 웨이브를 넘긴 판(치트)이 이어진 기록도 판이 아니다 — 넘긴 웨이브가 깸으로 읽힌다
-    const 들 = 기록들.flatMap((r) => (r.값기록 !== undefined && r.멈춤 === undefined && r.치트 !== true && 계획곳(줄들, r.값기록.계획) === x.key ? [판결과(r, 결)] : [])).filter((v) => v !== null);
+    // 맞추기 판(자료를 모으려고 돈 판)은 깸은 세고 판 수(10판 상한)에는 안 센다
+    const 판들 = 기록들.flatMap((r) => (r.값기록 !== undefined && r.멈춤 === undefined && r.치트 !== true && 계획곳(줄들, r.값기록.계획) === x.key ? [{ 결: 판결과(r, 결), 맞추기: typeof 객체(r.따라감).맞추기판 === 'string' }] : [])).filter((v) => v.결 !== null);
+    const 들 = 판들.filter((v) => !v.맞추기).map((v) => v.결);
     const d = 칸(x);
     const 모음 = 기록들.some((r) => { const 정 = 객체(객체(r.값).정보모으기); return 정.곳 === x.key && typeof 정.단계 === 'number' && 정.단계 > 0; }) || 글인가(d.정보못모음);
     const 불가 = 시뮬불가읽기(d);
-    return [{ 열쇠: x.key, 판: 들.length, 깸: 들.filter((v) => v === '깸').length, ...(d.상태 === '못깸' && 글인가(d.까닭) ? { 못깸: d.까닭 } : {}), ...(모음 ? { 정보: true as const } : {}), ...(불가 === null || typeof 불가 === 'string' ? {} : { 시뮬불가: { 글: `${불가.웨이브} · ${불가.모자람}`, 다시봄: 불가.다시봄 } }) }];
+    return [{ 열쇠: x.key, 판: 들.length, 깸: 판들.filter((v) => v.결 === '깸').length, ...(d.상태 === '못깸' && 글인가(d.까닭) ? { 못깸: d.까닭 } : {}), ...(모음 ? { 정보: true as const } : {}), ...(불가 === null || typeof 불가 === 'string' ? {} : { 시뮬불가: { 글: `${불가.웨이브} · ${불가.모자람}`, 다시봄: 불가.다시봄 } }) }];
   });
 }
 

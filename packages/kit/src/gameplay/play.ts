@@ -22,5 +22,7 @@ export async function 순서대로(손: 손, 자료: 순서자료): Promise<{ �
   if (typeof 읽은 === 'string') throw new Error(읽은);
   const 기록 = 새기록();
   const r = await 따라가기(읽은, { 모델: 자료.손 === undefined ? 본 : 손넣기(본, 자료.손), 정책: 본.정책들[0]!, 버금 }, 기록);
+  // 케이스는 판에 들어간 뒤에 부른다 — 판 상태를 못 읽으면 판 함수가 잘못 들어간 것이라 그대로 실패로 알린다
+  if ('못들어감' in r) throw new Error(r.못들어감);
   return { ...r, 행동수: 기록.행동기록.length, 다시계산수: 기록.다시계산.length };
 }
