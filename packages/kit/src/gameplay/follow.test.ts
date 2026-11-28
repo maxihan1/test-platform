@@ -1,7 +1,8 @@
 // 순서대로 하기 — 순서표 묶기 · 판 중간 모델 · 반응 고르기 · 가짜 판에서 따라가기(다시 계산 · 한 바퀴 줍기 · 안 됨 빼기 · 반응 동작 · 손동작 검사)
 import { describe, expect, it } from 'vitest';
 
-import { 가까운순, 반응고르기, 순서표, 예상값, 이어모델, 표글 } from './followPlan.js';
+import { 반응고르기, 순서표, 예상값, 이어모델, 표글 } from './followPlan.js';
+import { 가까운순 } from './habit.js';
 import { 돌리기 } from './sim.js';
 import { type 따라간기록, 따라가기 } from './follow.js';
 import { 새기록, 손읽기, 순서대로함수 } from './followEntry.js';

@@ -4,6 +4,7 @@ export * from './simInput.js';
 export * from './sim.js';
 export * from './simSearch.js';
 export * from './hand.js';
+export * from './habit.js';
 export * from './followPlan.js';
 export * from './follow.js';
 export * from './followEntry.js';
