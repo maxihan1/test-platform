@@ -58,7 +58,11 @@ export async function 모양읽기(읽기: (prop: string) => Promise<unknown>): 
     return { 중심: [자리[0] + lx * Math.cos(r) + lz * Math.sin(r), 자리[2] - lx * Math.sin(r) + lz * Math.cos(r)], 반: [Math.abs(상크[0] * 배[0]) / 2, Math.abs(상크[2] * 배[2]) / 2], 각: 각[1] };
   }
   const [구중, 구반] = [벡(await 읽기('SphereCollider.center')), 수(await 읽기('SphereCollider.radius'))];
-  if (자리 !== null && 배 !== null && 구중 !== null && 구반 !== null) return { 중심: [자리[0] + 구중[0] * 배[0], 자리[2] + 구중[2] * 배[2]], 반지름: 구반 * Math.max(Math.abs(배[0]), Math.abs(배[2])) };
+  if (자리 !== null && 각 !== null && 배 !== null && 구중 !== null && 구반 !== null) {
+    const r = (각[1] * Math.PI) / 180;
+    const [lx, lz] = [구중[0] * 배[0], 구중[2] * 배[2]];
+    return { 중심: [자리[0] + lx * Math.cos(r) + lz * Math.sin(r), 자리[2] - lx * Math.sin(r) + lz * Math.cos(r)], 반지름: 구반 * Math.max(Math.abs(배[0]), Math.abs(배[2])) };
+  }
   const [테중, 테크] = [벡(await 읽기('Collider.bounds.center')), 벡(await 읽기('Collider.bounds.size'))];
   return 테중 === null || 테크 === null ? null : { 중심: [테중[0], 테중[2]], 반: [테크[0] / 2, 테크[2] / 2], 각: 0 };
 }
@@ -76,16 +80,25 @@ export async function 게임훑기(game: Pick<Game, 'call' | 'findAll'>, 곳: st
   const 멈춤 = await 읽기(캐릭터, 'NavMeshAgent.isStopped');
   if (처음 === null || typeof 멈춤 !== 'boolean') return { 틀림: `${캐릭터} 의 자리나 NavMeshAgent 를 못 읽었다 — 맵에 들어가 캐릭터가 나온 뒤 부르고, 캐릭터 주소가 NavMeshAgent 가 붙은 오브젝트인지 본다` };
   const 시작때 = Date.now();
-  await 쓰기('NavMeshAgent.isStopped', 'true');
+  await 쓰기('NavMeshAgent.isStopped', 'true').catch(() => undefined);
+  // 멈추지 않았으면 캐릭터가 목적지마다 걸어가 판을 바꾼다 — 묻지 않는다
+  if ((await 읽기(캐릭터, 'NavMeshAgent.isStopped')) !== true) return { 틀림: `${캐릭터} 의 NavMeshAgent.isStopped 를 못 켰다 — 캐릭터가 움직이므로 묻지 않는다` };
   try {
     const 묻기 = async (i: number, j: number): Promise<boolean> => {
       const [x, z] = [(i + 0.5) * 칸크기, (j + 0.5) * 칸크기];
       const 옮긴 = 벡(await 쓰기('NavMeshAgent.destination', `[${x},${처음[1]},${z}]`).catch(() => null));
       if (옮긴 === null || Math.hypot(옮긴[0] - x, 옮긴[2] - z) > 옮김한도) return false;
-      for (let k = 0; k < 20 && (await 읽기(캐릭터, 'NavMeshAgent.pathPending')) === true; k += 1) await 쉬기(50);
-      return (await 읽기(캐릭터, 'NavMeshAgent.pathStatus')) === 'PathComplete';
+      // 길 계산이 아직이면 앞 칸의 결과가 읽힌다 — 2초를 넘으면 열린 칸으로 치지 않는다
+      let 대기 = true;
+      for (let k = 0; k < 40 && (대기 = (await 읽기(캐릭터, 'NavMeshAgent.pathPending')) === true); k += 1) await 쉬기(50);
+      return !대기 && (await 읽기(캐릭터, 'NavMeshAgent.pathStatus')) === 'PathComplete';
     };
-    const 채움 = await 번져채우기([Math.floor(처음[0] / 칸크기), Math.floor(처음[2] / 칸크기)], 묻기, 상한, () => Date.now() - 시작때 > 한도ms);
+    // 캐릭터 칸 가운데가 벽 옆이라 안 열리면 둘레 칸에서 시작한다 — 열린 칸이 하나도 없으면 맵 전체가 막힘이 된다
+    const [ci, cj] = [Math.floor(처음[0] / 칸크기), Math.floor(처음[2] / 칸크기)];
+    let 시작: [number, number] | undefined;
+    for (const [a, b] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const) if (await 묻기(ci + a, cj + b)) { 시작 = [ci + a, cj + b]; break; }
+    if (시작 === undefined) return { 틀림: `캐릭터 둘레 칸이 하나도 안 열렸다 — 캐릭터가 맵 위에 섰는지 · 캐릭터 주소가 맞는지 본다` };
+    const 채움 = await 번져채우기(시작, 묻기, 상한, () => Date.now() - 시작때 > 한도ms);
     const 못심음: 막음모양[] = [];
     for (const 선택자 of 막음들) {
       for (const f of await game.findAll(선택자)) {

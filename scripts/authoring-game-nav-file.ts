@@ -1,4 +1,5 @@
 // 게임 맵 훑기 파일 — authoring-game-nav.ts 가 남기고 길찾기 격자(authoring-game-path.ts)와 시뮬 계산이 읽는다(둘이 서로를 가져오지 않게 떼어 냈다) (도메인/게임 §3.10 「맵 파악」)
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -9,7 +10,8 @@ export type 막음모양 = { 중심: 점; 반: 점; 각: number } | { 중심: �
 /** 자료 폴더에 남기는 맵 훑기 — 열림 · 막힘은 칸 번호(i, j · 칸크기 단위), 끊김이면 다 못 물은 것(나머지는 모름으로 둔다) */
 export interface 맵훑기 { 곳: string; 칸크기: number; 열림: Array<[number, number]>; 막힘: Array<[number, number]>; 끊김: boolean; 못심음: 막음모양[]; 캐릭터: string; 때: string }
 
-export const 훑기파일 = (자료: string, 곳: string): string => join(자료, 'game-nav', `${곳.replace(/[^\p{L}\p{N}_-]+/gu, '_')}.json`);
+/** 곳 열쇠를 파일 이름으로 — 바꾼 글자가 겹쳐도(stage:1 · stage 1) 다른 파일이 되게 열쇠 해시를 붙인다 */
+export const 훑기파일 = (자료: string, 곳: string): string => join(자료, 'game-nav', `${곳.replace(/[^\p{L}\p{N}_-]+/gu, '_')}-${createHash('sha256').update(곳).digest('hex').slice(0, 8)}.json`);
 
 /** 자료 폴더의 그 곳 맵 훑기 — 없거나 꼴이 틀리면 null */
 export function 훑기읽기(자료: string, 곳: string): 맵훑기 | null {

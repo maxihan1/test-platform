@@ -24,7 +24,7 @@ interface 시뮬줄 {
   열쇠: string;
   곳: string;
   결과: { 이김: boolean; 정책: unknown[]; 버금?: unknown; 손: { 행동초: number; 기록?: string } };
-  입력: { 파일: string; 해시: string; 엔진판: number; 웨이브수: number; 보스: boolean; 볼값연결: { 웨이브?: string; 지킬것?: string }; 세계?: { 파일: string; 해시: string } };
+  입력: { 파일: string; 해시: string; 엔진판: number; 웨이브수: number; 보스: boolean; 볼값연결: { 웨이브?: string; 지킬것?: string }; 세계?: { 파일: string; 해시: string }; 못심음뺀?: number };
 }
 
 /** 계산기 `시뮬` 이 낸 CALC 줄이면 읽은 것, 아니면 null */
@@ -117,7 +117,9 @@ function 시뮬막기안(계획: { 곳?: string; 쓸것?: readonly string[]; 볼
   const 근 = 근거틀림(m, 줄들, 빌드글(자료));
   if (근 !== null) return { 막음: `${s.열쇠} — ${근}` };
   // 줄 글자는 믿지 않는다 — 손은 잰 값, 순서는 입력 파일의 규칙으로 만든 것이어야 한다(엔진이 자리 · 문턱 · 키우기 대상을 바꿔 찾은 것)
-  const 잰m = 손넣기(못심는곳빼기(자료, m).모델, 잰);
+  const 뺌 = 못심는곳빼기(자료, m);
+  if (뺌.뺀 !== (s.입력.못심음뺀 ?? 0)) return { 막음: `${s.열쇠} 를 낸 뒤 맵 훑기의 못 심는 곳이 바뀌었다(자리후보 ${s.입력.못심음뺀 ?? 0}개 → ${뺌.뺀}개를 뺌) — 다시 계산해 찍힌 줄로 고친다` };
+  const 잰m = 손넣기(뺌.모델, 잰);
   const 걷기 = 격자걷기(자료, 잰m).걷기;
   const 줄순서 = (v: unknown): 규칙[] | null => {
     const x = 입력읽기({ ...맞춘.입력, 정책: undefined, 정책들: [v], 문턱후보: {} });
@@ -221,7 +223,7 @@ function 시뮬불가재현안(열쇠: string, data: unknown, 줄들: readonly �
     return `${불가.계산} 의 입력 파일 ${s.입력.파일} 이 JSON 이 아니다(${e instanceof Error ? e.message : String(e)})`;
   }
   if ('틀림' in m) return `${불가.계산} 의 입력이 틀렸다 — ${m.틀림}`;
-  const 잰m = 손넣기(m, 손재기(자료, 열쇠));
+  const 잰m = 손넣기(못심는곳빼기(자료, m).모델, 손재기(자료, 열쇠));
   const 재 = 판 === undefined ? null : 판재현(잰m, 격자걷기(자료, 잰m).걷기, 기록들, 판);
   const 어긋 = 재 !== null && 재.비교.본수 > 0 && !재.비교.맞음;
   if (불가.재현안맞음 !== undefined) return 어긋 ? null : `판 ${판!.이름} 재현이 판과 맞는다(또는 견줄 값이 없다) — 재현안맞음이 아니다`;

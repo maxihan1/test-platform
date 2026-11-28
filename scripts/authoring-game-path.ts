@@ -97,7 +97,7 @@ const 범위 = (a: number, b: number): [number, number] => {
 /**
  * 격자를 짓는다 — 범위는 걷기 점 · 판 기록의 걸은 위치와 못감 · 덧(맵의 다른 종류 점 · 출발 · 도착)이 든 칸을 모두 감싸고 둘레에 여백 칸을 둔다. 안은 처음에 모두 모름이다.
  * 걷기 점 바깥을 막힘으로 치면 걷기 값에 빠진 곳(남쪽 섬)에서 걸은 위치가 범위 밖이라 버려지고 출발 · 도착이 엉뚱한 칸으로 옮겨졌다(작성 16098 열째 맵 252칸 중 걸음됨 0).
- * 지도 막힘 → 판 기록 차례로 칠하고 걸음됨은 막힘을 덮는다. 기록 차례가 시간 차례다
+ * 맵 훑기(있으면 · 범위에도 든다) → 지도 막힘 → 훑기의 열린 칸 → 판 기록 차례로 칠하고 걸음됨은 막힘을 덮는다. 기록 차례가 시간 차례다
  */
 export function 격자짓기(걷기값: unknown, 막힘값: unknown, 칠들: readonly 칠[], 면: 평면 = 'xz', 덧: readonly 점[] = [], 훑기?: Pick<맵훑기, '열림' | '막힘' | '끊김'>): 격자 | string {
   const 바닥 = 점들모으기(걷기값, 면);
@@ -133,6 +133,8 @@ export function 격자짓기(걷기값: unknown, 막힘값: unknown, 칠들: rea
     for (let j = aj; j <= bj; j += 1) for (let i = ai; i <= bi; i += 1) 칠하기(i, j, 막힘);
   }
   for (const p of 막힘들.점) 칠하기(Math.floor(p[0] / 칸크기), Math.floor(p[1] / 칸크기), 막힘);
+  // 게임이 열렸다고 답한 칸은 AI 가 적은 막힘 값보다 믿는다 — 판 기록(걸은 칸 · 못감)만 그 위에 칠한다
+  for (const [i, j] of 훑기?.열림 ?? []) 칠하기(i, j, 걸음됨);
   for (const c of 칠들) {
     for (const p of c.걸음) 칠하기(Math.floor(p[0] / 칸크기), Math.floor(p[1] / 칸크기), 걸음됨);
     // 같은 기록에서 걷고 못 갔다고 했으면 못감이 맞다 — 걸음됨이 이기는 것은 그 뒤 기록뿐이다
@@ -222,7 +224,8 @@ export function 곳격자(자료: string, 곳: string, 덧: readonly 점[] = [])
   const 줄 = 곳줄들(지도.줄들).find((x) => x.key === 곳);
   const 맵 = 객체(객체(줄?.learned?.data).맵);
   const 훑기 = 훑기읽기(자료, 곳);
-  const 쓸훑기 = 훑기 !== null && 훑기.칸크기 === 칸크기 ? 훑기 : undefined;
+  // 맵 훑기는 x · z 칸이다 — 2D(xy) 맵에는 안 쓴다
+  const 쓸훑기 = 훑기 !== null && 훑기.칸크기 === 칸크기 && 평면정하기(맵) === 'xz' ? 훑기 : undefined;
   if (줄 === undefined || (객체(맵.걷기).값 === undefined && 쓸훑기 === undefined)) return `${곳} 는 data.맵.걷기.값 이 있는 STAGE 줄이 아니고 맵 훑기도 없다 — 먼저 맵을 적거나 authoring-game-nav.ts 로 훑는다`;
   const 면 = 평면정하기(맵);
   const 칠들 = 판기록들(자료).flatMap((r) => { const c = 기록칠(r, 지도.줄들, 곳, 면); return c === null ? [] : [c]; });
