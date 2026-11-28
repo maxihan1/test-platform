@@ -1,4 +1,4 @@
-// 게임 세계 코드 — 본보기 세계 · 게임별 세계가 결과를 바꾼다 · 못 쓰는 이름 · 객체를 타고 나가기와 문자열로 코드 만들기 막기 · 함수가 빠진 세계
+// 게임 세계 코드 — 본보기 세계 · 게임별 세계가 결과를 바꾼다 · 못 쓰는 이름 · 객체를 타고 나가기와 문자열로 코드 만들기 막기 · 함수가 빠진 세계 · 돌려준 배열의 메서드로 나가기 막기 · 던진 때 · 내장 얼리기
 import { describe, expect, it } from 'vitest';
 
 import { 돌리기 } from './sim.js';
@@ -59,5 +59,23 @@ describe('게임 세계 코드', () => {
     if ('틀림' in m) throw new Error(m.틀림);
     expect(() => 세계만들기({ ...m, 세계글: 빠짐 })).toThrow('결과 가 없다');
     expect(입력읽기(기본({ 세계글: 빠짐 }))).toMatchObject({ 틀림: expect.stringContaining('결과 가 없다') });
+  });
+
+  it('세계가 돌려준 배열에 자기 filter 를 달아도 플랫폼 함수를 못 받아 밖으로 못 나간다 — 돌려받은 값은 플랫폼이 복사해 쓴다', () => {
+    const 나가기 = "const 나가기 = (cb) => { try { Object.getPrototypeOf(cb)['con' + 'structor']('this.세계탈출 = 1')(); } catch (e) { } };";
+    const 자기filter = 고친세계('    적들() { return 산적().map(', `    적들() { ${나가기} const 원래 = [].filter; const a = 산적().map((e) => ({ 번호: e.번호, x: 0, z: 0, 남은: 1 })); Object.defineProperty(a, 'filter', { value: function (cb) { 나가기(cb); return 원래.call(this, cb); } }); return a; },\n    옛적들() { return 산적().map(`);
+    한판({ 세계글: 자기filter, 정책: [{ 조건: [{ 값: '캐릭터둘레적수', 반경: 99, 비교: '>=', 기준: 0 }], 행동: { 무엇: '놓기', 대상: '탑' } }] });
+    expect((globalThis as Record<string, unknown>).세계탈출).toBeUndefined();
+  });
+
+  it('세계가 돌다 던지면 어느 함수가 몇 초에 던졌는지 붙여 던진다', () => {
+    const 던짐 = 고친세계('    흘리기(t, 캐x, 캐z) {', "    흘리기(t, 캐x, 캐z) { if (t >= 5) throw new Error('5초 넘음');");
+    expect(() => 한판({ 세계글: 던짐 })).toThrow('게임 세계 코드 흘리기 가 5초에 던졌다 — 5초 넘음');
+  });
+
+  it('내장을 바꾸거나 this 로 전역에 닿는 세계는 받지 않아 한 판이 바꾼 것이 다음 판으로 안 넘어가고, 이어 붙인 이름으로도 무작위 · 시각을 못 쓴다', () => {
+    for (const 나쁜 of ['Math.판수 = 1', "[]['con' + 'cat'].x = 1", "Object.getPrototypeOf([]).filter = 1", '(function () { return this; })().판수 = 1', "Math['ran' + 'dom']()", "(function () { return this; })()['Da' + 'te'].now()"]) {
+      expect(입력읽기(기본({ 세계글: 고친세계('    읽기() {', `    읽기() { ${나쁜};`) }))).toMatchObject({ 틀림: expect.stringContaining('게임 세계 코드') });
+    }
   });
 });

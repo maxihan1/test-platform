@@ -69,6 +69,22 @@ describe('앞 판 재현이 매 순간 맞아야 다음 판이 돈다', () => {
     expect(순서자료(r, 넣음.입력)!.입력).not.toHaveProperty('세계');
   });
 
+  it('세계 파일이 없으면 본보기 세계의 해시를 줄에 남겨, 본보기 세계가 바뀐 뒤에는 게이트가 옛 줄을 막는다', () => {
+    const c = 계산줄('가', 입력());
+    expect(c.learned!.data.입력).toMatchObject({ 세계: { 파일: '본보기 세계', 해시: expect.any(String) } });
+    지도쓰기([곳줄(), 계획줄, c]);
+    expect(막기(계획, [곳줄(), 계획줄, c], 자료, [])).toHaveProperty('기대');
+    const 옛 = { ...c, learned: { ...c.learned!, data: { ...c.learned!.data, 입력: { ...(c.learned!.data.입력 as object), 세계: { 파일: '본보기 세계', 해시: '옛본보기' } } } } };
+    expect(막기(계획, [곳줄(), 계획줄, 옛], 자료, [])).toMatchObject({ 막음: expect.stringContaining('게임 세계 코드(본보기 세계)가 바뀌었다') });
+  });
+
+  it('게임 세계 코드가 판 도중에 던지면 계산기는 어느 함수가 몇 초에 던졌는지 글로 돌려준다 — 계산기가 통째로 죽지 않는다', () => {
+    writeFileSync(join(자료, 'game-calc', 'w.world.js'), 기본세계글.replace('    흘리기(t, 캐x, 캐z) {', "    흘리기(t, 캐x, 캐z) { if (t >= 5) throw new Error('5초 넘음');"));
+    const 경로 = join(자료, 'game-calc', '나.json');
+    const 글 = JSON.stringify(입력({ 세계: 'w.world.js' }));
+    expect(시뮬(입력({ 세계: 'w.world.js' }), { 경로, 글 })).toMatchObject({ 틀림: '게임 세계 코드 흘리기 가 5초에 던졌다 — 5초 넘음' });
+  });
+
   it('판 값기록을 시뮬과 못 이으면(볼값 이름이 다르다) 어긋난 판만 재현 칸과 웨이브 수로 견준다', async () => {
     const c = 계산줄('가', 입력());
     지도쓰기([곳줄(), 계획줄, c]);

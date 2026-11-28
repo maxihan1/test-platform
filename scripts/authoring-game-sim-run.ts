@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 곳격자, 길내기, 맨쌍글 } from './authoring-game-path.js';
-import { type 걷는거리, type 모델, type 시뮬결과, type 잰손, type 점, type 행동, 느린손배, 돌리기, 손넣기, 손셈, 순서표, 엔진판, 입력읽기, 정책글, 찾기, 표글, 행동초첫값 } from '@platform/kit/gameplay';
+import { type 걷는거리, type 모델, type 시뮬결과, type 잰손, type 점, type 행동, 느린손배, 돌리기, 손넣기, 손셈, 순서표, 엔진판, 입력읽기, 기본세계글, 정책글, 세계오류면, 찾기, 표글, 행동초첫값 } from '@platform/kit/gameplay';
 import { type 지도줄, 지금지도 } from './authoring-game-find.js';
 import { 게임자리 } from './authoring-game.js';
 import { 안전히읽기 } from './authoring-screens-keep-io.js';
@@ -142,7 +142,8 @@ export function 근거틀림(m: 모델, 줄들: readonly Pick<지도줄, 'kind' 
  * 파일 이름만 받는다 — 폴더를 넘나들어 작성 폴더 밖 파일을 읽지 못하게. 해시는 줄에 남겨 게이트가 줄을 낸 뒤 세계 코드가 바뀌었나 본다
  */
 export function 세계넣기(입력: Record<string, unknown>, 입력폴더: string | undefined): { 입력: Record<string, unknown>; 세계?: { 파일: string; 해시: string } } | { 틀림: string } {
-  if (입력.세계 === undefined) return { 입력 };
+  // 세계 파일이 없으면 본보기 세계의 해시를 남긴다 — 본보기 세계가 바뀌면 게이트가 옛 줄을 다시 계산하게
+  if (입력.세계 === undefined) return { 입력, 세계: { 파일: '본보기 세계', 해시: 해시(기본세계글) } };
   if (typeof 입력.세계 !== 'string' || !/^[^/\\]+\.js$/.test(입력.세계) || 입력.세계.startsWith('.')) return { 틀림: '세계 는 입력 파일과 같은 폴더에 둔 게임 세계 코드 파일 이름이다(예: "catsgo.world.js" — 폴더를 넘나들지 않는다)' };
   if (입력폴더 === undefined) return { 틀림: '세계 파일은 입력 파일과 같은 폴더에서 읽는다 — 입력을 파일로 준다' };
   let 글: string;
@@ -166,7 +167,10 @@ const 손글 = (잰: 잰손): string => `행동 하나 ${잰.행동초}초${잰.
  * 계산기의 `시뮬` — 입력 파일이 `<자료 폴더>/game-calc/<이름>.json` 이면 손 시간 · 격자 · 재현 기록을 그 자료 폴더에서 읽는다.
  * 결과는 CALC 줄 data 에 그대로 실리니 판마다 늘어나는 예상 · 행동기록은 안 싣는다(게이트가 다시 돌려 얻는다)
  */
-export function 시뮬계산(모델: 모델, 자료: string | undefined, 파일글: string, 파일: string, 넣은입력?: Record<string, unknown>, 세계?: { 파일: string; 해시: string }): { 글: string; 줄글: string[]; 결과: Record<string, unknown>; 입력요약: Record<string, unknown> } | { 틀림: string } {
+export function 시뮬계산(...a: Parameters<typeof 시뮬계산안>): ReturnType<typeof 시뮬계산안> {
+  return 세계오류면(() => 시뮬계산안(...a), (글) => ({ 틀림: 글 }));
+}
+function 시뮬계산안(모델: 모델, 자료: string | undefined, 파일글: string, 파일: string, 넣은입력?: Record<string, unknown>, 세계?: { 파일: string; 해시: string }): { 글: string; 줄글: string[]; 결과: Record<string, unknown>; 입력요약: Record<string, unknown> } | { 틀림: string } {
   if (자료 !== undefined) {
     const 틀 = 근거틀림(모델, 지금지도(자료)?.줄들 ?? null, 빌드글(자료));
     if (틀 !== null) return { 틀림: 틀 };

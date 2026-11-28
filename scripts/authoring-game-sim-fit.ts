@@ -92,7 +92,8 @@ export function 줄맞춘입력(입력: Record<string, unknown>, 맞춘값: unkn
   return { 입력: 맞춘입력(입력, 맞출들, 맞춘값 as Record<string, number>) };
 }
 
-const 칸값들 = (하: number, 상: number): number[] => Array.from({ length: 칸수 }, (_, i) => 둥(하 + ((상 - 하) * i) / (칸수 - 1)));
+// 반올림한 칸 값은 범위 밖으로 나갈 수 있다(1.0004 → 1) — 게이트가 범위 밖이라 막지 않게 범위로 자른다
+const 칸값들 = (하: number, 상: number): number[] => Array.from({ length: 칸수 }, (_, i) => Math.min(상, Math.max(하, 둥(하 + ((상 - 하) * i) / (칸수 - 1)))));
 
 /**
  * 판들을 재현해 오차 합이 가장 작은 값 — 값마다 범위를 아홉 칸으로 나눠 하나씩 바꿔 보고(다른 값은 그대로), 고른 칸 둘레로 좁혀 세 바퀴 돈다. 같은 입력이면 늘 같은 답이다.

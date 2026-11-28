@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import type { 지도줄 } from './authoring-game-find.js';
-import { type 규칙, type 따라갈, type 모델, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가 } from '@platform/kit/gameplay';
+import { type 규칙, type 따라갈, type 모델, 기대여유, 돌리기, 엔진판, 입력읽기, 입력정책인가, 세계오류면 } from '@platform/kit/gameplay';
 import { 격자걷기, 근거틀림, 빌드글, 세계넣기, 손넣기, 손재기, 판재현, 해시, 행동기록읽기 } from './authoring-game-sim-run.js';
 import { 어긋남글, 지속초, 판값들 } from './authoring-game-sim-compare.js';
 import { 줄맞춘입력 } from './authoring-game-sim-fit.js';
@@ -74,7 +74,10 @@ const 깬판수 = (줄들: readonly 줄[], 자료: string, 곳: string): number 
  * 판 함수 인자는 안 본다 — 판은 조작 도우미가 시뮬 순서대로 하고 판 함수는 손동작만 돌려준다.
  * 이어판이면(시간 한도에서 멈춘 판을 같은 계획으로 이어 부른다) 손 시간을 다시 재라 · 앞 판을 재현하라는 조건을 안 건다 — 같은 판의 뒤쪽이라 판이 끝난 뒤에 본다
  */
-export function 시뮬막기(계획: { 곳?: string; 쓸것?: readonly string[]; 볼값: readonly 볼값[] }, 줄들: readonly 줄[], 자료: string, 기록들: readonly 판기록[], 이어판 = false): { 막음: string } | { 기대: 기대[]; 따라갈: 따라갈 } | null {
+export function 시뮬막기(...a: Parameters<typeof 시뮬막기안>): ReturnType<typeof 시뮬막기안> {
+  return 세계오류면(() => 시뮬막기안(...a), (글) => ({ 막음: 글 }));
+}
+function 시뮬막기안(계획: { 곳?: string; 쓸것?: readonly string[]; 볼값: readonly 볼값[] }, 줄들: readonly 줄[], 자료: string, 기록들: readonly 판기록[], 이어판 = false): { 막음: string } | { 기대: 기대[]; 따라갈: 따라갈 } | null {
   if (계획.곳 === undefined) return null;
   const 곳 = 계획.곳;
   const 곳줄 = 곳줄들(줄들).find((x) => x.key === 곳);
@@ -153,7 +156,10 @@ const 재현틀림글 = (판이름: string, a: Parameters<typeof 어긋남글>[0
  * 16104 넷째~여덟째는 검사 안 받은 시뮬이 「1웨이브에서 짐」으로 닫았는데, 밤새 돈 옛 판은 1웨이브에서 처치 60 안팎까지 버텼다.
  * 재현안맞음을 달았으면 거꾸로 그 판 재현이 정말 안 맞아야 받는다(빠져나갈 길로 아무 맵이나 닫지 못하게)
  */
-export function 시뮬불가재현(열쇠: string, data: unknown, 줄들: readonly 줄[], 자료: string, 기록들: readonly 판기록[]): string | null {
+export function 시뮬불가재현(...a: Parameters<typeof 시뮬불가재현안>): ReturnType<typeof 시뮬불가재현안> {
+  return 세계오류면(() => 시뮬불가재현안(...a), (글) => `${a[0]} 의 시뮬불가를 판과 견주지 못했다 — ${글}`);
+}
+function 시뮬불가재현안(열쇠: string, data: unknown, 줄들: readonly 줄[], 자료: string, 기록들: readonly 판기록[]): string | null {
   const 불가 = 시뮬불가읽기(data);
   if (불가 === null || typeof 불가 === 'string') return null;
   const s = 시뮬줄읽기(줄들.find((x) => x.key === 불가.계산 && x.learned !== null));
