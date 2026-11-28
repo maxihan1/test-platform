@@ -45,7 +45,8 @@ export function 판행동기록(기록들: readonly 판기록[], r: 판기록): 
 export function 손재기(자료: string, 곳: string): 잰손 {
   const 지도 = 지금지도(자료);
   if (지도 === null) return { 행동초: 행동초첫값 };
-  const 판들 = [...놀이시작뒤(자료, 판기록들(자료))].reverse().filter((r) => r.값기록 !== undefined && (행동기록읽기(r)?.length ?? 0) > 0);
+  // 안 된 행동만 있는 판은 잴 것이 없다 — 그 판을 고르면 앞 판에서 잰 값을 두고 첫 값으로 돌아간다
+  const 판들 = [...놀이시작뒤(자료, 판기록들(자료))].reverse().filter((r) => r.값기록 !== undefined && 손셈(행동기록읽기(r) ?? []) !== null);
   const 판 = 판들.find((r) => 계획곳(지도.줄들, r.값기록!.계획) === 곳) ?? 판들[0];
   const 잰 = 판 === undefined ? null : 손셈(행동기록읽기(판)!);
   return 잰 === null ? { 행동초: 행동초첫값 } : { ...잰, 기록: 판!.이름 };
@@ -93,7 +94,7 @@ export function 근거틀림(m: 모델, 줄들: readonly Pick<지도줄, 'kind' 
     return 줄 === undefined || 근거아닌종류.has(줄.kind);
   });
   if (틀린.length === 0) return null;
-  if (줄들 === null) return `지도를 못 읽어 유지 · 설치물둘레 근거 ${틀린.join(' · ')} 를 못 봤다 — 자료 폴더의 game-calc 안에서 다시 계산한다`;
+  if (줄들 === null && 틀린.some((k) => !k.startsWith(빌드머리))) return `지도를 못 읽어 유지 · 설치물둘레 근거 ${틀린.join(' · ')} 를 못 봤다 — 자료 폴더의 game-calc 안에서 다시 계산한다`;
   return `유지 · 설치물둘레 근거 ${틀린.join(' · ')} 가 잰 값의 출처가 아니다 — 판 · 지도에서 잰 값이면 그 측정 줄(규칙 · 시간 · 값 줄) 열쇠, 빌드 데이터면 「빌드 데이터:<타입 이름>」을 적는다(곳 · 계획 · 계산 줄은 안 받는다 · 지침 본보기 숫자를 쓰지 않는다)`;
 }
 

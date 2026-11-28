@@ -135,6 +135,8 @@ describe('시뮬로 이기는 안이 있어야 판이 돈다', () => {
     지도쓰기([곳줄(), 계획줄, 줄('RULE', 'rule:식물 둘레', { 곳 })]);
     expect(시뮬(둘레입력('rule:식물 둘레'), { 경로, 글: 글(둘레입력('rule:식물 둘레')) })).not.toHaveProperty('틀림');
     expect(시뮬(둘레입력('rule:없는 줄'), { 경로, 글: 글(둘레입력('rule:없는 줄')) })).toMatchObject({ 틀림: expect.stringContaining('설치물둘레 근거 rule:없는 줄') });
+    rmSync(join(자료, 'game-build-data.json'));
+    expect(시뮬(둘레입력('빌드 데이터:PlaceData'), { 경로, 글: 글(둘레입력('빌드 데이터:PlaceData')) })).toMatchObject({ 틀림: expect.stringContaining('잰 값의 출처가 아니다') });
   });
 
   it('유지 근거가 지도에 없는 열쇠면 계산이 받지 않는다 — 지침 예시 숫자를 베낀 값을 막는다(16102)', () => {
